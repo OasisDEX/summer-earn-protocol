@@ -10,6 +10,7 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {LayerZeroHelper} from "../helpers/LayerZeroHelper.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -55,6 +56,9 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
 
     /// @notice Mapping of message types to their minimum gas limits
     mapping(uint16 msgType => uint128 minGasLimit) public minGasLimits;
+
+    /// @notice Thrown when insufficient fee is provided for a layerzero operation
+    error InsufficientFeeForOptions(uint256 required, uint256 provided);
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -243,8 +247,8 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                 amount
             )
         {
-            // Update transfer status to completed
-            _updateTransferStatus(
+            // Update transfer status to completed in both adapter and bridge
+            _updateTransferStatuses(
                 transferId,
                 BridgeTypes.TransferStatus.COMPLETED
             );
@@ -252,8 +256,8 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
             // Emit event for successful transfer receipt
             emit TransferReceived(transferId, asset, amount, recipient);
         } catch (bytes memory reason) {
-            // Update transfer status to failed
-            _updateTransferStatus(
+            // Update transfer status to failed in both adapter and bridge
+            _updateTransferStatuses(
                 transferId,
                 BridgeTypes.TransferStatus.FAILED
             );
@@ -321,8 +325,11 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         (bytes memory message, address recipient, bytes32 messageId) = abi
             .decode(_payload, (bytes, address, bytes32));
 
-        // Update status
-        _updateTransferStatus(messageId, BridgeTypes.TransferStatus.COMPLETED);
+        // Update status in both adapter and bridge
+        _updateTransferStatuses(
+            messageId,
+            BridgeTypes.TransferStatus.COMPLETED
+        );
 
         // Forward the message to the bridge router
         try
@@ -332,8 +339,11 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                 recipient
             )
         {} catch (bytes memory reason) {
-            // Mark as failed on error
-            _updateTransferStatus(messageId, BridgeTypes.TransferStatus.FAILED);
+            // Mark as failed on error in both adapter and bridge
+            _updateTransferStatuses(
+                messageId,
+                BridgeTypes.TransferStatus.FAILED
+            );
             emit RelayFailed(messageId, reason);
         }
     }
@@ -349,8 +359,11 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
             (bytes32, bytes, address)
         );
 
-        // Update status
-        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.COMPLETED);
+        // Update status in both adapter and bridge
+        _updateTransferStatuses(
+            requestId,
+            BridgeTypes.TransferStatus.COMPLETED
+        );
 
         // Forward the result to the bridge router to deliver to originator
         try
@@ -361,8 +374,11 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         {
             // Already updated status above
         } catch (bytes memory reason) {
-            // Mark as failed if delivery fails
-            _updateTransferStatus(requestId, BridgeTypes.TransferStatus.FAILED);
+            // Mark as failed if delivery fails in both adapter and bridge
+            _updateTransferStatuses(
+                requestId,
+                BridgeTypes.TransferStatus.FAILED
+            );
             emit RelayFailed(requestId, reason);
         }
     }
@@ -377,8 +393,11 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
             (bytes32, bytes[])
         );
 
-        // Update status
-        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.COMPLETED);
+        // Update status in both adapter and bridge
+        _updateTransferStatuses(
+            requestId,
+            BridgeTypes.TransferStatus.COMPLETED
+        );
 
         // Forward the actions to the bridge router for sequential execution
         try
@@ -388,8 +407,11 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                 bridgeRouter // Bridge router itself will handle executing the actions
             )
         {} catch (bytes memory reason) {
-            // Mark as failed on error
-            _updateTransferStatus(requestId, BridgeTypes.TransferStatus.FAILED);
+            // Mark as failed on error in both adapter and bridge
+            _updateTransferStatuses(
+                requestId,
+                BridgeTypes.TransferStatus.FAILED
+            );
             emit RelayFailed(requestId, reason);
         }
     }
@@ -404,6 +426,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         address asset,
         address recipient,
         uint256 amount,
+        address originator,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId) {
         // Verify the caller is the BridgeRouter
@@ -423,9 +446,6 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                 block.timestamp
             )
         );
-
-        // Update transfer status to pending
-        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.PENDING);
 
         // Encode payload for LayerZero
         bytes memory payload = abi.encode(requestId, asset, amount, recipient);
@@ -454,7 +474,13 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
             payload,
             options,
             MessagingFee(msg.value, 0),
-            payable(bridgeRouter) // refund address
+            payable(originator)
+        );
+
+        // Mark this transfer as pending in the adapter only
+        _updateAdapterTransferStatus(
+            requestId,
+            BridgeTypes.TransferStatus.PENDING
         );
 
         // Emit event for transfer initiation
@@ -559,6 +585,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         address sourceContract,
         bytes4 selector,
         bytes calldata readParams,
+        address originator,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId) {
         // Only the BridgeRouter should call this function
@@ -600,7 +627,10 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         bytes memory options = _prepareOptions(adapterParams, STATE_READ);
 
         // Mark this request as pending
-        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.PENDING);
+        _updateAdapterTransferStatus(
+            requestId,
+            BridgeTypes.TransferStatus.PENDING
+        );
 
         // Send message through OApp's _lzSend
         _lzSend(
@@ -608,7 +638,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
             payload,
             options,
             MessagingFee(msg.value, 0),
-            payable(bridgeRouter) // refund address
+            payable(originator)
         );
 
         return requestId;
@@ -681,13 +711,17 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         );
 
         // Update transfer status to pending
-        _updateTransferStatus(transferId, BridgeTypes.TransferStatus.PENDING);
+        _updateAdapterTransferStatus(
+            transferId,
+            BridgeTypes.TransferStatus.PENDING
+        );
     }
 
     /// @inheritdoc ISendAdapter
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
+        address originator,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId) {
         // Verify the caller is the BridgeRouter
@@ -707,7 +741,10 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         );
 
         // Mark this request as pending
-        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.PENDING);
+        _updateAdapterTransferStatus(
+            requestId,
+            BridgeTypes.TransferStatus.PENDING
+        );
 
         // Encode payload for LayerZero with COMPOSE message type
         bytes memory payload = abi.encodePacked(
@@ -720,18 +757,18 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
 
         // Get required fee based on enforced options
         uint256 requiredFee = getRequiredFee(lzDstEid, COMPOSE, payload);
-        require(
-            msg.value >= requiredFee,
-            "Insufficient fee for enforced options"
-        );
 
         // Send message through OApp's _lzSend
+        if (msg.value < requiredFee) {
+            revert InsufficientFeeForOptions(requiredFee, msg.value);
+        }
+
         _lzSend(
             lzDstEid,
             payload,
             options,
             MessagingFee(msg.value, 0),
-            payable(bridgeRouter) // refund address
+            payable(originator)
         );
 
         return requestId;
@@ -742,18 +779,43 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Updates the status of a transfer
+     * @notice Updates the status of a transfer in the adapter only
      * @param transferId ID of the transfer to update
      * @param status New status to set
-     * @dev This function is internal and updates the transfer status
+     * @dev Updates only local adapter status
      */
-    function _updateTransferStatus(
+    function _updateAdapterTransferStatus(
         bytes32 transferId,
         BridgeTypes.TransferStatus status
     ) internal {
+        // Update status in this adapter
         transferStatuses[transferId] = status;
+    }
 
-        // Notify the BridgeRouter of the status change
+    /**
+     * @notice Updates the status of a transfer on bridge router only
+     * @param transferId ID of the transfer to update
+     * @param status New status to set
+     */
+    function _updateBridgeTransferStatus(
+        bytes32 transferId,
+        BridgeTypes.TransferStatus status
+    ) internal {
+        IBridgeRouter(bridgeRouter).updateTransferStatus(transferId, status);
+    }
+
+    /**
+     * @notice Updates the status of a transfer in both adapter and bridge router
+     * @param transferId ID of the transfer to update
+     * @param status New status to set
+     */
+    function _updateTransferStatuses(
+        bytes32 transferId,
+        BridgeTypes.TransferStatus status
+    ) internal {
+        // Update status in this adapter
+        transferStatuses[transferId] = status;
+        // Update status in bridge router
         IBridgeRouter(bridgeRouter).updateTransferStatus(transferId, status);
     }
 
@@ -789,18 +851,39 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         // Get minimum gas limit for this message type
         uint128 minimumGas = minGasLimits[msgType];
 
+        // Ensure gas limit meets minimum requirements
+        uint128 gasLimit = adapterParams.gasLimit < minimumGas
+            ? minimumGas
+            : uint128(adapterParams.gasLimit);
+
         // Use the helper to create messaging options with minimum gas limit enforcement
         if (msgType == STATE_READ) {
             return
                 LayerZeroHelper.createLzReadOptions(adapterParams, minimumGas);
         } else if (msgType == COMPOSE) {
-            // For compose operations, we need to specify an index (using 0 as default)
-            return
-                LayerZeroHelper.createComposeOptions(
-                    0,
-                    adapterParams,
-                    minimumGas
-                );
+            // For compose actions, we need to create options with BOTH:
+            // 1. lzReceive options (required for the initial receive)
+            // 2. lzCompose options (required for the composed call)
+
+            // Start with empty options
+            bytes memory options = OptionsBuilder.newOptions();
+
+            // First add the lzReceive option with gas (required to avoid Executor_ZeroLzReceiveGasProvided)
+            options = OptionsBuilder.addExecutorLzReceiveOption(
+                options,
+                50000, // Explicit non-zero gas for message receipt
+                0 // No msg.value for the receive
+            );
+
+            // Then add the lzCompose option with gas for the composed action execution
+            options = OptionsBuilder.addExecutorLzComposeOption(
+                options,
+                0, // Default index
+                gasLimit,
+                adapterParams.msgValue
+            );
+
+            return options;
         } else {
             return
                 LayerZeroHelper.createMessagingOptions(
@@ -825,38 +908,55 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         // Get minimum gas limit for this message type
         uint128 minimumGas = minGasLimits[_msgType];
 
-        // Create default options with minimum gas limit - ensure we cast to uint64 for gasLimit
+        // Create default options with minimum gas limit
         bytes memory options;
 
         if (_msgType == STATE_READ) {
             // For state read, create read options with minimum gas
             BridgeTypes.AdapterParams memory params = BridgeTypes
                 .AdapterParams({
-                    gasLimit: uint64(minimumGas), // Cast to uint64
+                    gasLimit: uint64(minimumGas),
                     msgValue: 0,
                     calldataSize: 0,
                     options: bytes("")
                 });
             options = LayerZeroHelper.createLzReadOptions(params, minimumGas);
         } else if (_msgType == COMPOSE) {
-            // For compose, create compose options with minimum gas
-            BridgeTypes.AdapterParams memory params = BridgeTypes
+            // For COMPOSE, we need both lzReceive and lzCompose options
+            // First create standard messaging options for lzReceive
+            BridgeTypes.AdapterParams memory receiveParams = BridgeTypes
                 .AdapterParams({
-                    gasLimit: uint64(minimumGas), // Cast to uint64
+                    gasLimit: 50000, // Non-zero gas for message receipt
                     msgValue: 0,
                     calldataSize: 0,
                     options: bytes("")
                 });
+
+            // Add lzReceive option
+            options = LayerZeroHelper.createMessagingOptions(
+                receiveParams,
+                50000
+            );
+
+            // Now add lzCompose option on top of that
+            BridgeTypes.AdapterParams memory composeParams = BridgeTypes
+                .AdapterParams({
+                    gasLimit: uint64(minimumGas),
+                    msgValue: 0,
+                    calldataSize: 0,
+                    options: options // Use the options with lzReceive already added
+                });
+
             options = LayerZeroHelper.createComposeOptions(
                 0,
-                params,
+                composeParams,
                 minimumGas
             );
         } else {
             // For standard messaging, create messaging options with minimum gas
             BridgeTypes.AdapterParams memory params = BridgeTypes
                 .AdapterParams({
-                    gasLimit: uint64(minimumGas), // Cast to uint64
+                    gasLimit: uint64(minimumGas),
                     msgValue: 0,
                     calldataSize: 0,
                     options: bytes("")

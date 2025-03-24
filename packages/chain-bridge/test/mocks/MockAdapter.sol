@@ -9,6 +9,11 @@ import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 contract MockAdapter is IBridgeAdapter {
     address public bridgeRouter;
 
+    // Add error definitions
+    error Unauthorized();
+    error UnsupportedChain();
+    error UnsupportedAsset();
+
     // Add a fee multiplier state variable with a default value of 100 (100%)
     uint256 public feeMultiplier = 100;
 
@@ -59,23 +64,38 @@ contract MockAdapter is IBridgeAdapter {
         address asset,
         address recipient,
         uint256 amount,
+        address originator,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
-        // Generate a deterministic transfer ID for testing purposes
-        bytes32 transferId = keccak256(
-            abi.encode(
+    ) external payable returns (bytes32 transferId) {
+        // Check caller is bridge router
+        if (msg.sender != bridgeRouter) revert Unauthorized();
+
+        // Verify chain and asset are supported
+        if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
+        if (!this.supportsAsset(destinationChainId, asset))
+            revert UnsupportedAsset();
+
+        // Generate deterministic transfer ID for testing
+        transferId = keccak256(
+            abi.encodePacked(
+                block.chainid,
                 destinationChainId,
                 asset,
                 recipient,
-                amount,
-                block.timestamp
+                amount
             )
         );
 
-        // Mark transfer as pending
-        transferStatuses[transferId] = BridgeTypes.TransferStatus.PENDING;
+        // Mock transfer successful - emit event for testing
+        emit MockTransferInitiated(
+            transferId,
+            destinationChainId,
+            asset,
+            recipient,
+            amount,
+            originator
+        );
 
-        // Return the transfer ID
         return transferId;
     }
 
@@ -84,14 +104,38 @@ contract MockAdapter is IBridgeAdapter {
         uint16 sourceChainId,
         address sourceContract,
         bytes4 selector,
-        bytes calldata params,
+        bytes calldata readParams,
+        address originator,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
-        // Simple mock implementation
-        return
-            keccak256(
-                abi.encode(sourceChainId, sourceContract, selector, params)
-            );
+    ) external payable returns (bytes32 requestId) {
+        // Check caller is bridge router
+        if (msg.sender != bridgeRouter) revert Unauthorized();
+
+        // Verify chain is supported
+        if (!this.supportsChain(sourceChainId)) revert UnsupportedChain();
+
+        // Generate deterministic request ID for testing
+        requestId = keccak256(
+            abi.encodePacked(
+                block.chainid,
+                sourceChainId,
+                sourceContract,
+                selector,
+                readParams
+            )
+        );
+
+        // Mock read successful - emit event for testing
+        emit MockReadInitiated(
+            requestId,
+            sourceChainId,
+            sourceContract,
+            selector,
+            readParams,
+            originator
+        );
+
+        return requestId;
     }
 
     /// @inheritdoc ISendAdapter
@@ -168,14 +212,12 @@ contract MockAdapter is IBridgeAdapter {
     function estimateFee(
         uint16,
         address,
-        uint256,
-        BridgeTypes.AdapterParams calldata adapterParams
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Mock fee calculation - apply the fee multiplier
-        nativeFee = (adapterParams.gasLimit * 2 gwei * feeMultiplier) / 100;
-        tokenFee = 0; // No token fee in this mock
-
-        return (nativeFee, tokenFee);
+        uint256 amount,
+        BridgeTypes.AdapterParams calldata
+    ) external view override returns (uint256 nativeFee, uint256 tokenFee) {
+        // Return fee based on multiplier
+        nativeFee = (amount * feeMultiplier) / 100;
+        return (nativeFee, 0);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -246,39 +288,66 @@ contract MockAdapter is IBridgeAdapter {
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
-        BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32) {
-        // Check if chain is supported
-        require(supportedChains[destinationChainId], "Chain not supported");
+        address originator,
+        BridgeTypes.AdapterParams calldata
+    ) external payable returns (bytes32 requestId) {
+        // Check caller is bridge router
+        if (msg.sender != bridgeRouter) revert Unauthorized();
 
-        // Generate a deterministic transfer ID for testing purposes
-        bytes32 transferId = keccak256(
-            abi.encode(
+        // Verify chain is supported
+        if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
+
+        // Generate deterministic request ID for testing
+        bytes32 actionsHash = keccak256(abi.encode(actions));
+        requestId = keccak256(
+            abi.encodePacked(
+                block.chainid,
                 destinationChainId,
-                actions,
-                adapterParams.gasLimit,
-                block.timestamp
+                actionsHash,
+                originator
             )
         );
 
-        // Store message details for verification in tests
-        lastReceivedChainId = destinationChainId;
-        lastReceivedRequestId = transferId;
-        lastReceivedExtraData = abi.encode(actions);
+        // Mock compose successful - emit event for testing
+        emit MockComposeInitiated(
+            requestId,
+            destinationChainId,
+            actions,
+            originator
+        );
 
-        // Mark transfer as pending
-        transferStatuses[transferId] = BridgeTypes.TransferStatus.PENDING;
-
-        // Emit event for testing purposes
-        emit ActionComposed(transferId, destinationChainId, actions.length);
-
-        return transferId;
+        return requestId;
     }
 
-    // Add an event for composed actions
+    // Add events for the different operations
     event ActionComposed(
         bytes32 indexed transferId,
         uint16 destinationChainId,
         uint256 actionCount
+    );
+
+    event MockTransferInitiated(
+        bytes32 transferId,
+        uint16 destinationChainId,
+        address asset,
+        address recipient,
+        uint256 amount,
+        address originator
+    );
+
+    event MockReadInitiated(
+        bytes32 requestId,
+        uint16 sourceChainId,
+        address sourceContract,
+        bytes4 selector,
+        bytes readParams,
+        address originator
+    );
+
+    event MockComposeInitiated(
+        bytes32 requestId,
+        uint16 destinationChainId,
+        bytes[] actions,
+        address originator
     );
 }

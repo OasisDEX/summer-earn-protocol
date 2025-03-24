@@ -163,6 +163,10 @@ contract BridgeRouterAdaptersTest is Test {
 
     function testSpecifiedAdapter() public {
         vm.startPrank(governor);
+        // Configure mockAdapter2 to support the destination chain and asset
+        mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
+        mockAdapter2.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
+
         // Register second adapter
         router.registerAdapter(address(mockAdapter2));
         vm.stopPrank();
