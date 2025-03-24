@@ -3,12 +3,13 @@ pragma solidity ^0.8.28;
 
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+
 /**
- * @title LayerZeroHelper
+ * @title LayerZeroOptionsHelper
  * @notice Helper library for standardizing LayerZero options creation
  * @dev Provides consistent methods for creating options for different LayerZero operations
  */
-library LayerZeroHelper {
+library LayerZeroOptionsHelper {
     using OptionsBuilder for bytes;
 
     // Option types
