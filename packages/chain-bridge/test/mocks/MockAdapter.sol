@@ -279,11 +279,6 @@ contract MockAdapter is IBridgeAdapter {
         return supportedAssets[chainId][asset];
     }
 
-    function getAdapterType() external pure override returns (uint8) {
-        // Return a type value for mock adapter (e.g., 0 for mock)
-        return 0;
-    }
-
     /// @inheritdoc ISendAdapter
     function composeActions(
         uint16 destinationChainId,

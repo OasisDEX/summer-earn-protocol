@@ -666,12 +666,6 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         return true;
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getAdapterType() external pure override returns (uint8) {
-        // Return adapter type for LayerZero (e.g., 1 for LayerZero)
-        return 1;
-    }
-
     /// @inheritdoc ISendAdapter
     function requestAssetTransfer(
         address asset,

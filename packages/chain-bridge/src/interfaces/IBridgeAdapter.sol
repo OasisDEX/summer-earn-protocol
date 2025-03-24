@@ -51,9 +51,4 @@ interface IBridgeAdapter is ISendAdapter, IReceiveAdapter {
         uint16 chainId,
         address asset
     ) external view returns (bool);
-
-    /**
-     * @notice Get the type of an adapter
-     */
-    function getAdapterType() external view returns (uint8);
 }

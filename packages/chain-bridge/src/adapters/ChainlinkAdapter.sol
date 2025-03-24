@@ -163,12 +163,6 @@ contract ChainlinkAdapter is IBridgeAdapter {
         revert Unimplemented();
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getAdapterType() external pure override returns (uint8) {
-        // Return adapter type for Chainlink (e.g., 2 for Chainlink)
-        return 2;
-    }
-
     /// @inheritdoc ISendAdapter
     function composeActions(
         uint16,
