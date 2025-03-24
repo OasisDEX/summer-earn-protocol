@@ -33,9 +33,10 @@ index 4556fa5e6b6dce3cc02e51e77bf9406631037b1a..61ffb473738b6e8e9797efc134a2050d
 +});
 +
  async function getChain(provider) {
-     const chains = require("viem/chains");
-+    // Add Sonic chain
-+    chains.sonic = sonicChain;
+-    const chains = require("viem/chains");
++    const importedChains = require("viem/chains");
++    // Create a new object with all imported chains plus our Sonic chain
++    const chains = {...importedChains, sonic: sonicChain};
 +    
      const chainId = await getChainId(provider);
      if (isDevelopmentNetwork(chainId)) {
@@ -80,9 +81,10 @@ index 013f62b9ae6205f941b5d485651fe23f2d2a234e..484970ec682610b950a77bd563717398
 +});
 +
  export async function getChain(provider: EthereumProvider): Promise<Chain> {
-   const chains: Record<string, Chain> = require("viem/chains");
-+  // Add Sonic chain
-+  chains.sonic = sonicChain;
+-  const chains: Record<string, Chain> = require("viem/chains");
++  const importedChains = require("viem/chains");
++  // Create a new object with all imported chains plus our Sonic chain
++  const chains: Record<string, Chain> = {...importedChains, sonic: sonicChain};
 +  
    const chainId = await getChainId(provider);
  
