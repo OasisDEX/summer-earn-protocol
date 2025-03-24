@@ -372,9 +372,8 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         address asset,
         address recipient,
         uint256 amount,
-        uint256 gasLimit,
-        bytes calldata adapterParams
-    ) external payable override returns (bytes32 requestId) {
+        BridgeTypes.AdapterOptions calldata adapterOptions
+    ) external payable returns (bytes32 requestId) {
         // Verify the caller is the BridgeRouter
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
@@ -411,9 +410,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
 
         // Default options for messaging with appropriate gas limit
         bytes memory options = LayerZeroHelper.createMessagingOptions(
-            gasLimit > 0
-                ? uint128(gasLimit)
-                : LayerZeroHelper.getDefaultGasLimit(false),
+            LayerZeroHelper.getDefaultGasLimit(false),
             uint128(msg.value)
         );
 
@@ -443,9 +440,8 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        uint256 gasLimit,
-        bytes calldata adapterParams
-    ) external view override returns (uint256 nativeFee, uint256 tokenFee) {
+        BridgeTypes.AdapterOptions calldata adapterOptions
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Convert destinationChainId to LayerZero EID
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
@@ -459,15 +455,15 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
 
         // Extract value to forward from adapterParams if provided
         uint128 valueToForward = 0;
-        if (adapterParams.length >= 32) {
+        if (adapterOptions.msgValue > 0) {
             // First 32 bytes can contain the value to forward
-            valueToForward = uint128(abi.decode(adapterParams, (uint256)));
+            valueToForward = uint128(adapterOptions.msgValue);
         }
 
         // Prepare user-requested options with gas limit for lzReceive
         bytes memory userOptions = LayerZeroHelper.createMessagingOptions(
-            gasLimit > 0
-                ? uint128(gasLimit)
+            adapterOptions.gasLimit > 0
+                ? uint128(adapterOptions.gasLimit)
                 : LayerZeroHelper.getDefaultGasLimit(false),
             valueToForward // Use extracted value instead of msg.value
         );
@@ -548,9 +544,8 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         address sourceContract,
         bytes4 selector,
         bytes calldata params,
-        uint256 gasLimit,
-        bytes calldata adapterParams
-    ) external payable override returns (bytes32 requestId) {
+        BridgeTypes.AdapterOptions calldata adapterOptions
+    ) external payable returns (bytes32 requestId) {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
@@ -583,12 +578,10 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
 
         // Create lzRead options with appropriate parameters for state reading
         bytes memory options = LayerZeroHelper.createLzReadOptions(
-            gasLimit > 0
-                ? uint128(gasLimit)
-                : LayerZeroHelper.getDefaultGasLimit(true),
+            LayerZeroHelper.getDefaultGasLimit(true),
             uint32(params.length + 32), // Estimate return calldata size
             0, // No msg.value to forward
-            adapterParams
+            adapterOptions
         );
 
         // Mark this request as pending
@@ -680,8 +673,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
-        uint256 gasLimit,
-        bytes calldata adapterParams
+        BridgeTypes.AdapterOptions calldata adapterOptions
     ) external payable returns (bytes32 requestId) {
         // Verify the caller is the BridgeRouter
         if (msg.sender != bridgeRouter) revert Unauthorized();
@@ -710,8 +702,8 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
 
         // Create options with appropriate gas for composed actions
         bytes memory options = LayerZeroHelper.createMessagingOptions(
-            gasLimit > 0
-                ? uint128(gasLimit)
+            adapterOptions.gasLimit > 0
+                ? uint128(adapterOptions.gasLimit)
                 : LayerZeroHelper.getDefaultGasLimit(true),
             uint128(msg.value)
         );

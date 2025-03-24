@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 /**
  * @title LayerZeroHelper
  * @notice Helper library for standardizing LayerZero options creation
@@ -40,14 +40,14 @@ library LayerZeroHelper {
      * @param gasLimit Gas limit for execution
      * @param calldataSize Size of the expected return calldata
      * @param msgValue Native value to send with the execution (optional)
-     * @param adapterParams Additional adapter params (optional)
+     * @param adapterOptions Additional adapter params (optional)
      * @return Options bytes formatted for LayerZero lzRead operations
      */
     function createLzReadOptions(
         uint128 gasLimit,
         uint32 calldataSize,
         uint128 msgValue,
-        bytes memory adapterParams
+        BridgeTypes.AdapterOptions calldata adapterOptions
     ) internal pure returns (bytes memory) {
         // Use OptionsBuilder to generate the correct option format for LayerZero v2
         return
