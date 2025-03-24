@@ -408,11 +408,25 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             }
         }
 
-        // Default options for messaging with appropriate gas limit
+        // Use gas limit from adapter options if provided, otherwise use default
+        uint128 gasLimit = adapterOptions.gasLimit > 0
+            ? uint128(adapterOptions.gasLimit)
+            : LayerZeroHelper.getDefaultGasLimit(false);
+
+        // Use msgValue from adapter options if provided, otherwise use msg.value
+        uint128 valueToForward = adapterOptions.msgValue > 0
+            ? uint128(adapterOptions.msgValue)
+            : uint128(msg.value);
+
+        // Create messaging options with appropriate parameters and user options
         bytes memory options = LayerZeroHelper.createMessagingOptions(
-            LayerZeroHelper.getDefaultGasLimit(false),
-            uint128(msg.value)
+            gasLimit,
+            valueToForward,
+            adapterOptions
         );
+
+        // Combine with enforced options
+        options = combineOptions(lzDstEid, TRANSFER, options);
 
         // Send message through OApp's _lzSend
         _lzSend(
@@ -453,20 +467,25 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             address(0) // dummy recipient address
         );
 
-        // Extract value to forward from adapterParams if provided
-        uint128 valueToForward = 0;
-        if (adapterOptions.msgValue > 0) {
-            // First 32 bytes can contain the value to forward
-            valueToForward = uint128(adapterOptions.msgValue);
-        }
+        // Use gas limit from adapter options if provided, otherwise use default
+        uint128 gasLimit = adapterOptions.gasLimit > 0
+            ? uint128(adapterOptions.gasLimit)
+            : LayerZeroHelper.getDefaultGasLimit(false);
+
+        // Extract value to forward from adapterOptions if provided
+        uint128 valueToForward = adapterOptions.msgValue > 0
+            ? uint128(adapterOptions.msgValue)
+            : 0;
 
         // Prepare user-requested options with gas limit for lzReceive
         bytes memory userOptions = LayerZeroHelper.createMessagingOptions(
-            adapterOptions.gasLimit > 0
-                ? uint128(adapterOptions.gasLimit)
-                : LayerZeroHelper.getDefaultGasLimit(false),
-            valueToForward // Use extracted value instead of msg.value
+            gasLimit,
+            valueToForward,
+            adapterOptions
         );
+
+        // Combine with any enforced options
+        userOptions = combineOptions(lzDstEid, TRANSFER, userOptions);
 
         // Get the fee required for user options
         MessagingFee memory userFee = _quote(
@@ -476,14 +495,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             false
         );
 
-        // Get the required fee based on enforced options
-        uint256 enforcedFee = getRequiredFee(lzDstEid, TRANSFER, payload);
-
-        // Return the higher of the two fees
-        return (
-            userFee.nativeFee > enforcedFee ? userFee.nativeFee : enforcedFee,
-            userFee.lzTokenFee
-        );
+        return (userFee.nativeFee, userFee.lzTokenFee);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -564,6 +576,21 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         // Get the LayerZero EID for source chain
         uint32 lzSrcEid = _getLayerZeroEid(sourceChainId);
 
+        // Use gas limit from adapter options if provided, otherwise use default
+        uint128 gasLimit = adapterOptions.gasLimit > 0
+            ? uint128(adapterOptions.gasLimit)
+            : LayerZeroHelper.getDefaultGasLimit(true);
+
+        // Use calldataSize from adapter options if provided
+        uint32 calldataSize = adapterOptions.calldataSize > 0
+            ? uint32(adapterOptions.calldataSize)
+            : uint32(params.length + 32); // Default estimate
+
+        // Use msgValue from adapter options if provided, otherwise use msg.value
+        uint128 valueToForward = adapterOptions.msgValue > 0
+            ? uint128(adapterOptions.msgValue)
+            : uint128(msg.value);
+
         // Encode the read state request payload
         bytes memory payload = abi.encodePacked(
             uint16(2), // STATE_READ message type
@@ -578,11 +605,14 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
 
         // Create lzRead options with appropriate parameters for state reading
         bytes memory options = LayerZeroHelper.createLzReadOptions(
-            LayerZeroHelper.getDefaultGasLimit(true),
-            uint32(params.length + 32), // Estimate return calldata size
-            0, // No msg.value to forward
+            gasLimit,
+            calldataSize,
+            valueToForward,
             adapterOptions
         );
+
+        // Combine with enforced options
+        options = combineOptions(lzSrcEid, STATE_READ, options);
 
         // Mark this request as pending
         _updateTransferStatus(requestId, BridgeTypes.TransferStatus.PENDING);
