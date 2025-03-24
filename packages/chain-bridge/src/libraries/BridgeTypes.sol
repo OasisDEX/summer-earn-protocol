@@ -18,13 +18,12 @@ library BridgeTypes {
     }
 
     /**
-     * @notice Options structure for LayerZero operations
+     * @notice Generic adapter options structure for cross-chain operations
      */
-    struct LayerZeroOptions {
-        uint8 optionType; // Type of LayerZero option (standard, read, etc.)
-        uint64 gasLimit; // Gas limit for execution
-        uint64 calldataSize; // Size of expected return calldata (for lzRead)
-        uint128 msgValue; // Native value to forward (for lzRead with msgValue)
+    struct AdapterOptions {
+        uint64 gasLimit; // Gas limit for execution on destination chain
+        uint64 calldataSize; // Size of expected return calldata (for read operations)
+        uint128 msgValue; // Native value to forward (for operations requiring value)
         bytes adapterParams; // Additional adapter-specific parameters
     }
 
@@ -32,8 +31,7 @@ library BridgeTypes {
      * @notice Bridge options structure
      */
     struct BridgeOptions {
-        address specifiedAdapter;
-        uint8 bridgePreference;
-        LayerZeroOptions lzOptions;
+        address specifiedAdapter; // Optional specific adapter to use (address(0) means auto-select)
+        AdapterOptions adapterOptions; // Generic adapter options
     }
 }

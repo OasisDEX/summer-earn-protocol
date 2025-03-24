@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+
 /**
  * @title LayerZeroHelper
  * @notice Helper library for standardizing LayerZero options creation
  * @dev Provides consistent methods for creating options for different LayerZero operations
  */
 library LayerZeroHelper {
+    using OptionsBuilder for bytes;
+
     // Option types
     uint8 internal constant OPTION_TYPE_EXECUTOR = 1;
     uint8 internal constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
@@ -16,26 +20,19 @@ library LayerZeroHelper {
     /**
      * @notice Creates standard messaging options with appropriate gas limit
      * @param gasLimit Gas limit for execution
-     * @param adapterParams Additional adapter params (optional)
+     * @param msgValue Native value to send with the execution (optional)
      * @return Options bytes formatted for LayerZero standard messaging
      */
     function createMessagingOptions(
-        uint64 gasLimit,
-        bytes memory adapterParams
+        uint128 gasLimit,
+        uint128 msgValue
     ) internal pure returns (bytes memory) {
-        // Start with version 1 and option type for standard execution
-        bytes memory options = abi.encodePacked(
-            uint16(1), // version
-            uint8(OPTION_TYPE_EXECUTOR_LZ_RECEIVE), // option type
-            gasLimit // gas limit as uint64
-        );
-
-        // Append additional params if provided
-        if (adapterParams.length > 0) {
-            options = bytes.concat(options, adapterParams);
-        }
-
-        return options;
+        // Use OptionsBuilder to generate the correct option format for LayerZero v2
+        return
+            OptionsBuilder.newOptions().addExecutorLzReceiveOption(
+                gasLimit,
+                msgValue
+            );
     }
 
     /**
@@ -47,26 +44,38 @@ library LayerZeroHelper {
      * @return Options bytes formatted for LayerZero lzRead operations
      */
     function createLzReadOptions(
-        uint64 gasLimit,
-        uint64 calldataSize,
+        uint128 gasLimit,
+        uint32 calldataSize,
         uint128 msgValue,
         bytes memory adapterParams
     ) internal pure returns (bytes memory) {
-        // Create options for lzRead with version 1
-        bytes memory options = abi.encodePacked(
-            uint16(1), // version
-            uint8(OPTION_TYPE_EXECUTOR_LZ_READ), // option type
-            gasLimit, // gas limit as uint64
-            calldataSize, // calldata size as uint64
-            msgValue // msg.value as uint128
-        );
+        // Use OptionsBuilder to generate the correct option format for LayerZero v2
+        return
+            OptionsBuilder.newOptions().addExecutorLzReadOption(
+                gasLimit,
+                calldataSize,
+                msgValue
+            );
+    }
 
-        // Append additional params if provided
-        if (adapterParams.length > 0) {
-            options = bytes.concat(options, adapterParams);
-        }
-
-        return options;
+    /**
+     * @notice Creates options for composed calls
+     * @param index The index of the compose function call
+     * @param gasLimit Gas limit for execution
+     * @param msgValue Native value to send with the execution
+     * @return Options bytes formatted for LayerZero lzCompose
+     */
+    function createComposeOptions(
+        uint16 index,
+        uint128 gasLimit,
+        uint128 msgValue
+    ) internal pure returns (bytes memory) {
+        return
+            OptionsBuilder.newOptions().addExecutorLzComposeOption(
+                index,
+                gasLimit,
+                msgValue
+            );
     }
 
     /**
@@ -76,7 +85,7 @@ library LayerZeroHelper {
      */
     function getDefaultGasLimit(
         bool isReadOperation
-    ) internal pure returns (uint64) {
+    ) internal pure returns (uint128) {
         return isReadOperation ? 200000 : 500000;
     }
 }

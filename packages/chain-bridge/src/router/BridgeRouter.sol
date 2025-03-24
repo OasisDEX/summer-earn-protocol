@@ -10,7 +10,7 @@ import {IReceiveAdapter} from "../interfaces/IReceiveAdapter.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
-import {LayerZeroHelper} from "../helpers/LayerZeroHelper.sol";
+import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 
 /**
  * @title BridgeRouter
@@ -84,6 +84,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         BridgeTypes.TransferStatus status
     );
 
+    /// @notice Emitted when composed actions are initiated
+    event ComposedActionsInitiated(
+        bytes32 indexed requestId,
+        uint16 destinationChainId,
+        uint256 actionCount,
+        address adapter
+    );
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -143,12 +151,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         // Use specified adapter or find the best one
         address adapter = options.specifiedAdapter;
         if (adapter == address(0)) {
-            adapter = getBestAdapter(
-                destinationChainId,
-                asset,
-                amount,
-                options.bridgePreference
-            );
+            adapter = getBestAdapter(destinationChainId, asset, amount);
         } else if (!adapters.contains(adapter)) {
             revert UnknownAdapter();
         }
@@ -162,19 +165,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         IERC20(asset).approve(adapter, 0);
         IERC20(asset).approve(adapter, amount);
 
-        // Prepare the gas limit and adapter params for the transfer
-        uint256 gasLimit = options.lzOptions.gasLimit > 0
-            ? uint256(options.lzOptions.gasLimit)
-            : uint256(LayerZeroHelper.getDefaultGasLimit(false));
-
-        // Call the adapter to initiate the transfer
+        // Call the adapter to initiate the transfer - pass all adapter options directly
         transferId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
             destinationChainId,
             asset,
             recipient,
             amount,
-            gasLimit,
-            options.lzOptions.adapterParams
+            options.adapterOptions
         );
 
         // Update state
@@ -204,28 +201,24 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         if (paused) revert Paused();
 
         // Select the best adapter for this read request
-        address adapter = getBestAdapter(
-            sourceChainId,
-            address(0), // No asset for read requests
-            0, // No amount for read requests
-            options.bridgePreference
-        );
+        address adapter = options.specifiedAdapter;
+        if (adapter == address(0)) {
+            adapter = getBestAdapter(
+                sourceChainId,
+                address(0), // No asset for read requests
+                0 // No amount for read requests
+            );
+        }
 
         if (adapter == address(0)) revert NoSuitableAdapter();
 
-        // Call the adapter's read function
-        // Prepare the gas limit and adapter params for the read operation
-        uint256 gasLimit = options.lzOptions.gasLimit > 0
-            ? uint256(options.lzOptions.gasLimit)
-            : uint256(LayerZeroHelper.getDefaultGasLimit(true));
-
+        // Let the adapter handle gas limits and other options
         requestId = IBridgeAdapter(adapter).readState{value: msg.value}(
             sourceChainId,
             sourceContract,
             selector,
             params,
-            gasLimit,
-            options.lzOptions.adapterParams
+            options.adapterOptions
         );
 
         // Store the originator of this request
@@ -258,24 +251,69 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
     {
-        selectedAdapter = getBestAdapter(
-            destinationChainId,
-            asset,
-            amount,
-            options.bridgePreference
-        );
+        selectedAdapter = getBestAdapter(destinationChainId, asset, amount);
 
         if (selectedAdapter == address(0)) revert NoSuitableAdapter();
 
+        // Let the adapter interpret the options itself
         (nativeFee, tokenFee) = IBridgeAdapter(selectedAdapter).estimateFee(
             destinationChainId,
             asset,
             amount,
-            options.lzOptions.gasLimit,
-            options.lzOptions.adapterParams
+            options.adapterOptions
         );
 
         return (nativeFee, tokenFee, selectedAdapter);
+    }
+
+    /**
+     * @notice Execute multiple cross-chain actions in a single atomic transaction
+     * @param destinationChainId Chain where actions will be executed
+     * @param actions Array of encoded actions to execute sequentially
+     * @param options Bridge options including adapter params and gas limits
+     * @return requestId Unique ID for tracking the composed request
+     */
+    function composeActions(
+        uint16 destinationChainId,
+        bytes[] calldata actions,
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable returns (bytes32 requestId) {
+        if (paused) revert Paused();
+        if (actions.length == 0) revert InvalidParams();
+
+        // Use specified adapter or find the best one
+        address adapter = options.specifiedAdapter;
+        if (adapter == address(0)) {
+            adapter = getBestAdapter(
+                destinationChainId,
+                address(0), // No specific asset for compose actions
+                0 // No specific amount
+            );
+        } else if (!adapters.contains(adapter)) {
+            revert UnknownAdapter();
+        }
+
+        if (adapter == address(0)) revert NoSuitableAdapter();
+
+        // Let the adapter handle the options
+        requestId = ISendAdapter(adapter).composeActions{value: msg.value}(
+            destinationChainId,
+            actions,
+            options.adapterOptions
+        );
+
+        // Update state
+        transferStatuses[requestId] = BridgeTypes.TransferStatus.PENDING;
+        transferToAdapter[requestId] = adapter;
+
+        emit ComposedActionsInitiated(
+            requestId,
+            destinationChainId,
+            actions.length,
+            adapter
+        );
+
+        return requestId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -447,8 +485,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     function getBestAdapter(
         uint16 chainId,
         address asset,
-        uint256 amount,
-        uint8 bridgePreference
+        uint256 amount
     ) public view returns (address bestAdapter) {
         if (adapters.length() == 0) return address(0);
 
@@ -458,17 +495,16 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         for (uint256 i = 0; i < maxIterations; i++) {
             address adapter = adapters.at(i);
 
-            // Skip adapters that don't match our criteria
-            if (
-                !_isAdapterCompatible(
-                    adapter,
-                    chainId,
-                    asset,
-                    amount,
-                    bridgePreference
-                )
-            ) {
+            // Skip adapters that don't support this chain
+            if (!IBridgeAdapter(adapter).supportsChain(chainId)) {
                 continue;
+            }
+
+            // For transfers, check if adapter supports this asset
+            if (asset != address(0) && amount > 0) {
+                if (!IBridgeAdapter(adapter).supportsAsset(chainId, asset)) {
+                    continue;
+                }
             }
 
             // For read requests, just return the first valid adapter
@@ -499,15 +535,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
      * @param chainId The destination chain ID
      * @param asset The asset to transfer (address(0) for read requests)
      * @param amount The amount to transfer (0 for read requests)
-     * @param bridgePreference The preferred bridge type (0 for no preference)
      * @return True if the adapter is compatible, false otherwise
      */
     function _isAdapterCompatible(
         address adapter,
         uint16 chainId,
         address asset,
-        uint256 amount,
-        uint8 bridgePreference
+        uint256 amount
     ) private view returns (bool) {
         // Check if adapter supports this chain
         if (!IBridgeAdapter(adapter).supportsChain(chainId)) {
@@ -517,14 +551,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         // For transfers, check if adapter supports this asset
         if (asset != address(0) && amount > 0) {
             if (!IBridgeAdapter(adapter).supportsAsset(chainId, asset)) {
-                return false;
-            }
-        }
-
-        // Apply bridge preference if specified
-        if (bridgePreference != 0) {
-            uint8 adapterType = IBridgeAdapter(adapter).getAdapterType();
-            if (adapterType != bridgePreference) {
                 return false;
             }
         }
@@ -571,13 +597,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         address asset,
         uint256 amount
     ) private view returns (uint256) {
+        // Use empty AdapterOptions for fee estimation
+        BridgeTypes.AdapterOptions memory emptyOptions;
+
         try
             IBridgeAdapter(adapter).estimateFee(
                 chainId,
                 asset,
                 amount,
-                500000, // Default gas limit
-                "" // No adapter params
+                emptyOptions
             )
         returns (uint256 nativeFee, uint256) {
             return nativeFee;

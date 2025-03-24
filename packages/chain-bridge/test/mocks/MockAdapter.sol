@@ -244,4 +244,40 @@ contract MockAdapter is IBridgeAdapter {
         // Return a type value for mock adapter (e.g., 0 for mock)
         return 0;
     }
+
+    /// @inheritdoc ISendAdapter
+    function composeActions(
+        uint16 destinationChainId,
+        bytes[] calldata actions,
+        uint256 gasLimit,
+        bytes calldata
+    ) external payable override returns (bytes32) {
+        // Check if chain is supported
+        require(supportedChains[destinationChainId], "Chain not supported");
+
+        // Generate a deterministic transfer ID for testing purposes
+        bytes32 transferId = keccak256(
+            abi.encode(destinationChainId, actions, gasLimit, block.timestamp)
+        );
+
+        // Store message details for verification in tests
+        lastReceivedChainId = destinationChainId;
+        lastReceivedRequestId = transferId;
+        lastReceivedExtraData = abi.encode(actions);
+
+        // Mark transfer as pending
+        transferStatuses[transferId] = BridgeTypes.TransferStatus.PENDING;
+
+        // Emit event for testing purposes
+        emit ActionComposed(transferId, destinationChainId, actions.length);
+
+        return transferId;
+    }
+
+    // Add an event for composed actions
+    event ActionComposed(
+        bytes32 indexed transferId,
+        uint16 destinationChainId,
+        uint256 actionCount
+    );
 }

@@ -26,11 +26,6 @@ contract BridgeRouterAdminTest is Test {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
-    uint8 constant OPTION_TYPE_EXECUTOR = 1;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 7;
-
     function setUp() public {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
@@ -121,9 +116,8 @@ contract BridgeRouterAdminTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
-        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
-            .LayerZeroOptions({
-                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
+            .AdapterOptions({
                 gasLimit: 500000,
                 calldataSize: 0,
                 msgValue: 0,
@@ -132,8 +126,7 @@ contract BridgeRouterAdminTest is Test {
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // Auto-select
-            bridgePreference: 0,
-            lzOptions: lzOptions
+            adapterOptions: adapterOptions
         });
 
         // Should revert when router is paused
