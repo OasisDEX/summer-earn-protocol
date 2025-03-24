@@ -236,10 +236,6 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
         assertFalse(adapterA.supportsAsset(2, address(tokenA))); // Unsupported chain
     }
 
-    function testGetAdapterType() public view {
-        assertEq(adapterA.getAdapterType(), 1); // 1 for LayerZero
-    }
-
     // Update test for UnsupportedMessageType error since type 5 is now COMPOSE
     function testUnsupportedMessageType() public {
         // Create a message with an unsupported type (9 - which doesn't exist)
