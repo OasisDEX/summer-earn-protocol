@@ -47,7 +47,8 @@
     "update-fleet-configurations": "hardhat run scripts/governance/update-fleet-configurations-safe.ts --network $NETWORK",
     "configure:new-chain-layerzero": "hardhat run scripts/bridge/configure-new-chain-lz.ts --network $NETWORK --no-compile",
     "gov:submit-proposal": "hardhat run scripts/governance/submit-proposal.ts --network $NETWORK",
-    "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts"
+    "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts",
+    "check-angl-rewards": "tsx scripts/check-angl-rewards.ts"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",
