@@ -59,8 +59,7 @@ contract MockAdapter is IBridgeAdapter {
         address asset,
         address recipient,
         uint256 amount,
-        uint256,
-        bytes calldata
+        BridgeTypes.AdapterOptions calldata
     ) external payable returns (bytes32) {
         // Generate a deterministic transfer ID for testing purposes
         bytes32 transferId = keccak256(
@@ -86,8 +85,7 @@ contract MockAdapter is IBridgeAdapter {
         address sourceContract,
         bytes4 selector,
         bytes calldata params,
-        uint256,
-        bytes calldata
+        BridgeTypes.AdapterOptions calldata
     ) external payable returns (bytes32) {
         // Simple mock implementation
         return
@@ -171,11 +169,10 @@ contract MockAdapter is IBridgeAdapter {
         uint16,
         address,
         uint256,
-        uint256 gasLimit,
-        bytes calldata
-    ) external view override returns (uint256 nativeFee, uint256 tokenFee) {
+        BridgeTypes.AdapterOptions calldata adapterOptions
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Mock fee calculation - apply the fee multiplier
-        nativeFee = (gasLimit * 2 gwei * feeMultiplier) / 100;
+        nativeFee = (adapterOptions.gasLimit * 2 gwei * feeMultiplier) / 100;
         tokenFee = 0; // No token fee in this mock
 
         return (nativeFee, tokenFee);
@@ -249,15 +246,19 @@ contract MockAdapter is IBridgeAdapter {
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
-        uint256 gasLimit,
-        bytes calldata
-    ) external payable override returns (bytes32) {
+        BridgeTypes.AdapterOptions calldata adapterOptions
+    ) external payable returns (bytes32) {
         // Check if chain is supported
         require(supportedChains[destinationChainId], "Chain not supported");
 
         // Generate a deterministic transfer ID for testing purposes
         bytes32 transferId = keccak256(
-            abi.encode(destinationChainId, actions, gasLimit, block.timestamp)
+            abi.encode(
+                destinationChainId,
+                actions,
+                adapterOptions.gasLimit,
+                block.timestamp
+            )
         );
 
         // Store message details for verification in tests

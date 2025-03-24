@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+
 /**
  * @title ISendAdapter
  * @notice Interface for outbound cross-chain transactions
@@ -14,8 +16,7 @@ interface ISendAdapter {
         address asset,
         address recipient,
         uint256 amount,
-        uint256 gasLimit,
-        bytes calldata adapterParams
+        BridgeTypes.AdapterOptions calldata adapterOptions
     ) external payable returns (bytes32 transferId);
 
     /**
@@ -26,8 +27,7 @@ interface ISendAdapter {
         address sourceContract,
         bytes4 selector,
         bytes calldata params,
-        uint256 gasLimit,
-        bytes calldata adapterParams
+        BridgeTypes.AdapterOptions calldata adapterOptions
     ) external payable returns (bytes32 requestId);
 
     /**
@@ -46,14 +46,12 @@ interface ISendAdapter {
      * @notice Compose multiple cross-chain actions into a single transaction
      * @param destinationChainId Chain ID where actions will be executed
      * @param actions Array of encoded action data to execute sequentially
-     * @param gasLimit Gas limit for execution
-     * @param adapterParams Additional adapter-specific parameters
+     * @param adapterOptions Additional adapter-specific parameters
      * @return requestId Unique ID for tracking the composed request
      */
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
-        uint256 gasLimit,
-        bytes calldata adapterParams
+        BridgeTypes.AdapterOptions calldata adapterOptions
     ) external payable returns (bytes32 requestId);
 }

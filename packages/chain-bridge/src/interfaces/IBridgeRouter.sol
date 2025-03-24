@@ -149,15 +149,14 @@ interface IBridgeRouter {
      * @param asset Address of the asset (address(0) for native/reads)
      * @param amount Amount to transfer (0 for reads)
      * @return bestAdapter Address of the best adapter
-     * @dev Determines the most suitable adapter based on the transfer parameters and user preferences.
-     *      When preference is 0, selects adapter with lowest fee.
-     *      When preference is non-zero, filters adapters by their type (1=fastest, 2=most secure).
-     *      For read operations (asset=address(0) or amount=0), returns first valid adapter.
+     * @dev Determines the most suitable adapter based on fees:
+     *      - For transfers, selects the adapter with the lowest fee.
+     *      - For read operations (asset=address(0) or amount=0), returns first valid adapter.
      */
     function getBestAdapter(
         uint16 chainId,
         address asset,
-        uint256 amount,
+        uint256 amount
     ) external view returns (address bestAdapter);
 
     /**

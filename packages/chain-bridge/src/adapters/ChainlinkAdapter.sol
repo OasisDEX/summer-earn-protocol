@@ -52,8 +52,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address,
         address,
         uint256,
-        uint256,
-        bytes calldata
+        BridgeTypes.AdapterOptions calldata
     ) external payable returns (bytes32) {
         revert Unimplemented();
     }
@@ -64,8 +63,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address,
         bytes4,
         bytes calldata,
-        uint256,
-        bytes calldata
+        BridgeTypes.AdapterOptions calldata
     ) external payable returns (bytes32) {
         revert Unimplemented();
     }
@@ -143,9 +141,8 @@ contract ChainlinkAdapter is IBridgeAdapter {
         uint16,
         address,
         uint256,
-        uint256,
-        bytes calldata
-    ) external pure override returns (uint256, uint256) {
+        BridgeTypes.AdapterOptions calldata
+    ) external pure returns (uint256, uint256) {
         revert Unimplemented();
     }
 
@@ -174,8 +171,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
     function composeActions(
         uint16,
         bytes[] calldata,
-        uint256,
-        bytes calldata
+        BridgeTypes.AdapterOptions calldata
     ) external payable returns (bytes32) {
         revert Unimplemented();
     }
