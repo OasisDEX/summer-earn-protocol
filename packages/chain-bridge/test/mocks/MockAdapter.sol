@@ -59,7 +59,7 @@ contract MockAdapter is IBridgeAdapter {
         address asset,
         address recipient,
         uint256 amount,
-        BridgeTypes.AdapterOptions calldata
+        BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
         // Generate a deterministic transfer ID for testing purposes
         bytes32 transferId = keccak256(
@@ -85,7 +85,7 @@ contract MockAdapter is IBridgeAdapter {
         address sourceContract,
         bytes4 selector,
         bytes calldata params,
-        BridgeTypes.AdapterOptions calldata
+        BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
         // Simple mock implementation
         return
@@ -169,10 +169,10 @@ contract MockAdapter is IBridgeAdapter {
         uint16,
         address,
         uint256,
-        BridgeTypes.AdapterOptions calldata adapterOptions
+        BridgeTypes.AdapterParams calldata adapterParams
     ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Mock fee calculation - apply the fee multiplier
-        nativeFee = (adapterOptions.gasLimit * 2 gwei * feeMultiplier) / 100;
+        nativeFee = (adapterParams.gasLimit * 2 gwei * feeMultiplier) / 100;
         tokenFee = 0; // No token fee in this mock
 
         return (nativeFee, tokenFee);
@@ -246,7 +246,7 @@ contract MockAdapter is IBridgeAdapter {
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
-        BridgeTypes.AdapterOptions calldata adapterOptions
+        BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32) {
         // Check if chain is supported
         require(supportedChains[destinationChainId], "Chain not supported");
@@ -256,7 +256,7 @@ contract MockAdapter is IBridgeAdapter {
             abi.encode(
                 destinationChainId,
                 actions,
-                adapterOptions.gasLimit,
+                adapterParams.gasLimit,
                 block.timestamp
             )
         );

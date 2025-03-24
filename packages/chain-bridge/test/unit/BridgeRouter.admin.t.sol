@@ -116,17 +116,17 @@ contract BridgeRouterAdminTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
-        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
-            .AdapterOptions({
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
                 gasLimit: 500000,
                 calldataSize: 0,
                 msgValue: 0,
-                adapterParams: ""
+                options: ""
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // Auto-select
-            adapterOptions: adapterOptions
+            adapterParams: adapterParams
         });
 
         // Should revert when router is paused

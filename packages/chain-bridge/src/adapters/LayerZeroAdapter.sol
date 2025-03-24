@@ -8,7 +8,6 @@ import {IReceiveAdapter} from "../interfaces/IReceiveAdapter.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {OAppOptionsType3, EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {LayerZeroHelper} from "../helpers/LayerZeroHelper.sol";
 
@@ -17,7 +16,7 @@ import {LayerZeroHelper} from "../helpers/LayerZeroHelper.sol";
  * @notice Adapter for the LayerZero bridge protocol
  * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OApp standard
  */
-contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
+contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -53,6 +52,9 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
 
     /// @notice Message type for compose message
     uint16 public constant COMPOSE = 5;
+
+    /// @notice Mapping of message types to their minimum gas limits
+    mapping(uint16 msgType => uint128 minGasLimit) public minGasLimits;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -106,6 +108,12 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
     /// @notice Thrown when an unsupported message type is received
     error UnsupportedMessageType();
 
+    /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
+    error InsufficientMsgValue(uint128 required, uint256 provided);
+
+    /// @notice Thrown when invalid options are provided
+    error InvalidOptions(bytes options);
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -124,7 +132,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
         address _owner
-    ) OApp(_endpoint, _owner) OAppOptionsType3() Ownable(_owner) {
+    ) OApp(_endpoint, _owner) Ownable(_owner) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();
 
@@ -135,6 +143,30 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             chainToLzEid[_supportedChains[i]] = _lzEids[i];
             lzEidToChain[_lzEids[i]] = _supportedChains[i];
         }
+
+        // Initialize default minimum gas limits
+        minGasLimits[TRANSFER] = 500000;
+        minGasLimits[STATE_READ] = 200000;
+        minGasLimits[GENERAL_MESSAGE] = 500000;
+        minGasLimits[STATE_READ_RESULT] = 200000;
+        minGasLimits[COMPOSE] = 500000;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          GOVERNANCE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Sets the minimum gas limit for a specific message type
+     * @param msgType Message type to set minimum gas for
+     * @param gasLimit New minimum gas limit value
+     * @dev Can only be called by the contract owner
+     */
+    function setMinGasLimit(
+        uint16 msgType,
+        uint128 gasLimit
+    ) external onlyOwner {
+        minGasLimits[msgType] = gasLimit;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -372,7 +404,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         address asset,
         address recipient,
         uint256 amount,
-        BridgeTypes.AdapterOptions calldata adapterOptions
+        BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId) {
         // Verify the caller is the BridgeRouter
         if (msg.sender != bridgeRouter) revert Unauthorized();
@@ -408,25 +440,13 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             }
         }
 
-        // Use gas limit from adapter options if provided, otherwise use default
-        uint128 gasLimit = adapterOptions.gasLimit > 0
-            ? uint128(adapterOptions.gasLimit)
-            : LayerZeroHelper.getDefaultGasLimit(false);
-
-        // Use msgValue from adapter options if provided, otherwise use msg.value
-        uint128 valueToForward = adapterOptions.msgValue > 0
-            ? uint128(adapterOptions.msgValue)
-            : uint128(msg.value);
+        // If msgValue is specified in adapter options, ensure enough value was sent
+        if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
+            revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
+        }
 
         // Create messaging options with appropriate parameters and user options
-        bytes memory options = LayerZeroHelper.createMessagingOptions(
-            gasLimit,
-            valueToForward,
-            adapterOptions
-        );
-
-        // Combine with enforced options
-        options = combineOptions(lzDstEid, TRANSFER, options);
+        bytes memory options = _prepareOptions(adapterParams, TRANSFER);
 
         // Send message through OApp's _lzSend
         _lzSend(
@@ -454,7 +474,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        BridgeTypes.AdapterOptions calldata adapterOptions
+        BridgeTypes.AdapterParams calldata adapterParams
     ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Convert destinationChainId to LayerZero EID
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
@@ -467,25 +487,8 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             address(0) // dummy recipient address
         );
 
-        // Use gas limit from adapter options if provided, otherwise use default
-        uint128 gasLimit = adapterOptions.gasLimit > 0
-            ? uint128(adapterOptions.gasLimit)
-            : LayerZeroHelper.getDefaultGasLimit(false);
-
-        // Extract value to forward from adapterOptions if provided
-        uint128 valueToForward = adapterOptions.msgValue > 0
-            ? uint128(adapterOptions.msgValue)
-            : 0;
-
         // Prepare user-requested options with gas limit for lzReceive
-        bytes memory userOptions = LayerZeroHelper.createMessagingOptions(
-            gasLimit,
-            valueToForward,
-            adapterOptions
-        );
-
-        // Combine with any enforced options
-        userOptions = combineOptions(lzDstEid, TRANSFER, userOptions);
+        bytes memory userOptions = _prepareOptions(adapterParams, TRANSFER);
 
         // Get the fee required for user options
         MessagingFee memory userFee = _quote(
@@ -555,8 +558,8 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         uint16 sourceChainId,
         address sourceContract,
         bytes4 selector,
-        bytes calldata params,
-        BridgeTypes.AdapterOptions calldata adapterOptions
+        bytes calldata readParams,
+        BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId) {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
@@ -567,7 +570,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
                 sourceChainId,
                 sourceContract,
                 selector,
-                params,
+                readParams,
                 block.timestamp,
                 msg.sender
             )
@@ -576,20 +579,10 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         // Get the LayerZero EID for source chain
         uint32 lzSrcEid = _getLayerZeroEid(sourceChainId);
 
-        // Use gas limit from adapter options if provided, otherwise use default
-        uint128 gasLimit = adapterOptions.gasLimit > 0
-            ? uint128(adapterOptions.gasLimit)
-            : LayerZeroHelper.getDefaultGasLimit(true);
-
-        // Use calldataSize from adapter options if provided
-        uint32 calldataSize = adapterOptions.calldataSize > 0
-            ? uint32(adapterOptions.calldataSize)
-            : uint32(params.length + 32); // Default estimate
-
-        // Use msgValue from adapter options if provided, otherwise use msg.value
-        uint128 valueToForward = adapterOptions.msgValue > 0
-            ? uint128(adapterOptions.msgValue)
-            : uint128(msg.value);
+        // If msgValue is specified in adapter options, ensure enough value was sent
+        if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
+            revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
+        }
 
         // Encode the read state request payload
         bytes memory payload = abi.encodePacked(
@@ -598,21 +591,13 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
                 requestId,
                 sourceContract,
                 selector,
-                params,
+                readParams,
                 msg.sender // requestor address
             )
         );
 
         // Create lzRead options with appropriate parameters for state reading
-        bytes memory options = LayerZeroHelper.createLzReadOptions(
-            gasLimit,
-            calldataSize,
-            valueToForward,
-            adapterOptions
-        );
-
-        // Combine with enforced options
-        options = combineOptions(lzSrcEid, STATE_READ, options);
+        bytes memory options = _prepareOptions(adapterParams, STATE_READ);
 
         // Mark this request as pending
         _updateTransferStatus(requestId, BridgeTypes.TransferStatus.PENDING);
@@ -703,7 +688,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
-        BridgeTypes.AdapterOptions calldata adapterOptions
+        BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId) {
         // Verify the caller is the BridgeRouter
         if (msg.sender != bridgeRouter) revert Unauthorized();
@@ -731,12 +716,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         );
 
         // Create options with appropriate gas for composed actions
-        bytes memory options = LayerZeroHelper.createMessagingOptions(
-            adapterOptions.gasLimit > 0
-                ? uint128(adapterOptions.gasLimit)
-                : LayerZeroHelper.getDefaultGasLimit(true),
-            uint128(msg.value)
-        );
+        bytes memory options = _prepareOptions(adapterParams, COMPOSE);
 
         // Get required fee based on enforced options
         uint256 requiredFee = getRequiredFee(lzDstEid, COMPOSE, payload);
@@ -797,107 +777,101 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
     }
 
     /**
-     * @notice Set enforced options for all message types
-     * @param _dstEid Destination endpoint ID
-     * @param _msgType Message type to enforce options for
-     * @param _gasLimit Minimum gas limit to enforce
+     * @notice Creates options with gas limit at least as high as the configured minimum
+     * @param adapterParams User-provided adapter parameters
+     * @param msgType The message type being sent
+     * @return options The prepared options with appropriate minimum gas limits
      */
-    function setEnforcedOptions(
-        uint32 _dstEid,
-        uint16 _msgType,
-        uint256 _gasLimit
-    ) external onlyOwner {
-        EnforcedOptionParam[]
-            memory enforcedOptions = new EnforcedOptionParam[](1);
-
-        // Set gas limit for the specified message type
-        enforcedOptions[0] = EnforcedOptionParam({
-            eid: _dstEid,
-            msgType: _msgType,
-            options: abi.encodePacked(uint16(1), uint64(_gasLimit)) // Use uint64 for larger gas values
-        });
-
-        // Apply enforced options
-        _setEnforcedOptions(enforcedOptions);
-    }
-
-    /**
-     * @notice Calculate required fees based on enforced options
-     * @param _dstEid Destination endpoint ID
-     * @param _msgType Message type
-     * @param _payload Message payload
-     * @return minFee Minimum fee required (accounting for enforced options)
-     */
-    function getMinimumFee(
-        uint32 _dstEid,
-        uint16 _msgType,
-        bytes memory _payload
-    ) public view returns (uint256 minFee) {
-        // Get enforced options for this destination and message type - direct access to mapping
-        bytes memory enforcedOptions = enforcedOptions[_dstEid][_msgType];
-
-        // If no enforced options exist, return 0
-        if (enforcedOptions.length == 0) return 0;
-
-        // Calculate fee with enforced options
-        MessagingFee memory fee = _quote(
-            _dstEid,
-            _payload,
-            enforcedOptions,
-            false
-        );
-        return fee.nativeFee;
-    }
-
-    // Update send functions to use combineOptions for proper option combination
-    function _prepareAndValidateOptions(
-        uint32 _dstEid,
-        uint16 _msgType,
-        bytes calldata userOptions
+    function _prepareOptions(
+        BridgeTypes.AdapterParams memory adapterParams,
+        uint16 msgType
     ) internal view returns (bytes memory) {
-        // Use OAppOptionsType3's combineOptions to merge user and enforced options
-        return combineOptions(_dstEid, _msgType, userOptions);
+        // Get minimum gas limit for this message type
+        uint128 minimumGas = minGasLimits[msgType];
+
+        // Use the helper to create messaging options with minimum gas limit enforcement
+        if (msgType == STATE_READ) {
+            return
+                LayerZeroHelper.createLzReadOptions(adapterParams, minimumGas);
+        } else if (msgType == COMPOSE) {
+            // For compose operations, we need to specify an index (using 0 as default)
+            return
+                LayerZeroHelper.createComposeOptions(
+                    0,
+                    adapterParams,
+                    minimumGas
+                );
+        } else {
+            return
+                LayerZeroHelper.createMessagingOptions(
+                    adapterParams,
+                    minimumGas
+                );
+        }
     }
 
     /**
-     * @notice Get required fee taking into account enforced options
+     * @notice Calculate required fees based on minimum gas limits
      * @param _dstEid Destination endpoint ID
      * @param _msgType Message type
      * @param _payload Message payload
-     * @return requiredFee Minimum fee required based on enforced options
+     * @return requiredFee Minimum fee required for operation
      */
     function getRequiredFee(
         uint32 _dstEid,
         uint16 _msgType,
         bytes memory _payload
     ) public view returns (uint256 requiredFee) {
-        // Get enforced options for this destination and message type
-        bytes memory enforced = enforcedOptions[_dstEid][_msgType];
+        // Get minimum gas limit for this message type
+        uint128 minimumGas = minGasLimits[_msgType];
 
-        // If no enforced options exist, use default options
-        if (enforced.length == 0) {
-            // Use default options for estimation
-            bytes memory defaultOptions = abi.encodePacked(
-                uint16(1), // version
-                uint64(
-                    LayerZeroHelper.getDefaultGasLimit(
-                        _msgType == STATE_READ || _msgType == COMPOSE
-                    )
-                )
+        // Create default options with minimum gas limit - ensure we cast to uint64 for gasLimit
+        bytes memory options;
+
+        if (_msgType == STATE_READ) {
+            // For state read, create read options with minimum gas
+            BridgeTypes.AdapterParams memory params = BridgeTypes
+                .AdapterParams({
+                    gasLimit: uint64(minimumGas), // Cast to uint64
+                    msgValue: 0,
+                    calldataSize: 0,
+                    options: bytes("")
+                });
+            options = LayerZeroHelper.createLzReadOptions(params, minimumGas);
+        } else if (_msgType == COMPOSE) {
+            // For compose, create compose options with minimum gas
+            BridgeTypes.AdapterParams memory params = BridgeTypes
+                .AdapterParams({
+                    gasLimit: uint64(minimumGas), // Cast to uint64
+                    msgValue: 0,
+                    calldataSize: 0,
+                    options: bytes("")
+                });
+            options = LayerZeroHelper.createComposeOptions(
+                0,
+                params,
+                minimumGas
             );
-            MessagingFee memory quoteFeeNoEnforced = _quote(
-                _dstEid,
-                _payload,
-                defaultOptions,
-                false
+        } else {
+            // For standard messaging, create messaging options with minimum gas
+            BridgeTypes.AdapterParams memory params = BridgeTypes
+                .AdapterParams({
+                    gasLimit: uint64(minimumGas), // Cast to uint64
+                    msgValue: 0,
+                    calldataSize: 0,
+                    options: bytes("")
+                });
+            options = LayerZeroHelper.createMessagingOptions(
+                params,
+                minimumGas
             );
-            return quoteFeeNoEnforced.nativeFee;
         }
 
+        // Quote the fee with our generated options
         MessagingFee memory quoteFee = _quote(
             _dstEid,
             _payload,
-            enforced,
+            options,
             false
         );
         return quoteFee.nativeFee;
