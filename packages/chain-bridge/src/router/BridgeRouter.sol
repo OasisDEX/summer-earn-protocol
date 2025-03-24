@@ -166,11 +166,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         IERC20(asset).approve(adapter, amount);
 
         // Call the adapter to initiate the transfer - pass all adapter options directly
+        // Pass msg.sender for refunds
         transferId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
             destinationChainId,
             asset,
             recipient,
             amount,
+            msg.sender, // Pass the originator for refunds
             options.adapterParams
         );
 
@@ -213,11 +215,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         if (adapter == address(0)) revert NoSuitableAdapter();
 
         // Let the adapter handle gas limits and other options
+        // Pass msg.sender for refunds
         requestId = IBridgeAdapter(adapter).readState{value: msg.value}(
             sourceChainId,
             sourceContract,
             selector,
             params,
+            msg.sender, // Pass the originator for refunds
             options.adapterParams
         );
 
@@ -296,9 +300,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         if (adapter == address(0)) revert NoSuitableAdapter();
 
         // Let the adapter handle the options
+        // Pass msg.sender for refunds
         requestId = ISendAdapter(adapter).composeActions{value: msg.value}(
             destinationChainId,
             actions,
+            msg.sender, // Pass the originator for refunds
             options.adapterParams
         );
 
@@ -522,7 +528,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             );
             if (candidate != address(0)) {
                 bestAdapter = candidate;
-                lowestFee = _getAdapterFee(adapter, chainId, asset, amount);
+                lowestFee = _getAdapterFee(candidate, chainId, asset, amount);
             }
         }
 

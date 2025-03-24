@@ -14,6 +14,7 @@ interface ISendAdapter {
      * @param asset Address of the asset to transfer
      * @param recipient Address of the recipient on the destination chain
      * @param amount Amount of the asset to transfer
+     * @param originator Address of the originator of the request
      * @param adapterParams Additional adapter-specific parameters
      * @return transferId Unique ID for tracking the transfer
      */
@@ -22,6 +23,7 @@ interface ISendAdapter {
         address asset,
         address recipient,
         uint256 amount,
+        address originator,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 transferId);
 
@@ -31,6 +33,7 @@ interface ISendAdapter {
      * @param sourceContract Address of the contract on the source chain
      * @param selector Selector of the function to call on the source contract
      * @param readParams Parameters for the read operation
+     * @param originator Address of the originator of the request
      * @param adapterParams Additional adapter-specific parameters
      * @return requestId Unique ID for tracking the read request
      */
@@ -39,6 +42,7 @@ interface ISendAdapter {
         address sourceContract,
         bytes4 selector,
         bytes calldata readParams,
+        address originator,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId);
 
@@ -64,12 +68,14 @@ interface ISendAdapter {
      * @notice Compose multiple cross-chain actions into a single transaction
      * @param destinationChainId Chain ID where actions will be executed
      * @param actions Array of encoded action data to execute sequentially
+     * @param originator Address of the originator of the request
      * @param adapterParams Additional adapter-specific parameters
      * @return requestId Unique ID for tracking the composed request
      */
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
+        address originator,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId);
 }
