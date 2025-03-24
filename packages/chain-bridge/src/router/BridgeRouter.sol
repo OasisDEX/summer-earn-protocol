@@ -171,7 +171,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             asset,
             recipient,
             amount,
-            options.adapterOptions
+            options.adapterParams
         );
 
         // Update state
@@ -218,7 +218,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             sourceContract,
             selector,
             params,
-            options.adapterOptions
+            options.adapterParams
         );
 
         // Store the originator of this request
@@ -260,7 +260,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             destinationChainId,
             asset,
             amount,
-            options.adapterOptions
+            options.adapterParams
         );
 
         return (nativeFee, tokenFee, selectedAdapter);
@@ -299,7 +299,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         requestId = ISendAdapter(adapter).composeActions{value: msg.value}(
             destinationChainId,
             actions,
-            options.adapterOptions
+            options.adapterParams
         );
 
         // Update state
@@ -598,14 +598,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         uint256 amount
     ) private view returns (uint256) {
         // Use empty AdapterOptions for fee estimation
-        BridgeTypes.AdapterOptions memory emptyOptions;
+        BridgeTypes.AdapterParams memory emptyParams;
 
         try
             IBridgeAdapter(adapter).estimateFee(
                 chainId,
                 asset,
                 amount,
-                emptyOptions
+                emptyParams
             )
         returns (uint256 nativeFee, uint256) {
             return nativeFee;

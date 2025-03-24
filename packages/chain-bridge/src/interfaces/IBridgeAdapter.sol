@@ -17,7 +17,7 @@ interface IBridgeAdapter is ISendAdapter, IReceiveAdapter {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        BridgeTypes.AdapterOptions calldata adapterOptions
+        BridgeTypes.AdapterParams calldata adapterParams
     ) external view returns (uint256 nativeFee, uint256 tokenFee);
 
     /**

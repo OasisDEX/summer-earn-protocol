@@ -60,17 +60,17 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(user);
 
         // Create bridge options
-        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
-            .AdapterOptions({
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
                 gasLimit: 500000,
                 calldataSize: 100,
                 msgValue: 0,
-                adapterParams: ""
+                options: ""
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // Auto-select
-            adapterOptions: adapterOptions
+            adapterParams: adapterParams
         });
 
         // Read state
@@ -98,17 +98,17 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
-        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
-            .AdapterOptions({
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
                 gasLimit: 500000,
                 calldataSize: 100,
                 msgValue: 0,
-                adapterParams: ""
+                options: ""
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // Auto-select
-            adapterOptions: adapterOptions
+            adapterParams: adapterParams
         });
 
         // Read state
@@ -143,17 +143,17 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
-        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
-            .AdapterOptions({
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
                 gasLimit: 500000,
                 calldataSize: 100,
                 msgValue: 0,
-                adapterParams: ""
+                options: ""
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Explicitly select mockAdapter
-            adapterOptions: adapterOptions
+            adapterParams: adapterParams
         });
 
         // Read state
@@ -190,17 +190,17 @@ contract BridgeRouterReadStateTest is Test {
         mockReceiver.setReceiveSuccess(false);
 
         // Create bridge options
-        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
-            .AdapterOptions({
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
                 gasLimit: 500000,
                 calldataSize: 100,
                 msgValue: 0,
-                adapterParams: ""
+                options: ""
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // Auto-select
-            adapterOptions: adapterOptions
+            adapterParams: adapterParams
         });
 
         // Read state

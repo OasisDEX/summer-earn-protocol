@@ -20,11 +20,11 @@ library BridgeTypes {
     /**
      * @notice Generic adapter options structure for cross-chain operations
      */
-    struct AdapterOptions {
+    struct AdapterParams {
         uint64 gasLimit; // Gas limit for execution on destination chain
-        uint64 calldataSize; // Size of expected return calldata (for read operations)
+        uint32 calldataSize; // Size of expected return calldata (for read operations)
         uint128 msgValue; // Native value to forward (for operations requiring value)
-        bytes adapterParams; // Additional adapter-specific parameters
+        bytes options; // Additional adapter-specific parameters
     }
 
     /**
@@ -32,6 +32,6 @@ library BridgeTypes {
      */
     struct BridgeOptions {
         address specifiedAdapter; // Optional specific adapter to use (address(0) means auto-select)
-        AdapterOptions adapterOptions; // Generic adapter options
+        AdapterParams adapterParams; // Generic adapter options
     }
 }

@@ -19,22 +19,28 @@ library LayerZeroHelper {
 
     /**
      * @notice Creates standard messaging options with appropriate gas limit
-     * @param gasLimit Gas limit for execution
-     * @param msgValue Native value to send with the execution (optional)
-     * @param adapterOptions Optional adapter options containing user-provided parameters
+     * @param adapterParams Additional adapter params (optional)
+     * @param minGasLimit Minimum gas limit to enforce (if adapter param gas limit is lower)
      * @return Options bytes formatted for LayerZero standard messaging
      */
     function createMessagingOptions(
-        uint128 gasLimit,
-        uint128 msgValue,
-        BridgeTypes.AdapterOptions memory adapterOptions
+        BridgeTypes.AdapterParams memory adapterParams,
+        uint128 minGasLimit
     ) internal pure returns (bytes memory) {
         bytes memory options;
 
+        // Ensure gas limit meets minimum requirements
+        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
+            ? minGasLimit
+            : adapterParams.gasLimit;
+
+        // Use provided msgValue
+        uint128 msgValue = adapterParams.msgValue;
+
         // Start with user-provided options or create new empty options
-        if (adapterOptions.adapterParams.length > 0) {
+        if (adapterParams.options.length > 0) {
             // Use the user's options as the base if provided
-            options = adapterOptions.adapterParams;
+            options = adapterParams.options;
         } else {
             // Create new empty options if none provided
             options = OptionsBuilder.newOptions();
@@ -51,24 +57,25 @@ library LayerZeroHelper {
 
     /**
      * @notice Creates lzRead options with appropriate gas limit and calldata size
-     * @param gasLimit Gas limit for execution
-     * @param calldataSize Size of the expected return calldata
-     * @param msgValue Native value to send with the execution (optional)
-     * @param adapterOptions Additional adapter params (optional)
+     * @param adapterParams Additional adapter params (optional)
+     * @param minGasLimit Minimum gas limit to enforce (if adapter param gas limit is lower)
      * @return Options bytes formatted for LayerZero lzRead operations
      */
     function createLzReadOptions(
-        uint128 gasLimit,
-        uint32 calldataSize,
-        uint128 msgValue,
-        BridgeTypes.AdapterOptions memory adapterOptions
+        BridgeTypes.AdapterParams memory adapterParams,
+        uint128 minGasLimit
     ) internal pure returns (bytes memory) {
         bytes memory options;
 
+        // Ensure gas limit meets minimum requirements
+        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
+            ? minGasLimit
+            : adapterParams.gasLimit;
+
         // Start with user-provided options or create new empty options
-        if (adapterOptions.adapterParams.length > 0) {
+        if (adapterParams.options.length > 0) {
             // Use the user's options as the base if provided
-            options = adapterOptions.adapterParams;
+            options = adapterParams.options;
         } else {
             // Create new empty options if none provided
             options = OptionsBuilder.newOptions();
@@ -79,31 +86,34 @@ library LayerZeroHelper {
             OptionsBuilder.addExecutorLzReadOption(
                 options,
                 gasLimit,
-                calldataSize,
-                msgValue
+                adapterParams.calldataSize,
+                adapterParams.msgValue
             );
     }
 
     /**
      * @notice Creates options for composed calls
      * @param index The index of the compose function call
-     * @param gasLimit Gas limit for execution
-     * @param msgValue Native value to send with the execution
-     * @param adapterOptions Additional adapter params (optional)
+     * @param adapterParams Additional adapter params (optional)
+     * @param minGasLimit Minimum gas limit to enforce (if adapter param gas limit is lower)
      * @return Options bytes formatted for LayerZero lzCompose
      */
     function createComposeOptions(
         uint16 index,
-        uint128 gasLimit,
-        uint128 msgValue,
-        BridgeTypes.AdapterOptions memory adapterOptions
+        BridgeTypes.AdapterParams memory adapterParams,
+        uint128 minGasLimit
     ) internal pure returns (bytes memory) {
         bytes memory options;
 
+        // Ensure gas limit meets minimum requirements
+        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
+            ? minGasLimit
+            : adapterParams.gasLimit;
+
         // Start with user-provided options or create new empty options
-        if (adapterOptions.adapterParams.length > 0) {
+        if (adapterParams.options.length > 0) {
             // Use the user's options as the base if provided
-            options = adapterOptions.adapterParams;
+            options = adapterParams.options;
         } else {
             // Create new empty options if none provided
             options = OptionsBuilder.newOptions();
@@ -115,7 +125,7 @@ library LayerZeroHelper {
                 options,
                 index,
                 gasLimit,
-                msgValue
+                adapterParams.msgValue
             );
     }
 

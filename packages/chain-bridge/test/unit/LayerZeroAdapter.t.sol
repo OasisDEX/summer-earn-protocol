@@ -266,31 +266,12 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
         );
     }
 
-    function testSetEnforcedOptions() public {
+    function testGetRequiredFeeWithMinGasLimit() public {
         useNetworkA();
         vm.startPrank(governor);
 
-        // Set enforced options for TRANSFER
-        adapterA.setEnforcedOptions(LZ_EID_B, adapterA.TRANSFER(), 600000);
-
-        // Set enforced options for STATE_READ
-        adapterA.setEnforcedOptions(LZ_EID_B, adapterA.STATE_READ(), 700000);
-
-        // Set enforced options for COMPOSE
-        adapterA.setEnforcedOptions(LZ_EID_B, adapterA.COMPOSE(), 800000);
-
-        vm.stopPrank();
-
-        // Would verify by accessing the enforced options, but those are internal to OAppOptionsType3
-        // So we'll test functionality through getRequiredFee
-    }
-
-    function testGetRequiredFeeWithEnforcedOptions() public {
-        useNetworkA();
-        vm.startPrank(governor);
-
-        // Set enforced options for TRANSFER with a high gas limit
-        adapterA.setEnforcedOptions(LZ_EID_B, adapterA.TRANSFER(), 1000000);
+        // Set minimum gas limit for TRANSFER with a high value
+        adapterA.setMinGasLimit(adapterA.TRANSFER(), 1000000);
 
         // Create a simple payload for testing
         bytes memory payload = abi.encodePacked(
@@ -307,6 +288,87 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
 
         // Fee should be non-zero
         assertTrue(requiredFee > 0);
+
+        vm.stopPrank();
+    }
+
+    function testSetMinGasLimit() public {
+        useNetworkA();
+
+        // Initial minimum gas limit for TRANSFER should be 500000 (set in constructor)
+        uint128 initialMinGas = adapterA.minGasLimits(adapterA.TRANSFER());
+        assertEq(initialMinGas, 500000);
+
+        // Only the governor should be able to set minimum gas limits
+        vm.prank(user);
+        vm.expectRevert(); // Should revert when called by non-governor
+        adapterA.setMinGasLimit(adapterA.TRANSFER(), 1000000);
+
+        // Governor can set minimum gas limits
+        vm.prank(governor);
+        adapterA.setMinGasLimit(adapterA.TRANSFER(), 1000000);
+
+        // Verify the minimum gas limit was updated
+        uint128 newMinGas = adapterA.minGasLimits(adapterA.TRANSFER());
+        assertEq(newMinGas, 1000000);
+    }
+
+    function testMinGasLimitEnforcement() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Set a high minimum gas limit for TRANSFER
+        uint128 minGasLimit = 1000000;
+        adapterA.setMinGasLimit(adapterA.TRANSFER(), minGasLimit);
+
+        // Prepare a transfer with a lower gas limit than the minimum
+        uint256 amount = 100 ether;
+
+        // Create adapter params with a lower gas limit
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000, // Lower than our minimum
+                msgValue: 0,
+                calldataSize: 0,
+                options: bytes("")
+            });
+
+        // Get the fee estimate (this calls _prepareOptions internally)
+        (uint256 nativeFee, , ) = routerA.quote(
+            CHAIN_ID_B,
+            address(tokenA),
+            amount,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                adapterParams: adapterParams
+            })
+        );
+
+        // The fee should reflect the higher minimum gas limit
+        assertTrue(nativeFee > 0);
+
+        // Now create adapter params with a higher gas limit than the minimum
+        BridgeTypes.AdapterParams memory higherParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 1500000, // Higher than our minimum
+                msgValue: 0,
+                calldataSize: 0,
+                options: bytes("")
+            });
+
+        // Get the fee estimate for the higher gas limit
+        (uint256 higherFee, , ) = routerA.quote(
+            CHAIN_ID_B,
+            address(tokenA),
+            amount,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                adapterParams: higherParams
+            })
+        );
+
+        // Higher gas limit should result in a higher fee
+        assertTrue(higherFee > nativeFee);
 
         vm.stopPrank();
     }
@@ -328,23 +390,18 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
             true
         );
 
-        // Create bridge options - THIS IS THE KEY CHANGE
-        // Use OptionsBuilder to properly format the options
-        bytes memory formattedOptions = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReceiveOption(800000, 0);
-
-        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
-            .AdapterOptions({
+        // Create bridge options with a gas limit
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
                 gasLimit: 800000,
                 calldataSize: 0,
                 msgValue: 0,
-                adapterParams: formattedOptions // Use the properly formatted options
+                options: bytes("") // No need for complex options now
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(adapterA),
-            adapterOptions: adapterOptions
+            adapterParams: adapterParams
         });
 
         // Estimate the fee
