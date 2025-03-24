@@ -60,9 +60,8 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(user);
 
         // Create bridge options
-        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
-            .LayerZeroOptions({
-                optionType: OPTION_TYPE_EXECUTOR_LZ_READ,
+        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
+            .AdapterOptions({
                 gasLimit: 500000,
                 calldataSize: 100,
                 msgValue: 0,
@@ -71,8 +70,7 @@ contract BridgeRouterReadStateTest is Test {
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // Auto-select
-            bridgePreference: 0,
-            lzOptions: lzOptions
+            adapterOptions: adapterOptions
         });
 
         // Read state
@@ -100,9 +98,8 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
-        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
-            .LayerZeroOptions({
-                optionType: OPTION_TYPE_EXECUTOR_LZ_READ,
+        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
+            .AdapterOptions({
                 gasLimit: 500000,
                 calldataSize: 100,
                 msgValue: 0,
@@ -111,8 +108,7 @@ contract BridgeRouterReadStateTest is Test {
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // Auto-select
-            bridgePreference: 0,
-            lzOptions: lzOptions
+            adapterOptions: adapterOptions
         });
 
         // Read state
@@ -147,9 +143,8 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
-        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
-            .LayerZeroOptions({
-                optionType: OPTION_TYPE_EXECUTOR_LZ_READ,
+        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
+            .AdapterOptions({
                 gasLimit: 500000,
                 calldataSize: 100,
                 msgValue: 0,
@@ -158,8 +153,7 @@ contract BridgeRouterReadStateTest is Test {
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Explicitly select mockAdapter
-            bridgePreference: 0,
-            lzOptions: lzOptions
+            adapterOptions: adapterOptions
         });
 
         // Read state
@@ -196,9 +190,8 @@ contract BridgeRouterReadStateTest is Test {
         mockReceiver.setReceiveSuccess(false);
 
         // Create bridge options
-        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
-            .LayerZeroOptions({
-                optionType: OPTION_TYPE_EXECUTOR_LZ_READ,
+        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
+            .AdapterOptions({
                 gasLimit: 500000,
                 calldataSize: 100,
                 msgValue: 0,
@@ -207,8 +200,7 @@ contract BridgeRouterReadStateTest is Test {
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // Auto-select
-            bridgePreference: 0,
-            lzOptions: lzOptions
+            adapterOptions: adapterOptions
         });
 
         // Read state

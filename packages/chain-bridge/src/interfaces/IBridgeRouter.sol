@@ -75,6 +75,19 @@ interface IBridgeRouter {
         view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter);
 
+    /**
+     * @notice Execute multiple cross-chain actions in a single atomic transaction
+     * @param destinationChainId Chain where actions will be executed
+     * @param actions Array of encoded actions to execute sequentially
+     * @param options Bridge options including adapter params and gas limits
+     * @return requestId Unique ID for tracking the composed request
+     */
+    function composeActions(
+        uint16 destinationChainId,
+        bytes[] calldata actions,
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable returns (bytes32 requestId);
+
     /*//////////////////////////////////////////////////////////////
                         ADAPTER CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -135,7 +148,6 @@ interface IBridgeRouter {
      * @param chainId ID of the destination/source chain
      * @param asset Address of the asset (address(0) for native/reads)
      * @param amount Amount to transfer (0 for reads)
-     * @param preference Preference for selecting adapter (0=lowest cost, 1=fastest, 2=most secure)
      * @return bestAdapter Address of the best adapter
      * @dev Determines the most suitable adapter based on the transfer parameters and user preferences.
      *      When preference is 0, selects adapter with lowest fee.
@@ -146,7 +158,6 @@ interface IBridgeRouter {
         uint16 chainId,
         address asset,
         uint256 amount,
-        uint8 preference
     ) external view returns (address bestAdapter);
 
     /**

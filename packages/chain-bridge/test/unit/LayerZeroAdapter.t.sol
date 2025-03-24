@@ -11,8 +11,11 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 contract LayerZeroAdapterTest is TestHelperOz5 {
+    using OptionsBuilder for bytes;
+
     // LayerZero option type constants
     uint8 constant OPTION_TYPE_EXECUTOR = 1;
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
@@ -49,8 +52,8 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
     uint16 public constant CHAIN_ID_B = 10;
 
     // LayerZero endpoint IDs
-    uint32 public constant LZ_EID_A = 30101;
-    uint32 public constant LZ_EID_B = 30111;
+    uint32 public constant LZ_EID_A = 1;
+    uint32 public constant LZ_EID_B = 2;
 
     // Network chain IDs for vm.chainId()
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
@@ -142,6 +145,19 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
 
         vm.stopPrank();
 
+        // Set up peers between the two adapters
+        // First, set up Chain A's adapter to trust Chain B's adapter
+        useNetworkA();
+        vm.startPrank(governor);
+        adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
+        vm.stopPrank();
+
+        // Then, set up Chain B's adapter to trust Chain A's adapter
+        useNetworkB();
+        vm.startPrank(governor);
+        adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
+        vm.stopPrank();
+
         // Return to network A for tests to start
         useNetworkA();
     }
@@ -222,11 +238,11 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
         assertEq(adapterA.getAdapterType(), 1); // 1 for LayerZero
     }
 
-    // Update test for UnsupportedMessageType error
+    // Update test for UnsupportedMessageType error since type 5 is now COMPOSE
     function testUnsupportedMessageType() public {
-        // Create a message with an unsupported type (5)
+        // Create a message with an unsupported type (9 - which doesn't exist)
         bytes memory invalidPayload = abi.encodePacked(
-            uint16(5),
+            uint16(9),
             bytes("test payload")
         );
 
@@ -248,5 +264,111 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
             address(testHelperB), // sender
             bytes("") // extraData
         );
+    }
+
+    function testSetEnforcedOptions() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Set enforced options for TRANSFER
+        adapterA.setEnforcedOptions(LZ_EID_B, adapterA.TRANSFER(), 600000);
+
+        // Set enforced options for STATE_READ
+        adapterA.setEnforcedOptions(LZ_EID_B, adapterA.STATE_READ(), 700000);
+
+        // Set enforced options for COMPOSE
+        adapterA.setEnforcedOptions(LZ_EID_B, adapterA.COMPOSE(), 800000);
+
+        vm.stopPrank();
+
+        // Would verify by accessing the enforced options, but those are internal to OAppOptionsType3
+        // So we'll test functionality through getRequiredFee
+    }
+
+    function testGetRequiredFeeWithEnforcedOptions() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Set enforced options for TRANSFER with a high gas limit
+        adapterA.setEnforcedOptions(LZ_EID_B, adapterA.TRANSFER(), 1000000);
+
+        // Create a simple payload for testing
+        bytes memory payload = abi.encodePacked(
+            uint16(adapterA.TRANSFER()),
+            bytes("test payload")
+        );
+
+        // Get required fee
+        uint256 requiredFee = adapterA.getRequiredFee(
+            LZ_EID_B,
+            adapterA.TRANSFER(),
+            payload
+        );
+
+        // Fee should be non-zero
+        assertTrue(requiredFee > 0);
+
+        vm.stopPrank();
+    }
+
+    function testComposeActions() public {
+        useNetworkA();
+        vm.startPrank(user);
+
+        // Create sample actions to compose
+        bytes[] memory actions = new bytes[](2);
+        actions[0] = abi.encodeWithSignature(
+            "sampleAction1(address,uint256)",
+            recipient,
+            100
+        );
+        actions[1] = abi.encodeWithSignature(
+            "sampleAction2(address,bool)",
+            recipient,
+            true
+        );
+
+        // Create bridge options - THIS IS THE KEY CHANGE
+        // Use OptionsBuilder to properly format the options
+        bytes memory formattedOptions = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(800000, 0);
+
+        BridgeTypes.AdapterOptions memory adapterOptions = BridgeTypes
+            .AdapterOptions({
+                gasLimit: 800000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: formattedOptions // Use the properly formatted options
+            });
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            adapterOptions: adapterOptions
+        });
+
+        // Estimate the fee
+        (uint256 nativeFee, , ) = routerA.quote(
+            CHAIN_ID_B,
+            address(0),
+            0,
+            options
+        );
+
+        // Initiate composed actions with the required fee
+        bytes32 requestId = routerA.composeActions{value: nativeFee}(
+            CHAIN_ID_B,
+            actions,
+            options
+        );
+
+        // Verify the request was registered
+        assertEq(
+            uint256(routerA.transferStatuses(requestId)),
+            uint256(BridgeTypes.TransferStatus.PENDING)
+        );
+        assertEq(routerA.transferToAdapter(requestId), address(adapterA));
+
+        vm.stopPrank();
     }
 }

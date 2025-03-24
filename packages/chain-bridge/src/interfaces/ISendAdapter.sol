@@ -41,4 +41,19 @@ interface ISendAdapter {
         bytes32 transferId,
         bytes calldata extraData
     ) external payable;
+
+    /**
+     * @notice Compose multiple cross-chain actions into a single transaction
+     * @param destinationChainId Chain ID where actions will be executed
+     * @param actions Array of encoded action data to execute sequentially
+     * @param gasLimit Gas limit for execution
+     * @param adapterParams Additional adapter-specific parameters
+     * @return requestId Unique ID for tracking the composed request
+     */
+    function composeActions(
+        uint16 destinationChainId,
+        bytes[] calldata actions,
+        uint256 gasLimit,
+        bytes calldata adapterParams
+    ) external payable returns (bytes32 requestId);
 }

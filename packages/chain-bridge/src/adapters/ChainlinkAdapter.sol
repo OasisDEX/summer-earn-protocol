@@ -169,4 +169,14 @@ contract ChainlinkAdapter is IBridgeAdapter {
         // Return adapter type for Chainlink (e.g., 2 for Chainlink)
         return 2;
     }
+
+    /// @inheritdoc ISendAdapter
+    function composeActions(
+        uint16,
+        bytes[] calldata,
+        uint256,
+        bytes calldata
+    ) external payable returns (bytes32) {
+        revert Unimplemented();
+    }
 }

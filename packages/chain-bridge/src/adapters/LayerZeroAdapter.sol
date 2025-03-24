@@ -42,6 +42,18 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
     /// @notice Message type for a standard transfer
     uint16 public constant TRANSFER = 1;
 
+    /// @notice Message type for state read
+    uint16 public constant STATE_READ = 2;
+
+    /// @notice Message type for general message
+    uint16 public constant GENERAL_MESSAGE = 3;
+
+    /// @notice Message type for state read result
+    uint16 public constant STATE_READ_RESULT = 4;
+
+    /// @notice Message type for compose message
+    uint16 public constant COMPOSE = 5;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -144,29 +156,30 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         address,
         bytes calldata
     ) internal override {
-        // Convert LayerZero EID to our chain ID format
-        uint16 srcChainId = lzEidToChain[_origin.srcEid];
-        if (srcChainId == 0) revert UnsupportedChain();
+        // Extract message type from the first 2 bytes if available
+        uint16 messageType = 1; // Default to TRANSFER
+        bytes calldata actualPayload = _payload;
 
-        // Require payload to be at least 2 bytes for message type
-        if (_payload.length < 2) revert InvalidParams();
+        // If the payload starts with a uint16 message type marker
+        if (_payload.length >= 2) {
+            messageType = uint16(bytes2(_payload[:2]));
+            actualPayload = _payload[2:];
+        }
 
-        // Extract message type from first two bytes
-        uint16 messageType = uint16(bytes2(_payload[:2]));
-        bytes calldata actualPayload = _payload[2:];
+        // Get source chain ID
+        uint16 srcChainId = _getLzChainId(_origin.srcEid);
 
-        if (messageType == 1) {
-            // ASSET_TRANSFER
+        // Process based on message type
+        if (messageType == TRANSFER) {
             _handleAssetTransferMessage(_guid, actualPayload);
-        } else if (messageType == 2) {
-            // STATE_READ
+        } else if (messageType == STATE_READ) {
             _handleStateReadMessage(srcChainId, actualPayload);
-        } else if (messageType == 3) {
-            // GENERAL_MESSAGE
+        } else if (messageType == GENERAL_MESSAGE) {
             _handleGeneralMessage(actualPayload);
-        } else if (messageType == 4) {
-            // STATE_READ_RESULT
+        } else if (messageType == STATE_READ_RESULT) {
             _handleStateReadResultMessage(actualPayload);
+        } else if (messageType == COMPOSE) {
+            _handleComposeMessage(actualPayload);
         } else {
             revert UnsupportedMessageType();
         }
@@ -322,6 +335,33 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         }
     }
 
+    /**
+     * @dev Handles compose message execution
+     */
+    function _handleComposeMessage(bytes calldata _payload) internal {
+        // Decode the message payload
+        (bytes32 requestId, bytes[] memory actions) = abi.decode(
+            _payload,
+            (bytes32, bytes[])
+        );
+
+        // Update status
+        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.COMPLETED);
+
+        // Forward the actions to the bridge router for sequential execution
+        try
+            IBridgeRouter(bridgeRouter).deliverMessage(
+                requestId,
+                abi.encode(actions),
+                bridgeRouter // Bridge router itself will handle executing the actions
+            )
+        {} catch (bytes memory reason) {
+            // Mark as failed on error
+            _updateTransferStatus(requestId, BridgeTypes.TransferStatus.FAILED);
+            emit RelayFailed(requestId, reason);
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
@@ -372,9 +412,9 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         // Default options for messaging with appropriate gas limit
         bytes memory options = LayerZeroHelper.createMessagingOptions(
             gasLimit > 0
-                ? uint64(gasLimit)
+                ? uint128(gasLimit)
                 : LayerZeroHelper.getDefaultGasLimit(false),
-            adapterParams
+            uint128(msg.value)
         );
 
         // Send message through OApp's _lzSend
@@ -417,18 +457,37 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             address(0) // dummy recipient address
         );
 
-        // Prepare options with gas limit for lzReceive
-        bytes memory options = abi.encodePacked(
-            uint16(1), // version
-            uint16(gasLimit) // gas limit
-        );
-        if (adapterParams.length > 0) {
-            options = bytes.concat(options, adapterParams);
+        // Extract value to forward from adapterParams if provided
+        uint128 valueToForward = 0;
+        if (adapterParams.length >= 32) {
+            // First 32 bytes can contain the value to forward
+            valueToForward = uint128(abi.decode(adapterParams, (uint256)));
         }
 
-        // Get the fee required for the LayerZero transaction
-        MessagingFee memory fee = _quote(lzDstEid, payload, options, false);
-        return (fee.nativeFee, fee.lzTokenFee);
+        // Prepare user-requested options with gas limit for lzReceive
+        bytes memory userOptions = LayerZeroHelper.createMessagingOptions(
+            gasLimit > 0
+                ? uint128(gasLimit)
+                : LayerZeroHelper.getDefaultGasLimit(false),
+            valueToForward // Use extracted value instead of msg.value
+        );
+
+        // Get the fee required for user options
+        MessagingFee memory userFee = _quote(
+            lzDstEid,
+            payload,
+            userOptions,
+            false
+        );
+
+        // Get the required fee based on enforced options
+        uint256 enforcedFee = getRequiredFee(lzDstEid, TRANSFER, payload);
+
+        // Return the higher of the two fees
+        return (
+            userFee.nativeFee > enforcedFee ? userFee.nativeFee : enforcedFee,
+            userFee.lzTokenFee
+        );
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -525,9 +584,9 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         // Create lzRead options with appropriate parameters for state reading
         bytes memory options = LayerZeroHelper.createLzReadOptions(
             gasLimit > 0
-                ? uint64(gasLimit)
+                ? uint128(gasLimit)
                 : LayerZeroHelper.getDefaultGasLimit(true),
-            uint64(params.length + 32), // Estimate return calldata size
+            uint32(params.length + 32), // Estimate return calldata size
             0, // No msg.value to forward
             adapterParams
         );
@@ -617,6 +676,65 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         _updateTransferStatus(transferId, BridgeTypes.TransferStatus.PENDING);
     }
 
+    /// @inheritdoc ISendAdapter
+    function composeActions(
+        uint16 destinationChainId,
+        bytes[] calldata actions,
+        uint256 gasLimit,
+        bytes calldata adapterParams
+    ) external payable returns (bytes32 requestId) {
+        // Verify the caller is the BridgeRouter
+        if (msg.sender != bridgeRouter) revert Unauthorized();
+
+        // Convert destinationChainId to LayerZero EID
+        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
+
+        // Generate a unique request ID
+        requestId = keccak256(
+            abi.encode(
+                block.chainid,
+                destinationChainId,
+                actions,
+                block.timestamp
+            )
+        );
+
+        // Mark this request as pending
+        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.PENDING);
+
+        // Encode payload for LayerZero with COMPOSE message type
+        bytes memory payload = abi.encodePacked(
+            uint16(COMPOSE), // COMPOSE message type
+            abi.encode(requestId, actions)
+        );
+
+        // Create options with appropriate gas for composed actions
+        bytes memory options = LayerZeroHelper.createMessagingOptions(
+            gasLimit > 0
+                ? uint128(gasLimit)
+                : LayerZeroHelper.getDefaultGasLimit(true),
+            uint128(msg.value)
+        );
+
+        // Get required fee based on enforced options
+        uint256 requiredFee = getRequiredFee(lzDstEid, COMPOSE, payload);
+        require(
+            msg.value >= requiredFee,
+            "Insufficient fee for enforced options"
+        );
+
+        // Send message through OApp's _lzSend
+        _lzSend(
+            lzDstEid,
+            payload,
+            options,
+            MessagingFee(msg.value, 0),
+            payable(bridgeRouter) // refund address
+        );
+
+        return requestId;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -657,30 +775,110 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
     }
 
     /**
-     * @notice Set enforced options for transfers
+     * @notice Set enforced options for all message types
      * @param _dstEid Destination endpoint ID
-     * @param _gasLimit Gas limit for execution
+     * @param _msgType Message type to enforce options for
+     * @param _gasLimit Minimum gas limit to enforce
      */
-    function setEnforcedTransferOptions(
+    function setEnforcedOptions(
         uint32 _dstEid,
+        uint16 _msgType,
         uint256 _gasLimit
-    ) external {
-        // Only the owner can call this function
-        if (msg.sender != owner()) revert Unauthorized();
-
-        // Create enforced options array
+    ) external onlyOwner {
         EnforcedOptionParam[]
             memory enforcedOptions = new EnforcedOptionParam[](1);
 
-        // Set gas limit for lzReceive
+        // Set gas limit for the specified message type
         enforcedOptions[0] = EnforcedOptionParam({
             eid: _dstEid,
-            msgType: TRANSFER,
-            options: abi.encodePacked(uint16(1), uint16(_gasLimit))
+            msgType: _msgType,
+            options: abi.encodePacked(uint16(1), uint64(_gasLimit)) // Use uint64 for larger gas values
         });
 
         // Apply enforced options
         _setEnforcedOptions(enforcedOptions);
+    }
+
+    /**
+     * @notice Calculate required fees based on enforced options
+     * @param _dstEid Destination endpoint ID
+     * @param _msgType Message type
+     * @param _payload Message payload
+     * @return minFee Minimum fee required (accounting for enforced options)
+     */
+    function getMinimumFee(
+        uint32 _dstEid,
+        uint16 _msgType,
+        bytes memory _payload
+    ) public view returns (uint256 minFee) {
+        // Get enforced options for this destination and message type - direct access to mapping
+        bytes memory enforcedOptions = enforcedOptions[_dstEid][_msgType];
+
+        // If no enforced options exist, return 0
+        if (enforcedOptions.length == 0) return 0;
+
+        // Calculate fee with enforced options
+        MessagingFee memory fee = _quote(
+            _dstEid,
+            _payload,
+            enforcedOptions,
+            false
+        );
+        return fee.nativeFee;
+    }
+
+    // Update send functions to use combineOptions for proper option combination
+    function _prepareAndValidateOptions(
+        uint32 _dstEid,
+        uint16 _msgType,
+        bytes calldata userOptions
+    ) internal view returns (bytes memory) {
+        // Use OAppOptionsType3's combineOptions to merge user and enforced options
+        return combineOptions(_dstEid, _msgType, userOptions);
+    }
+
+    /**
+     * @notice Get required fee taking into account enforced options
+     * @param _dstEid Destination endpoint ID
+     * @param _msgType Message type
+     * @param _payload Message payload
+     * @return requiredFee Minimum fee required based on enforced options
+     */
+    function getRequiredFee(
+        uint32 _dstEid,
+        uint16 _msgType,
+        bytes memory _payload
+    ) public view returns (uint256 requiredFee) {
+        // Get enforced options for this destination and message type
+        bytes memory enforced = enforcedOptions[_dstEid][_msgType];
+
+        // If no enforced options exist, use default options
+        if (enforced.length == 0) {
+            // Use default options for estimation
+            bytes memory defaultOptions = abi.encodePacked(
+                uint16(1), // version
+                uint64(
+                    LayerZeroHelper.getDefaultGasLimit(
+                        _msgType == STATE_READ || _msgType == COMPOSE
+                    )
+                )
+            );
+            MessagingFee memory quoteFeeNoEnforced = _quote(
+                _dstEid,
+                _payload,
+                defaultOptions,
+                false
+            );
+            return quoteFeeNoEnforced.nativeFee;
+        }
+
+        MessagingFee memory quoteFee = _quote(
+            _dstEid,
+            _payload,
+            enforced,
+            false
+        );
+        return quoteFee.nativeFee;
     }
 
     /// @inheritdoc IReceiveAdapter
@@ -722,5 +920,24 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         // since messages are received via _lzReceive
         // But implementation is provided for interface compliance
         revert UseLayerZeroMessaging();
+    }
+
+    /**
+     * @notice Converts a LayerZero endpoint ID to our chain ID format
+     * @param _lzEid LayerZero endpoint ID
+     * @return chainId Standard chain ID used by our system
+     */
+    function _getLzChainId(
+        uint32 _lzEid
+    ) internal view returns (uint16 chainId) {
+        // Get the chain ID from our mapping
+        chainId = lzEidToChain[_lzEid];
+
+        // If not found in the mapping, revert
+        if (chainId == 0) {
+            revert UnsupportedChain();
+        }
+
+        return chainId;
     }
 }
