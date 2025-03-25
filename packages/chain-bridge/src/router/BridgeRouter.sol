@@ -10,13 +10,14 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
  * @dev Implements IBridgeRouter interface and manages multiple bridge adapters
  */
-contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
+contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -42,26 +43,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     bool public paused;
 
     /// @notice Add a new mapping to track confirmation statuses
-    mapping(bytes32 transferId => bool) public confirmationSent;
+    mapping(bytes32 transferId => bool confirmed) public confirmationSent;
 
-    /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when the contract is paused
-    error Paused();
-
-    /// @notice Thrown when the provided fee is insufficient
-    error InsufficientFee();
-
-    /// @notice Thrown when no suitable adapter is found for a transfer
-    error NoSuitableAdapter();
-
-    /// @notice Thrown when a transfer fails
-    error TransferFailed();
-
-    /// @notice Thrown when an adapter doesn't support a requested operation
-    error UnsupportedAdapterOperation();
+    /// @notice Fee multiplier for confirmations (200 = double the fee, with half for confirmation)
+    uint256 public feeMultiplier = 200; // 200%
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -76,6 +61,63 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     /*//////////////////////////////////////////////////////////////
                         BRIDGE OPERATIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Internal implementation of quote that can reuse a selected adapter
+     * @param destinationChainId ID of the destination chain
+     * @param asset Address of the asset to transfer
+     * @param amount Amount of the asset to transfer
+     * @param options Additional options for the transfer
+     * @param preselectedAdapter Optional adapter address (if already selected)
+     * @return nativeFee Fee in native token
+     * @return tokenFee Fee in the asset token
+     * @return selectedAdapter Address of the selected adapter
+     */
+    function _quote(
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        BridgeTypes.BridgeOptions memory options,
+        address preselectedAdapter
+    )
+        internal
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
+    {
+        selectedAdapter = preselectedAdapter;
+        if (selectedAdapter == address(0)) {
+            selectedAdapter = getBestAdapter(destinationChainId, asset, amount);
+        }
+
+        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
+
+        // Get base fee from adapter
+        (uint256 baseFee, ) = IBridgeAdapter(selectedAdapter).estimateFee(
+            destinationChainId,
+            asset,
+            amount,
+            options.adapterParams
+        );
+
+        // Apply multiplier to account for confirmation
+        nativeFee = (baseFee * feeMultiplier) / 100;
+
+        return (nativeFee, tokenFee, selectedAdapter);
+    }
+
+    /// @inheritdoc IBridgeRouter
+    function quote(
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
+    {
+        return _quote(destinationChainId, asset, amount, options, address(0));
+    }
 
     /// @inheritdoc IBridgeRouter
     function transferAssets(
@@ -103,6 +145,32 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             revert UnsupportedAdapterOperation();
         }
 
+        // Get the total fee and base fee using our internal function with the selected adapter
+        (uint256 totalFee, , ) = _quote(
+            destinationChainId,
+            asset,
+            amount,
+            options,
+            adapter
+        );
+
+        // Calculate base fee (without multiplier)
+        (uint256 baseFee, ) = IBridgeAdapter(adapter).estimateFee(
+            destinationChainId,
+            asset,
+            amount,
+            options.adapterParams
+        );
+
+        // Ensure user provided enough fee
+        if (msg.value < totalFee) revert InsufficientFee();
+
+        // Return any excess fee to the sender
+        if (msg.value > totalFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - totalFee}("");
+            if (!success) revert TransferFailed();
+        }
+
         // Transfer tokens from sender to this contract
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
@@ -110,9 +178,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         IERC20(asset).approve(adapter, 0);
         IERC20(asset).approve(adapter, amount);
 
-        // Call the adapter to initiate the transfer - pass all adapter options directly
-        // Pass msg.sender for refunds
-        transferId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
+        // Only forward the base fee to the adapter, router keeps the rest for confirmation
+        transferId = IBridgeAdapter(adapter).transferAsset{value: baseFee}(
             destinationChainId,
             asset,
             recipient,
@@ -160,9 +227,30 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             revert UnsupportedAdapterOperation();
         }
 
+        // Get the total fee and base fee using our internal function
+        (uint256 totalFee, , ) = _quote(
+            sourceChainId,
+            address(0), // No asset for state reads
+            0, // No amount for state reads
+            options,
+            adapter
+        );
+
+        // Calculate base fee from total fee
+        uint256 baseFee = (totalFee * 100) / feeMultiplier;
+
+        // Ensure user provided enough fee
+        if (msg.value < totalFee) revert InsufficientFee();
+
+        // Return any excess fee to the sender
+        if (msg.value > totalFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - totalFee}("");
+            if (!success) revert TransferFailed();
+        }
+
         // Let the adapter handle gas limits and other options
-        // Pass msg.sender for refunds
-        requestId = IBridgeAdapter(adapter).readState{value: msg.value}(
+        // Pass msg.sender for refunds, but only forward the base fee
+        requestId = IBridgeAdapter(adapter).readState{value: baseFee}(
             sourceChainId,
             sourceContract,
             selector,
@@ -191,38 +279,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     }
 
     /// @inheritdoc IBridgeRouter
-    function quote(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options
-    )
-        external
-        view
-        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
-    {
-        selectedAdapter = getBestAdapter(destinationChainId, asset, amount);
-
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-
-        // Let the adapter interpret the options itself
-        (nativeFee, tokenFee) = IBridgeAdapter(selectedAdapter).estimateFee(
-            destinationChainId,
-            asset,
-            amount,
-            options.adapterParams
-        );
-
-        return (nativeFee, tokenFee, selectedAdapter);
-    }
-
-    /**
-     * @notice Execute multiple cross-chain actions in a single atomic transaction
-     * @param destinationChainId Chain where actions will be executed
-     * @param actions Array of encoded actions to execute sequentially
-     * @param options Bridge options including adapter params and gas limits
-     * @return requestId Unique ID for tracking the composed request
-     */
     function composeActions(
         uint16 destinationChainId,
         bytes[] calldata actions,
@@ -250,9 +306,29 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             revert UnsupportedAdapterOperation();
         }
 
-        // Let the adapter handle the options
-        // Pass msg.sender for refunds
-        requestId = ISendAdapter(adapter).composeActions{value: msg.value}(
+        // Get the total fee and base fee using our internal function
+        (uint256 totalFee, , ) = _quote(
+            destinationChainId,
+            address(0), // No asset for compose actions
+            0, // No amount for compose actions
+            options,
+            adapter
+        );
+
+        // Calculate base fee from total fee
+        uint256 baseFee = (totalFee * 100) / feeMultiplier;
+
+        // Ensure user provided enough fee
+        if (msg.value < totalFee) revert InsufficientFee();
+
+        // Return any excess fee to the sender
+        if (msg.value > totalFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - totalFee}("");
+            if (!success) revert TransferFailed();
+        }
+
+        // Let the adapter handle the options but only forward the base fee
+        requestId = ISendAdapter(adapter).composeActions{value: baseFee}(
             destinationChainId,
             actions,
             msg.sender, // Pass the originator for refunds
@@ -277,12 +353,17 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
                         ADAPTER CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Ensure adapter is registered
+    modifier onlyRegisteredAdapter() {
+        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+        _;
+    }
+
     /// @inheritdoc IBridgeRouter
     function updateTransferStatus(
         bytes32 transferId,
         BridgeTypes.TransferStatus status
-    ) external {
-        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+    ) external onlyRegisteredAdapter {
         if (transferToAdapter[transferId] != msg.sender) revert Unauthorized();
 
         transferStatuses[transferId] = status;
@@ -293,8 +374,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     function deliverReadResponse(
         bytes32 requestId,
         bytes calldata resultData
-    ) external {
-        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+    ) external onlyRegisteredAdapter {
         if (transferToAdapter[requestId] != msg.sender) revert Unauthorized();
 
         address originator = readRequestToOriginator[requestId];
@@ -360,8 +440,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         bytes32 messageId,
         bytes memory message,
         address recipient
-    ) external {
-        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+    ) external onlyRegisteredAdapter {
         if (transferToAdapter[messageId] != msg.sender) revert Unauthorized();
 
         // Update status
@@ -419,8 +498,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         uint256 amount,
         address recipient,
         uint16 sourceChainId
-    ) external {
-        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+    ) external onlyRegisteredAdapter nonReentrant {
+        if (transferToAdapter[transferId] != msg.sender) revert Unauthorized();
 
         // Update status locally (in case this is tracking a return transfer)
         if (transferToAdapter[transferId] == msg.sender) {
@@ -431,7 +510,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             );
         }
 
-        // Emit an event for the received transfer
+        // Emit event for the received transfer
         emit TransferReceived(
             transferId,
             asset,
@@ -440,10 +519,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             sourceChainId
         );
 
-        // Always try to send confirmation back to the source chain
+        // Find confirmation adapter
         address confirmationAdapter = getBestAdapter(
             sourceChainId,
-            address(0), // No specific asset for confirmation message
+            address(0), // No specific asset for confirmation
             0 // No specific amount
         );
 
@@ -457,41 +536,54 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
                 BridgeTypes.TransferStatus.DELIVERED
             );
 
+            // We don't use _quote here because:
+            // 1. This is already the "confirmation" part that the fee multiplier paid for
+            // 2. We're paying from the router's balance, not collecting from a user
+            // 3. We don't need to reserve funds for another confirmation
+
+            // Use the correct parameter format for estimateFee
+            (uint256 confirmationFee, ) = IBridgeAdapter(confirmationAdapter)
+                .estimateFee(
+                    sourceChainId,
+                    address(0), // No asset for confirmation message
+                    0, // No amount for confirmation message
+                    BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                );
+
+            // Send confirmation using router's accumulated balance
             try
                 ISendAdapter(confirmationAdapter).sendMessage{
-                    value: 0.01 ether
-                }( // Protocol subsidizes confirmation fee
+                    value: confirmationFee
+                }(
                     sourceChainId,
                     address(this), // Target is the BridgeRouter on the source chain
                     confirmationMessage,
-                    address(0), // No refund address needed for confirmation
+                    address(0), // No refund address needed
                     BridgeTypes.AdapterParams({
-                        gasLimit: 100000, // Reasonable gas limit for confirmation
-                        msgValue: 0, // No additional value needed
+                        gasLimit: 100000,
+                        msgValue: 0,
                         calldataSize: 0,
                         options: ""
                     })
                 )
             returns (bytes32) {
-                // Mark confirmation as sent
                 confirmationSent[transferId] = true;
-
-                // No need to track the confirmation message itself
             } catch {
-                // If confirmation sending fails, log but don't revert
                 emit ConfirmationFailed(transferId);
             }
         }
     }
 
-    // Add a new function to handle incoming confirmation messages
+    /// @notice Receive confirmation messages from adapters
     function receiveConfirmation(
         bytes32 transferId,
         BridgeTypes.TransferStatus status
-    ) external {
-        // Verify adapter is authorized
-        if (!adapters.contains(msg.sender)) revert Unauthorized();
-
+    ) external onlyRegisteredAdapter {
         // Only update status in forward progression (pending->complete, not complete->pending)
         if (_isStatusProgression(transferStatuses[transferId], status)) {
             transferStatuses[transferId] = status;
@@ -704,5 +796,43 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         transferStatuses[transferId] = status;
         emit TransferStatusUpdated(transferId, status);
         emit ManualStatusUpdate(transferId, status, msg.sender);
+    }
+
+    /**
+     * @notice Update the fee multiplier
+     * @param multiplier New multiplier (200 = 200% = double fee)
+     */
+    function setFeeMultiplier(uint256 multiplier) external onlyGovernor {
+        feeMultiplier = multiplier;
+    }
+
+    /**
+     * @notice Allows governance to withdraw native tokens from the contract
+     * @param recipient Address to send tokens to
+     * @param amount Amount to withdraw
+     */
+    function removeRouterFunds(
+        address recipient,
+        uint256 amount
+    ) external onlyGovernor nonReentrant {
+        if (recipient == address(0)) revert InvalidParams();
+        if (address(this).balance < amount) revert InsufficientBalance();
+
+        (bool success, ) = recipient.call{value: amount}("");
+        if (!success) revert TransferFailed();
+
+        emit RouterFundsRemoved(recipient, amount);
+    }
+
+    /**
+     * @notice Allow anyone to fund the router with native tokens for confirmations
+     */
+    function addRouterFunds() external payable {
+        emit RouterFundsAdded(msg.sender, msg.value);
+    }
+
+    // Add a function to check current router balance
+    function getRouterBalance() external view returns (uint256) {
+        return address(this).balance;
     }
 }
