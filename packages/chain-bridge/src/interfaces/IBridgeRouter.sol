@@ -12,6 +12,97 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
  */
 interface IBridgeRouter {
     /*//////////////////////////////////////////////////////////////
+                               EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a new adapter is registered
+    event AdapterRegistered(address indexed adapter);
+
+    /// @notice Emitted when an adapter is removed
+    event AdapterRemoved(address indexed adapter);
+
+    /// @notice Emitted when a transfer status is updated
+    event TransferStatusUpdated(
+        bytes32 indexed transferId,
+        BridgeTypes.TransferStatus status
+    );
+
+    /// @notice Emitted when a transfer is received on the destination chain
+    event TransferReceived(
+        bytes32 indexed transferId,
+        address indexed asset,
+        uint256 amount,
+        address indexed recipient,
+        uint16 sourceChainId
+    );
+
+    /// @notice Emitted when a read request status is updated
+    event ReadRequestStatusUpdated(
+        bytes32 indexed requestId,
+        BridgeTypes.TransferStatus status
+    );
+
+    /// @notice Emitted when sending a confirmation message fails
+    event ConfirmationFailed(bytes32 indexed transferId);
+
+    /// @notice Emitted when a transfer status is manually updated
+    event ManualStatusUpdate(
+        bytes32 indexed transferId,
+        BridgeTypes.TransferStatus status,
+        address updater
+    );
+
+    /// @notice Emitted when a transfer is initiated on the source chain
+    event TransferInitiated(
+        bytes32 indexed transferId,
+        uint16 destinationChainId,
+        address indexed asset,
+        uint256 amount,
+        address indexed recipient,
+        address adapter
+    );
+
+    /// @notice Emitted when a read request is initiated
+    event ReadRequestInitiated(
+        bytes32 indexed requestId,
+        uint16 sourceChainId,
+        bytes sourceContract,
+        bytes4 selector,
+        bytes params,
+        address adapter
+    );
+
+    /// @notice Emitted when composed actions are initiated
+    event ComposedActionsInitiated(
+        bytes32 indexed requestId,
+        uint16 destinationChainId,
+        uint256 actionsCount,
+        address adapter
+    );
+
+    /*//////////////////////////////////////////////////////////////
+                               ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Error thrown when an adapter is already registered
+    error AdapterAlreadyRegistered();
+
+    /// @notice Error thrown when an adapter is not registered
+    error UnknownAdapter();
+
+    /// @notice Error thrown when a caller is not authorized
+    error Unauthorized();
+
+    /// @notice Error thrown when the receiver rejects a call
+    error ReceiverRejectedCall();
+
+    /// @notice Error thrown when invalid parameters are provided
+    error InvalidParams();
+
+    /// @notice Error thrown when trying to update status in invalid direction
+    error InvalidStatusProgression();
+
+    /*//////////////////////////////////////////////////////////////
                         USER BRIDGE OPERATIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -230,5 +321,45 @@ interface IBridgeRouter {
         bytes32 messageId,
         bytes memory message,
         address recipient
+    ) external;
+
+    /**
+     * @notice Notify the router when a transfer is received on the destination chain
+     * @param transferId ID of the transfer that was received
+     * @param asset Address of the asset that was received
+     * @param amount Amount of the asset that was received
+     * @param recipient Address that received the assets
+     * @param sourceChainId ID of the chain where the transfer originated
+     * @dev This function is called by adapters on the destination chain when they receive assets
+     *      It automatically attempts to send a confirmation back to the source chain
+     */
+    function notifyTransferReceived(
+        bytes32 transferId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        uint16 sourceChainId
+    ) external;
+
+    /**
+     * @notice Receive a confirmation message from a destination chain
+     * @param transferId ID of the transfer being confirmed
+     * @param status The final status of the transfer
+     * @dev This function is called by adapters when they receive a confirmation message
+     */
+    function receiveConfirmation(
+        bytes32 transferId,
+        BridgeTypes.TransferStatus status
+    ) external;
+
+    /**
+     * @notice Allows recovery of transfers when automated confirmations fail
+     * @param transferId ID of the transfer to update
+     * @param status New status to set
+     * @dev Can only be called by authorized keepers or governance
+     */
+    function recoverTransferStatus(
+        bytes32 transferId,
+        BridgeTypes.TransferStatus status
     ) external;
 }

@@ -3,7 +3,6 @@ pragma solidity ^0.8.28;
 
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {IReceiveAdapter} from "../../src/interfaces/IReceiveAdapter.sol";
 import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 
 contract MockAdapter is IBridgeAdapter {
@@ -131,76 +130,6 @@ contract MockAdapter is IBridgeAdapter {
         );
 
         return requestId;
-    }
-
-    /// @inheritdoc ISendAdapter
-    function requestAssetTransfer(
-        address asset,
-        uint256 amount,
-        address sender,
-        uint16 sourceChainId,
-        bytes32 transferId,
-        bytes calldata extraData
-    ) external payable override {
-        // Store the parameters for verification in tests
-        lastReceivedAsset = asset;
-        lastReceivedAmount = amount;
-        lastReceivedSender = sender;
-        lastReceivedChainId = sourceChainId;
-        lastReceivedRequestId = transferId;
-        lastReceivedExtraData = extraData;
-
-        // Mark transfer as pending
-        transferStatuses[transferId] = BridgeTypes.TransferStatus.PENDING;
-    }
-
-    /// @inheritdoc IReceiveAdapter
-    function receiveAssetTransfer(
-        address asset,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId,
-        bytes32 transferId,
-        bytes calldata extraData
-    ) external override {
-        // Store the parameters for verification in tests
-        lastReceivedAsset = asset;
-        lastReceivedAmount = amount;
-        lastReceivedRecipient = recipient;
-        lastReceivedChainId = sourceChainId;
-        lastReceivedRequestId = transferId;
-        lastReceivedExtraData = extraData;
-
-        // Mark transfer as completed
-        transferStatuses[transferId] = BridgeTypes.TransferStatus.COMPLETED;
-    }
-
-    /// @inheritdoc IReceiveAdapter
-    function receiveMessage(
-        bytes calldata message,
-        address recipient,
-        uint16 sourceChainId,
-        bytes32 messageId
-    ) external override {
-        // Store the received data for validation in tests
-        lastReceivedResponse = message;
-        lastReceivedRecipient = recipient;
-        lastReceivedChainId = sourceChainId;
-        lastReceivedRequestId = messageId;
-    }
-
-    /// @inheritdoc IReceiveAdapter
-    function receiveStateRead(
-        bytes calldata resultData,
-        address requestor,
-        uint16 sourceChainId,
-        bytes32 requestId
-    ) external override {
-        // Store the received data for validation in tests
-        lastReceivedResponse = resultData;
-        lastReceivedSender = requestor;
-        lastReceivedChainId = sourceChainId;
-        lastReceivedRequestId = requestId;
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -357,5 +286,16 @@ contract MockAdapter is IBridgeAdapter {
     function supportsStateRead() external pure returns (bool) {
         // Mock adapter supports state reads for testing
         return true;
+    }
+
+    /// @inheritdoc ISendAdapter
+    function sendMessage(
+        uint16,
+        address,
+        bytes calldata,
+        address,
+        BridgeTypes.AdapterParams calldata
+    ) external payable returns (bytes32) {
+        revert("Not implemented");
     }
 }
