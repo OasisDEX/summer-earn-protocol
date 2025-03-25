@@ -6,7 +6,6 @@ import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
-import {IReceiveAdapter} from "../interfaces/IReceiveAdapter.sol";
 
 /**
  * @title ChainlinkAdapter
@@ -46,50 +45,6 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address,
         BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc ISendAdapter
-    function requestAssetTransfer(
-        address,
-        uint256,
-        address,
-        uint16,
-        bytes32,
-        bytes calldata
-    ) external payable {
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IReceiveAdapter
-    function receiveAssetTransfer(
-        address,
-        uint256,
-        address,
-        uint16,
-        bytes32,
-        bytes calldata
-    ) external pure {
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IReceiveAdapter
-    function receiveMessage(
-        bytes calldata,
-        address,
-        uint16,
-        bytes32
-    ) external pure {
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IReceiveAdapter
-    function receiveStateRead(
-        bytes calldata,
-        address,
-        uint16,
-        bytes32
-    ) external pure {
         revert OperationNotSupported();
     }
 
@@ -167,6 +122,17 @@ contract ChainlinkAdapter is IBridgeAdapter {
     /// @inheritdoc IBridgeAdapter
     function supportsStateRead() external pure override returns (bool) {
         // This is a placeholder implementation
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc ISendAdapter
+    function sendMessage(
+        uint16,
+        address,
+        bytes calldata,
+        address,
+        BridgeTypes.AdapterParams calldata
+    ) external payable returns (bytes32) {
         revert OperationNotSupported();
     }
 }

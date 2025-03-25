@@ -6,7 +6,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {IReceiveAdapter} from "../interfaces/IReceiveAdapter.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
@@ -42,74 +41,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     /// @notice Pause state of the router
     bool public paused;
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when a new adapter is registered
-    event AdapterRegistered(address indexed adapter);
-
-    /// @notice Emitted when an adapter is removed
-    event AdapterRemoved(address indexed adapter);
-
-    /// @notice Emitted when a transfer is initiated
-    event TransferInitiated(
-        bytes32 indexed transferId,
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        address adapter
-    );
-
-    /// @notice Emitted when a transfer status is updated
-    event TransferStatusUpdated(
-        bytes32 indexed transferId,
-        BridgeTypes.TransferStatus status
-    );
-
-    /// @notice Emitted when a read request is initiated
-    event ReadRequestInitiated(
-        bytes32 indexed requestId,
-        uint16 sourceChainId,
-        bytes sourceContract,
-        bytes4 selector,
-        bytes params,
-        address adapter
-    );
-
-    /// @notice Emitted when a read request status is updated
-    event ReadRequestStatusUpdated(
-        bytes32 indexed requestId,
-        BridgeTypes.TransferStatus status
-    );
-
-    /// @notice Emitted when composed actions are initiated
-    event ComposedActionsInitiated(
-        bytes32 indexed requestId,
-        uint16 destinationChainId,
-        uint256 actionCount,
-        address adapter
-    );
+    /// @notice Add a new mapping to track confirmation statuses
+    mapping(bytes32 transferId => bool) public confirmationSent;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when an unknown adapter tries to perform an operation
-    error UnknownAdapter();
-
-    /// @notice Thrown when trying to register an already registered adapter
-    error AdapterAlreadyRegistered();
-
     /// @notice Thrown when the contract is paused
     error Paused();
-
-    /// @notice Thrown when an unauthorized address tries to perform a privileged operation
-    error Unauthorized();
-
-    /// @notice Thrown when invalid parameters are provided
-    error InvalidParams();
 
     /// @notice Thrown when the provided fee is insufficient
     error InsufficientFee();
@@ -119,9 +59,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
 
     /// @notice Thrown when a transfer fails
     error TransferFailed();
-
-    /// @notice Thrown when the receiver contract rejects the cross-chain call
-    error ReceiverRejectedCall();
 
     /// @notice Thrown when an adapter doesn't support a requested operation
     error UnsupportedAdapterOperation();
@@ -475,6 +412,93 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         );
     }
 
+    /// @inheritdoc IBridgeRouter
+    function notifyTransferReceived(
+        bytes32 transferId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        uint16 sourceChainId
+    ) external {
+        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+
+        // Update status locally (in case this is tracking a return transfer)
+        if (transferToAdapter[transferId] == msg.sender) {
+            transferStatuses[transferId] = BridgeTypes.TransferStatus.DELIVERED;
+            emit TransferStatusUpdated(
+                transferId,
+                BridgeTypes.TransferStatus.DELIVERED
+            );
+        }
+
+        // Emit an event for the received transfer
+        emit TransferReceived(
+            transferId,
+            asset,
+            amount,
+            recipient,
+            sourceChainId
+        );
+
+        // Always try to send confirmation back to the source chain
+        address confirmationAdapter = getBestAdapter(
+            sourceChainId,
+            address(0), // No specific asset for confirmation message
+            0 // No specific amount
+        );
+
+        if (
+            confirmationAdapter != address(0) &&
+            IBridgeAdapter(confirmationAdapter).supportsMessaging()
+        ) {
+            // Encode the confirmation message
+            bytes memory confirmationMessage = abi.encode(
+                transferId,
+                BridgeTypes.TransferStatus.DELIVERED
+            );
+
+            try
+                ISendAdapter(confirmationAdapter).sendMessage{
+                    value: 0.01 ether
+                }( // Protocol subsidizes confirmation fee
+                    sourceChainId,
+                    address(this), // Target is the BridgeRouter on the source chain
+                    confirmationMessage,
+                    address(0), // No refund address needed for confirmation
+                    BridgeTypes.AdapterParams({
+                        gasLimit: 100000, // Reasonable gas limit for confirmation
+                        msgValue: 0, // No additional value needed
+                        calldataSize: 0,
+                        options: ""
+                    })
+                )
+            returns (bytes32) {
+                // Mark confirmation as sent
+                confirmationSent[transferId] = true;
+
+                // No need to track the confirmation message itself
+            } catch {
+                // If confirmation sending fails, log but don't revert
+                emit ConfirmationFailed(transferId);
+            }
+        }
+    }
+
+    // Add a new function to handle incoming confirmation messages
+    function receiveConfirmation(
+        bytes32 transferId,
+        BridgeTypes.TransferStatus status
+    ) external {
+        // Verify adapter is authorized
+        if (!adapters.contains(msg.sender)) revert Unauthorized();
+
+        // Only update status in forward progression (pending->complete, not complete->pending)
+        if (_isStatusProgression(transferStatuses[transferId], status)) {
+            transferStatuses[transferId] = status;
+            emit TransferStatusUpdated(transferId, status);
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -616,5 +640,69 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     /// @inheritdoc IBridgeRouter
     function unpause() external onlyGovernor {
         paused = false;
+    }
+
+    /**
+     * @notice Checks if a status change represents forward progression
+     * @param currentStatus The current status of the transfer
+     * @param newStatus The proposed new status
+     * @return True if the status change is valid forward progression
+     */
+    function _isStatusProgression(
+        BridgeTypes.TransferStatus currentStatus,
+        BridgeTypes.TransferStatus newStatus
+    ) internal pure returns (bool) {
+        // Failed is a terminal state, can't progress from it
+        if (currentStatus == BridgeTypes.TransferStatus.FAILED) {
+            return false;
+        }
+
+        // Completed is a terminal state, can't progress from it
+        if (currentStatus == BridgeTypes.TransferStatus.COMPLETED) {
+            return false;
+        }
+
+        // Can always progress to FAILED from any non-terminal state
+        if (newStatus == BridgeTypes.TransferStatus.FAILED) {
+            return true;
+        }
+
+        // Status progression order: PENDING -> DELIVERED -> COMPLETED
+        if (currentStatus == BridgeTypes.TransferStatus.PENDING) {
+            return
+                newStatus == BridgeTypes.TransferStatus.DELIVERED ||
+                newStatus == BridgeTypes.TransferStatus.COMPLETED;
+        }
+
+        if (currentStatus == BridgeTypes.TransferStatus.DELIVERED) {
+            return newStatus == BridgeTypes.TransferStatus.COMPLETED;
+        }
+
+        // Default: no progression
+        return false;
+    }
+
+    /**
+     * @notice Allows recovery of transfers when automated confirmations fail
+     * @param transferId ID of the transfer to update
+     * @param status New status to set
+     * @dev Can only be called by authorized keepers or governance
+     */
+    function recoverTransferStatus(
+        bytes32 transferId,
+        BridgeTypes.TransferStatus status
+    ) external onlyGuardianOrGovernor {
+        // Check if the transfer exists
+        if (transferToAdapter[transferId] == address(0)) revert InvalidParams();
+
+        // Only allow status updates in forward progression
+        if (!_isStatusProgression(transferStatuses[transferId], status)) {
+            revert InvalidStatusProgression();
+        }
+
+        // Update the status
+        transferStatuses[transferId] = status;
+        emit TransferStatusUpdated(transferId, status);
+        emit ManualStatusUpdate(transferId, status, msg.sender);
     }
 }

@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "forge build",
+    "build": "forge build --skip 'test'",
     "test": "FOUNDRY_PROFILE=test forge test",
     "coverage": "FOUNDRY_PROFILE=test forge coverage --ir-minimum",
     "coverage:lcov": "FOUNDRY_PROFILE=test forge coverage --report lcov --ir-minimum",

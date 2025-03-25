@@ -47,24 +47,6 @@ interface ISendAdapter {
     ) external payable returns (bytes32 requestId);
 
     /**
-     * @notice Request an asset transfer from a remote chain
-     * @param asset Address of the asset to transfer
-     * @param amount Amount of the asset to transfer
-     * @param sender Address of the sender on the source chain
-     * @param sourceChainId Chain ID of the source chain
-     * @param transferId Unique ID for tracking the transfer
-     * @param extraData Additional data for the transfer
-     */
-    function requestAssetTransfer(
-        address asset,
-        uint256 amount,
-        address sender,
-        uint16 sourceChainId,
-        bytes32 transferId,
-        bytes calldata extraData
-    ) external payable;
-
-    /**
      * @notice Compose multiple cross-chain actions into a single transaction
      * @param destinationChainId Chain ID where actions will be executed
      * @param actions Array of encoded action data to execute sequentially
@@ -78,4 +60,21 @@ interface ISendAdapter {
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 requestId);
+
+    /**
+     * @notice Send a cross-chain message to a destination chain
+     * @param destinationChainId Chain ID of the destination chain
+     * @param recipient Address of the message recipient on the destination chain
+     * @param message The message data to be delivered
+     * @param originator Address of the originator of the request
+     * @param adapterParams Additional adapter-specific parameters
+     * @return messageId Unique ID for tracking the message
+     */
+    function sendMessage(
+        uint16 destinationChainId,
+        address recipient,
+        bytes calldata message,
+        address originator,
+        BridgeTypes.AdapterParams calldata adapterParams
+    ) external payable returns (bytes32 messageId);
 }

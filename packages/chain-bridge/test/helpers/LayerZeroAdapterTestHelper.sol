@@ -60,35 +60,11 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
      * @param transferId ID of the transfer
      * @param status New status
      */
-    function updateAdapterTransferStatus(
+    function updateTransferStatus(
         bytes32 transferId,
         BridgeTypes.TransferStatus status
     ) external {
-        _updateAdapterTransferStatus(transferId, status);
-    }
-
-    /**
-     * @notice Exposes the internal updateTransferStatus function for testing
-     * @param transferId ID of the transfer
-     * @param status New status
-     */
-    function updateBridgeTransferStatus(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
-    ) external {
-        _updateBridgeTransferStatus(transferId, status);
-    }
-
-    /**
-     * @notice Exposes the internal updateTransferStatuses function for testing
-     * @param transferId ID of the transfer
-     * @param status New status
-     */
-    function updateTransferStatuses(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
-    ) external {
-        _updateTransferStatuses(transferId, status);
+        _updateTransferStatus(transferId, status);
     }
 
     /**

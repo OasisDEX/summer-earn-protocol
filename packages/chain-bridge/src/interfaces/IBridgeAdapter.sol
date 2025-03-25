@@ -3,13 +3,12 @@ pragma solidity ^0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {ISendAdapter} from "./ISendAdapter.sol";
-import {IReceiveAdapter} from "./IReceiveAdapter.sol";
 
 /**
  * @title IBridgeAdapter
  * @notice Core interface for bridge adapters with shared functionality
  */
-interface IBridgeAdapter is ISendAdapter, IReceiveAdapter {
+interface IBridgeAdapter is ISendAdapter {
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/

@@ -4,19 +4,19 @@ pragma solidity ^0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-import {IReceiveAdapter} from "../interfaces/IReceiveAdapter.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {IStargateRouter} from "../interfaces/IStargateRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IStargateReceiver} from "../interfaces/IStargateReceiver.sol";
 
 /**
  * @title StargateAdapter
  * @notice Adapter for Stargate Protocol to facilitate cross-chain asset transfers
  * @dev Implements IBridgeAdapter interface and connects to Stargate Router for efficient liquidity bridging
  */
-contract StargateAdapter is Ownable, IBridgeAdapter {
+contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -28,10 +28,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
 
     /// @notice Address of the Stargate Router contract
     address public immutable stargateRouter;
-
-    /// @notice Mapping of transfer IDs to their current status
-    mapping(bytes32 transferId => BridgeTypes.TransferStatus status)
-        public transferStatuses;
 
     /// @notice Mapping of supported chains to their Stargate chain IDs
     mapping(uint16 chainId => uint16 stargateChainId)
@@ -232,8 +228,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
             )
         );
 
-        // Mark transfer as pending
-        transferStatuses[transferId] = BridgeTypes.TransferStatus.PENDING;
+        // Update status in bridge router instead
+        IBridgeRouter(bridgeRouter).updateTransferStatus(
+            transferId,
+            BridgeTypes.TransferStatus.PENDING
+        );
 
         return transferId;
     }
@@ -335,10 +334,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
                 params.amount
             );
 
-            // Update transfer status to failed
-            transferStatuses[params.transferId] = BridgeTypes
-                .TransferStatus
-                .FAILED;
+            // Update transfer status to failed through bridge router
+            IBridgeRouter(bridgeRouter).updateTransferStatus(
+                params.transferId,
+                BridgeTypes.TransferStatus.FAILED
+            );
 
             revert TransferFailed();
         }
@@ -390,7 +390,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
     function getTransferStatus(
         bytes32 transferId
     ) external view override returns (BridgeTypes.TransferStatus) {
-        return transferStatuses[transferId];
+        return IBridgeRouter(bridgeRouter).getTransferStatus(transferId);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -447,52 +447,47 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
                       RECEIVE ADAPTER IMPLEMENTATION
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IReceiveAdapter
-    function receiveAssetTransfer(
-        address asset,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId,
-        bytes32 transferId,
-        bytes calldata _extraData
-    ) external {
-        // This can be called by Stargate's SGReceiver contract setup
-        // For simplicity in this adapter, we're not enforcing caller restrictions
-        // since Stargate handles token transfers directly
+    /**
+     * @notice Stargate callback function - called on the destination chain
+     * @dev Implements the Stargate receiver interface to handle incoming cross-chain transfers
+     * @param _chainId Source chain ID in Stargate format
+     * @param _srcAddress Source address as bytes
+     * @param _nonce Stargate nonce
+     * @param _token Address of the token being transferred
+     * @param _amount Amount of tokens received
+     * @param _payload ABI encoded payload sent from source chain (contains transferId)
+     */
+    function sgReceive(
+        uint16 _chainId,
+        bytes memory _srcAddress,
+        uint256 _nonce,
+        address _token,
+        uint256 _amount,
+        bytes memory _payload
+    ) external override {
+        // Verify that the sender is the Stargate Router
+        if (msg.sender != stargateRouter) revert Unauthorized();
 
-        // Update transfer status to completed
-        transferStatuses[transferId] = BridgeTypes.TransferStatus.COMPLETED;
+        // Decode the transfer ID from the payload
+        bytes32 transferId = abi.decode(_payload, (bytes32));
 
-        // Also update status in bridge router
-        IBridgeRouter(bridgeRouter).updateTransferStatus(
+        // Convert _srcAddress to an address (this would be the recipient encoded from the source chain)
+        address recipient = abi.decode(_srcAddress, (address));
+
+        // Forward the tokens to the recipient (likely CrossChainArkProxy)
+        IERC20(_token).safeTransfer(recipient, _amount);
+
+        // Notify the BridgeRouter about the completed transfer
+        IBridgeRouter(bridgeRouter).notifyTransferReceived(
             transferId,
-            BridgeTypes.TransferStatus.COMPLETED
+            _token,
+            _amount,
+            recipient,
+            _chainId
         );
 
-        // Emit event
-        emit TransferReceived(transferId, asset, amount, recipient);
-    }
-
-    /// @inheritdoc IReceiveAdapter
-    function receiveMessage(
-        bytes calldata,
-        address,
-        uint16,
-        bytes32
-    ) external pure {
-        // This adapter doesn't support general messaging
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IReceiveAdapter
-    function receiveStateRead(
-        bytes calldata,
-        address,
-        uint16,
-        bytes32
-    ) external pure {
-        // This adapter doesn't support state reading
-        revert OperationNotSupported();
+        // Emit event for the received transfer
+        emit TransferReceived(transferId, _token, _amount, recipient);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -512,21 +507,20 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
     }
 
     /// @inheritdoc ISendAdapter
-    function requestAssetTransfer(
-        address,
-        uint256,
-        address,
+    function composeActions(
         uint16,
-        bytes32,
-        bytes calldata
-    ) external payable {
+        bytes[] calldata,
+        address,
+        BridgeTypes.AdapterParams calldata
+    ) external payable returns (bytes32) {
         revert OperationNotSupported();
     }
 
     /// @inheritdoc ISendAdapter
-    function composeActions(
+    function sendMessage(
         uint16,
-        bytes[] calldata,
+        address,
+        bytes calldata,
         address,
         BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
