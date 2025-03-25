@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -82,7 +83,7 @@ contract BridgeRouterAdaptersTest is Test {
         vm.startPrank(governor);
 
         // Should revert when registering same adapter twice
-        vm.expectRevert(BridgeRouter.AdapterAlreadyRegistered.selector);
+        vm.expectRevert(IBridgeRouter.AdapterAlreadyRegistered.selector);
         router.registerAdapter(address(mockAdapter));
 
         vm.stopPrank();
@@ -118,7 +119,7 @@ contract BridgeRouterAdaptersTest is Test {
         vm.startPrank(governor);
 
         // Should revert when removing non-existent adapter
-        vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.removeAdapter(address(mockAdapter2));
 
         vm.stopPrank();
@@ -226,7 +227,7 @@ contract BridgeRouterAdaptersTest is Test {
         });
 
         // Should revert when using unregistered adapter
-        vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.transferAssets(
             DEST_CHAIN_ID,
             address(token),
@@ -320,7 +321,7 @@ contract BridgeRouterAdaptersTest is Test {
         });
 
         // Should revert for unsupported chain
-        vm.expectRevert(BridgeRouter.NoSuitableAdapter.selector);
+        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
         router.quote(
             999, // Unsupported chain ID
             address(token),
