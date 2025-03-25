@@ -1,0 +1,204 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity ^0.8.28;
+
+import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
+import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+
+contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
+    // Implement the executeMessage helper function required by the abstract base test
+    function executeMessage(
+        uint32 srcEid,
+        address srcAdapter,
+        address dstAdapter
+    ) internal override {
+        // Implementation for general tests
+        Origin memory origin = Origin({
+            srcEid: srcEid,
+            sender: addressToBytes32(srcAdapter),
+            nonce: 1
+        });
+
+        if (address(dstAdapter) == address(testHelperA)) {
+            testHelperA.lzReceiveTest(
+                origin,
+                bytes32(uint256(1)), // requestId
+                abi.encodePacked(uint16(1), "test payload"), // Simple transfer payload
+                srcAdapter,
+                bytes("")
+            );
+        } else if (address(dstAdapter) == address(testHelperB)) {
+            testHelperB.lzReceiveTest(
+                origin,
+                bytes32(uint256(1)), // requestId
+                abi.encodePacked(uint16(1), "test payload"), // Simple transfer payload
+                srcAdapter,
+                bytes("")
+            );
+        } else if (address(dstAdapter) == address(adapterA)) {
+            // Handle real adapter receive logic based on your test needs
+        } else if (address(dstAdapter) == address(adapterB)) {
+            // Handle real adapter receive logic based on your test needs
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          ADAPTER FEATURES TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testGetSupportedChains() public view {
+        uint16[] memory supportedChains = adapterA.getSupportedChains();
+        assertEq(supportedChains.length, 2);
+        assertEq(supportedChains[0], CHAIN_ID_A);
+        assertEq(supportedChains[1], CHAIN_ID_B);
+    }
+
+    function testSupportsChain() public view {
+        assertTrue(adapterA.supportsChain(CHAIN_ID_A));
+        assertTrue(adapterA.supportsChain(CHAIN_ID_B));
+        assertFalse(adapterA.supportsChain(2)); // Arbitrary unsupported chain
+    }
+
+    function testSupportsAsset() public view {
+        // Currently all assets are supported on supported chains
+        assertTrue(adapterA.supportsAsset(CHAIN_ID_A, address(tokenA)));
+        assertTrue(adapterA.supportsAsset(CHAIN_ID_B, address(tokenB)));
+        assertFalse(adapterA.supportsAsset(2, address(tokenA))); // Unsupported chain
+    }
+
+    // Update test for UnsupportedMessageType error since type 5 is now COMPOSE
+    function testUnsupportedMessageType() public {
+        // Create a message with an unsupported type (9 - which doesn't exist)
+        bytes memory invalidPayload = abi.encodePacked(
+            uint16(9),
+            bytes("test payload")
+        );
+
+        // Create origin data
+        Origin memory origin = Origin({
+            srcEid: LZ_EID_B, // Source is chain B
+            sender: addressToBytes32(address(testHelperB)),
+            nonce: 1
+        });
+
+        // Expect revert with UnsupportedMessageType
+        vm.expectRevert(LayerZeroAdapter.UnsupportedMessageType.selector);
+
+        // Call the test helper's lzReceiveTest function with the invalid payload
+        testHelperA.lzReceiveTest(
+            origin,
+            bytes32(uint256(1)), // requestId
+            invalidPayload,
+            address(testHelperB), // sender
+            bytes("") // extraData
+        );
+    }
+
+    function testGetRequiredFeeWithMinGasLimit() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Set minimum gas limit for TRANSFER with a high value
+        adapterA.setMinGasLimit(adapterA.TRANSFER(), 1000000);
+
+        // Create a simple payload for testing
+        bytes memory payload = abi.encodePacked(
+            uint16(adapterA.TRANSFER()),
+            bytes("test payload")
+        );
+
+        // Get required fee
+        uint256 requiredFee = adapterA.getRequiredFee(
+            LZ_EID_B,
+            adapterA.TRANSFER(),
+            payload
+        );
+
+        // Fee should be non-zero
+        assertTrue(requiredFee > 0);
+
+        vm.stopPrank();
+    }
+
+    function testSetMinGasLimit() public {
+        useNetworkA();
+
+        // Check current value
+        uint16 transferType = adapterA.TRANSFER();
+        assertEq(adapterA.minGasLimits(transferType), 500000);
+
+        // Try to set minGasLimit as unauthorized address
+        vm.prank(address(2));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                address(2)
+            )
+        );
+
+        // Actually call the function that should revert
+        adapterA.setMinGasLimit(transferType, 600000);
+    }
+
+    function testMinGasLimitEnforcement() public {
+        useNetworkA();
+        vm.startPrank(governor);
+
+        // Set a high minimum gas limit for TRANSFER
+        uint128 minGasLimit = 1000000;
+        adapterA.setMinGasLimit(adapterA.TRANSFER(), minGasLimit);
+
+        // Prepare a transfer with a lower gas limit than the minimum
+        uint256 amount = 100 ether;
+
+        // Create adapter params with a lower gas limit
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000, // Lower than our minimum
+                msgValue: 0,
+                calldataSize: 0,
+                options: bytes("")
+            });
+
+        // Get the fee estimate (this calls _prepareOptions internally)
+        (uint256 nativeFee, , ) = routerA.quote(
+            CHAIN_ID_B,
+            address(tokenA),
+            amount,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                adapterParams: adapterParams
+            })
+        );
+
+        // The fee should reflect the higher minimum gas limit
+        assertTrue(nativeFee > 0);
+
+        // Now create adapter params with a higher gas limit than the minimum
+        BridgeTypes.AdapterParams memory higherParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 1500000, // Higher than our minimum
+                msgValue: 0,
+                calldataSize: 0,
+                options: bytes("")
+            });
+
+        // Get the fee estimate for the higher gas limit
+        (uint256 higherFee, , ) = routerA.quote(
+            CHAIN_ID_B,
+            address(tokenA),
+            amount,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                adapterParams: higherParams
+            })
+        );
+
+        // Higher gas limit should result in a higher fee
+        assertTrue(higherFee > nativeFee);
+
+        vm.stopPrank();
+    }
+}

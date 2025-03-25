@@ -5,7 +5,7 @@ import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title LayerZeroAdapterTestHelper
  * @notice Helper contract for testing LayerZeroAdapter
@@ -51,6 +51,7 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
         address sender,
         bytes calldata extraData
     ) external {
+        console.log("lzReceiveTest called");
         _lzReceive(origin, requestId, payload, sender, extraData);
     }
 

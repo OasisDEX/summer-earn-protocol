@@ -4,9 +4,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "forge test",
-    "coverage": "forge coverage --ir-minimum",
-    "coverage:lcov": "forge coverage --report lcov --ir-minimum",
+    "build": "forge build",
+    "test": "FOUNDRY_PROFILE=test forge test",
+    "coverage": "FOUNDRY_PROFILE=test forge coverage --ir-minimum",
+    "coverage:lcov": "FOUNDRY_PROFILE=test forge coverage --report lcov --ir-minimum",
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info"
   },
   "dependencies": {

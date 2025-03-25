@@ -339,28 +339,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     }
 
     /// @inheritdoc IBridgeRouter
-    function receiveAsset(
-        bytes32 transferId,
-        address asset,
-        address recipient,
-        uint256 amount
-    ) external {
-        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
-        if (transferToAdapter[transferId] != msg.sender) revert Unauthorized();
-
-        // Update transfer status
-        transferStatuses[transferId] = BridgeTypes.TransferStatus.DELIVERED;
-
-        // Transfer the received assets to the recipient
-        IERC20(asset).safeTransfer(recipient, amount);
-
-        emit TransferStatusUpdated(
-            transferId,
-            BridgeTypes.TransferStatus.DELIVERED
-        );
-    }
-
-    /// @inheritdoc IBridgeRouter
     function deliverReadResponse(
         bytes32 requestId,
         bytes calldata resultData

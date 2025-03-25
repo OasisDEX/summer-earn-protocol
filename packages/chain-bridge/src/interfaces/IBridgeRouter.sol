@@ -115,20 +115,6 @@ interface IBridgeRouter {
         BridgeTypes.TransferStatus status
     ) external;
 
-    /**
-     * @notice Called by a bridge adapter when assets are received from another chain
-     * @param transferId ID of the transfer
-     * @param asset Address of the asset received
-     * @param recipient Address to receive the assets
-     * @param amount Amount of assets received
-     */
-    function receiveAsset(
-        bytes32 transferId,
-        address asset,
-        address recipient,
-        uint256 amount
-    ) external;
-
     /*//////////////////////////////////////////////////////////////
                            VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

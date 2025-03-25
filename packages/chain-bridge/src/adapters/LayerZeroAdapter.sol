@@ -11,13 +11,20 @@ import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {console} from "forge-std/console.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
+import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
+import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
- * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OApp standard
+ * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OAppRead standard
  */
-contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
+contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
+    using SafeERC20 for IERC20;
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -48,14 +55,14 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
     /// @notice Message type for general message
     uint16 public constant GENERAL_MESSAGE = 3;
 
-    /// @notice Message type for state read result
-    uint16 public constant STATE_READ_RESULT = 4;
-
     /// @notice Message type for compose message
     uint16 public constant COMPOSE = 5;
 
     /// @notice Mapping of message types to their minimum gas limits
     mapping(uint16 msgType => uint128 minGasLimit) public minGasLimits;
+
+    /// @notice Read channel identifier for lzRead operations
+    uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Standard lzRead threshold
 
     /// @notice Thrown when insufficient fee is provided for a layerzero operation
     error InsufficientFeeForOptions(uint256 required, uint256 provided);
@@ -136,7 +143,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
         address _owner
-    ) OApp(_endpoint, _owner) Ownable(_owner) {
+    ) OAppRead(_endpoint, _owner) Ownable(_owner) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();
 
@@ -152,7 +159,6 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         minGasLimits[TRANSFER] = 500000;
         minGasLimits[STATE_READ] = 200000;
         minGasLimits[GENERAL_MESSAGE] = 500000;
-        minGasLimits[STATE_READ_RESULT] = 200000;
         minGasLimits[COMPOSE] = 500000;
     }
 
@@ -192,28 +198,39 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         address,
         bytes calldata
     ) internal override {
+        console.log("_lzReceive called");
+
+        // Check if this is a response from a read channel
+        if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
+            _handleReadResponse(_origin, _guid, _payload);
+            return;
+        }
+
+        // Continue with existing message handling logic for non-read messages
         // Extract message type from the first 2 bytes if available
         uint16 messageType = 1; // Default to TRANSFER
         bytes calldata actualPayload = _payload;
+        console.log("actualPayload length: %s", actualPayload.length);
 
         // If the payload starts with a uint16 message type marker
         if (_payload.length >= 2) {
             messageType = uint16(bytes2(_payload[:2]));
             actualPayload = _payload[2:];
         }
+        console.log("messageType: %s", messageType);
 
         // Get source chain ID
         uint16 srcChainId = _getLzChainId(_origin.srcEid);
+        console.log("srcChainId: %s", srcChainId);
 
         // Process based on message type
         if (messageType == TRANSFER) {
             _handleAssetTransferMessage(_guid, actualPayload);
         } else if (messageType == STATE_READ) {
+            // TODO: remove this
             _handleStateReadMessage(srcChainId, actualPayload);
         } else if (messageType == GENERAL_MESSAGE) {
             _handleGeneralMessage(actualPayload);
-        } else if (messageType == STATE_READ_RESULT) {
-            _handleStateReadResultMessage(actualPayload);
         } else if (messageType == COMPOSE) {
             _handleComposeMessage(actualPayload);
         } else {
@@ -229,6 +246,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         bytes calldata _payload
     ) internal {
         // Decode the payload to extract transfer information
+        console.log("_handleAssetTransferMessage called");
         (
             bytes32 transferId,
             address asset,
@@ -236,35 +254,20 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
             address recipient
         ) = abi.decode(_payload, (bytes32, address, uint256, address));
 
+        console.log("transferId:");
+        console.logBytes32(transferId);
+        console.log("asset: %s", asset);
+        console.log("amount: %s", amount);
+        console.log("recipient: %s", recipient);
+
         // Update message hash to transfer ID mapping
         lzMessageToTransferId[_guid] = transferId;
 
-        try
-            IBridgeRouter(bridgeRouter).receiveAsset(
-                transferId,
-                asset,
-                recipient,
-                amount
-            )
-        {
-            // Update transfer status to completed in both adapter and bridge
-            _updateTransferStatuses(
-                transferId,
-                BridgeTypes.TransferStatus.COMPLETED
-            );
+        // SafeERC20's safeTransfer will revert on failure
+        IERC20(asset).safeTransfer(recipient, amount);
 
-            // Emit event for successful transfer receipt
-            emit TransferReceived(transferId, asset, amount, recipient);
-        } catch (bytes memory reason) {
-            // Update transfer status to failed in both adapter and bridge
-            _updateTransferStatuses(
-                transferId,
-                BridgeTypes.TransferStatus.FAILED
-            );
-
-            // Emit event for failed relay
-            emit RelayFailed(transferId, reason);
-        }
+        // Emit event for successful transfer receipt
+        emit TransferReceived(transferId, asset, amount, recipient);
     }
 
     /**
@@ -296,7 +299,6 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
 
             // Format state read result message
             bytes memory resultPayload = abi.encodePacked(
-                uint16(4), // STATE_READ_RESULT message type
                 abi.encode(requestId, result, requestor)
             );
 
@@ -321,65 +323,37 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
      * @dev Handles general messages
      */
     function _handleGeneralMessage(bytes calldata _payload) internal {
-        // Decode the message payload
         (bytes memory message, address recipient, bytes32 messageId) = abi
             .decode(_payload, (bytes, address, bytes32));
 
-        // Update status in both adapter and bridge
-        _updateTransferStatuses(
-            messageId,
-            BridgeTypes.TransferStatus.COMPLETED
-        );
-
-        // Forward the message to the bridge router
+        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
         try
-            IBridgeRouter(bridgeRouter).deliverMessage(
-                messageId,
-                message,
-                recipient
-            )
-        {} catch (bytes memory reason) {
-            // Mark as failed on error in both adapter and bridge
-            _updateTransferStatuses(
-                messageId,
-                BridgeTypes.TransferStatus.FAILED
-            );
-            emit RelayFailed(messageId, reason);
-        }
-    }
-
-    /**
-     * @dev Handles state read result messages
-     * This is called on the source chain when receiving the result
-     */
-    function _handleStateReadResultMessage(bytes calldata _payload) internal {
-        // Decode the state read result payload
-        (bytes32 requestId, bytes memory resultData, ) = abi.decode(
-            _payload,
-            (bytes32, bytes, address)
-        );
-
-        // Update status in both adapter and bridge
-        _updateTransferStatuses(
-            requestId,
-            BridgeTypes.TransferStatus.COMPLETED
-        );
-
-        // Forward the result to the bridge router to deliver to originator
-        try
-            IBridgeRouter(bridgeRouter).deliverReadResponse(
-                requestId,
-                resultData
-            )
-        {
-            // Already updated status above
+            ICrossChainReceiver(recipient).supportsInterface(interfaceId)
+        returns (bool supported) {
+            if (supported) {
+                ICrossChainReceiver(recipient).receiveMessage(
+                    message,
+                    recipient,
+                    0, // sourceChainId (could be added as a parameter)
+                    messageId
+                );
+            } else {
+                // Fallback for contracts that don't implement supportsInterface
+                (bool success, ) = recipient.call(
+                    abi.encodeWithSelector(
+                        ICrossChainReceiver.receiveMessage.selector,
+                        message,
+                        recipient,
+                        0, // TODO: add sourceChainId
+                        messageId
+                    )
+                );
+                if (!success) revert("Receiver rejected call");
+            }
+        } catch Error(string memory reason) {
+            emit RelayFailed(messageId, abi.encodePacked(reason));
         } catch (bytes memory reason) {
-            // Mark as failed if delivery fails in both adapter and bridge
-            _updateTransferStatuses(
-                requestId,
-                BridgeTypes.TransferStatus.FAILED
-            );
-            emit RelayFailed(requestId, reason);
+            emit RelayFailed(messageId, reason);
         }
     }
 
@@ -393,12 +367,6 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
             (bytes32, bytes[])
         );
 
-        // Update status in both adapter and bridge
-        _updateTransferStatuses(
-            requestId,
-            BridgeTypes.TransferStatus.COMPLETED
-        );
-
         // Forward the actions to the bridge router for sequential execution
         try
             IBridgeRouter(bridgeRouter).deliverMessage(
@@ -406,8 +374,53 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                 abi.encode(actions),
                 bridgeRouter // Bridge router itself will handle executing the actions
             )
-        {} catch (bytes memory reason) {
-            // Mark as failed on error in both adapter and bridge
+        {
+            // Update status in both adapter and bridge
+            _updateTransferStatuses(
+                requestId,
+                BridgeTypes.TransferStatus.COMPLETED
+            );
+        } catch Error(string memory reason) {
+            emit RelayFailed(requestId, abi.encodePacked(reason));
+        } catch (bytes memory reason) {
+            emit RelayFailed(requestId, reason);
+        }
+    }
+
+    /**
+     * @dev Handles responses from lzRead operations
+     * @param // _origin Source chain information
+     * @param _guid Global unique identifier for tracking the packet
+     * @param _payload Response payload
+     */
+    function _handleReadResponse(
+        Origin calldata,
+        bytes32 _guid,
+        bytes calldata _payload
+    ) internal {
+        // For simple read responses, we can directly use the payload as our result
+        // For more complex scenarios, you might need to decode the response based on expected types
+
+        // Extract requestId from the guid mapping, if you're tracking it
+        bytes32 requestId = lzMessageToTransferId[_guid];
+        if (requestId == bytes32(0)) {
+            // If no explicit mapping exists, use the guid itself as the requestId
+            requestId = _guid;
+        }
+
+        // Update status to COMPLETED
+        _updateTransferStatuses(
+            requestId,
+            BridgeTypes.TransferStatus.COMPLETED
+        );
+
+        // Forward the result to the bridge router
+        try
+            IBridgeRouter(bridgeRouter).deliverReadResponse(requestId, _payload)
+        {
+            // Status already updated to COMPLETED above
+        } catch (bytes memory reason) {
+            // Mark as failed if delivery fails
             _updateTransferStatuses(
                 requestId,
                 BridgeTypes.TransferStatus.FAILED
@@ -613,13 +626,13 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
 
         // Encode the read state request payload
         bytes memory payload = abi.encodePacked(
-            uint16(2), // STATE_READ message type
+            uint16(STATE_READ),
             abi.encode(
                 requestId,
                 sourceContract,
                 selector,
                 readParams,
-                msg.sender // requestor address
+                address(this)
             )
         );
 
@@ -1038,5 +1051,14 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         }
 
         return chainId;
+    }
+
+    /**
+     * @notice Activates a specific read channel for this adapter
+     * @param channelId The read channel ID to activate
+     * @dev Can only be called by the contract owner
+     */
+    function activateReadChannel(uint32 channelId) external onlyOwner {
+        setReadChannel(channelId, true);
     }
 }
