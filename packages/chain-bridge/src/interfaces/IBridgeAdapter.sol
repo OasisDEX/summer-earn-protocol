@@ -10,6 +10,55 @@ import {IReceiveAdapter} from "./IReceiveAdapter.sol";
  * @notice Core interface for bridge adapters with shared functionality
  */
 interface IBridgeAdapter is ISendAdapter, IReceiveAdapter {
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a transfer is initiated through the adapter
+    event TransferInitiated(
+        bytes32 indexed transferId,
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient
+    );
+
+    /// @notice Emitted when a transfer is received through the adapter
+    event TransferReceived(
+        bytes32 indexed transferId,
+        address asset,
+        uint256 amount,
+        address recipient
+    );
+
+    /// @notice Emitted when a relay or messaging operation fails
+    event RelayFailed(bytes32 indexed transferId, bytes reason);
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when a call is made by an unauthorized address
+    error Unauthorized();
+
+    /// @notice Thrown when provided parameters are invalid
+    error InvalidParams();
+
+    /// @notice Thrown when a transfer operation fails
+    error TransferFailed();
+
+    /// @notice Thrown when a chain is not supported
+    error UnsupportedChain();
+
+    /// @notice Thrown when an asset is not supported for a specific chain
+    error UnsupportedAsset();
+
+    /// @notice Thrown when the operation is not supported by the adapter
+    error OperationNotSupported();
+
+    /// @notice Thrown when insufficient fee is provided for an operation
+    error InsufficientFee(uint256 required, uint256 provided);
+
     /**
      * @notice Estimate the fee required for a cross-chain transfer
      */
@@ -51,4 +100,9 @@ interface IBridgeAdapter is ISendAdapter, IReceiveAdapter {
         uint16 chainId,
         address asset
     ) external view returns (bool);
+
+    // Capability flags
+    function supportsAssetTransfer() external view returns (bool);
+    function supportsMessaging() external view returns (bool);
+    function supportsStateRead() external view returns (bool);
 }

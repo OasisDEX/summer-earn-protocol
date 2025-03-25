@@ -123,6 +123,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     /// @notice Thrown when the receiver contract rejects the cross-chain call
     error ReceiverRejectedCall();
 
+    /// @notice Thrown when an adapter doesn't support a requested operation
+    error UnsupportedAdapterOperation();
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -157,6 +160,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         }
 
         if (adapter == address(0)) revert NoSuitableAdapter();
+
+        // Check if adapter supports asset transfers
+        if (!IBridgeAdapter(adapter).supportsAssetTransfer()) {
+            revert UnsupportedAdapterOperation();
+        }
 
         // Transfer tokens from sender to this contract
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
@@ -205,14 +213,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         // Select the best adapter for this read request
         address adapter = options.specifiedAdapter;
         if (adapter == address(0)) {
-            adapter = getBestAdapter(
-                sourceChainId,
-                address(0), // No asset for read requests
-                0 // No amount for read requests
-            );
+            adapter = getBestAdapterForStateRead(sourceChainId);
         }
 
         if (adapter == address(0)) revert NoSuitableAdapter();
+
+        // Check if adapter supports state reads
+        if (!IBridgeAdapter(adapter).supportsStateRead()) {
+            revert UnsupportedAdapterOperation();
+        }
 
         // Let the adapter handle gas limits and other options
         // Pass msg.sender for refunds
@@ -298,6 +307,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         }
 
         if (adapter == address(0)) revert NoSuitableAdapter();
+
+        // Check if adapter supports messaging (required for compose actions)
+        if (!IBridgeAdapter(adapter).supportsMessaging()) {
+            revert UnsupportedAdapterOperation();
+        }
 
         // Let the adapter handle the options
         // Pass msg.sender for refunds
@@ -465,138 +479,96 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBridgeRouter
-    function getBestAdapter(
+    /**
+     * @notice Get the best adapter for a specific operation type
+     * @param chainId Destination chain ID
+     * @param asset Asset to transfer (set to address(0) for non-asset operations)
+     * @param requiresAssetTransfer Whether the operation requires asset transfer support
+     * @param requiresMessaging Whether the operation requires messaging support
+     * @param requiresStateRead Whether the operation requires state read support
+     * @return The address of the best suitable adapter
+     */
+    function _getBestAdapterForOperation(
         uint16 chainId,
         address asset,
-        uint256 amount
-    ) public view returns (address bestAdapter) {
-        if (adapters.length() == 0) return address(0);
+        bool requiresAssetTransfer,
+        bool requiresMessaging,
+        bool requiresStateRead
+    ) internal view returns (address) {
+        address bestAdapter = address(0);
 
-        uint256 lowestFee = type(uint256).max;
-        uint256 maxIterations = adapters.length() > 10 ? 10 : adapters.length();
-
-        for (uint256 i = 0; i < maxIterations; i++) {
+        uint256 adapterCount = adapters.length();
+        for (uint256 i = 0; i < adapterCount; i++) {
             address adapter = adapters.at(i);
 
-            // Skip adapters that don't support this chain
-            if (!IBridgeAdapter(adapter).supportsChain(chainId)) {
-                continue;
-            }
+            // Check if adapter supports this chain
+            if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
 
-            // For transfers, check if adapter supports this asset
-            if (asset != address(0) && amount > 0) {
-                if (!IBridgeAdapter(adapter).supportsAsset(chainId, asset)) {
-                    continue;
-                }
-            }
+            // Check capability requirements
+            if (
+                requiresAssetTransfer &&
+                !IBridgeAdapter(adapter).supportsAssetTransfer()
+            ) continue;
+            if (
+                requiresMessaging &&
+                !IBridgeAdapter(adapter).supportsMessaging()
+            ) continue;
+            if (
+                requiresStateRead &&
+                !IBridgeAdapter(adapter).supportsStateRead()
+            ) continue;
 
-            // For read requests, just return the first valid adapter
-            if (asset == address(0) || amount == 0) {
-                return adapter;
-            }
+            // For asset transfers, check if the asset is supported
+            if (
+                asset != address(0) &&
+                !IBridgeAdapter(adapter).supportsAsset(chainId, asset)
+            ) continue;
 
-            // For transfers, compare fees
-            address candidate = _getAdapterWithBetterFee(
-                adapter,
-                chainId,
-                asset,
-                amount,
-                lowestFee
-            );
-            if (candidate != address(0)) {
-                bestAdapter = candidate;
-                lowestFee = _getAdapterFee(candidate, chainId, asset, amount);
-            }
+            // Found a suitable adapter
+            bestAdapter = adapter;
+            break;
         }
 
         return bestAdapter;
     }
 
-    /**
-     * @notice Checks if an adapter is compatible with the given parameters
-     * @param adapter The adapter to check
-     * @param chainId The destination chain ID
-     * @param asset The asset to transfer (address(0) for read requests)
-     * @param amount The amount to transfer (0 for read requests)
-     * @return True if the adapter is compatible, false otherwise
-     */
-    function _isAdapterCompatible(
-        address adapter,
-        uint16 chainId,
-        address asset,
-        uint256 amount
-    ) private view returns (bool) {
-        // Check if adapter supports this chain
-        if (!IBridgeAdapter(adapter).supportsChain(chainId)) {
-            return false;
-        }
-
-        // For transfers, check if adapter supports this asset
-        if (asset != address(0) && amount > 0) {
-            if (!IBridgeAdapter(adapter).supportsAsset(chainId, asset)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * @notice Returns the adapter if it has a better fee than the current best
-     * @param adapter The adapter to check
-     * @param chainId The destination chain ID
-     * @param asset The asset to transfer
-     * @param amount The amount to transfer
-     * @param currentLowestFee The current lowest fee
-     * @return The adapter if it has a better fee, address(0) otherwise
-     */
-    function _getAdapterWithBetterFee(
-        address adapter,
+    /// @inheritdoc IBridgeRouter
+    function getBestAdapter(
         uint16 chainId,
         address asset,
         uint256 amount,
-        uint256 currentLowestFee
-    ) private view returns (address) {
-        uint256 fee = _getAdapterFee(adapter, chainId, asset, amount);
+        bool forStateRead
+    ) public view returns (address) {
+        // Determine operation type based on parameters
+        bool isAssetTransfer = asset != address(0) && amount > 0;
 
-        if (fee < currentLowestFee) {
-            return adapter;
-        }
-
-        return address(0);
+        return
+            _getBestAdapterForOperation(
+                chainId,
+                asset,
+                isAssetTransfer && !forStateRead, // Asset transfer only if not for state read
+                true, // All operations require basic messaging
+                forStateRead // State read required only if specified
+            );
     }
 
-    /**
-     * @notice Gets the fee for using an adapter
-     * @param adapter The adapter to check
-     * @param chainId The destination chain ID
-     * @param asset The asset to transfer
-     * @param amount The amount to transfer
-     * @return The fee (or type(uint256).max if estimation fails)
-     */
-    function _getAdapterFee(
-        address adapter,
+    /// @inheritdoc IBridgeRouter
+    function getBestAdapter(
         uint16 chainId,
         address asset,
         uint256 amount
-    ) private view returns (uint256) {
-        // Use empty AdapterOptions for fee estimation
-        BridgeTypes.AdapterParams memory emptyParams;
+    ) public view returns (address) {
+        // Default to non-state read operation
+        return getBestAdapter(chainId, asset, amount, false);
+    }
 
-        try
-            IBridgeAdapter(adapter).estimateFee(
-                chainId,
-                asset,
-                amount,
-                emptyParams
-            )
-        returns (uint256 nativeFee, uint256) {
-            return nativeFee;
-        } catch {
-            // Return max value if estimation fails
-            return type(uint256).max;
-        }
+    /// @notice Get the best adapter for state read operations
+    /// @param chainId Source chain ID to read from
+    /// @return The address of the best adapter for state reading
+    function getBestAdapterForStateRead(
+        uint16 chainId
+    ) public view returns (address) {
+        return getBestAdapter(chainId, address(0), 0, true);
     }
 
     /// @inheritdoc IBridgeRouter

@@ -19,31 +19,10 @@ contract ChainlinkAdapter is IBridgeAdapter {
     address public bridgeRouter;
     mapping(bytes32 => BridgeTypes.TransferStatus) public transferStatuses;
 
-    // Events
-    event TransferInitiated(
-        bytes32 indexed transferId,
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount
-    );
-    event TransferReceived(
-        bytes32 indexed transferId,
-        address asset,
-        uint256 amount,
-        address recipient
-    );
-
-    // Errors
-    error Unauthorized();
-    error InvalidRouter();
-    error InvalidParams();
-    error TransferFailed();
-    error Unimplemented();
-
     // Chainlink receiver function
     function ccipReceive(bytes32, bytes calldata) external pure {
         // Implementation will handle incoming messages from Chainlink CCIP
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc ISendAdapter
@@ -55,7 +34,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address,
         BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc ISendAdapter
@@ -67,7 +46,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address,
         BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc ISendAdapter
@@ -79,7 +58,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         bytes32,
         bytes calldata
     ) external payable {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IReceiveAdapter
@@ -91,7 +70,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         bytes32,
         bytes calldata
     ) external pure {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IReceiveAdapter
@@ -101,7 +80,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         uint16,
         bytes32
     ) external pure {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IReceiveAdapter
@@ -111,14 +90,14 @@ contract ChainlinkAdapter is IBridgeAdapter {
         uint16,
         bytes32
     ) external pure {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter
     function getTransferStatus(
         bytes32
     ) external pure returns (BridgeTypes.TransferStatus) {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -128,14 +107,14 @@ contract ChainlinkAdapter is IBridgeAdapter {
         override
         returns (uint16[] memory)
     {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter
     function getSupportedAssets(
         uint16
     ) external pure override returns (address[] memory) {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -145,13 +124,13 @@ contract ChainlinkAdapter is IBridgeAdapter {
         uint256,
         BridgeTypes.AdapterParams calldata
     ) external pure returns (uint256, uint256) {
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter
     function supportsChain(uint16) external pure override returns (bool) {
         // This is a placeholder implementation
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -160,7 +139,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address
     ) external pure override returns (bool) {
         // This is a placeholder implementation
-        revert Unimplemented();
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc ISendAdapter
@@ -170,6 +149,24 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address,
         BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
-        revert Unimplemented();
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsAssetTransfer() external pure override returns (bool) {
+        // This is a placeholder implementation
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsMessaging() external pure override returns (bool) {
+        // This is a placeholder implementation
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsStateRead() external pure override returns (bool) {
+        // This is a placeholder implementation
+        revert OperationNotSupported();
     }
 }
