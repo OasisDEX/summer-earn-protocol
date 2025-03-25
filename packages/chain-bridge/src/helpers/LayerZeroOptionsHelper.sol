@@ -93,44 +93,6 @@ library LayerZeroOptionsHelper {
     }
 
     /**
-     * @notice Creates options for composed calls
-     * @param index The index of the compose function call
-     * @param adapterParams Additional adapter params (optional)
-     * @param minGasLimit Minimum gas limit to enforce (if adapter param gas limit is lower)
-     * @return Options bytes formatted for LayerZero lzCompose
-     */
-    function createComposeOptions(
-        uint16 index,
-        BridgeTypes.AdapterParams memory adapterParams,
-        uint128 minGasLimit
-    ) internal pure returns (bytes memory) {
-        bytes memory options;
-
-        // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
-            ? minGasLimit
-            : adapterParams.gasLimit;
-
-        // Start with user-provided options or create new empty options
-        if (adapterParams.options.length > 0) {
-            // Use the user's options as the base if provided
-            options = adapterParams.options;
-        } else {
-            // Create new empty options if none provided
-            options = OptionsBuilder.newOptions();
-        }
-
-        // Add our LzCompose option to the existing or new options
-        return
-            OptionsBuilder.addExecutorLzComposeOption(
-                options,
-                index,
-                gasLimit,
-                adapterParams.msgValue
-            );
-    }
-
-    /**
      * @notice Estimates appropriate gas limit based on operation type
      * @param isReadOperation Whether this is a read operation
      * @return Appropriate default gas limit

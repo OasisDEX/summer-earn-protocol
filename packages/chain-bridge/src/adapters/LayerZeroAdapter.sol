@@ -50,9 +50,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Message type for general message
     uint16 public constant GENERAL_MESSAGE = 3;
 
-    /// @notice Message type for compose message
-    uint16 public constant COMPOSE = 5;
-
     /// @notice Mapping of message types to their minimum gas limits
     mapping(uint16 msgType => uint128 minGasLimit) public minGasLimits;
 
@@ -111,7 +108,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         minGasLimits[TRANSFER] = 500000;
         minGasLimits[STATE_READ] = 200000;
         minGasLimits[GENERAL_MESSAGE] = 500000;
-        minGasLimits[COMPOSE] = 500000;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -183,8 +179,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             _handleStateReadMessage(srcChainId, actualPayload);
         } else if (messageType == GENERAL_MESSAGE) {
             _handleGeneralMessage(actualPayload);
-        } else if (messageType == COMPOSE) {
-            _handleComposeMessage(actualPayload);
         } else {
             revert UnsupportedMessageType();
         }
@@ -306,36 +300,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             emit RelayFailed(messageId, abi.encodePacked(reason));
         } catch (bytes memory reason) {
             emit RelayFailed(messageId, reason);
-        }
-    }
-
-    /**
-     * @dev Handles compose message execution
-     */
-    function _handleComposeMessage(bytes calldata _payload) internal {
-        // Decode the message payload
-        (bytes32 requestId, bytes[] memory actions) = abi.decode(
-            _payload,
-            (bytes32, bytes[])
-        );
-
-        // Forward the actions to the bridge router for sequential execution
-        try
-            IBridgeRouter(bridgeRouter).deliverMessage(
-                requestId,
-                abi.encode(actions),
-                bridgeRouter // Bridge router itself will handle executing the actions
-            )
-        {
-            // Update status in both adapter and bridge
-            _updateTransferStatus(
-                requestId,
-                BridgeTypes.TransferStatus.COMPLETED
-            );
-        } catch Error(string memory reason) {
-            emit RelayFailed(requestId, abi.encodePacked(reason));
-        } catch (bytes memory reason) {
-            emit RelayFailed(requestId, reason);
         }
     }
 
@@ -559,50 +523,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     }
 
     /// @inheritdoc ISendAdapter
-    function composeActions(
-        uint16 destinationChainId,
-        bytes[] calldata actions,
-        address originator,
-        BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 requestId) {
-        // Verify the caller is the BridgeRouter
-        if (msg.sender != bridgeRouter) revert Unauthorized();
-
-        // Convert destinationChainId to LayerZero EID
-        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
-
-        // Generate a unique request ID
-        requestId = keccak256(
-            abi.encode(
-                block.chainid,
-                destinationChainId,
-                actions,
-                block.timestamp
-            )
-        );
-
-        // Encode payload for LayerZero with COMPOSE message type
-        bytes memory payload = abi.encodePacked(
-            uint16(COMPOSE), // COMPOSE message type
-            abi.encode(requestId, actions)
-        );
-
-        // Create options with appropriate gas for composed actions
-        bytes memory options = _prepareOptions(adapterParams, COMPOSE);
-
-        // Send message through OApp's _lzSend
-        _lzSend(
-            lzDstEid,
-            payload,
-            options,
-            MessagingFee(msg.value, 0),
-            payable(originator)
-        );
-
-        return requestId;
-    }
-
-    /// @inheritdoc ISendAdapter
     function sendMessage(
         uint16 destinationChainId,
         address recipient,
@@ -722,37 +642,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             return
                 LayerZeroOptionsHelper.createLzReadOptions(
                     adapterParams,
-                    minimumGas
+                    gasLimit
                 );
-        } else if (msgType == COMPOSE) {
-            // For compose actions, we need to create options with BOTH:
-            // 1. lzReceive options (required for the initial receive)
-            // 2. lzCompose options (required for the composed call)
-
-            // Start with empty options
-            bytes memory options = OptionsBuilder.newOptions();
-
-            // First add the lzReceive option with gas (required to avoid Executor_ZeroLzReceiveGasProvided)
-            options = OptionsBuilder.addExecutorLzReceiveOption(
-                options,
-                50000, // Explicit non-zero gas for message receipt
-                0 // No msg.value for the receive
-            );
-
-            // Then add the lzCompose option with gas for the composed action execution
-            options = OptionsBuilder.addExecutorLzComposeOption(
-                options,
-                0, // Default index
-                gasLimit,
-                adapterParams.msgValue
-            );
-
-            return options;
         } else {
             return
                 LayerZeroOptionsHelper.createMessagingOptions(
                     adapterParams,
-                    minimumGas
+                    gasLimit
                 );
         }
     }
@@ -786,37 +682,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 });
             options = LayerZeroOptionsHelper.createLzReadOptions(
                 params,
-                minimumGas
-            );
-        } else if (_msgType == COMPOSE) {
-            // For COMPOSE, we need both lzReceive and lzCompose options
-            // First create standard messaging options for lzReceive
-            BridgeTypes.AdapterParams memory receiveParams = BridgeTypes
-                .AdapterParams({
-                    gasLimit: 50000, // Non-zero gas for message receipt
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: bytes("")
-                });
-
-            // Add lzReceive option
-            options = LayerZeroOptionsHelper.createMessagingOptions(
-                receiveParams,
-                50000
-            );
-
-            // Now add lzCompose option on top of that
-            BridgeTypes.AdapterParams memory composeParams = BridgeTypes
-                .AdapterParams({
-                    gasLimit: uint64(minimumGas),
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: options // Use the options with lzReceive already added
-                });
-
-            options = LayerZeroOptionsHelper.createComposeOptions(
-                0,
-                composeParams,
                 minimumGas
             );
         } else {

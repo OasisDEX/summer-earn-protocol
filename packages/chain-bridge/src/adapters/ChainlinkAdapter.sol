@@ -97,16 +97,6 @@ contract ChainlinkAdapter is IBridgeAdapter {
         revert OperationNotSupported();
     }
 
-    /// @inheritdoc ISendAdapter
-    function composeActions(
-        uint16,
-        bytes[] calldata,
-        address,
-        BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
-        revert OperationNotSupported();
-    }
-
     /// @inheritdoc IBridgeAdapter
     function supportsAssetTransfer() external pure override returns (bool) {
         // This is a placeholder implementation
