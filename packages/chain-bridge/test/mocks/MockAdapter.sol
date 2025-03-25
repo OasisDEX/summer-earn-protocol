@@ -203,42 +203,6 @@ contract MockAdapter is IBridgeAdapter {
         return supportedAssets[chainId][asset];
     }
 
-    /// @inheritdoc ISendAdapter
-    function composeActions(
-        uint16 destinationChainId,
-        bytes[] calldata actions,
-        address originator,
-        BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32 requestId) {
-        // Check caller is bridge router
-        if (msg.sender != bridgeRouter) revert Unauthorized();
-
-        // Verify chain is supported
-        if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
-
-        // Generate deterministic request ID for testing
-        bytes32 actionsHash = keccak256(abi.encode(actions));
-        requestId = keccak256(
-            abi.encodePacked(
-                block.chainid,
-                destinationChainId,
-                actionsHash,
-                originator
-            )
-        );
-
-        // Mock compose successful - emit event for testing
-        emit MockComposeInitiated(
-            requestId,
-            destinationChainId,
-            actions,
-            originator
-        );
-
-        return requestId;
-    }
-
-    // Add events for the different operations
     event ActionComposed(
         bytes32 indexed transferId,
         uint16 destinationChainId,

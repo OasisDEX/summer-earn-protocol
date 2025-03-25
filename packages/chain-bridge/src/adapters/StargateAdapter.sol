@@ -507,16 +507,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     }
 
     /// @inheritdoc ISendAdapter
-    function composeActions(
-        uint16,
-        bytes[] calldata,
-        address,
-        BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc ISendAdapter
     function sendMessage(
         uint16,
         address,

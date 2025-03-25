@@ -21,6 +21,16 @@ interface IBridgeRouter {
     /// @notice Emitted when an adapter is removed
     event AdapterRemoved(address indexed adapter);
 
+    /// @notice Emitted when a transfer is initiated
+    event TransferInitiated(
+        bytes32 indexed transferId,
+        uint16 destinationChainId,
+        address indexed asset,
+        uint256 amount,
+        address indexed recipient,
+        address adapter
+    );
+
     /// @notice Emitted when a transfer status is updated
     event TransferStatusUpdated(
         bytes32 indexed transferId,
@@ -34,6 +44,16 @@ interface IBridgeRouter {
         uint256 amount,
         address indexed recipient,
         uint16 sourceChainId
+    );
+
+    /// @notice Emitted when a read request is initiated
+    event ReadRequestInitiated(
+        bytes32 indexed requestId,
+        uint16 sourceChainId,
+        bytes sourceContract,
+        bytes4 selector,
+        bytes params,
+        address adapter
     );
 
     /// @notice Emitted when a read request status is updated
@@ -52,31 +72,13 @@ interface IBridgeRouter {
         address updater
     );
 
-    /// @notice Emitted when a transfer is initiated on the source chain
-    event TransferInitiated(
-        bytes32 indexed transferId,
-        uint16 destinationChainId,
-        address indexed asset,
-        uint256 amount,
-        address indexed recipient,
-        address adapter
-    );
-
-    /// @notice Emitted when a read request is initiated
-    event ReadRequestInitiated(
+    /// @notice Emitted when a new state read request is initiated
+    event StateReadInitiated(
         bytes32 indexed requestId,
         uint16 sourceChainId,
         bytes sourceContract,
         bytes4 selector,
         bytes params,
-        address adapter
-    );
-
-    /// @notice Emitted when composed actions are initiated
-    event ComposedActionsInitiated(
-        bytes32 indexed requestId,
-        uint16 destinationChainId,
-        uint256 actionsCount,
         address adapter
     );
 
@@ -189,19 +191,6 @@ interface IBridgeRouter {
         external
         view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter);
-
-    /**
-     * @notice Execute multiple cross-chain actions in a single atomic transaction
-     * @param destinationChainId Chain where actions will be executed
-     * @param actions Array of encoded actions to execute sequentially
-     * @param options Bridge options including adapter params and gas limits
-     * @return requestId Unique ID for tracking the composed request
-     */
-    function composeActions(
-        uint16 destinationChainId,
-        bytes[] calldata actions,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 requestId);
 
     /*//////////////////////////////////////////////////////////////
                         ADAPTER CALLBACK FUNCTIONS

@@ -5,18 +5,20 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
  * @title ISendAdapter
- * @notice Interface for outbound cross-chain transactions
+ * @notice Interface for bridge adapters that can send messages and assets across chains
+ * @dev This interface defines methods for initiating various cross-chain operations
  */
 interface ISendAdapter {
     /**
      * @notice Transfer an asset to a destination chain
-     * @param destinationChainId Chain ID of the destination chain
+     * @param destinationChainId ID of the destination chain
      * @param asset Address of the asset to transfer
      * @param recipient Address of the recipient on the destination chain
      * @param amount Amount of the asset to transfer
-     * @param originator Address of the originator of the request
+     * @param originator Address that initiated the transfer (for refunds)
      * @param adapterParams Additional adapter-specific parameters
-     * @return transferId Unique ID for tracking the transfer
+     * @return transferId Unique ID to track this transfer
+     * @dev Initiates a cross-chain asset transfer
      */
     function transferAsset(
         uint16 destinationChainId,
@@ -29,13 +31,14 @@ interface ISendAdapter {
 
     /**
      * @notice Read state from a contract on a source chain
-     * @param sourceChainId Chain ID of the source chain
+     * @param sourceChainId ID of the source chain
      * @param sourceContract Address of the contract on the source chain
-     * @param selector Selector of the function to call on the source contract
-     * @param readParams Parameters for the read operation
-     * @param originator Address of the originator of the request
+     * @param selector Function selector to call
+     * @param readParams Parameters for the function call
+     * @param originator Address that initiated the read (for refunds)
      * @param adapterParams Additional adapter-specific parameters
-     * @return requestId Unique ID for tracking the read request
+     * @return requestId Unique ID to track this read request
+     * @dev Initiates a cross-chain state read operation
      */
     function readState(
         uint16 sourceChainId,
@@ -47,28 +50,14 @@ interface ISendAdapter {
     ) external payable returns (bytes32 requestId);
 
     /**
-     * @notice Compose multiple cross-chain actions into a single transaction
-     * @param destinationChainId Chain ID where actions will be executed
-     * @param actions Array of encoded action data to execute sequentially
-     * @param originator Address of the originator of the request
+     * @notice Send a general message to a destination chain
+     * @param destinationChainId ID of the destination chain
+     * @param recipient Address of the recipient on the destination chain
+     * @param message The message data to send
+     * @param originator Address that initiated the message (for refunds)
      * @param adapterParams Additional adapter-specific parameters
-     * @return requestId Unique ID for tracking the composed request
-     */
-    function composeActions(
-        uint16 destinationChainId,
-        bytes[] calldata actions,
-        address originator,
-        BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 requestId);
-
-    /**
-     * @notice Send a cross-chain message to a destination chain
-     * @param destinationChainId Chain ID of the destination chain
-     * @param recipient Address of the message recipient on the destination chain
-     * @param message The message data to be delivered
-     * @param originator Address of the originator of the request
-     * @param adapterParams Additional adapter-specific parameters
-     * @return messageId Unique ID for tracking the message
+     * @return messageId Unique ID to track this message
+     * @dev Initiates a cross-chain messaging operation
      */
     function sendMessage(
         uint16 destinationChainId,
