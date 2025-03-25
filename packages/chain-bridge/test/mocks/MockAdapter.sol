@@ -9,11 +9,6 @@ import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 contract MockAdapter is IBridgeAdapter {
     address public bridgeRouter;
 
-    // Add error definitions
-    error Unauthorized();
-    error UnsupportedChain();
-    error UnsupportedAsset();
-
     // Add a fee multiplier state variable with a default value of 100 (100%)
     uint256 public feeMultiplier = 100;
 
@@ -345,4 +340,22 @@ contract MockAdapter is IBridgeAdapter {
         bytes[] actions,
         address originator
     );
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsAssetTransfer() external pure returns (bool) {
+        // Mock adapter supports asset transfers for testing
+        return true;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsMessaging() external pure returns (bool) {
+        // Mock adapter supports messaging for testing
+        return true;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsStateRead() external pure returns (bool) {
+        // Mock adapter supports state reads for testing
+        return true;
+    }
 }

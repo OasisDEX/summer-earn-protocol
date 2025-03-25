@@ -146,6 +146,31 @@ interface IBridgeRouter {
     ) external view returns (address bestAdapter);
 
     /**
+     * @notice Get the best adapter with explicit operation type
+     * @param chainId ID of the destination/source chain
+     * @param asset Address of the asset (address(0) for non-asset operations)
+     * @param amount Amount to transfer (0 for non-asset operations)
+     * @param forStateRead Whether this is for a state read operation
+     * @return bestAdapter Address of the best adapter
+     * @dev Extended version that allows specifying state read operations explicitly
+     */
+    function getBestAdapter(
+        uint16 chainId,
+        address asset,
+        uint256 amount,
+        bool forStateRead
+    ) external view returns (address bestAdapter);
+
+    /**
+     * @notice Get the best adapter for state read operations
+     * @param chainId Source chain ID to read from
+     * @return The address of the best adapter for state reading
+     */
+    function getBestAdapterForStateRead(
+        uint16 chainId
+    ) external view returns (address);
+
+    /**
      * @notice Get all registered adapters
      * @return adapterList Array of registered adapter addresses
      * @dev Returns a list of all currently registered bridge adapters

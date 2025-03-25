@@ -67,51 +67,11 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Thrown when insufficient fee is provided for a layerzero operation
     error InsufficientFeeForOptions(uint256 required, uint256 provided);
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
+    /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
+    error InsufficientMsgValue(uint128 required, uint256 provided);
 
-    /// @notice Emitted when a transfer is initiated through LayerZero
-    event TransferInitiated(
-        bytes32 indexed transferId,
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient
-    );
-
-    /// @notice Emitted when a transfer is received through LayerZero
-    event TransferReceived(
-        bytes32 indexed transferId,
-        address asset,
-        uint256 amount,
-        address recipient
-    );
-
-    /// @notice Emitted when a relay fails
-    event RelayFailed(bytes32 indexed transferId, bytes reason);
-
-    /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when a call is made by an unauthorized address
-    error Unauthorized();
-
-    /// @notice Thrown when the LayerZero endpoint is invalid
-    error InvalidEndpoint();
-
-    /// @notice Thrown when provided parameters are invalid
-    error InvalidParams();
-
-    /// @notice Thrown when a transfer operation fails
-    error TransferFailed();
-
-    /// @notice Thrown when a chain is not supported
-    error UnsupportedChain();
-
-    /// @notice Thrown when an asset is not supported for a specific chain
-    error UnsupportedAsset();
+    /// @notice Thrown when invalid options are provided
+    error InvalidOptions(bytes options);
 
     /// @notice Thrown when a direct adapter call is made instead of using LayerZero messaging
     error UseLayerZeroMessaging();
@@ -119,11 +79,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Thrown when an unsupported message type is received
     error UnsupportedMessageType();
 
-    /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
-    error InsufficientMsgValue(uint128 required, uint256 provided);
-
-    /// @notice Thrown when invalid options are provided
-    error InvalidOptions(bytes options);
+    /// @notice Thrown when the LayerZero endpoint is invalid
+    error InvalidEndpoint();
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -435,77 +392,16 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function transferAsset(
-        uint16 destinationChainId,
-        address asset,
-        address recipient,
-        uint256 amount,
-        address originator,
-        BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 requestId) {
-        // Verify the caller is the BridgeRouter
-        if (msg.sender != bridgeRouter) revert Unauthorized();
-
-        // Convert destinationChainId to LayerZero EID
-        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
-
-        // Generate a unique transfer ID
-        requestId = keccak256(
-            abi.encodePacked(
-                block.chainid,
-                destinationChainId,
-                asset,
-                recipient,
-                amount,
-                block.timestamp
-            )
-        );
-
-        // Encode payload for LayerZero
-        bytes memory payload = abi.encode(requestId, asset, amount, recipient);
-
-        // Handle token transfers
-        if (asset != address(0)) {
-            // Transfer ERC20 tokens from bridge router to this adapter
-            if (
-                !IERC20(asset).transferFrom(bridgeRouter, address(this), amount)
-            ) {
-                revert TransferFailed();
-            }
-        }
-
-        // If msgValue is specified in adapter options, ensure enough value was sent
-        if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
-            revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
-        }
-
-        // Create messaging options with appropriate parameters and user options
-        bytes memory options = _prepareOptions(adapterParams, TRANSFER);
-
-        // Send message through OApp's _lzSend
-        _lzSend(
-            lzDstEid,
-            payload,
-            options,
-            MessagingFee(msg.value, 0),
-            payable(originator)
-        );
-
-        // Mark this transfer as pending in the adapter only
-        _updateAdapterTransferStatus(
-            requestId,
-            BridgeTypes.TransferStatus.PENDING
-        );
-
-        // Emit event for transfer initiation
-        emit TransferInitiated(
-            requestId,
-            destinationChainId,
-            asset,
-            amount,
-            recipient
-        );
-
-        return requestId;
+        uint16,
+        address,
+        address,
+        uint256,
+        address,
+        BridgeTypes.AdapterParams calldata
+    ) external payable returns (bytes32) {
+        // This adapter doesn't support asset transfers directly
+        // It should never be called for this purpose due to capability flags
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -1060,5 +956,24 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
      */
     function activateReadChannel(uint32 channelId) external onlyOwner {
         setReadChannel(channelId, true);
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsAssetTransfer() external pure returns (bool) {
+        // This adapter doesn't support native asset transfers
+        // as it has no liquidity management
+        return false;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsMessaging() external pure returns (bool) {
+        // This adapter supports general cross-chain messaging
+        return true;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsStateRead() external pure returns (bool) {
+        // This adapter supports state reading
+        return true;
     }
 }
