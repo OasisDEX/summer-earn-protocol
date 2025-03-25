@@ -12,31 +12,14 @@ This directory contains the implementation of a modular cross-chain bridge syste
 
 ### Message Flow
 
-```
-Source Chain                                          Destination Chain
-+-------------+       +-------------+                  +-------------+       +-------------+
-|             |       |             |      Cross       |             |       |             |
-| Application +------>+ BridgeRouterA+---------------->+ BridgeAdapterB+----->+ Recipient   |
-|             |       |             |      Chain       |             |       |             |
-+-------------+       +------+------+                  +------+------+       +-------------+
-                             |                                |
-                             v                                |
-                      +-------------+                         |
-                      |             |                         |
-                      | BridgeAdapterA|                       |
-                      |             |                         |
-                      +------+------+                         |
-                             |                                |
-                             |                                |
-                             |                         +------v------+
-                             |                         |             |
-                             |                         | BridgeRouterB|
-                             |                         |             |
-                             |                         +------+------+
-                             |                                |
-                             |          Confirmation          |
-                             +<-------------------------------+
-                                       Message
+```mermaid
+graph LR
+    A[Application] --> B[BridgeRouterA]
+    B --> C[BridgeAdapterA]
+    C -->|Cross Chain| D[BridgeAdapterB]
+    D --> E[Recipient]
+    D --> F[BridgeRouterB]
+    F -->|Confirmation Message| B
 ```
 
 ### Adapter Selection
@@ -74,33 +57,12 @@ Transfers progress through a series of states:
 4. `COMPLETED`: Final status after confirmation is received on source chain
 5. `FAILED`: Transfer failed at any point
 
-```
-                  +----------+
-                  |          |
-                  |  PENDING |
-                  |          |
-                  +----+-----+
-                       |
-                       v
-             +-----------------+
-             |                 |
-             |    DELIVERED    |
-             |                 |
-             +--------+--------+
-                      |
-                      v
-             +-----------------+
-             |                 |
-             |    COMPLETED    |
-             |                 |
-             +-----------------+
-                      ^
-                      |
-             +-----------------+
-             |                 |
-+----------->|     FAILED      |
-|            |                 |
-+------------+-----------------+
+```mermaid
+graph TD
+    A[PENDING] --> B[DELIVERED]
+    B --> C[COMPLETED]
+    A --> D[FAILED]
+    B --> D
 ```
 
 ### Status Updates
