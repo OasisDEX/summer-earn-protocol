@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
@@ -169,7 +170,7 @@ contract BridgeRouterReadStateTest is Test {
 
         // Should revert when non-adapter tries to deliver response
         vm.prank(address(0x999)); // Random non-adapter address
-        vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.deliverReadResponse(requestId, abi.encode(uint256(100)));
 
         // Register second adapter
@@ -178,7 +179,7 @@ contract BridgeRouterReadStateTest is Test {
 
         // Should revert when wrong adapter tries to deliver response
         vm.prank(address(mockAdapter2));
-        vm.expectRevert(BridgeRouter.Unauthorized.selector);
+        vm.expectRevert(IBridgeRouter.Unauthorized.selector);
         router.deliverReadResponse(requestId, abi.encode(uint256(100)));
     }
 
@@ -216,7 +217,7 @@ contract BridgeRouterReadStateTest is Test {
 
         // Attempt to deliver the response, should revert with ReceiverRejectedCall
         vm.prank(address(mockAdapter));
-        vm.expectRevert(BridgeRouter.ReceiverRejectedCall.selector);
+        vm.expectRevert(IBridgeRouter.ReceiverRejectedCall.selector);
         router.deliverReadResponse(requestId, abi.encode(uint256(100)));
     }
 }

@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -114,11 +115,11 @@ contract BridgeRouterTransferTest is Test {
         });
 
         // Should revert with zero amount
-        vm.expectRevert(BridgeRouter.InvalidParams.selector);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
         router.transferAssets(DEST_CHAIN_ID, address(token), 0, user, options);
 
         // Should revert with zero recipient
-        vm.expectRevert(BridgeRouter.InvalidParams.selector);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
         router.transferAssets(
             DEST_CHAIN_ID,
             address(token),
@@ -151,7 +152,7 @@ contract BridgeRouterTransferTest is Test {
         });
 
         // Unsupported destination chain
-        vm.expectRevert(BridgeRouter.NoSuitableAdapter.selector);
+        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
         router.transferAssets(
             999, // Unsupported chain ID
             address(token),
@@ -238,7 +239,7 @@ contract BridgeRouterTransferTest is Test {
         );
 
         // Should revert when non-adapter tries to update status
-        vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.updateTransferStatus(
             transferId,
             BridgeTypes.TransferStatus.DELIVERED

@@ -9,7 +9,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
-
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 contract BridgeRouterAdminTest is Test {
     BridgeRouter public router;
     MockAdapter public mockAdapter;
@@ -130,7 +130,7 @@ contract BridgeRouterAdminTest is Test {
         });
 
         // Should revert when router is paused
-        vm.expectRevert(BridgeRouter.Paused.selector);
+        vm.expectRevert(IBridgeRouter.Paused.selector);
         router.transferAssets(
             DEST_CHAIN_ID,
             address(token),
