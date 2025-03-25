@@ -80,6 +80,12 @@ interface IBridgeRouter {
         address adapter
     );
 
+    /// @notice Emitted when funds are added to the router
+    event RouterFundsAdded(address indexed contributor, uint256 amount);
+
+    /// @notice Emitted when funds are removed from the router
+    event RouterFundsRemoved(address indexed recipient, uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -101,6 +107,24 @@ interface IBridgeRouter {
 
     /// @notice Error thrown when trying to update status in invalid direction
     error InvalidStatusProgression();
+
+    /// @notice Thrown when the contract is paused
+    error Paused();
+
+    /// @notice Thrown when the provided fee is insufficient
+    error InsufficientFee();
+
+    /// @notice Thrown when no suitable adapter is found for a transfer
+    error NoSuitableAdapter();
+
+    /// @notice Thrown when a transfer fails
+    error TransferFailed();
+
+    /// @notice Thrown when an adapter doesn't support a requested operation
+    error UnsupportedAdapterOperation();
+
+    /// @notice Thrown when there are insufficient funds in the router
+    error InsufficientBalance();
 
     /*//////////////////////////////////////////////////////////////
                         USER BRIDGE OPERATIONS
