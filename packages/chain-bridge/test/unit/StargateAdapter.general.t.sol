@@ -5,6 +5,8 @@ import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -38,7 +40,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     }
 
     function testGetSupportedAssetsUnsupportedChain() public {
-        vm.expectRevert(StargateAdapter.UnsupportedChain.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
         adapterA.getSupportedAssets(9999); // Unsupported chain
     }
 
@@ -115,7 +117,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Try to add an already supported chain
         vm.prank(governor);
-        vm.expectRevert(StargateAdapter.InvalidParams.selector);
+        vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
         adapterA.addSupportedChain(CHAIN_ID_A, CHAIN_ID_A);
     }
 
@@ -152,7 +154,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Try to add an asset to an unsupported chain
         vm.prank(governor);
-        vm.expectRevert(StargateAdapter.UnsupportedChain.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
         adapterA.addSupportedAsset(9999, address(tokenA), 1);
     }
 
@@ -161,7 +163,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Try to add address(0) as an asset
         vm.prank(governor);
-        vm.expectRevert(StargateAdapter.InvalidParams.selector);
+        vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
         adapterA.addSupportedAsset(CHAIN_ID_A, address(0), 1);
     }
 
