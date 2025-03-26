@@ -142,11 +142,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address,
         bytes calldata
     ) internal override {
-        console.log("_lzReceive called");
-
         // Check if this is a response from a read channel
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
-            console.log("handleReadResponse called");
             _handleReadResponse(_origin, _guid, _payload);
             return;
         }
@@ -155,18 +152,15 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Extract message type from the first 2 bytes if available
         uint16 messageType = GENERAL_MESSAGE; // Default to GENERAL_MESSAGE
         bytes calldata actualPayload = _payload;
-        console.log("actualPayload length: %s", actualPayload.length);
 
         // If the payload starts with a uint16 message type marker
         if (_payload.length >= 2) {
             messageType = uint16(bytes2(_payload[:2]));
             actualPayload = _payload[2:];
         }
-        console.log("messageType: %s", messageType);
 
         // Get source chain ID
         uint16 srcChainId = _getLzChainId(_origin.srcEid);
-        console.log("srcChainId: %s", srcChainId);
 
         // Process based on message type
         if (messageType == STATE_READ) {
@@ -332,7 +326,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         }
 
         // Update status using updateReceiveStatus instead of updateTransferStatus
-        console.log("updateReceiveStatus called");
         _updateReceiveStatus(requestId, BridgeTypes.TransferStatus.COMPLETED);
 
         // For read responses, we don't need to call notifyTransferReceived
@@ -608,7 +601,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     function _getLayerZeroEid(
         uint16 chainId
     ) internal view returns (uint32 lzEid) {
-        console.log("chainId: %s", chainId);
         // Get the LayerZero EID from our mapping
         lzEid = chainToLzEid[chainId];
 
@@ -718,7 +710,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     function _getLzChainId(
         uint32 _lzEid
     ) internal view returns (uint16 chainId) {
-        console.log("_lzEid %s", _lzEid);
         // Get the chain ID from our mapping
         chainId = lzEidToChain[_lzEid];
 
