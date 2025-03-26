@@ -388,6 +388,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         emit OperationStatusUpdated(operationId, status);
     }
 
+    /// @inheritdoc IBridgeRouter
     function updateReceiveStatus(
         bytes32 requestId,
         address recipient,
@@ -404,7 +405,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         }
     }
 
-    // @inheritdoc IBridgeRouter
+    /// @inheritdoc IBridgeRouter
     function notifyMessageReceived(
         bytes32 operationId,
         address asset,
@@ -546,7 +547,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         }
     }
 
-    /// @notice Receive confirmation messages from adapters
+    /// @inheritdoc IBridgeRouter
     function receiveConfirmation(
         bytes32 operationId,
         BridgeTypes.OperationStatus status
@@ -561,6 +562,46 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Checks if a status change represents forward progression
+     * @param currentStatus The current status of the operation
+     * @param newStatus The proposed new status
+     * @return True if the status change is valid forward progression
+     */
+    function _isStatusProgression(
+        BridgeTypes.OperationStatus currentStatus,
+        BridgeTypes.OperationStatus newStatus
+    ) internal pure returns (bool) {
+        // Failed is a terminal state, can't progress from it
+        if (currentStatus == BridgeTypes.OperationStatus.FAILED) {
+            return false;
+        }
+
+        // Completed is a terminal state, can't progress from it
+        if (currentStatus == BridgeTypes.OperationStatus.COMPLETED) {
+            return false;
+        }
+
+        // Can always progress to FAILED from any non-terminal state
+        if (newStatus == BridgeTypes.OperationStatus.FAILED) {
+            return true;
+        }
+
+        // Status progression order: PENDING -> DELIVERED -> COMPLETED
+        if (currentStatus == BridgeTypes.OperationStatus.PENDING) {
+            return
+                newStatus == BridgeTypes.OperationStatus.DELIVERED ||
+                newStatus == BridgeTypes.OperationStatus.COMPLETED;
+        }
+
+        if (currentStatus == BridgeTypes.OperationStatus.DELIVERED) {
+            return newStatus == BridgeTypes.OperationStatus.COMPLETED;
+        }
+
+        // Default: no progression
+        return false;
+    }
 
     /**
      * @notice Finds the best adapter for an operation based on both compatibility and cost
@@ -700,6 +741,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         return operationStatuses[operationId];
     }
 
+    /// @inheritdoc IBridgeRouter
+    function getRouterBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
     /*//////////////////////////////////////////////////////////////
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -730,84 +776,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         paused = false;
     }
 
-    /**
-     * @notice Checks if a status change represents forward progression
-     * @param currentStatus The current status of the operation
-     * @param newStatus The proposed new status
-     * @return True if the status change is valid forward progression
-     */
-    function _isStatusProgression(
-        BridgeTypes.OperationStatus currentStatus,
-        BridgeTypes.OperationStatus newStatus
-    ) internal pure returns (bool) {
-        // Failed is a terminal state, can't progress from it
-        if (currentStatus == BridgeTypes.OperationStatus.FAILED) {
-            return false;
-        }
-
-        // Completed is a terminal state, can't progress from it
-        if (currentStatus == BridgeTypes.OperationStatus.COMPLETED) {
-            return false;
-        }
-
-        // Can always progress to FAILED from any non-terminal state
-        if (newStatus == BridgeTypes.OperationStatus.FAILED) {
-            return true;
-        }
-
-        // Status progression order: PENDING -> DELIVERED -> COMPLETED
-        if (currentStatus == BridgeTypes.OperationStatus.PENDING) {
-            return
-                newStatus == BridgeTypes.OperationStatus.DELIVERED ||
-                newStatus == BridgeTypes.OperationStatus.COMPLETED;
-        }
-
-        if (currentStatus == BridgeTypes.OperationStatus.DELIVERED) {
-            return newStatus == BridgeTypes.OperationStatus.COMPLETED;
-        }
-
-        // Default: no progression
-        return false;
-    }
-
-    /**
-     * @notice Allows recovery of operations when automated confirmations fail
-     * @param operationId ID of the operation to update
-     * @param status New status to set
-     * @dev Can only be called by authorized keepers or governance
-     */
-    function recoverOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external onlyGuardianOrGovernor {
-        // Check if the operation exists
-        if (operationToAdapter[operationId] == address(0))
-            revert InvalidParams();
-
-        // Only allow status updates in forward progression
-        if (!_isStatusProgression(operationStatuses[operationId], status)) {
-            revert InvalidStatusProgression();
-        }
-
-        // Update the status
-        operationStatuses[operationId] = status;
-        emit OperationStatusUpdated(operationId, status);
-        emit ManualStatusUpdate(operationId, status, msg.sender);
-    }
-
-    /**
-     * @notice Update the fee multiplier
-     * @param multiplier New multiplier (200 = 200% = double fee)
-     */
+    /// @inheritdoc IBridgeRouter
     function setFeeMultiplier(uint256 multiplier) external onlyGovernor {
         feeMultiplier = multiplier;
     }
 
-    /**
-     * @notice Allows governance to withdraw native tokens from the contract
-     * @param recipient Address to send tokens to
-     * @param amount Amount to withdraw
-     */
+    /// @inheritdoc IBridgeRouter
     function removeRouterFunds(
         address recipient,
         uint256 amount
@@ -821,22 +795,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         emit RouterFundsRemoved(recipient, amount);
     }
 
-    /**
-     * @notice Allow anyone to fund the router with native tokens for confirmations
-     */
+    /// @inheritdoc IBridgeRouter
     function addRouterFunds() external payable {
         emit RouterFundsAdded(msg.sender, msg.value);
     }
 
-    // Add a function to check current router balance
-    function getRouterBalance() external view returns (uint256) {
-        return address(this).balance;
-    }
-
-    /**
-     * @notice Update the gas limit for confirmation transactions
-     * @param newConfirmationGasLimit New gas limit for confirmation transactions
-     */
+    /// @inheritdoc IBridgeRouter
     function setConfirmationGasLimit(
         uint64 newConfirmationGasLimit
     ) external onlyGovernor {
@@ -844,11 +808,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         emit ConfirmationGasLimitUpdated(newConfirmationGasLimit);
     }
 
-    /**
-     * @notice Set the BridgeRouter address for a specific chain
-     * @param chainId Chain ID
-     * @param routerAddress Address of the BridgeRouter on that chain
-     */
+    /// @inheritdoc IBridgeRouter
     function setChainRouterAddress(
         uint16 chainId,
         address routerAddress
