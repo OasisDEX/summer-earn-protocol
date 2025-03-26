@@ -6,6 +6,7 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
 
 contract StargateAdapterSendTest is StargateAdapterSetupTest {
     function testEstimateFee() public {
@@ -46,7 +47,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             });
 
         // Should revert when estimating fee for unsupported chain
-        vm.expectRevert(StargateAdapter.UnsupportedChain.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
         adapterA.estimateFee(
             9999, // Unsupported chain
             address(tokenA),
@@ -68,7 +69,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             });
 
         // Should revert when estimating fee for unsupported asset
-        vm.expectRevert(StargateAdapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.estimateFee(
             CHAIN_ID_B,
             address(0xdead), // Unsupported asset
@@ -102,6 +103,24 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.prank(user);
         tokenA.approve(address(adapterA), 1 ether);
 
+        // Pre-calculate the operation ID that will be generated
+        bytes32 expectedOperationId = keccak256(
+            abi.encode(
+                CHAIN_ID_A, // block.chainid in the test
+                CHAIN_ID_B,
+                address(tokenA),
+                1 ether,
+                recipient,
+                block.timestamp
+            )
+        );
+
+        // Setup the router to expect this operation from this adapter
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            expectedOperationId,
+            address(adapterA)
+        );
+
         // Mock a transfer request from the router
         vm.prank(address(routerA));
         bytes32 operationId = adapterA.transferAsset{value: nativeFee}(
@@ -115,6 +134,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Verify operation ID was generated and returned
         assertTrue(operationId != bytes32(0));
+
+        // Verify it matches our pre-calculated ID
+        assertEq(operationId, expectedOperationId);
     }
 
     function testTransferAssetUnauthorized() public {
@@ -136,7 +158,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Should revert when called by non-router
         vm.prank(user);
-        vm.expectRevert(StargateAdapter.Unauthorized.selector);
+        vm.expectRevert(IBridgeAdapter.Unauthorized.selector);
         adapterA.transferAsset{value: 0.1 ether}(
             CHAIN_ID_B,
             address(tokenA),
@@ -162,7 +184,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Should revert when transferring to unsupported chain
         vm.prank(address(routerA));
-        vm.expectRevert(StargateAdapter.UnsupportedChain.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
         adapterA.transferAsset{value: 0.1 ether}(
             9999, // Unsupported chain
             address(tokenA),
@@ -188,7 +210,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Should revert when transferring unsupported asset
         vm.prank(address(routerA));
-        vm.expectRevert(StargateAdapter.UnsupportedAsset.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
         adapterA.transferAsset{value: 0.1 ether}(
             CHAIN_ID_B,
             address(0xdead), // Unsupported asset
@@ -220,11 +242,33 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             adapterParams
         );
 
+        // Add token approval for the adapter - this is needed
+        vm.prank(user);
+        tokenA.approve(address(adapterA), 1 ether);
+
+        // Pre-calculate the operation ID that will be generated
+        bytes32 expectedOperationId = keccak256(
+            abi.encode(
+                CHAIN_ID_A, // block.chainid in the test
+                CHAIN_ID_B,
+                address(tokenA),
+                1 ether,
+                recipient,
+                block.timestamp
+            )
+        );
+
+        // Setup the router to expect this operation from this adapter
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            expectedOperationId,
+            address(adapterA)
+        );
+
         // Try to transfer with insufficient fee (half of required)
         vm.prank(address(routerA));
         vm.expectRevert(
             abi.encodeWithSelector(
-                StargateAdapter.InsufficientFee.selector,
+                IBridgeAdapter.InsufficientFee.selector,
                 requiredFee,
                 requiredFee / 2
             )
@@ -253,7 +297,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Test readState (unsupported)
         vm.prank(address(routerA));
-        vm.expectRevert(StargateAdapter.OperationNotSupported.selector);
+        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
         adapterA.readState(
             CHAIN_ID_B,
             address(tokenA),
@@ -265,7 +309,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Test sendMessage (unsupported)
         vm.prank(address(routerA));
-        vm.expectRevert(StargateAdapter.OperationNotSupported.selector);
+        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
         adapterA.sendMessage(CHAIN_ID_B, recipient, "", user, adapterParams);
     }
 }

@@ -48,12 +48,12 @@ contract MockStargateRouter {
 
     // Mock implementation of quoteLayerZeroFee
     function quoteLayerZeroFee(
-        uint16 _dstChainId,
-        uint8 _functionType,
-        bytes calldata _toAddress,
+        uint16,
+        uint8,
+        bytes calldata,
         bytes calldata _payload,
         IStargateRouter.lzTxObj memory _lzTxParams
-    ) external view returns (uint256 _fee, uint256 _payloadSize) {
+    ) external pure returns (uint256 _fee, uint256 _payloadSize) {
         // Return sensible mock values
         // Fee should be related to gas and payload size
         uint256 baseGasFee = 0.01 ether;

@@ -6,6 +6,8 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
 contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
     bytes32 testTransferId = bytes32(uint256(12345));
@@ -56,7 +58,7 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
 
         // Call sgReceive from unauthorized address (not Stargate Router)
         vm.prank(user);
-        vm.expectRevert(StargateAdapter.Unauthorized.selector);
+        vm.expectRevert(IBridgeAdapter.Unauthorized.selector);
         adapterA.sgReceive(
             sourceChainId,
             srcAddress,
@@ -70,7 +72,13 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
     function testGetOperationStatus() public {
         useNetworkA();
 
-        // Setup a mock operation status in the router
+        // First, setup the mapping in the router to allow the adapter to update this operation
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            testTransferId,
+            address(adapterA)
+        );
+
+        // Now setup a mock operation status in the router
         vm.prank(address(adapterA));
         routerA.updateOperationStatus(
             testTransferId,
