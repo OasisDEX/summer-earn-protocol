@@ -12,6 +12,8 @@
 - 
 -[x] Review status naming eg transferStatus vs messageStatus
 -[x] Test send read functionality on LayerZero
+- [ ] Pull shared events / errors into adapter interface
+- [ ] update mappings that still read transfer and update to message
 -[] Create Stargate adapter tests
 -[] Create LayerZero adapter documentation
 -[] Create Stargate adapter documentation
