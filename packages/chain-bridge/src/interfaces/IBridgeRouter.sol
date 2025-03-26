@@ -192,6 +192,23 @@ interface IBridgeRouter {
         view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter);
 
+    /**
+     * @notice Send a general cross-chain message
+     * @param destinationChainId ID of the destination chain
+     * @param recipient Address of the recipient on the destination chain
+     * @param message The message data to be sent cross-chain
+     * @param options Additional options for the message
+     * @return messageId Unique ID to track this message
+     * @dev This function selects the best adapter for messaging based on user preferences
+     *      and initiates the cross-chain message transfer
+     */
+    function sendMessage(
+        uint16 destinationChainId,
+        address recipient,
+        bytes calldata message,
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable returns (bytes32 messageId);
+
     /*//////////////////////////////////////////////////////////////
                         ADAPTER CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/

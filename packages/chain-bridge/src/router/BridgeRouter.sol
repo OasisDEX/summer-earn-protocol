@@ -274,6 +274,77 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         return requestId;
     }
 
+    /// @inheritdoc IBridgeRouter
+    function sendMessage(
+        uint16 destinationChainId,
+        address recipient,
+        bytes calldata message,
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable returns (bytes32 messageId) {
+        if (paused) revert Paused();
+        if (recipient == address(0)) revert InvalidParams();
+
+        // Use specified adapter or find the best one
+        address adapter = options.specifiedAdapter;
+        if (adapter == address(0)) {
+            adapter = getBestAdapter(destinationChainId, address(0), 0);
+        } else if (!adapters.contains(adapter)) {
+            revert UnknownAdapter();
+        }
+
+        if (adapter == address(0)) revert NoSuitableAdapter();
+
+        // Check if adapter supports messaging
+        if (!IBridgeAdapter(adapter).supportsMessaging()) {
+            revert UnsupportedAdapterOperation();
+        }
+
+        // Get the total fee and base fee
+        (uint256 totalFee, , ) = _quote(
+            destinationChainId,
+            address(0),
+            0,
+            options,
+            adapter
+        );
+
+        // Ensure user provided enough fee
+        if (msg.value < totalFee) revert InsufficientFee();
+
+        // Return any excess fee to the sender
+        if (msg.value > totalFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - totalFee}("");
+            if (!success) revert TransferFailed();
+        }
+
+        // Calculate base fee from total fee
+        uint256 baseFee = (totalFee * 100) / feeMultiplier;
+
+        // Send the message through the selected adapter
+        messageId = ISendAdapter(adapter).sendMessage{value: baseFee}(
+            destinationChainId,
+            recipient,
+            message,
+            msg.sender, // Pass the originator for refunds
+            options.adapterParams
+        );
+
+        // Update state
+        transferStatuses[messageId] = BridgeTypes.TransferStatus.PENDING;
+        transferToAdapter[messageId] = adapter;
+
+        emit TransferInitiated(
+            messageId,
+            destinationChainId,
+            address(0), // No asset for messages
+            0, // No amount for messages
+            recipient,
+            adapter
+        );
+
+        return messageId;
+    }
+
     /*//////////////////////////////////////////////////////////////
                         ADAPTER CALLBACK FUNCTIONS
     //////////////////////////////////////////////////////////////*/

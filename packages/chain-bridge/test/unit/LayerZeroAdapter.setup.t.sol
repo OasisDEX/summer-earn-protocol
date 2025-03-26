@@ -15,7 +15,7 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Base test contract with common setup used by all LayerZero adapter tests
-abstract contract LayerZeroAdapterSetupTest is TestHelperOz5 {
+contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
     // LayerZero option type constants
@@ -157,11 +157,4 @@ abstract contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     function useNetworkB() public {
         vm.chainId(NETWORK_B_CHAIN_ID);
     }
-
-    // Helper function to execute LayerZero messages in tests
-    function executeMessage(
-        uint32 srcEid,
-        address srcAdapter,
-        address dstAdapter
-    ) internal virtual;
 }
