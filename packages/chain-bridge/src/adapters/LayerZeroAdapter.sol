@@ -102,8 +102,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         }
 
         // Initialize default minimum gas limits
-        minGasLimits[STATE_READ] = 200000;
-        minGasLimits[GENERAL_MESSAGE] = 500000;
+        minGasLimits[STATE_READ] = 300000;
+        minGasLimits[GENERAL_MESSAGE] = 300000;
     }
 
     /*//////////////////////////////////////////////////////////////
