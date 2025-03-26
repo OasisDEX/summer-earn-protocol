@@ -1222,7 +1222,134 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             "Bob should receive voting power from vesting wallet transfer"
         );
     }
+    function test_VestingWalletTransferOwnershipWithDelegation() public {
+        // Initial setup
+        uint256 vestingAmount = 500000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
 
+        // Grant foundation role to timelock
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantFoundationRole(address(timelockA));
+        vm.stopPrank();
+
+        vm.prank(address(timelockA));
+        aSummerToken.setDecayRatePerYear(Percentage.wrap(0));
+
+        // Create vesting wallet and transfer direct tokens
+        vm.startPrank(address(timelockA));
+        aSummerToken.approve(address(vestingWalletFactoryA), vestingAmount);
+        vestingWalletFactoryA.createVestingWallet(
+            alice,
+            vestingAmount,
+            new uint256[](0),
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        aSummerToken.transfer(alice, directAmount);
+        vm.stopPrank();
+
+        // Initial self-delegation
+        vm.startPrank(alice);
+        aSummerToken.delegate(alice);
+        vm.stopPrank();
+        advanceTimeAndBlock();
+
+        // Check initial voting power
+        uint256 aliceInitialVotes = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        console.log("Alice initial votes:", aliceInitialVotes);
+        assertEq(
+            aliceInitialVotes,
+            vestingAmount + directAmount,
+            "Initial voting power should include vesting and direct tokens"
+        );
+
+        // Delegate to address(0)
+        vm.startPrank(alice);
+        aSummerToken.delegate(address(0));
+        vm.stopPrank();
+        advanceTimeAndBlock();
+
+        // Check votes after delegating to zero address
+        uint256 aliceVotesAfterZeroDelegation = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        console.log(
+            "Alice votes after zero delegation:",
+            aliceVotesAfterZeroDelegation
+        );
+        assertEq(
+            aliceVotesAfterZeroDelegation,
+            0,
+            "Voting power should be zero after delegating to zero address"
+        );
+
+        // Transfer ownership
+        address vestingWallet = vestingWalletFactoryA.vestingWallets(alice);
+        vm.startPrank(alice);
+        SummerVestingWallet(payable(vestingWallet)).transferOwnership(bob);
+        aSummerToken.transfer(bob, directAmount);
+        vm.stopPrank();
+        advanceTimeAndBlock();
+
+        // Bob self-delegates
+        vm.startPrank(bob);
+        aSummerToken.delegate(bob);
+        vm.stopPrank();
+        advanceTimeAndBlock();
+
+        // Check voting power after ownership transfer and Bob's delegation
+        uint256 bobVotesAfterDelegation = governorA.getVotes(
+            bob,
+            block.timestamp - 1
+        );
+        uint256 aliceVotesAfterTransfer = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+
+        console.log("Bob votes after delegation:", bobVotesAfterDelegation);
+        console.log("Alice votes after transfer:", aliceVotesAfterTransfer);
+
+        assertEq(
+            bobVotesAfterDelegation,
+            directAmount,
+            "Bob should only have voting power from direct tokens initially"
+        );
+        assertEq(
+            aliceVotesAfterTransfer,
+            0,
+            "Alice should have no voting power after transfer and zero delegation"
+        );
+
+        // Make tokens vestable and release
+        vm.warp(block.timestamp + 2 * 365 days);
+
+        vm.prank(bob);
+        SummerVestingWallet(payable(vestingWallet)).release(
+            address(aSummerToken)
+        );
+        advanceTimeAndBlock();
+
+        // Final voting power check
+        uint256 bobFinalVotes = governorA.getVotes(bob, block.timestamp - 1);
+        uint256 aliceFinalVotes = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+
+        console.log("Bob final votes:", bobFinalVotes);
+        console.log("Alice final votes:", aliceFinalVotes);
+
+        assertEq(
+            bobFinalVotes,
+            directAmount + vestingAmount,
+            "Bob should have voting power from both direct and vested tokens"
+        );
+        assertEq(aliceFinalVotes, 0, "Alice should still have no voting power");
+    }
     function test_DecayUpdateOnVote() public {
         // Setup proposal
         vm.startPrank(address(timelockA));
