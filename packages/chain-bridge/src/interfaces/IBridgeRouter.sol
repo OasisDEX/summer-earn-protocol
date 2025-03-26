@@ -334,6 +334,12 @@ interface IBridgeRouter {
      */
     function isValidAdapter(address adapter) external view returns (bool);
 
+    /**
+     * @notice Get the current balance of native tokens in the router
+     * @return The balance of native tokens in the router contract
+     */
+    function getRouterBalance() external view returns (uint256);
+
     /*//////////////////////////////////////////////////////////////
                          GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -406,4 +412,46 @@ interface IBridgeRouter {
         bytes32 operationId,
         BridgeTypes.OperationStatus status
     ) external;
+
+    /**
+     * @notice Update the fee multiplier
+     * @param multiplier New multiplier (200 = 200% = double fee)
+     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     */
+    function setFeeMultiplier(uint256 multiplier) external;
+
+    /**
+     * @notice Update the gas limit for confirmation transactions
+     * @param newConfirmationGasLimit New gas limit for confirmation transactions
+     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     */
+    function setConfirmationGasLimit(uint64 newConfirmationGasLimit) external;
+
+    /**
+     * @notice Set the BridgeRouter address for a specific chain
+     * @param chainId Chain ID
+     * @param routerAddress Address of the BridgeRouter on that chain
+     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     */
+    function setChainRouterAddress(
+        uint16 chainId,
+        address routerAddress
+    ) external;
+
+    /**
+     * @notice Allows governance to withdraw native tokens from the contract
+     * @param recipient Address to send tokens to
+     * @param amount Amount to withdraw
+     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     */
+    function removeRouterFunds(address recipient, uint256 amount) external;
+
+    /*//////////////////////////////////////////////////////////////
+                          PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Allow anyone to fund the router with native tokens for confirmations
+     */
+    function addRouterFunds() external payable;
 }
