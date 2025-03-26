@@ -125,6 +125,10 @@ graph TD
    - Router uses accumulated funds (from fee multipliers) to pay for the confirmation
    - Confirmation doesn't apply another multiplier (would be redundant)
 
+4. **Operation-Specific Behavior**:
+   - Asset transfers and message sending require confirmations
+   - Read operations (`readState`) do not require confirmations and don't participate in the confirmation process
+
 ### Router Fund Management
 
 1. **Source of Funds**:
