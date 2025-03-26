@@ -41,9 +41,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Inverse mapping of LayerZero chain IDs to our chain IDs
     mapping(uint32 lzEid => uint16 chainId) public lzEidToChain;
 
-    /// @notice Message type for a standard transfer
-    uint16 public constant TRANSFER = 1;
-
     /// @notice Message type for state read
     uint16 public constant STATE_READ = 2;
 
@@ -105,7 +102,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         }
 
         // Initialize default minimum gas limits
-        minGasLimits[TRANSFER] = 500000;
         minGasLimits[STATE_READ] = 200000;
         minGasLimits[GENERAL_MESSAGE] = 500000;
     }
@@ -156,7 +152,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Continue with existing message handling logic for non-read messages
         // Extract message type from the first 2 bytes if available
-        uint16 messageType = 1; // Default to TRANSFER
+        uint16 messageType = GENERAL_MESSAGE; // Default to GENERAL_MESSAGE
         bytes calldata actualPayload = _payload;
         console.log("actualPayload length: %s", actualPayload.length);
 
@@ -172,48 +168,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         console.log("srcChainId: %s", srcChainId);
 
         // Process based on message type
-        if (messageType == TRANSFER) {
-            _handleAssetTransferMessage(_guid, actualPayload);
-        } else if (messageType == STATE_READ) {
-            // TODO: remove this
+        if (messageType == STATE_READ) {
             _handleStateReadMessage(srcChainId, actualPayload);
         } else if (messageType == GENERAL_MESSAGE) {
             _handleGeneralMessage(actualPayload);
         } else {
             revert UnsupportedMessageType();
         }
-    }
-
-    /**
-     * @dev Handles asset transfer messages
-     */
-    function _handleAssetTransferMessage(
-        bytes32 _guid,
-        bytes calldata _payload
-    ) internal {
-        // Decode the payload to extract transfer information
-        console.log("_handleAssetTransferMessage called");
-        (
-            bytes32 transferId,
-            address asset,
-            uint256 amount,
-            address recipient
-        ) = abi.decode(_payload, (bytes32, address, uint256, address));
-
-        console.log("transferId:");
-        console.logBytes32(transferId);
-        console.log("asset: %s", asset);
-        console.log("amount: %s", amount);
-        console.log("recipient: %s", recipient);
-
-        // Update message hash to transfer ID mapping
-        lzMessageToTransferId[_guid] = transferId;
-
-        // SafeERC20's safeTransfer will revert on failure
-        IERC20(asset).safeTransfer(recipient, amount);
-
-        // Emit event for successful transfer receipt
-        emit TransferReceived(transferId, asset, amount, recipient);
     }
 
     /**
@@ -360,23 +321,28 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
         uint16 destinationChainId,
-        address asset,
-        uint256 amount,
+        address,
+        uint256,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Convert destinationChainId to LayerZero EID
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
-        // Encode payload (same structure as in transferAsset)
-        bytes memory payload = abi.encode(
-            bytes32(0), // dummy transfer ID for estimation
-            asset,
-            amount,
-            address(0) // dummy recipient address
+        // For LayerZero adapter, we're only estimating general message fees
+        // since asset transfers are not supported
+        bytes memory dummyMessage = abi.encode(
+            "dummy message for fee estimation"
+        );
+        bytes memory payload = abi.encodePacked(
+            uint16(GENERAL_MESSAGE),
+            abi.encode(dummyMessage, address(0), bytes32(0))
         );
 
-        // Prepare user-requested options with gas limit for lzReceive
-        bytes memory userOptions = _prepareOptions(adapterParams, TRANSFER);
+        // Prepare user-requested options with gas limit
+        bytes memory userOptions = _prepareOptions(
+            adapterParams,
+            GENERAL_MESSAGE
+        );
 
         // Get the fee required for user options
         MessagingFee memory userFee = _quote(

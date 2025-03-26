@@ -19,41 +19,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         // This would typically forward to the appropriate test helper
     }
 
-    function testTransferAsset() public {
-        useNetworkA();
-        vm.deal(user, 1 ether);
-
-        vm.startPrank(user);
-        tokenA.approve(address(routerA), 1 ether);
-
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: bytes("")
-            });
-
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            adapterParams: adapterParams
-        });
-
-        bytes32 transferId = routerA.transferAssets{value: 0.1 ether}(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            recipient,
-            options
-        );
-
-        assertEq(
-            uint256(routerA.transferStatuses(transferId)),
-            uint256(BridgeTypes.TransferStatus.PENDING)
-        );
-        vm.stopPrank();
-    }
-
     function testReadState() public {
         useNetworkA();
         vm.deal(user, 1 ether);
