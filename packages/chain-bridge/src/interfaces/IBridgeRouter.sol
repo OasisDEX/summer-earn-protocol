@@ -94,6 +94,15 @@ interface IBridgeRouter {
         bool delivered
     );
 
+    /// @notice Emitted when a chain's router address is updated
+    event ChainRouterAddressUpdated(
+        uint16 indexed chainId,
+        address routerAddress
+    );
+
+    /// @notice Emitted when the confirmation gas limit is updated
+    event ConfirmationGasLimitUpdated(uint256 newConfirmationGasLimit);
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/

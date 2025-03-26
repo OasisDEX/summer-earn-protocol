@@ -256,7 +256,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             _updateReceiveStatus(
                 messageId,
                 recipient,
-                BridgeTypes.OperationStatus.COMPLETED
+                BridgeTypes.OperationStatus.DELIVERED
             );
         }
 

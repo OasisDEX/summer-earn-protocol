@@ -32,11 +32,18 @@ contract BridgeRouterReadStateTest is Test {
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 7;
 
     function setUp() public {
+        // Deploy access manager and set up roles
+        accessManager = new ProtocolAccessManager(governor);
+
         vm.startPrank(governor);
 
-        // Deploy contracts
-        accessManager = new ProtocolAccessManager(governor);
-        router = new BridgeRouter(address(accessManager));
+        // Deploy BridgeRouter and adapters
+        router = new BridgeRouter(
+            address(accessManager),
+            new uint16[](0), // Empty chainIds array
+            new address[](0) // Empty routerAddresses array
+        );
+
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
         token = new ERC20Mock();

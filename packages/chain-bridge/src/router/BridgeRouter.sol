@@ -52,6 +52,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @notice Fee multiplier for confirmations (200 = double the fee, with half for confirmation)
     uint256 public feeMultiplier = 200; // 200%
 
+    /// @notice Standard gas limit for confirmation transactions
+    uint64 public confirmationGasLimit = 200000; // Default reasonable gas limit for confirmations
+
+    /// @notice Mapping of chain IDs to their BridgeRouter addresses
+    mapping(uint16 chainId => address routerAddress)
+        public chainToRouterAddress;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -59,8 +66,24 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /**
      * @notice Initializes the BridgeRouter contract
      * @param accessManager Address of the ProtocolAccessManager contract
+     * @param chainIds Array of chain IDs to configure
+     * @param routerAddresses Array of corresponding router addresses
      */
-    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
+    constructor(
+        address accessManager,
+        uint16[] memory chainIds,
+        address[] memory routerAddresses
+    ) ProtocolAccessManaged(accessManager) {
+        if (chainIds.length != routerAddresses.length) revert InvalidParams();
+
+        // Set up initial chain-to-router mappings
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            if (routerAddresses[i] != address(0)) {
+                chainToRouterAddress[chainIds[i]] = routerAddresses[i];
+                emit ChainRouterAddressUpdated(chainIds[i], routerAddresses[i]);
+            }
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////
                         BRIDGE OPERATIONS
@@ -415,17 +438,18 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Try to send confirmation back to source chain
         if (!confirmationSent[operationId]) {
             try
-                // Convert our status type to bytes that can be sent as a message
                 ISendAdapter(msg.sender).sendMessage(
                     sourceChainId,
-                    address(this), // Target is the BridgeRouter on the source chain
+                    chainToRouterAddress[sourceChainId] != address(0)
+                        ? chainToRouterAddress[sourceChainId]
+                        : address(this), // Fallback to this address if not configured
                     abi.encode(
                         operationId,
-                        BridgeTypes.OperationStatus.DELIVERED
+                        BridgeTypes.OperationStatus.COMPLETED
                     ),
                     address(0), // No refund address needed
                     BridgeTypes.AdapterParams({
-                        gasLimit: 100000, // TODO: Use min gas limits for this kind of action
+                        gasLimit: confirmationGasLimit,
                         msgValue: 0,
                         calldataSize: 0,
                         options: ""
@@ -807,5 +831,29 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     // Add a function to check current router balance
     function getRouterBalance() external view returns (uint256) {
         return address(this).balance;
+    }
+
+    /**
+     * @notice Update the gas limit for confirmation transactions
+     * @param newConfirmationGasLimit New gas limit for confirmation transactions
+     */
+    function setConfirmationGasLimit(
+        uint64 newConfirmationGasLimit
+    ) external onlyGovernor {
+        confirmationGasLimit = newConfirmationGasLimit;
+        emit ConfirmationGasLimitUpdated(newConfirmationGasLimit);
+    }
+
+    /**
+     * @notice Set the BridgeRouter address for a specific chain
+     * @param chainId Chain ID
+     * @param routerAddress Address of the BridgeRouter on that chain
+     */
+    function setChainRouterAddress(
+        uint16 chainId,
+        address routerAddress
+    ) external onlyGovernor {
+        chainToRouterAddress[chainId] = routerAddress;
+        emit ChainRouterAddressUpdated(chainId, routerAddress);
     }
 }

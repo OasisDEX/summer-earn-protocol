@@ -15,7 +15,9 @@ contract BridgeRouterTestHelper is BridgeRouter {
      * @notice Constructor for BridgeRouterTestHelper
      * @param _owner Address of the owner
      */
-    constructor(address _owner) BridgeRouter(_owner) {}
+    constructor(
+        address _owner
+    ) BridgeRouter(_owner, new uint16[](0), new address[](0)) {}
 
     /**
      * @notice Updates the operationToAdapter mapping for testing
