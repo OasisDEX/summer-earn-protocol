@@ -13,7 +13,10 @@
 -[x] Review status naming eg transferStatus vs messageStatus
 -[x] Test send read functionality on LayerZero
 - [x] Pull shared events / errors into adapter interface
-- [ ] update mappings that still read transfer and update to message
+- [x] update mappings that still read transfer and update to message
+- [ ] Update confirmation gas 
+- [ ] Is Confirmation message receipt handling correct?
+- [ ] Review _isStatusProgression if can be used in more places
 -[] Create Stargate adapter tests
 -[] Create LayerZero adapter documentation
 -[] Create Stargate adapter documentation

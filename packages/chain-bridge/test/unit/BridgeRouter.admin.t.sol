@@ -33,8 +33,14 @@ contract BridgeRouterAdminTest is Test {
         vm.startPrank(governor);
         accessManager.grantGuardianRole(guardian);
 
-        // Deploy contracts
-        router = new BridgeRouter(address(accessManager));
+        // Deploy BridgeRouter
+        router = new BridgeRouter(
+            address(accessManager),
+            new uint16[](0), // Empty chainIds array
+            new address[](0) // Empty routerAddresses array
+        );
+
+        // Deploy mock adapter
         mockAdapter = new MockAdapter(address(router));
         token = new ERC20Mock();
 
