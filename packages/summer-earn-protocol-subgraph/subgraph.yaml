@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: base
+    network: sonic-mainnet
     source:
       abi: HarborCommand
-      address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
-      startBlock: 25773568
+      address: "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
+      startBlock: 14240190
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
