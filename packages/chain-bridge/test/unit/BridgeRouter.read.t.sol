@@ -127,10 +127,10 @@ contract BridgeRouterReadStateTest is Test {
         vm.prank(address(mockAdapter));
         router.deliverReadResponse(requestId, abi.encode(uint256(100)));
 
-        // Verify response was delivered
+        // Verify response was COMPLETED
         assertEq(
             uint256(router.transferStatuses(requestId)),
-            uint256(BridgeTypes.TransferStatus.DELIVERED)
+            uint256(BridgeTypes.TransferStatus.COMPLETED)
         );
 
         // Verify that the mockReceiver received the data
@@ -217,7 +217,10 @@ contract BridgeRouterReadStateTest is Test {
 
         // Attempt to deliver the response, should revert with ReceiverRejectedCall
         vm.prank(address(mockAdapter));
-        vm.expectRevert(IBridgeRouter.ReceiverRejectedCall.selector);
         router.deliverReadResponse(requestId, abi.encode(uint256(100)));
+        assertEq(
+            uint256(router.transferStatuses(requestId)),
+            uint256(BridgeTypes.TransferStatus.FAILED)
+        );
     }
 }

@@ -143,8 +143,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
     }
 
     function testStateRead() public {
-        useNetworkA();
-
         // Create a requestId that we'll use for both sending and receiving
         bytes32 requestId = bytes32(uint256(1));
 
@@ -181,8 +179,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             nonce: 1
         });
 
-        useNetworkA(); // Make sure we're on network A
-
         // Call lzReceiveTest with the proper parameters
         adapterA.lzReceiveTest(
             origin,
@@ -192,10 +188,10 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             bytes("")
         );
 
-        // Verify the request status is now DELIVERED
+        // Verify the request status is now COMPLETED
         assertEq(
             uint256(routerA.transferStatuses(requestId)),
-            uint256(BridgeTypes.TransferStatus.DELIVERED)
+            uint256(BridgeTypes.TransferStatus.COMPLETED)
         );
 
         // Verify the mock receiver received the correct data
