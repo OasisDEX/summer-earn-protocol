@@ -9,16 +9,21 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract MoonwellArkTestFork is Test, ArkTestBase {
-    MoonwellArk public ark;
-
-    address public constant MTOKEN_ADDRESS =
+    MoonwellArk public eurcArk;
+    MoonwellArk public usdsArk;
+    address public constant MTOKEN_ADDRESS_EURC =
         0xb682c840B5F4FC58B20769E691A6fa1305A501a2;
-    address public constant UNDERLYING_ASSET =
+    address public constant MTOKEN_ADDRESS_USDS =
+        0xb6419c6C2e60c4025D6D06eE4F913ce89425a357;
+    address public constant UNDERLYING_ASSET_EURC =
         0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42;
+    address public constant UNDERLYING_ASSET_USDS =
+        0x820C137fa70C8691f0e44Dc420a5e53c168921Dc;
     address public constant WELL_ADDRESS =
         0xA88594D404727625A9437C3f886C7643872296AE;
 
-    IERC20 public asset;
+    IERC20 public eurcAsset;
+    IERC20 public usdsAsset;
 
     uint256 forkBlock = 27282449; // Block number for the fork
     uint256 forkId;
@@ -27,14 +32,14 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("base"), forkBlock);
 
-        asset = IERC20(UNDERLYING_ASSET);
-
-        ArkParams memory params = ArkParams({
+        eurcAsset = IERC20(UNDERLYING_ASSET_EURC);
+        usdsAsset = IERC20(UNDERLYING_ASSET_USDS);
+        ArkParams memory eurcParams = ArkParams({
             name: "MoonwellArk",
             details: "MoonwellArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            asset: address(asset),
+            asset: address(eurcAsset),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -42,38 +47,54 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new MoonwellArk(MTOKEN_ADDRESS, params);
+        ArkParams memory usdsParams = ArkParams({
+            name: "MoonwellArk",
+            details: "MoonwellArk details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: address(usdsAsset),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+
+        eurcArk = new MoonwellArk(MTOKEN_ADDRESS_EURC, eurcParams);
+        usdsArk = new MoonwellArk(MTOKEN_ADDRESS_USDS, usdsParams);
 
         // Permissioning
         vm.startPrank(governor);
-        accessManager.grantCommanderRole(address(ark), address(commander));
+        accessManager.grantCommanderRole(address(eurcArk), address(commander));
+        accessManager.grantCommanderRole(address(usdsArk), address(commander));
         vm.stopPrank();
 
         vm.startPrank(commander);
-        ark.registerFleetCommander();
+        eurcArk.registerFleetCommander();
+        usdsArk.registerFleetCommander();
         vm.stopPrank();
     }
 
-    function test_Board_MoonwellArk_fork() public {
+    function test_Board_EurcMoonwellArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 6;
-        deal(address(asset), commander, amount);
+        deal(address(eurcAsset), commander, amount);
 
         vm.startPrank(commander);
-        asset.approve(address(ark), amount);
+        eurcAsset.approve(address(eurcArk), amount);
 
         // Expect the deposit call to Moonwell
         vm.expectCall(
-            MTOKEN_ADDRESS,
+            MTOKEN_ADDRESS_EURC,
             abi.encodeWithSelector(IMToken.mint.selector, amount)
         );
 
         // Act
-        ark.board(amount, bytes(""));
+        eurcArk.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
-        uint256 assetsAfterDeposit = ark.totalAssets();
+        uint256 assetsAfterDeposit = eurcArk.totalAssets();
         assertEq(
             assetsAfterDeposit,
             amount - 1,
@@ -83,7 +104,7 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         // Warp time to simulate interest accrual
         vm.warp(block.timestamp + 1 days);
 
-        uint256 assetsAfterAccrual = ark.totalAssets();
+        uint256 assetsAfterAccrual = eurcArk.totalAssets();
         assertTrue(
             assetsAfterAccrual >= assetsAfterDeposit,
             "Assets should not decrease after accrual"
@@ -91,40 +112,105 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         console.log("assetsAfterAccrual", assetsAfterAccrual);
         console.log("assetsAfterDeposit", assetsAfterDeposit);
     }
+    function test_Board_DaiMoonwellArk_fork() public {
+        // Arrange
+        uint256 amount = 1000 * 10 ** 18;
+        deal(address(usdsAsset), commander, amount);
 
-    function test_Disembark_MoonwellArk_fork() public {
+        vm.startPrank(commander);
+        usdsAsset.approve(address(usdsArk), amount);
+
+        // Expect the deposit call to Moonwell
+        vm.expectCall(
+            MTOKEN_ADDRESS_USDS,
+            abi.encodeWithSelector(IMToken.mint.selector, amount)
+        );
+
+        // Act
+        usdsArk.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // Assert
+        uint256 assetsAfterDeposit = usdsArk.totalAssets();
+        assertApproxEqRel(
+            assetsAfterDeposit,
+            amount,
+            1e5,
+            "Total assets should equal deposited amount"
+        );
+
+        // Warp time to simulate interest accrual
+        vm.warp(block.timestamp + 1 days);
+
+        uint256 assetsAfterAccrual = usdsArk.totalAssets();
+
+        assertTrue(
+            assetsAfterAccrual >= assetsAfterDeposit,
+            "Assets should not decrease after accrual"
+        );
+
+        console.log("assetsAfterAccrual", assetsAfterAccrual);
+        console.log("assetsAfterDeposit", assetsAfterDeposit);
+    }
+    function test_Disembark_EurcMoonwellArk_fork() public {
         // First, board some assets
-        test_Board_MoonwellArk_fork();
+        test_Board_EurcMoonwellArk_fork();
 
-        uint256 initialBalance = asset.balanceOf(commander);
+        uint256 initialBalance = eurcAsset.balanceOf(commander);
         uint256 amountToWithdraw = 1000110094;
 
         vm.prank(commander);
 
-        ark.disembark(amountToWithdraw, bytes(""));
+        eurcArk.disembark(amountToWithdraw, bytes(""));
 
-        uint256 finalBalance = asset.balanceOf(commander);
+        uint256 finalBalance = eurcAsset.balanceOf(commander);
         assertEq(
             finalBalance - initialBalance,
             amountToWithdraw,
             "Commander should receive withdrawn amount"
         );
 
-        uint256 remainingAssets = ark.totalAssets();
+        uint256 remainingAssets = eurcArk.totalAssets();
         assertTrue(
             remainingAssets == 0,
             "Remaining assets should be less than initial deposit"
         );
-        assertEq(IERC20(MTOKEN_ADDRESS).balanceOf(address(ark)), 0);
+        assertEq(IERC20(MTOKEN_ADDRESS_EURC).balanceOf(address(eurcArk)), 0);
+    }
+    function test_Disembark_DaiMoonwellArk_fork() public {
+        // First, board some assets
+        test_Board_DaiMoonwellArk_fork();
+
+        uint256 initialBalance = usdsAsset.balanceOf(commander);
+
+        uint256 amountToWithdraw = 1000074007253723359172;
+
+        vm.prank(commander);
+
+        usdsArk.disembark(amountToWithdraw, bytes(""));
+
+        uint256 finalBalance = usdsAsset.balanceOf(commander);
+        assertEq(
+            finalBalance - initialBalance,
+            amountToWithdraw,
+            "Commander should receive withdrawn amount"
+        );
+
+        uint256 remainingAssets = usdsArk.totalAssets();
+        assertTrue(
+            remainingAssets == 0,
+            "Remaining assets should be less than initial deposit"
+        );
+        assertEq(IERC20(MTOKEN_ADDRESS_USDS).balanceOf(address(usdsArk)), 0);
     }
 
-    function test_ClaimReward_MoonwellArk_fork() public {
+    function test_ClaimReward_EurcMoonwellArk_fork() public {
         // First, board some assets
-        test_Board_MoonwellArk_fork();
+        test_Board_EurcMoonwellArk_fork();
 
         // Act
         vm.prank(raft);
-        ark.harvest(bytes(""));
+        eurcArk.harvest(bytes(""));
 
         // Assert
         uint256 wellBalance = IERC20(WELL_ADDRESS).balanceOf(address(raft));
