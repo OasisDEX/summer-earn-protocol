@@ -1,0 +1,14 @@
+-[x] Create bridging router + interface
+-[x] Create bridging router implementation
+-[x] Create bridging router tests
+-[x] Create adapter interface
+-[x] Create LayerZero adapter
+-[x] Create Stargate adapter
+-[x] Ensure cross-chain messaging on receipt trigger a notification back to the source chain via the destination chain router
+-[x] Consider how messages are paid for (especially on target chains when notifying the source chain)
+-[x] Create LayerZero adapter tests
+-[] Create Stargate adapter tests
+-[] Create LayerZero adapter documentation
+-[] Create Stargate adapter documentation
+-[x] Create bridging router documentation
+

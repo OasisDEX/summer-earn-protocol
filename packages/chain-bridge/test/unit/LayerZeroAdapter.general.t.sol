@@ -100,19 +100,19 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
         vm.startPrank(governor);
 
-        // Set minimum gas limit for TRANSFER with a high value
-        adapterA.setMinGasLimit(adapterA.TRANSFER(), 1000000);
+        // Set minimum gas limit for GENERAL_MESSAGE with a high value
+        adapterA.setMinGasLimit(adapterA.GENERAL_MESSAGE(), 1000000);
 
         // Create a simple payload for testing
         bytes memory payload = abi.encodePacked(
-            uint16(adapterA.TRANSFER()),
+            uint16(adapterA.GENERAL_MESSAGE()),
             bytes("test payload")
         );
 
         // Get required fee
         uint256 requiredFee = adapterA.getRequiredFee(
             LZ_EID_B,
-            adapterA.TRANSFER(),
+            adapterA.GENERAL_MESSAGE(),
             payload
         );
 
@@ -126,8 +126,8 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
 
         // Check current value
-        uint16 transferType = adapterA.TRANSFER();
-        assertEq(adapterA.minGasLimits(transferType), 500000);
+        uint16 messageType = adapterA.GENERAL_MESSAGE();
+        assertEq(adapterA.minGasLimits(messageType), 500000);
 
         // Try to set minGasLimit as unauthorized address
         vm.prank(address(2));
@@ -139,21 +139,18 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         );
 
         // Actually call the function that should revert
-        adapterA.setMinGasLimit(transferType, 600000);
+        adapterA.setMinGasLimit(messageType, 600000);
     }
 
     function testMinGasLimitEnforcement() public {
         useNetworkA();
         vm.startPrank(governor);
 
-        // Set a high minimum gas limit for TRANSFER
+        // Set a high minimum gas limit for GENERAL_MESSAGE
         uint128 minGasLimit = 1000000;
-        adapterA.setMinGasLimit(adapterA.TRANSFER(), minGasLimit);
+        adapterA.setMinGasLimit(adapterA.GENERAL_MESSAGE(), minGasLimit);
 
-        // Prepare a transfer with a lower gas limit than the minimum
-        uint256 amount = 100 ether;
-
-        // Create adapter params with a lower gas limit
+        // Create adapter params with a lower gas limit than the minimum
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
                 gasLimit: 500000, // Lower than our minimum
@@ -162,11 +159,12 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 options: bytes("")
             });
 
-        // Get the fee estimate (this calls _prepareOptions internally)
+        // Use the general quote method with address(0) and 0 amount to indicate
+        // this is for a message rather than an asset transfer
         (uint256 nativeFee, , ) = routerA.quote(
             CHAIN_ID_B,
-            address(tokenA),
-            amount,
+            address(0), // No asset for general message
+            0, // No amount for general message
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(adapterA),
                 adapterParams: adapterParams
@@ -188,8 +186,8 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         // Get the fee estimate for the higher gas limit
         (uint256 higherFee, , ) = routerA.quote(
             CHAIN_ID_B,
-            address(tokenA),
-            amount,
+            address(0), // No asset for general message
+            0, // No amount for general message
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(adapterA),
                 adapterParams: higherParams
