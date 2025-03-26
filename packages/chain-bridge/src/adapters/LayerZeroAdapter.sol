@@ -31,9 +31,9 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice The BridgeRouter that manages this adapter
     address public immutable bridgeRouter;
 
-    /// @notice Mapping of LayerZero message hashes to transfer IDs
-    mapping(bytes32 lzMessageHash => bytes32 transferId)
-        public lzMessageToTransferId;
+    /// @notice Mapping of LayerZero message hashes to operation IDs
+    mapping(bytes32 lzMessageHash => bytes32 operationId)
+        public lzMessageToOperationId;
 
     /// @notice Mapping of supported chains to their LayerZero chain IDs
     mapping(uint16 chainId => uint32 lzEid) public chainToLzEid;
@@ -318,9 +318,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes32 _guid,
         bytes calldata _payload
     ) internal {
-        // TODO: Update lzMessageToTransferId mapping naming
         // Extract requestId from the guid mapping
-        bytes32 requestId = lzMessageToTransferId[_guid];
+        bytes32 requestId = lzMessageToOperationId[_guid];
         if (requestId == bytes32(0)) {
             // If no explicit mapping exists, use the guid itself as the requestId
             requestId = _guid;
@@ -571,9 +570,9 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             )
         );
 
-        // Store the message hash to transfer ID mapping
+        // Store the message hash to operation ID mapping
         // Don't have the message hash yet, but will be set in _lzSend callback
-        // lzMessageToTransferId[messageHash] = messageId;
+        // lzMessageToOperationId[messageHash] = messageId;
 
         // If msgValue is specified in adapter options, ensure enough value was sent
         if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
