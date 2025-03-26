@@ -386,8 +386,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         address originator = readRequestToOriginator[requestId];
         if (originator == address(0)) revert InvalidParams();
 
-        // Update status
-        transferStatuses[requestId] = BridgeTypes.TransferStatus.DELIVERED;
+        // Try to deliver the response
+        bool delivered = false;
 
         // Check if the originator implements the ICrossChainReceiver interface
         bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
@@ -403,8 +403,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                         0, // sourceChainId (could be added as a parameter if needed)
                         requestId
                     )
-                {} catch {
-                    revert ReceiverRejectedCall();
+                {
+                    delivered = true;
+                } catch {
+                    // Delivery failed, but don't revert
+                    delivered = false;
                 }
             } else {
                 // Fallback for contracts that don't implement supportsInterface
@@ -418,7 +421,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                         requestId
                     )
                 );
-                if (!success) revert ReceiverRejectedCall();
+                delivered = success;
             }
         } catch {
             // Fallback for contracts that don't implement supportsInterface
@@ -432,13 +435,23 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     requestId
                 )
             );
-            if (!success) revert ReceiverRejectedCall();
+            delivered = success;
         }
 
-        emit ReadRequestStatusUpdated(
-            requestId,
-            BridgeTypes.TransferStatus.DELIVERED
-        );
+        // Update status based on delivery result
+        if (delivered) {
+            transferStatuses[requestId] = BridgeTypes.TransferStatus.COMPLETED;
+            emit ReadRequestStatusUpdated(
+                requestId,
+                BridgeTypes.TransferStatus.COMPLETED
+            );
+        } else {
+            transferStatuses[requestId] = BridgeTypes.TransferStatus.FAILED;
+            emit ReadRequestStatusUpdated(
+                requestId,
+                BridgeTypes.TransferStatus.FAILED
+            );
+        }
     }
 
     /// @inheritdoc IBridgeRouter
@@ -531,7 +544,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             // Encode the confirmation message
             bytes memory confirmationMessage = abi.encode(
                 requestId,
-                BridgeTypes.TransferStatus.DELIVERED
+                BridgeTypes.TransferStatus.COMPLETED
             );
 
             // We don't use _quote here because:

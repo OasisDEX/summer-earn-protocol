@@ -71,6 +71,9 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Thrown when the LayerZero endpoint is invalid
     error InvalidEndpoint();
 
+    /// @notice Thrown when a message receiver rejects the call
+    error ReceiverRejectedCall();
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -159,157 +162,157 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             return;
         }
 
-        // Get source chain ID
-        uint16 srcChainId = _getLzChainId(_origin.srcEid);
+        // Get the source chain ID from the origin
+        uint16 srcChainId = lzEidToChain[_origin.srcEid];
 
         // Process based on message type
         if (messageType == GENERAL_MESSAGE) {
-            _handleGeneralMessage(actualPayload);
+            _handleGeneralMessage(actualPayload, srcChainId);
         } else {
             revert UnsupportedMessageType();
         }
     }
 
     /**
-     * @dev Handles state read messages
-     * This is called on the destination chain to perform the read
-     */
-    function _handleStateReadMessage(
-        uint16 srcChainId,
-        bytes calldata _payload
-    ) internal {
-        // Decode the payload
-        (
-            bytes32 requestId,
-            address targetContract,
-            bytes4 selector,
-            bytes memory params,
-            address requestor
-        ) = abi.decode(_payload, (bytes32, address, bytes4, bytes, address));
-
-        // Update status as received on the destination chain
-        _updateReceiveStatus(requestId, BridgeTypes.TransferStatus.PENDING);
-
-        // Notify router about the received request
-        IBridgeRouter(bridgeRouter).notifyTransferReceived(
-            requestId,
-            address(0), // No asset for state read
-            0, // No amount for state read
-            address(this), // Receiver is this adapter
-            srcChainId
-        );
-
-        // Actually perform the contract call to get the data
-        (bool success, bytes memory result) = targetContract.call(
-            abi.encodePacked(selector, params)
-        );
-
-        // Send the result back to the source chain
-        if (success) {
-            // Get LayerZero endpoint ID for the source chain
-            uint32 lzDstEid = _getLayerZeroEid(srcChainId);
-
-            // Format state read result message
-            bytes memory resultPayload = abi.encodePacked(
-                abi.encode(requestId, result, requestor)
-            );
-
-            // Default options (can be customized as needed)
-            bytes memory options = abi.encodePacked(
-                uint16(1), // version
-                uint64(500000) // gas limit as uint64
-            );
-
-            // Send the result back
-            _lzSend(
-                lzDstEid,
-                resultPayload,
-                options,
-                MessagingFee(address(this).balance, 0),
-                payable(address(this)) // refund address
-            );
-        }
-    }
-
-    /**
      * @dev Handles general messages
+     * @param _payload The message payload
+     * @param srcChainId The source chain ID
      */
-    function _handleGeneralMessage(bytes calldata _payload) internal {
+    function _handleGeneralMessage(
+        bytes calldata _payload,
+        uint16 srcChainId
+    ) internal {
         (bytes memory message, address recipient, bytes32 messageId) = abi
             .decode(_payload, (bytes, address, bytes32));
 
-        // Get source chain ID from the origin context (we may need to store this somewhere)
-        uint16 srcChainId = 0; // This would need to be passed or stored
+        // Check if this is a confirmation message to the BridgeRouter
+        if (_isConfirmationMessage(recipient, message)) {
+            (bytes32 transferId, BridgeTypes.TransferStatus status) = abi
+                .decode(message, (bytes32, BridgeTypes.TransferStatus));
+            _handleConfirmationMessage(transferId, status);
+        } else {
+            // Normal message handling for non-confirmation messages
+            _updateReceiveStatus(
+                messageId,
+                BridgeTypes.TransferStatus.DELIVERED
+            );
 
-        // Update status using updateReceiveStatus
-        _updateReceiveStatus(messageId, BridgeTypes.TransferStatus.PENDING);
+            // Notify router about the received message
+            IBridgeRouter(bridgeRouter).notifyTransferReceived(
+                messageId,
+                address(0), // No asset for general message
+                0, // No amount for general message
+                recipient,
+                srcChainId
+            );
 
-        // Notify router about the received message
-        IBridgeRouter(bridgeRouter).notifyTransferReceived(
-            messageId,
-            address(0), // No asset for general message
-            0, // No amount for general message
-            recipient,
-            srcChainId
-        );
-
-        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
-        try
-            ICrossChainReceiver(recipient).supportsInterface(interfaceId)
-        returns (bool supported) {
-            if (supported) {
-                ICrossChainReceiver(recipient).receiveMessage(
-                    message,
-                    recipient,
-                    srcChainId, // sourceChainId (could be added as a parameter)
-                    messageId
-                );
-                // Update status to DELIVERED after successful delivery
-                _updateReceiveStatus(
-                    messageId,
-                    BridgeTypes.TransferStatus.DELIVERED
-                );
-            } else {
-                // Fallback for contracts that don't implement supportsInterface
-                (bool success, ) = recipient.call(
-                    abi.encodeWithSelector(
-                        ICrossChainReceiver.receiveMessage.selector,
+            bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
+            try
+                ICrossChainReceiver(recipient).supportsInterface(interfaceId)
+            returns (bool supported) {
+                if (supported) {
+                    ICrossChainReceiver(recipient).receiveMessage(
                         message,
                         recipient,
-                        srcChainId, // sourceChainId
+                        srcChainId,
                         messageId
-                    )
-                );
-                if (!success) {
-                    _updateReceiveStatus(
-                        messageId,
-                        BridgeTypes.TransferStatus.FAILED
                     );
-                    revert("Receiver rejected call");
-                } else {
+                    // Update status to DELIVERED after successful delivery
                     _updateReceiveStatus(
                         messageId,
                         BridgeTypes.TransferStatus.DELIVERED
                     );
+                } else {
+                    // Fallback for contracts that don't implement supportsInterface
+                    (bool success, ) = recipient.call(
+                        abi.encodeWithSelector(
+                            ICrossChainReceiver.receiveMessage.selector,
+                            message,
+                            recipient,
+                            srcChainId,
+                            messageId
+                        )
+                    );
+                    if (!success) {
+                        _updateReceiveStatus(
+                            messageId,
+                            BridgeTypes.TransferStatus.FAILED
+                        );
+                        revert ReceiverRejectedCall();
+                    } else {
+                        _updateReceiveStatus(
+                            messageId,
+                            BridgeTypes.TransferStatus.DELIVERED
+                        );
+                    }
                 }
+            } catch Error(string memory reason) {
+                _updateReceiveStatus(
+                    messageId,
+                    BridgeTypes.TransferStatus.FAILED
+                );
+                emit RelayFailed(messageId, abi.encodePacked(reason));
+            } catch (bytes memory reason) {
+                _updateReceiveStatus(
+                    messageId,
+                    BridgeTypes.TransferStatus.FAILED
+                );
+                emit RelayFailed(messageId, reason);
             }
-        } catch Error(string memory reason) {
-            _updateReceiveStatus(messageId, BridgeTypes.TransferStatus.FAILED);
-            emit RelayFailed(messageId, abi.encodePacked(reason));
-        } catch (bytes memory reason) {
-            _updateReceiveStatus(messageId, BridgeTypes.TransferStatus.FAILED);
-            emit RelayFailed(messageId, reason);
         }
     }
 
     /**
+     * @dev Checks if the message is a confirmation message to the BridgeRouter
+     * @param recipient The recipient address of the message
+     * @param message The message payload
+     * @return true if the message is a confirmation message, false otherwise
+     */
+    function _isConfirmationMessage(
+        address recipient,
+        bytes memory message
+    ) internal view returns (bool) {
+        // Check if recipient is the bridge router
+        if (recipient != bridgeRouter) return false;
+
+        // Check if message length matches our expected format
+        if (message.length != 64) return false; // 32 bytes for bytes32 + 32 bytes for enum
+
+        // Extract the potential status value from the last 32 bytes
+        uint256 statusValue;
+        assembly {
+            // message has a 32-byte length field, then data starts
+            // transferId is bytes 0-31, status is bytes 32-63
+            statusValue := mload(add(add(message, 32), 32))
+        }
+
+        // Check specifically for COMPLETED status (2)
+        // This is the only status we currently expect in confirmation messages
+        return statusValue == uint256(BridgeTypes.TransferStatus.COMPLETED);
+    }
+
+    /**
+     * @dev Handles confirmation messages
+     * @param transferId The ID of the transfer being confirmed
+     * @param status The status to update to
+     */
+    function _handleConfirmationMessage(
+        bytes32 transferId,
+        BridgeTypes.TransferStatus status
+    ) internal {
+        // Call receiveConfirmation on the BridgeRouter
+        IBridgeRouter(bridgeRouter).receiveConfirmation(transferId, status);
+        _updateTransferStatus(transferId, status);
+    }
+
+    /**
      * @dev Handles responses from lzRead operations
-     * @param _origin Source chain information
+     * @param // _origin Source chain information
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Response payload
      */
     function _handleReadResponse(
-        Origin calldata _origin,
+        Origin calldata,
         bytes32 _guid,
         bytes calldata _payload
     ) internal {
@@ -323,18 +326,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             requestId = _guid;
         }
 
-        // Update status using updateReceiveStatus instead of updateTransferStatus
-        _updateReceiveStatus(requestId, BridgeTypes.TransferStatus.COMPLETED);
-
         // For read responses, we don't need to call notifyTransferReceived
         // since this is a response to our own request, not an incoming transfer
 
         // Forward the result to the bridge router
         try
             IBridgeRouter(bridgeRouter).deliverReadResponse(requestId, _payload)
-        {
-            // Status already updated to COMPLETED above
-        } catch (bytes memory reason) {
+        {} catch (bytes memory reason) {
             // Mark as failed if delivery fails
             _updateReceiveStatus(requestId, BridgeTypes.TransferStatus.FAILED);
             emit RelayFailed(requestId, reason);
