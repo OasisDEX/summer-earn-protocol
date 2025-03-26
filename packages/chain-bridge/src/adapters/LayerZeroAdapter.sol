@@ -62,9 +62,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Thrown when invalid options are provided
     error InvalidOptions(bytes options);
 
-    /// @notice Thrown when a direct adapter call is made instead of using LayerZero messaging
-    error UseLayerZeroMessaging();
-
     /// @notice Thrown when an unsupported message type is received
     error UnsupportedMessageType();
 
