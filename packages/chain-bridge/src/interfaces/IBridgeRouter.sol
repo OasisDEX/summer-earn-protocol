@@ -219,6 +219,17 @@ interface IBridgeRouter {
         BridgeTypes.TransferStatus status
     ) external;
 
+    /**
+     * @notice Update the status of a received transfer (called by adapters)
+     * @param requestId ID of the received request to update
+     * @param status New status of the received request
+     * @dev This function can only be called by the adapter that received the request
+     */
+    function updateReceiveStatus(
+        bytes32 requestId,
+        BridgeTypes.TransferStatus status
+    ) external;
+
     /*//////////////////////////////////////////////////////////////
                            VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -231,6 +242,16 @@ interface IBridgeRouter {
      */
     function getTransferStatus(
         bytes32 transferId
+    ) external view returns (BridgeTypes.TransferStatus);
+
+    /**
+     * @notice Get the status of a received transfer
+     * @param requestId ID of the received request
+     * @return Status of the received request
+     * @dev Returns the current status of a received cross-chain transfer or read operation
+     */
+    function getReceiveStatus(
+        bytes32 requestId
     ) external view returns (BridgeTypes.TransferStatus);
 
     /**

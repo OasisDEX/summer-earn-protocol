@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
@@ -191,8 +191,20 @@ contract BridgeRouterAdaptersTest is Test {
             adapterParams: adapterParams
         });
 
-        // Send transfer with specified adapter
-        bytes32 transferId = router.transferAssets(
+        // Get the required fee first
+        (uint256 nativeFee, , ) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options
+        );
+        console.log("nativeFee: %s", nativeFee);
+
+        // Give the user enough ETH to cover the fee
+        vm.deal(user, nativeFee);
+
+        // Send transfer with specified adapter and include the fee
+        bytes32 transferId = router.transferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -243,6 +255,9 @@ contract BridgeRouterAdaptersTest is Test {
         // Register many adapters (more than the limit)
         vm.startPrank(governor);
 
+        // Configure first adapter's fee multiplier
+        mockAdapter.setFeeMultiplier(100); // Standard fee
+
         // Setup second adapter
         mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
         mockAdapter2.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
@@ -264,14 +279,14 @@ contract BridgeRouterAdaptersTest is Test {
         }
         vm.stopPrank();
 
-        // Get best adapter - even with iteration limits, should still find mockAdapter2
+        // Get best adapter - should now find the cheapest adapter
         address bestAdapter = router.getBestAdapter(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT
         );
 
-        // Should select the cheaper adapter (mockAdapter2)
+        // Should be the cheapest adapter (mockAdapter2)
         assertEq(bestAdapter, address(mockAdapter2));
     }
 

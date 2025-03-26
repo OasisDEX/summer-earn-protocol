@@ -56,6 +56,9 @@ contract BridgeRouterTransferTest is Test {
     // ---- TRANSFER ASSET TESTS ----
 
     function testSend() public {
+        // Deal ETH to the user - need enough to cover the fee
+        vm.deal(user, 3000 ether);
+
         vm.startPrank(user);
 
         // Approve tokens
@@ -75,8 +78,16 @@ contract BridgeRouterTransferTest is Test {
             adapterParams: adapterParams
         });
 
-        // Send transfer
-        bytes32 transferId = router.transferAssets(
+        // Get a quote first to determine the required fee
+        (uint256 nativeFee, , ) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options
+        );
+
+        // Send transfer with the quoted fee
+        bytes32 transferId = router.transferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -165,6 +176,9 @@ contract BridgeRouterTransferTest is Test {
     }
 
     function testUpdateTransferStatus() public {
+        // Deal ETH to the user - need enough to cover the fee
+        vm.deal(user, 3000 ether);
+
         vm.startPrank(user);
 
         // Approve tokens
@@ -184,8 +198,16 @@ contract BridgeRouterTransferTest is Test {
             adapterParams: adapterParams
         });
 
+        // Get a quote first to determine the required fee
+        (uint256 nativeFee, , ) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options
+        );
+
         // Send transfer
-        bytes32 transferId = router.transferAssets(
+        bytes32 transferId = router.transferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -210,6 +232,9 @@ contract BridgeRouterTransferTest is Test {
     }
 
     function testUpdateTransferStatusUnauthorized() public {
+        // Deal ETH to the user - need enough to cover the fee
+        vm.deal(user, 3000 ether);
+
         vm.startPrank(user);
 
         // Approve tokens
@@ -229,8 +254,16 @@ contract BridgeRouterTransferTest is Test {
             adapterParams: adapterParams
         });
 
+        // Get a quote first to determine the required fee
+        (uint256 nativeFee, , ) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options
+        );
+
         // Send transfer
-        bytes32 transferId = router.transferAssets(
+        bytes32 transferId = router.transferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,

@@ -21,16 +21,16 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             nonce: 1
         });
 
-        if (address(dstAdapter) == address(testHelperA)) {
-            testHelperA.lzReceiveTest(
+        if (address(dstAdapter) == address(adapterA)) {
+            adapterA.lzReceiveTest(
                 origin,
                 bytes32(uint256(1)), // requestId
                 abi.encodePacked(uint16(1), "test payload"), // Simple transfer payload
                 srcAdapter,
                 bytes("")
             );
-        } else if (address(dstAdapter) == address(testHelperB)) {
-            testHelperB.lzReceiveTest(
+        } else if (address(dstAdapter) == address(adapterB)) {
+            adapterB.lzReceiveTest(
                 origin,
                 bytes32(uint256(1)), // requestId
                 abi.encodePacked(uint16(1), "test payload"), // Simple transfer payload
@@ -79,7 +79,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         // Create origin data
         Origin memory origin = Origin({
             srcEid: LZ_EID_B, // Source is chain B
-            sender: addressToBytes32(address(testHelperB)),
+            sender: addressToBytes32(address(adapterB)),
             nonce: 1
         });
 
@@ -87,11 +87,11 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         vm.expectRevert(LayerZeroAdapter.UnsupportedMessageType.selector);
 
         // Call the test helper's lzReceiveTest function with the invalid payload
-        testHelperA.lzReceiveTest(
+        adapterA.lzReceiveTest(
             origin,
             bytes32(uint256(1)), // requestId
             invalidPayload,
-            address(testHelperB), // sender
+            address(adapterB), // sender
             bytes("") // extraData
         );
     }
