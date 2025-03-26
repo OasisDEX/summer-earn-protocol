@@ -7,6 +7,7 @@ import { BaseConfig } from '../../types/config-types'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { getChainIdByNetwork } from '../helpers/get-chainid'
+import { getSipMinorNumber } from '../helpers/get-sip-minor-number'
 import { hashDescription } from '../helpers/hash-description'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import { promptForConfigType } from '../helpers/prompt-helpers'
@@ -18,6 +19,7 @@ const TARGET_CHAINS = ['base', 'arbitrum', 'mainnet']
 /**
  * Creates a multi-chain governance proposal to grant ADMIRALS_QUARTERS_ROLE to
  * newly deployed AdmiralsQuarters contracts on Base, Arbitrum, and Mainnet.
+ * Also revokes the role from previous AdmiralsQuarters contracts if specified.
  */
 async function setupAdmiralsQuarters() {
   const network = hre.network.name
@@ -35,6 +37,14 @@ async function setupAdmiralsQuarters() {
 
   // Ask about using bummer config
   const useBummerConfig = await promptForConfigType()
+
+  // Ask if we should also revoke the role from previous contracts
+  const shouldRevokePrevious = await prompts({
+    type: 'confirm',
+    name: 'revoke',
+    message: 'Should the proposal also revoke ADMIRALS_QUARTERS_ROLE from previous contracts?',
+    initial: true,
+  })
 
   // Helper function to filter chains based on bummer config
   const filterTargetChains = (chainName: string) => {
@@ -96,11 +106,55 @@ async function setupAdmiralsQuarters() {
     console.log(kleur.yellow(`  ${chain}: ${admiralsQuartersAddresses[chain]}`))
   }
 
+  // Get previous AdmiralsQuarters addresses if needed
+  const previousAdmiralsQuartersAddresses: Record<string, Address> = {}
+
+  if (shouldRevokePrevious.revoke) {
+    console.log(kleur.cyan('\nEnter previous AdmiralsQuarters addresses to revoke role from:'))
+
+    // For hub chain
+    const hubResponse = await prompts({
+      type: 'text',
+      name: 'address',
+      message: `Previous AdmiralsQuarters address for ${HUB_CHAIN_NAME} (leave empty to skip):`,
+      validate: (value) =>
+        !value || /^0x[a-fA-F0-9]{40}$/.test(value)
+          ? true
+          : 'Please enter a valid address or leave empty',
+    })
+
+    if (hubResponse.address) {
+      previousAdmiralsQuartersAddresses[HUB_CHAIN_NAME] = hubResponse.address as Address
+      console.log(
+        kleur.yellow(`  ${HUB_CHAIN_NAME}: ${previousAdmiralsQuartersAddresses[HUB_CHAIN_NAME]}`),
+      )
+    }
+
+    // For satellite chains
+    for (const chain of TARGET_CHAINS.filter(filterTargetChains)) {
+      const response = await prompts({
+        type: 'text',
+        name: 'address',
+        message: `Previous AdmiralsQuarters address for ${chain} (leave empty to skip):`,
+        validate: (value) =>
+          !value || /^0x[a-fA-F0-9]{40}$/.test(value)
+            ? true
+            : 'Please enter a valid address or leave empty',
+      })
+
+      if (response.address) {
+        previousAdmiralsQuartersAddresses[chain] = response.address as Address
+        console.log(kleur.yellow(`  ${chain}: ${previousAdmiralsQuartersAddresses[chain]}`))
+      }
+    }
+  }
+
   // Display summary and ask for confirmation
-  if (await confirmProposal(admiralsQuartersAddresses)) {
+  if (await confirmProposal(admiralsQuartersAddresses, previousAdmiralsQuartersAddresses)) {
     // Create and save the multi-chain governance proposal
     await createMultiChainAdmiralsQuartersProposal(
       admiralsQuartersAddresses,
+      previousAdmiralsQuartersAddresses,
       hubConfig,
       satelliteConfigs,
       useBummerConfig,
@@ -113,12 +167,14 @@ async function setupAdmiralsQuarters() {
 /**
  * Creates a multi-chain governance proposal for granting ADMIRALS_QUARTERS_ROLE to AdmiralsQuarters contracts.
  * @param {Record<string, Address>} admiralsQuartersAddresses - The AdmiralsQuarters addresses for each chain.
+ * @param {Record<string, Address>} previousAdmiralsQuartersAddresses - The previous AdmiralsQuarters addresses to revoke role from.
  * @param {BaseConfig} hubConfig - The configuration for the hub chain.
  * @param {Record<string, BaseConfig>} satelliteConfigs - The configurations for the satellite chains.
  * @param {boolean} useBummerConfig - Whether to use bummer config.
  */
 async function createMultiChainAdmiralsQuartersProposal(
   admiralsQuartersAddresses: Record<string, Address>,
+  previousAdmiralsQuartersAddresses: Record<string, Address>,
   hubConfig: BaseConfig,
   satelliteConfigs: Record<string, BaseConfig>,
   useBummerConfig: boolean,
@@ -131,6 +187,9 @@ async function createMultiChainAdmiralsQuartersProposal(
     if (useBummerConfig && chainName === 'mainnet') return false
     return true
   }
+
+  // Get SIP minor number
+  const sipMinorNumber = await getSipMinorNumber()
 
   try {
     // Get the hub chain governor address
@@ -166,6 +225,27 @@ async function createMultiChainAdmiralsQuartersProposal(
         args: [admiralsQuartersAddresses[HUB_CHAIN_NAME]],
       }),
     )
+
+    // Add action to revoke ADMIRALS_QUARTERS_ROLE from previous AdmiralsQuarters on Base if provided
+    if (previousAdmiralsQuartersAddresses[HUB_CHAIN_NAME]) {
+      srcTargets.push(baseProtocolAccessManagerAddress)
+      srcValues.push(0n)
+      srcCalldatas.push(
+        encodeFunctionData({
+          abi: [
+            {
+              name: 'revokeAdmiralsQuartersRole',
+              type: 'function',
+              inputs: [{ name: 'account', type: 'address' }],
+              outputs: [],
+              stateMutability: 'nonpayable',
+            },
+          ],
+          functionName: 'revokeAdmiralsQuartersRole',
+          args: [previousAdmiralsQuartersAddresses[HUB_CHAIN_NAME]],
+        }),
+      )
+    }
 
     // Store cross-chain execution details for the proposal data
     const crossChainExecutions: Array<{
@@ -210,6 +290,27 @@ async function createMultiChainAdmiralsQuartersProposal(
         }),
       )
 
+      // Add action to revoke ADMIRALS_QUARTERS_ROLE from previous AdmiralsQuarters if provided
+      if (previousAdmiralsQuartersAddresses[chainName]) {
+        dstTargets.push(protocolAccessManagerAddress)
+        dstValues.push(0n)
+        dstCalldatas.push(
+          encodeFunctionData({
+            abi: [
+              {
+                name: 'revokeAdmiralsQuartersRole',
+                type: 'function',
+                inputs: [{ name: 'account', type: 'address' }],
+                outputs: [],
+                stateMutability: 'nonpayable',
+              },
+            ],
+            functionName: 'revokeAdmiralsQuartersRole',
+            args: [previousAdmiralsQuartersAddresses[chainName]],
+          }),
+        )
+      }
+
       // Store cross-chain execution data for this chain
       crossChainExecutions.push({
         name: chainName,
@@ -224,10 +325,11 @@ async function createMultiChainAdmiralsQuartersProposal(
 # AdmiralsQuarters Role Grant on ${chainName}
 
 ## Summary
-This cross-chain proposal grants the ADMIRALS_QUARTERS_ROLE to the newly deployed AdmiralsQuarters contract on ${chainName}.
+This cross-chain proposal grants the ADMIRALS_QUARTERS_ROLE to the newly deployed AdmiralsQuarters contract on ${chainName}${previousAdmiralsQuartersAddresses[chainName] ? ' and revokes the role from the previous contract' : ''}.
 
 ## Actions
 1. Grant ADMIRALS_QUARTERS_ROLE to AdmiralsQuarters contract at ${admiralsQuartersAddress} via the ProtocolAccessManager
+${previousAdmiralsQuartersAddresses[chainName] ? `2. Revoke ADMIRALS_QUARTERS_ROLE from previous AdmiralsQuarters contract at ${previousAdmiralsQuartersAddresses[chainName]} via the ProtocolAccessManager` : ''}
       `.trim()
 
       // Add cross-chain proposal action to the source chain actions
@@ -275,12 +377,13 @@ This cross-chain proposal grants the ADMIRALS_QUARTERS_ROLE to the newly deploye
       : TARGET_CHAINS
 
     // Create title and description for the full proposal
-    const title = `SIP5.2: Multi-Chain AdmiralsQuarters Role Setup`
+    const sipNumber = sipMinorNumber !== undefined ? `SIP5.${sipMinorNumber}` : 'SIP5'
+    const title = `${sipNumber}: Multi-Chain AdmiralsQuarters Role Setup`
     const description = `
-# SIP5.2: Multi-Chain AdmiralsQuarters Role Setup
+# ${sipNumber}: Multi-Chain AdmiralsQuarters Role Setup
 
 ## Summary
-This proposal grants the ADMIRALS_QUARTERS_ROLE to newly deployed AdmiralsQuarters contracts across all active chains in the Lazy Summer Protocol ecosystem.
+This proposal grants the ADMIRALS_QUARTERS_ROLE to newly deployed AdmiralsQuarters contracts across all active chains in the Lazy Summer Protocol ecosystem${Object.keys(previousAdmiralsQuartersAddresses).length > 0 ? ' and revokes the role from previous contracts' : ''}.
 
 ## Motivation
 The AdmiralsQuarters contract requires the ADMIRALS_QUARTERS_ROLE in the ProtocolAccessManager to operate properly. This role is necessary for the contract to unstake and withdraw assets from fleets on behalf of users.
@@ -288,15 +391,26 @@ The AdmiralsQuarters contract requires the ADMIRALS_QUARTERS_ROLE in the Protoco
 Newly deployed AdmiralsQuarters contracts:
 ${effectiveTargetChains.map((chain) => `- ${chain}: ${admiralsQuartersAddresses[chain]}`).join('\n')}
 
+${
+  Object.keys(previousAdmiralsQuartersAddresses).length > 0
+    ? `Previous AdmiralsQuarters contracts to revoke role from:
+${Object.entries(previousAdmiralsQuartersAddresses)
+  .map(([chain, address]) => `- ${chain}: ${address}`)
+  .join('\n')}`
+    : ''
+}
+
 ## Specifications
 
 ### Actions
 1. On ${HUB_CHAIN_NAME}: 
    - Grant ADMIRALS_QUARTERS_ROLE to AdmiralsQuarters at ${admiralsQuartersAddresses[HUB_CHAIN_NAME]}
+${previousAdmiralsQuartersAddresses[HUB_CHAIN_NAME] ? `   - Revoke ADMIRALS_QUARTERS_ROLE from previous AdmiralsQuarters at ${previousAdmiralsQuartersAddresses[HUB_CHAIN_NAME]}` : ''}
 ${TARGET_CHAINS.filter(filterTargetChains)
   .map(
     (chain) => `2. Send cross-chain proposal to ${chain} to:
-   - Grant ADMIRALS_QUARTERS_ROLE to AdmiralsQuarters at ${admiralsQuartersAddresses[chain]}`,
+   - Grant ADMIRALS_QUARTERS_ROLE to AdmiralsQuarters at ${admiralsQuartersAddresses[chain]}
+${previousAdmiralsQuartersAddresses[chain] ? `   - Revoke ADMIRALS_QUARTERS_ROLE from previous AdmiralsQuarters at ${previousAdmiralsQuartersAddresses[chain]}` : ''}`,
   )
   .join('\n')}
 
@@ -308,9 +422,10 @@ When a user interacts with the AdmiralsQuarters interface to withdraw assets fro
 
     // Create action summary for better display
     const actionSummary = [
-      `Grant ADMIRALS_QUARTERS_ROLE on ${HUB_CHAIN_NAME}`,
+      `Grant ADMIRALS_QUARTERS_ROLE on ${HUB_CHAIN_NAME}${previousAdmiralsQuartersAddresses[HUB_CHAIN_NAME] ? ' and revoke from previous contract' : ''}`,
       ...TARGET_CHAINS.filter(filterTargetChains).map(
-        (chain) => `Send cross-chain proposal to ${chain}`,
+        (chain) =>
+          `Send cross-chain proposal to ${chain}${previousAdmiralsQuartersAddresses[chain] ? ' (grant + revoke)' : ' (grant)'}`,
       ),
     ]
 
@@ -331,6 +446,11 @@ When a user interacts with the AdmiralsQuarters interface to withdraw assets fro
 
     console.log(kleur.cyan('Creating governance proposal with the following actions:'))
     console.log(kleur.yellow(`- Grant ADMIRALS_QUARTERS_ROLE on ${HUB_CHAIN_NAME}`))
+    if (previousAdmiralsQuartersAddresses[HUB_CHAIN_NAME]) {
+      console.log(
+        kleur.yellow(`- Revoke ADMIRALS_QUARTERS_ROLE from previous contract on ${HUB_CHAIN_NAME}`),
+      )
+    }
     for (const chain of TARGET_CHAINS.filter(filterTargetChains)) {
       console.log(kleur.yellow(`- Send cross-chain proposal to ${chain}`))
     }
@@ -365,10 +485,12 @@ When a user interacts with the AdmiralsQuarters interface to withdraw assets fro
 /**
  * Displays a summary of the proposal and asks for user confirmation.
  * @param {Record<string, Address>} admiralsQuartersAddresses - The AdmiralsQuarters addresses for each chain.
+ * @param {Record<string, Address>} previousAdmiralsQuartersAddresses - The previous AdmiralsQuarters addresses to revoke role from.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
 async function confirmProposal(
   admiralsQuartersAddresses: Record<string, Address>,
+  previousAdmiralsQuartersAddresses: Record<string, Address>,
 ): Promise<boolean> {
   console.log(kleur.cyan().bold('\nSummary of AdmiralsQuarters Governance Proposal:'))
   console.log(kleur.yellow('This will create a multi-chain proposal with the following details:'))
@@ -377,6 +499,16 @@ async function confirmProposal(
   console.log(kleur.yellow('AdmiralsQuarters Addresses to grant ADMIRALS_QUARTERS_ROLE:'))
   for (const chain in admiralsQuartersAddresses) {
     console.log(kleur.yellow(`  ${chain}: ${admiralsQuartersAddresses[chain]}`))
+  }
+
+  // Display previous AdmiralsQuarters addresses if any
+  if (Object.keys(previousAdmiralsQuartersAddresses).length > 0) {
+    console.log(
+      kleur.yellow('\nPrevious AdmiralsQuarters Addresses to revoke ADMIRALS_QUARTERS_ROLE from:'),
+    )
+    for (const chain in previousAdmiralsQuartersAddresses) {
+      console.log(kleur.yellow(`  ${chain}: ${previousAdmiralsQuartersAddresses[chain]}`))
+    }
   }
 
   // Ask for confirmation
