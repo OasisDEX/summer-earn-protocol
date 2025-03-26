@@ -13,7 +13,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         uint32 srcEid,
         address srcAdapter,
         address dstAdapter
-    ) internal override {
+    ) internal {
         // Implementation for general tests
         Origin memory origin = Origin({
             srcEid: srcEid,

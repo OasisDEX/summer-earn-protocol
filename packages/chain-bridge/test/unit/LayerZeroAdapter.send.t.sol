@@ -9,16 +9,6 @@ import {IExecutorFeeLib} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/int
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     using OptionsBuilder for bytes;
 
-    // Implement the executeMessage helper function required by the abstract base test
-    function executeMessage(
-        uint32 srcEid,
-        address srcAdapter,
-        address dstAdapter
-    ) internal override {
-        // Implementation for send tests
-        // This would typically forward to the appropriate test helper
-    }
-
     function testReadState() public {
         useNetworkA();
         vm.deal(user, 1 ether);
@@ -58,6 +48,59 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             abi.encode(recipient),
             bridgeOptions
         );
+
+        vm.stopPrank();
+    }
+
+    function testSendMessage() public {
+        useNetworkA();
+        vm.deal(user, 1 ether);
+
+        vm.startPrank(user);
+
+        // Create a test message to send cross-chain
+        bytes memory message = abi.encode("Hello from Chain A!");
+
+        // Create adapter params with appropriate gas limit for GENERAL_MESSAGE
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000, // Use the minimum gas limit for GENERAL_MESSAGE
+                calldataSize: 0,
+                msgValue: 0,
+                options: bytes("")
+            });
+
+        BridgeTypes.BridgeOptions memory bridgeOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                adapterParams: adapterParams
+            });
+
+        // We need to mock the expected behavior for sending a message
+        // This will depend on your test setup, but we need to ensure
+        // that the lzEndpoint is properly set up to handle the message
+
+        // In real execution, this would generate a messageId and call _lzSend
+        bytes32 messageId = routerA.sendMessage{value: 0.1 ether}(
+            CHAIN_ID_B,
+            recipient,
+            message,
+            bridgeOptions
+        );
+
+        // Verify messageId is not empty
+        assertTrue(messageId != bytes32(0), "Message ID should not be empty");
+
+        // Verify the message status was updated to PENDING
+        assertEq(
+            uint256(routerA.getTransferStatus(messageId)),
+            uint256(BridgeTypes.TransferStatus.PENDING),
+            "Message status should be PENDING"
+        );
+
+        // If your test setup allows for complete message execution,
+        // you can verify that the message was received on the destination chain
+        // by checking state changes or events on the recipient contract
 
         vm.stopPrank();
     }

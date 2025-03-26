@@ -142,12 +142,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address,
         bytes calldata
     ) internal override {
-        // Check if this is a response from a read channel
-        if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
-            _handleReadResponse(_origin, _guid, _payload);
-            return;
-        }
-
         // Continue with existing message handling logic for non-read messages
         // Extract message type from the first 2 bytes if available
         uint16 messageType = GENERAL_MESSAGE; // Default to GENERAL_MESSAGE
@@ -159,13 +153,17 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             actualPayload = _payload[2:];
         }
 
+        // Check if this is a response from a read channel
+        if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
+            _handleReadResponse(_origin, _guid, _payload);
+            return;
+        }
+
         // Get source chain ID
         uint16 srcChainId = _getLzChainId(_origin.srcEid);
 
         // Process based on message type
-        if (messageType == STATE_READ) {
-            _handleStateReadMessage(srcChainId, actualPayload);
-        } else if (messageType == GENERAL_MESSAGE) {
+        if (messageType == GENERAL_MESSAGE) {
             _handleGeneralMessage(actualPayload);
         } else {
             revert UnsupportedMessageType();
@@ -555,9 +553,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 block.timestamp
             )
         );
-
-        // Update transfer status via bridge router
-        _updateTransferStatus(messageId, BridgeTypes.TransferStatus.PENDING);
 
         // Store the message hash to transfer ID mapping
         // Don't have the message hash yet, but will be set in _lzSend callback

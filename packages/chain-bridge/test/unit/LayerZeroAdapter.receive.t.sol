@@ -19,12 +19,13 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         mockReceiver = new MockCrossChainReceiver();
     }
 
-    // Implement the executeMessage helper function required by the abstract base test
+    // Modify the executeMessage function to accept a message type parameter
     function executeMessage(
         uint32 srcEid,
         address srcAdapter,
-        address dstAdapter
-    ) internal override {
+        address dstAdapter,
+        uint16 messageType // Add messageType parameter
+    ) internal {
         // For receive tests, we need to simulate LZ message execution properly
         Origin memory origin = Origin({
             srcEid: srcEid,
@@ -36,19 +37,50 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         bytes memory payload;
         bytes32 transferId = bytes32(uint256(1)); // Use a consistent transferId
 
+        // Special handling for read responses
+        if (srcEid > adapterA.READ_CHANNEL_THRESHOLD()) {
+            // For read responses, we need different handling
+            uint256 mockReadValue = 123456; // Mock balance value
+            bytes memory responseData = abi.encode(mockReadValue);
+
+            // Use the provided message type
+            payload = abi.encodePacked(
+                messageType, // Use the provided message type
+                responseData
+            );
+
+            // Call the adapter directly with the origin indicating it's a read response
+            adapterA.lzReceiveTest(
+                origin,
+                transferId,
+                payload,
+                srcAdapter,
+                bytes("")
+            );
+            return;
+        }
+
+        // Standard message handling for non-read messages
         // Use the appropriate test helper based on the destination
         if (address(dstAdapter) == address(adapterA)) {
-            // Create a properly formatted payload for asset transfer
-            // Format: messageType (2 bytes) + transferId + tokenAddress + amount + recipient
-            payload = abi.encodePacked(
-                uint16(1), // MessageType.ASSET_TRANSFER = 1
-                abi.encode(
-                    transferId,
-                    address(tokenB), // Source token on chain B
-                    uint256(1 ether), // Amount
-                    recipient // Recipient address
-                )
-            );
+            if (messageType == 2) {
+                // STATE_READ
+                // Format for state read message
+                payload = abi.encodePacked(
+                    messageType,
+                    abi.encode(transferId, bytes("Read data payload"))
+                );
+            } else if (messageType == 3) {
+                // GENERAL_MESSAGE
+                // Format for general message
+                payload = abi.encodePacked(
+                    messageType,
+                    abi.encode("General message payload")
+                );
+            } else {
+                // Unknown message type
+                revert("Unknown message type");
+            }
 
             try
                 adapterA.lzReceiveTest(
@@ -70,15 +102,24 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             }
         } else if (address(dstAdapter) == address(adapterB)) {
             // Create a properly formatted payload for asset transfer
-            payload = abi.encodePacked(
-                uint16(1), // MessageType.ASSET_TRANSFER = 1
-                abi.encode(
-                    transferId,
-                    address(tokenA), // Source token on chain A
-                    uint256(1 ether), // Amount
-                    recipient // Recipient address
-                )
-            );
+            if (messageType == 2) {
+                // STATE_READ
+                // Format for state read message
+                payload = abi.encodePacked(
+                    messageType,
+                    abi.encode(transferId, bytes("Read data payload"))
+                );
+            } else if (messageType == 3) {
+                // GENERAL_MESSAGE
+                // Format for general message
+                payload = abi.encodePacked(
+                    messageType,
+                    abi.encode("General message payload")
+                );
+            } else {
+                // Unknown message type
+                revert("Unknown message type");
+            }
 
             try
                 adapterB.lzReceiveTest(
