@@ -35,6 +35,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @notice Mapping of transfer IDs to the adapter that processed them
     mapping(bytes32 transferId => address adapter) public transferToAdapter;
 
+    /// @notice Mapping of request IDs to the adapter that processed them
+    mapping(bytes32 requestId => address adapter)
+        public requestReceivedByAdapter;
+
     /// @notice Mapping to track read request originators
     mapping(bytes32 requestId => address originator)
         public readRequestToOriginator;
@@ -154,14 +158,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             adapter
         );
 
-        // Calculate base fee (without multiplier)
-        (uint256 baseFee, ) = IBridgeAdapter(adapter).estimateFee(
-            destinationChainId,
-            asset,
-            amount,
-            options.adapterParams
-        );
-
         // Ensure user provided enough fee
         if (msg.value < totalFee) revert InsufficientFee();
 
@@ -179,7 +175,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         IERC20(asset).approve(adapter, amount);
 
         // Only forward the base fee to the adapter, router keeps the rest for confirmation
-        transferId = IBridgeAdapter(adapter).transferAsset{value: baseFee}(
+        transferId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
             destinationChainId,
             asset,
             recipient,
@@ -297,6 +293,16 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         transferStatuses[transferId] = status;
         emit TransferStatusUpdated(transferId, status);
+    }
+
+    function updateReceiveStatus(
+        bytes32 requestId,
+        BridgeTypes.TransferStatus status
+    ) external onlyRegisteredAdapter {
+        requestReceivedByAdapter[requestId] = msg.sender;
+
+        transferStatuses[requestId] = status;
+        emit ReadRequestStatusUpdated(requestId, status);
     }
 
     /// @inheritdoc IBridgeRouter
@@ -422,26 +428,18 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
     /// @inheritdoc IBridgeRouter
     function notifyTransferReceived(
-        bytes32 transferId,
+        bytes32 requestId,
         address asset,
         uint256 amount,
         address recipient,
         uint16 sourceChainId
-    ) external onlyRegisteredAdapter nonReentrant {
-        if (transferToAdapter[transferId] != msg.sender) revert Unauthorized();
-
-        // Update status locally (in case this is tracking a return transfer)
-        if (transferToAdapter[transferId] == msg.sender) {
-            transferStatuses[transferId] = BridgeTypes.TransferStatus.DELIVERED;
-            emit TransferStatusUpdated(
-                transferId,
-                BridgeTypes.TransferStatus.DELIVERED
-            );
-        }
+    ) external virtual onlyRegisteredAdapter nonReentrant {
+        if (requestReceivedByAdapter[requestId] != msg.sender)
+            revert Unauthorized();
 
         // Emit event for the received transfer
         emit TransferReceived(
-            transferId,
+            requestId,
             asset,
             amount,
             recipient,
@@ -461,7 +459,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         ) {
             // Encode the confirmation message
             bytes memory confirmationMessage = abi.encode(
-                transferId,
+                requestId,
                 BridgeTypes.TransferStatus.DELIVERED
             );
 
@@ -477,7 +475,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     address(0), // No asset for confirmation message
                     0, // No amount for confirmation message
                     BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
+                        gasLimit: 100000, // TODO: Use min gas limits for this kind of action
                         msgValue: 0,
                         calldataSize: 0,
                         options: ""
@@ -494,16 +492,16 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     confirmationMessage,
                     address(0), // No refund address needed
                     BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
+                        gasLimit: 100000, // TODO: Use min gas limits for this kind of action
                         msgValue: 0,
                         calldataSize: 0,
                         options: ""
                     })
                 )
             returns (bytes32) {
-                confirmationSent[transferId] = true;
+                confirmationSent[requestId] = true;
             } catch {
-                emit ConfirmationFailed(transferId);
+                emit ConfirmationFailed(requestId);
             }
         }
     }
@@ -525,13 +523,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get the best adapter for a specific operation type
-     * @param chainId Destination chain ID
-     * @param asset Asset to transfer (set to address(0) for non-asset operations)
-     * @param requiresAssetTransfer Whether the operation requires asset transfer support
-     * @param requiresMessaging Whether the operation requires messaging support
-     * @param requiresStateRead Whether the operation requires state read support
-     * @return The address of the best suitable adapter
+     * @notice Finds the best adapter for an operation based on both compatibility and cost
+     * @param chainId Destination or source chain ID
+     * @param asset Asset to send (address(0) for non-asset operations)
+     * @param requiresAssetTransfer Whether asset transfer support is required
+     * @param requiresMessaging Whether messaging support is required
+     * @param requiresStateRead Whether state read support is required
+     * @return The address of the lowest-cost suitable adapter
      */
     function _getBestAdapterForOperation(
         uint16 chainId,
@@ -541,6 +539,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         bool requiresStateRead
     ) internal view returns (address) {
         address bestAdapter = address(0);
+        uint256 lowestFee = type(uint256).max;
 
         uint256 adapterCount = adapters.length();
         for (uint256 i = 0; i < adapterCount; i++) {
@@ -549,7 +548,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             // Check if adapter supports this chain
             if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
 
-            // Check capability requirements
+            // Check for operation-specific support
             if (
                 requiresAssetTransfer &&
                 !IBridgeAdapter(adapter).supportsAssetTransfer()
@@ -566,12 +565,40 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             // For asset transfers, check if the asset is supported
             if (
                 asset != address(0) &&
+                requiresAssetTransfer &&
                 !IBridgeAdapter(adapter).supportsAsset(chainId, asset)
             ) continue;
 
-            // Found a suitable adapter
-            bestAdapter = adapter;
-            break;
+            // If we get here, the adapter is suitable, so check its fee
+            uint256 estimatedFee = 0;
+
+            try
+                IBridgeAdapter(adapter).estimateFee(
+                    chainId,
+                    asset,
+                    requiresAssetTransfer ? 1 ether : 0, // Use 1 ETH as a standard amount for comparison
+                    BridgeTypes.AdapterParams({
+                        gasLimit: 500000,
+                        calldataSize: 0,
+                        msgValue: 0,
+                        options: ""
+                    })
+                )
+            returns (uint256 fee, uint256) {
+                estimatedFee = fee;
+            } catch {
+                // If estimation fails, consider this adapter more expensive
+                estimatedFee = type(uint256).max;
+            }
+
+            // Apply router's fee multiplier to get total cost
+            uint256 totalFee = (estimatedFee * feeMultiplier) / 100;
+
+            // Update best adapter if this one is cheaper
+            if (totalFee < lowestFee) {
+                lowestFee = totalFee;
+                bestAdapter = adapter;
+            }
         }
 
         return bestAdapter;
@@ -631,6 +658,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         bytes32 transferId
     ) external view returns (BridgeTypes.TransferStatus) {
         return transferStatuses[transferId];
+    }
+
+    /// @inheritdoc IBridgeRouter
+    function getReceiveStatus(
+        bytes32 requestId
+    ) external view returns (BridgeTypes.TransferStatus) {
+        return transferStatuses[requestId];
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -6,7 +6,7 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
-import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -29,14 +29,14 @@ abstract contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     uint32 public bEid = 2;
 
     // Chain A contracts
-    LayerZeroAdapter public adapterA;
-    BridgeRouter public routerA;
+    LayerZeroAdapterTestHelper public adapterA;
+    BridgeRouterTestHelper public routerA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
 
     // Chain B contracts
-    LayerZeroAdapter public adapterB;
-    BridgeRouter public routerB;
+    LayerZeroAdapterTestHelper public adapterB;
+    BridgeRouterTestHelper public routerB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
 
@@ -50,8 +50,8 @@ abstract contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     address public lzEndpointB;
 
     // Chain IDs for testing
-    uint16 public constant CHAIN_ID_A = 1;
-    uint16 public constant CHAIN_ID_B = 10;
+    uint16 public constant CHAIN_ID_A = 31337;
+    uint16 public constant CHAIN_ID_B = 31338;
 
     // LayerZero endpoint IDs
     uint32 public constant LZ_EID_A = 1;
@@ -61,11 +61,7 @@ abstract contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
 
-    // Add test helper
-    LayerZeroAdapterTestHelper public testHelperA;
-    LayerZeroAdapterTestHelper public testHelperB;
-
-    function setUp() public override {
+    function setUp() public virtual override {
         super.setUp();
 
         // Set up LayerZero endpoints
@@ -90,19 +86,11 @@ abstract contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         accessManagerA = new ProtocolAccessManager(governor);
-        routerA = new BridgeRouter(address(accessManagerA));
+        routerA = new BridgeRouterTestHelper(address(accessManagerA));
         tokenA = new ERC20Mock();
 
-        adapterA = new LayerZeroAdapter(
-            lzEndpointA,
-            address(routerA),
-            chains,
-            lzEids,
-            governor
-        );
-
         // Add test helper
-        testHelperA = new LayerZeroAdapterTestHelper(
+        adapterA = new LayerZeroAdapterTestHelper(
             lzEndpointA,
             address(routerA),
             chains,
@@ -121,19 +109,11 @@ abstract contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         accessManagerB = new ProtocolAccessManager(governor);
-        routerB = new BridgeRouter(address(accessManagerB));
+        routerB = new BridgeRouterTestHelper(address(accessManagerB));
         tokenB = new ERC20Mock();
 
-        adapterB = new LayerZeroAdapter(
-            lzEndpointB,
-            address(routerB),
-            chains,
-            lzEids,
-            governor
-        );
-
         // Add test helper
-        testHelperB = new LayerZeroAdapterTestHelper(
+        adapterB = new LayerZeroAdapterTestHelper(
             lzEndpointB,
             address(routerB),
             chains,

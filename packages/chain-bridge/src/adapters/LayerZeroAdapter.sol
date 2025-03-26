@@ -146,6 +146,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Check if this is a response from a read channel
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
+            console.log("handleReadResponse called");
             _handleReadResponse(_origin, _guid, _payload);
             return;
         }
@@ -194,6 +195,18 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             address requestor
         ) = abi.decode(_payload, (bytes32, address, bytes4, bytes, address));
 
+        // Update status as received on the destination chain
+        _updateReceiveStatus(requestId, BridgeTypes.TransferStatus.PENDING);
+
+        // Notify router about the received request
+        IBridgeRouter(bridgeRouter).notifyTransferReceived(
+            requestId,
+            address(0), // No asset for state read
+            0, // No amount for state read
+            address(this), // Receiver is this adapter
+            srcChainId
+        );
+
         // Actually perform the contract call to get the data
         (bool success, bytes memory result) = targetContract.call(
             abi.encodePacked(selector, params)
@@ -233,6 +246,21 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         (bytes memory message, address recipient, bytes32 messageId) = abi
             .decode(_payload, (bytes, address, bytes32));
 
+        // Get source chain ID from the origin context (we may need to store this somewhere)
+        uint16 srcChainId = 0; // This would need to be passed or stored
+
+        // Update status using updateReceiveStatus
+        _updateReceiveStatus(messageId, BridgeTypes.TransferStatus.PENDING);
+
+        // Notify router about the received message
+        IBridgeRouter(bridgeRouter).notifyTransferReceived(
+            messageId,
+            address(0), // No asset for general message
+            0, // No amount for general message
+            recipient,
+            srcChainId
+        );
+
         bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
         try
             ICrossChainReceiver(recipient).supportsInterface(interfaceId)
@@ -241,8 +269,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 ICrossChainReceiver(recipient).receiveMessage(
                     message,
                     recipient,
-                    0, // sourceChainId (could be added as a parameter)
+                    srcChainId, // sourceChainId (could be added as a parameter)
                     messageId
+                );
+                // Update status to DELIVERED after successful delivery
+                _updateReceiveStatus(
+                    messageId,
+                    BridgeTypes.TransferStatus.DELIVERED
                 );
             } else {
                 // Fallback for contracts that don't implement supportsInterface
@@ -251,27 +284,40 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                         ICrossChainReceiver.receiveMessage.selector,
                         message,
                         recipient,
-                        0, // TODO: add sourceChainId
+                        srcChainId, // sourceChainId
                         messageId
                     )
                 );
-                if (!success) revert("Receiver rejected call");
+                if (!success) {
+                    _updateReceiveStatus(
+                        messageId,
+                        BridgeTypes.TransferStatus.FAILED
+                    );
+                    revert("Receiver rejected call");
+                } else {
+                    _updateReceiveStatus(
+                        messageId,
+                        BridgeTypes.TransferStatus.DELIVERED
+                    );
+                }
             }
         } catch Error(string memory reason) {
+            _updateReceiveStatus(messageId, BridgeTypes.TransferStatus.FAILED);
             emit RelayFailed(messageId, abi.encodePacked(reason));
         } catch (bytes memory reason) {
+            _updateReceiveStatus(messageId, BridgeTypes.TransferStatus.FAILED);
             emit RelayFailed(messageId, reason);
         }
     }
 
     /**
      * @dev Handles responses from lzRead operations
-     * @param // _origin Source chain information
+     * @param _origin Source chain information
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Response payload
      */
     function _handleReadResponse(
-        Origin calldata,
+        Origin calldata _origin,
         bytes32 _guid,
         bytes calldata _payload
     ) internal {
@@ -285,8 +331,12 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             requestId = _guid;
         }
 
-        // Update status to COMPLETED via bridge router only
-        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.COMPLETED);
+        // Update status using updateReceiveStatus instead of updateTransferStatus
+        console.log("updateReceiveStatus called");
+        _updateReceiveStatus(requestId, BridgeTypes.TransferStatus.COMPLETED);
+
+        // For read responses, we don't need to call notifyTransferReceived
+        // since this is a response to our own request, not an incoming transfer
 
         // Forward the result to the bridge router
         try
@@ -295,7 +345,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             // Status already updated to COMPLETED above
         } catch (bytes memory reason) {
             // Mark as failed if delivery fails
-            _updateTransferStatus(requestId, BridgeTypes.TransferStatus.FAILED);
+            _updateReceiveStatus(requestId, BridgeTypes.TransferStatus.FAILED);
             emit RelayFailed(requestId, reason);
         }
     }
@@ -514,10 +564,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         );
 
         // Update transfer status via bridge router
-        IBridgeRouter(bridgeRouter).updateTransferStatus(
-            messageId,
-            BridgeTypes.TransferStatus.PENDING
-        );
+        _updateTransferStatus(messageId, BridgeTypes.TransferStatus.PENDING);
 
         // Store the message hash to transfer ID mapping
         // Don't have the message hash yet, but will be set in _lzSend callback
@@ -554,19 +601,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Updates the status of a transfer in the bridge router only
-     * @param transferId ID of the transfer to update
-     * @param status New status to set
-     */
-    function _updateTransferStatus(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
-    ) internal {
-        // Update status in bridge router only
-        IBridgeRouter(bridgeRouter).updateTransferStatus(transferId, status);
-    }
-
-    /**
      * @notice Converts a chain ID to a LayerZero endpoint ID
      * @param chainId Standard chain ID
      * @return lzEid LayerZero endpoint ID
@@ -574,6 +608,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     function _getLayerZeroEid(
         uint16 chainId
     ) internal view returns (uint32 lzEid) {
+        console.log("chainId: %s", chainId);
         // Get the LayerZero EID from our mapping
         lzEid = chainToLzEid[chainId];
 
@@ -683,6 +718,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     function _getLzChainId(
         uint32 _lzEid
     ) internal view returns (uint16 chainId) {
+        console.log("_lzEid %s", _lzEid);
         // Get the chain ID from our mapping
         chainId = lzEidToChain[_lzEid];
 
@@ -720,5 +756,29 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     function supportsStateRead() external pure returns (bool) {
         // This adapter supports state reading
         return true;
+    }
+
+    /**
+     * @notice Updates the status of a transfer on sending chain
+     * @param transferId ID of the transfer to update
+     * @param status New status to set
+     */
+    function _updateTransferStatus(
+        bytes32 transferId,
+        BridgeTypes.TransferStatus status
+    ) internal {
+        IBridgeRouter(bridgeRouter).updateTransferStatus(transferId, status);
+    }
+
+    /**
+     * @notice Updates the status of a received transfer on receiving chain
+     * @param requestId ID of the received request/transfer
+     * @param status New status to set
+     */
+    function _updateReceiveStatus(
+        bytes32 requestId,
+        BridgeTypes.TransferStatus status
+    ) internal {
+        IBridgeRouter(bridgeRouter).updateReceiveStatus(requestId, status);
     }
 }
