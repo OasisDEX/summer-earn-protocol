@@ -18,34 +18,34 @@ contract BridgeRouterTestHelper is BridgeRouter {
     constructor(address _owner) BridgeRouter(_owner) {}
 
     /**
-     * @notice Updates the transferToAdapter mapping for testing
-     * @param transferId ID of the transfer
-     * @param adapter Address of the adapter to associate with this transfer
+     * @notice Updates the operationToAdapter mapping for testing
+     * @param operationId ID of the operation
+     * @param adapter Address of the adapter to associate with this operation
      */
-    function setTransferToAdapter(
-        bytes32 transferId,
+    function setOperationToAdapter(
+        bytes32 operationId,
         address adapter
     ) external {
-        transferToAdapter[transferId] = adapter;
+        operationToAdapter[operationId] = adapter;
     }
 
     /**
-     * @notice Removes an entry from the transferToAdapter mapping
-     * @param transferId ID of the transfer to remove
+     * @notice Removes an entry from the operationToAdapter mapping
+     * @param operationId ID of the operation to remove
      */
-    function removeTransferToAdapter(bytes32 transferId) external {
-        delete transferToAdapter[transferId];
+    function removeOperationToAdapter(bytes32 operationId) external {
+        delete operationToAdapter[operationId];
     }
 
     /**
-     * @notice Gets the adapter associated with a transfer
-     * @param transferId ID of the transfer
-     * @return Address of the adapter associated with this transfer
+     * @notice Gets the adapter associated with a operation
+     * @param operationId ID of the operation
+     * @return Address of the adapter associated with this operation
      */
-    function getTransferAdapter(
-        bytes32 transferId
+    function getOperationAdapter(
+        bytes32 operationId
     ) external view returns (address) {
-        return transferToAdapter[transferId];
+        return operationToAdapter[operationId];
     }
 
     /**

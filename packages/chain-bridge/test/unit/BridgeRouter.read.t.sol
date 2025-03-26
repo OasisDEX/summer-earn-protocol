@@ -85,10 +85,10 @@ contract BridgeRouterReadStateTest is Test {
 
         // Verify request was initiated
         assertEq(
-            uint256(router.transferStatuses(requestId)),
-            uint256(BridgeTypes.TransferStatus.PENDING)
+            uint256(router.operationStatuses(requestId)),
+            uint256(BridgeTypes.OperationStatus.PENDING)
         );
-        assertEq(router.transferToAdapter(requestId), address(mockAdapter));
+        assertEq(router.operationToAdapter(requestId), address(mockAdapter));
         assertEq(router.readRequestToOriginator(requestId), user);
 
         vm.stopPrank();
@@ -129,8 +129,8 @@ contract BridgeRouterReadStateTest is Test {
 
         // Verify response was COMPLETED
         assertEq(
-            uint256(router.transferStatuses(requestId)),
-            uint256(BridgeTypes.TransferStatus.COMPLETED)
+            uint256(router.operationStatuses(requestId)),
+            uint256(BridgeTypes.OperationStatus.COMPLETED)
         );
 
         // Verify that the mockReceiver received the data
@@ -219,8 +219,8 @@ contract BridgeRouterReadStateTest is Test {
         vm.prank(address(mockAdapter));
         router.deliverReadResponse(requestId, abi.encode(uint256(100)));
         assertEq(
-            uint256(router.transferStatuses(requestId)),
-            uint256(BridgeTypes.TransferStatus.FAILED)
+            uint256(router.operationStatuses(requestId)),
+            uint256(BridgeTypes.OperationStatus.FAILED)
         );
     }
 }

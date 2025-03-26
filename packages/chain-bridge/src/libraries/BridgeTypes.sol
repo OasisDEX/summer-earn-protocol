@@ -9,7 +9,7 @@ library BridgeTypes {
     /**
      * @notice Status of a cross-chain transfer
      */
-    enum TransferStatus {
+    enum OperationStatus {
         UNKNOWN,
         PENDING,
         DELIVERED,

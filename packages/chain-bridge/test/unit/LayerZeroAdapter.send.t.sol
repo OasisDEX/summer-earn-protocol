@@ -93,8 +93,8 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         // Verify the message status was updated to PENDING
         assertEq(
-            uint256(routerA.getTransferStatus(messageId)),
-            uint256(BridgeTypes.TransferStatus.PENDING),
+            uint256(routerA.getOperationStatus(messageId)),
+            uint256(BridgeTypes.OperationStatus.PENDING),
             "Message status should be PENDING"
         );
 

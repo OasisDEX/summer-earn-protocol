@@ -187,14 +187,14 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Check if this is a confirmation message to the BridgeRouter
         if (_isConfirmationMessage(recipient, message)) {
-            (bytes32 transferId, BridgeTypes.TransferStatus status) = abi
-                .decode(message, (bytes32, BridgeTypes.TransferStatus));
-            _handleConfirmationMessage(transferId, status);
+            (bytes32 operationId, BridgeTypes.OperationStatus status) = abi
+                .decode(message, (bytes32, BridgeTypes.OperationStatus));
+            _handleConfirmationMessage(operationId, status);
         } else {
             // Normal message handling for non-confirmation messages
             _updateReceiveStatus(
                 messageId,
-                BridgeTypes.TransferStatus.DELIVERED
+                BridgeTypes.OperationStatus.DELIVERED
             );
 
             // Notify router about the received message
@@ -220,7 +220,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                     // Update status to DELIVERED after successful delivery
                     _updateReceiveStatus(
                         messageId,
-                        BridgeTypes.TransferStatus.DELIVERED
+                        BridgeTypes.OperationStatus.DELIVERED
                     );
                 } else {
                     // Fallback for contracts that don't implement supportsInterface
@@ -236,30 +236,46 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                     if (!success) {
                         _updateReceiveStatus(
                             messageId,
-                            BridgeTypes.TransferStatus.FAILED
+                            BridgeTypes.OperationStatus.FAILED
                         );
                         revert ReceiverRejectedCall();
                     } else {
                         _updateReceiveStatus(
                             messageId,
-                            BridgeTypes.TransferStatus.DELIVERED
+                            BridgeTypes.OperationStatus.DELIVERED
                         );
                     }
                 }
             } catch Error(string memory reason) {
                 _updateReceiveStatus(
                     messageId,
-                    BridgeTypes.TransferStatus.FAILED
+                    BridgeTypes.OperationStatus.FAILED
                 );
                 emit RelayFailed(messageId, abi.encodePacked(reason));
             } catch (bytes memory reason) {
                 _updateReceiveStatus(
                     messageId,
-                    BridgeTypes.TransferStatus.FAILED
+                    BridgeTypes.OperationStatus.FAILED
                 );
                 emit RelayFailed(messageId, reason);
             }
         }
+
+        bool delivered = false;
+        try
+            IBridgeRouter(bridgeRouter).deliverMessage(
+                messageId,
+                message,
+                recipient
+            )
+        {
+            delivered = true;
+        } catch (bytes memory reason) {
+            emit RelayFailed(messageId, reason);
+        }
+
+        // Emit event for message delivery
+        emit MessageDelivered(messageId, recipient, delivered);
     }
 
     /**
@@ -288,21 +304,21 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Check specifically for COMPLETED status (2)
         // This is the only status we currently expect in confirmation messages
-        return statusValue == uint256(BridgeTypes.TransferStatus.COMPLETED);
+        return statusValue == uint256(BridgeTypes.OperationStatus.COMPLETED);
     }
 
     /**
      * @dev Handles confirmation messages
-     * @param transferId The ID of the transfer being confirmed
+     * @param operationId The ID of the operation being confirmed
      * @param status The status to update to
      */
     function _handleConfirmationMessage(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
     ) internal {
         // Call receiveConfirmation on the BridgeRouter
-        IBridgeRouter(bridgeRouter).receiveConfirmation(transferId, status);
-        _updateTransferStatus(transferId, status);
+        IBridgeRouter(bridgeRouter).receiveConfirmation(operationId, status);
+        _updateOperationStatus(operationId, status);
     }
 
     /**
@@ -330,13 +346,19 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // since this is a response to our own request, not an incoming transfer
 
         // Forward the result to the bridge router
+        bool delivered = false;
         try
             IBridgeRouter(bridgeRouter).deliverReadResponse(requestId, _payload)
-        {} catch (bytes memory reason) {
+        {
+            delivered = true;
+        } catch (bytes memory reason) {
             // Mark as failed if delivery fails
-            _updateReceiveStatus(requestId, BridgeTypes.TransferStatus.FAILED);
+            _updateReceiveStatus(requestId, BridgeTypes.OperationStatus.FAILED);
             emit RelayFailed(requestId, reason);
         }
+
+        // Emit event for read response delivery
+        emit ReadResponseDelivered(requestId, _payload, delivered);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -395,10 +417,10 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getTransferStatus(
-        bytes32 transferId
-    ) external view override returns (BridgeTypes.TransferStatus) {
-        return IBridgeRouter(bridgeRouter).getTransferStatus(transferId);
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view override returns (BridgeTypes.OperationStatus) {
+        return IBridgeRouter(bridgeRouter).getOperationStatus(operationId);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -502,6 +524,14 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             payable(originator)
         );
 
+        // Emit event for read request initiation
+        emit ReadRequestInitiated(
+            requestId,
+            sourceChainId,
+            sourceContract,
+            selector
+        );
+
         return requestId;
     }
 
@@ -577,6 +607,14 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             options,
             MessagingFee(msg.value, 0),
             payable(originator)
+        );
+
+        // Emit event for message initiation
+        emit MessageInitiated(
+            messageId,
+            destinationChainId,
+            recipient,
+            message
         );
 
         return messageId;
@@ -744,14 +782,14 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /**
      * @notice Updates the status of a transfer on sending chain
-     * @param transferId ID of the transfer to update
+     * @param operationId ID of the operation to update
      * @param status New status to set
      */
-    function _updateTransferStatus(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
+    function _updateOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
     ) internal {
-        IBridgeRouter(bridgeRouter).updateTransferStatus(transferId, status);
+        IBridgeRouter(bridgeRouter).updateOperationStatus(operationId, status);
     }
 
     /**
@@ -761,7 +799,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
      */
     function _updateReceiveStatus(
         bytes32 requestId,
-        BridgeTypes.TransferStatus status
+        BridgeTypes.OperationStatus status
     ) internal {
         IBridgeRouter(bridgeRouter).updateReceiveStatus(requestId, status);
     }
