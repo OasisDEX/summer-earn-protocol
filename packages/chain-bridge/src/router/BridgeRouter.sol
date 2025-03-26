@@ -367,12 +367,76 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
     function updateReceiveStatus(
         bytes32 requestId,
+        address recipient,
         BridgeTypes.OperationStatus status
     ) external onlyRegisteredAdapter {
         requestReceivedByAdapter[requestId] = msg.sender;
 
+        // Update the status
         operationStatuses[requestId] = status;
         emit OperationStatusUpdated(requestId, status);
+
+        if (status != BridgeTypes.OperationStatus.DELIVERED) {
+            emit MessageDelivered(requestId, recipient, false);
+        }
+    }
+
+    // @inheritdoc IBridgeRouter
+    function notifyMessageReceived(
+        bytes32 operationId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        uint16 sourceChainId
+    ) external onlyRegisteredAdapter {
+        // Store which adapter received this request
+        requestReceivedByAdapter[operationId] = msg.sender;
+
+        // Set initial status to DELIVERED
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.DELIVERED;
+        emit OperationStatusUpdated(
+            operationId,
+            BridgeTypes.OperationStatus.DELIVERED
+        );
+
+        emit MessageDelivered(operationId, recipient, true);
+
+        // If this is a transfer (asset is not zero and amount > 0), emit the transfer event
+        if (asset != address(0) && amount > 0) {
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
+        }
+
+        // Try to send confirmation back to source chain
+        if (!confirmationSent[operationId]) {
+            try
+                // Convert our status type to bytes that can be sent as a message
+                ISendAdapter(msg.sender).sendMessage(
+                    sourceChainId,
+                    address(this), // Target is the BridgeRouter on the source chain
+                    abi.encode(
+                        operationId,
+                        BridgeTypes.OperationStatus.DELIVERED
+                    ),
+                    address(0), // No refund address needed
+                    BridgeTypes.AdapterParams({
+                        gasLimit: 100000, // TODO: Use min gas limits for this kind of action
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                )
+            returns (bytes32) {
+                confirmationSent[operationId] = true;
+            } catch {
+                emit ConfirmationFailed(operationId);
+            }
+        }
     }
 
     /// @inheritdoc IBridgeRouter
@@ -455,146 +519,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                 BridgeTypes.OperationStatus.FAILED
             );
             emit ReadResponseDelivered(operationId, originator, false);
-        }
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function deliverMessage(
-        bytes32 operationId,
-        bytes memory message,
-        address recipient
-    ) external onlyRegisteredAdapter {
-        if (operationToAdapter[operationId] != msg.sender)
-            revert Unauthorized();
-
-        // Update status
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.DELIVERED;
-
-        // Try to deliver the message to the recipient
-        bool delivered = true;
-
-        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
-        try
-            ICrossChainReceiver(recipient).supportsInterface(interfaceId)
-        returns (bool supported) {
-            if (supported) {
-                ICrossChainReceiver(recipient).receiveMessage(
-                    message,
-                    recipient,
-                    0, // sourceChainId (could be added as a parameter)
-                    operationId
-                );
-            } else {
-                // Fallback for contracts that don't implement supportsInterface
-                (bool success, ) = recipient.call(
-                    abi.encodeWithSelector(
-                        ICrossChainReceiver.receiveMessage.selector,
-                        message,
-                        recipient,
-                        0, // sourceChainId
-                        operationId
-                    )
-                );
-                if (!success) revert ReceiverRejectedCall();
-            }
-        } catch {
-            // Fallback for contracts that don't implement supportsInterface
-            (bool success, ) = recipient.call(
-                abi.encodeWithSelector(
-                    ICrossChainReceiver.receiveMessage.selector,
-                    message,
-                    recipient,
-                    0, // sourceChainId
-                    operationId
-                )
-            );
-            delivered = success;
-        }
-
-        emit OperationStatusUpdated(
-            operationId,
-            BridgeTypes.OperationStatus.DELIVERED
-        );
-        emit MessageDelivered(operationId, recipient, delivered);
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function notifyTransferReceived(
-        bytes32 requestId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId
-    ) external virtual onlyRegisteredAdapter nonReentrant {
-        if (requestReceivedByAdapter[requestId] != msg.sender)
-            revert Unauthorized();
-
-        // Emit event for the received transfer
-        emit TransferReceived(
-            requestId,
-            asset,
-            amount,
-            recipient,
-            sourceChainId
-        );
-
-        // Find confirmation adapter
-        address confirmationAdapter = getBestAdapter(
-            sourceChainId,
-            address(0), // No specific asset for confirmation
-            0 // No specific amount
-        );
-
-        if (
-            confirmationAdapter != address(0) &&
-            IBridgeAdapter(confirmationAdapter).supportsMessaging()
-        ) {
-            // Encode the confirmation message
-            bytes memory confirmationMessage = abi.encode(
-                requestId,
-                BridgeTypes.OperationStatus.COMPLETED
-            );
-
-            // We don't use _quote here because:
-            // 1. This is already the "confirmation" part that the fee multiplier paid for
-            // 2. We're paying from the router's balance, not collecting from a user
-            // 3. We don't need to reserve funds for another confirmation
-
-            // Use the correct parameter format for estimateFee
-            (uint256 confirmationFee, ) = IBridgeAdapter(confirmationAdapter)
-                .estimateFee(
-                    sourceChainId,
-                    address(0), // No asset for confirmation message
-                    0, // No amount for confirmation message
-                    BridgeTypes.AdapterParams({
-                        gasLimit: 100000, // TODO: Use min gas limits for this kind of action
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                );
-
-            // Send confirmation using router's accumulated balance
-            try
-                ISendAdapter(confirmationAdapter).sendMessage{
-                    value: confirmationFee
-                }(
-                    sourceChainId,
-                    address(this), // Target is the BridgeRouter on the source chain
-                    confirmationMessage,
-                    address(0), // No refund address needed
-                    BridgeTypes.AdapterParams({
-                        gasLimit: 100000, // TODO: Use min gas limits for this kind of action
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                )
-            returns (bytes32) {
-                confirmationSent[requestId] = true;
-            } catch {
-                emit ConfirmationFailed(requestId);
-            }
         }
     }
 

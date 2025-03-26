@@ -246,10 +246,12 @@ interface IBridgeRouter {
      * @notice Update the status of a received operation (called by adapters)
      * @param requestId ID of the received request to update
      * @param status New status of the received request
+     * @param recipient Address of the message recipient (only needed for COMPLETED status)
      * @dev This function can only be called by the adapter that received the request
      */
     function updateReceiveStatus(
         bytes32 requestId,
+        address recipient,
         BridgeTypes.OperationStatus status
     ) external;
 
@@ -357,30 +359,16 @@ interface IBridgeRouter {
     function unpause() external;
 
     /**
-     * @notice Deliver a message received from a source chain to its recipient
-     * @param operationId ID of the message
-     * @param message The message data
-     * @param recipient Address of the recipient
-     * @dev This function is called by bridge adapters when a message has been received
-     *      It forwards the message to the intended recipient
-     */
-    function deliverMessage(
-        bytes32 operationId,
-        bytes memory message,
-        address recipient
-    ) external;
-
-    /**
-     * @notice Notify the router when a transfer is received on the destination chain
-     * @param operationId ID of the transfer that was received
-     * @param asset Address of the asset that was received
-     * @param amount Amount of the asset that was received
-     * @param recipient Address that received the assets
-     * @param sourceChainId ID of the chain where the transfer originated
-     * @dev This function is called by adapters on the destination chain when they receive assets
+     * @notice Notify the router when a message or transfer is received on the destination chain
+     * @param operationId ID of the message/transfer that was received
+     * @param asset Address of the asset that was received (address(0) for general messages)
+     * @param amount Amount of the asset that was received (0 for general messages)
+     * @param recipient Address that received the assets or message
+     * @param sourceChainId ID of the chain where the operation originated
+     * @dev This function is called by adapters on the destination chain when they receive a message/assets
      *      It automatically attempts to send a confirmation back to the source chain
      */
-    function notifyTransferReceived(
+    function notifyMessageReceived(
         bytes32 operationId,
         address asset,
         uint256 amount,

@@ -190,88 +190,77 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             (bytes32 operationId, BridgeTypes.OperationStatus status) = abi
                 .decode(message, (bytes32, BridgeTypes.OperationStatus));
             _handleConfirmationMessage(operationId, status);
-        } else {
-            // Normal message handling for non-confirmation messages
-            _updateReceiveStatus(
-                messageId,
-                BridgeTypes.OperationStatus.DELIVERED
-            );
+            return;
+        }
 
-            // Notify router about the received message
-            IBridgeRouter(bridgeRouter).notifyTransferReceived(
-                messageId,
-                address(0), // No asset for general message
-                0, // No amount for general message
-                recipient,
-                srcChainId
-            );
+        // Notify router about the received message, but don't call deliverMessage
+        IBridgeRouter(bridgeRouter).notifyMessageReceived(
+            messageId,
+            address(0), // No asset for general message
+            0, // No amount for general message
+            recipient,
+            srcChainId
+        );
 
-            bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
-            try
-                ICrossChainReceiver(recipient).supportsInterface(interfaceId)
-            returns (bool supported) {
-                if (supported) {
-                    ICrossChainReceiver(recipient).receiveMessage(
+        bool delivered = false;
+        // Deliver the message directly here
+        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
+        try
+            ICrossChainReceiver(recipient).supportsInterface(interfaceId)
+        returns (bool supported) {
+            if (supported) {
+                ICrossChainReceiver(recipient).receiveMessage(
+                    message,
+                    recipient,
+                    srcChainId,
+                    messageId
+                );
+                delivered = true;
+            } else {
+                // Fallback for contracts that don't implement supportsInterface
+                (bool success, ) = recipient.call(
+                    abi.encodeWithSelector(
+                        ICrossChainReceiver.receiveMessage.selector,
                         message,
                         recipient,
                         srcChainId,
                         messageId
-                    );
-                    // Update status to DELIVERED after successful delivery
+                    )
+                );
+                if (!success) {
                     _updateReceiveStatus(
                         messageId,
-                        BridgeTypes.OperationStatus.DELIVERED
+                        recipient,
+                        BridgeTypes.OperationStatus.FAILED
                     );
+                    revert ReceiverRejectedCall();
                 } else {
-                    // Fallback for contracts that don't implement supportsInterface
-                    (bool success, ) = recipient.call(
-                        abi.encodeWithSelector(
-                            ICrossChainReceiver.receiveMessage.selector,
-                            message,
-                            recipient,
-                            srcChainId,
-                            messageId
-                        )
-                    );
-                    if (!success) {
-                        _updateReceiveStatus(
-                            messageId,
-                            BridgeTypes.OperationStatus.FAILED
-                        );
-                        revert ReceiverRejectedCall();
-                    } else {
-                        _updateReceiveStatus(
-                            messageId,
-                            BridgeTypes.OperationStatus.DELIVERED
-                        );
-                    }
+                    delivered = true;
                 }
-            } catch Error(string memory reason) {
-                _updateReceiveStatus(
-                    messageId,
-                    BridgeTypes.OperationStatus.FAILED
-                );
-                emit RelayFailed(messageId, abi.encodePacked(reason));
-            } catch (bytes memory reason) {
-                _updateReceiveStatus(
-                    messageId,
-                    BridgeTypes.OperationStatus.FAILED
-                );
-                emit RelayFailed(messageId, reason);
             }
+        } catch Error(string memory reason) {
+            _updateReceiveStatus(
+                messageId,
+                recipient,
+                BridgeTypes.OperationStatus.FAILED
+            );
+            emit RelayFailed(messageId, abi.encodePacked(reason));
+        } catch (bytes memory reason) {
+            _updateReceiveStatus(
+                messageId,
+                recipient,
+                BridgeTypes.OperationStatus.FAILED
+            );
+            emit RelayFailed(messageId, reason);
         }
 
-        bool delivered = false;
-        try
-            IBridgeRouter(bridgeRouter).deliverMessage(
+        // Update the final status based on delivery result
+        if (delivered) {
+            _updateReceiveStatus(
                 messageId,
-                message,
-                recipient
-            )
-        {
-            delivered = true;
-        } catch (bytes memory reason) {
-            emit RelayFailed(messageId, reason);
+                recipient,
+                BridgeTypes.OperationStatus.COMPLETED
+            );
         }
 
         // Emit event for message delivery
@@ -332,10 +321,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes32 _guid,
         bytes calldata _payload
     ) internal {
-        // For simple read responses, we can directly use the payload as our result
-        // For more complex scenarios, you might need to decode the response based on expected types
-
-        // Extract requestId from the guid mapping, if you're tracking it
+        // TODO: Update lzMessageToTransferId mapping naming
+        // Extract requestId from the guid mapping
         bytes32 requestId = lzMessageToTransferId[_guid];
         if (requestId == bytes32(0)) {
             // If no explicit mapping exists, use the guid itself as the requestId
@@ -353,12 +340,17 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             delivered = true;
         } catch (bytes memory reason) {
             // Mark as failed if delivery fails
-            _updateReceiveStatus(requestId, BridgeTypes.OperationStatus.FAILED);
+            _updateOperationStatus(
+                requestId,
+                BridgeTypes.OperationStatus.FAILED
+            );
             emit RelayFailed(requestId, reason);
         }
 
         // Emit event for read response delivery
-        emit ReadResponseDelivered(requestId, _payload, delivered);
+        if (delivered) {
+            emit ReadResponseDelivered(requestId, _payload, delivered);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -795,12 +787,18 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /**
      * @notice Updates the status of a received transfer on receiving chain
      * @param requestId ID of the received request/transfer
+     * @param recipient Address of the message recipient (only needed for COMPLETED status)
      * @param status New status to set
      */
     function _updateReceiveStatus(
         bytes32 requestId,
+        address recipient,
         BridgeTypes.OperationStatus status
     ) internal {
-        IBridgeRouter(bridgeRouter).updateReceiveStatus(requestId, status);
+        IBridgeRouter(bridgeRouter).updateReceiveStatus(
+            requestId,
+            recipient,
+            status
+        );
     }
 }

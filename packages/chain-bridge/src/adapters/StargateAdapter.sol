@@ -478,7 +478,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         IERC20(_token).safeTransfer(recipient, _amount);
 
         // Notify the BridgeRouter about the completed transfer
-        IBridgeRouter(bridgeRouter).notifyTransferReceived(
+        IBridgeRouter(bridgeRouter).notifyMessageReceived(
             transferId,
             _token,
             _amount,
