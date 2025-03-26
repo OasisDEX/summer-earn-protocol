@@ -87,7 +87,7 @@ contract BridgeRouterTransferTest is Test {
         );
 
         // Send transfer with the quoted fee
-        bytes32 transferId = router.transferAssets{value: nativeFee}(
+        bytes32 operationId = router.transferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -97,10 +97,10 @@ contract BridgeRouterTransferTest is Test {
 
         // Verify transfer was initiated
         assertEq(
-            uint256(router.transferStatuses(transferId)),
-            uint256(BridgeTypes.TransferStatus.PENDING)
+            uint256(router.operationStatuses(operationId)),
+            uint256(BridgeTypes.OperationStatus.PENDING)
         );
-        assertEq(router.transferToAdapter(transferId), address(mockAdapter));
+        assertEq(router.operationToAdapter(operationId), address(mockAdapter));
 
         vm.stopPrank();
     }
@@ -207,7 +207,7 @@ contract BridgeRouterTransferTest is Test {
         );
 
         // Send transfer
-        bytes32 transferId = router.transferAssets{value: nativeFee}(
+        bytes32 operationId = router.transferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -219,15 +219,15 @@ contract BridgeRouterTransferTest is Test {
 
         // Update status from adapter
         vm.prank(address(mockAdapter));
-        router.updateTransferStatus(
-            transferId,
-            BridgeTypes.TransferStatus.DELIVERED
+        router.updateOperationStatus(
+            operationId,
+            BridgeTypes.OperationStatus.DELIVERED
         );
 
         // Verify status was updated
         assertEq(
-            uint256(router.transferStatuses(transferId)),
-            uint256(BridgeTypes.TransferStatus.DELIVERED)
+            uint256(router.operationStatuses(operationId)),
+            uint256(BridgeTypes.OperationStatus.DELIVERED)
         );
     }
 
@@ -263,7 +263,7 @@ contract BridgeRouterTransferTest is Test {
         );
 
         // Send transfer
-        bytes32 transferId = router.transferAssets{value: nativeFee}(
+        bytes32 operationId = router.transferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -273,9 +273,9 @@ contract BridgeRouterTransferTest is Test {
 
         // Should revert when non-adapter tries to update status
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.updateTransferStatus(
-            transferId,
-            BridgeTypes.TransferStatus.DELIVERED
+        router.updateOperationStatus(
+            operationId,
+            BridgeTypes.OperationStatus.DELIVERED
         );
 
         vm.stopPrank();

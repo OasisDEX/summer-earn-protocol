@@ -5,7 +5,7 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
  * @title IBridgeRouter
- * @notice Interface for the BridgeRouter contract that coordinates cross-chain asset transfers
+ * @notice Interface for the BridgeRouter contract that coordinates cross-chain operations
  * @dev This interface defines all external functions for interacting with bridge adapters.
  *      Access control is managed through ProtocolAccessManaged, using roles from the
  *      protocol's central access management system.
@@ -23,7 +23,7 @@ interface IBridgeRouter {
 
     /// @notice Emitted when a transfer is initiated
     event TransferInitiated(
-        bytes32 indexed transferId,
+        bytes32 indexed operationId,
         uint16 destinationChainId,
         address indexed asset,
         uint256 amount,
@@ -31,15 +31,23 @@ interface IBridgeRouter {
         address adapter
     );
 
-    /// @notice Emitted when a transfer status is updated
-    event TransferStatusUpdated(
-        bytes32 indexed transferId,
-        BridgeTypes.TransferStatus status
+    /// @notice Emitted when a message is initiated
+    event MessageInitiated(
+        bytes32 indexed operationId,
+        uint16 destinationChainId,
+        address indexed recipient,
+        address adapter
+    );
+
+    /// @notice Emitted when an operation status is updated
+    event OperationStatusUpdated(
+        bytes32 indexed operationId,
+        BridgeTypes.OperationStatus status
     );
 
     /// @notice Emitted when a transfer is received on the destination chain
     event TransferReceived(
-        bytes32 indexed transferId,
+        bytes32 indexed operationId,
         address indexed asset,
         uint256 amount,
         address indexed recipient,
@@ -48,38 +56,22 @@ interface IBridgeRouter {
 
     /// @notice Emitted when a read request is initiated
     event ReadRequestInitiated(
-        bytes32 indexed requestId,
+        bytes32 indexed operationId,
         uint16 sourceChainId,
         bytes sourceContract,
         bytes4 selector,
         bytes params,
         address adapter
-    );
-
-    /// @notice Emitted when a read request status is updated
-    event ReadRequestStatusUpdated(
-        bytes32 indexed requestId,
-        BridgeTypes.TransferStatus status
     );
 
     /// @notice Emitted when sending a confirmation message fails
-    event ConfirmationFailed(bytes32 indexed transferId);
+    event ConfirmationFailed(bytes32 indexed operationId);
 
-    /// @notice Emitted when a transfer status is manually updated
+    /// @notice Emitted when an operation status is manually updated
     event ManualStatusUpdate(
-        bytes32 indexed transferId,
-        BridgeTypes.TransferStatus status,
+        bytes32 indexed operationId,
+        BridgeTypes.OperationStatus status,
         address updater
-    );
-
-    /// @notice Emitted when a new state read request is initiated
-    event StateReadInitiated(
-        bytes32 indexed requestId,
-        uint16 sourceChainId,
-        bytes sourceContract,
-        bytes4 selector,
-        bytes params,
-        address adapter
     );
 
     /// @notice Emitted when funds are added to the router
@@ -87,6 +79,20 @@ interface IBridgeRouter {
 
     /// @notice Emitted when funds are removed from the router
     event RouterFundsRemoved(address indexed recipient, uint256 amount);
+
+    /// @notice Emitted when a read response is delivered to the requester
+    event ReadResponseDelivered(
+        bytes32 indexed operationId,
+        address recipient,
+        bool delivered
+    );
+
+    /// @notice Emitted when a message is delivered to its recipient
+    event MessageDelivered(
+        bytes32 indexed operationId,
+        address recipient,
+        bool delivered
+    );
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -139,7 +145,7 @@ interface IBridgeRouter {
      * @param amount Amount of the asset to transfer
      * @param recipient Address of the recipient on the destination chain
      * @param options Additional options for the transfer
-     * @return transferId Unique ID to track this transfer
+     * @return operationId Unique ID to track this operation
      * @dev This function selects the best adapter for the transfer based on user preferences,
      *      transfers tokens from sender to the router, and initiates the cross-chain transfer
      */
@@ -149,7 +155,7 @@ interface IBridgeRouter {
         uint256 amount,
         address recipient,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 transferId);
+    ) external payable returns (bytes32 operationId);
 
     /**
      * @notice Read data from another chain (async operation)
@@ -158,7 +164,7 @@ interface IBridgeRouter {
      * @param selector Function selector to call
      * @param params Parameters for the function call
      * @param options Additional options for the read operation
-     * @return requestId Unique ID to track this read request
+     * @return operationId Unique ID to track this read request
      * @dev This function initiates a cross-chain read operation that will be completed
      *      asynchronously when the response is received from the source chain
      */
@@ -168,7 +174,7 @@ interface IBridgeRouter {
         bytes4 selector,
         bytes calldata params,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 requestId);
+    ) external payable returns (bytes32 operationId);
 
     /**
      * @notice Estimate the fee required for a cross-chain transfer
@@ -198,7 +204,7 @@ interface IBridgeRouter {
      * @param recipient Address of the recipient on the destination chain
      * @param message The message data to be sent cross-chain
      * @param options Additional options for the message
-     * @return messageId Unique ID to track this message
+     * @return operationId Unique ID to track this message
      * @dev This function selects the best adapter for messaging based on user preferences
      *      and initiates the cross-chain message transfer
      */
@@ -207,7 +213,7 @@ interface IBridgeRouter {
         address recipient,
         bytes calldata message,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 messageId);
+    ) external payable returns (bytes32 operationId);
 
     /*//////////////////////////////////////////////////////////////
                         ADAPTER CALLBACK FUNCTIONS
@@ -215,36 +221,36 @@ interface IBridgeRouter {
 
     /**
      * @notice Receive and deliver read responses from adapters
-     * @param requestId Unique identifier for the read request
+     * @param operationId Unique identifier for the read request
      * @param resultData The data returned from the source chain
      * @dev This function is called by bridge adapters when a read request has been completed
      *      It forwards the result to the original requester
      */
     function deliverReadResponse(
-        bytes32 requestId,
+        bytes32 operationId,
         bytes calldata resultData
     ) external;
 
     /**
-     * @notice Update the status of a transfer (called by adapters)
-     * @param transferId ID of the transfer to update
-     * @param status New status of the transfer
-     * @dev This function can only be called by the adapter that initiated the transfer
+     * @notice Update the status of an operation (called by adapters)
+     * @param operationId ID of the operation to update
+     * @param status New status of the operation
+     * @dev This function can only be called by the adapter that initiated the operation
      */
-    function updateTransferStatus(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
+    function updateOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
     ) external;
 
     /**
-     * @notice Update the status of a received transfer (called by adapters)
+     * @notice Update the status of a received operation (called by adapters)
      * @param requestId ID of the received request to update
      * @param status New status of the received request
      * @dev This function can only be called by the adapter that received the request
      */
     function updateReceiveStatus(
         bytes32 requestId,
-        BridgeTypes.TransferStatus status
+        BridgeTypes.OperationStatus status
     ) external;
 
     /*//////////////////////////////////////////////////////////////
@@ -252,24 +258,14 @@ interface IBridgeRouter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get the status of a transfer
-     * @param transferId ID of the transfer
-     * @return Status of the transfer
-     * @dev Returns the current status of a cross-chain transfer or read operation
+     * @notice Get the status of an operation
+     * @param operationId ID of the operation
+     * @return Status of the operation
+     * @dev Returns the current status of a cross-chain operation (transfer, message, or read)
      */
-    function getTransferStatus(
-        bytes32 transferId
-    ) external view returns (BridgeTypes.TransferStatus);
-
-    /**
-     * @notice Get the status of a received transfer
-     * @param requestId ID of the received request
-     * @return Status of the received request
-     * @dev Returns the current status of a received cross-chain transfer or read operation
-     */
-    function getReceiveStatus(
-        bytes32 requestId
-    ) external view returns (BridgeTypes.TransferStatus);
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view returns (BridgeTypes.OperationStatus);
 
     /**
      * @notice Get the best adapter for a specific transfer
@@ -362,21 +358,21 @@ interface IBridgeRouter {
 
     /**
      * @notice Deliver a message received from a source chain to its recipient
-     * @param messageId ID of the message
+     * @param operationId ID of the message
      * @param message The message data
      * @param recipient Address of the recipient
      * @dev This function is called by bridge adapters when a message has been received
      *      It forwards the message to the intended recipient
      */
     function deliverMessage(
-        bytes32 messageId,
+        bytes32 operationId,
         bytes memory message,
         address recipient
     ) external;
 
     /**
      * @notice Notify the router when a transfer is received on the destination chain
-     * @param transferId ID of the transfer that was received
+     * @param operationId ID of the transfer that was received
      * @param asset Address of the asset that was received
      * @param amount Amount of the asset that was received
      * @param recipient Address that received the assets
@@ -385,7 +381,7 @@ interface IBridgeRouter {
      *      It automatically attempts to send a confirmation back to the source chain
      */
     function notifyTransferReceived(
-        bytes32 transferId,
+        bytes32 operationId,
         address asset,
         uint256 amount,
         address recipient,
@@ -394,23 +390,23 @@ interface IBridgeRouter {
 
     /**
      * @notice Receive a confirmation message from a destination chain
-     * @param transferId ID of the transfer being confirmed
-     * @param status The final status of the transfer
+     * @param operationId ID of the operation being confirmed
+     * @param status The final status of the operation
      * @dev This function is called by adapters when they receive a confirmation message
      */
     function receiveConfirmation(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
     ) external;
 
     /**
-     * @notice Allows recovery of transfers when automated confirmations fail
-     * @param transferId ID of the transfer to update
+     * @notice Allows recovery of operations when automated confirmations fail
+     * @param operationId ID of the operation to update
      * @param status New status to set
      * @dev Can only be called by authorized keepers or governance
      */
-    function recoverTransferStatus(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
+    function recoverOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
     ) external;
 }

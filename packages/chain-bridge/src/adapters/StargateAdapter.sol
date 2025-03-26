@@ -215,9 +215,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         address asset,
         uint256 amount,
         address recipient
-    ) internal returns (bytes32 transferId) {
+    ) internal returns (bytes32 operationId) {
         // Generate a unique transfer ID
-        transferId = keccak256(
+        operationId = keccak256(
             abi.encode(
                 block.chainid,
                 destinationChainId,
@@ -229,12 +229,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         );
 
         // Update status in bridge router instead
-        IBridgeRouter(bridgeRouter).updateTransferStatus(
-            transferId,
-            BridgeTypes.TransferStatus.PENDING
+        IBridgeRouter(bridgeRouter).updateOperationStatus(
+            operationId,
+            BridgeTypes.OperationStatus.PENDING
         );
 
-        return transferId;
+        return operationId;
     }
 
     /**
@@ -250,7 +250,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         address refundAddress;
         // Adding these to reduce parameters in _executeSwap
         address asset;
-        bytes32 transferId;
+        bytes32 operationId;
         uint16 originalChainId;
         address recipient;
         IStargateRouter.lzTxObj lzTxParams;
@@ -265,7 +265,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         address recipient,
         uint256 amount,
         address originator,
-        bytes32 transferId,
+        bytes32 operationId,
         BridgeTypes.AdapterParams calldata adapterParams
     ) internal {
         // Prepare all swap parameters in a struct to reduce stack variables
@@ -276,13 +276,13 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         params.srcPoolId = chainAssetToPoolId[uint16(block.chainid)][asset];
         params.dstPoolId = chainAssetToPoolId[destinationChainId][asset];
         params.toAddress = abi.encodePacked(recipient);
-        params.payload = abi.encode(transferId);
+        params.payload = abi.encode(operationId);
         params.amount = amount;
         params.refundAddress = originator;
 
         // Include additional parameters needed for events and error handling
         params.asset = asset;
-        params.transferId = transferId;
+        params.operationId = operationId;
         params.originalChainId = destinationChainId;
         params.recipient = recipient;
 
@@ -318,7 +318,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         {
             // Emit TransferInitiated event
             emit TransferInitiated(
-                params.transferId,
+                params.operationId,
                 params.originalChainId,
                 params.asset,
                 params.amount,
@@ -335,9 +335,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
             );
 
             // Update transfer status to failed through bridge router
-            IBridgeRouter(bridgeRouter).updateTransferStatus(
-                params.transferId,
-                BridgeTypes.TransferStatus.FAILED
+            IBridgeRouter(bridgeRouter).updateOperationStatus(
+                params.operationId,
+                BridgeTypes.OperationStatus.FAILED
             );
 
             revert TransferFailed();
@@ -387,10 +387,10 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getTransferStatus(
-        bytes32 transferId
-    ) external view override returns (BridgeTypes.TransferStatus) {
-        return IBridgeRouter(bridgeRouter).getTransferStatus(transferId);
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view override returns (BridgeTypes.OperationStatus) {
+        return IBridgeRouter(bridgeRouter).getOperationStatus(operationId);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -452,7 +452,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
      * @dev Implements the Stargate receiver interface to handle incoming cross-chain transfers
      * @param _chainId Source chain ID in Stargate format
      * @param _srcAddress Source address as bytes
-     * @param _nonce Stargate nonce
+     * @param // _nonce Stargate nonce
      * @param _token Address of the token being transferred
      * @param _amount Amount of tokens received
      * @param _payload ABI encoded payload sent from source chain (contains transferId)
@@ -460,7 +460,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     function sgReceive(
         uint16 _chainId,
         bytes memory _srcAddress,
-        uint256 _nonce,
+        uint256,
         address _token,
         uint256 _amount,
         bytes memory _payload

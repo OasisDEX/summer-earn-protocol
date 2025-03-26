@@ -30,6 +30,36 @@ interface IBridgeAdapter is ISendAdapter {
         address recipient
     );
 
+    /// @notice Emitted when a message is initiated through the adapter
+    event MessageInitiated(
+        bytes32 indexed messageId,
+        uint16 destinationChainId,
+        address recipient,
+        bytes message
+    );
+
+    /// @notice Emitted when a message is delivered through the adapter
+    event MessageDelivered(
+        bytes32 indexed messageId,
+        address recipient,
+        bool delivered
+    );
+
+    /// @notice Emitted when a read request is initiated through the adapter
+    event ReadRequestInitiated(
+        bytes32 indexed requestId,
+        uint16 sourceChainId,
+        address sourceContract,
+        bytes4 selector
+    );
+
+    /// @notice Emitted when a read response is delivered through the adapter
+    event ReadResponseDelivered(
+        bytes32 indexed requestId,
+        bytes response,
+        bool delivered
+    );
+
     /// @notice Emitted when a relay or messaging operation fails
     event RelayFailed(bytes32 indexed transferId, bytes reason);
 
@@ -71,9 +101,9 @@ interface IBridgeAdapter is ISendAdapter {
     /**
      * @notice Get the status of a transfer
      */
-    function getTransferStatus(
-        bytes32 transferId
-    ) external view returns (BridgeTypes.TransferStatus);
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view returns (BridgeTypes.OperationStatus);
 
     /**
      * @notice Get the list of supported chains

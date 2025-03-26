@@ -6,11 +6,11 @@
 -[x] Create Stargate adapter
 -[x] Ensure cross-chain messaging on receipt trigger a notification back to the source chain via the destination chain router
 -[x] Consider how messages are paid for (especially on target chains when notifying the source chain)
--[x] Create LayerZero adapter tests
--[] Are message types universal across adapters atm?
-- [] Confirm recevied reads update to COMPLETED
-- Consider whether to remove DELIVERED in favour of COMPLETED
--[] Review status naming eg transferStatus vs messageStatus
+- [x] Create LayerZero adapter tests
+- [x] Confirm recevied reads update to COMPLETED
+- [x] Confirm confirmation messages are processed
+- 
+-[x] Review status naming eg transferStatus vs messageStatus
 -[x] Test send read functionality on LayerZero
 -[] Create Stargate adapter tests
 -[] Create LayerZero adapter documentation

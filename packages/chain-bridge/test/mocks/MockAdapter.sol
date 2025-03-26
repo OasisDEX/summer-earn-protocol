@@ -15,8 +15,8 @@ contract MockAdapter is IBridgeAdapter {
     mapping(uint16 => bool) public supportedChains;
     mapping(uint16 => mapping(address => bool)) public supportedAssets;
 
-    // Add mapping to track transfer statuses
-    mapping(bytes32 => BridgeTypes.TransferStatus) public transferStatuses;
+    // Add mapping to track operation statuses
+    mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
 
     // Storage for received data
     bytes public lastReceivedResponse;
@@ -145,10 +145,10 @@ contract MockAdapter is IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getTransferStatus(
-        bytes32 transferId
-    ) external view override returns (BridgeTypes.TransferStatus) {
-        return transferStatuses[transferId];
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view override returns (BridgeTypes.OperationStatus) {
+        return operationStatuses[operationId];
     }
 
     /// @inheritdoc IBridgeAdapter

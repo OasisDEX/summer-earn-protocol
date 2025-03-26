@@ -28,12 +28,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @notice Set of registered adapters
     EnumerableSet.AddressSet private adapters;
 
-    /// @notice Mapping of transfer IDs to their current status
-    mapping(bytes32 transferId => BridgeTypes.TransferStatus status)
-        public transferStatuses;
+    /// @notice Mapping of operation IDs to their current status
+    mapping(bytes32 operationId => BridgeTypes.OperationStatus status)
+        public operationStatuses;
 
-    /// @notice Mapping of transfer IDs to the adapter that processed them
-    mapping(bytes32 transferId => address adapter) public transferToAdapter;
+    /// @notice Mapping of operation IDs to the adapter that processed them
+    mapping(bytes32 operationId => address adapter) public operationToAdapter;
 
     /// @notice Mapping of request IDs to the adapter that processed them
     mapping(bytes32 requestId => address adapter)
@@ -47,7 +47,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     bool public paused;
 
     /// @notice Add a new mapping to track confirmation statuses
-    mapping(bytes32 transferId => bool confirmed) public confirmationSent;
+    mapping(bytes32 operationId => bool confirmed) public confirmationSent;
 
     /// @notice Fee multiplier for confirmations (200 = double the fee, with half for confirmation)
     uint256 public feeMultiplier = 200; // 200%
@@ -130,7 +130,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         uint256 amount,
         address recipient,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 transferId) {
+    ) external payable returns (bytes32 operationId) {
         if (paused) revert Paused();
         if (amount == 0 || recipient == address(0)) revert InvalidParams();
 
@@ -175,7 +175,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         IERC20(asset).approve(adapter, amount);
 
         // Only forward the base fee to the adapter, router keeps the rest for confirmation
-        transferId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
+        operationId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
             destinationChainId,
             asset,
             recipient,
@@ -185,11 +185,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Update state
-        transferStatuses[transferId] = BridgeTypes.TransferStatus.PENDING;
-        transferToAdapter[transferId] = adapter;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationToAdapter[operationId] = adapter;
 
         emit TransferInitiated(
-            transferId,
+            operationId,
             destinationChainId,
             asset,
             amount,
@@ -197,7 +197,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             adapter
         );
 
-        return transferId;
+        return operationId;
     }
 
     /// @inheritdoc IBridgeRouter
@@ -207,7 +207,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         bytes4 selector,
         bytes calldata params,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 requestId) {
+    ) external payable returns (bytes32 operationId) {
         if (paused) revert Paused();
 
         // Select the best adapter for this read request
@@ -246,7 +246,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         // Let the adapter handle gas limits and other options
         // Pass msg.sender for refunds, but only forward the base fee
-        requestId = IBridgeAdapter(adapter).readState{value: baseFee}(
+        operationId = IBridgeAdapter(adapter).readState{value: baseFee}(
             sourceChainId,
             sourceContract,
             selector,
@@ -256,14 +256,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Store the originator of this request
-        readRequestToOriginator[requestId] = msg.sender;
+        readRequestToOriginator[operationId] = msg.sender;
 
         // Update state
-        transferStatuses[requestId] = BridgeTypes.TransferStatus.PENDING;
-        transferToAdapter[requestId] = adapter;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationToAdapter[operationId] = adapter;
 
         emit ReadRequestInitiated(
-            requestId,
+            operationId,
             sourceChainId,
             abi.encodePacked(sourceContract),
             selector,
@@ -271,7 +271,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             adapter
         );
 
-        return requestId;
+        return operationId;
     }
 
     /// @inheritdoc IBridgeRouter
@@ -280,7 +280,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         address recipient,
         bytes calldata message,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 messageId) {
+    ) external payable returns (bytes32 operationId) {
         if (paused) revert Paused();
         if (recipient == address(0)) revert InvalidParams();
 
@@ -321,7 +321,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         uint256 baseFee = (totalFee * 100) / feeMultiplier;
 
         // Send the message through the selected adapter
-        messageId = ISendAdapter(adapter).sendMessage{value: baseFee}(
+        operationId = ISendAdapter(adapter).sendMessage{value: baseFee}(
             destinationChainId,
             recipient,
             message,
@@ -330,19 +330,17 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Update state
-        transferStatuses[messageId] = BridgeTypes.TransferStatus.PENDING;
-        transferToAdapter[messageId] = adapter;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationToAdapter[operationId] = adapter;
 
-        emit TransferInitiated(
-            messageId,
+        emit MessageInitiated(
+            operationId,
             destinationChainId,
-            address(0), // No asset for messages
-            0, // No amount for messages
             recipient,
             adapter
         );
 
-        return messageId;
+        return operationId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -356,34 +354,36 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     }
 
     /// @inheritdoc IBridgeRouter
-    function updateTransferStatus(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
+    function updateOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
     ) external onlyRegisteredAdapter {
-        if (transferToAdapter[transferId] != msg.sender) revert Unauthorized();
+        if (operationToAdapter[operationId] != msg.sender)
+            revert Unauthorized();
 
-        transferStatuses[transferId] = status;
-        emit TransferStatusUpdated(transferId, status);
+        operationStatuses[operationId] = status;
+        emit OperationStatusUpdated(operationId, status);
     }
 
     function updateReceiveStatus(
         bytes32 requestId,
-        BridgeTypes.TransferStatus status
+        BridgeTypes.OperationStatus status
     ) external onlyRegisteredAdapter {
         requestReceivedByAdapter[requestId] = msg.sender;
 
-        transferStatuses[requestId] = status;
-        emit ReadRequestStatusUpdated(requestId, status);
+        operationStatuses[requestId] = status;
+        emit OperationStatusUpdated(requestId, status);
     }
 
     /// @inheritdoc IBridgeRouter
     function deliverReadResponse(
-        bytes32 requestId,
+        bytes32 operationId,
         bytes calldata resultData
     ) external onlyRegisteredAdapter {
-        if (transferToAdapter[requestId] != msg.sender) revert Unauthorized();
+        if (operationToAdapter[operationId] != msg.sender)
+            revert Unauthorized();
 
-        address originator = readRequestToOriginator[requestId];
+        address originator = readRequestToOriginator[operationId];
         if (originator == address(0)) revert InvalidParams();
 
         // Try to deliver the response
@@ -401,7 +401,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                         resultData,
                         originator,
                         0, // sourceChainId (could be added as a parameter if needed)
-                        requestId
+                        operationId
                     )
                 {
                     delivered = true;
@@ -418,7 +418,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                         resultData,
                         originator,
                         0, // sourceChainId
-                        requestId
+                        operationId
                     )
                 );
                 delivered = success;
@@ -432,7 +432,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     resultData,
                     originator,
                     0, // sourceChainId
-                    requestId
+                    operationId
                 )
             );
             delivered = success;
@@ -440,32 +440,39 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         // Update status based on delivery result
         if (delivered) {
-            transferStatuses[requestId] = BridgeTypes.TransferStatus.COMPLETED;
-            emit ReadRequestStatusUpdated(
-                requestId,
-                BridgeTypes.TransferStatus.COMPLETED
+            operationStatuses[operationId] = BridgeTypes
+                .OperationStatus
+                .COMPLETED;
+            emit OperationStatusUpdated(
+                operationId,
+                BridgeTypes.OperationStatus.COMPLETED
             );
+            emit ReadResponseDelivered(operationId, originator, true);
         } else {
-            transferStatuses[requestId] = BridgeTypes.TransferStatus.FAILED;
-            emit ReadRequestStatusUpdated(
-                requestId,
-                BridgeTypes.TransferStatus.FAILED
+            operationStatuses[operationId] = BridgeTypes.OperationStatus.FAILED;
+            emit OperationStatusUpdated(
+                operationId,
+                BridgeTypes.OperationStatus.FAILED
             );
+            emit ReadResponseDelivered(operationId, originator, false);
         }
     }
 
     /// @inheritdoc IBridgeRouter
     function deliverMessage(
-        bytes32 messageId,
+        bytes32 operationId,
         bytes memory message,
         address recipient
     ) external onlyRegisteredAdapter {
-        if (transferToAdapter[messageId] != msg.sender) revert Unauthorized();
+        if (operationToAdapter[operationId] != msg.sender)
+            revert Unauthorized();
 
         // Update status
-        transferStatuses[messageId] = BridgeTypes.TransferStatus.DELIVERED;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.DELIVERED;
 
         // Try to deliver the message to the recipient
+        bool delivered = true;
+
         bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
         try
             ICrossChainReceiver(recipient).supportsInterface(interfaceId)
@@ -475,7 +482,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     message,
                     recipient,
                     0, // sourceChainId (could be added as a parameter)
-                    messageId
+                    operationId
                 );
             } else {
                 // Fallback for contracts that don't implement supportsInterface
@@ -485,10 +492,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                         message,
                         recipient,
                         0, // sourceChainId
-                        messageId
+                        operationId
                     )
                 );
-                if (!success) revert("Receiver rejected call");
+                if (!success) revert ReceiverRejectedCall();
             }
         } catch {
             // Fallback for contracts that don't implement supportsInterface
@@ -498,16 +505,17 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     message,
                     recipient,
                     0, // sourceChainId
-                    messageId
+                    operationId
                 )
             );
-            if (!success) revert("Receiver rejected call");
+            delivered = success;
         }
 
-        emit TransferStatusUpdated(
-            messageId,
-            BridgeTypes.TransferStatus.DELIVERED
+        emit OperationStatusUpdated(
+            operationId,
+            BridgeTypes.OperationStatus.DELIVERED
         );
+        emit MessageDelivered(operationId, recipient, delivered);
     }
 
     /// @inheritdoc IBridgeRouter
@@ -544,7 +552,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             // Encode the confirmation message
             bytes memory confirmationMessage = abi.encode(
                 requestId,
-                BridgeTypes.TransferStatus.COMPLETED
+                BridgeTypes.OperationStatus.COMPLETED
             );
 
             // We don't use _quote here because:
@@ -592,13 +600,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
     /// @notice Receive confirmation messages from adapters
     function receiveConfirmation(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
     ) external onlyRegisteredAdapter {
         // Only update status in forward progression (pending->complete, not complete->pending)
-        if (_isStatusProgression(transferStatuses[transferId], status)) {
-            transferStatuses[transferId] = status;
-            emit TransferStatusUpdated(transferId, status);
+        if (_isStatusProgression(operationStatuses[operationId], status)) {
+            operationStatuses[operationId] = status;
+            emit OperationStatusUpdated(operationId, status);
         }
     }
 
@@ -738,17 +746,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     }
 
     /// @inheritdoc IBridgeRouter
-    function getTransferStatus(
-        bytes32 transferId
-    ) external view returns (BridgeTypes.TransferStatus) {
-        return transferStatuses[transferId];
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function getReceiveStatus(
-        bytes32 requestId
-    ) external view returns (BridgeTypes.TransferStatus) {
-        return transferStatuses[requestId];
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view returns (BridgeTypes.OperationStatus) {
+        return operationStatuses[operationId];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -783,38 +784,38 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
     /**
      * @notice Checks if a status change represents forward progression
-     * @param currentStatus The current status of the transfer
+     * @param currentStatus The current status of the operation
      * @param newStatus The proposed new status
      * @return True if the status change is valid forward progression
      */
     function _isStatusProgression(
-        BridgeTypes.TransferStatus currentStatus,
-        BridgeTypes.TransferStatus newStatus
+        BridgeTypes.OperationStatus currentStatus,
+        BridgeTypes.OperationStatus newStatus
     ) internal pure returns (bool) {
         // Failed is a terminal state, can't progress from it
-        if (currentStatus == BridgeTypes.TransferStatus.FAILED) {
+        if (currentStatus == BridgeTypes.OperationStatus.FAILED) {
             return false;
         }
 
         // Completed is a terminal state, can't progress from it
-        if (currentStatus == BridgeTypes.TransferStatus.COMPLETED) {
+        if (currentStatus == BridgeTypes.OperationStatus.COMPLETED) {
             return false;
         }
 
         // Can always progress to FAILED from any non-terminal state
-        if (newStatus == BridgeTypes.TransferStatus.FAILED) {
+        if (newStatus == BridgeTypes.OperationStatus.FAILED) {
             return true;
         }
 
         // Status progression order: PENDING -> DELIVERED -> COMPLETED
-        if (currentStatus == BridgeTypes.TransferStatus.PENDING) {
+        if (currentStatus == BridgeTypes.OperationStatus.PENDING) {
             return
-                newStatus == BridgeTypes.TransferStatus.DELIVERED ||
-                newStatus == BridgeTypes.TransferStatus.COMPLETED;
+                newStatus == BridgeTypes.OperationStatus.DELIVERED ||
+                newStatus == BridgeTypes.OperationStatus.COMPLETED;
         }
 
-        if (currentStatus == BridgeTypes.TransferStatus.DELIVERED) {
-            return newStatus == BridgeTypes.TransferStatus.COMPLETED;
+        if (currentStatus == BridgeTypes.OperationStatus.DELIVERED) {
+            return newStatus == BridgeTypes.OperationStatus.COMPLETED;
         }
 
         // Default: no progression
@@ -822,27 +823,28 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     }
 
     /**
-     * @notice Allows recovery of transfers when automated confirmations fail
-     * @param transferId ID of the transfer to update
+     * @notice Allows recovery of operations when automated confirmations fail
+     * @param operationId ID of the operation to update
      * @param status New status to set
      * @dev Can only be called by authorized keepers or governance
      */
-    function recoverTransferStatus(
-        bytes32 transferId,
-        BridgeTypes.TransferStatus status
+    function recoverOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
     ) external onlyGuardianOrGovernor {
-        // Check if the transfer exists
-        if (transferToAdapter[transferId] == address(0)) revert InvalidParams();
+        // Check if the operation exists
+        if (operationToAdapter[operationId] == address(0))
+            revert InvalidParams();
 
         // Only allow status updates in forward progression
-        if (!_isStatusProgression(transferStatuses[transferId], status)) {
+        if (!_isStatusProgression(operationStatuses[operationId], status)) {
             revert InvalidStatusProgression();
         }
 
         // Update the status
-        transferStatuses[transferId] = status;
-        emit TransferStatusUpdated(transferId, status);
-        emit ManualStatusUpdate(transferId, status, msg.sender);
+        operationStatuses[operationId] = status;
+        emit OperationStatusUpdated(operationId, status);
+        emit ManualStatusUpdate(operationId, status, msg.sender);
     }
 
     /**

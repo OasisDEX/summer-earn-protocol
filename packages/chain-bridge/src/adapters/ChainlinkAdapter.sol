@@ -16,7 +16,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
     // Chainlink specific state variables
     address public chainlinkRouter;
     address public bridgeRouter;
-    mapping(bytes32 => BridgeTypes.TransferStatus) public transferStatuses;
+    mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
 
     // Chainlink receiver function
     function ccipReceive(bytes32, bytes calldata) external pure {
@@ -49,9 +49,9 @@ contract ChainlinkAdapter is IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getTransferStatus(
+    function getOperationStatus(
         bytes32
-    ) external pure returns (BridgeTypes.TransferStatus) {
+    ) external pure returns (BridgeTypes.OperationStatus) {
         revert OperationNotSupported();
     }
 

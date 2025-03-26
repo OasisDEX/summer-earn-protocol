@@ -147,22 +147,22 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         bytes32 requestId = bytes32(uint256(1));
 
         // Use the test helper's methods to set up the initial state
-        routerA.setTransferToAdapter(requestId, address(adapterA));
+        routerA.setOperationToAdapter(requestId, address(adapterA));
 
         // Set the originator for the read request to our mock receiver instead of user
         routerA.setReadRequestOriginator(requestId, address(mockReceiver));
 
         vm.startPrank(address(this)); // Acting as the test contract
-        adapterA.updateTransferStatus(
+        adapterA.updateOperationStatus(
             requestId,
-            BridgeTypes.TransferStatus.PENDING
+            BridgeTypes.OperationStatus.PENDING
         );
         vm.stopPrank();
 
         // Verify pending status on chain A
         assertEq(
-            uint256(routerA.transferStatuses(requestId)),
-            uint256(BridgeTypes.TransferStatus.PENDING)
+            uint256(routerA.operationStatuses(requestId)),
+            uint256(BridgeTypes.OperationStatus.PENDING)
         );
 
         // Create read response payload
@@ -190,8 +190,8 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
 
         // Verify the request status is now COMPLETED
         assertEq(
-            uint256(routerA.transferStatuses(requestId)),
-            uint256(BridgeTypes.TransferStatus.COMPLETED)
+            uint256(routerA.operationStatuses(requestId)),
+            uint256(BridgeTypes.OperationStatus.COMPLETED)
         );
 
         // Verify the mock receiver received the correct data

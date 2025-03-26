@@ -204,7 +204,7 @@ contract BridgeRouterAdaptersTest is Test {
         vm.deal(user, nativeFee);
 
         // Send transfer with specified adapter and include the fee
-        bytes32 transferId = router.transferAssets{value: nativeFee}(
+        bytes32 operationId = router.transferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -213,7 +213,7 @@ contract BridgeRouterAdaptersTest is Test {
         );
 
         // Verify the specified adapter was used
-        assertEq(router.transferToAdapter(transferId), address(mockAdapter2));
+        assertEq(router.operationToAdapter(operationId), address(mockAdapter2));
 
         vm.stopPrank();
     }
