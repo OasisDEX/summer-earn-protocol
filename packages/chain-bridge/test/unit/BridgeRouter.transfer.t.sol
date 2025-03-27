@@ -87,7 +87,8 @@ contract BridgeRouterTransferTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            options
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Send transfer with the quoted fee
@@ -207,7 +208,8 @@ contract BridgeRouterTransferTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            options
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Send transfer
@@ -263,7 +265,8 @@ contract BridgeRouterTransferTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            options
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Send transfer

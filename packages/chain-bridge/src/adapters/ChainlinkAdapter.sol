@@ -18,6 +18,9 @@ contract ChainlinkAdapter is IBridgeAdapter {
     address public bridgeRouter;
     mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
 
+    // Mapping of operation types to Chainlink message types
+    mapping(BridgeTypes.OperationType => uint16) private operationToMessageType;
+
     // Chainlink receiver function
     function ccipReceive(bytes32, bytes calldata) external pure {
         // Implementation will handle incoming messages from Chainlink CCIP
@@ -77,7 +80,8 @@ contract ChainlinkAdapter is IBridgeAdapter {
         uint16,
         address,
         uint256,
-        BridgeTypes.AdapterParams calldata
+        BridgeTypes.AdapterParams calldata,
+        BridgeTypes.OperationType
     ) external pure returns (uint256, uint256) {
         revert OperationNotSupported();
     }

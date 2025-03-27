@@ -200,7 +200,8 @@ contract BridgeRouterAdaptersTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            options
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
         console.log("nativeFee: %s", nativeFee);
 
@@ -316,7 +317,8 @@ contract BridgeRouterAdaptersTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            options
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Verify quote
@@ -345,7 +347,8 @@ contract BridgeRouterAdaptersTest is Test {
             999, // Unsupported chain ID
             address(token),
             TRANSFER_AMOUNT,
-            options
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
     }
 }

@@ -61,13 +61,21 @@ interface IBridgeAdapter is ISendAdapter {
     error InsufficientFee(uint256 required, uint256 provided);
 
     /**
-     * @notice Estimate the fee required for a cross-chain transfer
+     * @notice Estimate fees for a cross-chain operation
+     * @param destinationChainId ID of the destination chain
+     * @param asset Address of the asset to transfer (address(0) for non-asset operations)
+     * @param amount Amount of the asset to transfer (0 for non-asset operations)
+     * @param adapterParams Additional adapter-specific parameters
+     * @param operationType Type of operation (0=MESSAGE, 1=READ_STATE, 2=TRANSFER_ASSET)
+     * @return nativeFee Fee in the chain's native token
+     * @return tokenFee Fee in the transferred token (if applicable)
      */
     function estimateFee(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.AdapterParams calldata adapterParams,
+        BridgeTypes.OperationType operationType
     ) external view returns (uint256 nativeFee, uint256 tokenFee);
 
     /**

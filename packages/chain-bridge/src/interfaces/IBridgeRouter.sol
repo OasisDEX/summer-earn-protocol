@@ -148,15 +148,14 @@ interface IBridgeRouter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Transfer an asset to a destination chain
+     * @notice Transfer assets to a destination chain
      * @param destinationChainId ID of the destination chain
      * @param asset Address of the asset to transfer
      * @param amount Amount of the asset to transfer
-     * @param recipient Address of the recipient on the destination chain
+     * @param recipient Address on the destination chain to receive the assets
      * @param options Additional options for the transfer
-     * @return operationId Unique ID to track this operation
-     * @dev This function selects the best adapter for the transfer based on user preferences,
-     *      transfers tokens from sender to the router, and initiates the cross-chain transfer
+     * @return operationId Unique ID for tracking the transfer
+     * @dev The fee must be provided in the transaction's value (msg.value)
      */
     function transferAssets(
         uint16 destinationChainId,
@@ -165,6 +164,28 @@ interface IBridgeRouter {
         address recipient,
         BridgeTypes.BridgeOptions calldata options
     ) external payable returns (bytes32 operationId);
+
+    /**
+     * @notice Quote the fee for a bridge operation
+     * @param destinationChainId ID of the destination chain
+     * @param asset Address of the asset to transfer (address(0) for non-asset ops)
+     * @param amount Amount of the asset to transfer (0 for non-asset ops)
+     * @param options Additional options for the operation
+     * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET)
+     * @return nativeFee Fee in the chain's native token
+     * @return tokenFee Fee in the transferred token (if applicable)
+     * @return selectedAdapter Address of the adapter that would be used
+     */
+    function quote(
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        BridgeTypes.BridgeOptions calldata options,
+        BridgeTypes.OperationType operationType
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter);
 
     /**
      * @notice Read data from another chain (async operation)
@@ -184,28 +205,6 @@ interface IBridgeRouter {
         bytes calldata params,
         BridgeTypes.BridgeOptions calldata options
     ) external payable returns (bytes32 operationId);
-
-    /**
-     * @notice Estimate the fee required for a cross-chain transfer
-     * @param destinationChainId ID of the destination chain
-     * @param asset Address of the asset to transfer
-     * @param amount Amount of the asset to transfer
-     * @param options Additional options for the transfer
-     * @return nativeFee Fee in native token
-     * @return tokenFee Fee in the asset token
-     * @return selectedAdapter Address of the selected adapter
-     * @dev This function provides a quote for the fees needed to complete a transfer
-     *      without actually initiating the transfer
-     */
-    function quote(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options
-    )
-        external
-        view
-        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter);
 
     /**
      * @notice Send a general cross-chain message
@@ -299,7 +298,7 @@ interface IBridgeRouter {
      * @param chainId ID of the destination/source chain
      * @param asset Address of the asset (address(0) for non-asset operations)
      * @param amount Amount to transfer (0 for non-asset operations)
-     * @param forStateRead Whether this is for a state read operation
+     * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET)
      * @return bestAdapter Address of the best adapter
      * @dev Extended version that allows specifying state read operations explicitly
      */
@@ -307,7 +306,7 @@ interface IBridgeRouter {
         uint16 chainId,
         address asset,
         uint256 amount,
-        bool forStateRead
+        BridgeTypes.OperationType operationType
     ) external view returns (address bestAdapter);
 
     /**

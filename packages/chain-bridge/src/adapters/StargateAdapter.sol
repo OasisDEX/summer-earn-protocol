@@ -187,7 +187,8 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
             destinationChainId,
             asset,
             amount,
-            adapterParams
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Verify sufficient fee was provided
@@ -349,8 +350,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         uint16 destinationChainId,
         address asset,
         uint256,
-        BridgeTypes.AdapterParams calldata adapterParams
-    ) public view override returns (uint256 nativeFee, uint256 tokenFee) {
+        BridgeTypes.AdapterParams calldata adapterParams,
+        BridgeTypes.OperationType
+    ) public view returns (uint256 nativeFee, uint256 tokenFee) {
         // Check if chain and asset are supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
         if (!supportsAsset(destinationChainId, asset))

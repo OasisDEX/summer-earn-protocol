@@ -30,8 +30,16 @@ contract MockAdapter is IBridgeAdapter {
     address public lastReceivedRecipient;
     bytes public lastReceivedExtraData;
 
+    // Mapping of operation types to message types (similar to LayerZeroAdapter)
+    mapping(BridgeTypes.OperationType => uint16) private operationToMessageType;
+
     constructor(address _bridgeRouter) {
         bridgeRouter = _bridgeRouter;
+
+        // Initialize operation type to message type mapping (for consistency)
+        operationToMessageType[BridgeTypes.OperationType.MESSAGE] = 1; // Mock message type
+        operationToMessageType[BridgeTypes.OperationType.READ_STATE] = 2; // Mock read type
+        operationToMessageType[BridgeTypes.OperationType.TRANSFER_ASSET] = 3; // Mock transfer type
     }
 
     // Add helper function to set fee multiplier
@@ -137,10 +145,18 @@ contract MockAdapter is IBridgeAdapter {
         uint16,
         address,
         uint256 amount,
-        BridgeTypes.AdapterParams calldata
-    ) external view override returns (uint256 nativeFee, uint256 tokenFee) {
-        // Return fee based on multiplier
-        nativeFee = (amount * feeMultiplier) / 100;
+        BridgeTypes.AdapterParams calldata,
+        BridgeTypes.OperationType operationType
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        // Mock implementation that uses operation type
+        uint16 messageType = operationToMessageType[operationType];
+
+        // In a real implementation, the message type would affect the fee calculation
+        // For the mock, we'll just add the message type to the base fee
+        uint256 baseFee = (amount > 0) ? amount : 1 ether;
+
+        // Return fee based on multiplier and message type
+        nativeFee = (baseFee * feeMultiplier * messageType) / 100;
         return (nativeFee, 0);
     }
 
