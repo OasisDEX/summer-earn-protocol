@@ -1,5 +1,7 @@
 import { Address, BigDecimal, BigInt, dataSource } from '@graphprotocol/graph-ts'
 import { Product as ProductSchema, Token } from '../../generated/schema'
+import { BigDecimalConstants } from '../constants/common'
+import { RewardRate } from '../products/BaseVaultProduct'
 import { getChainIdByNetworkName } from '../utils/chainId'
 import { aprToApy } from '../utils/math'
 
@@ -62,5 +64,19 @@ export abstract class Product {
     return aprToApy(apr)
   }
 
+  getRewardsApys(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
+    const rates = this.getRewardsRates(currentTimestamp, currentBlock)
+    const apys = new Array<RewardRate>()
+    for (let i = 0; i < rates.length; i++) {
+      const rate = rates[i]
+      const apy = new RewardRate(rate.rewardToken, aprToApy(rate.rate))
+      if (apy.rate.gt(BigDecimalConstants.ZERO)) {
+        apys.push(apy)
+      }
+    }
+    return apys
+  }
+
   abstract getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal
+  abstract getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[]
 }

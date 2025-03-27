@@ -44,6 +44,28 @@ dataSources:
           file: ./abis/SkySUSDS.json
         - name: MoonwellToken
           file: ./abis/MoonwellToken.json
+        - name: IGaugeHookReceiver
+          file: ./abis/silo/IGaugeHookReceiver.json
+        - name: ISiloConfig
+          file: ./abis/silo/ISiloConfig.json
+        - name: ISilo
+          file: ./abis/silo/ISilo.json
+        - name: IGauge
+          file: ./abis/silo/IGauge.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json  
       blockHandlers:
         - handler: handleBlock
           filter:

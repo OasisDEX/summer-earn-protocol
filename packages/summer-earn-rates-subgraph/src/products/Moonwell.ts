@@ -2,6 +2,7 @@ import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { MoonwellToken } from '../../generated/EntryPoint/MoonwellToken'
 import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { RewardRate } from './BaseVaultProduct'
 
 export class MoonwellProduct extends Product {
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
@@ -18,5 +19,8 @@ export class MoonwellProduct extends Product {
       .div(BigDecimalConstants.WAD)
 
     return apr
+  }
+  getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
+    return []
   }
 }
