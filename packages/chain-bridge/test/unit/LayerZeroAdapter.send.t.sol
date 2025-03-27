@@ -120,7 +120,8 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams
+            adapterParams,
+            BridgeTypes.OperationType.MESSAGE
         );
 
         assertTrue(nativeFee > 0);

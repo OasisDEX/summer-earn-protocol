@@ -168,7 +168,8 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(adapterA),
                 adapterParams: adapterParams
-            })
+            }),
+            BridgeTypes.OperationType.MESSAGE
         );
 
         // The fee should reflect the higher minimum gas limit
@@ -191,7 +192,8 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(adapterA),
                 adapterParams: higherParams
-            })
+            }),
+            BridgeTypes.OperationType.MESSAGE
         );
 
         // Higher gas limit should result in a higher fee

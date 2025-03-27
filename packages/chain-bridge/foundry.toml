@@ -1,56 +1,42 @@
 [profile.default]
 src = "src"
 out = "out"
-libs = [
-  'node_modules', 
-  'lib'
-]
-cache_path  = 'cache_forge'
-solc = "0.8.28"
-evm_version = "cancun"
-cbor_metadata = true
+libs = ["node_modules"]
+remappings = []
+solc_version = "0.8.28"
 optimizer = true
-optimizer-runs = 200
+optimizer_runs = 10000
 
 [profile.test]
 src = "src"
+test = "test"
 out = "out"
-libs = [
-  'node_modules', 
-  'lib'
-]
-test = 'test'
-cache_path  = 'cache_forge'
-solc = "0.8.28"
-evm_version = "cancun"
-cbor_metadata = true
-viaIR = false
-optimizer = true
-optimizer-runs = 200
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+libs = ["node_modules"]
+solc_version = "0.8.28"
+verbosity = 3
+# Enable IR-based code generation
+via_ir = true
 
 [fmt]
-  bracket_spacing = true
-  int_types = "long"
-  line_length = 120
-  multiline_func_header = "all"
-  number_underscore = "remove"
-  quote_style = "double"
-  tab_width = 4
-  wrap_comments = true
-  sort_imports = true
-  contract_new_lines = true
+bracket_spacing = true
+int_types = "long"
+line_length = 120
+multiline_func_header = "all"
+number_underscore = "remove"
+quote_style = "double"
+tab_width = 4
+wrap_comments = true
+sort_imports = true
+contract_new_lines = true
 
 [rpc_endpoints]
-# Testnets
-sepolia = "${SEPOLIA_RPC_URL}"
-
-# Mainnets
-base = "${BASE_RPC_URL}"
 mainnet = "${MAINNET_RPC_URL}"
+arbitrum = "${ARBITRUM_RPC_URL}"
+base = "${BASE_RPC_URL}"
+sonic = "${SONIC_RPC_URL}"
 
 [etherscan]
-sepolia = { key = "7KB7N6WAQJFFC2F5UP98RBTESZ11EK8X8W}" }
-base = { key = "8M4JVVERCDQURGWJ6UIVQU23YNAQU9Y5PK"  }
-#                   Paste TENDERLY_ACCESS_TOKEN            Chain ID         Verifier URL: RPC_URL/verify/etherscan
-unknown_chain = { key = "${TENDERLY_ACCESS_KEY}", chain = 84537357, url = "${TENDERLY_VIRTUAL_TESTNET_RPC_URL}/verify/etherscan" }
+mainnet = { key = "${API_KEY_ETHERSCAN}" }
+arbitrum = { key = "${API_KEY_ARBISCAN}" }
+base = { key = "${API_KEY_BASESCAN}" }
+sonic = { key = "${API_KEY_SONICSCAN}" }

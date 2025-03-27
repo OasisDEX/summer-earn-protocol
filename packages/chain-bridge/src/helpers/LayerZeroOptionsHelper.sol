@@ -91,15 +91,4 @@ library LayerZeroOptionsHelper {
                 adapterParams.msgValue
             );
     }
-
-    /**
-     * @notice Estimates appropriate gas limit based on operation type
-     * @param isReadOperation Whether this is a read operation
-     * @return Appropriate default gas limit
-     */
-    function getDefaultGasLimit(
-        bool isReadOperation
-    ) internal pure returns (uint128) {
-        return isReadOperation ? 200000 : 500000;
-    }
 }

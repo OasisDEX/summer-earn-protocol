@@ -71,13 +71,16 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Thrown when a message receiver rejects the call
     error ReceiverRejectedCall();
 
+    /// @notice Mapping of operation types to message types
+    mapping(BridgeTypes.OperationType => uint16) private operationToMessageType;
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Initializes the LayerZeroAdapter
-     * @param _endpoint Address of the LayerZero endpoint contract
+     * @param _endpoint Address of the LayerZero endpoint
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _supportedChains Array of chain IDs supported by this adapter
      * @param _lzEids Array of corresponding LayerZero endpoint IDs
@@ -104,6 +107,14 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Initialize default minimum gas limits
         minGasLimits[STATE_READ] = 300000;
         minGasLimits[GENERAL_MESSAGE] = 300000;
+
+        // Initialize operation type to message type mapping
+        operationToMessageType[
+            BridgeTypes.OperationType.MESSAGE
+        ] = GENERAL_MESSAGE;
+        operationToMessageType[
+            BridgeTypes.OperationType.READ_STATE
+        ] = STATE_READ;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -372,26 +383,42 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint16 destinationChainId,
         address,
         uint256,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.AdapterParams calldata adapterParams,
+        BridgeTypes.OperationType operationType
     ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Convert destinationChainId to LayerZero EID
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
-        // For LayerZero adapter, we're only estimating general message fees
-        // since asset transfers are not supported
-        bytes memory dummyMessage = abi.encode(
-            "dummy message for fee estimation"
-        );
-        bytes memory payload = abi.encodePacked(
-            uint16(GENERAL_MESSAGE),
-            abi.encode(dummyMessage, address(0), bytes32(0))
-        );
+        // Look up the message type from the mapping
+        uint16 messageType = operationToMessageType[operationType];
 
-        // Prepare user-requested options with gas limit
-        bytes memory userOptions = _prepareOptions(
-            adapterParams,
-            GENERAL_MESSAGE
-        );
+        if (messageType == 0) revert OperationNotSupported();
+
+        // Create appropriate payload based on message type
+        bytes memory payload;
+        if (messageType == STATE_READ) {
+            payload = abi.encodePacked(
+                uint16(STATE_READ),
+                abi.encode(
+                    bytes32(0), // dummy request ID
+                    address(0), // dummy contract
+                    bytes4(0), // dummy selector
+                    new bytes(0), // dummy params
+                    address(this)
+                )
+            );
+        } else {
+            bytes memory dummyMessage = abi.encode(
+                "dummy message for fee estimation"
+            );
+            payload = abi.encodePacked(
+                uint16(GENERAL_MESSAGE),
+                abi.encode(dummyMessage, address(0), bytes32(0))
+            );
+        }
+
+        // Prepare options with the looked-up message type
+        bytes memory userOptions = _prepareOptions(adapterParams, messageType);
 
         // Get the fee required for user options
         MessagingFee memory userFee = _quote(

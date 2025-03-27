@@ -26,7 +26,8 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Verify the fee is returned properly
@@ -52,7 +53,8 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             9999, // Unsupported chain
             address(tokenA),
             1 ether,
-            adapterParams
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
     }
 
@@ -74,7 +76,8 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             CHAIN_ID_B,
             address(0xdead), // Unsupported asset
             1 ether,
-            adapterParams
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
     }
 
@@ -96,7 +99,8 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Approve tokens for the adapter
@@ -239,7 +243,8 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Add token approval for the adapter - this is needed

@@ -34,4 +34,11 @@ library BridgeTypes {
         address specifiedAdapter; // Optional specific adapter to use (address(0) means auto-select)
         AdapterParams adapterParams; // Generic adapter options
     }
+
+    // Add a new enum for operation types
+    enum OperationType {
+        MESSAGE,
+        READ_STATE,
+        TRANSFER_ASSET
+    }
 }

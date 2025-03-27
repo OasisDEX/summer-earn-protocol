@@ -90,12 +90,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Internal implementation of quote that can reuse a selected adapter
+     * @dev Internal implementation of quote that handles adapter selection and fee calculation
      * @param destinationChainId ID of the destination chain
      * @param asset Address of the asset to transfer
      * @param amount Amount of the asset to transfer
      * @param options Additional options for the transfer
-     * @param preselectedAdapter Optional adapter address (if already selected)
+     * @param operationType Type of operation being performed
      * @return nativeFee Fee in native token
      * @return tokenFee Fee in the asset token
      * @return selectedAdapter Address of the selected adapter
@@ -105,29 +105,58 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         address asset,
         uint256 amount,
         BridgeTypes.BridgeOptions memory options,
-        address preselectedAdapter
+        BridgeTypes.OperationType operationType
     )
         internal
         view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
     {
-        selectedAdapter = preselectedAdapter;
-        if (selectedAdapter == address(0)) {
-            selectedAdapter = getBestAdapter(destinationChainId, asset, amount);
+        // Select adapter - either user specified or best available
+        selectedAdapter = options.specifiedAdapter;
+
+        if (selectedAdapter != address(0)) {
+            // Verify the specified adapter is registered
+            if (!adapters.contains(selectedAdapter)) revert UnknownAdapter();
+
+            // Verify adapter supports the required operation
+            if (
+                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
+                !IBridgeAdapter(selectedAdapter).supportsAssetTransfer()
+            ) revert UnsupportedAdapterOperation();
+
+            if (
+                operationType == BridgeTypes.OperationType.READ_STATE &&
+                !IBridgeAdapter(selectedAdapter).supportsStateRead()
+            ) revert UnsupportedAdapterOperation();
+
+            if (!IBridgeAdapter(selectedAdapter).supportsMessaging())
+                revert UnsupportedAdapterOperation();
+        } else {
+            // Find the best adapter based on operation type
+            selectedAdapter = getBestAdapter(
+                destinationChainId,
+                asset,
+                amount,
+                operationType
+            );
         }
 
         if (selectedAdapter == address(0)) revert NoSuitableAdapter();
 
         // Get base fee from adapter
-        (uint256 baseFee, ) = IBridgeAdapter(selectedAdapter).estimateFee(
-            destinationChainId,
-            asset,
-            amount,
-            options.adapterParams
-        );
+        (uint256 baseFee, uint256 baseTokenFee) = IBridgeAdapter(
+            selectedAdapter
+        ).estimateFee(
+                destinationChainId,
+                asset,
+                amount,
+                options.adapterParams,
+                operationType
+            );
 
-        // Apply multiplier to account for confirmation
+        // Apply fee multiplier for both native and token fees
         nativeFee = (baseFee * feeMultiplier) / 100;
+        tokenFee = (baseTokenFee * feeMultiplier) / 100;
 
         return (nativeFee, tokenFee, selectedAdapter);
     }
@@ -137,13 +166,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata options,
+        BridgeTypes.OperationType operationType
     )
         external
         view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
     {
-        return _quote(destinationChainId, asset, amount, options, address(0));
+        return
+            _quote(destinationChainId, asset, amount, options, operationType);
     }
 
     /// @inheritdoc IBridgeRouter
@@ -172,13 +203,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             revert UnsupportedAdapterOperation();
         }
 
-        // Get the total fee and base fee using our internal function with the selected adapter
+        // Get the total fee and base fee with proper operation type
         (uint256 totalFee, , ) = _quote(
             destinationChainId,
             asset,
             amount,
             options,
-            adapter
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Ensure user provided enough fee
@@ -233,7 +264,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     ) external payable returns (bytes32 operationId) {
         if (paused) revert Paused();
 
-        // Select the best adapter for this read request
+        // Select the adapter - must use specifiedAdapter if provided
         address adapter = options.specifiedAdapter;
         if (adapter == address(0)) {
             adapter = getBestAdapterForStateRead(sourceChainId);
@@ -246,13 +277,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             revert UnsupportedAdapterOperation();
         }
 
-        // Get the total fee and base fee using our internal function
+        // Get the total fee using our internal function with READ_STATE type
         (uint256 totalFee, , ) = _quote(
             sourceChainId,
             address(0), // No asset for state reads
             0, // No amount for state reads
             options,
-            adapter
+            BridgeTypes.OperationType.READ_STATE
         );
 
         // Calculate base fee from total fee
@@ -322,13 +353,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             revert UnsupportedAdapterOperation();
         }
 
-        // Get the total fee and base fee
+        // Get the total fee and base fee with proper operation type
         (uint256 totalFee, , ) = _quote(
             destinationChainId,
             address(0),
             0,
             options,
-            adapter
+            BridgeTypes.OperationType.MESSAGE
         );
 
         // Ensure user provided enough fee
@@ -607,17 +638,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
      * @notice Finds the best adapter for an operation based on both compatibility and cost
      * @param chainId Destination or source chain ID
      * @param asset Asset to send (address(0) for non-asset operations)
-     * @param requiresAssetTransfer Whether asset transfer support is required
-     * @param requiresMessaging Whether messaging support is required
-     * @param requiresStateRead Whether state read support is required
+     * @param amount Amount to transfer (0 for non-asset operations)
+     * @param operationType Type of operation to perform
      * @return The address of the lowest-cost suitable adapter
      */
     function _getBestAdapterForOperation(
         uint16 chainId,
         address asset,
-        bool requiresAssetTransfer,
-        bool requiresMessaging,
-        bool requiresStateRead
+        uint256 amount,
+        BridgeTypes.OperationType operationType
     ) internal view returns (address) {
         address bestAdapter = address(0);
         uint256 lowestFee = type(uint256).max;
@@ -629,24 +658,24 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             // Check if adapter supports this chain
             if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
 
-            // Check for operation-specific support
+            // Check capability support
             if (
-                requiresAssetTransfer &&
+                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
                 !IBridgeAdapter(adapter).supportsAssetTransfer()
             ) continue;
             if (
-                requiresMessaging &&
-                !IBridgeAdapter(adapter).supportsMessaging()
+                operationType == BridgeTypes.OperationType.READ_STATE &&
+                !IBridgeAdapter(adapter).supportsStateRead()
             ) continue;
             if (
-                requiresStateRead &&
-                !IBridgeAdapter(adapter).supportsStateRead()
+                operationType == BridgeTypes.OperationType.MESSAGE &&
+                !IBridgeAdapter(adapter).supportsMessaging()
             ) continue;
 
             // For asset transfers, check if the asset is supported
             if (
                 asset != address(0) &&
-                requiresAssetTransfer &&
+                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
                 !IBridgeAdapter(adapter).supportsAsset(chainId, asset)
             ) continue;
 
@@ -657,13 +686,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                 IBridgeAdapter(adapter).estimateFee(
                     chainId,
                     asset,
-                    requiresAssetTransfer ? 1 ether : 0, // Use 1 ETH as a standard amount for comparison
+                    amount,
                     BridgeTypes.AdapterParams({
-                        gasLimit: 500000,
-                        calldataSize: 0,
+                        gasLimit: 200000,
+                        calldataSize: 100,
                         msgValue: 0,
                         options: ""
-                    })
+                    }),
+                    operationType // Pass the operation type directly
                 )
             returns (uint256 fee, uint256) {
                 estimatedFee = fee;
@@ -690,19 +720,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         uint16 chainId,
         address asset,
         uint256 amount,
-        bool forStateRead
+        BridgeTypes.OperationType operationType
     ) public view returns (address) {
-        // Determine operation type based on parameters
-        bool isAssetTransfer = asset != address(0) && amount > 0;
-
         return
-            _getBestAdapterForOperation(
-                chainId,
-                asset,
-                isAssetTransfer && !forStateRead, // Asset transfer only if not for state read
-                true, // All operations require basic messaging
-                forStateRead // State read required only if specified
-            );
+            _getBestAdapterForOperation(chainId, asset, amount, operationType);
     }
 
     /// @inheritdoc IBridgeRouter
@@ -711,17 +732,27 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         address asset,
         uint256 amount
     ) public view returns (address) {
-        // Default to non-state read operation
-        return getBestAdapter(chainId, asset, amount, false);
+        // Default to MESSAGE operation
+        return
+            getBestAdapter(
+                chainId,
+                asset,
+                amount,
+                BridgeTypes.OperationType.MESSAGE
+            );
     }
 
-    /// @notice Get the best adapter for state read operations
-    /// @param chainId Source chain ID to read from
-    /// @return The address of the best adapter for state reading
+    /// @inheritdoc IBridgeRouter
     function getBestAdapterForStateRead(
         uint16 chainId
     ) public view returns (address) {
-        return getBestAdapter(chainId, address(0), 0, true);
+        return
+            getBestAdapter(
+                chainId,
+                address(0),
+                0,
+                BridgeTypes.OperationType.READ_STATE
+            );
     }
 
     /// @inheritdoc IBridgeRouter
@@ -815,5 +846,17 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     ) external onlyGovernor {
         chainToRouterAddress[chainId] = routerAddress;
         emit ChainRouterAddressUpdated(chainId, routerAddress);
+    }
+
+    /// @inheritdoc IBridgeRouter
+    function recoverOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus newStatus
+    ) external onlyGovernor {
+        // Update the operation status
+        operationStatuses[operationId] = newStatus;
+
+        // Emit the status update event
+        emit OperationStatusUpdated(operationId, newStatus);
     }
 }
