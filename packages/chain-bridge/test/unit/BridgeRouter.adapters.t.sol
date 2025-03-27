@@ -203,7 +203,6 @@ contract BridgeRouterAdaptersTest is Test {
             options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
-        console.log("nativeFee: %s", nativeFee);
 
         // Give the user enough ETH to cover the fee
         vm.deal(user, nativeFee);
