@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
@@ -10,9 +10,10 @@ import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
 contract BridgeRouterReadStateTest is Test {
-    BridgeRouter public router;
+    BridgeRouterTestHelper public router;
     MockAdapter public mockAdapter;
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
@@ -38,11 +39,7 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(governor);
 
         // Deploy BridgeRouter and adapters
-        router = new BridgeRouter(
-            address(accessManager),
-            new uint16[](0), // Empty chainIds array
-            new address[](0) // Empty routerAddresses array
-        );
+        router = new BridgeRouterTestHelper(address(accessManager));
 
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
@@ -67,6 +64,8 @@ contract BridgeRouterReadStateTest is Test {
     function testReadState() public {
         vm.startPrank(user);
 
+        vm.deal(user, 4 ether);
+
         // Create bridge options
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
@@ -81,10 +80,20 @@ contract BridgeRouterReadStateTest is Test {
             adapterParams: adapterParams
         });
 
-        // Read state
-        bytes32 requestId = router.readState(
+        (uint256 fee, , address selectedAdapter) = router.quote(
             DEST_CHAIN_ID,
-            address(0x123),
+            address(token),
+            0,
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        options.specifiedAdapter = selectedAdapter;
+
+        // Read state
+        bytes32 requestId = router.readState{value: fee}(
+            DEST_CHAIN_ID,
+            address(token),
             bytes4(keccak256("getBalance(address)")),
             abi.encode(user),
             options
@@ -105,6 +114,8 @@ contract BridgeRouterReadStateTest is Test {
         // Use mockReceiver instead of user as the originator
         vm.startPrank(address(mockReceiver));
 
+        vm.deal(address(mockReceiver), 6000 ether);
+
         // Create bridge options
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
@@ -119,8 +130,18 @@ contract BridgeRouterReadStateTest is Test {
             adapterParams: adapterParams
         });
 
+        (uint256 fee, , address selectedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(0x123),
+            0,
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        options.specifiedAdapter = selectedAdapter;
+
         // Read state
-        bytes32 requestId = router.readState(
+        bytes32 requestId = router.readState{value: fee}(
             DEST_CHAIN_ID,
             address(0x123),
             bytes4(keccak256("getBalance(address)")),
@@ -129,6 +150,8 @@ contract BridgeRouterReadStateTest is Test {
         );
 
         vm.stopPrank();
+
+        router.setOperationToAdapter(requestId, address(mockAdapter));
 
         // Now deliver the response from the adapter
         vm.prank(address(mockAdapter));
@@ -148,6 +171,9 @@ contract BridgeRouterReadStateTest is Test {
 
     function testDeliverReadResponseUnauthorized() public {
         // Use mockReceiver instead of user as the originator
+        // Fund the mockReceiver with ETH to pay the fee
+        vm.deal(address(mockReceiver), 4 ether);
+
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
@@ -164,8 +190,20 @@ contract BridgeRouterReadStateTest is Test {
             adapterParams: adapterParams
         });
 
-        // Read state
-        bytes32 requestId = router.readState(
+        // Get the fee estimation
+        (uint256 fee, , address selectedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(0),
+            0,
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        // Update options with the selected adapter
+        options.specifiedAdapter = selectedAdapter;
+
+        // Read state with the required fee
+        bytes32 requestId = router.readState{value: fee}(
             DEST_CHAIN_ID,
             address(0x123),
             bytes4(keccak256("getBalance(address)")),
@@ -194,6 +232,10 @@ contract BridgeRouterReadStateTest is Test {
         // Use mockReceiver instead of user as the originator
         vm.startPrank(address(mockReceiver));
 
+        // Fund mockReceiver (not user) with ETH
+        vm.deal(address(mockReceiver), 6000 ether);
+        vm.deal(user, 6000 ether);
+
         // Configure the receiver to reject the call
         mockReceiver.setReceiveSuccess(false);
 
@@ -207,12 +249,24 @@ contract BridgeRouterReadStateTest is Test {
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
+            specifiedAdapter: address(mockAdapter),
             adapterParams: adapterParams
         });
 
+        // Get the fee estimation
+        (uint256 fee, , address selectedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(0x123),
+            0,
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        // Update options with the selected adapter
+        options.specifiedAdapter = selectedAdapter;
+
         // Read state
-        bytes32 requestId = router.readState(
+        bytes32 requestId = router.readState{value: fee}(
             DEST_CHAIN_ID,
             address(0x123),
             bytes4(keccak256("getBalance(address)")),

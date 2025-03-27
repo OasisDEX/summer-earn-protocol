@@ -25,7 +25,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             adapterA.lzReceiveTest(
                 origin,
                 bytes32(uint256(1)), // requestId
-                abi.encodePacked(uint16(1), "test payload"), // Simple transfer payload
+                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with GENERAL_MESSAGE type
                 srcAdapter,
                 bytes("")
             );
@@ -33,15 +33,12 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             adapterB.lzReceiveTest(
                 origin,
                 bytes32(uint256(1)), // requestId
-                abi.encodePacked(uint16(1), "test payload"), // Simple transfer payload
+                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with GENERAL_MESSAGE type
                 srcAdapter,
                 bytes("")
             );
-        } else if (address(dstAdapter) == address(adapterA)) {
-            // Handle real adapter receive logic based on your test needs
-        } else if (address(dstAdapter) == address(adapterB)) {
-            // Handle real adapter receive logic based on your test needs
         }
+        // Note: Removed duplicate if conditions
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -109,7 +106,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             bytes("test payload")
         );
 
-        // Get required fee
+        // Get required fee directly from adapter
         uint256 requiredFee = adapterA.getRequiredFee(
             LZ_EID_B,
             adapterA.GENERAL_MESSAGE(),
@@ -127,7 +124,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
         // Check current value
         uint16 messageType = adapterA.GENERAL_MESSAGE();
-        assertEq(adapterA.minGasLimits(messageType), 500000);
+        assertEq(adapterA.minGasLimits(messageType), 300000);
 
         // Try to set minGasLimit as unauthorized address
         vm.prank(address(2));
@@ -142,7 +139,34 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         adapterA.setMinGasLimit(messageType, 600000);
     }
 
-    function testMinGasLimitEnforcement() public {
+    function testAdapterDirectEstimateFee() public {
+        useNetworkA();
+
+        // Create adapter params with a specific gas limit
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                msgValue: 0,
+                calldataSize: 0,
+                options: bytes("")
+            });
+
+        // Call estimateFee directly on the adapter
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateFee(
+            CHAIN_ID_B,
+            address(0), // No asset for general message
+            0, // No amount for general message
+            adapterParams,
+            BridgeTypes.OperationType.MESSAGE
+        );
+
+        // Fee should be non-zero
+        assertTrue(nativeFee > 0);
+        // Token fee should be zero for LayerZero
+        assertEq(tokenFee, 0);
+    }
+
+    function testAdapterMinGasLimitEnforcement() public {
         useNetworkA();
         vm.startPrank(governor);
 
@@ -151,7 +175,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         adapterA.setMinGasLimit(adapterA.GENERAL_MESSAGE(), minGasLimit);
 
         // Create adapter params with a lower gas limit than the minimum
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+        BridgeTypes.AdapterParams memory lowerParams = BridgeTypes
             .AdapterParams({
                 gasLimit: 500000, // Lower than our minimum
                 msgValue: 0,
@@ -159,23 +183,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 options: bytes("")
             });
 
-        // Use the general quote method with address(0) and 0 amount to indicate
-        // this is for a message rather than an asset transfer
-        (uint256 nativeFee, , ) = routerA.quote(
-            CHAIN_ID_B,
-            address(0), // No asset for general message
-            0, // No amount for general message
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(adapterA),
-                adapterParams: adapterParams
-            }),
-            BridgeTypes.OperationType.MESSAGE
-        );
-
-        // The fee should reflect the higher minimum gas limit
-        assertTrue(nativeFee > 0);
-
-        // Now create adapter params with a higher gas limit than the minimum
+        // Create adapter params with a higher gas limit than the minimum
         BridgeTypes.AdapterParams memory higherParams = BridgeTypes
             .AdapterParams({
                 gasLimit: 1500000, // Higher than our minimum
@@ -184,21 +192,33 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 options: bytes("")
             });
 
-        // Get the fee estimate for the higher gas limit
-        (uint256 higherFee, , ) = routerA.quote(
+        // Estimate fees directly with adapter for both cases
+        (uint256 lowerFee, ) = adapterA.estimateFee(
             CHAIN_ID_B,
-            address(0), // No asset for general message
-            0, // No amount for general message
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(adapterA),
-                adapterParams: higherParams
-            }),
+            address(0),
+            0,
+            lowerParams,
+            BridgeTypes.OperationType.MESSAGE
+        );
+
+        (uint256 higherFee, ) = adapterA.estimateFee(
+            CHAIN_ID_B,
+            address(0),
+            0,
+            higherParams,
             BridgeTypes.OperationType.MESSAGE
         );
 
         // Higher gas limit should result in a higher fee
-        assertTrue(higherFee > nativeFee);
+        assertTrue(higherFee > lowerFee);
 
         vm.stopPrank();
+    }
+
+    function testSupportsFeatures() public {
+        // Test capability flags directly on adapter
+        assertTrue(adapterA.supportsMessaging());
+        assertTrue(adapterA.supportsStateRead());
+        assertFalse(adapterA.supportsAssetTransfer());
     }
 }

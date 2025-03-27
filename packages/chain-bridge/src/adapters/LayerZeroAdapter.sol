@@ -56,9 +56,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Thrown when insufficient fee is provided for a layerzero operation
     error InsufficientFeeForOptions(uint256 required, uint256 provided);
 
-    /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
-    error InsufficientMsgValue(uint128 required, uint256 provided);
-
     /// @notice Thrown when invalid options are provided
     error InvalidOptions(bytes options);
 
@@ -486,7 +483,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @inheritdoc ISendAdapter
     function readState(
         uint16 sourceChainId,
-        address sourceContract,
+        address dstContract,
         bytes4 selector,
         bytes calldata readParams,
         address originator,
@@ -499,7 +496,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         requestId = keccak256(
             abi.encode(
                 sourceChainId,
-                sourceContract,
+                dstContract,
                 selector,
                 readParams,
                 block.timestamp,
@@ -520,7 +517,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             uint16(STATE_READ),
             abi.encode(
                 requestId,
-                sourceContract,
+                dstContract,
                 selector,
                 readParams,
                 address(this)
@@ -543,7 +540,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         emit ReadRequestInitiated(
             requestId,
             sourceChainId,
-            sourceContract,
+            dstContract,
             selector
         );
 

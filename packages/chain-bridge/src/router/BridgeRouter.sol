@@ -256,10 +256,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
     /// @inheritdoc IBridgeRouter
     function readState(
-        uint16 sourceChainId,
-        address sourceContract,
+        uint16 dstChainId,
+        address dstContract,
         bytes4 selector,
-        bytes calldata params,
+        bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata options
     ) external payable returns (bytes32 operationId) {
         if (paused) revert Paused();
@@ -267,7 +267,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Select the adapter - must use specifiedAdapter if provided
         address adapter = options.specifiedAdapter;
         if (adapter == address(0)) {
-            adapter = getBestAdapterForStateRead(sourceChainId);
+            adapter = getBestAdapterForStateRead(dstChainId);
         }
 
         if (adapter == address(0)) revert NoSuitableAdapter();
@@ -279,7 +279,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         // Get the total fee using our internal function with READ_STATE type
         (uint256 totalFee, , ) = _quote(
-            sourceChainId,
+            dstChainId,
             address(0), // No asset for state reads
             0, // No amount for state reads
             options,
@@ -301,10 +301,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Let the adapter handle gas limits and other options
         // Pass msg.sender for refunds, but only forward the base fee
         operationId = IBridgeAdapter(adapter).readState{value: baseFee}(
-            sourceChainId,
-            sourceContract,
+            dstChainId,
+            dstContract,
             selector,
-            params,
+            readParams,
             msg.sender, // Pass the originator for refunds
             options.adapterParams
         );
@@ -318,10 +318,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         emit ReadRequestInitiated(
             operationId,
-            sourceChainId,
-            abi.encodePacked(sourceContract),
+            dstChainId,
+            dstContract,
             selector,
-            params,
+            readParams,
             adapter
         );
 

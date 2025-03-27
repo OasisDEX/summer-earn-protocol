@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
@@ -61,7 +61,7 @@ contract BridgeRouterTransferTest is Test {
 
     function testSend() public {
         // Deal ETH to the user - need enough to cover the fee
-        vm.deal(user, 3000 ether);
+        vm.deal(user, 7000 ether);
 
         vm.startPrank(user);
 
@@ -182,7 +182,7 @@ contract BridgeRouterTransferTest is Test {
 
     function testUpdateTransferStatus() public {
         // Deal ETH to the user - need enough to cover the fee
-        vm.deal(user, 3000 ether);
+        vm.deal(user, 6000 ether);
 
         vm.startPrank(user);
 
@@ -204,13 +204,15 @@ contract BridgeRouterTransferTest is Test {
         });
 
         // Get a quote first to determine the required fee
-        (uint256 nativeFee, , ) = router.quote(
+        (uint256 nativeFee, , address selectedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
             options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
+
+        options.specifiedAdapter = selectedAdapter;
 
         // Send transfer
         bytes32 operationId = router.transferAssets{value: nativeFee}(
@@ -239,7 +241,7 @@ contract BridgeRouterTransferTest is Test {
 
     function testUpdateTransferStatusUnauthorized() public {
         // Deal ETH to the user - need enough to cover the fee
-        vm.deal(user, 3000 ether);
+        vm.deal(user, 6000 ether);
 
         vm.startPrank(user);
 
@@ -261,13 +263,15 @@ contract BridgeRouterTransferTest is Test {
         });
 
         // Get a quote first to determine the required fee
-        (uint256 nativeFee, , ) = router.quote(
+        (uint256 nativeFee, , address selectedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
             options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
+
+        options.specifiedAdapter = selectedAdapter;
 
         // Send transfer
         bytes32 operationId = router.transferAssets{value: nativeFee}(

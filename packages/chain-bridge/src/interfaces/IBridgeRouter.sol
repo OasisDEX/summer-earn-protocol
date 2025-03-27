@@ -58,9 +58,9 @@ interface IBridgeRouter {
     event ReadRequestInitiated(
         bytes32 indexed operationId,
         uint16 sourceChainId,
-        bytes sourceContract,
+        address dstContract,
         bytes4 selector,
-        bytes params,
+        bytes readParams,
         address adapter
     );
 
