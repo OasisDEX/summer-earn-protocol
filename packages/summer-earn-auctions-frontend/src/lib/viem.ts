@@ -1,6 +1,5 @@
-import { createPublicClient, http } from 'viem';
-import { mainnet, base, arbitrum } from 'viem/chains';
-import { CHAIN_CONFIGS } from '@/lib/config';
+import { createPublicClient, http } from 'viem'
+import { arbitrum, base, mainnet } from 'viem/chains'
 
 // Create public clients for each chain
 export const publicClients = {
@@ -16,16 +15,18 @@ export const publicClients = {
     chain: arbitrum,
     transport: http('https://arbitrum-mainnet.infura.io/v3/ffa4874465f948b6befcfd3f2f792f87'),
   }),
-};
+}
 
 // ABI fragment for getCurrentPrice
-export const auctionAbi = [{
-  "inputs": [
-    {"internalType": "address", "name": "ark", "type": "address"},
-    {"internalType": "address", "name": "rewardToken", "type": "address"}
-  ],
-  "name": "getCurrentPrice",
-  "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-  "stateMutability": "view",
-  "type": "function"
-}] as const; 
+export const auctionAbi = [
+  {
+    inputs: [
+      { internalType: 'address', name: 'ark', type: 'address' },
+      { internalType: 'address', name: 'rewardToken', type: 'address' },
+    ],
+    name: 'getCurrentPrice',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const

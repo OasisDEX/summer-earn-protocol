@@ -21,7 +21,7 @@ export function handleArkRewardTokenAuctionStarted(event: ArkRewardTokenAuctionS
     event.params.auctionId,
     event.params.ark,
     event.params.rewardToken,
-    event.block.timestamp
+    event.block.timestamp,
   )
 }
 
@@ -62,8 +62,15 @@ export function handleTokensPurchased(event: TokensPurchased): void {
     tokensPurchased.tokensPurchasedNormalized,
   )
 
-  const marketPrice = getTokenPriceInUSD(Address.fromString(auction.buyToken), event.block)
-  tokensPurchased.marketPriceInUSDNormalized = marketPrice.price
+  const rewardTokenMarketPrice = getTokenPriceInUSD(
+    Address.fromString(auction.rewardToken),
+    event.block,
+  )
+  const buyTokenMarketPrice = getTokenPriceInUSD(Address.fromString(auction.buyToken), event.block)
+  tokensPurchased.marketPriceInUSDNormalized = rewardTokenMarketPrice.price
+  tokensPurchased.buyPriceInUSDNormalized = tokensPurchased.pricePerTokenNormalized.times(
+    buyTokenMarketPrice.price,
+  )
 
   tokensPurchased.timestamp = event.block.timestamp
   tokensPurchased.save()

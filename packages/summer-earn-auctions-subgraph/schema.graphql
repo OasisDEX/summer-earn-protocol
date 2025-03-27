@@ -16,6 +16,7 @@ type Auction @entity {
 decayType: String
   duration: BigInt!
   isFinalized: Boolean!
+  purchases: [TokensPurchased!]! @derivedFrom(field: "auction")
 }
 
 type TokensPurchased @entity {
@@ -31,6 +32,7 @@ type TokensPurchased @entity {
   timestamp: BigInt!
 
   marketPriceInUSDNormalized: BigDecimal!
+  buyPriceInUSDNormalized: BigDecimal!
 }
 
 type Token @entity @regularPolling {

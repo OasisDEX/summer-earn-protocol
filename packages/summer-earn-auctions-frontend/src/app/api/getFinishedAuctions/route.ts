@@ -1,7 +1,8 @@
 import { CHAIN_CONFIGS } from '@/lib/config'
-const AUCTIONS_QUERY = `
-  query GetAuctions {
-    auctions(where: { isFinalized: false }) {
+
+const FINISHED_AUCTIONS_QUERY = `
+  query GetFinishedAuctions {
+    auctions(where: { isFinalized: true }) {
       id
       auctionId
       ark {
@@ -29,37 +30,50 @@ const AUCTIONS_QUERY = `
       endPrice
       tokensLeft
       tokensLeftNormalized
-      kickerRewardPercentage
-      decayType
-      duration
       isFinalized
+      purchases {
+        id
+        buyer {
+          id
+        }
+        tokensPurchased
+        tokensPurchasedNormalized
+        pricePerToken
+        pricePerTokenNormalized
+        totalCost
+        totalCostNormalized
+        timestamp
+        marketPriceInUSDNormalized
+        buyPriceInUSDNormalized
+      }
     }
   }
 `
+
 export async function GET() {
   try {
-    const allAuctions = await Promise.all(
+    const allFinishedAuctions = await Promise.all(
       Object.entries(CHAIN_CONFIGS).map(async ([chainId, config]) => {
         const response = await fetch(config.subgraphEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            query: AUCTIONS_QUERY,
+            query: FINISHED_AUCTIONS_QUERY,
           }),
           next: {
-            revalidate: 60 * 5, // 5 minutes
+            revalidate: 60 * 15, // 15 minutes since historical data changes less frequently
           },
         })
 
         const data = await response.json()
         return {
-          chainId: parseInt(chainId),
+          chainId: CHAIN_CONFIGS[parseInt(chainId)].id,
           auctions: data.data.auctions,
         }
       }),
     )
-    return Response.json({ auctions: allAuctions })
+    return Response.json({ auctions: allFinishedAuctions })
   } catch (error) {
-    return Response.json({ error: 'Failed to fetch auctions' }, { status: 500 })
+    return Response.json({ error: 'Failed to fetch finished auctions' }, { status: 500 })
   }
 }
