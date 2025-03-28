@@ -1,0 +1,288 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity ^0.8.28;
+
+import {Test, console} from "forge-std/Test.sol";
+import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {MockAdapter} from "../mocks/MockAdapter.sol";
+import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+
+contract BridgeRouterReadStateTest is Test {
+    BridgeRouterTestHelper public router;
+    MockAdapter public mockAdapter;
+    MockAdapter public mockAdapter2;
+    ERC20Mock public token;
+    ProtocolAccessManager public accessManager;
+    MockCrossChainReceiver public mockReceiver;
+
+    address public governor = address(0x1);
+    address public user = address(0x2);
+
+    // Constants for testing
+    uint16 public constant DEST_CHAIN_ID = 10; // Optimism
+    uint256 public constant TRANSFER_AMOUNT = 1000e18;
+
+    uint8 constant OPTION_TYPE_EXECUTOR = 1;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 7;
+
+    function setUp() public {
+        // Deploy access manager and set up roles
+        accessManager = new ProtocolAccessManager(governor);
+
+        vm.startPrank(governor);
+
+        // Deploy BridgeRouter and adapters
+        router = new BridgeRouterTestHelper(address(accessManager));
+
+        mockAdapter = new MockAdapter(address(router));
+        mockAdapter2 = new MockAdapter(address(router));
+        token = new ERC20Mock();
+        mockReceiver = new MockCrossChainReceiver();
+
+        // Setup mock adapter
+
+        mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
+        mockAdapter.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
+
+        // Register adapter
+        router.registerAdapter(address(mockAdapter));
+
+        // Mint tokens for testing
+        token.mint(user, 10000e18);
+
+        vm.stopPrank();
+    }
+
+    // ---- READ STATE TESTS ----
+
+    function testReadState() public {
+        vm.startPrank(user);
+
+        vm.deal(user, 4 ether);
+
+        // Create bridge options
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            });
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0), // Auto-select
+            adapterParams: adapterParams
+        });
+
+        (uint256 fee, , address selectedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            0,
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        options.specifiedAdapter = selectedAdapter;
+
+        // Read state
+        bytes32 requestId = router.readState{value: fee}(
+            DEST_CHAIN_ID,
+            address(token),
+            bytes4(keccak256("getBalance(address)")),
+            abi.encode(user),
+            options
+        );
+
+        // Verify request was initiated
+        assertEq(
+            uint256(router.operationStatuses(requestId)),
+            uint256(BridgeTypes.OperationStatus.PENDING)
+        );
+        assertEq(router.operationToAdapter(requestId), address(mockAdapter));
+        assertEq(router.readRequestToOriginator(requestId), user);
+
+        vm.stopPrank();
+    }
+
+    function testDeliverReadResponse() public {
+        // Use mockReceiver instead of user as the originator
+        vm.startPrank(address(mockReceiver));
+
+        vm.deal(address(mockReceiver), 6000 ether);
+
+        // Create bridge options
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            });
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0), // Auto-select
+            adapterParams: adapterParams
+        });
+
+        (uint256 fee, , address selectedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(0x123),
+            0,
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        options.specifiedAdapter = selectedAdapter;
+
+        // Read state
+        bytes32 requestId = router.readState{value: fee}(
+            DEST_CHAIN_ID,
+            address(0x123),
+            bytes4(keccak256("getBalance(address)")),
+            abi.encode(user),
+            options
+        );
+
+        vm.stopPrank();
+
+        router.setOperationToAdapter(requestId, address(mockAdapter));
+
+        // Now deliver the response from the adapter
+        vm.prank(address(mockAdapter));
+        router.deliverReadResponse(requestId, abi.encode(uint256(100)));
+
+        // Verify response was COMPLETED
+        assertEq(
+            uint256(router.operationStatuses(requestId)),
+            uint256(BridgeTypes.OperationStatus.COMPLETED)
+        );
+
+        // Verify that the mockReceiver received the data
+        assertEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
+        assertEq(mockReceiver.lastSender(), address(mockReceiver));
+        assertEq(mockReceiver.lastMessageId(), requestId);
+    }
+
+    function testDeliverReadResponseUnauthorized() public {
+        // Use mockReceiver instead of user as the originator
+        // Fund the mockReceiver with ETH to pay the fee
+        vm.deal(address(mockReceiver), 4 ether);
+
+        vm.startPrank(address(mockReceiver));
+
+        // Create bridge options
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            });
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter), // Explicitly select mockAdapter
+            adapterParams: adapterParams
+        });
+
+        // Get the fee estimation
+        (uint256 fee, , address selectedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(0),
+            0,
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        // Update options with the selected adapter
+        options.specifiedAdapter = selectedAdapter;
+
+        // Read state with the required fee
+        bytes32 requestId = router.readState{value: fee}(
+            DEST_CHAIN_ID,
+            address(0x123),
+            bytes4(keccak256("getBalance(address)")),
+            abi.encode(user),
+            options
+        );
+
+        vm.stopPrank();
+
+        // Should revert when non-adapter tries to deliver response
+        vm.prank(address(0x999)); // Random non-adapter address
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
+        router.deliverReadResponse(requestId, abi.encode(uint256(100)));
+
+        // Register second adapter
+        vm.prank(governor);
+        router.registerAdapter(address(mockAdapter2));
+
+        // Should revert when wrong adapter tries to deliver response
+        vm.prank(address(mockAdapter2));
+        vm.expectRevert(IBridgeRouter.Unauthorized.selector);
+        router.deliverReadResponse(requestId, abi.encode(uint256(100)));
+    }
+
+    function testDeliverReadResponseReceiverRejects() public {
+        // Use mockReceiver instead of user as the originator
+        vm.startPrank(address(mockReceiver));
+
+        // Fund mockReceiver (not user) with ETH
+        vm.deal(address(mockReceiver), 6000 ether);
+        vm.deal(user, 6000 ether);
+
+        // Configure the receiver to reject the call
+        mockReceiver.setReceiveSuccess(false);
+
+        // Create bridge options
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            });
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            adapterParams: adapterParams
+        });
+
+        // Get the fee estimation
+        (uint256 fee, , address selectedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(0x123),
+            0,
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        // Update options with the selected adapter
+        options.specifiedAdapter = selectedAdapter;
+
+        // Read state
+        bytes32 requestId = router.readState{value: fee}(
+            DEST_CHAIN_ID,
+            address(0x123),
+            bytes4(keccak256("getBalance(address)")),
+            abi.encode(user),
+            options
+        );
+
+        vm.stopPrank();
+
+        // Attempt to deliver the response, should revert with ReceiverRejectedCall
+        vm.prank(address(mockAdapter));
+        router.deliverReadResponse(requestId, abi.encode(uint256(100)));
+        assertEq(
+            uint256(router.operationStatuses(requestId)),
+            uint256(BridgeTypes.OperationStatus.FAILED)
+        );
+    }
+}
