@@ -52,6 +52,12 @@ dataSources:
           file: ./abis/silo/ISilo.json
         - name: IGauge
           file: ./abis/silo/IGauge.json
+        - name: IRewardDistributor
+          file: ./abis/moonwell/IRewardDistributor.json
+        - name: IComptroller
+          file: ./abis/moonwell/IComptroller.json
+        - name: IMToken
+          file: ./abis/moonwell/IMToken.json
         - name: OneInchOracle
           file: ./abis/oracles/one-inch-oracle.json
         - name: AaveV3Oracle

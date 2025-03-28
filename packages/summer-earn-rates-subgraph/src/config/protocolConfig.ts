@@ -590,6 +590,12 @@ class ProtocolConfig {
           BigInt.fromI32(27276276),
           'Moonwell',
         ),
+        new MoonwellProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22'),
+          BigInt.fromI32(27276276),
+          'Moonwell',
+        ),
       ]),
       new Protocol('Sky', [
         new SkySUSDSProduct(
