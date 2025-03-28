@@ -464,6 +464,13 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     const bufferArkAddress = vaultContract.bufferArk()
 
+    const activeArks = vaultContract.getActiveArks()
+    for (let i = 0; i < activeArks.length; i++) {
+      const arkAddress = activeArks[i]
+      const ark = getOrCreateArk(vault, arkAddress, block)
+      vault.arksArray.push(ark.id)
+    }
+
     vault.save()
 
     const bufferArk = getOrCreateArk(vault, bufferArkAddress, block)
