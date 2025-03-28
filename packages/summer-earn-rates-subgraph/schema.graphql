@@ -94,6 +94,7 @@ type Product @entity {
   network: String!
   pool: String!
   interestRates: [InterestRate!]! @derivedFrom(field: "product")
+  rewardsInterestRates: [RewardsInterestRate!]! @derivedFrom(field: "product")
   dailyInterestRates: [DailyInterestRate!]! @derivedFrom(field: "product")
   hourlyInterestRates: [HourlyInterestRate!]! @derivedFrom(field: "product")
   weeklyInterestRates: [WeeklyInterestRate!]! @derivedFrom(field: "product")
