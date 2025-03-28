@@ -5,6 +5,7 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {IExecutorFeeLib} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/interfaces/IExecutorFeeLib.sol";
+import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
@@ -23,9 +24,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
     function testDirectReadState() public {
         useNetworkA();
-        vm.deal(user, 1 ether);
-
-        vm.startPrank(user);
 
         // Create adapter params with empty options
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
@@ -35,16 +33,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 msgValue: 0,
                 options: bytes("")
             });
-
-        // We expect this call to revert with Executor_UnsupportedOptionType(5)
-        // This is because the LayerZeroOptionsHelper.createLzReadOptions is creating
-        // options of type 5, which is not supported by the mock executor when !_isRead
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IExecutorFeeLib.Executor_UnsupportedOptionType.selector,
-                5
-            )
-        );
 
         // Call readState directly on the adapter
         vm.mockCall(
@@ -59,7 +47,33 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             abi.encode()
         );
 
+        bytes32 requestId = keccak256(
+            abi.encode(
+                CHAIN_ID_B,
+                address(tokenB),
+                bytes4(keccak256("balanceOf(address)")),
+                abi.encode(recipient),
+                block.timestamp,
+                address(user)
+            )
+        );
+
+        routerA.setOperationToAdapter(requestId, address(adapterA));
+
+        vm.startPrank(governor);
+        adapterA.activateReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1);
+        vm.stopPrank();
+
+        // We expect this call to revert with LZ_DefaultSendLibUnavailable
+        // This is because the LayerZeroOptionsHelper.createLzReadOptions is creating
+        // options of type 5, which is not supported by the mock executor when !_isRead
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.LZ_DefaultSendLibUnavailable.selector)
+        );
+        vm.deal(address(routerA), 1 ether);
+        vm.prank(address(routerA));
         adapterA.readState{value: 0.1 ether}(
+            CHAIN_ID_A,
             CHAIN_ID_B,
             address(tokenB),
             bytes4(keccak256("balanceOf(address)")),
@@ -67,8 +81,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             address(user),
             adapterParams
         );
-
-        vm.stopPrank();
     }
 
     function testDirectSendMessage() public {
@@ -83,12 +95,25 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         // Create adapter params with appropriate gas limit for GENERAL_MESSAGE
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
-                gasLimit: 500000, // Use the minimum gas limit for GENERAL_MESSAGE
+                gasLimit: 500000,
                 calldataSize: 0,
                 msgValue: 0,
                 options: bytes("")
             });
 
+        bytes32 requestId = keccak256(
+            abi.encode(
+                CHAIN_ID_A,
+                CHAIN_ID_B,
+                recipient,
+                message,
+                block.timestamp
+            )
+        );
+
+        routerA.setOperationToAdapter(requestId, address(adapterA));
+
+        vm.deal(address(routerA), 1 ether);
         // Call sendMessage directly on the adapter
         bytes32 messageId = adapterA.sendMessage{value: 0.1 ether}(
             CHAIN_ID_B,
@@ -133,7 +158,8 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         // Set up message parameters
         bytes memory message = abi.encode("Test message from Chain A");
-        bytes32 messageId = keccak256(abi.encode("unique-id"));
+        bytes32 guid = keccak256(abi.encode("unique-id"));
+        bytes32 operationId = keccak256(abi.encode("more-unique-id"));
 
         // Create origin information
         Origin memory origin = Origin({
@@ -145,7 +171,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         // Format the payload as GENERAL_MESSAGE type with recipient info
         bytes memory payload = abi.encodePacked(
             uint16(adapterA.GENERAL_MESSAGE()),
-            abi.encode(message, address(mockReceiver), messageId)
+            abi.encode(message, address(mockReceiver), operationId)
         );
 
         // Mock the router's notifyMessageReceived function
@@ -155,18 +181,20 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             abi.encode()
         );
 
+        adapterA.setLzMessageToOperationId(guid, operationId);
+
         // Call lzReceive directly on adapterA to simulate message receipt
         vm.prank(address(lzEndpointA));
         adapterA.lzReceiveTest(
             origin,
-            messageId,
+            guid,
             payload,
             address(adapterB),
             bytes("")
         );
 
         // Verify the mock receiver received the message
-        assertEq(mockReceiver.lastMessageId(), messageId);
+        assertEq(mockReceiver.lastMessageId(), operationId);
         assertEq(mockReceiver.lastReceivedData(), message);
     }
 

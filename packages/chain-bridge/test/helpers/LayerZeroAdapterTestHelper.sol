@@ -39,20 +39,26 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     /**
      * @notice Test function for lzReceive
      * @param origin Origin of the message
-     * @param requestId Request ID of the message
+     * @param guid Guid of the message
      * @param payload Message payload
      * @param sender Sender of the message
      * @param extraData Extra data of the message
      */
     function lzReceiveTest(
         Origin calldata origin,
-        bytes32 requestId,
+        bytes32 guid,
         bytes calldata payload,
         address sender,
         bytes calldata extraData
     ) external {
-        console.log("lzReceiveTest called");
-        _lzReceive(origin, requestId, payload, sender, extraData);
+        _lzReceive(origin, guid, payload, sender, extraData);
+    }
+
+    function setLzMessageToOperationId(
+        bytes32 guid,
+        bytes32 operationId
+    ) external {
+        lzMessageToOperationId[guid] = operationId;
     }
 
     /**

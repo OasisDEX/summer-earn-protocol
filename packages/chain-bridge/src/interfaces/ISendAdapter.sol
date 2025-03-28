@@ -33,8 +33,9 @@ interface ISendAdapter {
     /// @notice Emitted when a read request is initiated through the adapter
     event ReadRequestInitiated(
         bytes32 indexed requestId,
-        uint16 sourceChainId,
-        address sourceContract,
+        uint16 srcChainId,
+        uint16 dstChainId,
+        address dstContract,
         bytes4 selector
     );
 
@@ -67,8 +68,9 @@ interface ISendAdapter {
 
     /**
      * @notice Read state from a contract on a source chain
-     * @param sourceChainId ID of the source chain
-     * @param sourceContract Address of the contract on the source chain
+     * @param srcChainId ID of the source chain
+     * @param dstChainId ID of the destination chain
+     * @param dstContract Address of the contract on the destination chain
      * @param selector Function selector to call
      * @param readParams Parameters for the function call
      * @param originator Address that initiated the read (for refunds)
@@ -77,8 +79,9 @@ interface ISendAdapter {
      * @dev Initiates a cross-chain state read operation
      */
     function readState(
-        uint16 sourceChainId,
-        address sourceContract,
+        uint16 srcChainId,
+        uint16 dstChainId,
+        address dstContract,
         bytes4 selector,
         bytes calldata readParams,
         address originator,

@@ -143,25 +143,25 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
     }
 
     function testStateRead() public {
-        // Create a requestId that we'll use for both sending and receiving
-        bytes32 requestId = bytes32(uint256(1));
+        // Create a operationId that we'll use for both sending and receiving
+        bytes32 operationId = bytes32(uint256(1));
 
         // Use the test helper's methods to set up the initial state
-        routerA.setOperationToAdapter(requestId, address(adapterA));
+        routerA.setOperationToAdapter(operationId, address(adapterA));
 
         // Set the originator for the read request to our mock receiver instead of user
-        routerA.setReadRequestOriginator(requestId, address(mockReceiver));
+        routerA.setReadRequestOriginator(operationId, address(mockReceiver));
 
         vm.startPrank(address(this)); // Acting as the test contract
         adapterA.updateOperationStatus(
-            requestId,
+            operationId,
             BridgeTypes.OperationStatus.PENDING
         );
         vm.stopPrank();
 
         // Verify pending status on chain A
         assertEq(
-            uint256(routerA.operationStatuses(requestId)),
+            uint256(routerA.operationStatuses(operationId)),
             uint256(BridgeTypes.OperationStatus.PENDING)
         );
 
@@ -179,10 +179,13 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             nonce: 1
         });
 
+        bytes32 guid = keccak256(abi.encodePacked(payload));
+
+        adapterA.setLzMessageToOperationId(guid, operationId);
         // Call lzReceiveTest with the proper parameters
         adapterA.lzReceiveTest(
             origin,
-            requestId,
+            guid,
             payload,
             address(adapterB),
             bytes("")
@@ -190,12 +193,12 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
 
         // Verify the request status is now COMPLETED
         assertEq(
-            uint256(routerA.operationStatuses(requestId)),
+            uint256(routerA.operationStatuses(operationId)),
             uint256(BridgeTypes.OperationStatus.COMPLETED)
         );
 
         // Verify the mock receiver received the correct data
-        assertEq(mockReceiver.lastMessageId(), requestId);
+        assertEq(mockReceiver.lastMessageId(), operationId);
         assertEq(
             abi.decode(mockReceiver.lastReceivedData(), (uint256)),
             mockReadValue

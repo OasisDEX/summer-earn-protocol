@@ -499,6 +499,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     /// @inheritdoc ISendAdapter
     function readState(
         uint16,
+        uint16,
         address,
         bytes4,
         bytes calldata,

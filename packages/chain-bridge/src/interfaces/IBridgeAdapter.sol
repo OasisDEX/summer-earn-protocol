@@ -21,6 +21,9 @@ interface IBridgeAdapter is ISendAdapter {
         address recipient
     );
 
+    /// @notice Emitted when a read operation is not found through the adapter
+    event ReadOperationNotFound(bytes32 indexed guid, string reason);
+
     /// @notice Emitted when a message is delivered through the adapter
     event MessageDelivered(
         bytes32 indexed messageId,
@@ -62,6 +65,9 @@ interface IBridgeAdapter is ISendAdapter {
 
     /// @notice Thrown when insufficient fee is provided for an operation
     error InsufficientFee(uint256 required, uint256 provided);
+
+    /// @notice Thrown when a read channel is not configured for a chain
+    error ReadChannelNotConfigured();
 
     /**
      * @notice Estimate fees for a cross-chain operation

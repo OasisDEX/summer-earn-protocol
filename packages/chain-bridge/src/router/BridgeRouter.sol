@@ -301,6 +301,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Let the adapter handle gas limits and other options
         // Pass msg.sender for refunds, but only forward the base fee
         operationId = IBridgeAdapter(adapter).readState{value: baseFee}(
+            uint16(block.chainid),
             dstChainId,
             dstContract,
             selector,
