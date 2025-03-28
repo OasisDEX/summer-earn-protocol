@@ -34,7 +34,8 @@
 
 ## Pending Tasks
 - [ ] How to handle bridging executions - access control or queued jobs?
-- [ ] Guids on _lzSend // not sure this works
+- [x] Guids on _lzSend // not sure this works
+- [ ] Add fees back in
 
 ### Integration Testing
 - [ ] Integration tests with StargateRouter — all via BridgeRouter

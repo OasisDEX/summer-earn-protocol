@@ -277,7 +277,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             revert UnsupportedAdapterOperation();
         }
 
-        // Get the total fee using our internal function with READ_STATE type
+        // // Get the total fee using our internal function with READ_STATE type
         (uint256 totalFee, , ) = _quote(
             dstChainId,
             address(0), // No asset for state reads

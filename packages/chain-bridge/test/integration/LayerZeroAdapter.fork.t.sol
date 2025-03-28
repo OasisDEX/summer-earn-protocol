@@ -23,7 +23,7 @@ contract LayerZeroIntegrationTest is Test {
     address public recipient = address(0x4);
 
     uint16 public constant DEST_CHAIN_ID = 42161; // Arbitrum
-    uint32 public constant ARB_LZ_EID = 30184;
+    uint32 public constant ARB_LZ_EID = 30110; // Correct LZ v2 EID for Arbitrum One
 
     // LZ specific config
     address public constant LZ_ENDPOINT_MAINNET =
@@ -32,7 +32,7 @@ contract LayerZeroIntegrationTest is Test {
     // Test setup
     uint256 public constant NATIVE_AMOUNT = 1 ether;
 
-    uint256 public constant FORK_BLOCK = 20_137_939;
+    uint256 public constant FORK_BLOCK = 22_145_762;
 
     function setUp() public {
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
@@ -61,7 +61,7 @@ contract LayerZeroIntegrationTest is Test {
         uint16[] memory supportedChains = new uint16[](1);
         uint32[] memory lzEids = new uint32[](1);
         supportedChains[0] = DEST_CHAIN_ID;
-        lzEids[0] = 30184; // LZ EID for Arbitrum
+        lzEids[0] = ARB_LZ_EID; // Use the constant instead of hardcoded value
 
         adapter = new LayerZeroAdapter(
             LZ_ENDPOINT_MAINNET,
@@ -75,10 +75,47 @@ contract LayerZeroIntegrationTest is Test {
         vm.startPrank(governor);
         router.registerAdapter(address(adapter));
 
-        // Set up peer for Arbitrum chain (this is what's missing)
-        // Convert the router address to bytes32 format
+        // Set up peer for Arbitrum chain
         bytes32 peerAddressBytes32 = bytes32(uint256(uint160(address(0x999))));
-        adapter.setPeer(30184, peerAddressBytes32);
+        adapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
+
+        // Activate the read channel for state reading operations
+        uint32 READ_CHANNEL_ID = 4294967295;
+        // https://docs.layerzero.network/v2/deployments/read-contracts
+        adapter.activateReadChannel(READ_CHANNEL_ID);
+
+        // Configure ReadLib1002 for lzRead functionality
+        address READ_LIB_1002 = 0x74F55Bc2a79A27A0bF1D1A35dB5d0Fc36b9FDB9D;
+
+        // Since governor is the OApp owner, we need to call the endpoint directly to set libraries
+        // This assumes we're working with ILayerZeroEndpointV2 interface
+        address lzEndpoint = LZ_ENDPOINT_MAINNET;
+
+        // Set send and receive libraries on the endpoint for our adapter (OApp)
+        // Note: We're mocking these calls since actual implementation would require properly formatted interfaces
+        (bool success, ) = lzEndpoint.call(
+            abi.encodeWithSignature(
+                "setSendLibrary(address,uint32,address)",
+                address(adapter), // OApp address
+                READ_CHANNEL_ID, // Read channel ID
+                READ_LIB_1002 // new library
+            )
+        );
+        require(success, "setSendLibrary failed");
+
+        (success, ) = lzEndpoint.call(
+            abi.encodeWithSignature(
+                "setReceiveLibrary(address,uint32,address,uint256)",
+                address(adapter), // OApp address
+                READ_CHANNEL_ID, // Read channel ID
+                READ_LIB_1002, // new library
+                0
+            )
+        );
+        require(success, "setReceiveLibrary failed");
+
+        // Configure read channel ID (assuming adapter has this capability)
+        adapter.setReadChannel(READ_CHANNEL_ID, true);
 
         vm.stopPrank();
 
@@ -150,32 +187,29 @@ contract LayerZeroIntegrationTest is Test {
 
         // Create bridge options
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
+            specifiedAdapter: address(0),
             adapterParams: adapterParams
         });
 
-        // Get quote for fees with explicit operation type
-        (uint256 nativeFee, , address selectedAdapter) = router.quote(
+        // Get quote for fees
+        (uint256 nativeFee, , ) = router.quote(
             DEST_CHAIN_ID,
-            address(0), // No asset for read operation
+            address(0), // No asset for state read
             0,
             options,
-            BridgeTypes.OperationType.READ_STATE // Specify operation type
+            BridgeTypes.OperationType.READ_STATE
         );
 
         // Define parameters for the state read
         bytes4 selector = bytes4(keccak256("balanceOf(address)"));
         bytes memory callData = abi.encode(user);
 
-        bytes32 operationId = router.readState{value: (nativeFee * 11) / 10}(
+        bytes32 operationId = router.readState{value: nativeFee}(
             DEST_CHAIN_ID,
             recipient,
             selector,
             callData,
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(selectedAdapter), // Use the same adapter
-                adapterParams: adapterParams
-            })
+            options
         );
 
         // Verify the operation was properly registered
