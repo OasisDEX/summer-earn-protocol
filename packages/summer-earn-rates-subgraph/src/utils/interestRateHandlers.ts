@@ -3,6 +3,7 @@ import {
   DailyInterestRate,
   HourlyInterestRate,
   InterestRate,
+  RewardsInterestRate,
   WeeklyInterestRate,
 } from '../../generated/schema'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
@@ -72,6 +73,25 @@ export function handleInterestRate(
     weeklyResult.weekTimestamp,
     weeklyResult.weeklyRateId,
   )
+
+  const rewardRates = product.getRewardsApys(block.timestamp, block.number)
+  for (let i = 0; i < rewardRates.length; i++) {
+    const reward = rewardRates[i]
+    const rewardRate = new RewardsInterestRate(
+      `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString()}`,
+    )
+    rewardRate.blockNumber = block.number
+    rewardRate.rate = reward.rate
+    rewardRate.timestamp = normalizedTimestamp
+    rewardRate.type = 'Supply'
+    rewardRate.protocol = protocolName
+    rewardRate.token = product.token.id
+    rewardRate.productId = product.name
+    rewardRate.product = product.name
+    rewardRate.rewardToken = reward.rewardToken.id
+
+    rewardRate.save()
+  }
 }
 
 function getDailyRateIdAndTimestamp(

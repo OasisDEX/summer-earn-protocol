@@ -1,4 +1,8 @@
-import { Address, dataSource } from '@graphprotocol/graph-ts'
+import { Address, BigInt, dataSource } from '@graphprotocol/graph-ts'
+import { AaveV3Oracle } from '../../generated/EntryPoint/AaveV3Oracle'
+import { FeedRegistry } from '../../generated/EntryPoint/FeedRegistry'
+import { OneInchOracle } from '../../generated/EntryPoint/OneInchOracle'
+import { SparkOracle } from '../../generated/EntryPoint/SparkOracle'
 
 export class ServiceAddresses {
   WSTETH: Address
@@ -11,6 +15,9 @@ export class ServiceAddresses {
   SDAI: Address
   DAI: Address
   EURC: Address
+  USD: Address
+  ETH: Address
+  BTC: Address
   FEED_REGISTRY: Address
   ONE_INCH_ORACLE_1: Address
   ONE_INCH_ORACLE_2: Address
@@ -38,34 +45,15 @@ export class ServiceAddresses {
   SUSDS: Address
 }
 
-//   export class Services {
-//     aaveLendingPool: AaveLendingPool;
-//     aaveDataProvider: AaveDataProvider;
-//     aavePriceOracle: AavePriceOracle;
-//     feedRegistry: FeedRegistry;
-//     aaveV3LendingPool: AaveV3LendingPool;
-//     aaveV3Oracle: AaveV3Oracle;
-//     aaveV3DataProvider: AaveV3DataProvider;
-//     sparkOracle: SparkOracle;
-//     sparkDataProvider: SparkDataProvider;
-//     sparkLendingPool: SparkLendingPool;
-//     oneInchOracle1: OneInchOracle;
-//     oneInchOracle2: OneInchOracle;
-//     oneInchOracle3: OneInchOracle;
-//     oneInchOracle4: OneInchOracle;
-//     aaveOracle: AaveOracle;
-//     sDaiOracle: SdaiOracle;
-//     cdpManager: CdpManager;
-//     dsProxyFactory: DsProxyFactory;
-//     susdeOracle: SusdeOracle;
-//     ilkRegistry: IlkRegistry;
-//     vat: Vat;
-//     morpho: Morpho;
-//     poolInfoUtils: PoolInfoUtils;
-//     ajnaPoolFactory: ERC20PoolFactory;
-//     ensReverseRegistry: EnsReverseResolver;
-//     ensRegistry: EnsRegistry;
-//   }
+export class Services {
+  feedRegistry: FeedRegistry
+  aaveV3Oracle: AaveV3Oracle
+  sparkOracle: SparkOracle
+  oneInchOracle1: OneInchOracle
+  oneInchOracle2: OneInchOracle
+  oneInchOracle3: OneInchOracle
+  oneInchOracle4: OneInchOracle
+}
 
 export function getAddressesProvider(): ServiceAddresses {
   const network = dataSource.network()
@@ -107,6 +95,9 @@ export function getAddressesProvider(): ServiceAddresses {
       PENDLE_ORACLE: Address.fromString('0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2'),
       SKY_USDS_PSM3: Address.fromString('0x0000000000000000000000000000000000000000'),
       SUSDS: Address.fromString('0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD'),
+      USD: Address.fromString('0x0000000000000000000000000000000000000348'),
+      ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
+      BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
     }
     return addresses
   } else if (network == 'optimism') {
@@ -146,6 +137,9 @@ export function getAddressesProvider(): ServiceAddresses {
       PENDLE_ORACLE: Address.fromString('0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2'),
       SKY_USDS_PSM3: Address.fromString('0x0000000000000000000000000000000000000000'),
       SUSDS: Address.fromString('0x0000000000000000000000000000000000000000'),
+      USD: Address.fromString('0x0000000000000000000000000000000000000348'),
+      ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
+      BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
     }
     return addresses
   } else if (network == 'base') {
@@ -185,6 +179,9 @@ export function getAddressesProvider(): ServiceAddresses {
       PENDLE_ORACLE: Address.fromString('0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2'),
       SKY_USDS_PSM3: Address.fromString('0x1601843c5E9bC251A3272907010AFa41Fa18347E'),
       SUSDS: Address.fromString('0x0000000000000000000000000000000000000000'),
+      USD: Address.fromString('0x0000000000000000000000000000000000000348'),
+      ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
+      BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
     }
     return addresses
   } else if (network == 'arbitrum-one') {
@@ -224,6 +221,9 @@ export function getAddressesProvider(): ServiceAddresses {
       PENDLE_ORACLE: Address.fromString('0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2'),
       SKY_USDS_PSM3: Address.fromString('0x0000000000000000000000000000000000000000'),
       SUSDS: Address.fromString('0x0000000000000000000000000000000000000000'),
+      USD: Address.fromString('0x0000000000000000000000000000000000000348'),
+      ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
+      BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
     }
     return addresses
   } else if (network == 'sonic-mainnet') {
@@ -263,6 +263,9 @@ export function getAddressesProvider(): ServiceAddresses {
       PENDLE_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
       SKY_USDS_PSM3: Address.fromString('0x0000000000000000000000000000000000000000'),
       SUSDS: Address.fromString('0x0000000000000000000000000000000000000000'),
+      USD: Address.fromString('0x0000000000000000000000000000000000000348'),
+      ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
+      BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
     }
     return addresses
   }
@@ -270,3 +273,56 @@ export function getAddressesProvider(): ServiceAddresses {
   throw new Error(`Unsupported network: ${network}`)
 }
 export const addresses = getAddressesProvider()
+
+export function getServicesProvider(): Services {
+  const addresses = getAddressesProvider()
+
+  const services: Services = {
+    feedRegistry: FeedRegistry.bind(addresses.FEED_REGISTRY),
+    oneInchOracle1: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_1),
+    oneInchOracle2: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_2),
+    oneInchOracle3: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_3),
+    oneInchOracle4: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_4),
+    aaveV3Oracle: AaveV3Oracle.bind(addresses.AAVE_V3_ORACLE),
+    sparkOracle: SparkOracle.bind(addresses.SPARK_ORACLE),
+  }
+  return services
+}
+
+export const services = getServicesProvider()
+
+/**
+ * @dev https://github.com/1inch/spot-price-aggregator
+ * */
+export function getOneInchOracle(blockNumber: BigInt): OneInchOracle | null {
+  const network = dataSource.network()
+  if (network == 'mainnet') {
+    if (blockNumber.toI32() > 18040583) {
+      return services.oneInchOracle4
+    } else if (blockNumber.toI32() > 17684577) {
+      return services.oneInchOracle3
+    } else if (blockNumber.toI32() > 16995101) {
+      return services.oneInchOracle2
+    } else if (blockNumber.toI32() > 12522266) {
+      return services.oneInchOracle1
+    }
+  }
+  if (network == 'optimism') {
+    if (blockNumber.toI32() > 108982420) {
+      return services.oneInchOracle4
+    } else if (blockNumber.toI32() > 106824951) {
+      return services.oneInchOracle3
+    } else if (blockNumber.toI32() > 86897611) {
+      return services.oneInchOracle2
+    } else if (blockNumber.toI32() > 0) {
+      return services.oneInchOracle1
+    }
+  }
+  if (network == 'base') {
+    return services.oneInchOracle1
+  }
+  if (network == 'arbitrum-one') {
+    return services.oneInchOracle1
+  }
+  return null
+}
