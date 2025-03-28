@@ -6,6 +6,7 @@ import { ISiloConfig } from '../../generated/EntryPoint/ISiloConfig'
 import { BigDecimalConstants } from '../constants/common'
 import { formatAmount } from '../utils/formatters'
 import { getOrCreateToken } from '../utils/initializers'
+import { aprToApy } from '../utils/math'
 import { getTokenPriceInUSD } from '../utils/price-helper'
 import { RewardRate } from './BaseVaultProduct'
 import { ERC4626Product } from './ERC4626Product'
@@ -22,7 +23,7 @@ export class SiloProduct extends ERC4626Product {
     const siloAsset = getOrCreateToken(silo.asset())
     const siloAssetPriceInUSD = getTokenPriceInUSD(
       Address.fromBytes(siloAsset.address),
-      blockTimestamp,
+      blockNumber,
     )
     const totalAssets = silo.totalAssets()
     const totalAssetsNormalized = formatAmount(totalAssets, siloAsset.decimals)
@@ -37,17 +38,17 @@ export class SiloProduct extends ERC4626Product {
       const emissionsPerSecondNormalized = formatAmount(emissionsPerSecond, rewardToken.decimals)
       const rewardTokenPrice = getTokenPriceInUSD(
         Address.fromBytes(rewardToken.address),
-        blockTimestamp,
+        blockNumber,
       )
       const emissionsPerSecondInUSD = emissionsPerSecondNormalized.times(rewardTokenPrice.price)
       const emissionsPerYearInUSD = emissionsPerSecondInUSD.times(
         BigDecimalConstants.SECONDS_PER_YEAR,
       )
-      const apy = emissionsPerYearInUSD
+      const apr = emissionsPerYearInUSD
         .div(totalAssetsNormalizedInUSD)
         .times(BigDecimalConstants.HUNDRED)
-      const rewardRate = new RewardRate(rewardToken, apy)
-      if (apy.gt(BigDecimalConstants.ZERO)) {
+      const rewardRate = new RewardRate(rewardToken, aprToApy(apr))
+      if (apr.gt(BigDecimalConstants.ZERO)) {
         rewardsRates.push(rewardRate)
       }
     }
