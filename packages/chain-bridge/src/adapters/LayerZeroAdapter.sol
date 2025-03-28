@@ -134,6 +134,16 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         minGasLimits[msgType] = gasLimit;
     }
 
+    /**
+     * @notice Activates a read channel for state reading operations
+     * @param _readChannelId The ID of the read channel to activate
+     * @dev Can only be called by the contract owner
+     */
+    function activateReadChannel(uint32 _readChannelId) external onlyOwner {
+        readChannelId = _readChannelId;
+        setReadChannel(_readChannelId, true);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             OAPP RECEIVER
     //////////////////////////////////////////////////////////////*/
@@ -438,14 +448,21 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         options = _prepareOptions(adapterParams, messageType);
 
         // Quote should use the same destination target as real message
-        uint32 dstEid = messageType == STATE_READ
-            ? READ_CHANNEL_THRESHOLD
-            : lzDstEid;
+        uint32 dstEid = lzDstEid;
 
         // Get the fee required
-        MessagingFee memory fee = _quote(dstEid, payload, options, false);
-
-        return (fee.nativeFee, fee.lzTokenFee);
+        if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            MessagingFee memory fee = _quote(
+                readChannelId,
+                payload,
+                options,
+                false
+            );
+            return (fee.nativeFee, fee.lzTokenFee);
+        } else {
+            MessagingFee memory fee = _quote(dstEid, payload, options, false);
+            return (fee.nativeFee, fee.lzTokenFee);
+        }
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -789,16 +806,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         }
 
         return chainId;
-    }
-
-    /**
-     * @notice Activates a specific read channel for this adapter
-     * @param channelId The read channel ID to activate
-     * @dev Can only be called by the contract owner
-     */
-    function activateReadChannel(uint32 channelId) external onlyOwner {
-        readChannelId = channelId; // Store the channel ID
-        setReadChannel(channelId, true);
     }
 
     /// @inheritdoc IBridgeAdapter
