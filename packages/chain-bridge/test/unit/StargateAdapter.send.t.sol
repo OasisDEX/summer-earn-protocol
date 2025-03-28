@@ -304,6 +304,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.prank(address(routerA));
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
         adapterA.readState(
+            CHAIN_ID_A,
             CHAIN_ID_B,
             address(tokenA),
             bytes4(0),

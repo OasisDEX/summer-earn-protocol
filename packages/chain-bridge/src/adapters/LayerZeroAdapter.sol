@@ -15,6 +15,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
+import {MessagingParams, MessagingFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -32,8 +33,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     address public immutable bridgeRouter;
 
     /// @notice Mapping of LayerZero message hashes to operation IDs
-    mapping(bytes32 lzMessageHash => bytes32 operationId)
-        public lzMessageToOperationId;
+    mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
     /// @notice Mapping of supported chains to their LayerZero chain IDs
     mapping(uint16 chainId => uint32 lzEid) public chainToLzEid;
@@ -51,7 +51,10 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     mapping(uint16 msgType => uint128 minGasLimit) public minGasLimits;
 
     /// @notice Read channel identifier for lzRead operations
-    uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Standard lzRead threshold
+    uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Used to identify responses
+
+    /// @notice Active read channel ID for sending read requests
+    uint32 public readChannelId;
 
     /// @notice Thrown when insufficient fee is provided for a layerzero operation
     error InsufficientFeeForOptions(uint256 required, uint256 provided);
@@ -150,7 +153,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address,
         bytes calldata
     ) internal override {
-        // Continue with existing message handling logic for non-read messages
         // Extract message type from the first 2 bytes if available
         uint16 messageType = GENERAL_MESSAGE; // Default to GENERAL_MESSAGE
         bytes calldata actualPayload = _payload;
@@ -172,7 +174,24 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Process based on message type
         if (messageType == GENERAL_MESSAGE) {
-            _handleGeneralMessage(actualPayload, srcChainId);
+            // IMPORTANT: Use actualPayload here instead of _payload
+            // This ensures we decode only the message data without the message type prefix
+            (bytes memory message, address recipient, bytes32 messageId) = abi
+                .decode(actualPayload, (bytes, address, bytes32));
+
+            // Check if this is a confirmation message to the BridgeRouter
+            if (_isConfirmationMessage(recipient, message)) {
+                (bytes32 operationId, BridgeTypes.OperationStatus status) = abi
+                    .decode(message, (bytes32, BridgeTypes.OperationStatus));
+                _handleConfirmationMessage(operationId, status);
+            } else {
+                _handleGeneralMessage(
+                    message,
+                    recipient,
+                    messageId,
+                    srcChainId
+                );
+            }
         } else {
             revert UnsupportedMessageType();
         }
@@ -180,24 +199,17 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /**
      * @dev Handles general messages
-     * @param _payload The message payload
+     * @param message The message payload
+     * @param recipient The recipient address of the message
+     * @param messageId The message ID
      * @param srcChainId The source chain ID
      */
     function _handleGeneralMessage(
-        bytes calldata _payload,
+        bytes memory message,
+        address recipient,
+        bytes32 messageId,
         uint16 srcChainId
     ) internal {
-        (bytes memory message, address recipient, bytes32 messageId) = abi
-            .decode(_payload, (bytes, address, bytes32));
-
-        // Check if this is a confirmation message to the BridgeRouter
-        if (_isConfirmationMessage(recipient, message)) {
-            (bytes32 operationId, BridgeTypes.OperationStatus status) = abi
-                .decode(message, (bytes32, BridgeTypes.OperationStatus));
-            _handleConfirmationMessage(operationId, status);
-            return;
-        }
-
         // Notify router about the received message, but don't call deliverMessage
         IBridgeRouter(bridgeRouter).notifyMessageReceived(
             messageId,
@@ -312,7 +324,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     ) internal {
         // Call receiveConfirmation on the BridgeRouter
         IBridgeRouter(bridgeRouter).receiveConfirmation(operationId, status);
-        _updateOperationStatus(operationId, status);
     }
 
     /**
@@ -327,10 +338,11 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes calldata _payload
     ) internal {
         // Extract requestId from the guid mapping
-        bytes32 requestId = lzMessageToOperationId[_guid];
-        if (requestId == bytes32(0)) {
-            // If no explicit mapping exists, use the guid itself as the requestId
-            requestId = _guid;
+        bytes32 operationId = lzMessageToOperationId[_guid];
+        if (operationId == bytes32(0)) {
+            // Siliently fail so it doesn't get locked with DVN
+            emit ReadOperationNotFound(_guid, "No operationId found");
+            return;
         }
 
         // For read responses, we don't need to call notifyTransferReceived
@@ -339,21 +351,24 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Forward the result to the bridge router
         bool delivered = false;
         try
-            IBridgeRouter(bridgeRouter).deliverReadResponse(requestId, _payload)
+            IBridgeRouter(bridgeRouter).deliverReadResponse(
+                operationId,
+                _payload
+            )
         {
             delivered = true;
         } catch (bytes memory reason) {
             // Mark as failed if delivery fails
             _updateOperationStatus(
-                requestId,
+                operationId,
                 BridgeTypes.OperationStatus.FAILED
             );
-            emit RelayFailed(requestId, reason);
+            emit RelayFailed(operationId, reason);
         }
 
         // Emit event for read response delivery
         if (delivered) {
-            emit ReadResponseDelivered(requestId, _payload, delivered);
+            emit ReadResponseDelivered(operationId, _payload, delivered);
         }
     }
 
@@ -393,18 +408,24 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Create appropriate payload based on message type
         bytes memory payload;
+        bytes memory options;
+
         if (messageType == STATE_READ) {
-            payload = abi.encodePacked(
-                uint16(STATE_READ),
-                abi.encode(
-                    bytes32(0), // dummy request ID
-                    address(0), // dummy contract
-                    bytes4(0), // dummy selector
-                    new bytes(0), // dummy params
-                    address(this)
-                )
-            );
+            // Construct a READ payload identical to readState implementation
+            EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
+            readRequests[0] = EVMCallRequestV1({
+                appRequestLabel: 1,
+                targetEid: lzDstEid,
+                isBlockNum: false,
+                blockNumOrTimestamp: uint64(block.timestamp),
+                confirmations: 15,
+                to: address(0x1), // Use a dummy address
+                callData: new bytes(0)
+            });
+
+            payload = ReadCodecV1.encode(0, readRequests);
         } else {
+            // For GENERAL_MESSAGE, use same encoding format as sendMessage
             bytes memory dummyMessage = abi.encode(
                 "dummy message for fee estimation"
             );
@@ -414,18 +435,17 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             );
         }
 
-        // Prepare options with the looked-up message type
-        bytes memory userOptions = _prepareOptions(adapterParams, messageType);
+        options = _prepareOptions(adapterParams, messageType);
 
-        // Get the fee required for user options
-        MessagingFee memory userFee = _quote(
-            lzDstEid,
-            payload,
-            userOptions,
-            false
-        );
+        // Quote should use the same destination target as real message
+        uint32 dstEid = messageType == STATE_READ
+            ? READ_CHANNEL_THRESHOLD
+            : lzDstEid;
 
-        return (userFee.nativeFee, userFee.lzTokenFee);
+        // Get the fee required
+        MessagingFee memory fee = _quote(dstEid, payload, options, false);
+
+        return (fee.nativeFee, fee.lzTokenFee);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -482,69 +502,78 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function readState(
-        uint16 sourceChainId,
+        uint16 srcChainId,
+        uint16 dstChainId,
         address dstContract,
         bytes4 selector,
         bytes calldata readParams,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 requestId) {
-        // Only the BridgeRouter should call this function
+    ) external payable returns (bytes32 operationId) {
+        // Only BridgeRouter should call this
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
-        // Generate a unique request ID
-        requestId = keccak256(
+        // Ensure a read channel has been configured
+        if (readChannelId == 0) revert ReadChannelNotConfigured();
+
+        // Generate operationId
+        operationId = keccak256(
             abi.encode(
-                sourceChainId,
+                block.chainid,
+                dstChainId,
                 dstContract,
                 selector,
                 readParams,
-                block.timestamp,
-                msg.sender
+                block.timestamp
             )
         );
 
-        // Get the LayerZero EID for source chain
-        uint32 lzSrcEid = _getLayerZeroEid(sourceChainId);
+        // Get the LayerZero EID for destination chain
+        uint32 lzDstEid = _getLayerZeroEid(dstChainId);
 
-        // If msgValue is specified in adapter options, ensure enough value was sent
+        // Check if enough value was sent if specified in adapter options
         if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
             revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
         }
 
-        // Encode the read state request payload
-        bytes memory payload = abi.encodePacked(
-            uint16(STATE_READ),
-            abi.encode(
-                requestId,
-                dstContract,
-                selector,
-                readParams,
-                address(this)
-            )
-        );
+        // Create EVMCallRequestV1 for the read request
+        EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
+        readRequests[0] = EVMCallRequestV1({
+            appRequestLabel: 1, // You can use a custom label
+            targetEid: lzDstEid,
+            isBlockNum: false, // Using timestamp
+            blockNumOrTimestamp: uint64(block.timestamp),
+            confirmations: 15, // Adjust based on chain requirements
+            to: dstContract,
+            callData: abi.encodePacked(selector, readParams)
+        });
 
-        // Create lzRead options with appropriate parameters for state reading
+        // Encode the read command properly using ReadCodecV1
+        bytes memory cmd = ReadCodecV1.encode(0, readRequests);
+
         bytes memory options = _prepareOptions(adapterParams, STATE_READ);
 
-        // Send message through OApp's _lzSend
-        _lzSend(
-            lzSrcEid,
-            payload,
+        // Send message through OApp's _lzSend to the configured read channel
+        MessagingReceipt memory receipt = _lzSend(
+            readChannelId, // Use the stored read channel ID, not the threshold
+            cmd,
             options,
             MessagingFee(msg.value, 0),
             payable(originator)
         );
 
+        lzMessageToOperationId[receipt.guid] = operationId;
+
         // Emit event for read request initiation
         emit ReadRequestInitiated(
-            requestId,
-            sourceChainId,
+            operationId,
+            srcChainId,
+            dstChainId,
             dstContract,
             selector
         );
 
-        return requestId;
+        return operationId;
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -576,7 +605,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes calldata message,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 messageId) {
+    ) external payable returns (bytes32 operationId) {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
@@ -584,7 +613,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
         // Generate a unique message ID
-        messageId = keccak256(
+        operationId = keccak256(
             abi.encode(
                 block.chainid,
                 destinationChainId,
@@ -594,10 +623,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             )
         );
 
-        // Store the message hash to operation ID mapping
-        // Don't have the message hash yet, but will be set in _lzSend callback
-        // lzMessageToOperationId[messageHash] = messageId;
-
         // If msgValue is specified in adapter options, ensure enough value was sent
         if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
             revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
@@ -606,14 +631,14 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Encode payload for LayerZero with GENERAL_MESSAGE message type
         bytes memory payload = abi.encodePacked(
             uint16(GENERAL_MESSAGE), // GENERAL_MESSAGE message type
-            abi.encode(message, recipient, messageId)
+            abi.encode(message, recipient, operationId)
         );
 
         // Create options with appropriate gas limit
         bytes memory options = _prepareOptions(adapterParams, GENERAL_MESSAGE);
 
         // Send message through OApp's _lzSend
-        _lzSend(
+        MessagingReceipt memory receipt = _lzSend(
             lzDstEid,
             payload,
             options,
@@ -621,15 +646,17 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             payable(originator)
         );
 
+        lzMessageToOperationId[receipt.guid] = operationId;
+
         // Emit event for message initiation
         emit MessageInitiated(
-            messageId,
+            operationId,
             destinationChainId,
             recipient,
             message
         );
 
-        return messageId;
+        return operationId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -770,6 +797,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
      * @dev Can only be called by the contract owner
      */
     function activateReadChannel(uint32 channelId) external onlyOwner {
+        readChannelId = channelId; // Store the channel ID
         setReadChannel(channelId, true);
     }
 

@@ -103,8 +103,9 @@ contract MockAdapter is IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function readState(
-        uint16 sourceChainId,
-        address sourceContract,
+        uint16 srcChainId,
+        uint16 dstChainId,
+        address dstContract,
         bytes4 selector,
         bytes calldata readParams,
         address originator,
@@ -114,14 +115,15 @@ contract MockAdapter is IBridgeAdapter {
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
         // Verify chain is supported
-        if (!this.supportsChain(sourceChainId)) revert UnsupportedChain();
+        if (!this.supportsChain(dstChainId)) revert UnsupportedChain();
 
         // Generate deterministic request ID for testing
         requestId = keccak256(
             abi.encodePacked(
                 block.chainid,
-                sourceChainId,
-                sourceContract,
+                srcChainId,
+                dstChainId,
+                dstContract,
                 selector,
                 readParams
             )
@@ -130,8 +132,9 @@ contract MockAdapter is IBridgeAdapter {
         // Mock read successful - emit event for testing
         emit MockReadInitiated(
             requestId,
-            sourceChainId,
-            sourceContract,
+            srcChainId,
+            dstChainId,
+            dstContract,
             selector,
             readParams,
             originator
@@ -236,8 +239,9 @@ contract MockAdapter is IBridgeAdapter {
 
     event MockReadInitiated(
         bytes32 requestId,
-        uint16 sourceChainId,
-        address sourceContract,
+        uint16 srcChainId,
+        uint16 dstChainId,
+        address dstContract,
         bytes4 selector,
         bytes readParams,
         address originator

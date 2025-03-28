@@ -113,8 +113,6 @@ contract LayerZeroIntegrationTest is Test {
             BridgeTypes.OperationType.MESSAGE
         );
 
-        console.log("Native fee required:", nativeFee);
-
         // Create a test message
         bytes memory message = abi.encode("Hello, Cross-Chain World!");
 
@@ -157,7 +155,7 @@ contract LayerZeroIntegrationTest is Test {
         });
 
         // Get quote for fees with explicit operation type
-        (uint256 nativeFee, , ) = router.quote(
+        (uint256 nativeFee, , address selectedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(0), // No asset for read operation
             0,
@@ -165,23 +163,17 @@ contract LayerZeroIntegrationTest is Test {
             BridgeTypes.OperationType.READ_STATE // Specify operation type
         );
 
-        console.log("Native fee for read operation:", nativeFee);
-
         // Define parameters for the state read
         bytes4 selector = bytes4(keccak256("balanceOf(address)"));
         bytes memory callData = abi.encode(user);
 
-        // Add this debug log to see the exact options being used
-        // console.logBytes(adapterParams.options);
-
-        // Use the same adapter for the actual operation
         bytes32 operationId = router.readState{value: (nativeFee * 11) / 10}(
             DEST_CHAIN_ID,
             recipient,
             selector,
             callData,
             BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(adapter), // Use the same adapter
+                specifiedAdapter: address(selectedAdapter), // Use the same adapter
                 adapterParams: adapterParams
             })
         );

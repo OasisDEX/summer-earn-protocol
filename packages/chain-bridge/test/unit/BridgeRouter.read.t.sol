@@ -47,6 +47,7 @@ contract BridgeRouterReadStateTest is Test {
         mockReceiver = new MockCrossChainReceiver();
 
         // Setup mock adapter
+
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
         mockAdapter.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
 
