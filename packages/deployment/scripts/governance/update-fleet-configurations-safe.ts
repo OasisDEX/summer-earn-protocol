@@ -288,12 +288,13 @@ async function handleSingleRewardToken(
   const txes: TransactionBase[] = []
   // Only update if any parameter has changed
   if (
-    BigInt(duration) !== currentDuration ||
+    BigInt(duration) != currentDuration ||
     startPrice !== currentStartPrice ||
     endPrice !== currentEndPrice ||
     kickerRewardPercentage !== currentKickerRewardPercentage ||
     decayType !== Number(currentDecayType)
   ) {
+    console.log(BigInt(duration) !== currentDuration, startPrice !== currentStartPrice, endPrice !== currentEndPrice, kickerRewardPercentage !== currentKickerRewardPercentage, decayType !== Number(currentDecayType))
     const setAuctionParamsCalldata = encodeFunctionData({
       abi: raft.abi,
       functionName: 'setArkAuctionParameters',
