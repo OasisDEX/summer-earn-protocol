@@ -41,6 +41,10 @@ export enum Token {
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
   EURC = 'eurc',
+  SEAM = 'seam',
+  REUL = 'reul',
+  WELL = 'well',
+  WS = 'ws',
 }
 
 export interface BaseConfig {

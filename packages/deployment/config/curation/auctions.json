@@ -28,5 +28,35 @@
     "duration": "4d",
     "kickerRewardPercentage": 0,
     "decayType": "linear"
+  },
+  {
+    "rewardTokenSymbol": "seam",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.00025,
+      "usdt": 0.5,
+      "usdc": 0.5,
+      "dai": 0.5,
+      "usde": 0.5,
+      "usdce": 0.5
+    },
+    "duration": "4d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear"
+  },
+  {
+    "rewardTokenSymbol": "ws",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.00025,
+      "usdt": 0.5,
+      "usdc": 0.5,
+      "dai": 0.5,
+      "usde": 0.5,
+      "usdce": 0.5
+    },
+    "duration": "4d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear"
   }
 ]
