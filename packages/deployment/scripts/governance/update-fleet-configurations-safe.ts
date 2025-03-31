@@ -111,11 +111,16 @@ const USDC_DECIMALS = 6n
 const WETH_DECIMALS = 18n
 
 function getAssetDecimals(assetSymbol: string): bigint {
-  switch (assetSymbol) {
-    case 'WETH':
+  switch (assetSymbol.toLowerCase()) {
+    case 'weth':
+    case 'reul':
+    case 'ws':
+    case 'seam':
       return WETH_DECIMALS
-    case 'USDC':
-    case 'USDT':
+    case 'usdc':
+    case 'usdce':
+    case 'usdt':
+    case 'eurc':
       return USDC_DECIMALS
     default:
       throw new Error(`Unknown asset symbol: ${assetSymbol}`)
@@ -161,11 +166,24 @@ function calculateAuctionMultipliers(
 
   // Start at 2x price and end at 0.1x price
   const startPrice = baseWithDecimals * 2n
-  const endPrice = baseWithDecimals / 10n // 0.1x
+  const endPrice = baseWithDecimals / 5n // 0.1x
 
   return { startPrice, endPrice }
 }
-
+const rewardsConfig: Record<number, Record<string, string[]>> = {
+  1: {
+    morpho: ['morpho'],
+    euler: ['reul'],
+  },
+  8453: {
+    morpho: ['morpho', 'seam'],
+    euler: ['ws'],
+  },
+  146: {
+    aave_v3: ['ws'],
+    euler: ['ws'],
+  },
+}
 async function createAuctionConfigurationTransaction(
   arkConfig: ArkConfig,
   fleetDeployment: FleetDeployment,
@@ -174,13 +192,41 @@ async function createAuctionConfigurationTransaction(
   raft: any, // TODO: Add proper type
 ): Promise<TransactionBase[] | null> {
   // Only configure auction parameters for Morpho and Euler arks
-  if (!['morpho', 'euler'].includes(arkConfig.ark)) {
+  if (!rewardsConfig[chainConfig.chainId][arkConfig.ark]) {
     return null
   }
-
+  const transactions: TransactionBase[] = []
   // Determine reward token based on ark type
-  const rewardTokenSymbol = arkConfig.ark === 'morpho' ? 'morpho' : 'reul'
-
+  const rewardTokenSymbols = rewardsConfig[chainConfig.chainId][arkConfig.ark]
+  for (const rewardTokenSymbol of rewardTokenSymbols) {
+    const txes = await handleSingleRewardToken(
+      rewardTokenSymbol,
+      fleetDeployment,
+      auctionsConfig,
+      chainConfig,
+      raft,
+      arkConfig,
+    )
+    if (txes && txes.length > 0) {
+      transactions.push(...txes)
+    }
+  }
+  return transactions
+}
+async function handleSingleRewardToken(
+  rewardTokenSymbol: string,
+  fleetDeployment: FleetDeployment,
+  auctionsConfig: AuctionConfig[],
+  chainConfig: ChainConfiguration,
+  raft: any,
+  arkConfig: ArkConfig,
+) {
+  if (rewardTokenSymbol === 'seam' && !arkConfig.arkSymbol.includes('seam')) {
+    console.log(
+      `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it does not support seam`,
+    )
+    return []
+  }
   // Find matching auction config
   const auctionConfig = auctionsConfig.find(
     (config) => config.rewardTokenSymbol.toLowerCase() === rewardTokenSymbol,
@@ -227,7 +273,7 @@ async function createAuctionConfigurationTransaction(
   const currentDecayType = currentAuctionParams[4] as bigint
 
   console.log(`\n🔄 Configuring ${arkConfig.ark.toUpperCase()} auction parameters: \n`)
-
+  console.log(`Reward token: ${rewardTokenSymbol.toUpperCase()}`)
   logValueComparison('Duration', currentDuration, duration, ' seconds')
   logValueComparison(
     'Start price',
@@ -279,7 +325,6 @@ async function createAuctionConfigurationTransaction(
       functionName: 'setSweepableToken',
       args: [arkConfig.arkAddress, rewardTokenAddress, true],
     })
-    console.log(setSweepableTokenCalldata)
     txes.push({
       to: raft.address,
       data: setSweepableTokenCalldata,
@@ -288,7 +333,6 @@ async function createAuctionConfigurationTransaction(
   }
   return txes
 }
-
 async function createConfigurationTransactions(
   fleetDeployment: FleetDeployment,
   arkConfig: ArkConfig,
@@ -548,15 +592,13 @@ async function main() {
       )
       continue
     }
-
     // Find matching fleet deployment by address and network
     const matchingFleet = fleetDeployments.find(
       (fleet) =>
         fleet.network === arkConfig.chain.toLowerCase() &&
-        fleet.assetSymbol === arkConfig.fleetAsset &&
+        fleet.assetSymbol.toLowerCase() === arkConfig.fleetAsset.toLowerCase() &&
         fleet.fleetAddress.toLowerCase() === arkConfig.fleetAddress.toLowerCase(),
     )
-
     if (!matchingFleet) {
       console.log(
         `⚠️ No matching fleet found for ${arkConfig.chain} ${arkConfig.fleetAsset} ` +

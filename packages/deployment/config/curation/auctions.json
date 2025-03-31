@@ -8,7 +8,8 @@
       "usdc": 1.66,
       "dai": 1.66,
       "usde": 1.66,
-      "usdce": 1.66
+      "usdce": 1.66,
+      "eurc": 1.5
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
@@ -23,7 +24,8 @@
       "usdc": 5.05,
       "dai": 5.05,
       "usde": 5.05,
-      "usdce": 5.05
+      "usdce": 5.05,
+      "eurc": 4.5
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
@@ -38,7 +40,8 @@
       "usdc": 0.5,
       "dai": 0.5,
       "usde": 0.5,
-      "usdce": 0.5
+      "usdce": 0.5,
+      "eurc": 0.45
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
@@ -53,7 +56,8 @@
       "usdc": 0.5,
       "dai": 0.5,
       "usde": 0.5,
-      "usdce": 0.5
+      "usdce": 0.5,
+      "eurc": 0.45
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
