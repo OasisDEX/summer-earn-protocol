@@ -13,6 +13,9 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
     using SafeERC20 for IERC20;
     MoonwellArk public eurcArk;
     MoonwellArk public usdsArk;
+
+    address public constant REWARDS_CONTROLLER =
+        0xe9005b078701e2A0948D2EaC43010D35870Ad9d2;
     address public constant MTOKEN_ADDRESS_EURC =
         0xb682c840B5F4FC58B20769E691A6fa1305A501a2;
     address public constant MTOKEN_ADDRESS_USDS =
@@ -76,6 +79,7 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         usdsArk.registerFleetCommander();
         vm.stopPrank();
 
+        vm.makePersistent(REWARDS_CONTROLLER);
         vm.makePersistent(MTOKEN_ADDRESS_EURC);
         vm.makePersistent(address(eurcArk));
         vm.makePersistent(address(usdsArk));
@@ -238,14 +242,12 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         vm.rollFork(forkId, 27282449 + 10000); // Fast forward few days
         vm.warp(block.timestamp + 1 days);
 
-        // verify there were no USDC rewards harvested
+        // verify there were no USDC and EURC rewards harvested
 
-        address[] memory rewardTokens = new address[](2);
+        address[] memory rewardTokens = new address[](1);
         rewardTokens[0] = WELL_ADDRESS;
-        rewardTokens[1] = UNDERLYING_ASSET_EURC;
-        uint256[] memory rewardAmounts = new uint256[](2);
-        rewardAmounts[0] = 99605552348385837293;
-        rewardAmounts[1] = 2940019;
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = 880211789792054323;
 
         vm.expectEmit();
         emit IArkEvents.ArkHarvested(rewardTokens, rewardAmounts);
