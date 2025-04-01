@@ -1,3 +1,5 @@
+pragma solidity ^0.8.28;
+
 struct MarketConfig {
     // The owner/admin of the emission config
     address owner;

@@ -138,13 +138,34 @@ contract SiloVaultArk is Ark {
     {
         AccruedRewards[] memory accruedRewards = incentivesController
             .claimRewards(address(this));
-        rewardTokens = new address[](accruedRewards.length);
-        rewardAmounts = new uint256[](accruedRewards.length);
+        address[] memory allRewardTokens = new address[](accruedRewards.length);
+        uint256[] memory allRewardAmounts = new uint256[](
+            accruedRewards.length
+        );
         for (uint256 i = 0; i < accruedRewards.length; i++) {
-            rewardTokens[i] = accruedRewards[i].rewardToken;
-            rewardAmounts[i] = accruedRewards[i].amount;
-            if (rewardAmounts[i] > 0) {
-                IERC20(rewardTokens[i]).safeTransfer(raft(), rewardAmounts[i]);
+            allRewardTokens[i] = accruedRewards[i].rewardToken;
+            allRewardAmounts[i] = accruedRewards[i].amount;
+            if (allRewardAmounts[i] > 0) {
+                IERC20(allRewardTokens[i]).safeTransfer(
+                    raft(),
+                    allRewardAmounts[i]
+                );
+            }
+        }
+        uint256 nonZeroRewardAmounts = 0;
+        for (uint256 i = 0; i < allRewardAmounts.length; i++) {
+            if (allRewardAmounts[i] > 0) {
+                nonZeroRewardAmounts++;
+            }
+        }
+        rewardTokens = new address[](nonZeroRewardAmounts);
+        rewardAmounts = new uint256[](nonZeroRewardAmounts);
+        uint256 index = 0;
+        for (uint256 i = 0; i < allRewardAmounts.length; i++) {
+            if (allRewardAmounts[i] > 0) {
+                rewardTokens[index] = allRewardTokens[i];
+                rewardAmounts[index] = allRewardAmounts[i];
+                index++;
             }
         }
     }
