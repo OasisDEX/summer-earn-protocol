@@ -8,7 +8,7 @@ import "../../src/contracts/arks/MoonwellArk.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 contract MoonwellArkTestFork is Test, ArkTestBase {
     using SafeERC20 for IERC20;
     MoonwellArk public eurcArk;
@@ -238,6 +238,17 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         vm.rollFork(forkId, 27282449 + 10000); // Fast forward few days
         vm.warp(block.timestamp + 1 days);
 
+        // verify there were no USDC rewards harvested
+
+        address[] memory rewardTokens = new address[](2);
+        rewardTokens[0] = WELL_ADDRESS;
+        rewardTokens[1] = UNDERLYING_ASSET_EURC;
+        uint256[] memory rewardAmounts = new uint256[](2);
+        rewardAmounts[0] = 99605552348385837293;
+        rewardAmounts[1] = 2940019;
+
+        vm.expectEmit();
+        emit IArkEvents.ArkHarvested(rewardTokens, rewardAmounts);
         vm.prank(keeper);
         Raft(raft).harvest(address(eurcArk), bytes(""));
 
