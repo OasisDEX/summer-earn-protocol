@@ -6,8 +6,10 @@ import {ISilo} from "../../interfaces/silo/ISilo.sol";
 import {ISiloIncentivesController, AccruedRewards} from "../../interfaces/silo/ISiloIncentivesController.sol";
 import {ISiloConfig, ConfigData} from "../../interfaces/silo/ISiloConfig.sol";
 import {IGaugeHookReceiver} from "../../interfaces/silo/IGaugeHookReceiver.sol";
+
 error InvalidSiloAddress();
 error InvalidIncentivesControllerAddress();
+error InvalidGaugeAddress();
 
 /**
  * @title SiloVaultArk
