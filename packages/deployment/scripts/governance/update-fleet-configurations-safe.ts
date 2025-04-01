@@ -294,7 +294,13 @@ async function handleSingleRewardToken(
     kickerRewardPercentage !== currentKickerRewardPercentage ||
     decayType !== Number(currentDecayType)
   ) {
-    console.log(BigInt(duration) !== currentDuration, startPrice !== currentStartPrice, endPrice !== currentEndPrice, kickerRewardPercentage !== currentKickerRewardPercentage, decayType !== Number(currentDecayType))
+    console.log(
+      BigInt(duration) !== currentDuration,
+      startPrice !== currentStartPrice,
+      endPrice !== currentEndPrice,
+      kickerRewardPercentage !== currentKickerRewardPercentage,
+      decayType !== Number(currentDecayType),
+    )
     const setAuctionParamsCalldata = encodeFunctionData({
       abi: raft.abi,
       functionName: 'setArkAuctionParameters',
