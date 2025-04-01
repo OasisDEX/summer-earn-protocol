@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: Raft
-    network: arbitrum-one
+    network: mainnet
     source:
       abi: Raft
       address: "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
-      startBlock: 301218512
+      startBlock: 21745357
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -26,6 +26,14 @@ dataSources:
           file: ./abis/oracles/aave-v3-oracle.json
         - name: SdaiOracle
           file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
         - name: Ark
           file: ./abis/Ark.abi.json
         - name: FleetCommander

@@ -94,7 +94,7 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
-        OApp(params.endpoint, address(params.timelock))
+        OApp(params.endpoint, address(params.initialOwner))
         DecayController(address(params.token))
         Ownable(address(params.initialOwner))
     {

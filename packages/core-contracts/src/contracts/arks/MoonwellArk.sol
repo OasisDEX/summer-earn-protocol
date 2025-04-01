@@ -193,11 +193,11 @@ contract MoonwellArk is Ark {
 
         // If no time has passed, use stored rate
         if (accrualBlockTimestampPrior == block.timestamp) {
-            return (shares * storedExchangeRate) / 1e18;
+            return shares.mulWadDown(storedExchangeRate);
         }
 
         uint256 exchangeRate = _calculateCurrentExchangeRate();
-        return (shares * exchangeRate) / 1e18;
+        return shares.mulWadDown(exchangeRate);
     }
 
     function _calculateCurrentExchangeRate() internal view returns (uint256) {

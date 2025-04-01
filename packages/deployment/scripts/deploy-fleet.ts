@@ -24,7 +24,7 @@ import {
   createArkAdditionProposal,
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
-} from './fleets/governance-helpers'
+} from './fleets/fleet-governance-helpers'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
 import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
@@ -153,7 +153,13 @@ async function handleNewFleetDeployment(
 
     const deployedArkAddresses = await deployArks(fleetDefinition, config)
 
-    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress, deployedArkAddresses)
+    saveFleetDeploymentJson(
+      fleetDefinition,
+      deployedFleet,
+      bufferArkAddress,
+      deployedArkAddresses,
+      useBummerConfig,
+    )
 
     // Check if deployer has governor role
     const protocolAccessManager = await hre.viem.getContractAt(
@@ -205,9 +211,12 @@ async function handleNewFleetDeployment(
         fleetDefinition.rewardsDuration
       ) {
         try {
+          console.log('About to get rewards manager address')
           const rewardsManagerAddress = await getRewardsManagerAddress(
             deployedFleet.fleetCommander.address,
           )
+
+          console.log('rewardsManagerAddress', rewardsManagerAddress)
 
           await setupFleetRewards(
             rewardsManagerAddress,
@@ -401,7 +410,6 @@ async function handleArkAddition(
           config,
           fleetDefinition,
           useBummerConfig,
-          isTenderly,
         )
       }
     }
@@ -415,6 +423,7 @@ async function handleArkAddition(
       { fleetCommander: deploymentData.fleetCommander },
       deploymentData.bufferArk,
       updatedArkAddresses,
+      useBummerConfig,
     )
 
     console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))

@@ -1,0 +1,22 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDCe",
+  "fleetSymbol": "LVUSDCe",
+  "assetSymbol": "usdce",
+  "fleetAddress": "0x507A2D9E87DBD3076e65992049C41270b47964f8",
+  "bufferArkAddress": "0x809a0C98fac68a0c4319f3a3E864540C772562af",
+  "network": "sonic",
+  "initialMinimumBufferBalance": "100000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000",
+  "arkAddresses": [
+    "0x4D00D0dc44c4D6352C2bCb2228f2863e48cd53f4",
+    "0xDa50CE93aaE2c764532E5B11Dc6378Af3330a817",
+    "0x3002A7c8d5dC5CFaf81E747120B54D44bfAD5935"
+  ],
+  "arks": [
+    "0x4D00D0dc44c4D6352C2bCb2228f2863e48cd53f4",
+    "0xDa50CE93aaE2c764532E5B11Dc6378Af3330a817",
+    "0x3002A7c8d5dC5CFaf81E747120B54D44bfAD5935"
+  ]
+}

@@ -9,6 +9,7 @@ import { GenericVaultProduct } from '../products/GenericVault'
 import { MoonwellProduct } from '../products/Moonwell'
 import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
+import { SiloProduct } from '../products/Silo'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { getOrCreateToken } from '../utils/initializers'
 
@@ -110,6 +111,12 @@ class ProtocolConfig {
         new GearboxProduct(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xda0002859b2d05f66a753d8241fcde8623f26f4f'),
+          BigInt.fromI32(18798139),
+          'Gearbox',
+        ),
+        new GearboxProduct(
+          getOrCreateToken(addresses.WSTETH),
+          Address.fromString('0xFF94993fA7EA27Efc943645F95Adb36C1b81244b'),
           BigInt.fromI32(18798139),
           'Gearbox',
         ),
@@ -523,6 +530,12 @@ class ProtocolConfig {
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
+          Address.fromString('0x616a4E1db48e22028f6bbf20444Cd3b8e3273738'),
+          BigInt.fromI32(15620450),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
           Address.fromString('0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12'),
           BigInt.fromI32(15330380),
           'Morpho',
@@ -577,6 +590,12 @@ class ProtocolConfig {
           BigInt.fromI32(27276276),
           'Moonwell',
         ),
+        new MoonwellProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22'),
+          BigInt.fromI32(27276276),
+          'Moonwell',
+        ),
       ]),
       new Protocol('Sky', [
         new SkySUSDSProduct(
@@ -610,6 +629,20 @@ class ProtocolConfig {
           Address.fromString('0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3'),
           BigInt.fromI32(12744800),
           'AaveV3',
+        ),
+      ]),
+      new Protocol('Silo', [
+        new SiloProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x4E216C15697C1392fE59e1014B009505E05810Df'),
+          BigInt.fromI32(12744800),
+          'Silo',
+        ),
+        new SiloProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x322e1d5384aa4ED66AeCa770B95686271de61dc3'),
+          BigInt.fromI32(12744800),
+          'Silo',
         ),
       ]),
     ]

@@ -3,6 +3,7 @@ import { AaveV3PoolDataProvider } from '../../generated/EntryPoint/AaveV3PoolDat
 import { addresses } from '../constants/addresses'
 import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { RewardRate } from './BaseVaultProduct'
 
 export class AaveV3Product extends Product {
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
@@ -19,5 +20,8 @@ export class AaveV3Product extends Product {
       .toBigDecimal()
       .times(BigDecimalConstants.HUNDRED)
       .div(BigDecimalConstants.RAY)
+  }
+  getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
+    return []
   }
 }

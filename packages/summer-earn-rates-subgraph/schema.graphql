@@ -13,6 +13,19 @@ type InterestRate @entity(immutable: true) {
   weeklyRateId: WeeklyInterestRate!
 }
 
+type RewardsInterestRate @entity {
+  id: String!
+  type: String!
+  rate: BigDecimal!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  protocol: String!
+  token: Token!
+  productId: String!
+  product: Product!
+  rewardToken: Token!
+}
+
 type TimeHelper @entity {
   # id = address
   id: Bytes!
@@ -81,7 +94,16 @@ type Product @entity {
   network: String!
   pool: String!
   interestRates: [InterestRate!]! @derivedFrom(field: "product")
+  rewardsInterestRates: [RewardsInterestRate!]! @derivedFrom(field: "product")
   dailyInterestRates: [DailyInterestRate!]! @derivedFrom(field: "product")
   hourlyInterestRates: [HourlyInterestRate!]! @derivedFrom(field: "product")
   weeklyInterestRates: [WeeklyInterestRate!]! @derivedFrom(field: "product")
+}
+
+type TokenPrice @entity {
+  id: Bytes!
+  token: Token!
+  blockNumber: BigInt!
+  price: BigDecimal!
+  oracle: String!
 }

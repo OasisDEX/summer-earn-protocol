@@ -1,7 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address, Hex } from 'viem'
 import { SupportedNetworks } from '../../types/config-types'
+import { configureNewChainLayerZero } from '../bridge/configure-new-chain-lz'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
@@ -15,9 +17,45 @@ interface NetworkPeers {
   governorPeers: PeerConfig[]
 }
 
-export async function peerGov() {
+export async function peerGov(useBummerConfig = false) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
+
+  // Ask if user wants to run LZ configuration first
+  const { runLzConfig } = await prompts({
+    type: 'confirm',
+    name: 'runLzConfig',
+    message: 'Do you want to run LayerZero configuration for a new chain first?',
+    initial: false,
+  })
+
+  if (runLzConfig) {
+    console.log(kleur.cyan().bold('\nRunning LayerZero configuration for new chain...\n'))
+    try {
+      // Call the imported function directly instead of using exec
+      await configureNewChainLayerZero(useBummerConfig)
+      console.log(kleur.green().bold('\nLayerZero configuration completed!'))
+    } catch (error) {
+      console.error(kleur.red().bold('\nLayerZero configuration failed:'), error)
+
+      const { continueAnyway } = await prompts({
+        type: 'confirm',
+        name: 'continueAnyway',
+        message: 'Do you want to continue with peering anyway?',
+        initial: false,
+      })
+
+      if (!continueAnyway) {
+        console.log(kleur.yellow('Peering process aborted.'))
+        return
+      }
+    }
+  }
+
+  const config = getConfigByNetwork(
+    hre.network.name,
+    { common: false, gov: true, core: false },
+    useBummerConfig,
+  )
 
   if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
     throw new Error('LayerZero is not set up correctly')
@@ -35,14 +73,22 @@ export async function peerGov() {
   const publicClient = await hre.viem.getPublicClient()
 
   // Get peers using existing configuration logic
-  const peers = getPeersFromConfig(hre.network.name)
+  const peers = getPeersFromConfig(hre.network.name, useBummerConfig)
 
   // Set token peers
   console.log(kleur.cyan().bold('Setting token peers...'))
   for (const peer of peers.tokenPeers) {
-    console.log(`Setting token peer for endpoint ${peer.eid}: ${peer.address}`)
+    console.log(`Checking token peer for endpoint ${peer.eid}: ${peer.address}`)
     const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
+
     try {
+      // Check if peer already exists with the same address
+      const existingPeerAsBytes32 = await summerToken.read.peers([peer.eid])
+      if ((existingPeerAsBytes32 as string).toLowerCase() === peerAddressAsBytes32.toLowerCase()) {
+        console.log(kleur.yellow(`⚠ Token peer already set correctly for endpoint ${peer.eid}`))
+        continue
+      }
+
       const hash = await summerToken.write.setPeer([peer.eid, peerAddressAsBytes32])
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`✓ Token peer set successfully for endpoint ${peer.eid}`))
@@ -54,9 +100,16 @@ export async function peerGov() {
   // Set governor peers
   console.log(kleur.cyan().bold('\nSetting governor peers...'))
   for (const peer of peers.governorPeers) {
-    console.log(`Setting governor peer for endpoint ${peer.eid}: ${peer.address}`)
+    console.log(`Checking governor peer for endpoint ${peer.eid}: ${peer.address}`)
     const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
+
     try {
+      const existingPeerAsBytes32 = await summerGovernor.read.peers([peer.eid])
+      if ((existingPeerAsBytes32 as string).toLowerCase() === peerAddressAsBytes32.toLowerCase()) {
+        console.log(kleur.yellow(`⚠ Governor peer already set correctly for endpoint ${peer.eid}`))
+        continue
+      }
+
       const hash = await summerGovernor.write.setPeer([peer.eid, peerAddressAsBytes32])
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`✓ Governor peer set successfully for endpoint ${peer.eid}`))
@@ -69,27 +122,35 @@ export async function peerGov() {
 }
 
 // Reuse the existing peer configuration functions
-function getPeersFromConfig(sourceNetwork: string): NetworkPeers {
+function getPeersFromConfig(sourceNetwork: string, useBummerConfig = false): NetworkPeers {
   return {
-    tokenPeers: getTokenPeers(sourceNetwork),
-    governorPeers: getGovernorPeers(sourceNetwork),
+    tokenPeers: getTokenPeers(sourceNetwork, useBummerConfig),
+    governorPeers: getGovernorPeers(sourceNetwork, useBummerConfig),
   }
 }
 
-function getTokenPeers(sourceNetwork: string): PeerConfig[] {
-  return getPeersForContract(sourceNetwork, (config) => ({
-    address: config.deployedContracts?.gov?.summerToken?.address,
-    skipSatelliteToSatellite: false,
-    label: 'TOKEN',
-  }))
+function getTokenPeers(sourceNetwork: string, useBummerConfig = false): PeerConfig[] {
+  return getPeersForContract(
+    sourceNetwork,
+    (config) => ({
+      address: config.deployedContracts?.gov?.summerToken?.address,
+      skipSatelliteToSatellite: false,
+      label: 'TOKEN',
+    }),
+    useBummerConfig,
+  )
 }
 
-function getGovernorPeers(sourceNetwork: string): PeerConfig[] {
-  return getPeersForContract(sourceNetwork, (config) => ({
-    address: config.deployedContracts?.gov?.summerGovernor?.address,
-    skipSatelliteToSatellite: true,
-    label: 'GOVERNOR',
-  }))
+function getGovernorPeers(sourceNetwork: string, useBummerConfig = false): PeerConfig[] {
+  return getPeersForContract(
+    sourceNetwork,
+    (config) => ({
+      address: config.deployedContracts?.gov?.summerGovernor?.address,
+      skipSatelliteToSatellite: true,
+      label: 'GOVERNOR',
+    }),
+    useBummerConfig,
+  )
 }
 
 function getPeersForContract(
@@ -99,6 +160,7 @@ function getPeersForContract(
     skipSatelliteToSatellite: boolean
     label: string
   },
+  useBummerConfig = false,
 ): PeerConfig[] {
   const peers: PeerConfig[] = []
   const networks = Object.values(SupportedNetworks)
@@ -115,11 +177,15 @@ function getPeersForContract(
     }
 
     try {
-      const networkConfig = getConfigByNetwork(targetNetwork, {
-        common: true,
-        gov: true,
-        core: false,
-      })
+      const networkConfig = getConfigByNetwork(
+        targetNetwork,
+        {
+          common: false,
+          gov: true,
+          core: false,
+        },
+        useBummerConfig,
+      )
       const { address, skipSatelliteToSatellite, label } = getContractInfo(networkConfig)
       const layerZeroEID = networkConfig.common?.layerZero?.eID
 
@@ -164,7 +230,11 @@ function getPeersForContract(
 
 // Execute the script
 if (require.main === module) {
-  peerGov().catch((error) => {
+  // Parse command line arguments
+  const args = process.argv.slice(2)
+  const useBummerConfig = args.includes('--bummer')
+
+  peerGov(useBummerConfig).catch((error) => {
     console.error(kleur.red().bold('An error occurred:'), error)
     process.exit(1)
   })

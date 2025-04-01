@@ -13,9 +13,10 @@ type Auction @entity {
   tokensLeft: BigInt!
   tokensLeftNormalized: BigDecimal!
   kickerRewardPercentage: BigDecimal!
-decayType: String
+  decayType: String
   duration: BigInt!
   isFinalized: Boolean!
+  purchases: [TokensPurchased!]! @derivedFrom(field: "auction")
 }
 
 type TokensPurchased @entity {

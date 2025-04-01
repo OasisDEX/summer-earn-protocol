@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import { Address } from 'viem'
+import { CHAIN_MAP_BY_ID } from '../common/chain-config-map'
 import { getConfigByNetwork } from './config-handler'
 
 /**
@@ -38,13 +39,12 @@ export async function getHubChainInfo() {
  * @returns The name of the chain
  */
 export function getChainNameById(chainId: number): string {
-  const chainMap: Record<number, string> = {
-    1: 'mainnet',
-    8453: 'base',
-    42161: 'arbitrum',
+  const chainName = CHAIN_MAP_BY_ID[chainId]?.name
+  if (!chainName) {
+    throw new Error(`Chain name not found for chain ID: ${chainId}`)
   }
 
-  return chainMap[chainId] || `unknown-chain-${chainId}`
+  return chainName
 }
 
 /**
@@ -55,15 +55,11 @@ export function getChainNameById(chainId: number): string {
 export function getChainId(networkName?: string): number {
   const network = networkName || hre.network.name
 
-  const chainMap: Record<string, number> = {
-    mainnet: 1,
-    arbitrum: 42161,
-    base: 8453,
-  }
+  const chainId = CHAIN_MAP_BY_ID[network as keyof typeof CHAIN_MAP_BY_ID]?.id
 
-  if (!chainMap[network]) {
+  if (!chainId) {
     throw new Error(`Unknown network name: ${network}`)
   }
 
-  return chainMap[network]
+  return chainId
 }

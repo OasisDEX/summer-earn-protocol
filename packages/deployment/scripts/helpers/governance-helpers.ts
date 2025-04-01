@@ -239,7 +239,7 @@ export async function submitProposal({
         abi: governorAbi,
         functionName: 'propose',
         args: [targets, values, calldatas, description],
-        gas: 500000n,
+        gas: 1000000n,
         maxFeePerGas: await publicClient.getGasPrice(),
       })
 

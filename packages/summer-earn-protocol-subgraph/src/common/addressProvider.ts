@@ -240,7 +240,7 @@ export function getServicesProvider(): Services {
     oneInchOracle2: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_2),
     oneInchOracle3: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_3),
     oneInchOracle4: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_4),
-    aaveV3Oracle: AaveV3Oracle.bind(addresses.AAVE_ORACLE),
+    aaveV3Oracle: AaveV3Oracle.bind(addresses.AAVE_V3_ORACLE),
     sDaiOracle: SdaiOracle.bind(addresses.SDAI_ORACLE),
     susdeOracle: SusdeOracle.bind(addresses.SUSDE_ORACLE),
     aaveV2Oracle: AaveV2Oracle.bind(addresses.AAVE_V3_ORACLE),

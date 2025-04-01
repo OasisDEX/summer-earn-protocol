@@ -35,6 +35,13 @@ async function main() {
     },
   ])
 
+  console.log('operationId', operationId)
+
+  // Get the current block number
+  const currentBlock = await publicClient.getBlockNumber()
+  // Use a reasonable block range instead of 'earliest'
+  const fromBlock = currentBlock - 100000n > 0n ? currentBlock - 100000n : 0n
+
   // Get all CallScheduled events for this operation ID
   const scheduledEvents = await publicClient.getLogs({
     address: timelockAddress,
@@ -44,7 +51,8 @@ async function main() {
     args: {
       id: operationId as `0x${string}`,
     },
-    fromBlock: 'earliest',
+    fromBlock,
+    toBlock: 'latest',
   })
 
   if (scheduledEvents.length === 0) {
@@ -59,7 +67,8 @@ async function main() {
     args: {
       id: operationId as `0x${string}`,
     },
-    fromBlock: 'earliest',
+    fromBlock,
+    toBlock: 'latest',
   })
 
   const salt =

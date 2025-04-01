@@ -2,6 +2,7 @@ import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { GearboxPool } from '../../generated/EntryPoint/GearboxPool'
 import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { RewardRate } from './BaseVaultProduct'
 
 export class GearboxProduct extends Product {
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
@@ -17,5 +18,8 @@ export class GearboxProduct extends Product {
       .toBigDecimal()
       .times(BigDecimalConstants.HUNDRED)
       .div(BigDecimalConstants.RAY)
+  }
+  getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
+    return []
   }
 }

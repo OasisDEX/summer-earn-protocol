@@ -70,9 +70,9 @@ export function validateCommonConfig(config: BaseConfig): void {
     }
   }
 
-  for (const token in config.tokens) {
-    validateAddress(config.tokens[token as keyof typeof config.tokens], `tokens.${token}`)
-  }
+  // for (const token in config.tokens) {
+  //   validateAddress(config.tokens[token as keyof typeof config.tokens], `tokens.${token}`)
+  // }
 
   validateAddress(config.common.swapProvider, 'swapProvider')
   validateAddress(config.common.layerZero.lzEndpoint, 'layerZero.lzEndpoint')
