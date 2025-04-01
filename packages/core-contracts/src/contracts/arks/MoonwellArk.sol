@@ -143,24 +143,42 @@ contract MoonwellArk is Ark {
     {
         address _raft = raft();
         address[] memory mTokens = new address[](1);
-        mTokens[0] = address(address(mToken));
+        mTokens[0] = address(mToken);
 
         comptroller.claimReward(payable(address(this)), mTokens);
 
         MarketConfig[] memory marketConfigs = rewardDistributor
             .getAllMarketConfigs(address(mToken));
 
-        rewardTokens = new address[](marketConfigs.length);
-        rewardAmounts = new uint256[](marketConfigs.length);
+        address[] memory allRewardTokens = new address[](marketConfigs.length);
+        uint256[] memory allRewardAmounts = new uint256[](marketConfigs.length);
         for (uint256 i = 0; i < marketConfigs.length; i++) {
-            rewardTokens[i] = marketConfigs[i].emissionToken;
+            allRewardTokens[i] = marketConfigs[i].emissionToken;
             uint256 rewardBalance = IERC20(marketConfigs[i].emissionToken)
                 .balanceOf(address(this));
-            rewardAmounts[i] = rewardBalance;
-            IERC20(marketConfigs[i].emissionToken).safeTransfer(
-                _raft,
-                rewardBalance
-            );
+            allRewardAmounts[i] = rewardBalance;
+            if (rewardBalance > 0) {
+                IERC20(marketConfigs[i].emissionToken).safeTransfer(
+                    _raft,
+                    rewardBalance
+                );
+            }
+        }
+        uint256 nonZeroRewardAmounts = 0;
+        for (uint256 i = 0; i < allRewardAmounts.length; i++) {
+            if (allRewardAmounts[i] > 0) {
+                nonZeroRewardAmounts++;
+            }
+        }
+        rewardTokens = new address[](nonZeroRewardAmounts);
+        rewardAmounts = new uint256[](nonZeroRewardAmounts);
+        uint256 index = 0;
+        for (uint256 i = 0; i < allRewardAmounts.length; i++) {
+            if (allRewardAmounts[i] > 0) {
+                rewardTokens[index] = allRewardTokens[i];
+                rewardAmounts[index] = allRewardAmounts[i];
+                index++;
+            }
         }
     }
 

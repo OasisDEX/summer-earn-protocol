@@ -2,15 +2,20 @@
 pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "../../src/contracts/arks/MoonwellArk.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-
+import {Raft} from "../../src/contracts/Raft.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 contract MoonwellArkTestFork is Test, ArkTestBase {
+    using SafeERC20 for IERC20;
     MoonwellArk public eurcArk;
     MoonwellArk public usdsArk;
+
+    address public constant REWARDS_CONTROLLER =
+        0xe9005b078701e2A0948D2EaC43010D35870Ad9d2;
     address public constant MTOKEN_ADDRESS_EURC =
         0xb682c840B5F4FC58B20769E691A6fa1305A501a2;
     address public constant MTOKEN_ADDRESS_USDS =
@@ -73,6 +78,14 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         eurcArk.registerFleetCommander();
         usdsArk.registerFleetCommander();
         vm.stopPrank();
+
+        vm.makePersistent(REWARDS_CONTROLLER);
+        vm.makePersistent(MTOKEN_ADDRESS_EURC);
+        vm.makePersistent(address(eurcArk));
+        vm.makePersistent(address(usdsArk));
+        vm.makePersistent(address(eurcAsset));
+        vm.makePersistent(address(usdsAsset));
+        vm.makePersistent(WELL_ADDRESS);
     }
 
     function test_Board_EurcMoonwellArk_fork() public {
@@ -215,5 +228,41 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         // Assert
         uint256 wellBalance = IERC20(WELL_ADDRESS).balanceOf(address(raft));
         assertTrue(wellBalance > 0, "Well balance should be greater than 0");
+    }
+
+    function test_HarvestRaft() public {
+        uint256 amount = 1000 * 1e6; // 1000 USDCE
+        deal(UNDERLYING_ASSET_EURC, commander, amount * 3);
+
+        vm.startPrank(commander);
+        eurcAsset.forceApprove(address(eurcArk), amount);
+        eurcArk.board(amount, bytes(""));
+        vm.stopPrank();
+
+        vm.rollFork(forkId, 27282449 + 10000); // Fast forward few days
+        vm.warp(block.timestamp + 1 days);
+
+        // verify there were no USDC and EURC rewards harvested
+
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = WELL_ADDRESS;
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = 880211789792054323;
+
+        vm.expectEmit();
+        emit IArkEvents.ArkHarvested(rewardTokens, rewardAmounts);
+        vm.prank(keeper);
+        Raft(raft).harvest(address(eurcArk), bytes(""));
+
+        uint256 wellBalance = Raft(raft).obtainedTokens(
+            address(eurcArk),
+            WELL_ADDRESS
+        );
+
+        assertGt(
+            wellBalance,
+            0,
+            "Harvested WELL balance should be greater than 0"
+        );
     }
 }
