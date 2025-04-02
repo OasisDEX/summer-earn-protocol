@@ -32,7 +32,6 @@ contract MoonwellArk is Ark {
     /// @notice The Moonwell-compliant mToken this Ark interacts with
     IMToken public immutable mToken;
     IComptroller public immutable comptroller;
-    IRewardDistributor public immutable rewardDistributor;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -59,11 +58,6 @@ contract MoonwellArk is Ark {
             revert InvalidMoonwellAddress();
         }
         comptroller = IComptroller(comptrollerAddress);
-        address rewardDistributorAddress = comptroller.rewardDistributor();
-        if (rewardDistributorAddress == address(0)) {
-            revert InvalidMoonwellAddress();
-        }
-        rewardDistributor = IRewardDistributor(rewardDistributorAddress);
 
         // Approve the mToken to spend the Ark's tokens
         config.asset.forceApprove(_mToken, Constants.MAX_UINT256);
@@ -142,6 +136,14 @@ contract MoonwellArk is Ark {
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
         address _raft = raft();
+        address rewardDistributorAddress = comptroller.rewardDistributor();
+        if (rewardDistributorAddress == address(0)) {
+            revert InvalidMoonwellAddress();
+        }
+        IRewardDistributor rewardDistributor = IRewardDistributor(
+            rewardDistributorAddress
+        );
+
         address[] memory mTokens = new address[](1);
         mTokens[0] = address(mToken);
 

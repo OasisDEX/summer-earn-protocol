@@ -54,6 +54,13 @@
         "asset": "EURC",
         "protocol": "aaveV3"
       }
+    },
+    {
+      "type": "MoonwellArk",
+      "params": {
+        "asset": "EURC",
+        "protocol": "moonwell"
+      }
     }
   ]
 }
