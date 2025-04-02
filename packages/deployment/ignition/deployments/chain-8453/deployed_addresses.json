@@ -31,5 +31,7 @@
   "MorphoVault_eurc_Gauntlet_EURC_Core_8453#MorphoVaultArk": "0x0Dd6F8A9dd2b6F1df8dEe95EB32f9Ad7BA8218c1",
   "AaveV3_eurc_8453#AaveV3Ark": "0x67DACdf8BA7025fbEA5060E384448AF3Cc9c362a",
   "MorphoVault_usdc_Moonwell_Flagship_USDC_8453#MorphoVaultArk": "0x78DB8603b03337d3C1F53D20283294efa8E7337A",
-  "MorphoVault_usdc_Seamless_USDC_8453#MorphoVaultArk": "0xa5D42Cf398bd3076eC26dA93A8270b8e75b8062c"
+  "MorphoVault_usdc_Seamless_USDC_8453#MorphoVaultArk": "0xa5D42Cf398bd3076eC26dA93A8270b8e75b8062c",
+  "Moonwell_eurc_8453#MoonwellArk": "0xe2Ad084b9639ccc689217704577E538cA2c251E5",
+  "Moonwell_usdc_8453#MoonwellArk": "0x07e33789cf837B52821C7cDED1247938969008ef"
 }

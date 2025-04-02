@@ -93,6 +93,13 @@
         "protocol": "morpho",
         "vaultName": "Moonwell_Flagship_USDC"
       }
+    },
+    {
+      "type": "MoonwellArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "moonwell"
+      }
     }
   ]
 }
