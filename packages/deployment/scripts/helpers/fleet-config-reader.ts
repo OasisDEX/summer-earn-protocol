@@ -84,7 +84,7 @@ export function logValueComparison(
   newValue: bigint | number,
   unit: string = '',
 ): void {
-  const hasChanged = currentValue !== newValue
+  const hasChanged = currentValue != newValue
   const color = hasChanged ? chalk.red : chalk.green
   const arrow = hasChanged ? '→' : '='
 
