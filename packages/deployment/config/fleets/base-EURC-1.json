@@ -1,0 +1,59 @@
+{
+  "fleetName": "LazyVault_LowerRisk_EURC",
+  "symbol": "LVEURC",
+  "assetSymbol": "EURC",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000",
+  "network": "base",
+  "details": "",
+  "discourseURL": "https://forum.summer.fi/t/sip1-2-onboard-eurc-vault-on-base/144",
+  "sipNumber": "2",
+  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
+  "rewardAmounts": ["1429366000000000000000000"],
+  "rewardsDuration": 4579200,
+  "bridgeAmount": "0",
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "arks": [
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "EURC",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "EURC",
+        "protocol": "morpho",
+        "vaultName": "Moonwell_Flagship_EURC"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "EURC",
+        "vaultName": "Steakhouse_EURC",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "EURC",
+        "vaultName": "Gauntlet_EURC_Core",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "EURC",
+        "protocol": "aaveV3"
+      }
+    }
+  ]
+}

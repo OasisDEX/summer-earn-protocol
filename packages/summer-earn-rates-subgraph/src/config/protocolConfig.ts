@@ -6,8 +6,10 @@ import { CompoundProduct } from '../products/CompoundProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
 import { GearboxProduct } from '../products/GearboxProduct'
 import { GenericVaultProduct } from '../products/GenericVault'
+import { MoonwellProduct } from '../products/Moonwell'
 import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
+import { SiloProduct } from '../products/Silo'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { getOrCreateToken } from '../utils/initializers'
 
@@ -112,6 +114,12 @@ class ProtocolConfig {
           BigInt.fromI32(18798139),
           'Gearbox',
         ),
+        new GearboxProduct(
+          getOrCreateToken(addresses.WSTETH),
+          Address.fromString('0xFF94993fA7EA27Efc943645F95Adb36C1b81244b'),
+          BigInt.fromI32(18798139),
+          'Gearbox',
+        ),
       ]),
       new Protocol('AaveV3', [
         new AaveV3Product(
@@ -163,12 +171,6 @@ class ProtocolConfig {
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
-          Address.fromString('0x2371e134e3455e0593363cbf89d3b6cf53740618'),
-          BigInt.fromI32(18928285),
-          'Morpho',
-        ),
-        new ERC4626Product(
-          getOrCreateToken(addresses.USDC),
           Address.fromString('0x186514400e52270cef3D80e1c6F8d10A75d47344'),
           BigInt.fromI32(18928285),
           'Morpho',
@@ -191,6 +193,13 @@ class ProtocolConfig {
           BigInt.fromI32(18928285),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xBEeFFF209270748ddd194831b3fa287a5386f5bC'),
+          BigInt.fromI32(18928285),
+          'Morpho',
+        ),
+
         // USDT vaults
         new ERC4626Product(
           getOrCreateToken(addresses.USDT),
@@ -216,6 +225,12 @@ class ProtocolConfig {
           BigInt.fromI32(18928285),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDT),
+          Address.fromString('0xA0804346780b4c2e3bE118ac957D1DB82F9d7484'),
+          BigInt.fromI32(18928285),
+          'Morpho',
+        ),
         // WETH vaults
         new ERC4626Product(
           getOrCreateToken(addresses.WETH),
@@ -226,6 +241,18 @@ class ProtocolConfig {
         new ERC4626Product(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0'),
+          BigInt.fromI32(18928285),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4'),
+          BigInt.fromI32(18928285),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x2371e134e3455e0593363cbf89d3b6cf53740618'),
           BigInt.fromI32(18928285),
           'Morpho',
         ),
@@ -433,6 +460,12 @@ class ProtocolConfig {
           BigInt.fromI32(159160679),
           'Fluid',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x1A996cb54bb95462040408C06122D45D6Cdb6096'),
+          BigInt.fromI32(312900000),
+          'Fluid',
+        ),
       ]),
     ]
   }
@@ -467,6 +500,12 @@ class ProtocolConfig {
           BigInt.fromI32(7551731),
           'AaveV3',
         ),
+        new AaveV3Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xA238Dd80C259a72e81d7e4664a9801593F98d1c5'),
+          BigInt.fromI32(7551731),
+          'AaveV3',
+        ),
       ]),
       new Protocol('Fluid', [
         new ERC4626Product(
@@ -475,11 +514,23 @@ class ProtocolConfig {
           BigInt.fromI32(17551731),
           'Fluid',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0x1943FA26360f038230442525Cf1B9125b5DCB401'),
+          BigInt.fromI32(27276276),
+          'Fluid',
+        ),
       ]),
       new Protocol('Morpho', [
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
           Address.fromString('0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca'),
+          BigInt.fromI32(15620450),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x616a4E1db48e22028f6bbf20444Cd3b8e3273738'),
           BigInt.fromI32(15620450),
           'Morpho',
         ),
@@ -507,6 +558,44 @@ class ProtocolConfig {
           BigInt.fromI32(15183452),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A'),
+          BigInt.fromI32(15183452),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xf24608E0CCb972b0b0f4A6446a0BBf58c701a026'),
+          BigInt.fromI32(27276276),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5'),
+          BigInt.fromI32(27276276),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0x1c155be6bC51F2c37d472d4C2Eba7a637806e122'),
+          BigInt.fromI32(27276276),
+          'Morpho',
+        ),
+      ]),
+      new Protocol('Moonwell', [
+        new MoonwellProduct(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xb682c840B5F4FC58B20769E691A6fa1305A501a2'),
+          BigInt.fromI32(27276276),
+          'Moonwell',
+        ),
+        new MoonwellProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22'),
+          BigInt.fromI32(27276276),
+          'Moonwell',
+        ),
       ]),
       new Protocol('Sky', [
         new SkySUSDSProduct(
@@ -518,7 +607,46 @@ class ProtocolConfig {
       ]),
     ]
   }
-
+  private initSonic(): Protocol[] {
+    return [
+      new Protocol('Euler', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x196F3C7443E940911EE2Bb88e019Fd71400349D9'),
+          BigInt.fromI32(12744800),
+          'Euler',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x3D9e5462A940684073EED7e4a13d19AE0Dcd13bc'),
+          BigInt.fromI32(12744800),
+          'Euler',
+        ),
+      ]),
+      new Protocol('AaveV3', [
+        new AaveV3Product(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3'),
+          BigInt.fromI32(12744800),
+          'AaveV3',
+        ),
+      ]),
+      new Protocol('Silo', [
+        new SiloProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x4E216C15697C1392fE59e1014B009505E05810Df'),
+          BigInt.fromI32(12744800),
+          'Silo',
+        ),
+        new SiloProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x322e1d5384aa4ED66AeCa770B95686271de61dc3'),
+          BigInt.fromI32(12744800),
+          'Silo',
+        ),
+      ]),
+    ]
+  }
   public getConfig(): Protocol[] {
     const network = dataSource.network()
     if (!this.configs.has(network)) {
@@ -530,6 +658,8 @@ class ProtocolConfig {
         this.configs.set(network, this.initOptimism())
       } else if (network == 'base') {
         this.configs.set(network, this.initBase())
+      } else if (network == 'sonic-mainnet') {
+        this.configs.set(network, this.initSonic())
       } else {
         this.configs.set(network, [])
       }

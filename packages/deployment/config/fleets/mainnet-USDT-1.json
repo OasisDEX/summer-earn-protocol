@@ -1,0 +1,106 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDT",
+  "symbol": "LVUSDT",
+  "assetSymbol": "USDT",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "100000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "mainnet",
+  "details": "",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDT",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDT",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Gearbox",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Euler_Prime",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Euler_Yield",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Flagship_USDT",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Steakhouse_USDT",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Gauntlet_USDT_Prime",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "RE7_USDT",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "SparkArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "spark"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Smokehouse_USDT",
+        "protocol": "morpho"
+      }
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Vault } from '../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import * as constants from '../common/constants'
@@ -8,12 +9,12 @@ import { formatAmount } from '../common/utils'
 import { PositionDetails, VaultDetails } from '../types'
 
 export function getPositionDetails(
-  vault: Address,
+  vault: Vault,
   account: Address,
   vaultDetails: VaultDetails,
   block: ethereum.Block,
 ): PositionDetails {
-  const vaultContract = FleetCommanderContract.bind(vault)
+  const vaultContract = FleetCommanderContract.bind(Address.fromString(vault.id))
   const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(
     vaultDetails.rewardsManager,
   )

@@ -1,6 +1,6 @@
 specVersion: 0.0.8
 schema:
-  file: ./schema.graphql
+  file: ./schema.graphql 
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
@@ -116,6 +116,9 @@ templates:
         - event: FleetCommanderWithdrawnFromArks(indexed address,address,uint256)
           handler: handleFleetCommanderWithdrawnFromArks
           receipt: true
+        - event: FleetCommanderRedeemedFromArks(indexed address,address,uint256)
+          handler: handleFleetCommanderRedeemedFromArks
+          receipt: true
         - event: FleetCommanderDepositCapUpdated(uint256)
           handler: handleFleetCommanderDepositCapUpdated
           receipt: true
@@ -130,6 +133,9 @@ templates:
           receipt: true      
         - event: TipAccrued(uint256)
           handler: handleTipAccrued
+          receipt: true
+        - event: TipRateUpdated(uint256)
+          handler: handleTipRateUpdated
           receipt: true
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
@@ -248,5 +254,8 @@ templates:
           receipt: true
         - event: RewardsDurationUpdated(indexed address,uint256)
           handler: handleRewardsDurationUpdated
+          receipt: true
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleRewardPaid
           receipt: true
       file: ./src/mappings/fleetCommander.ts

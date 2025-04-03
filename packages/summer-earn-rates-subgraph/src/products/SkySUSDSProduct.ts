@@ -5,6 +5,7 @@ import { SkySUSDS } from '../../generated/EntryPoint/SkySUSDS'
 import { addresses } from '../constants/addresses'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { RewardRate } from './BaseVaultProduct'
 
 export class SkySUSDSProduct extends Product {
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
@@ -42,5 +43,9 @@ export class SkySUSDSProduct extends Product {
         .times(BigDecimalConstants.SECONDS_PER_YEAR)
       return apr.times(BigDecimalConstants.HUNDRED)
     }
+  }
+
+  getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
+    return []
   }
 }

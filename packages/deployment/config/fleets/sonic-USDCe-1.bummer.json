@@ -1,0 +1,44 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDCe",
+  "isBummer": true,
+  "symbol": "LVUSDCe",
+  "assetSymbol": "usdce",
+  "initialMinimumBufferBalance": "100000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000",
+  "network": "sonic",
+  "details": "",
+  "discourseURL": "https://forum.summer.fi/t/the-path-to-1b-tvl-onboard-medium-and-high-risk-vaults-for-lazy-summer-protocol/113",
+  "sipNumber": "2",
+  "rewardTokens": ["0x424aA31D64cabd39ea8B133BE844d935d666f40e"],
+  "rewardAmounts": ["1537243000000000000000000"],
+  "rewardsDuration": 4924800,
+  "bridgeAmount": "10000000000000000000000000",
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "usdce",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "Euler_MEV_Capital",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "Euler_Re7_Labs",
+        "protocol": "erc4626"
+      }
+    }
+  ]
+}

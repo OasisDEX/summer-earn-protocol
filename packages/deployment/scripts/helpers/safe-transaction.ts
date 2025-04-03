@@ -74,6 +74,7 @@ export async function proposeAllSafeTransactions(
   })
 
   const startNonce = await safe.getNonce()
+  console.log(`Starting with nonce: ${startNonce}`)
 
   const totalBatches = Math.ceil(transactions.length / batchSize)
 

@@ -17,7 +17,7 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
-
+import {Raft} from "../../src/contracts/Raft.sol";
 import {FleetCommanderRewardsManagerFactory} from "../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
@@ -38,6 +38,7 @@ contract ArkTestBase is TestHelpers {
     address public raft = address(2);
     address public tipJar = address(3);
     address public treasury = address(5);
+    address public keeper = address(6);
     ERC20Mock public mockToken;
 
     ProtocolAccessManager public accessManager;
@@ -50,12 +51,17 @@ contract ArkTestBase is TestHelpers {
         mockToken = new ERC20Mock();
         if (address(accessManager) == address(0)) {
             accessManager = new ProtocolAccessManager(governor);
+            vm.prank(governor);
+            accessManager.grantSuperKeeperRole(keeper);
         }
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));
         }
         if (address(fleetCommanderRewardsManagerFactory) == address(0)) {
             fleetCommanderRewardsManagerFactory = new FleetCommanderRewardsManagerFactory();
+        }
+        if (address(raft) == address(0) || address(raft) == address(2)) {
+            raft = address(new Raft(address(accessManager)));
         }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(

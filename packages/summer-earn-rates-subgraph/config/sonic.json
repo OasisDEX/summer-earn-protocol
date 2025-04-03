@@ -1,0 +1,6 @@
+{
+  "network": "sonic-mainnet",
+  "entry_point_address": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
+  "entry_point_start_block": 12744800,
+  "interval-handler-block-interval": 20
+}

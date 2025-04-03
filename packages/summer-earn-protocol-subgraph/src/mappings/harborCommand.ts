@@ -1,6 +1,6 @@
-import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
-import { YieldAggregator } from '../../generated/schema'
+import { Vault, YieldAggregator } from '../../generated/schema'
 import { BigIntConstants } from '../common/constants'
 import {
   getOrCreateArksDailySnapshots,
@@ -29,42 +29,42 @@ export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): voi
   getOrCreateVault(event.params.fleetCommander, event.block)
 }
 
-function updateArkData(vaultAddress: Address, arkAddress: Address, block: ethereum.Block): void {
-  const arkDetails = getArkDetails(vaultAddress, arkAddress, block)
+function updateArkData(vault: Vault, arkAddress: Address, block: ethereum.Block): void {
+  const arkDetails = getArkDetails(vault, arkAddress, block)
   updateArk(arkDetails, block, true)
 }
 
-function updateVaultData(vaultAddress: Address, block: ethereum.Block): void {
-  const vaultDetails = getVaultDetails(vaultAddress, block)
-  updateVault(vaultDetails, block, true)
+export function updateVaultData(vault: Vault, block: ethereum.Block): Vault {
+  const vaultDetails = getVaultDetails(vault, block)
+  return updateVault(vaultDetails, block, true)
 }
 
 // Snapshot management functions
 function updateArkSnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   arkAddress: Address,
   block: ethereum.Block,
   shouldUpdateDaily: boolean,
 ): void {
-  getOrCreateArksHourlySnapshots(vaultAddress, arkAddress, block)
+  getOrCreateArksHourlySnapshots(vault, arkAddress, block)
   if (shouldUpdateDaily) {
-    getOrCreateArksDailySnapshots(vaultAddress, arkAddress, block)
+    getOrCreateArksDailySnapshots(vault, arkAddress, block)
   }
 }
 
 function updateVaultSnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   block: ethereum.Block,
   shouldUpdateDaily: boolean,
   shouldUpdateWeekly: boolean,
 ): void {
-  handleVaultRate(block, vaultAddress.toHexString())
-  getOrCreateVaultsHourlySnapshots(vaultAddress, block)
+  handleVaultRate(block, vault.id)
+  getOrCreateVaultsHourlySnapshots(vault, block)
   if (shouldUpdateDaily) {
-    getOrCreateVaultsDailySnapshots(vaultAddress, block)
+    getOrCreateVaultsDailySnapshots(vault, block)
   }
   if (shouldUpdateWeekly) {
-    getOrCreateVaultWeeklySnapshots(vaultAddress, block)
+    getOrCreateVaultWeeklySnapshots(vault, block)
   }
 }
 
@@ -80,40 +80,84 @@ function processHourlyVaultUpdate(
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
   const weekPassed = hasWeekPassed(protocolLastWeeklyUpdateTimestamp, block.timestamp)
   if (hourPassed) {
-    const vault = getOrCreateVault(vaultAddress, block)
+    let vault = getOrCreateVault(vaultAddress, block)
+    const updatedVault = updateVaultData(vault, block)
+    updateVaultSnapshots(updatedVault, block, dayPassed, weekPassed)
 
-    // Update main data
-    updateVaultData(vaultAddress, block)
-    updateVaultSnapshots(vaultAddress, block, dayPassed, weekPassed)
-
-    // Update associated arks
-    const arks = vault.arksArray
-    for (let j = 0; j < arks.length; j++) {
-      const arkAddress = Address.fromString(arks[j])
-      updateArkData(vaultAddress, arkAddress, block)
-      updateArkSnapshots(vaultAddress, arkAddress, block, dayPassed)
+    // reload vault to get latest data
+    vault = updatedVault
+    if (!vault || !vault.id) {
+      log.warning('Invalid vault at address ' + vaultAddress.toHexString(), [])
+      return
     }
 
-    const positions = vault.positions // Assuming you have a way to get positions related to the vault
-    for (let k = 0; k < positions.length; k++) {
-      const positionId = positions[k]
-      getOrCreatePositionHourlySnapshot(positionId, vaultAddress, block)
-      if (dayPassed) {
-        getOrCreatePositionDailySnapshot(positionId, vaultAddress, block)
+    const arks = vault.arksArray
+    if (arks && arks.length > 0) {
+      for (let j = 0; j < arks.length; j++) {
+        if (!arks[j]) {
+          log.warning('Empty ark ID at index ' + j.toString(), [])
+          continue
+        }
+
+        if (!arks[j].startsWith('0x') || arks[j].length != 42) {
+          log.warning('Invalid ark address format at index ' + j.toString(), [])
+          continue
+        }
+
+        const arkAddress = Address.fromString(arks[j])
+        updateArkData(vault, arkAddress, block)
+        updateArkSnapshots(vault, arkAddress, block, dayPassed)
       }
-      if (weekPassed) {
-        getOrCreatePositionWeeklySnapshot(positionId, vaultAddress, block)
+    }
+
+    const positions = vault.positions
+    if (positions && positions.length > 0) {
+      for (let k = 0; k < positions.length; k++) {
+        const positionId = positions[k]
+        if (!positionId) {
+          log.warning('Empty position ID at index ' + k.toString(), [])
+          continue
+        }
+        getOrCreatePositionHourlySnapshot(positionId, vault, block)
+        if (dayPassed) {
+          getOrCreatePositionDailySnapshot(positionId, vault, block)
+        }
+        if (weekPassed) {
+          getOrCreatePositionWeeklySnapshot(positionId, vault, block)
+        }
       }
     }
   }
 }
 
 export function handleInterval(block: ethereum.Block): void {
-  const protocol = getOrCreateYieldAggregator(block.timestamp)
+  if (!block || !block.timestamp) {
+    log.warning('Invalid block or timestamp in handleInterval', [])
+    return
+  }
+
+  let protocol = getOrCreateYieldAggregator(block.timestamp)
+
+  if (!protocol || !protocol.vaultsArray) {
+    log.warning('Protocol or vaultsArray is null', [])
+    return
+  }
 
   const vaults = protocol.vaultsArray
+
   for (let i = 0; i < vaults.length; i++) {
+    if (!vaults[i]) {
+      log.warning('Empty vault ID at index ' + i.toString(), [])
+      continue
+    }
+
+    if (!vaults[i].startsWith('0x') || vaults[i].length != 42) {
+      log.warning('Invalid vault address format at index ' + i.toString(), [])
+      continue
+    }
+
     const vaultAddress = Address.fromString(vaults[i])
+
     processHourlyVaultUpdate(
       vaultAddress,
       block,

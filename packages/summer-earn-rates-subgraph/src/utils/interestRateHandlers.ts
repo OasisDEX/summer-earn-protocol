@@ -3,6 +3,7 @@ import {
   DailyInterestRate,
   HourlyInterestRate,
   InterestRate,
+  RewardsInterestRate,
   WeeklyInterestRate,
 } from '../../generated/schema'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
@@ -33,22 +34,23 @@ export function handleInterestRate(
   block: ethereum.Block,
   protocolName: string,
   product: Product,
+  normalizedTimestamp: BigInt,
 ): void {
-  const rate = product.getRate(block.timestamp, block.number)
+  const rate = product.getAPY(block.timestamp, block.number)
   const interestRate = new InterestRate(
     `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString()}`,
   )
 
-  const hourlyResult = getHourlyRateIdAndTimestamp(block, protocolName, product)
-  const dailyResult = getDailyRateIdAndTimestamp(block, protocolName, product)
-  const weeklyResult = getWeeklyRateIdAndTimestamp(block, protocolName, product)
+  const hourlyResult = getHourlyRateIdAndTimestamp(normalizedTimestamp, protocolName, product)
+  const dailyResult = getDailyRateIdAndTimestamp(normalizedTimestamp, protocolName, product)
+  const weeklyResult = getWeeklyRateIdAndTimestamp(normalizedTimestamp, protocolName, product)
 
   interestRate.dailyRateId = dailyResult.dailyRateId
   interestRate.hourlyRateId = hourlyResult.hourlyRateId
   interestRate.weeklyRateId = weeklyResult.weeklyRateId
   interestRate.blockNumber = block.number
   interestRate.rate = rate
-  interestRate.timestamp = block.timestamp
+  interestRate.timestamp = normalizedTimestamp
   interestRate.type = 'Supply'
   interestRate.protocol = protocolName
   interestRate.token = product.token.id
@@ -71,14 +73,33 @@ export function handleInterestRate(
     weeklyResult.weekTimestamp,
     weeklyResult.weeklyRateId,
   )
+
+  const rewardRates = product.getRewardsApys(block.timestamp, block.number)
+  for (let i = 0; i < rewardRates.length; i++) {
+    const reward = rewardRates[i]
+    const rewardRate = new RewardsInterestRate(
+      `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString()}-${i.toString()}`,
+    )
+    rewardRate.blockNumber = block.number
+    rewardRate.rate = reward.rate
+    rewardRate.timestamp = normalizedTimestamp
+    rewardRate.type = 'Supply'
+    rewardRate.protocol = protocolName
+    rewardRate.token = product.token.id
+    rewardRate.productId = product.name
+    rewardRate.product = product.name
+    rewardRate.rewardToken = reward.rewardToken.id
+
+    rewardRate.save()
+  }
 }
 
 function getDailyRateIdAndTimestamp(
-  block: ethereum.Block,
+  normalizedTimestamp: BigInt,
   protocolName: string,
   product: Product,
 ): DailyRateResult {
-  const dayTimestamp = block.timestamp
+  const dayTimestamp = normalizedTimestamp
     .div(BigIntConstants.DAY_IN_SECONDS)
     .times(BigIntConstants.DAY_IN_SECONDS)
 
@@ -91,11 +112,11 @@ function getDailyRateIdAndTimestamp(
 }
 
 function getHourlyRateIdAndTimestamp(
-  block: ethereum.Block,
+  normalizedTimestamp: BigInt,
   protocolName: string,
   product: Product,
 ): HourlyRateResult {
-  const hourTimestamp = block.timestamp
+  const hourTimestamp = normalizedTimestamp
     .div(BigIntConstants.HOUR_IN_SECONDS)
     .times(BigIntConstants.HOUR_IN_SECONDS)
 
@@ -108,11 +129,11 @@ function getHourlyRateIdAndTimestamp(
 }
 
 function getWeeklyRateIdAndTimestamp(
-  block: ethereum.Block,
+  normalizedTimestamp: BigInt,
   protocolName: string,
   product: Product,
 ): WeeklyRateResult {
-  const offsetTimestamp = block.timestamp.plus(BigIntConstants.EPOCH_WEEK_OFFSET)
+  const offsetTimestamp = normalizedTimestamp.plus(BigIntConstants.EPOCH_WEEK_OFFSET)
   const weekTimestamp = offsetTimestamp
     .div(BigIntConstants.WEEK_IN_SECONDS)
     .times(BigIntConstants.WEEK_IN_SECONDS)

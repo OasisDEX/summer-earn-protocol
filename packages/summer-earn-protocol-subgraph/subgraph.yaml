@@ -1,14 +1,14 @@
 specVersion: 0.0.8
 schema:
-  file: ./schema.graphql
+  file: ./schema.graphql 
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: base
+    network: sonic-mainnet
     source:
       abi: HarborCommand
-      address: "0x79BDBaa087175aA490F311EC743264bD6268C933"
-      startBlock: 25165573
+      address: "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
+      startBlock: 14240190
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -54,12 +54,12 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 30 
+            every: 120 
       file: ./src/mappings/harborCommand.ts
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: base
+    network: sonic-mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -116,6 +116,9 @@ templates:
         - event: FleetCommanderWithdrawnFromArks(indexed address,address,uint256)
           handler: handleFleetCommanderWithdrawnFromArks
           receipt: true
+        - event: FleetCommanderRedeemedFromArks(indexed address,address,uint256)
+          handler: handleFleetCommanderRedeemedFromArks
+          receipt: true
         - event: FleetCommanderDepositCapUpdated(uint256)
           handler: handleFleetCommanderDepositCapUpdated
           receipt: true
@@ -131,10 +134,13 @@ templates:
         - event: TipAccrued(uint256)
           handler: handleTipAccrued
           receipt: true
+        - event: TipRateUpdated(uint256)
+          handler: handleTipRateUpdated
+          receipt: true
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: base
+    network: sonic-mainnet
     source:
       abi: Ark
     mapping:
@@ -195,7 +201,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: base
+    network: sonic-mainnet
     source:
       abi: FleetCommanderRewardsManager
     mapping:
@@ -248,5 +254,8 @@ templates:
           receipt: true
         - event: RewardsDurationUpdated(indexed address,uint256)
           handler: handleRewardsDurationUpdated
+          receipt: true
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleRewardPaid
           receipt: true
       file: ./src/mappings/fleetCommander.ts

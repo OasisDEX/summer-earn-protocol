@@ -1,6 +1,6 @@
-import { Address, ethereum } from '@graphprotocol/graph-ts'
+import { ethereum } from '@graphprotocol/graph-ts'
 import { BigIntConstants } from '../../common/constants'
-import { getOrCreatePosition, getOrCreateVault } from '../../common/initializers'
+import { getOrCreatePosition } from '../../common/initializers'
 import { PositionDetails } from '../../types'
 
 export function updatePosition(positionDetails: PositionDetails, block: ethereum.Block): void {
@@ -28,13 +28,21 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
       position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD.plus(
         positionDetails.inputTokenDeltaNormalizedUSD,
       )
+      position.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized.plus(
+        positionDetails.inputTokenDeltaNormalized,
+      )
       position.inputTokenWithdrawals = position.inputTokenWithdrawals
+      position.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
       position.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
     } else {
       position.inputTokenDeposits = position.inputTokenDeposits
       position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+      position.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized
       position.inputTokenWithdrawals = position.inputTokenWithdrawals.plus(
         positionDetails.inputTokenDelta,
+      )
+      position.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized.plus(
+        positionDetails.inputTokenDeltaNormalized,
       )
       position.inputTokenWithdrawalsNormalizedInUSD =
         position.inputTokenWithdrawalsNormalizedInUSD.plus(
@@ -42,11 +50,5 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
         )
     }
     position.save()
-
-    const vault = getOrCreateVault(Address.fromString(position.vault), block)
-    const positions = vault.positions
-    positions.push(position.id)
-    vault.positions = positions
-    vault.save()
   }
 }

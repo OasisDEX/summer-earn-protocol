@@ -27,6 +27,7 @@ export namespace Network {
   export const OSMOSIS = 'OSMOSIS'
   export const MATIC = 'MATIC' // aka Polygon
   export const XDAI = 'XDAI' // aka Gnosis Chain
+  export const SONIC_MAINNET = 'SONIC-MAINNET'
 }
 
 export namespace ProtocolType {

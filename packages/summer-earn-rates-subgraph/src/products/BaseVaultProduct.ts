@@ -1,7 +1,17 @@
 import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
-import { VaultState } from '../../generated/schema'
+import { Token, VaultState } from '../../generated/schema'
 import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
+
+export class RewardRate {
+  rewardToken: Token
+  rate: BigDecimal
+
+  constructor(rewardToken: Token, rate: BigDecimal) {
+    this.rewardToken = rewardToken
+    this.rate = rate
+  }
+}
 
 /**
  * @class BaseVaultProduct
@@ -53,6 +63,9 @@ export abstract class BaseVaultProduct extends Product {
       .times(BigDecimalConstants.HUNDRED)
 
     return annualizedRate
+  }
+  getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
+    return []
   }
 
   private getTimeDifference(currentTimestamp: BigInt): BigInt {

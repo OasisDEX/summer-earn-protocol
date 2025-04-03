@@ -1,14 +1,20 @@
-import { Address, BigDecimal, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Vault } from '../../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
 import {
+  getOrCreateArk,
   getOrCreateArksPostActionSnapshots,
   getOrCreateRewardToken,
+  getOrCreateToken,
   getOrCreateVault,
   getOrCreateVaultsPostActionSnapshots,
 } from '../../common/initializers'
-import { getAprForTimePeriod } from '../../common/utils'
+import {
+  formatAmount,
+  getAprForTimePeriod,
+  updateProtocolTotalValueLockedUSD,
+} from '../../common/utils'
 import { VaultDetails } from '../../types'
 import { getArkDetails } from '../../utils/ark'
 import { getVaultDetails } from '../../utils/vault'
@@ -18,7 +24,7 @@ export function updateVault(
   vaultDetails: VaultDetails,
   block: ethereum.Block,
   shouldUpdateApr: boolean,
-): void {
+): Vault {
   const vault = getOrCreateVault(Address.fromString(vaultDetails.vaultId), block)
   const deltaTime = block.timestamp.minus(vault.lastUpdateTimestamp).toBigDecimal()
 
@@ -36,11 +42,13 @@ export function updateVault(
         pricePerShareDiff.lt(BigDecimalConstants.TEN_BPS) &&
         vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare)
       ) {
-        vault.calculatedApr = getAprForTimePeriod(
+        const baseApr = getAprForTimePeriod(
           previousLastUpdatePricePerShare,
           vaultDetails.pricePerShare,
           deltaTime,
         )
+        const fee = vault.tipRate.toBigDecimal().div(BigDecimalConstants.WAD)
+        vault.calculatedApr = fee.plus(baseApr)
       }
     }
   }
@@ -55,20 +63,39 @@ export function updateVault(
   vault.rewardTokenEmissionsAmountsPerOutputToken =
     vaultDetails.rewardTokenEmissionsAmountsPerOutputToken
   vault.save()
+  // Update buffer ark - as it's integral part of the vault
+  updateBufferArk(vault, vaultDetails, block)
+  updateProtocolTotalValueLockedUSD()
+  return vault
 }
 
-export function updateVaultAndArks(event: ethereum.Event, vaultId: string): void {
-  const vaultAddress = Address.fromString(vaultId)
-  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+export function updateBufferArk(
+  vault: Vault,
+  vaultDetails: VaultDetails,
+  block: ethereum.Block,
+): void {
+  const bufferArk = getOrCreateArk(vault, Address.fromString(vault.bufferArk!), block)
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
+  bufferArk.inputTokenBalance = vaultDetails.bufferBalance
+  const normalizedBalance = formatAmount(
+    vaultDetails.bufferBalance,
+    BigInt.fromI32(inputToken.decimals),
+  )
+  bufferArk.totalValueLockedUSD = normalizedBalance.times(vaultDetails.inputTokenPriceUSD)
+  bufferArk.save()
+}
 
-  updateVault(vaultDetails, event.block, false)
-  getOrCreateVaultsPostActionSnapshots(event.address, event.block)
+export function updateVaultAndArks(event: ethereum.Event, vault: Vault): void {
+  const vaultDetails = getVaultDetails(vault, event.block)
+
+  const updatedVault = updateVault(vaultDetails, event.block, false)
+  getOrCreateVaultsPostActionSnapshots(updatedVault, event.block)
 
   const arks = vaultDetails.arks
   for (let i = 0; i < arks.length; i++) {
-    const arkDetails = getArkDetails(vaultAddress, arks[i], event.block)
+    const arkDetails = getArkDetails(updatedVault, arks[i], event.block)
     updateArk(arkDetails, event.block, false)
-    getOrCreateArksPostActionSnapshots(vaultAddress, arks[i], event.block)
+    getOrCreateArksPostActionSnapshots(updatedVault, arks[i], event.block)
   }
 }
 

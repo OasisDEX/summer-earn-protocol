@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: Comet
-      startBlock: 21453416
-      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
+      startBlock: 12744800
+      address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -42,9 +42,39 @@ dataSources:
           file: ./abis/SkySSRAuthOracle.json
         - name: SkySUSDS
           file: ./abis/SkySUSDS.json
+        - name: MoonwellToken
+          file: ./abis/MoonwellToken.json
+        - name: IGaugeHookReceiver
+          file: ./abis/silo/IGaugeHookReceiver.json
+        - name: ISiloConfig
+          file: ./abis/silo/ISiloConfig.json
+        - name: ISilo
+          file: ./abis/silo/ISilo.json
+        - name: IGauge
+          file: ./abis/silo/IGauge.json
+        - name: IRewardDistributor
+          file: ./abis/moonwell/IRewardDistributor.json
+        - name: IComptroller
+          file: ./abis/moonwell/IComptroller.json
+        - name: IMToken
+          file: ./abis/moonwell/IMToken.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json  
       blockHandlers:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 50    
+            every: 20    
       file: ./src/mapping.ts

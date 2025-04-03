@@ -2,6 +2,7 @@ import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { Comet } from '../../generated/EntryPoint/Comet'
 import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { RewardRate } from './BaseVaultProduct'
 
 export class CompoundProduct extends Product {
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
@@ -22,5 +23,9 @@ export class CompoundProduct extends Product {
       .toBigDecimal()
       .times(BigDecimalConstants.SECONDS_PER_YEAR.times(BigDecimalConstants.HUNDRED))
       .div(BigDecimalConstants.WAD)
+  }
+
+  getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
+    return []
   }
 }
