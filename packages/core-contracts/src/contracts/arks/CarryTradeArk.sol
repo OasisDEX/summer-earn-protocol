@@ -6,6 +6,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../Ark.sol";
 import {console} from "forge-std/console.sol";
+import {FixedPointMathLib} from "@summerfi/dependencies/solmate/src/utils/FixedPointMathLib.sol";
 
 interface IERC20WithDecimals is IERC20 {
     function decimals() external view returns (uint8);
@@ -18,6 +19,7 @@ interface IERC20WithDecimals is IERC20 {
  */
 abstract contract CarryTradeArk is Ark {
     using SafeERC20 for IERC20WithDecimals;
+    using FixedPointMathLib for uint256;
 
     // Common state variables for carry trades
     IERC20WithDecimals public immutable collateralAsset;
@@ -78,12 +80,14 @@ abstract contract CarryTradeArk is Ark {
         if (currentLtv <= maxLtv - SAFETY_MARGIN) return; // Position is safe enough
 
         uint256 totalDebt = _getTotalDebt();
-
         uint256 collateralValue = _getCollateralValueInBorrowedAsset();
 
-        // Calculate how much debt to repay to reach target LTV
+        // Calculate how much debt to repay to reach target LTV using FixedPointMathLib
         uint256 targetLtv = maxLtv - SAFETY_MARGIN;
-        uint256 targetDebt = (collateralValue * targetLtv) / BASIS_POINTS;
+        uint256 targetDebt = collateralValue.mulDivDown(
+            targetLtv,
+            BASIS_POINTS
+        );
         uint256 repayAmount = totalDebt - targetDebt;
 
         // Withdraw from yield vault and repay

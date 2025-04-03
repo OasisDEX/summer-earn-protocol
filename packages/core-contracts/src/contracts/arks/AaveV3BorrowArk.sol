@@ -10,13 +10,17 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import "./CarryTradeArk.sol";
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
 import {IPriceOracleGetter} from "../../interfaces/aave-v3/IPriceOracleGetter.sol";
+import {FixedPointMathLib} from "@summerfi/dependencies/solmate/src/utils/FixedPointMathLib.sol";
 import {console} from "forge-std/console.sol";
+
+error InvalidOraclePrice(string asset);
 /**
  * @title AaveV3BorrowArk
  * @notice Ark for depositing collateral to Aave V3, borrowing assets, and depositing to yield fleet
  */
 abstract contract AaveV3BorrowArk is CarryTradeArk {
     using SafeERC20 for IERC20WithDecimals;
+    using FixedPointMathLib for uint256;
 
     IPoolV3 public immutable aaveV3Pool;
     IRewardsController public immutable rewardsController;
@@ -94,10 +98,6 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
             ,
 
         ) = aaveV3Pool.getUserAccountData(address(this));
-        console.log("totalCollateralBase", totalCollateralBase);
-        console.log("totalDebtBase", totalDebtBase);
-        console.log("varaible debt token balance", IERC20(variableDebtToken).balanceOf(address(this)));
-        console.log("aToken balance", IERC20(aToken).balanceOf(address(this)));
         if (totalCollateralBase == 0) {
             return 0;
         }
@@ -105,7 +105,7 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         // LTV is the ratio of the total debt to the total collateral, expressed as a percentage
         // The result is multiplied by 10000 to preserve precision
         // eg 0.67 (67%) LTV is stored as 6700
-        uint256 ltv = (totalDebtBase * BASIS_POINTS) / totalCollateralBase;
+        uint256 ltv = totalDebtBase.mulDivUp(BASIS_POINTS, totalCollateralBase);
         return ltv;
     }
 
@@ -115,8 +115,12 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         override
         returns (uint256)
     {
-        uint256 collateralAmount = _getTotalCollateral();
-        // Get asset prices in USD from Aave oracle
+        uint256 collateralAmount = _getTotalCollateral(); // Amount of aTokens (same decimals as underlying collateral)
+        if (collateralAmount == 0) {
+            return 0;
+        }
+
+        // Get asset prices in the oracle's base currency (e.g., USD with 8 decimals)
         uint256 collateralPrice = priceOracle.getAssetPrice(
             address(collateralAsset)
         );
@@ -124,20 +128,40 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
             address(borrowedAsset)
         );
 
-        if (borrowedPrice == 0) {
-            revert("Invalid borrowed asset price");
-        }
+        // Validate oracle prices
+        if (collateralPrice == 0) revert InvalidOraclePrice("Collateral");
+        if (borrowedPrice == 0) revert InvalidOraclePrice("Borrowed");
 
-        // Adjust for decimals
+        // Get asset decimals
         uint256 collateralDecimals = collateralAsset.decimals();
         uint256 borrowedDecimals = borrowedAsset.decimals();
 
-        // Calculate collateral value in terms of borrowed asset
-        // Formula: (collateralAmount * collateralPrice * 10**borrowedDecimals) / (borrowedPrice * 10**collateralDecimals)
-        return
-            (collateralAmount * collateralPrice * (10 ** borrowedDecimals)) /
-            (borrowedPrice * (10 ** collateralDecimals));
+        // Calculate required decimal scaling factors
+        uint256 collateralUnit = 10 ** collateralDecimals;
+        uint256 borrowedUnit = 10 ** borrowedDecimals;
+
+        // Perform calculation using FixedPointMathLib for precision and safety.
+        // Formula: (collateralAmount * collateralPrice / borrowedPrice) * (borrowedUnit / collateralUnit)
+        // We use chained mulDiv to prevent intermediate overflows/underflows.
+        // result = collateralAmount * (collateralPrice / borrowedPrice) * (10**borrowedDecimals / 10**collateralDecimals)
+        // Step 1: Calculate value ratio adjusted for collateral amount
+        // intermediate = (collateralAmount * collateralPrice) / borrowedPrice
+        uint256 intermediateValue = collateralAmount.mulDivDown(
+            collateralPrice,
+            borrowedPrice
+        );
+
+        // Step 2: Adjust decimals from collateralDecimals to borrowedDecimals
+        // finalValue = intermediateValue * (10**borrowedDecimals) / (10**collateralDecimals)
+        // Use standard rounding mulDiv.
+        uint256 collateralValueInBorrowedAsset = intermediateValue.mulDivDown(
+            borrowedUnit,
+            collateralUnit
+        );
+
+        return collateralValueInBorrowedAsset;
     }
+
     function _getTotalDebt() internal view override returns (uint256) {
         return IERC20WithDecimals(variableDebtToken).balanceOf(address(this));
     }

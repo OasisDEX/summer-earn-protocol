@@ -49,7 +49,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
     IERC20 public weth;
     IERC20 public usdc;
     IERC4626 public mockFleet;
-// eth price 3400
+    // eth price 3400
     uint256 public forkBlock = 21745576;
 
     function setUp() public {
@@ -104,7 +104,6 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         address priceOracle = IPoolAddressesProvider(POOL_ADDRESSES_PROVIDER)
             .getPriceOracle();
 
-
         vm.makePersistent(address(ark));
         vm.makePersistent(address(mockFleet));
         vm.makePersistent(address(weth));
@@ -115,7 +114,6 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         vm.makePersistent(address(variableDebtToken));
         vm.makePersistent(address(aToken));
         vm.makePersistent(address(priceOracle));
-
     }
 
     function test_Board_WithBorrow() public {
@@ -229,19 +227,29 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         ark.rebalancePosition();
 
         // Verify position is now safe
-        uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(address(ark));
+        uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
+            address(ark)
+        );
         uint256 ltvAfter = ark.currentLtv();
 
         assertLt(debtAfter, debtBefore, "Debt should be reduced");
-        assertLe(ltvAfter, ark.maxLtv(), "Position should be safe after rebalance");
-        assertGe(ltvAfter, ark.maxLtv() - ark.SAFETY_MARGIN(), "LTV should be near target");
+        assertLe(
+            ltvAfter,
+            ark.maxLtv(),
+            "Position should be safe after rebalance"
+        );
+        assertGe(
+            ltvAfter,
+            ark.maxLtv() - ark.SAFETY_MARGIN(),
+            "LTV should be near target"
+        );
         vm.stopPrank();
     }
 
     function test_RebalancePosition_WhenPriceDropsSignificantly() public {
         // Setup initial position
         uint256 collateralAmount = 1 ether;
-        uint256 borrowAmount = 1200 * 1e6; // 1200 USDC
+        uint256 borrowAmount = 2500 * 1e6; // 1200 USDC
 
         deal(WETH, commander, collateralAmount);
         vm.startPrank(commander);
@@ -252,8 +260,6 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         // drop from 2800 to 2600
         vm.rollFork(21916632); // Choose a block number where ETH price was significantly lower
 
-
-
         // Get state before rebalance
         uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
@@ -261,7 +267,8 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         uint256 ltvBefore = ark.currentLtv();
         uint256 collateralBefore = weth.balanceOf(address(ark));
         uint256 aTokenBefore = IERC20(ark.aToken()).balanceOf(address(ark));
-        uint256 variableDebtTokenBefore = IERC20(ark.variableDebtToken()).balanceOf(address(ark));
+        uint256 variableDebtTokenBefore = IERC20(ark.variableDebtToken())
+            .balanceOf(address(ark));
 
         // Rebalance position
         ark.rebalancePosition();
@@ -272,7 +279,8 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         );
         uint256 collateralAfter = weth.balanceOf(address(ark));
         uint256 aTokenAfter = IERC20(ark.aToken()).balanceOf(address(ark));
-        uint256 variableDebtTokenAfter = IERC20(ark.variableDebtToken()).balanceOf(address(ark));
+        uint256 variableDebtTokenAfter = IERC20(ark.variableDebtToken())
+            .balanceOf(address(ark));
         uint256 ltvAfter = ark.currentLtv();
         // console.log("debtAfter ", debtAfter);
         // console.log("debtBefore", debtBefore);
