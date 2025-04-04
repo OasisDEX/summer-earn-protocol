@@ -11,6 +11,7 @@ import {
   Position,
   PositionDailySnapshot,
   PositionHourlySnapshot,
+  PositionRewards,
   PositionWeeklySnapshot,
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
@@ -119,6 +120,8 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.claimedSummerToken = constants.BigIntConstants.ZERO
     position.claimedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
+    position.claimableSummerToken = constants.BigIntConstants.ZERO
+    position.claimableSummerTokenNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenDepositsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenWithdrawalsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
@@ -934,4 +937,23 @@ export function getOrCreateVaultWeeklySnapshots(vault: Vault, block: ethereum.Bl
   snapshot.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
 
   snapshot.save()
+}
+
+export function getOrCreatePositionRewards(
+  positionId: string,
+  rewardToken: Token,
+  block: ethereum.Block,
+): PositionRewards {
+  const id = `${positionId}-${rewardToken.id}`
+  let positionRewards = PositionRewards.load(id)
+  if (!positionRewards) {
+    positionRewards = new PositionRewards(id)
+    positionRewards.position = positionId
+    positionRewards.rewardToken = rewardToken.id
+    positionRewards.claimable = constants.BigIntConstants.ZERO
+    positionRewards.claimableNormalized = constants.BigDecimalConstants.ZERO
+    positionRewards.claimed = constants.BigIntConstants.ZERO
+    positionRewards.claimedNormalized = constants.BigDecimalConstants.ZERO
+  }
+  return positionRewards
 }

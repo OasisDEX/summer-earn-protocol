@@ -959,6 +959,7 @@ type Account @entity @regularPolling {
   positions: [Position!]! @derivedFrom(field: "account")
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
+  rewards: [AccountRewards!]! @derivedFrom(field: "account")
 }
 
 # Helper entity for calculating daily/hourly active users
@@ -1186,6 +1187,10 @@ type Position @entity {
 
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
+  claimableSummerToken: BigInt!
+  claimableSummerTokenNormalized: BigDecimal! 
+
+  rewards: [PositionRewards!]! @derivedFrom(field: "position")
 }
 
 type PositionHourlySnapshot @entity @hourlySnapshot {
@@ -1559,6 +1564,10 @@ type RewardsManager @entity {
   id: ID!
   vault: Vault!
 }
+type GovernanceRewardsManager @entity {
+  id: ID!
+  address: String!
+}
 
 type DailyInterestRate @entity {
   id: ID!
@@ -1585,4 +1594,24 @@ type WeeklyInterestRate @entity {
   updateCount: BigInt!
   averageRate: BigDecimal!
   vault: Vault!
+}
+
+type PositionRewards @entity {
+  id: ID!
+  position: Position!
+  claimable: BigInt!
+  claimableNormalized: BigDecimal!
+  claimed: BigInt!
+  claimedNormalized: BigDecimal!
+  rewardToken: Token!
+}
+
+type AccountRewards @entity {
+  id: ID!
+  account: Account!
+  claimable: BigInt!
+  claimableNormalized: BigDecimal!
+  claimed: BigInt!
+  claimedNormalized: BigDecimal!
+  rewardToken: Token!
 }

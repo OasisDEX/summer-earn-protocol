@@ -1,9 +1,14 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
-import { Vault } from '../../generated/schema'
+import { PositionRewards, Vault } from '../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
-import { getOrCreatePosition } from '../common/initializers'
+import {
+  getOrCreatePosition,
+  getOrCreatePositionRewards,
+  getOrCreateToken,
+} from '../common/initializers'
 import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 import { PositionDetails, VaultDetails } from '../types'
@@ -18,6 +23,32 @@ export function getPositionDetails(
   const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(
     vaultDetails.rewardsManager,
   )
+  const positionId = utils.formatPositionId(account.toHexString(), vaultDetails.vaultId)
+  const rewardTokensLength = rewardsManagerContract.rewardTokensLength()
+  let claimableSummer = constants.BigIntConstants.ZERO
+  let claimableSummerNormalized = constants.BigDecimalConstants.ZERO
+  const rewards: PositionRewards[] = []
+  for (let i = 0; i < rewardTokensLength.toI32(); i++) {
+    const rewardTokenAddress = rewardsManagerContract.rewardTokens(BigInt.fromI32(i))
+    const rewardToken = getOrCreateToken(rewardTokenAddress)
+    const claimable = utils.readValue<BigInt>(
+      rewardsManagerContract.try_earned(account, rewardTokenAddress),
+      constants.BigIntConstants.ZERO,
+    )
+    const claimableNormalized = formatAmount(claimable, BigInt.fromI32(rewardToken.decimals))
+    const reward = getOrCreatePositionRewards(positionId, rewardToken, block)
+    reward.claimable = claimable
+    reward.claimableNormalized = claimableNormalized
+    rewards.push(reward)
+    // ------------------------------------------------------------
+    // will be deprecated in the future
+    if (rewardToken.id == addresses.SUMMER_TOKEN.toHexString()) {
+      claimableSummer = claimable
+      claimableSummerNormalized = claimableNormalized
+    }
+    // ------------------------------------------------------------
+  }
+
   const unstakedShares = utils.readValue<BigInt>(
     vaultContract.try_balanceOf(account),
     constants.BigIntConstants.ZERO,
@@ -93,7 +124,7 @@ export function getPositionDetails(
   const totalInputTokenDeltaNormalizedUSD = totalInputTokenDeltaNormalized.times(priceInUSD)
 
   return new PositionDetails(
-    utils.formatPositionId(account.toHexString(), vaultDetails.vaultId),
+    positionId,
     unstakedShares.plus(stakedShares), // outputTokenBalance
     stakedShares, // stakedOutputTokenBalance
     unstakedShares, // unstakedOutputTokenBalance
@@ -115,6 +146,9 @@ export function getPositionDetails(
     totalInputTokenDelta, // inputTokenDelta
     totalInputTokenDeltaNormalized, // inputTokenDeltaNormalized
     totalInputTokenDeltaNormalizedUSD, // inputTokenDeltaNormalizedUSD
+    claimableSummer, // claimableSummerToken
+    claimableSummerNormalized, // claimableSummerTokenNormalized
+    rewards, // rewards
     vaultDetails.vaultId, // vault
     account.toHexString(), // account
     vaultDetails.inputToken, // inputToken
