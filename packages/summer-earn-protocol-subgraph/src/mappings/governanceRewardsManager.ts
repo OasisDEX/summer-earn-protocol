@@ -25,7 +25,7 @@ export function updateAccount(account: Account, block: BigInt): void {
   if (account.lastUpdateBlock.equals(block)) {
     return
   }
-  account.lastUpdateBlock = block
+
   const governanceStaking = getOrCreateGovernanceStaking()
   const rewarTokens = governanceStaking.rewardTokens
   if (rewarTokens.length > 0) {
@@ -50,6 +50,7 @@ export function updateAccount(account: Account, block: BigInt): void {
       accountRewards.save()
     }
   }
+  account.lastUpdateBlock = block
   account.save()
 }
 
@@ -99,7 +100,9 @@ export function handleStaked(event: Staked): void {
   )
   const index = governanceStaking.accounts.indexOf(account.id)
   if (index == -1) {
-    governanceStaking.accounts.push(account.id)
+    const accounts = governanceStaking.accounts
+    accounts.push(account.id)
+    governanceStaking.accounts = accounts
   }
   governanceStaking.save()
 }
