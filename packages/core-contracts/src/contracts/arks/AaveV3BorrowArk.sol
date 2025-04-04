@@ -2,14 +2,16 @@
 pragma solidity 0.8.28;
 
 import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
-import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
-import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./CarryTradeArk.sol";
+
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
+import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
 import {IPriceOracleGetter} from "../../interfaces/aave-v3/IPriceOracleGetter.sol";
+import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
+import "./CarryTradeArk.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import {FixedPointMathLib} from "@summerfi/dependencies/solmate/src/utils/FixedPointMathLib.sol";
 import {console} from "forge-std/console.sol";
 
@@ -18,6 +20,7 @@ error InvalidOraclePrice(string asset);
  * @title AaveV3BorrowArk
  * @notice Ark for depositing collateral to Aave V3, borrowing assets, and depositing to yield fleet
  */
+
 abstract contract AaveV3BorrowArk is CarryTradeArk {
     using SafeERC20 for IERC20WithDecimals;
     using FixedPointMathLib for uint256;
@@ -81,9 +84,18 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
             .getReserveData(_borrowedAsset)
             .variableDebtTokenAddress;
     }
+
     function _totalAssets() internal view override returns (uint256) {
-        return IERC20(aToken).balanceOf(address(this));
+        // total assets is the worth of collateral in the borrowed asset
+        // minus the debt in the borrowed asset
+        // plus the amount deposited to the fleet
+        uint256 collateralValue = _getCollateralValueInBorrowedAsset();
+        uint256 debt = _getTotalDebt();
+        uint256 shares = IERC4626(yieldVault).balanceOf(address(this));
+        uint256 yieldVaultValue = IERC4626(yieldVault).convertToAssets(shares);
+        return collateralValue + yieldVaultValue - debt;
     }
+
     function _supplyCollateral(uint256 amount) internal override {
         collateralAsset.forceApprove(address(aaveV3Pool), amount);
         aaveV3Pool.supply(address(collateralAsset), amount, address(this), 0);
@@ -106,6 +118,7 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         // The result is multiplied by 10000 to preserve precision
         // eg 0.67 (67%) LTV is stored as 6700
         uint256 ltv = totalDebtBase.mulDivUp(BASIS_POINTS, totalCollateralBase);
+
         return ltv;
     }
 
@@ -143,7 +156,8 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         // Perform calculation using FixedPointMathLib for precision and safety.
         // Formula: (collateralAmount * collateralPrice / borrowedPrice) * (borrowedUnit / collateralUnit)
         // We use chained mulDiv to prevent intermediate overflows/underflows.
-        // result = collateralAmount * (collateralPrice / borrowedPrice) * (10**borrowedDecimals / 10**collateralDecimals)
+        // result = collateralAmount * (collateralPrice / borrowedPrice) * (10**borrowedDecimals /
+        // 10**collateralDecimals)
         // Step 1: Calculate value ratio adjusted for collateral amount
         // intermediate = (collateralAmount * collateralPrice) / borrowedPrice
         uint256 intermediateValue = collateralAmount.mulDivDown(

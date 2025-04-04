@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../Ark.sol";
-import {console} from "forge-std/console.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import {FixedPointMathLib} from "@summerfi/dependencies/solmate/src/utils/FixedPointMathLib.sol";
+import {console} from "forge-std/console.sol";
 
 interface IERC20WithDecimals is IERC20 {
     function decimals() external view returns (uint8);
@@ -42,7 +43,9 @@ abstract contract CarryTradeArk is Ark {
         uint256 _maxLtv; // Add maxLtv parameter
         ArkParams baseParams;
     }
+
     error InvalidMaxLtv(uint256 maxLtv);
+
     constructor(CarryTradeParams memory params) Ark(params.baseParams) {
         lendingPool = params._lendingPool;
         collateralAsset = IERC20WithDecimals(params._collateralAsset);
@@ -68,6 +71,7 @@ abstract contract CarryTradeArk is Ark {
     function isPositionSafe() public view returns (bool) {
         return _getCurrentLtv() <= maxLtv;
     }
+
     function currentLtv() public view returns (uint256) {
         return _getCurrentLtv();
     }
@@ -75,10 +79,10 @@ abstract contract CarryTradeArk is Ark {
      * @notice Rebalances the position to maintain safe LTV
      * @dev Withdraws from yield vault and repays debt if necessary
      */
+
     function rebalancePosition() external {
         uint256 currentLtv = _getCurrentLtv();
         if (currentLtv <= maxLtv - SAFETY_MARGIN) return; // Position is safe enough
-
         uint256 totalDebt = _getTotalDebt();
         uint256 collateralValue = _getCollateralValueInBorrowedAsset();
 
@@ -89,7 +93,6 @@ abstract contract CarryTradeArk is Ark {
             BASIS_POINTS
         );
         uint256 repayAmount = totalDebt - targetDebt;
-
         // Withdraw from yield vault and repay
         _withdrawFromYieldVault(repayAmount);
         _repayBorrow(repayAmount);

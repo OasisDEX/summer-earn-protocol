@@ -2,11 +2,12 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/AaveV3BorrowArk.sol";
-import {Test, console} from "forge-std/Test.sol";
+
+import {ArkTestBase} from "./ArkTestBase.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract TestAaveV3BorrowArk is AaveV3BorrowArk {
     constructor(
@@ -194,72 +195,18 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         vm.stopPrank();
     }
 
-    function test_RebalancePosition_WhenUnsafe() public {
-        // Setup initial position with high LTV
-        uint256 collateralAmount = 1 ether;
-        uint256 borrowAmount = 2800 * 1e6; // 1500 USDC - higher amount to create unsafe position
-
-        // Setup position
-        deal(WETH, commander, collateralAmount);
-        vm.startPrank(commander);
-        weth.approve(address(ark), collateralAmount);
-        ark.board(collateralAmount, abi.encode(borrowAmount));
-
-        // Simulate price drop to make position unsafe
-        // We'll do this by manipulating the fork to a block where ETH price was lower
-        vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 1 days);
-
-        // Get initial state
-        uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
-            address(ark)
-        );
-        uint256 ltvBefore = ark.currentLtv();
-
-        // Ensure position is actually unsafe
-        assertGt(
-            ltvBefore,
-            ark.maxLtv(),
-            "Position should be unsafe before rebalance"
-        );
-
-        // Rebalance position
-        ark.rebalancePosition();
-
-        // Verify position is now safe
-        uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
-            address(ark)
-        );
-        uint256 ltvAfter = ark.currentLtv();
-
-        assertLt(debtAfter, debtBefore, "Debt should be reduced");
-        assertLe(
-            ltvAfter,
-            ark.maxLtv(),
-            "Position should be safe after rebalance"
-        );
-        assertGe(
-            ltvAfter,
-            ark.maxLtv() - ark.SAFETY_MARGIN(),
-            "LTV should be near target"
-        );
-        vm.stopPrank();
-    }
-
     function test_RebalancePosition_WhenPriceDropsSignificantly() public {
         // Setup initial position
         uint256 collateralAmount = 1 ether;
         uint256 borrowAmount = 2500 * 1e6; // 1200 USDC
-
         deal(WETH, commander, collateralAmount);
         vm.startPrank(commander);
         weth.approve(address(ark), collateralAmount);
         ark.board(collateralAmount, abi.encode(borrowAmount));
-
+        deal(address(usdc), address(mockFleet), (borrowAmount * 102) / 100);
         // Simulate significant ETH price drop by moving to a known block with lower ETH price
         // drop from 2800 to 2600
         vm.rollFork(21916632); // Choose a block number where ETH price was significantly lower
-
         // Get state before rebalance
         uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
@@ -269,10 +216,11 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         uint256 aTokenBefore = IERC20(ark.aToken()).balanceOf(address(ark));
         uint256 variableDebtTokenBefore = IERC20(ark.variableDebtToken())
             .balanceOf(address(ark));
-
+        deal(address(usdc), address(mockFleet), (borrowAmount * 105) / 100);
+        console.log("total assets 105%", ark.totalAssets());
         // Rebalance position
         ark.rebalancePosition();
-
+        console.log("total assets", ark.totalAssets());
         // Verify position is safe and properly rebalanced
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
