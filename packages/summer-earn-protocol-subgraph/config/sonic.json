@@ -3,6 +3,6 @@
   "harbor-command-address": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191",
   "harbor-command-start-block": 14240190,
   "interval-handler-block-interval": 120,
-  "governance-rewards-manager-address": "0xA02205E8E0e2dC64f6093b1eF1B2691866A45B95", 
+  "governance-rewards-manager-address": "0xA02205E8E0e2dC64f6093b1eF1B2691866A45B95",
   "governance-rewards-manager-start-block": 14240190
 }

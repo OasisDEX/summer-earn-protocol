@@ -2,7 +2,7 @@
   "network": "mainnet",
   "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
   "harbor-command-start-block": 21745351,
-  "governance-rewards-manager-address": "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92", 
+  "governance-rewards-manager-address": "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92",
   "governance-rewards-manager-start-block": 21745351,
   "interval-handler-block-interval": 30
 }

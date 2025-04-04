@@ -300,7 +300,6 @@ export function handleRewardPaid(event: RewardPaid): void {
     )
     positionRewards.save()
 
-
     // will be deprecated in the future
     if (event.params.rewardToken.toHexString() == addresses.SUMMER_TOKEN.toHexString()) {
       position.claimedSummerToken = position.claimedSummerToken.plus(event.params.reward)

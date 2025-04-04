@@ -10,6 +10,7 @@ import { SparkOracle } from '../../generated/templates/FleetCommanderTemplate/Sp
 import { SusdeOracle } from '../../generated/templates/FleetCommanderTemplate/SusdeOracle'
 
 export class ServiceAddresses {
+  GOVERNANCE_STAKING: Address
   SUMMER_TOKEN: Address
   WSTETH: Address
   STETH: Address
@@ -62,6 +63,7 @@ export function getAddressesProvider(): ServiceAddresses {
 
   if (network == 'mainnet') {
     const addresses: ServiceAddresses = {
+      GOVERNANCE_STAKING: Address.fromString('0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92'),
       SUMMER_TOKEN: Address.fromString('0x194f360D130F2393a5E9F3117A6a1B78aBEa1624'),
       WSTETH: Address.fromString('0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0'),
       STETH: Address.fromString('0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'),
@@ -96,6 +98,7 @@ export function getAddressesProvider(): ServiceAddresses {
     return addresses
   } else if (network == 'optimism') {
     const addresses: ServiceAddresses = {
+      GOVERNANCE_STAKING: Address.fromString('0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92'),
       SUMMER_TOKEN: Address.fromString('0x194f360D130F2393a5E9F3117A6a1B78aBEa1624'),
       WSTETH: Address.fromString('0x0000000000000000000000000000000000000000'),
       STETH: Address.fromString('0x0000000000000000000000000000000000000000'),
@@ -130,6 +133,7 @@ export function getAddressesProvider(): ServiceAddresses {
     return addresses
   } else if (network == 'base') {
     const addresses: ServiceAddresses = {
+      GOVERNANCE_STAKING: Address.fromString('0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92'),
       SUMMER_TOKEN: Address.fromString('0x194f360D130F2393a5E9F3117A6a1B78aBEa1624'),
       WSTETH: Address.fromString('0x0000000000000000000000000000000000000000'),
       STETH: Address.fromString('0x0000000000000000000000000000000000000000'),
@@ -164,6 +168,7 @@ export function getAddressesProvider(): ServiceAddresses {
     return addresses
   } else if (network == 'arbitrum-one') {
     const addresses: ServiceAddresses = {
+      GOVERNANCE_STAKING: Address.fromString('0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92'),
       SUMMER_TOKEN: Address.fromString('0x194f360D130F2393a5E9F3117A6a1B78aBEa1624'),
       WSTETH: Address.fromString('0x0000000000000000000000000000000000000000'),
       STETH: Address.fromString('0x0000000000000000000000000000000000000000'),
@@ -198,6 +203,7 @@ export function getAddressesProvider(): ServiceAddresses {
     return addresses
   } else if (network == 'sonic-mainnet') {
     const addresses: ServiceAddresses = {
+      GOVERNANCE_STAKING: Address.fromString('0xA02205E8E0e2dC64f6093b1eF1B2691866A45B95'),
       SUMMER_TOKEN: Address.fromString('0x4e0037f487bBb588bf1B7a83BDe6c34FeD6099e3'),
       WSTETH: Address.fromString('0x0000000000000000000000000000000000000000'),
       STETH: Address.fromString('0x0000000000000000000000000000000000000000'),

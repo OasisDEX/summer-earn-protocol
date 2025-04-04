@@ -953,13 +953,19 @@ type Unstaked implements Event @entity @transaction {
 }
 # An account is a unique Ethereum address
 # Helps to accumulate total unique users
+
 type Account @entity @regularPolling {
   " Address of the account "
   id: ID!
   positions: [Position!]! @derivedFrom(field: "account")
+  stakedSummerToken: BigInt!
+  stakedSummerTokenNormalized: BigDecimal!
+    rewards: [AccountRewards!]! @derivedFrom(field: "account")
+ lastUpdateBlock: BigInt!
+ " deprecated "
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
-  rewards: [AccountRewards!]! @derivedFrom(field: "account")
+
 }
 
 # Helper entity for calculating daily/hourly active users
@@ -1614,4 +1620,25 @@ type AccountRewards @entity {
   claimed: BigInt!
   claimedNormalized: BigDecimal!
   rewardToken: Token!
+}
+
+type GovernanceStaking @entity {
+  id: ID!
+  " Per-block reward token emission as of the current block normalized to a day, in token's native amount. This should be ideally calculated as the theoretical rate instead of the realized amount. "
+  rewardTokenEmissionsAmount: [BigInt!]!
+
+  " Per-block reward token emission as of the current block normalized to a day, in token's native amount. This should be ideally calculated as the theoretical rate instead of the realized amount. "
+  rewardTokenEmissionsAmountsPerOutputToken: [BigInt!]!
+
+  " Duration of the reward token emission in seconds "
+  rewardTokenEmissionsFinish: [BigInt!]!
+
+  " Per-block reward token emission as of the current block normalized to a day, in USD value. This should be ideally calculated as the theoretical rate instead of the realized amount. "
+  rewardTokenEmissionsUSD: [BigDecimal!]
+
+  rewardTokens: [Token!]!
+
+  summerStaked: BigInt!
+  summerStakedNormalized: BigDecimal!
+  accounts: [Account!]!
 }
