@@ -217,10 +217,11 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         uint256 variableDebtTokenBefore = IERC20(ark.variableDebtToken())
             .balanceOf(address(ark));
         deal(address(usdc), address(mockFleet), (borrowAmount * 105) / 100);
-        console.log("total assets 105%", ark.totalAssets());
+        uint256 totalAssetsBeforeRebalance = ark.totalAssets();
         // Rebalance position
         ark.rebalancePosition();
-        console.log("total assets", ark.totalAssets());
+        uint256 totalAssetsAfterRebalance = ark.totalAssets();
+        assertEq(totalAssetsBeforeRebalance, totalAssetsAfterRebalance, "Total assets should not change");
         // Verify position is safe and properly rebalanced
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
