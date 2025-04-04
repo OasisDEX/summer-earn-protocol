@@ -1,0 +1,293 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.28;
+
+import "../../src/contracts/arks/AaveV3BorrowArk.sol";
+
+import {ArkTestBase} from "./ArkTestBase.sol";
+import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Test, console} from "forge-std/Test.sol";
+
+contract TestAaveV3BorrowArk is AaveV3BorrowArk {
+    constructor(
+        address _aaveV3Pool,
+        address _rewardsController,
+        address _poolAddressesProvider,
+        address _borrowedAsset,
+        address _fleet,
+        ArkParams memory _params,
+        uint256 _maxLtv
+    )
+        AaveV3BorrowArk(
+            _aaveV3Pool,
+            _rewardsController,
+            _poolAddressesProvider,
+            _borrowedAsset,
+            _fleet,
+            _params,
+            _maxLtv
+        )
+    {}
+}
+
+contract AaveV3BorrowArkTest is Test, ArkTestBase {
+    using SafeERC20 for IERC20;
+
+    TestAaveV3BorrowArk public ark;
+
+    address public constant AAVE_V3_POOL =
+        0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    address public constant REWARDS_CONTROLLER =
+        0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
+    address public constant POOL_ADDRESSES_PROVIDER =
+        0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+
+    // Mainnet token addresses
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+
+    IERC20 public weth;
+    IERC20 public usdc;
+    IERC4626 public mockFleet;
+    // eth price 3400
+    uint256 public forkBlock = 21745576;
+
+    function setUp() public {
+        vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
+        initializeCoreContracts();
+
+        weth = IERC20(WETH);
+        usdc = IERC20(USDC);
+
+        // Deploy a mock fleet
+        mockFleet = IERC4626(deployMockFleet(USDC));
+
+        ArkParams memory params = ArkParams({
+            name: "WETH-USDC BorrowArk",
+            details: "Borrow USDC against WETH collateral",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: WETH,
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+
+        ark = new TestAaveV3BorrowArk(
+            AAVE_V3_POOL,
+            REWARDS_CONTROLLER,
+            POOL_ADDRESSES_PROVIDER,
+            USDC,
+            address(mockFleet),
+            params,
+            7000
+        );
+
+        // Setup permissions
+        vm.startPrank(governor);
+        accessManager.grantCommanderRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        vm.prank(commander);
+        ark.registerFleetCommander();
+
+        address variableDebtToken = IPoolV3(AAVE_V3_POOL)
+            .getReserveData(USDC)
+            .variableDebtTokenAddress;
+        address aToken = IPoolV3(AAVE_V3_POOL)
+            .getReserveData(WETH)
+            .aTokenAddress;
+        console.log("variableDebtToken", variableDebtToken);
+        console.log("aToken", aToken);
+        address priceOracle = IPoolAddressesProvider(POOL_ADDRESSES_PROVIDER)
+            .getPriceOracle();
+
+        vm.makePersistent(address(ark));
+        vm.makePersistent(address(mockFleet));
+        vm.makePersistent(address(weth));
+        vm.makePersistent(address(usdc));
+        vm.makePersistent(AAVE_V3_POOL);
+        vm.makePersistent(REWARDS_CONTROLLER);
+        vm.makePersistent(POOL_ADDRESSES_PROVIDER);
+        vm.makePersistent(address(variableDebtToken));
+        vm.makePersistent(address(aToken));
+        vm.makePersistent(address(priceOracle));
+    }
+
+    function test_Board_WithBorrow() public {
+        // Arrange
+        uint256 collateralAmount = 1 ether;
+        uint256 borrowAmount = 1000 * 1e6; // 1000 USDC
+
+        deal(WETH, commander, collateralAmount);
+
+        vm.startPrank(commander);
+        weth.approve(address(ark), collateralAmount);
+
+        // Act
+        ark.board(collateralAmount, abi.encode(borrowAmount));
+        vm.stopPrank();
+
+        // Assert
+        assertEq(
+            ark.totalAssets(),
+            collateralAmount,
+            "total assets should be equal to collateral amount"
+        );
+        assertGt(
+            IERC4626(mockFleet).balanceOf(address(ark)),
+            0,
+            "commander should have a balance in the fleet"
+        );
+    }
+
+    function test_Disembark() public {
+        // Arrange - First board some assets
+        uint256 collateralAmount = 1 ether;
+        uint256 borrowAmount = 1000 * 1e6; // 1000 USDC
+
+        deal(WETH, commander, collateralAmount);
+
+        vm.startPrank(commander);
+        weth.approve(address(ark), collateralAmount);
+        ark.board(collateralAmount, abi.encode(borrowAmount));
+
+        uint256 repayAmount = 1000 * 1e6;
+
+        // Act
+        ark.disembark(collateralAmount, abi.encode(repayAmount));
+        vm.stopPrank();
+
+        // Assert
+        assertEq(ark.totalAssets(), 0);
+        assertEq(weth.balanceOf(commander), collateralAmount);
+    }
+
+    function test_RebalancePosition_WhenSafe() public {
+        // Setup initial position
+        uint256 collateralAmount = 1 ether;
+        uint256 borrowAmount = 1000 * 1e6; // 1000 USDC - safe amount given ETH/USDC price
+
+        // Setup position
+        deal(WETH, commander, collateralAmount);
+        vm.startPrank(commander);
+        weth.approve(address(ark), collateralAmount);
+        ark.board(collateralAmount, abi.encode(borrowAmount));
+
+        // Try to rebalance
+        uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
+            address(ark)
+        );
+        ark.rebalancePosition();
+        uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
+            address(ark)
+        );
+
+        // Verify no changes were made since position is safe
+        assertEq(
+            debtBefore,
+            debtAfter,
+            "Should not rebalance when position is safe"
+        );
+        vm.stopPrank();
+    }
+
+    function test_RebalancePosition_WhenPriceDropsSignificantly() public {
+        // Setup initial position
+        uint256 collateralAmount = 1 ether;
+        uint256 borrowAmount = 2500 * 1e6; // 1200 USDC
+        deal(WETH, commander, collateralAmount);
+        vm.startPrank(commander);
+        weth.approve(address(ark), collateralAmount);
+        ark.board(collateralAmount, abi.encode(borrowAmount));
+        deal(address(usdc), address(mockFleet), (borrowAmount * 102) / 100);
+        // Simulate significant ETH price drop by moving to a known block with lower ETH price
+        // drop from 2800 to 2600
+        vm.rollFork(21916632); // Choose a block number where ETH price was significantly lower
+        // Get state before rebalance
+        uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
+            address(ark)
+        );
+        uint256 ltvBefore = ark.currentLtv();
+        uint256 collateralBefore = weth.balanceOf(address(ark));
+        uint256 aTokenBefore = IERC20(ark.aToken()).balanceOf(address(ark));
+        uint256 variableDebtTokenBefore = IERC20(ark.variableDebtToken())
+            .balanceOf(address(ark));
+        deal(address(usdc), address(mockFleet), (borrowAmount * 105) / 100);
+        uint256 totalAssetsBeforeRebalance = ark.totalAssets();
+        // Rebalance position
+        ark.rebalancePosition();
+        uint256 totalAssetsAfterRebalance = ark.totalAssets();
+        assertEq(totalAssetsBeforeRebalance, totalAssetsAfterRebalance, "Total assets should not change");
+        // Verify position is safe and properly rebalanced
+        uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
+            address(ark)
+        );
+        uint256 collateralAfter = weth.balanceOf(address(ark));
+        uint256 aTokenAfter = IERC20(ark.aToken()).balanceOf(address(ark));
+        uint256 variableDebtTokenAfter = IERC20(ark.variableDebtToken())
+            .balanceOf(address(ark));
+        uint256 ltvAfter = ark.currentLtv();
+        // console.log("debtAfter ", debtAfter);
+        // console.log("debtBefore", debtBefore);
+        // console.log("ltvAfter ", ltvAfter);
+        // console.log("ltvBefore", ltvBefore);
+        // console.log("collateralAfter ", collateralAfter);
+        // console.log("collateralBefore", collateralBefore);
+        // console.log("aTokenAfter ", aTokenAfter);
+        // console.log("aTokenBefore", aTokenBefore);
+        // console.log("variableDebtTokenAfter ", variableDebtTokenAfter);
+        // console.log("variableDebtTokenBefore", variableDebtTokenBefore);
+        assertLt(debtAfter, debtBefore, "Debt should be reduced");
+        assertLe(
+            ltvAfter,
+            ark.maxLtv(),
+            "Position should be safe after rebalance"
+        );
+        vm.stopPrank();
+    }
+
+    function test_RebalancePosition_NoActionWhenSlightlyUnsafe() public {
+        // Setup position that's just barely above maxLtv
+        uint256 collateralAmount = 1 ether;
+        uint256 borrowAmount = 1300 * 1e6; // Amount that puts LTV just above max
+
+        deal(WETH, commander, collateralAmount);
+        vm.startPrank(commander);
+        weth.approve(address(ark), collateralAmount);
+        ark.board(collateralAmount, abi.encode(borrowAmount));
+
+        // Simulate small price movement
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1 hours);
+
+        uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
+            address(ark)
+        );
+        ark.rebalancePosition();
+        uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
+            address(ark)
+        );
+
+        // If position is only slightly unsafe (less than safety margin), no action should be taken
+        assertEq(
+            debtBefore,
+            debtAfter,
+            "Should not rebalance for small LTV deviation"
+        );
+        vm.stopPrank();
+    }
+
+    function deployMockFleet(address _asset) internal returns (address) {
+        return address(new MockFleet(_asset));
+    }
+}
+
+contract MockFleet is ERC4626 {
+    constructor(
+        address assetAddr
+    ) ERC4626(IERC20(assetAddr)) ERC20("Mock Fleet", "MFLT") {}
+}
