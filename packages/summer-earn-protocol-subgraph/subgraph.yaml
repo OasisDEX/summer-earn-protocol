@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: sonic-mainnet
+    network: base
     source:
       abi: HarborCommand
-      address: "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
-      startBlock: 14240190
+      address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
+      startBlock: 25773568
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -46,6 +46,8 @@ dataSources:
           file: ./abis/ens/registry.json
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json          
       eventHandlers:
         - event: FleetCommanderEnlisted(indexed address)
           handler: handleFleetCommanderEnlisted
@@ -54,12 +56,78 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 120 
+            every: 30 
       file: ./src/mappings/harborCommand.ts
+  - kind: ethereum/contract
+    name: GovernanceRewardsManager
+    network: base
+    source:
+      abi: GovernanceRewardsManager
+      address: "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92"
+      startBlock: 25642492
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: HarborCommand
+          file: ./abis/HarborCommand.abi.json
+        - name: FleetCommanderRewardsManager
+          file: ./abis/FleetCommanderRewardsManager.abi.json          
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
+        - name: EnsReverseResolver
+          file: ./abis/ens/reverse-resolver.json
+        - name: EnsRegistry
+          file: ./abis/ens/registry.json
+        - name: DefaultReverseNameResolver
+          file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json
+      eventHandlers:
+        - event: Staked(indexed address,indexed address,uint256)
+          handler: handleStaked
+          receipt: true
+        - event: Unstaked(indexed address,indexed address,uint256)
+          handler: handleUnstaked
+          receipt: true
+        - event: RewardTokenRemoved(address)
+          handler: handleRewardTokenRemoved
+          receipt: true
+        - event: RewardAdded(indexed address,uint256)
+          handler: handleRewardAdded
+          receipt: true
+        - event: RewardsDurationUpdated(indexed address,uint256)
+          handler: handleRewardsDurationUpdated
+          receipt: true
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleRewardPaid
+          receipt: true
+      file: ./src/mappings/governanceRewardsManager.ts      
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: sonic-mainnet
+    network: base
     source:
       abi: FleetCommander
     mapping:
@@ -97,6 +165,8 @@ templates:
           file: ./abis/ens/registry.json
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json          
       eventHandlers:
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
@@ -140,7 +210,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: sonic-mainnet
+    network: base
     source:
       abi: Ark
     mapping:
@@ -176,6 +246,8 @@ templates:
           file: ./abis/ens/registry.json
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json                 
       eventHandlers:
         - event: Boarded(indexed address,address,uint256)
           handler: handleBoarded
@@ -201,7 +273,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: sonic-mainnet
+    network: base
     source:
       abi: FleetCommanderRewardsManager
     mapping:
@@ -239,6 +311,8 @@ templates:
           file: ./abis/ens/registry.json
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json                 
       eventHandlers:
         - event: Staked(indexed address,indexed address,uint256)
           handler: handleStaked

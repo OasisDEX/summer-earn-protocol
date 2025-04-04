@@ -46,6 +46,8 @@ dataSources:
           file: ./abis/ens/registry.json
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json          
       eventHandlers:
         - event: FleetCommanderEnlisted(indexed address)
           handler: handleFleetCommanderEnlisted
@@ -56,6 +58,72 @@ dataSources:
             kind: polling
             every: {{interval-handler-block-interval }} 
       file: ./src/mappings/harborCommand.ts
+  - kind: ethereum/contract
+    name: GovernanceRewardsManager
+    network: {{network}}
+    source:
+      abi: GovernanceRewardsManager
+      address: "{{governance-rewards-manager-address}}"
+      startBlock: {{governance-rewards-manager-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: HarborCommand
+          file: ./abis/HarborCommand.abi.json
+        - name: FleetCommanderRewardsManager
+          file: ./abis/FleetCommanderRewardsManager.abi.json          
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
+        - name: EnsReverseResolver
+          file: ./abis/ens/reverse-resolver.json
+        - name: EnsRegistry
+          file: ./abis/ens/registry.json
+        - name: DefaultReverseNameResolver
+          file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json
+      eventHandlers:
+        - event: Staked(indexed address,indexed address,uint256)
+          handler: handleStaked
+          receipt: true
+        - event: Unstaked(indexed address,indexed address,uint256)
+          handler: handleUnstaked
+          receipt: true
+        - event: RewardTokenRemoved(address)
+          handler: handleRewardTokenRemoved
+          receipt: true
+        - event: RewardAdded(indexed address,uint256)
+          handler: handleRewardAdded
+          receipt: true
+        - event: RewardsDurationUpdated(indexed address,uint256)
+          handler: handleRewardsDurationUpdated
+          receipt: true
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleRewardPaid
+          receipt: true
+      file: ./src/mappings/governanceRewardsManager.ts      
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
@@ -97,6 +165,8 @@ templates:
           file: ./abis/ens/registry.json
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json          
       eventHandlers:
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
@@ -176,6 +246,8 @@ templates:
           file: ./abis/ens/registry.json
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json                 
       eventHandlers:
         - event: Boarded(indexed address,address,uint256)
           handler: handleBoarded
@@ -239,6 +311,8 @@ templates:
           file: ./abis/ens/registry.json
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
+        - name: GovernanceRewardsManager
+          file: ./abis/GovernanceRewardsManager.abi.json                 
       eventHandlers:
         - event: Staked(indexed address,indexed address,uint256)
           handler: handleStaked
