@@ -40,7 +40,7 @@ async function main() {
   // Get the current block number
   const currentBlock = await publicClient.getBlockNumber()
   // Use a reasonable block range instead of 'earliest'
-  const fromBlock = currentBlock - 1000000n > 0n ? currentBlock - 1000000n : 0n
+  const fromBlock = currentBlock - 100000n > 0n ? currentBlock - 100000n : 0n
 
   // Get all CallScheduled events for this operation ID
   const scheduledEvents = await publicClient.getLogs({
