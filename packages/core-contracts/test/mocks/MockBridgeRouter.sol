@@ -3,15 +3,24 @@ pragma solidity 0.8.28;
 
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title MockBridgeRouter
  * @notice Mock implementation of IBridgeRouter for testing purposes
  * @dev Implements only the minimum functionality needed for testing CrossChainArkProxy
  */
-contract MockBridgeRouter {
+contract MockBridgeRouter is IBridgeRouter {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    // Set of registered adapters
+    EnumerableSet.AddressSet private adapters;
+
     // Mapping to store operation statuses
     mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
+
+    // Mapping of operation IDs to the adapter that processed them
+    mapping(bytes32 => address) public operationToAdapter;
 
     // Variables to control mock behavior
     bytes32 public nextTransferId;
@@ -158,7 +167,7 @@ contract MockBridgeRouter {
         operationStatuses[operationId] = status;
     }
 
-    // IBridgeRouter implementation (without override)
+    // IBridgeRouter implementation
 
     function transferAssets(
         uint16 destinationChainId,
@@ -166,9 +175,9 @@ contract MockBridgeRouter {
         uint256 amount,
         address recipient,
         BridgeTypes.BridgeOptions calldata
-    ) external payable returns (bytes32) {
-        if (mockPaused) revert("Paused");
-        if (shouldRevert) revert("TransferFailed");
+    ) external payable override returns (bytes32) {
+        if (mockPaused) revert Paused();
+        if (shouldRevert) revert TransferFailed();
 
         // Record the call
         transferCalls.push(
@@ -180,6 +189,20 @@ contract MockBridgeRouter {
             })
         );
 
+        // Associate the operation with the adapter if specified
+        if (mockSelectedAdapter != address(0)) {
+            operationToAdapter[nextTransferId] = mockSelectedAdapter;
+        }
+
+        emit TransferInitiated(
+            nextTransferId,
+            destinationChainId,
+            asset,
+            amount,
+            recipient,
+            mockSelectedAdapter
+        );
+
         emit MockTransferAssets(
             nextTransferId,
             destinationChainId,
@@ -187,6 +210,7 @@ contract MockBridgeRouter {
             amount,
             recipient
         );
+
         return nextTransferId;
     }
 
@@ -195,9 +219,9 @@ contract MockBridgeRouter {
         address recipient,
         bytes calldata message,
         BridgeTypes.BridgeOptions calldata
-    ) external payable returns (bytes32) {
-        if (mockPaused) revert("Paused");
-        if (shouldRevert) revert("ReceiverRejectedCall");
+    ) external payable override returns (bytes32) {
+        if (mockPaused) revert Paused();
+        if (shouldRevert) revert ReceiverRejectedCall();
 
         // Record the call
         messageCalls.push(
@@ -208,31 +232,58 @@ contract MockBridgeRouter {
             })
         );
 
+        // Associate the operation with the adapter if specified
+        if (mockSelectedAdapter != address(0)) {
+            operationToAdapter[nextMessageId] = mockSelectedAdapter;
+        }
+
+        emit MessageInitiated(
+            nextMessageId,
+            destinationChainId,
+            recipient,
+            mockSelectedAdapter
+        );
+
         emit MockSendMessage(
             nextMessageId,
             destinationChainId,
             recipient,
             message
         );
+
         return nextMessageId;
     }
 
     function readState(
-        uint16,
-        address,
-        bytes4,
-        bytes calldata,
+        uint16 dstChainId,
+        address dstContract,
+        bytes4 selector,
+        bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata
-    ) external payable returns (bytes32) {
-        if (mockPaused) revert("Paused");
-        if (shouldRevert) revert("ReceiverRejectedCall");
+    ) external payable override returns (bytes32) {
+        if (mockPaused) revert Paused();
+        if (shouldRevert) revert ReceiverRejectedCall();
+
+        // Associate the operation with the adapter if specified
+        if (mockSelectedAdapter != address(0)) {
+            operationToAdapter[nextReadId] = mockSelectedAdapter;
+        }
+
+        emit ReadRequestInitiated(
+            nextReadId,
+            dstChainId,
+            dstContract,
+            selector,
+            readParams,
+            mockSelectedAdapter
+        );
 
         return nextReadId;
     }
 
     function getOperationStatus(
         bytes32 operationId
-    ) external view returns (BridgeTypes.OperationStatus) {
+    ) external view override returns (BridgeTypes.OperationStatus) {
         return operationStatuses[operationId];
     }
 
@@ -242,12 +293,8 @@ contract MockBridgeRouter {
         uint256,
         BridgeTypes.BridgeOptions calldata,
         BridgeTypes.OperationType
-    ) external view returns (uint256, uint256, address) {
+    ) external view override returns (uint256, uint256, address) {
         return (mockFee, 0, mockSelectedAdapter);
-    }
-
-    function paused() external view returns (bool) {
-        return mockPaused;
     }
 
     function getBestAdapter(
@@ -255,7 +302,7 @@ contract MockBridgeRouter {
         address,
         uint256,
         BridgeTypes.OperationType
-    ) external view returns (address) {
+    ) external view override returns (address) {
         return mockSelectedAdapter;
     }
 
@@ -263,91 +310,158 @@ contract MockBridgeRouter {
         uint16,
         address,
         uint256
-    ) external view returns (address) {
-        return mockSelectedAdapter;
-    }
-
-    function getBestAdapterForTransfer(
-        uint16,
-        address,
-        uint256
-    ) external view returns (address) {
-        return mockSelectedAdapter;
-    }
-
-    function getBestAdapterForMessaging(
-        uint16
-    ) external view returns (address) {
+    ) external view override returns (address) {
         return mockSelectedAdapter;
     }
 
     function getBestAdapterForStateRead(
         uint16
-    ) external view returns (address) {
+    ) external view override returns (address) {
         return mockSelectedAdapter;
     }
 
-    function isValidAdapter(address) external view returns (bool) {
-        return true;
+    function isValidAdapter(
+        address adapter
+    ) external view override returns (bool) {
+        return adapters.contains(adapter);
     }
 
-    function getRouterBalance() external view returns (uint256) {
+    function getRouterBalance() external view override returns (uint256) {
         return address(this).balance;
     }
 
-    function getAdapterList() external view returns (address[] memory) {
-        address[] memory adapters = new address[](1);
-        adapters[0] = mockSelectedAdapter;
-        return adapters;
+    function getAdapters() external view override returns (address[] memory) {
+        return adapters.values();
     }
 
-    function getChainToRouterAddress(uint16) external view returns (address) {
-        return address(this);
+    // Mock adapter management functions
+
+    function registerAdapter(address adapter) external override {
+        if (adapters.contains(adapter)) revert AdapterAlreadyRegistered();
+
+        adapters.add(adapter);
+        emit AdapterRegistered(adapter);
     }
 
-    function acceptsAsset(address, uint16) external view returns (bool) {
-        return true;
+    function removeAdapter(address adapter) external override {
+        if (!adapters.contains(adapter)) revert UnknownAdapter();
+
+        adapters.remove(adapter);
+        emit AdapterRemoved(adapter);
     }
 
-    // Implement remaining IBridgeRouter functions without override
+    // Simplified notification implementation for testing
 
-    function registerAdapter(address) external {}
-    function removeAdapter(address) external {}
-    function pause() external {}
-    function unpause() external {}
-    function setFeeMultiplier(uint256) external {}
-    function setConfirmationGasLimit(uint64) external {}
-    function setChainRouterAddress(uint16, address) external {}
-    function removeRouterFunds(address, uint256) external {}
-    function addRouterFunds() external payable {}
     function notifyMessageReceived(
-        bytes32,
-        address,
-        uint256,
-        address,
-        uint16
-    ) external {}
-    function notifyTransferReceived(bytes32, address, uint16) external {}
-    function receiveConfirmation(bytes32, address, uint16) external {}
-    function receiveConfirmation(
-        bytes32,
-        BridgeTypes.OperationStatus
-    ) external {}
-    function recoverOperationStatus(
-        bytes32,
-        BridgeTypes.OperationStatus
-    ) external {}
-    function deliverReadResponse(bytes32, bytes calldata) external {}
-    function updateOperationStatus(
-        bytes32,
-        BridgeTypes.OperationStatus
-    ) external {}
-    function updateReceiveStatus(
-        bytes32,
-        address,
-        BridgeTypes.OperationStatus
-    ) external {}
-    function getAdapters() external view returns (address[] memory) {
-        return new address[](0);
+        bytes32 operationId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        uint16 sourceChainId
+    ) external override {
+        // Set the operation status to DELIVERED
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.DELIVERED;
+
+        emit OperationStatusUpdated(
+            operationId,
+            BridgeTypes.OperationStatus.DELIVERED
+        );
+
+        emit MessageDelivered(operationId, recipient, true);
+
+        // If this is a transfer (asset is not zero and amount > 0), emit the transfer event
+        if (asset != address(0) && amount > 0) {
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
+        }
+
+        // Forward the message to the recipient for testing purposes
+        if (messageCalls.length > 0) {
+            (bool success, ) = recipient.call(
+                abi.encodeWithSelector(
+                    0x6d79eede, // receiveMessage selector
+                    messageCalls[messageCalls.length - 1].message, // Use the last message sent
+                    messageCalls[messageCalls.length - 1].recipient, // Use the last recipient
+                    sourceChainId,
+                    operationId
+                )
+            );
+
+            if (!success) {
+                // If forwarding fails, update status to FAILED
+                operationStatuses[operationId] = BridgeTypes
+                    .OperationStatus
+                    .FAILED;
+                emit OperationStatusUpdated(
+                    operationId,
+                    BridgeTypes.OperationStatus.FAILED
+                );
+                emit MessageDelivered(operationId, recipient, false);
+            }
+        }
     }
+
+    function updateOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external override {
+        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+        if (operationToAdapter[operationId] != msg.sender)
+            revert Unauthorized();
+
+        operationStatuses[operationId] = status;
+        emit OperationStatusUpdated(operationId, status);
+    }
+
+    // Minimal implementations of required interface methods
+
+    function pause() external override {
+        mockPaused = true;
+    }
+
+    function unpause() external override {
+        mockPaused = false;
+    }
+
+    function receiveConfirmation(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external override {
+        operationStatuses[operationId] = status;
+        emit OperationStatusUpdated(operationId, status);
+    }
+
+    function recoverOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external override {
+        operationStatuses[operationId] = status;
+        emit OperationStatusUpdated(operationId, status);
+    }
+
+    function updateReceiveStatus(
+        bytes32 requestId,
+        address recipient,
+        BridgeTypes.OperationStatus status
+    ) external override {
+        operationStatuses[requestId] = status;
+        emit OperationStatusUpdated(requestId, status);
+
+        if (status != BridgeTypes.OperationStatus.DELIVERED) {
+            emit MessageDelivered(requestId, recipient, false);
+        }
+    }
+
+    // Unused interface methods with empty implementations
+    function setFeeMultiplier(uint256) external override {}
+    function setConfirmationGasLimit(uint64) external override {}
+    function setChainRouterAddress(uint16, address) external override {}
+    function removeRouterFunds(address, uint256) external override {}
+    function addRouterFunds() external payable override {}
+    function deliverReadResponse(bytes32, bytes calldata) external override {}
 }

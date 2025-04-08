@@ -23,16 +23,24 @@ interface ICrossChainReceiver {
 
     /**
      * @notice Receives a general cross-chain message
+     * @param sourceChainId The chain id
      * @param message The message content
-     * @param recipient The intended recipient of the message
-     * @param sourceChainId The chain ID where the message originated
-     * @param messageId The unique ID of the message
      */
     function receiveMessage(
-        bytes calldata message,
-        address recipient,
         uint16 sourceChainId,
-        bytes32 messageId
+        bytes calldata message
+    ) external;
+
+    /**
+     * @notice Receives a cross-chain message along with transferred assets
+     * @param asset The address of the transferred asset
+     * @param amount The amount of the asset transferred
+     * @param message The message content
+     */
+    function receiveMessageWithAssets(
+        address asset,
+        uint256 amount,
+        bytes calldata message
     ) external;
 
     /**
