@@ -24,30 +24,6 @@ export function getPositionDetails(
     vaultDetails.rewardsManager,
   )
   const positionId = utils.formatPositionId(account.toHexString(), vaultDetails.vaultId)
-  const rewardTokensLength = rewardsManagerContract.rewardTokensLength()
-  let claimableSummer = constants.BigIntConstants.ZERO
-  let claimableSummerNormalized = constants.BigDecimalConstants.ZERO
-  const rewards: PositionRewards[] = []
-  for (let i = 0; i < rewardTokensLength.toI32(); i++) {
-    const rewardTokenAddress = rewardsManagerContract.rewardTokens(BigInt.fromI32(i))
-    const rewardToken = getOrCreateToken(rewardTokenAddress)
-    const claimable = utils.readValue<BigInt>(
-      rewardsManagerContract.try_earned(account, rewardTokenAddress),
-      constants.BigIntConstants.ZERO,
-    )
-    const claimableNormalized = formatAmount(claimable, BigInt.fromI32(rewardToken.decimals))
-    const reward = getOrCreatePositionRewards(positionId, rewardToken, block)
-    reward.claimable = claimable
-    reward.claimableNormalized = claimableNormalized
-    rewards.push(reward)
-    // ------------------------------------------------------------
-    // will be deprecated in the future
-    if (rewardToken.id == addresses.SUMMER_TOKEN.toHexString()) {
-      claimableSummer = claimable
-      claimableSummerNormalized = claimableNormalized
-    }
-    // ------------------------------------------------------------
-  }
 
   const unstakedShares = utils.readValue<BigInt>(
     vaultContract.try_balanceOf(account),
@@ -122,6 +98,35 @@ export function getPositionDetails(
   const stakedInputTokenDeltaNormalizedUSD = stakedInputTokenDeltaNormalized.times(priceInUSD)
   const unstakedInputTokenDeltaNormalizedUSD = unstakedInputTokenDeltaNormalized.times(priceInUSD)
   const totalInputTokenDeltaNormalizedUSD = totalInputTokenDeltaNormalized.times(priceInUSD)
+
+  const rewards: PositionRewards[] = []
+  let claimableSummer = constants.BigIntConstants.ZERO
+  let claimableSummerNormalized = constants.BigDecimalConstants.ZERO
+
+  for (let i = 0; i < vault.rewardTokens.length; i++) {
+    if (stakedInputTokenNormalized.gt(constants.BigDecimalConstants.ZERO)) {
+      const rewardTokenAddress = Address.fromString(vault.rewardTokens[i])
+      const rewardToken = getOrCreateToken(rewardTokenAddress)
+      const claimable = utils.readValue<BigInt>(
+        rewardsManagerContract.try_earned(account, rewardTokenAddress),
+        constants.BigIntConstants.ZERO,
+      )
+      const claimableNormalized = formatAmount(claimable, BigInt.fromI32(rewardToken.decimals))
+      const positionRewards = getOrCreatePositionRewards(positionId, rewardToken, block)
+
+      positionRewards.claimable = claimable
+      positionRewards.claimableNormalized = claimableNormalized
+      rewards.push(positionRewards)
+
+      // ------------------------------------------------------------
+      // will be deprecated in the future
+      if (rewardTokenAddress.equals(addresses.SUMMER_TOKEN)) {
+        claimableSummer = positionRewards.claimable
+        claimableSummerNormalized = positionRewards.claimableNormalized
+      }
+      // ------------------------------------------------------------}
+    }
+  }
 
   return new PositionDetails(
     positionId,

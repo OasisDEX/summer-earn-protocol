@@ -27,7 +27,8 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
     position.claimableSummerTokenNormalized = positionDetails.claimableSummerTokenNormalized
     // ------------------------------------------------------------
     for (let i = 0; i < positionDetails.rewards.length; i++) {
-      positionDetails.rewards[i].save()
+      const reward = positionDetails.rewards[i]
+      reward.save()
     }
     if (positionDetails.inputTokenDelta.gt(BigIntConstants.ZERO)) {
       position.inputTokenDeposits = position.inputTokenDeposits.plus(

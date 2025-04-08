@@ -21,33 +21,34 @@ import {
 import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 
-export function updateAccount(account: Account, block: BigInt): void {
+export function updateAccountStakingRewards(account: Account, block: BigInt): void {
   if (account.lastUpdateBlock.equals(block)) {
     return
   }
-
   const governanceStaking = getOrCreateGovernanceStaking()
   const rewarTokens = governanceStaking.rewardTokens
-  if (rewarTokens.length > 0) {
-    const govRewardsManagerContract = GovernanceRewardsManager.bind(addresses.GOVERNANCE_STAKING)
+  if (account.stakedSummerToken.gt(BigIntConstants.ZERO)) {
+    if (rewarTokens.length > 0) {
+      const govRewardsManagerContract = GovernanceRewardsManager.bind(addresses.GOVERNANCE_STAKING)
 
-    for (let i = 0; i < rewarTokens.length; i++) {
-      const rewardToken = getOrCreateToken(Address.fromString(rewarTokens[i]))
-      const accountRewards = getOrCreateAccountRewards(account, rewardToken)
-      const claimable = utils.readValue<BigInt>(
-        govRewardsManagerContract.try_earned(
-          Address.fromString(account.id),
-          Address.fromString(rewarTokens[i]),
-        ),
-        BigIntConstants.ZERO,
-      )
-      accountRewards.claimable = claimable
-      accountRewards.claimableNormalized = formatAmount(
-        claimable,
-        BigInt.fromI32(rewardToken.decimals),
-      )
+      for (let i = 0; i < rewarTokens.length; i++) {
+        const rewardToken = getOrCreateToken(Address.fromString(rewarTokens[i]))
+        const accountRewards = getOrCreateAccountRewards(account, rewardToken)
+        const claimable = utils.readValue<BigInt>(
+          govRewardsManagerContract.try_earned(
+            Address.fromString(account.id),
+            Address.fromString(rewarTokens[i]),
+          ),
+          BigIntConstants.ZERO,
+        )
+        accountRewards.claimable = claimable
+        accountRewards.claimableNormalized = formatAmount(
+          claimable,
+          BigInt.fromI32(rewardToken.decimals),
+        )
 
-      accountRewards.save()
+        accountRewards.save()
+      }
     }
   }
   account.lastUpdateBlock = block

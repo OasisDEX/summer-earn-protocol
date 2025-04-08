@@ -25,7 +25,10 @@ import {
 } from '../utils/vaultRateHandlers'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
-import { getOrCreateGovernanceStaking, updateAccount } from './governanceRewardsManager'
+import {
+  getOrCreateGovernanceStaking,
+  updateAccountStakingRewards,
+} from './governanceRewardsManager'
 
 export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
   getOrCreateVault(event.params.fleetCommander, event.block)
@@ -82,12 +85,6 @@ function processHourlyVaultUpdate(
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
   const weekPassed = hasWeekPassed(protocolLastWeeklyUpdateTimestamp, block.timestamp)
   if (hourPassed) {
-    const gov = getOrCreateGovernanceStaking()
-    for (let i = 0; i < gov.accounts.length; i++) {
-      const account = getOrCreateAccount(gov.accounts[i])
-      updateAccount(account, block.number)
-    }
-
     let vault = getOrCreateVault(vaultAddress, block)
     const updatedVault = updateVaultData(vault, block)
     updateVaultSnapshots(updatedVault, block, dayPassed, weekPassed)
@@ -149,6 +146,17 @@ export function handleInterval(block: ethereum.Block): void {
   if (!protocol || !protocol.vaultsArray) {
     log.warning('Protocol or vaultsArray is null', [])
     return
+  }
+
+  const gov = getOrCreateGovernanceStaking()
+  const hourPassed = hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)
+  if (hourPassed) {
+    let accounts: string[] | null = gov.accounts
+    for (let i = 0; i < accounts!.length; i++) {
+      const account = getOrCreateAccount(gov.accounts[i])
+      updateAccountStakingRewards(account, block.number)
+    }
+    accounts = null
   }
 
   const vaults = protocol.vaultsArray

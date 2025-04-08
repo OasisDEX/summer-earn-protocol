@@ -51,6 +51,7 @@ import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { BigIntConstants, RewardTokenType } from './constants'
 import * as utils from './utils'
+import { formatAmount } from './utils'
 
 export function getOrCreateAccount(id: string): Account {
   let account = Account.load(id)
@@ -774,6 +775,36 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
 
+    for (let i = 0; i < vault.rewardTokens.length; i++) {
+      if (position.stakedInputTokenBalanceNormalized.gt(constants.BigDecimalConstants.ZERO)) {
+        const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(
+          Address.fromBytes(vault.stakingRewardsManager),
+        )
+        const rewardTokenAddress = Address.fromString(vault.rewardTokens[i])
+        const rewardToken = getOrCreateToken(rewardTokenAddress)
+        const claimable = utils.readValue<BigInt>(
+          rewardsManagerContract.try_earned(
+            Address.fromString(position.account),
+            rewardTokenAddress,
+          ),
+          constants.BigIntConstants.ZERO,
+        )
+        const claimableNormalized = formatAmount(claimable, BigInt.fromI32(rewardToken.decimals))
+        const positionRewards = getOrCreatePositionRewards(positionId, rewardToken, block)
+
+        positionRewards.claimable = claimable
+        positionRewards.claimableNormalized = claimableNormalized
+        positionRewards.save()
+
+        // ------------------------------------------------------------
+        // will be deprecated in the future
+        if (rewardTokenAddress.equals(addresses.SUMMER_TOKEN)) {
+          position.claimableSummerToken = positionRewards.claimable
+          position.claimableSummerTokenNormalized = positionRewards.claimableNormalized
+        }
+        // ------------------------------------------------------------}
+      }
+    }
     position.save()
   }
   position = null
