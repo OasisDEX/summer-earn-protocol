@@ -220,15 +220,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes32 messageId,
         uint16 srcChainId
     ) internal {
-        // Notify router about the received message, but don't call deliverMessage
-        IBridgeRouter(bridgeRouter).notifyMessageReceived(
-            messageId,
-            address(0), // No asset for general message
-            0, // No amount for general message
-            recipient,
-            srcChainId
-        );
-
         bool delivered = false;
         // Deliver the message directly here
         bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
@@ -236,13 +227,18 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             ICrossChainReceiver(recipient).supportsInterface(interfaceId)
         returns (bool supported) {
             if (supported) {
-                ICrossChainReceiver(recipient).receiveMessage(
-                    message,
-                    recipient,
-                    srcChainId,
-                    messageId
-                );
-                delivered = true;
+                try
+                    ICrossChainReceiver(recipient).receiveMessage(
+                        message,
+                        recipient,
+                        srcChainId,
+                        messageId
+                    )
+                {
+                    delivered = true;
+                } catch (bytes memory reason) {
+                    emit RelayFailed(messageId, reason);
+                }
             } else {
                 // Fallback for contracts that don't implement supportsInterface
                 (bool success, ) = recipient.call(
@@ -254,44 +250,36 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                         messageId
                     )
                 );
-                if (!success) {
-                    _updateReceiveStatus(
-                        messageId,
-                        recipient,
-                        BridgeTypes.OperationStatus.FAILED
-                    );
-                    revert ReceiverRejectedCall();
-                } else {
+                if (success) {
                     delivered = true;
+                } else {
+                    emit RelayFailed(messageId, "Call failed");
                 }
             }
-        } catch Error(string memory reason) {
-            _updateReceiveStatus(
-                messageId,
-                recipient,
-                BridgeTypes.OperationStatus.FAILED
-            );
-            emit RelayFailed(messageId, abi.encodePacked(reason));
         } catch (bytes memory reason) {
-            _updateReceiveStatus(
-                messageId,
-                recipient,
-                BridgeTypes.OperationStatus.FAILED
-            );
             emit RelayFailed(messageId, reason);
         }
 
-        // Update the final status based on delivery result
+        // Only call notifyMessageReceived if the delivery was successful
+        // This ensures confirmation is only sent if the message was delivered successfully
         if (delivered) {
+            IBridgeRouter(bridgeRouter).notifyMessageReceived(
+                messageId,
+                address(0), // No asset for general message
+                0, // No amount for general message
+                recipient,
+                srcChainId
+            );
+            // Emit event for message delivery
+            emit MessageDelivered(messageId, recipient, delivered);
+        } else {
+            // Update status to FAILED if delivery failed
             _updateReceiveStatus(
                 messageId,
                 recipient,
-                BridgeTypes.OperationStatus.DELIVERED
+                BridgeTypes.OperationStatus.FAILED
             );
         }
-
-        // Emit event for message delivery
-        emit MessageDelivered(messageId, recipient, delivered);
     }
 
     /**

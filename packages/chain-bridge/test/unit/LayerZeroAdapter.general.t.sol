@@ -215,7 +215,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         vm.stopPrank();
     }
 
-    function testSupportsFeatures() public {
+    function testSupportsFeatures() public view {
         // Test capability flags directly on adapter
         assertTrue(adapterA.supportsMessaging());
         assertTrue(adapterA.supportsStateRead());
