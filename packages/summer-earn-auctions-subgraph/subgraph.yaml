@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: Raft
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: Raft
-      address: "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
-      startBlock: 21745357
+      address: "0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204"
+      startBlock: 14240205
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

@@ -47,7 +47,7 @@ export async function GET() {
             query: AUCTIONS_QUERY,
           }),
           next: {
-            revalidate: 60 * 5, // 5 minutes
+            revalidate: 0, // 5 minutes
           },
         })
 
