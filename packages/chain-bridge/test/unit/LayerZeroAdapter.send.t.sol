@@ -10,6 +10,7 @@ import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     using OptionsBuilder for bytes;
 
@@ -61,7 +62,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         routerA.setOperationToAdapter(requestId, address(adapterA));
 
         vm.startPrank(governor);
-        adapterA.setReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1, true);
+        adapterA.activateReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1);
         vm.stopPrank();
 
         // We expect this call to revert with LZ_DefaultSendLibUnavailable
