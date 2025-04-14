@@ -11,6 +11,7 @@ import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
 import { SiloProduct } from '../products/Silo'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
+import { SparkProduct } from '../products/SparkProduct'
 import { getOrCreateToken } from '../utils/initializers'
 
 /**
@@ -142,19 +143,19 @@ class ProtocolConfig {
         ),
       ]),
       new Protocol('Spark', [
-        new AaveV3Product(
+        new SparkProduct(
           getOrCreateToken(addresses.USDC),
           Address.fromString('0xC13e21B648A5Ee794902342038FF3aDAB66BE987'),
           BigInt.fromI32(18798139),
           'Spark',
         ),
-        new AaveV3Product(
+        new SparkProduct(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xC13e21B648A5Ee794902342038FF3aDAB66BE987'),
           BigInt.fromI32(18798140),
           'Spark',
         ),
-        new AaveV3Product(
+        new SparkProduct(
           getOrCreateToken(addresses.USDT),
           Address.fromString('0xC13e21B648A5Ee794902342038FF3aDAB66BE987'),
           BigInt.fromI32(18798140),
