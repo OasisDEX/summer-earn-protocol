@@ -12,6 +12,7 @@ import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
+import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import {
   validateAddress,
   validateErc4626Address,
@@ -48,6 +49,9 @@ export async function deployArk(
   let deployedArk
 
   switch (arkConfig.type) {
+    case ArkType.SyrupArk:
+      deployedArk = await deploySyrupArk(config, baseArkParams)
+      break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config, baseArkParams)
       break
@@ -62,15 +66,15 @@ export async function deployArk(
       break
 
     case ArkType.ERC4626Ark:
-      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const vaultId = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][vaultName],
-        `ERC4626-${vaultName}`,
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[token][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
       )
       deployedArk = await deployERC4626Ark(config, {
         ...baseArkParams,
-        vaultId,
-        vaultName: vaultName,
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
       })
       break
 
@@ -178,6 +182,9 @@ export async function deployArk(
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
   let deployedArk
   switch (arkType) {
+    case ArkType.SyrupArk:
+      deployedArk = await deploySyrupArk(config)
+      break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config)
       break

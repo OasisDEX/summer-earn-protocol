@@ -23,12 +23,30 @@ export enum ArkType {
   SkyUsdsArk = 'SkyUsdsArk',
   SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
   MoonwellArk = 'MoonwellArk',
+  SyrupArk = 'SyrupArk',
 }
+
+export const arkTypes = [
+  { title: 'AaveV3Ark', value: ArkType.AaveV3Ark },
+  { title: 'SparkArk', value: ArkType.SparkArk },
+  { title: 'MorphoArk', value: ArkType.MorphoArk },
+  { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
+  { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },
+  { title: 'ERC4626Ark', value: ArkType.ERC4626Ark },
+  { title: 'SkyUsdsArk', value: ArkType.SkyUsdsArk },
+  { title: 'SkyUsdsPsm3Ark', value: ArkType.SkyUsdsPsm3Ark },
+  { title: 'PendleLPArk', value: ArkType.PendleLPArk },
+  { title: 'PendlePTArk', value: ArkType.PendlePTArk },
+  { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
+  { title: 'MoonwellArk', value: ArkType.MoonwellArk },
+  { title: 'SyrupArk', value: ArkType.SyrupArk },
+]
 
 export interface Config {
   [SupportedNetworks.MAINNET]: BaseConfig
   [SupportedNetworks.BASE]: BaseConfig
   [SupportedNetworks.ARBITRUM]: BaseConfig
+  [SupportedNetworks.SONIC]: BaseConfig
 }
 
 export enum Token {
@@ -138,6 +156,14 @@ export interface BaseConfig {
         }
       }
       comptroller: Address
+    }
+    syrup: {
+      pools: {
+        [key in Token]: {
+          syrup: Address
+          router: Address
+        }
+      }
     }
   }
 }
