@@ -108,6 +108,8 @@ export class BigDecimalConstants {
   static FIVE_BPS: BigDecimal = BigDecimal.fromString('0.0005')
   static ONE_BPS: BigDecimal = BigDecimal.fromString('0.0001')
   static TEN_BPS: BigDecimal = BigDecimal.fromString('0.001')
+  static TWENTY_BPS: BigDecimal = BigDecimal.fromString('0.002')
+  static THIRTY_BPS: BigDecimal = BigDecimal.fromString('0.003')
   static ONE_PERCENT: BigDecimal = BigDecimal.fromString('0.01')
   static TEN_PERCENT: BigDecimal = BigDecimal.fromString('0.1')
   static ONE: BigDecimal = BigDecimal.fromString('1')

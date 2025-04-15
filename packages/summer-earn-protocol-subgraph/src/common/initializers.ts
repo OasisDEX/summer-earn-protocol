@@ -11,6 +11,7 @@ import {
   Position,
   PositionDailySnapshot,
   PositionHourlySnapshot,
+  PositionRewards,
   PositionWeeklySnapshot,
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
@@ -50,6 +51,7 @@ import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { BigIntConstants, RewardTokenType } from './constants'
 import * as utils from './utils'
+import { formatAmount } from './utils'
 
 export function getOrCreateAccount(id: string): Account {
   let account = Account.load(id)
@@ -58,6 +60,9 @@ export function getOrCreateAccount(id: string): Account {
     account = new Account(id)
     account.claimedSummerToken = constants.BigIntConstants.ZERO
     account.claimedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
+    account.stakedSummerToken = constants.BigIntConstants.ZERO
+    account.stakedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
+    account.lastUpdateBlock = constants.BigIntConstants.ZERO
     account.save()
 
     const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
@@ -119,6 +124,8 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.claimedSummerToken = constants.BigIntConstants.ZERO
     position.claimedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
+    position.claimableSummerToken = constants.BigIntConstants.ZERO
+    position.claimableSummerTokenNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenDepositsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenWithdrawalsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
@@ -768,6 +775,36 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
 
+    for (let i = 0; i < vault.rewardTokens.length; i++) {
+      if (position.stakedInputTokenBalanceNormalized.gt(constants.BigDecimalConstants.ZERO)) {
+        const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(
+          Address.fromBytes(vault.stakingRewardsManager),
+        )
+        const rewardTokenAddress = Address.fromString(vault.rewardTokens[i])
+        const rewardToken = getOrCreateToken(rewardTokenAddress)
+        const claimable = utils.readValue<BigInt>(
+          rewardsManagerContract.try_earned(
+            Address.fromString(position.account),
+            rewardTokenAddress,
+          ),
+          constants.BigIntConstants.ZERO,
+        )
+        const claimableNormalized = formatAmount(claimable, BigInt.fromI32(rewardToken.decimals))
+        const positionRewards = getOrCreatePositionRewards(positionId, rewardToken, block)
+
+        positionRewards.claimable = claimable
+        positionRewards.claimableNormalized = claimableNormalized
+        positionRewards.save()
+
+        // ------------------------------------------------------------
+        // will be deprecated in the future
+        if (rewardTokenAddress.equals(addresses.SUMMER_TOKEN)) {
+          position.claimableSummerToken = positionRewards.claimable
+          position.claimableSummerTokenNormalized = positionRewards.claimableNormalized
+        }
+        // ------------------------------------------------------------}
+      }
+    }
     position.save()
   }
   position = null
@@ -934,4 +971,23 @@ export function getOrCreateVaultWeeklySnapshots(vault: Vault, block: ethereum.Bl
   snapshot.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
 
   snapshot.save()
+}
+
+export function getOrCreatePositionRewards(
+  positionId: string,
+  rewardToken: Token,
+  block: ethereum.Block,
+): PositionRewards {
+  const id = `${positionId}-${rewardToken.id}`
+  let positionRewards = PositionRewards.load(id)
+  if (!positionRewards) {
+    positionRewards = new PositionRewards(id)
+    positionRewards.position = positionId
+    positionRewards.rewardToken = rewardToken.id
+    positionRewards.claimable = constants.BigIntConstants.ZERO
+    positionRewards.claimableNormalized = constants.BigDecimalConstants.ZERO
+    positionRewards.claimed = constants.BigIntConstants.ZERO
+    positionRewards.claimedNormalized = constants.BigDecimalConstants.ZERO
+  }
+  return positionRewards
 }
