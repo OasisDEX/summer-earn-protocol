@@ -29,6 +29,8 @@ contract SkyRewardsArk is Ark {
     IStakingRewards public immutable stakingRewards;
     /// @notice the rewards token
     IERC20 public immutable rewardsToken;
+    /// @notice Lazy Summer governance referral code
+    uint16 public immutable lazySummerReferralCode;
 
     constructor(
         address _litePsm,
@@ -53,6 +55,7 @@ contract SkyRewardsArk is Ark {
         usds = IERC20(_usds);
         stakingRewards = IStakingRewards(_stakingRewards);
         rewardsToken = stakingRewards.rewardsToken();
+        lazySummerReferralCode = 1016;
     }
 
     function totalAssets() public view override returns (uint256 assets) {
@@ -80,7 +83,7 @@ contract SkyRewardsArk is Ark {
         config.asset.forceApprove(address(litePsm), amount);
         uint256 usdsAmount = litePsm.sellGem(address(this), amount);
         usds.forceApprove(address(stakingRewards), usdsAmount);
-        stakingRewards.stake(usdsAmount, 100);
+        stakingRewards.stake(usdsAmount, lazySummerReferralCode);
     }
 
     function _disembark(uint256 amount, bytes calldata) internal override {
