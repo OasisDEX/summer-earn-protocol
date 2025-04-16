@@ -623,6 +623,18 @@
         "weth": {
           "Euler_MEV_Capital": "0xa5cd24d9792F4F131f5976Af935A505D19c8Db2b"
         }
+      },
+      "silo": {
+        "pools": {
+          "usdc": {},
+          "dai": {},
+          "usde": {},
+          "usdt": {},
+          "usdce": {
+            "market_20": "0x322e1d5384aa4ED66AeCa770B95686271de61dc3",
+            "market_8": "0x4E216C15697C1392fE59e1014B009505E05810Df"
+          }
+        }
       }
     }
   }
