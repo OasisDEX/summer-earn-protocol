@@ -34,7 +34,7 @@ export async function deploySiloArk(config: BaseConfig, arkParams?: SiloArkUserI
 async function getUserInput(config: BaseConfig): Promise<SiloArkUserInput> {
   // Extract Silo vaults from the configuration
   const siloVaults = []
-  if (!config.protocolSpecific.silo) {
+  if (!config.protocolSpecific.silo || !config.protocolSpecific.silo.pools) {
     throw new Error('No Silo vaults found in the configuration.')
   }
   for (const token in config.protocolSpecific.silo.pools) {
