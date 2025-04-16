@@ -41,8 +41,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             deadline: 1744803326,
             auth_v: 28,
             auth_r: 0x24cf6b077bf7ba7544718ab03222808c5d46efe0838509c554fac69b35fd90a0,
-            auth_s: 0x07eb14e29af792dcdca8609c7d95fc72784d96bff450795c9a578ccf1b74379a,
-            depositData: 0x303a696e6a656374656400000000000000000000000000000000000000000000
+            auth_s: 0x07eb14e29af792dcdca8609c7d95fc72784d96bff450795c9a578ccf1b74379a
         });
     bytes authDataBytes = abi.encode(authData);
 
@@ -113,7 +112,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
                 authData.auth_r,
                 authData.auth_s,
                 amount,
-                authData.depositData
+                bytes32("summer")
             )
         );
         uint256 shares = ISyrupPool(syrupPoolAddress).convertToShares(amount);
@@ -121,6 +120,10 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         // Expect the Transfer event to be emitted - minted shares
         vm.expectEmit();
         emit IERC20.Transfer(routerAddress, address(ark), shares);
+
+        // Expect the DepositData event to be emitted with summer referral code
+        vm.expectEmit();
+        emit ISyrupRouter.DepositData(address(ark), amount, bytes32("summer"));
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();

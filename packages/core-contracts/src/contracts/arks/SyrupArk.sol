@@ -28,6 +28,7 @@ contract SyrupArk is Ark {
     ISyrupManager public immutable manager;
     ISyrupWithdrawalManager public immutable withdrawalManager;
     ISyrupRouter public immutable router;
+    bytes32 public immutable summerReferralCode;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -67,6 +68,7 @@ contract SyrupArk is Ark {
 
         // Approve vault to spend Ark's tokens
         config.asset.forceApprove(_vault, Constants.MAX_UINT256);
+        summerReferralCode = bytes32("summer");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -149,7 +151,7 @@ contract SyrupArk is Ark {
             authData.auth_r,
             authData.auth_s,
             amount,
-            authData.depositData
+            summerReferralCode
         );
     }
 
