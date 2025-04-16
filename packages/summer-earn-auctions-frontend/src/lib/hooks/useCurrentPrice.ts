@@ -1,3 +1,5 @@
+'use client'
+
 import { Auction } from '@/lib/types'
 import { useEffect, useState } from 'react'
 import { formatUnits } from 'viem'

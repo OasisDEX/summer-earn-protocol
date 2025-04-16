@@ -50,30 +50,25 @@ const FINISHED_AUCTIONS_QUERY = `
   }
 `
 
-export async function GET() {
-  try {
-    const allFinishedAuctions = await Promise.all(
-      Object.entries(CHAIN_CONFIGS).map(async ([chainId, config]) => {
-        const response = await fetch(config.subgraphEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: FINISHED_AUCTIONS_QUERY,
-          }),
-          next: {
-            revalidate: 60 * 15, // 15 minutes since historical data changes less frequently
-          },
-        })
+export async function getAllFinishedAuctions() {
+  return Promise.all(
+    Object.entries(CHAIN_CONFIGS).map(async ([chainId, config]) => {
+      const response = await fetch(config.subgraphEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: FINISHED_AUCTIONS_QUERY,
+        }),
+        next: {
+          revalidate: 60 * 15, // 15 minutes since historical data changes less frequently
+        },
+      })
 
-        const data = await response.json()
-        return {
-          chainId: CHAIN_CONFIGS[parseInt(chainId)].id,
-          auctions: data.data.auctions,
-        }
-      }),
-    )
-    return Response.json({ auctions: allFinishedAuctions })
-  } catch (error) {
-    return Response.json({ error: 'Failed to fetch finished auctions' }, { status: 500 })
-  }
+      const data = await response.json()
+      return {
+        chainId: CHAIN_CONFIGS[parseInt(chainId)].id,
+        auctions: data.data.auctions,
+      }
+    }),
+  )
 }

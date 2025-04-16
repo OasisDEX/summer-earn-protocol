@@ -1,4 +1,5 @@
 import { FinishedAuctionCard } from '@/components/FinishedAuctionCard'
+import { getAllFinishedAuctions } from '@/lib/getters/getFinishedAuctions'
 
 interface Auction {
   id: string
@@ -36,15 +37,8 @@ interface ChainAuctions {
   auctions: Auction[]
 }
 
-async function getFinishedAuctions(): Promise<{ auctions: ChainAuctions[] }> {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/getFinishedAuctions`, {
-    next: { revalidate: 60 * 15 }, // 15 minutes
-  })
-  return response.json()
-}
-
 export default async function FinishedAuctionsPage() {
-  const { auctions } = await getFinishedAuctions()
+  const auctions = (await getAllFinishedAuctions()) as ChainAuctions[]
 
   return (
     <div className="container py-8 space-y-6">

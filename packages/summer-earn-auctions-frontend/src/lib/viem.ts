@@ -1,3 +1,5 @@
+'use client'
+
 import { createPublicClient, http } from 'viem'
 import { arbitrum, base, mainnet } from 'viem/chains'
 

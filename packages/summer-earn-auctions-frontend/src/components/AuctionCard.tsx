@@ -1,3 +1,5 @@
+'use client'
+
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useCurrentPrice } from '@/lib/hooks/useCurrentPrice'
 import { Auction } from '@/lib/types'

@@ -2,37 +2,51 @@ import { CHAIN_CONFIGS } from '@/lib/config'
 import { createPublicClient, http } from 'viem'
 
 export async function POST(request: Request) {
-  const { chainId, arkAddress, rewardAddress } = await request.json()
-
-  const config = CHAIN_CONFIGS[chainId]
-  if (!config) {
-    return Response.json({ error: 'Invalid chain ID' }, { status: 400 })
-  }
-  const publicClient = createPublicClient({
-    chain: config.chain,
-    transport: http(config.rpcUrl),
-  })
-
   try {
-    const currentPrice = await publicClient.readContract({
-      address: config.raftAddress as `0x${string}`,
-      abi: [
-        {
-          inputs: [
-            { type: 'address', name: 'arkAddress' },
-            { type: 'address', name: 'rewardAddress' },
-          ],
-          name: 'getCurrentPrice',
-          outputs: [{ type: 'uint256', name: '' }],
-          stateMutability: 'view',
-          type: 'function',
-        },
-      ],
-      functionName: 'getCurrentPrice',
-      args: [arkAddress as `0x${string}`, rewardAddress as `0x${string}`],
+    const { chainId, arkAddress, rewardAddress } = await request.json()
+
+    if (!chainId || !arkAddress || !rewardAddress) {
+      return Response.json(
+        { error: 'Missing required parameters: chainId, arkAddress, rewardAddress' },
+        { status: 400 },
+      )
+    }
+
+    const config = CHAIN_CONFIGS[chainId]
+    if (!config) {
+      return Response.json({ error: 'Invalid chain ID' }, { status: 400 })
+    }
+
+    const publicClient = createPublicClient({
+      chain: config.chain,
+      transport: http(config.rpcUrl),
     })
-    return Response.json({ currentPrice: currentPrice.toString() })
+
+    try {
+      const currentPrice = await publicClient.readContract({
+        address: config.raftAddress as `0x${string}`,
+        abi: [
+          {
+            inputs: [
+              { type: 'address', name: 'arkAddress' },
+              { type: 'address', name: 'rewardAddress' },
+            ],
+            name: 'getCurrentPrice',
+            outputs: [{ type: 'uint256', name: '' }],
+            stateMutability: 'view',
+            type: 'function',
+          },
+        ],
+        functionName: 'getCurrentPrice',
+        args: [arkAddress as `0x${string}`, rewardAddress as `0x${string}`],
+      })
+      return Response.json({ currentPrice: currentPrice.toString() })
+    } catch (error) {
+      console.error('Error fetching price:', error)
+      return Response.json({ error: 'Failed to fetch price' }, { status: 500 })
+    }
   } catch (error) {
-    return Response.json({ error: 'Failed to fetch price' }, { status: 500 })
+    console.error('Error parsing request:', error)
+    return Response.json({ error: 'Invalid request format' }, { status: 400 })
   }
 }
