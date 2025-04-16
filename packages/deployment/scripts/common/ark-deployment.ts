@@ -24,7 +24,7 @@ import {
 import { MAX_UINT256_STRING } from './constants'
 
 export type ArkConfig = {
-  type: string
+  type: ArkType
   params: {
     asset: string
     vaultName?: string
