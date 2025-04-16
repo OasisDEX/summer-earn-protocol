@@ -112,7 +112,7 @@ async function deploySiloArkContract(
   const arkName = `Silo-${userInput.siloName}-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
-  const protocol = userInput.siloName.split('_')[0]
+  const protocol = 'Silo'
 
   return (await hre.ignition.deploy(createSiloArkModule(moduleName), {
     parameters: {
