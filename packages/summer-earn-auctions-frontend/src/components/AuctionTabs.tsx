@@ -20,12 +20,14 @@ export function AuctionTabs({ activeAuctions, finishedAuctions }: AuctionTabsPro
         <TabsTrigger value="active">Active Auctions</TabsTrigger>
         <TabsTrigger value="finished">Finished Auctions</TabsTrigger>
       </TabsList>
-      <TabsContent value="active" className="space-y-4">
-        {activeAuctions.map(({ chainId, auctions }) =>
-          auctions.map((auction) => (
-            <AuctionCard key={`${chainId}-${auction.id}`} auction={auction} chainId={chainId} />
-          )),
-        )}
+      <TabsContent value="active">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activeAuctions.map(({ chainId, auctions }) =>
+            auctions.map((auction) => (
+              <AuctionCard key={`${chainId}-${auction.id}`} auction={auction} chainId={chainId} />
+            )),
+          )}
+        </div>
       </TabsContent>
       <TabsContent value="finished" className="space-y-4">
         {finishedAuctions.map(({ chainId, auctions }) =>

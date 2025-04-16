@@ -8,7 +8,6 @@ export async function POST(request: Request) {
   if (!config) {
     return Response.json({ error: 'Invalid chain ID' }, { status: 400 })
   }
-
   const publicClient = createPublicClient({
     chain: config.chain,
     transport: http(config.rpcUrl),

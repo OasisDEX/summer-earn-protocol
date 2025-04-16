@@ -5,7 +5,7 @@ interface TokenAmountProps {
 }
 
 export function TokenAmount({ amount, symbol }: TokenAmountProps) {
-  const formattedAmount = symbol == 'WETH' ? Number(amount).toFixed(4) : Number(amount).toFixed(2)
+  const formattedAmount = symbol == 'WETH' ? Number(amount).toFixed(4) : Number(amount).toFixed(3)
   return (
     <div className="text-sm font-medium">
       {formattedAmount} {symbol}

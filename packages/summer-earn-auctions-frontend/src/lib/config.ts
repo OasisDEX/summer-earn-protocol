@@ -1,5 +1,16 @@
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
 import { ChainConfig } from './types'
+
+// Validate RPC URLs
+const validateRpcUrl = (url: string, chainName: string) => {
+  if (!url) {
+    throw new Error(
+      `Missing RPC URL for ${chainName}. Please set the ${chainName.toUpperCase()}_RPC_URL environment variable.`,
+    )
+  }
+  return url
+}
+
 export const CHAIN_CONFIGS: ChainConfig[] = [
   {
     name: 'Ethereum',
@@ -7,7 +18,7 @@ export const CHAIN_CONFIGS: ChainConfig[] = [
     chain: mainnet,
     subgraphEndpoint: 'https://subgraph.staging.oasisapp.dev/summer-auctions',
     raftAddress: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
-    rpcUrl: process.env.MAINNET_RPC_URL || '',
+    rpcUrl: validateRpcUrl(process.env.MAINNET_RPC_URL || '', 'Ethereum'),
   },
   {
     name: 'Base',
@@ -15,7 +26,7 @@ export const CHAIN_CONFIGS: ChainConfig[] = [
     chain: base,
     subgraphEndpoint: 'https://subgraph.staging.oasisapp.dev/summer-auctions-base',
     raftAddress: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
-    rpcUrl: process.env.BASE_RPC_URL || '',
+    rpcUrl: validateRpcUrl(process.env.BASE_RPC_URL || '', 'Base'),
   },
   {
     name: 'Arbitrum',
@@ -23,7 +34,7 @@ export const CHAIN_CONFIGS: ChainConfig[] = [
     chain: arbitrum,
     subgraphEndpoint: 'https://subgraph.staging.oasisapp.dev/summer-auctions-arbitrum',
     raftAddress: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
-    rpcUrl: process.env.ARBITRUM_RPC_URL || '',
+    rpcUrl: validateRpcUrl(process.env.ARBITRUM_RPC_URL || '', 'Arbitrum'),
   },
   {
     name: 'Sonic',
@@ -31,6 +42,6 @@ export const CHAIN_CONFIGS: ChainConfig[] = [
     chain: sonic,
     subgraphEndpoint: 'https://subgraph.staging.oasisapp.dev/summer-auctions-sonic',
     raftAddress: '0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204',
-    rpcUrl: process.env.SONIC_RPC_URL || '',
+    rpcUrl: validateRpcUrl(process.env.SONIC_RPC_URL || '', 'Sonic'),
   },
 ]
