@@ -9,6 +9,7 @@ import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-mo
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
@@ -168,6 +169,21 @@ export async function deployArk(
       break
     }
 
+    case ArkType.SiloArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.pools[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloParams = {
+        ...baseArkParams,
+        siloId: vaultId,
+        siloName: vaultName,
+      }
+      deployedArk = await deploySiloArk(config, siloParams)
+      break
+    }
+
     default:
       throw new Error(`Unknown Ark type: ${arkConfig.type}`)
   }
@@ -234,6 +250,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SkyUsdsPsm3Ark: {
       deployedArk = await deploySkyUsdsPsm3Ark(config)
+      break
+    }
+
+    case ArkType.SiloArk: {
+      deployedArk = await deploySiloArk(config)
       break
     }
 

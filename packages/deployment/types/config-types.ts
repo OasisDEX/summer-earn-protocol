@@ -24,6 +24,7 @@ export enum ArkType {
   SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
   MoonwellArk = 'MoonwellArk',
   SyrupArk = 'SyrupArk',
+  SiloArk = 'SiloArk',
 }
 
 export const arkTypes = [
@@ -40,6 +41,7 @@ export const arkTypes = [
   { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
   { title: 'MoonwellArk', value: ArkType.MoonwellArk },
   { title: 'SyrupArk', value: ArkType.SyrupArk },
+  { title: 'SiloArk', value: ArkType.SiloArk },
 ]
 
 export interface Config {
@@ -162,6 +164,13 @@ export interface BaseConfig {
         [key in Token]: {
           syrup: Address
           router: Address
+        }
+      }
+    }
+    silo: {
+      pools: {
+        [key in Token]: {
+          [key: string]: Address
         }
       }
     }
