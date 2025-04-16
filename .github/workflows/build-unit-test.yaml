@@ -44,6 +44,8 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v0.3.0
 
       - name: Prebuild
         run: pnpm prebuild
@@ -57,6 +59,7 @@ jobs:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
+          SONIC_RPC_URL: ${{ secrets.SONIC_RPC_URL }}
       - name: Lint
         run: pnpm lint
 
@@ -68,6 +71,7 @@ jobs:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
+          SONIC_RPC_URL: ${{ secrets.SONIC_RPC_URL }}
         run: |
           cd packages/core-contracts && pnpm coverage:lcov
           cd ../access-contracts && pnpm coverage:lcov

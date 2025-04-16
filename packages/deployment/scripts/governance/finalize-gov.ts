@@ -5,9 +5,16 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
-export async function finalizeGov(governorAddressesToRevoke: string[] = []) {
+export async function finalizeGov(
+  governorAddressesToRevoke: string[] = [],
+  useBummerConfig = false,
+) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
+  const config = getConfigByNetwork(
+    hre.network.name,
+    { common: false, gov: true, core: false },
+    useBummerConfig,
+  )
 
   const summerToken = await hre.viem.getContractAt(
     'SummerToken' as string,
@@ -26,6 +33,36 @@ export async function finalizeGov(governorAddressesToRevoke: string[] = []) {
     config.deployedContracts.gov.protocolAccessManager.address as Address,
   )
   const publicClient = await hre.viem.getPublicClient()
+
+  // Update delegate for SummerToken
+  console.log(kleur.cyan().bold('\nUpdating delegate for SummerToken...'))
+  try {
+    const currentTokenDelegate = (await summerToken.read.delegate()) as Address
+    if (currentTokenDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
+      const hash = await summerToken.write.setDelegate([timelock.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green('✓ SummerToken delegate updated to timelock'))
+    } else {
+      console.log(kleur.yellow('! SummerToken delegate already set to timelock'))
+    }
+  } catch (error) {
+    console.log(kleur.red('✗ Failed to update SummerToken delegate'), error)
+  }
+
+  // Update delegate for SummerGovernor
+  console.log(kleur.cyan().bold('\nUpdating delegate for SummerGovernor...'))
+  try {
+    const currentGovernorDelegate = (await summerGovernor.read.delegate()) as Address
+    if (currentGovernorDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
+      const hash = await summerGovernor.write.setDelegate([timelock.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green('✓ SummerGovernor delegate updated to timelock'))
+    } else {
+      console.log(kleur.yellow('! SummerGovernor delegate already set to timelock'))
+    }
+  } catch (error) {
+    console.log(kleur.red('✗ Failed to update SummerGovernor delegate'), error)
+  }
 
   // Transfer SummerToken ownership to timelock
   console.log(kleur.cyan().bold('Transferring SummerToken ownership to timelock...'))

@@ -35,6 +35,8 @@ export class BigIntConstants {
   static DAY_IN_SECONDS: BigInt = BigInt.fromI32(86400)
   static YEAR_IN_SECONDS: BigInt = BigInt.fromI32(31536000)
   static CHAIN_LINK_PRECISION: BigInt = BigInt.fromString(`${10 ** 8}`)
+  static USDC_PRECISION: BigInt = BigInt.fromString(`${10 ** 6}`)
+  static USDT_PRECISION: BigInt = BigInt.fromString(`${10 ** 6}`)
 }
 
 /** Address Constants */

@@ -24,7 +24,6 @@ export function aprToApy(apr: BigDecimal): BigDecimal {
     .div(BigDecimal.fromString('120')) // x⁵/5!
 
   const eToX = BigDecimal.fromString('1').plus(aprDecimal).plus(x2).plus(x3).plus(x4).plus(x5)
-
   // Convert back to percentage
   return eToX.minus(BigDecimal.fromString('1')).times(BigDecimalConstants.HUNDRED)
 }

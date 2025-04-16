@@ -1,9 +1,10 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+import { Address } from 'viem'
 /**
  * Type definition for the returned contract addresses
  */
 export type FleetContracts = {
-  fleetCommander: { address: string }
+  fleetCommander: { address: Address }
 }
 
 /**

@@ -198,15 +198,16 @@ contract MorphoArk is Ark {
              * @param claimData.claimable[i] The amount of rewards to claim
              * @param claimData.proofs[i] The Merkle proof required to claim the rewards
              */
-            IUniversalRewardsDistributor(claimData.urd[i]).claim(
-                address(this),
-                claimData.rewards[i],
-                claimData.claimable[i],
-                claimData.proofs[i]
-            );
+            uint256 claimed = IUniversalRewardsDistributor(claimData.urd[i])
+                .claim(
+                    address(this),
+                    claimData.rewards[i],
+                    claimData.claimable[i],
+                    claimData.proofs[i]
+                );
             rewardTokens[i] = claimData.rewards[i];
-            rewardAmounts[i] = claimData.claimable[i];
-            IERC20(claimData.rewards[i]).safeTransfer(raft(), rewardAmounts[i]);
+            rewardAmounts[i] = claimed;
+            IERC20(claimData.rewards[i]).safeTransfer(raft(), claimed);
         }
 
         emit ArkHarvested(rewardTokens, rewardAmounts);

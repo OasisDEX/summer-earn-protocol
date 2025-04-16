@@ -2,7 +2,7 @@ import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Ark as ArkContract } from '../../../generated/HarborCommand/Ark'
 import { Ark } from '../../../generated/schema'
 import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
-import { getOrCreateArk } from '../../common/initializers'
+import { getOrCreateArk, getOrCreateVault } from '../../common/initializers'
 import { getAprForTimePeriod } from '../../common/utils'
 import { ArkDetails } from '../../types'
 
@@ -12,8 +12,8 @@ export function updateArk(
   shouldUpdateApr: boolean,
 ): void {
   const arkAddress = Address.fromString(arkDetails.arkId)
-  const vaultAddress = Address.fromString(arkDetails.vaultId)
-  const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+  const vault = getOrCreateVault(Address.fromString(arkDetails.vaultId), block)
+  const ark = getOrCreateArk(vault, arkAddress, block)
 
   const arkContract = ArkContract.bind(arkAddress)
   const currentTotalAssets = arkContract.totalAssets()

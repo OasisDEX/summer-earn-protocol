@@ -3,6 +3,7 @@ import { ArkType, BaseConfig } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
+import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { MorphoArkUserInput, deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
@@ -11,6 +12,7 @@ import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
+import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import {
   validateAddress,
   validateErc4626Address,
@@ -47,27 +49,32 @@ export async function deployArk(
   let deployedArk
 
   switch (arkConfig.type) {
+    case ArkType.SyrupArk:
+      deployedArk = await deploySyrupArk(config, baseArkParams)
+      break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config, baseArkParams)
       break
     case ArkType.SparkArk:
       deployedArk = await deploySparkArk(config, baseArkParams)
       break
-
+    case ArkType.MoonwellArk:
+      deployedArk = await deployMoonwellArk(config, baseArkParams)
+      break
     case ArkType.CompoundV3Ark:
       deployedArk = await deployCompoundV3Ark(config, baseArkParams)
       break
 
     case ArkType.ERC4626Ark:
-      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const vaultId = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][vaultName],
-        `ERC4626-${vaultName}`,
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[token][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
       )
       deployedArk = await deployERC4626Ark(config, {
         ...baseArkParams,
-        vaultId,
-        vaultName: vaultName,
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
       })
       break
 
@@ -175,13 +182,18 @@ export async function deployArk(
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
   let deployedArk
   switch (arkType) {
+    case ArkType.SyrupArk:
+      deployedArk = await deploySyrupArk(config)
+      break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config)
       break
     case ArkType.SparkArk:
       deployedArk = await deploySparkArk(config)
       break
-
+    case ArkType.MoonwellArk:
+      deployedArk = await deployMoonwellArk(config)
+      break
     case ArkType.CompoundV3Ark:
       deployedArk = await deployCompoundV3Ark(config)
       break

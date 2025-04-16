@@ -1,0 +1,19 @@
+{
+  "GovModule#ProtocolAccessManager": "0xAFb8a8beA8F7CdB4b65437b0c5963dc7Cd270bC6",
+  "GovModule#SummerTimelockController": "0x4c32A28AD95deaBc06bF7C83AdEbCF6fe6721ED9",
+  "GovModule#SummerToken": "0x4e0037f487bBb588bf1B7a83BDe6c34FeD6099e3",
+  "GovModule#SummerGovernor": "0x59485a5Fbdb0e1AA830765D419f1b4C04c3770Af",
+  "GovModule#SummerRewardsRedeemer": "0x08543e2B7E644C5471Cddda18e25f3aB93a16326",
+  "GovModule#SummerVestingWalletFactory": "0x3cd70DeD351C4c42EE3CE2b273AD3e916a4F49A2",
+  "CoreModule#ConfigurationManager": "0xDff0fc7bFa32Fb536807820FB3Be6C9828463e32",
+  "CoreModule#DutchAuctionLibrary": "0x4cd514F696ce580DCbD12e069DE7FE5107b4C770",
+  "CoreModule#FleetCommanderRewardsManagerFactory": "0xC474Cd1ea6f1809d17be61717b83f0F984EF0459",
+  "CoreModule#HarborCommand": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191",
+  "CoreModule#AdmiralsQuarters": "0xC61b22540516F70Ada02626Dc144AA9546A77343",
+  "CoreModule#Raft": "0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204",
+  "CoreModule#TipJar": "0xa689599c43C30e20153D2A9eD3d263fb72853E6c",
+  "FleetModule_LazyVault_LowerRisk_USDCe#FleetCommander": "0x507A2D9E87DBD3076e65992049C41270b47964f8",
+  "AaveV3_usdce_146#AaveV3Ark": "0x4D00D0dc44c4D6352C2bCb2228f2863e48cd53f4",
+  "ERC4626_Euler_MEV_Capital_usdce_146#ERC4626Ark": "0xDa50CE93aaE2c764532E5B11Dc6378Af3330a817",
+  "ERC4626_Euler_Re7_Labs_usdce_146#ERC4626Ark": "0x3002A7c8d5dC5CFaf81E747120B54D44bfAD5935"
+}

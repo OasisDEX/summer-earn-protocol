@@ -7,6 +7,7 @@ export enum SupportedNetworks {
   MAINNET = 'mainnet',
   BASE = 'base',
   ARBITRUM = 'arbitrum',
+  SONIC = 'sonic',
 }
 // Supported Arks
 export enum ArkType {
@@ -21,12 +22,31 @@ export enum ArkType {
   PendlePtOracleArk = 'PendlePtOracleArk',
   SkyUsdsArk = 'SkyUsdsArk',
   SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
+  MoonwellArk = 'MoonwellArk',
+  SyrupArk = 'SyrupArk',
 }
+
+export const arkTypes = [
+  { title: 'AaveV3Ark', value: ArkType.AaveV3Ark },
+  { title: 'SparkArk', value: ArkType.SparkArk },
+  { title: 'MorphoArk', value: ArkType.MorphoArk },
+  { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
+  { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },
+  { title: 'ERC4626Ark', value: ArkType.ERC4626Ark },
+  { title: 'SkyUsdsArk', value: ArkType.SkyUsdsArk },
+  { title: 'SkyUsdsPsm3Ark', value: ArkType.SkyUsdsPsm3Ark },
+  { title: 'PendleLPArk', value: ArkType.PendleLPArk },
+  { title: 'PendlePTArk', value: ArkType.PendlePTArk },
+  { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
+  { title: 'MoonwellArk', value: ArkType.MoonwellArk },
+  { title: 'SyrupArk', value: ArkType.SyrupArk },
+]
 
 export interface Config {
   [SupportedNetworks.MAINNET]: BaseConfig
   [SupportedNetworks.BASE]: BaseConfig
   [SupportedNetworks.ARBITRUM]: BaseConfig
+  [SupportedNetworks.SONIC]: BaseConfig
 }
 
 export enum Token {
@@ -38,6 +58,11 @@ export enum Token {
   USDS = 'usds',
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
+  EURC = 'eurc',
+  SEAM = 'seam',
+  REUL = 'reul',
+  WELL = 'well',
+  WS = 'ws',
 }
 
 export interface BaseConfig {
@@ -47,10 +72,19 @@ export interface BaseConfig {
     buyAndBurn: BuyAndBurnContracts
   }
   common: {
+    chainId: string
     initialSupply: string
     layerZero: {
       lzEndpoint: Address
       eID: string
+      lzExecutor: Address
+      sendUln302: Address
+      receiveUln302: Address
+      blockedMessageLib: Address
+      lzDeadDVN: Address
+      dvns: {
+        sonic: Record<string, Address>
+      }
     }
     swapProvider: Address
     tipRate: string
@@ -115,6 +149,22 @@ export interface BaseConfig {
         [key in Token]: Address
       }
     }
+    moonwell: {
+      pools: {
+        [key in Token]: {
+          mToken: Address
+        }
+      }
+      comptroller: Address
+    }
+    syrup: {
+      pools: {
+        [key in Token]: {
+          syrup: Address
+          router: Address
+        }
+      }
+    }
   }
 }
 
@@ -136,8 +186,15 @@ export interface FleetConfig {
   depositCap: string
   initialTipRate: string
   network: string
+  rewardTokens: string[]
+  rewardAmounts: string[]
+  rewardsDuration: number[]
+  bridgeAmount: string
   arks: ArkConfig[]
+  discourseURL?: string
+  sipNumber?: string
   details: string
+  curator?: Address
 }
 
 export interface FleetDeployment {

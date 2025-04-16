@@ -49,3 +49,21 @@ export async function useTestConfig(): Promise<boolean> {
 
   return useTest
 }
+
+/**
+ * Prompts the user to select between Production and Bummer/Test configuration
+ * @returns A boolean indicating whether to use the Bummer/Test config (true) or Production config (false)
+ */
+export async function promptForConfigType(): Promise<boolean> {
+  const configResponse = await prompts({
+    type: 'select',
+    name: 'configType',
+    message: 'Select the configuration to use:',
+    choices: [
+      { title: 'Production Config', value: false },
+      { title: 'Bummer/Test Config', value: true },
+    ],
+  })
+
+  return configResponse.configType as boolean
+}

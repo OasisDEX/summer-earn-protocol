@@ -9,23 +9,30 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 
-export async function deployGov() {
+export async function deployGov(config: BaseConfig, useBummerConfig?: boolean) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: false, core: false })
-  const deployedGov = await deployGovContracts(config)
+  const deployedGov = await deployGovContracts(config, useBummerConfig)
   ModuleLogger.logGov(deployedGov)
+
+  console.log('Updating index.json...')
+  updateIndexJson('gov', hre.network.name, deployedGov, useBummerConfig)
+
   return deployedGov
 }
 
 /**
  * Deploys the gov contracts using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
+ * @param {boolean} [useBummerConfig] - Whether to use the bummer (test) configuration.
  * @returns {Promise<GovContracts>} The deployed gov contracts.
  */
-async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
+async function deployGovContracts(
+  config: BaseConfig,
+  useBummerConfig?: boolean,
+): Promise<GovContracts> {
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
-  const deployConfig = await getDeploymentConfig()
+  const deployConfig = await getDeploymentConfig(useBummerConfig)
   const initialSupply = getInitialSupply(config)
   const proposalThreshold = 10000n * 10n ** 18n
   const quorumFraction = 4n
@@ -93,9 +100,6 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
     },
   })
 
-  console.log('Updating index.json...')
-  updateIndexJson('gov', hre.network.name, gov)
-
   console.log(kleur.green().bold('All Gov Contracts Deployed Successfully!'))
 
   return gov
@@ -111,15 +115,14 @@ function getInitialSupply(config: BaseConfig): bigint {
   return BigInt(config.common.initialSupply) * 10n ** 18n
 }
 
-async function getDeploymentConfig() {
-  const isTest = (
-    await prompts({
-      type: 'confirm',
-      name: 'value',
-      message: 'Is this a test deployment?',
-      initial: true,
-    })
-  ).value
+/**
+ * Gets the deployment configuration for governance contracts.
+ * @param {boolean} [useBummerConfig] - Whether to use the bummer (test) configuration.
+ * @returns {Promise<any>} The deployment configuration.
+ */
+async function getDeploymentConfig(useBummerConfig?: boolean) {
+  // Use the passed useBummerConfig instead of asking again
+  const isTest = useBummerConfig === true
 
   const defaultName = isTest ? 'BummerToken' : 'SummerToken'
   const defaultSymbol = isTest ? 'BUMMER' : 'SUMR'
@@ -184,8 +187,33 @@ async function getDeploymentConfig() {
 }
 
 if (require.main === module) {
-  deployGov().catch((error) => {
-    console.error(kleur.red().bold('An error occurred:'), error)
-    process.exit(1)
-  })
+  // If run directly, prompt for bummer config
+  const promptForConfigType = async () => {
+    const response = await prompts({
+      type: 'confirm',
+      name: 'value',
+      message: 'Do you want to use the bummer configuration? (test environment)',
+      initial: true,
+    })
+    return response.value
+  }
+
+  const getConfig = async () => {
+    const useBummerConfig = await promptForConfigType()
+    const config = getConfigByNetwork(
+      hre.network.name,
+      { common: true, gov: false, core: false },
+      useBummerConfig,
+    )
+    return { config, useBummerConfig }
+  }
+
+  getConfig()
+    .then(({ config, useBummerConfig }) => {
+      return deployGov(config, useBummerConfig)
+    })
+    .catch((error) => {
+      console.error(kleur.red().bold('An error occurred:'), error)
+      process.exit(1)
+    })
 }

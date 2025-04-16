@@ -87,4 +87,9 @@ interface IAdmiralsQuartersErrors {
      * @notice Thrown when the provided rewards manager is invalid.
      */
     error InvalidRewardsManager();
+
+    /**
+     * @notice Thrown when ETH transfer fails.
+     */
+    error ETHTransferFailed();
 }

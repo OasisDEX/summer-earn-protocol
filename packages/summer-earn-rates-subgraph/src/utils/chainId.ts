@@ -9,6 +9,8 @@ export function getChainIdByNetworkName(network: string): number {
     return 137
   } else if (network == 'base') {
     return 8453
+  } else if (network == 'sonic-mainnet') {
+    return 146
   } else {
     throw new Error(`Unsupported network: ${network}`)
   }
@@ -26,6 +28,8 @@ export function getNetworkNameByChainId(chainId: number): string {
       return 'optimism'
     case 137:
       return 'polygon'
+    case 146:
+      return 'sonic-mainnet'
     default:
       throw new Error(`Unsupported chain ID: ${chainId}`)
   }

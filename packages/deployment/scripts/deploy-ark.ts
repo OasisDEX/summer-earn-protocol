@@ -1,25 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { ArkType } from '../types/config-types'
+import { arkTypes } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { deployArkInteractive } from './common/ark-deployment'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
-
-const arkTypes = [
-  { title: 'AaveV3Ark', value: ArkType.AaveV3Ark },
-  { title: 'SparkArk', value: ArkType.SparkArk },
-  { title: 'MorphoArk', value: ArkType.MorphoArk },
-  { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
-  { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },
-  { title: 'ERC4626Ark', value: ArkType.ERC4626Ark },
-  { title: 'SkyUsdsArk', value: ArkType.SkyUsdsArk },
-  { title: 'SkyUsdsPsm3Ark', value: ArkType.SkyUsdsPsm3Ark },
-  { title: 'PendleLPArk', value: ArkType.PendleLPArk },
-  { title: 'PendlePTArk', value: ArkType.PendlePTArk },
-  { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
-]
 
 async function deployArk() {
   const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })

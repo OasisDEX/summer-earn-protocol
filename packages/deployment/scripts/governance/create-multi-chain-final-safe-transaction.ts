@@ -446,12 +446,12 @@ async function main() {
   }
 
   // Load configurations.
-  const rolesConfigPath = path.join(__dirname, '../../launch-config/roles.json')
+  const rolesConfigPath = path.join(__dirname, '../launch-config/roles.json')
   const rolesConfig = JSON.parse(fs.readFileSync(rolesConfigPath, 'utf-8'))
   console.log('Loaded roles configuration:')
   console.log(JSON.stringify(rolesConfig, null, 2))
 
-  const tipStreamsConfigPath = path.join(__dirname, '../../launch-config/tip-streams.json')
+  const tipStreamsConfigPath = path.join(__dirname, '../launch-config/tip-streams.json')
   const tipStreamsData = JSON.parse(fs.readFileSync(tipStreamsConfigPath, 'utf-8'))
   if (!tipStreamsData || !tipStreamsData.tipStreams) {
     console.log('⚠️ No tip streams configuration found. Continuing without tip streams...')
@@ -459,7 +459,7 @@ async function main() {
     console.log('Tip streams configuration loaded.')
   }
 
-  const fleetRewardsConfigPath = path.join(__dirname, '../../launch-config/fleet-rewards.json')
+  const fleetRewardsConfigPath = path.join(__dirname, '../launch-config/fleet-rewards.json')
   const fleetRewardsConfig = JSON.parse(fs.readFileSync(fleetRewardsConfigPath, 'utf-8'))
   const chainFleetRewardsData = fleetRewardsConfig[chainKey]
   console.log('Fleet rewards configuration loaded.')

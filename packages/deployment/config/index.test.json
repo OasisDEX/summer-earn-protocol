@@ -25,22 +25,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x637Fd808BD451fc61cB4cC04c7aBA048812012de"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xB5113dA0CaE7DDf19b8e25103B2F411148b8BAeb"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x17134eCce2bfDE9cfbd05D0faFfCB2e262E81eA1"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xE355F38F0144a9f07A1Dc8f95ED23658d96613AF"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x08E19585548c8439E83239BBED99aFc8e28528C6"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x90CaD67E09F79436F51E6a07B9267b002DfDFF03"
         }
       }
     },
@@ -52,12 +52,24 @@
       "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a"
     },
     "common": {
+      "chainId": "8453",
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
-        "eID": "30184"
+        "eID": "30184",
+        "lzExecutor": "0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4",
+        "sendUln302": "0xB5320B0B3a13cC860893E2Bd79FCd7e13484Dda2",
+        "receiveUln302": "0xc70AB6f32772f59fBfc23889Caf4Ba3376C84bAf",
+        "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
+        "lzDeadDVN": "0x6498b0632f3834D7647367334838111c8C889703",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          }
+        }
       }
     },
     "protocolSpecific": {
@@ -70,11 +82,11 @@
         "urdFactory": "0x7276454fc1cf9C408deeed722fd6b5E7A4CA25D8",
         "vaults": {
           "usdc": {
-            "Moonwell_Flagship_USDC_1": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
-            "Gauntlet_USDC_Core_1": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12",
-            "Gauntlet_USDC_Prime_1": "0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61",
-            "Re7_USDC_1": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
-            "Steakhouse_USDC_1": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
+            "Moonwell_Flagship_USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
+            "Gauntlet_USDC_Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12",
+            "Gauntlet_USDC_Prime": "0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61",
+            "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
+            "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
           }
         },
         "markets": {
@@ -138,22 +150,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x579f8Bd3419D2774d6b5eF7Ee93B09614c2271aC"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xa57EFa57592E00a307477D840B931406921fEF36"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xd03af7ADF8739ac396160A91B59aC0F33aEcF1C1"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x6De9F53c553e1511E1dBBd43E86148868400CbFb"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x8423c38AF6B70D27d613c17595e1110b25d3a983"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xA6040c5A92FFf881b8e74E6a5576DE156C0B6B1a"
         }
       }
     },
@@ -166,12 +178,24 @@
       "weth": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
     },
     "common": {
+      "chainId": "42161",
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
       "layerZero": {
         "eID": "30110",
-        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "lzExecutor": "0x31CAe3B7fB82d847621859fb1585353c5720660D",
+        "sendUln302": "0x975bcD720be66659e3EB3C0e4F1866a3020E493A",
+        "receiveUln302": "0x7B9E184e07a6EE1aC23eAe0fe8D6Be2f663f05e6",
+        "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
+        "lzDeadDVN": "0x758C419533ad64Ce9D3413BC8d3A97B026098EC1",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          }
+        }
       }
     },
     "protocolSpecific": {
@@ -249,19 +273,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xd236Cc900d35601C99950A7933158C3d2f0Dc46b"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x887482d43792330Bf42C20154d11B0c308aFb4bc"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE"
         },
         "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57"
         },
         "rewardsRedeemer": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
         }
       },
       "buyAndBurn": {
@@ -271,22 +295,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x820320648Fb90ee0Ddceb975fEE1c5b56803C1b3"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xceDBFEF8A10c20a96E2309E4Fd31F7D3834eFaF7"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xbB906Aae2dB6366B7141Aee2E5B9D57BC177807B"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x07060E282bd0FB99607c8915f1E538F8CebF5FC4"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x8b8235f12F03c34d9CB064460E234cC2C9a12922"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xA2e47Bb397f908aba018276a3CC683608404123f"
         }
       }
     },
@@ -298,12 +322,24 @@
       "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7"
     },
     "common": {
+      "chainId": "1",
       "initialSupply": "0",
       "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
       "tipRate": "100",
       "layerZero": {
         "eID": "30101",
-        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "lzExecutor": "0x173272739Bd7Aa6e4e214714048a9fE699453059",
+        "sendUln302": "0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1",
+        "receiveUln302": "0xc02Ab410f0734EFa3F14628780e6e695156024C2",
+        "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
+        "lzDeadDVN": "0x747C741496a507E4B404b50463e691A8d692f6Ac",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          }
+        }
       }
     },
     "protocolSpecific": {
@@ -427,6 +463,108 @@
           "usde": "0x0000000000000000000000000000000000000000",
           "usdt": "0x0000000000000000000000000000000000000000",
           "usdce": "0x0000000000000000000000000000000000000000"
+        }
+      }
+    }
+  },
+  "sonic": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0x9b499816Fdc6541821cc5789D7115EBf0Bb92768"
+        },
+        "summerToken": {
+          "address": "0xe8e6e06F9D33C4030e24b98ca7b000B76DF74845"
+        },
+        "timelock": {
+          "address": "0x363139edCB1994E6f9f928CEB33b431E9Db53ac5"
+        },
+        "protocolAccessManager": {
+          "address": "0xA55cd6a6D882180E84DDb25F7c7Ae4e4Af0f3f27"
+        },
+        "rewardsRedeemer": {
+          "address": "0x3E516345E8B212E35c8fDEbcf74360d765Be78e4"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0xA6a157F7d344209D54D82a7EFF17466032b847Ea"
+        },
+        "raft": {
+          "address": "0x702C4114eB8bB23Dd1432bb12Ac51B9cD5C7826f"
+        },
+        "configurationManager": {
+          "address": "0x3714C1D845e7137f144902A19828124c388e8Ffb"
+        },
+        "harborCommand": {
+          "address": "0x5de028b0ED0F1B5A81636eB97445236C6b4b2523"
+        },
+        "admiralsQuarters": {
+          "address": "0xAaB08AB98c93696665454b8C0a6eF8C2cd0206eF"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0xB3be2a9bF327a201D2BEFa3172B5E6aC2671B80b"
+        }
+      }
+    },
+    "tokens": {
+      "usdce": "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
+      "dai": "0x0000000000000000000000000000000000000000",
+      "weth": "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b",
+      "usds": "0x0000000000000000000000000000000000000000",
+      "stakedUsds": "0x0000000000000000000000000000000000000000",
+      "usdt": "0x6047828dc181963ba44974801FF68e538dA5eaF9"
+    },
+    "common": {
+      "chainId": "146",
+      "initialSupply": "0",
+      "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "tipRate": "100",
+      "layerZero": {
+        "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
+        "eID": "30332",
+        "lzExecutor": "0x4208D6E27538189bB48E603D6123A94b8Abe0A0b",
+        "sendUln302": "0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7",
+        "receiveUln302": "0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043",
+        "blockedMessageLib": "0xc1ce56b2099ca68720592583c7984cab4b6d7e7a",
+        "lzDeadDVN": "",
+        "dvns": {
+          "base": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          },
+          "arbitrum": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          },
+          "mainnet": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          }
+        }
+      }
+    },
+    "protocolSpecific": {
+      "aaveV3": {
+        "pool": "0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3",
+        "rewards": "0x24bD6e9ca54F1737467DEf82dCA9702925B3Aa59"
+      },
+      "erc4626": {
+        "usdc": {},
+        "dai": {},
+        "usde": {},
+        "usdt": {},
+        "usdce": {
+          "Euler_MEV_Capital": "0x196F3C7443E940911EE2Bb88e019Fd71400349D9",
+          "Euler_Re7_Labs": "0x3D9e5462A940684073EED7e4a13d19AE0Dcd13bc"
+        },
+        "weth": {
+          "Euler_MEV_Capital": "0xa5cd24d9792F4F131f5976Af935A505D19c8Db2b"
         }
       }
     }

@@ -77,9 +77,10 @@ contract VotingDecayTest is Test {
         );
     }
 
-    function testFail_SetInvalidDecayRate() public {
+    function test_RevertWhen_SettingInvalidDecayRate() public {
         uint256 invalidRate = 1.1e27; // 110% per year
         vm.prank(owner);
+        vm.expectRevert();
         state.setDecayRatePerSecond(invalidRate);
     }
 

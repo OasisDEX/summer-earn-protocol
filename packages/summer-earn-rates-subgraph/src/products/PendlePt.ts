@@ -5,6 +5,7 @@ import { Token } from '../../generated/schema'
 import { addresses } from '../constants/addresses'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { RewardRate } from './BaseVaultProduct'
 
 export class PendlePtProduct extends Product {
   marketExpiry: BigInt
@@ -52,5 +53,8 @@ export class PendlePtProduct extends Product {
     } else {
       return BigIntConstants.ZERO
     }
+  }
+  getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
+    return []
   }
 }

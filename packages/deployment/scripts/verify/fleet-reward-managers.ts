@@ -3,6 +3,7 @@ import hre from 'hardhat'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import path, { resolve } from 'path'
 import { getConfigByNetwork } from '../helpers/config-handler'
+import { promptForConfigType } from '../helpers/prompt-helpers'
 
 const REWARDS_MANAGER_CREATED_EVENT =
   '0x0b3397f9446e8b85cf96fe3194aeec84e2fd23ab014cf85f82805b36aef207aa'
@@ -20,13 +21,20 @@ async function verifyFactoryContracts(hre: HardhatRuntimeEnvironment) {
     __dirname,
     `../../ignition/deployments/chain-${chainId}/journal.jsonl`,
   )
+  console.log('journalPath', journalPath)
+
+  const useBummerConfig = await promptForConfigType()
 
   // Get config for current network
-  const config = getConfigByNetwork(hre.network.name, {
-    common: true,
-    gov: true,
-    core: false,
-  })
+  const config = getConfigByNetwork(
+    hre.network.name,
+    {
+      common: false,
+      gov: true,
+      core: false,
+    },
+    useBummerConfig,
+  )
 
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address
 
@@ -36,27 +44,37 @@ async function verifyFactoryContracts(hre: HardhatRuntimeEnvironment) {
     .filter(Boolean)
     .map((line) => JSON.parse(line))
 
-  // Find RewardsManagerCreated event
-  const rewardsManagerEvent = journal.find((entry) =>
+  // Find all RewardsManagerCreated events
+  const rewardsManagerEvents = journal.filter((entry) =>
     entry.receipt?.logs?.some((log) => log.topics[0] === REWARDS_MANAGER_CREATED_EVENT),
   )
 
-  if (rewardsManagerEvent) {
-    const rewardsManagerLog = rewardsManagerEvent.receipt.logs.find(
+  console.log(`Found ${rewardsManagerEvents.length} rewards manager events`)
+
+  for (const rewardsManagerEvent of rewardsManagerEvents) {
+    // Find all logs in this event that match our topic
+    const rewardsManagerLogs = rewardsManagerEvent.receipt.logs.filter(
       (log) => log.topics[0] === REWARDS_MANAGER_CREATED_EVENT,
     )
 
-    const rewardsManagerAddress = `0x${rewardsManagerLog.topics[1].slice(26)}`
-    const fleetCommanderAddress = `0x${rewardsManagerLog.topics[2].slice(26)}`
+    for (const rewardsManagerLog of rewardsManagerLogs) {
+      const rewardsManagerAddress = `0x${rewardsManagerLog.topics[1].slice(26)}`
+      const fleetCommanderAddress = `0x${rewardsManagerLog.topics[2].slice(26)}`
 
-    try {
-      await hre.run('verify:verify', {
-        address: rewardsManagerAddress,
-        contract: 'src/contracts/FleetCommanderRewardsManager.sol:FleetCommanderRewardsManager',
-        constructorArguments: [accessManagerAddress, fleetCommanderAddress],
-      })
-    } catch (error) {
-      console.error('Error verifying contract:', error)
+      console.log(
+        `Verifying rewards manager at ${rewardsManagerAddress} for fleet commander ${fleetCommanderAddress}`,
+      )
+
+      try {
+        await hre.run('verify:verify', {
+          address: rewardsManagerAddress,
+          contract: 'src/contracts/FleetCommanderRewardsManager.sol:FleetCommanderRewardsManager',
+          constructorArguments: [accessManagerAddress, fleetCommanderAddress],
+        })
+        console.log(`Successfully verified rewards manager at ${rewardsManagerAddress}`)
+      } catch (error) {
+        console.error(`Error verifying contract at ${rewardsManagerAddress}:`, error)
+      }
     }
   }
 }
