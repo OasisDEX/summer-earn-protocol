@@ -316,7 +316,7 @@ async function handleArkAddition(
     console.log(kleur.blue('Fleet Commander:'), kleur.cyan(fleetCommanderAddress))
 
     // Get existing ark addresses from deployment data
-    const existingArkAddresses = deploymentData.arkAddresses || []
+    const existingArkAddresses = deploymentData.arks || []
     console.log(kleur.blue('Existing Arks:'), kleur.cyan(existingArkAddresses.length.toString()))
 
     // Check if there are new arks in the config that aren't already deployed
