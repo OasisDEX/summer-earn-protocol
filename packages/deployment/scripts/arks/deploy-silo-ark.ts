@@ -4,16 +4,14 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createSiloArkModule, SiloArkContracts } from '../../ignition/modules/arks/silo-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-export interface SiloArkUserInput {
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-  token: { address: Address; symbol: Token }
+export interface SiloArkUserInput extends BaseArkParams {
   siloId: string
   siloName: string
 }
@@ -46,7 +44,7 @@ async function getUserInput(config: BaseConfig): Promise<SiloArkUserInput> {
       })
     }
   }
-
+  const fleetDefinition = await getFleetConfig()
   const responses = await prompts([
     {
       type: 'select',
@@ -85,6 +83,7 @@ async function getUserInput(config: BaseConfig): Promise<SiloArkUserInput> {
     token: { address: tokenAddress, symbol: selectedVault.token },
     siloId: selectedVault.vaultId,
     siloName: selectedVault.vaultName,
+    fleetName: fleetDefinition.fleetName,
   }
 
   return aggregatedData
@@ -110,7 +109,7 @@ async function deploySiloArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Silo-${userInput.siloName}-${userInput.token.symbol}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const protocol = 'Silo'
 

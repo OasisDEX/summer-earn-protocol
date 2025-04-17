@@ -424,7 +424,7 @@
           "Gearbox": "0xda0002859b2d05f66a753d8241fcde8623f26f4f",
           "Fluid": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
           "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
-          "Euler_Swaap_Lend":"0x716bF454066a84F39A2F78b5707e79a9d64f1225"
+          "Euler_Swaap_Lend": "0x716bF454066a84F39A2F78b5707e79a9d64f1225"
         }
       },
       "pendle": {
