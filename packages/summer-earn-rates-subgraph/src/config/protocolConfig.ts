@@ -480,6 +480,14 @@ class ProtocolConfig {
           'Fluid',
         ),
       ]),
+      new Protocol('Sky', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x940098b108fB7D0a7E374f6eDED7760787464609'),
+          BigInt.fromI32(311940473),
+          'Sky',
+        ),
+      ]),
     ]
   }
 
