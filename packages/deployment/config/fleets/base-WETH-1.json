@@ -10,6 +10,7 @@
   "details": "",
   "discourseURL": "https://forum.summer.fi/t/the-path-to-1b-tvl-onboard-medium-and-high-risk-vaults-for-lazy-summer-protocol/113",
   "sipNumber": "4",
+  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
   "rewardAmounts": ["458476000000000000000000"],
   "rewardsDuration": [1468800],
   "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
