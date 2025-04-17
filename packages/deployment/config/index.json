@@ -423,7 +423,8 @@
         "weth": {
           "Gearbox": "0xda0002859b2d05f66a753d8241fcde8623f26f4f",
           "Fluid": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
-          "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2"
+          "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
+          "Euler_Swaap_Lend":"0x716bF454066a84F39A2F78b5707e79a9d64f1225"
         }
       },
       "pendle": {
@@ -485,7 +486,9 @@
           "weth": {
             "Gauntlet_WETH_Prime": "0x2371e134e3455e0593363cBF89d3b6cf53740618",
             "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0",
-            "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4"
+            "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4",
+            "Mev_Capital_WETH": "0x9a8bC3B04b7f3D87cfC09ba407dCED575f2d61D8",
+            "Gauntlet_WETH_Core": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658"
           }
         },
         "markets": {

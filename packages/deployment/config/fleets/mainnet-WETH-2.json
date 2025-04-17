@@ -1,28 +1,14 @@
 {
-  "fleetName": "LazyVault_LowerRisk_WETH",
+  "fleetName": "LazyVault_HigherRisk_WETH",
   "symbol": "LVWETH",
   "assetSymbol": "WETH",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "3600",
   "depositCap": "0",
   "initialTipRate": "300000000000000000",
-  "network": "base",
+  "network": "mainnet",
   "details": "",
   "arks": [
-    {
-      "type": "AaveV3Ark",
-      "params": {
-        "asset": "WETH",
-        "protocol": "aaveV3"
-      }
-    },
-    {
-      "type": "CompoundV3Ark",
-      "params": {
-        "asset": "WETH",
-        "protocol": "compoundV3"
-      }
-    },
     {
       "type": "ERC4626Ark",
       "params": {
@@ -35,7 +21,15 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "WETH",
-        "vaultName": "Euler_Base_WETH",
+        "vaultName": "Euler_Prime",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Euler_Swaap_Lend",
         "protocol": "erc4626"
       }
     },
@@ -43,23 +37,23 @@
       "type": "MorphoVaultArk",
       "params": {
         "asset": "WETH",
-        "vaultName": "Moonwell_Flagship_WETH",
-        "protocol": "morpho"
-      }
-    },
-    {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "WETH",
-        "vaultName": "Steakhouse_WETH",
-        "protocol": "morpho"
-      }
-    },
-    {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "WETH",
         "vaultName": "Gauntlet_WETH_Core",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Mev_Capital_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Re7_WETH",
         "protocol": "morpho"
       }
     }
