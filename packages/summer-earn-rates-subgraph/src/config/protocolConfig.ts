@@ -493,6 +493,12 @@ class ProtocolConfig {
           BigInt.fromI32(7551731),
           'CompoundV3',
         ),
+        new CompoundProduct(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x46e6b214b524310239732D51387075E0e70970bf'),
+          BigInt.fromI32(29043399),
+          'CompoundV3',
+        ),
       ]),
       new Protocol('AaveV3', [
         new AaveV3Product(
@@ -505,6 +511,12 @@ class ProtocolConfig {
           getOrCreateToken(addresses.EURC),
           Address.fromString('0xA238Dd80C259a72e81d7e4664a9801593F98d1c5'),
           BigInt.fromI32(7551731),
+          'AaveV3',
+        ),
+        new AaveV3Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xA238Dd80C259a72e81d7e4664a9801593F98d1c5'),
+          BigInt.fromI32(29043399),
           'AaveV3',
         ),
       ]),
@@ -520,6 +532,18 @@ class ProtocolConfig {
           Address.fromString('0x1943FA26360f038230442525Cf1B9125b5DCB401'),
           BigInt.fromI32(27276276),
           'Fluid',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x9272D6153133175175Bc276512B2336BE3931CE9'),
+          BigInt.fromI32(29043399),
+          'Fluid',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x859160DB5841E5cfB8D3f144C6b3381A85A4b410'),
+          BigInt.fromI32(29043399),
+          'Euler',
         ),
       ]),
       new Protocol('Morpho', [
@@ -581,6 +605,24 @@ class ProtocolConfig {
           getOrCreateToken(addresses.EURC),
           Address.fromString('0x1c155be6bC51F2c37d472d4C2Eba7a637806e122'),
           BigInt.fromI32(27276276),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xa0E430870c4604CcfC7B38Ca7845B1FF653D0ff1'),
+          BigInt.fromI32(29043399),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xbEEf050a7485865A7a8d8Ca0CC5f7536b7a3443e'),
+          BigInt.fromI32(29043399),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x6b13c060F13Af1fdB319F52315BbbF3fb1D88844'),
+          BigInt.fromI32(29043399),
           'Morpho',
         ),
       ]),
