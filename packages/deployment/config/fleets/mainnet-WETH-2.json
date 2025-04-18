@@ -10,6 +10,7 @@
   "details": "",
   "discourseURL": "https://forum.summer.fi/t/sip1-3-onbaord-higher-risk-eth-vault-on-mainnet/170",
   "sipNumber": "3",
+  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
   "rewardAmounts": ["809075000000000000000000"],
   "rewardsDuration": [1296000],
   "bridgeAmount": "809075000000000000000000",
