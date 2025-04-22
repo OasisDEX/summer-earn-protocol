@@ -193,6 +193,39 @@ export function getAddressesProvider(): ServiceAddresses {
       RAFT: Address.fromString('0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E'),
     }
     return addresses
+  } else if (network == 'sonic-mainnet') {
+    const addresses: ServiceAddresses = {
+      WSTETH: Address.fromString('0x0000000000000000000000000000000000000000'),
+      STETH: Address.fromString('0x0000000000000000000000000000000000000000'),
+      WETH: Address.fromString('0x50c42dEAcD8Fc9773493ED674b675bE577f2634b'),
+      WBTC: Address.fromString('0x0000000000000000000000000000000000000000'),
+      USDC: Address.fromString('0x0000000000000000000000000000000000000000'),
+      USDCE: Address.fromString('0x29219dd400f2Bf60E5a23d13Be72B486D4038894'),
+      DAI: Address.fromString('0x0000000000000000000000000000000000000000'),
+      SDAI: Address.fromString('0x0000000000000000000000000000000000000000'),
+      FEED_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
+      AAVE_V3_ORACLE: Address.fromString('0xD63f7658C66B2934Bd234D79D06aEF5290734B30'),
+      SPARK_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
+      ONE_INCH_ORACLE_1: Address.fromString('0x0000000000000000000000000000000000000000'),
+      ONE_INCH_ORACLE_2: Address.fromString('0x0000000000000000000000000000000000000000'),
+      ONE_INCH_ORACLE_3: Address.fromString('0x0000000000000000000000000000000000000000'),
+      ONE_INCH_ORACLE_4: Address.fromString('0x0000000000000000000000000000000000000000'),
+      AAVE_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
+      SDAI_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
+      ZERO_ADDRESS: Address.fromString('0x0000000000000000000000000000000000000000'),
+      SUSDE: Address.fromString('0x0000000000000000000000000000000000000000'),
+      SUSDE_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
+      USDT: Address.fromString('0x6047828dc181963ba44974801FF68e538dA5eaF9'),
+      ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
+      ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
+      USD: Address.fromString('0x0000000000000000000000000000000000000348'),
+      ETH: Address.fromString('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
+      BTC: Address.fromString('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
+      CDP_MANAGER: Address.fromString('0x0000000000000000000000000000000000000000'),
+      AAVE_V2_ORACLE: Address.fromString('0x0000000000000000000000000000000000000000'),
+      RAFT: Address.fromString('0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204'),
+    }
+    return addresses
   }
 
   throw new Error(`Unsupported network: ${network}`)
@@ -208,7 +241,7 @@ export function getServicesProvider(): Services {
     oneInchOracle2: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_2),
     oneInchOracle3: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_3),
     oneInchOracle4: OneInchOracle.bind(addresses.ONE_INCH_ORACLE_4),
-    aaveV3Oracle: AaveV3Oracle.bind(addresses.AAVE_ORACLE),
+    aaveV3Oracle: AaveV3Oracle.bind(addresses.AAVE_V3_ORACLE),
     sDaiOracle: SdaiOracle.bind(addresses.SDAI_ORACLE),
     susdeOracle: SusdeOracle.bind(addresses.SUSDE_ORACLE),
     aaveV2Oracle: AaveV2Oracle.bind(addresses.AAVE_V3_ORACLE),

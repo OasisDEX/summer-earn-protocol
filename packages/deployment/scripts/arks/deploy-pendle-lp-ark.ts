@@ -7,17 +7,15 @@ import {
   PendleLPArkContracts,
 } from '../../ignition/modules/arks/pendle-lp-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
 
-export interface PendleLPArkUserInput {
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-  token: { address: Address; symbol: Token }
+export interface PendleLPArkUserInput extends BaseArkParams {
   marketId: string
   marketName: string
 }
@@ -56,7 +54,7 @@ async function getUserInput(config: BaseConfig): Promise<PendleLPArkUserInput> {
       })
     }
   }
-
+  const fleetDefinition = await getFleetConfig()
   const responses = await prompts([
     {
       type: 'select',
@@ -95,6 +93,7 @@ async function getUserInput(config: BaseConfig): Promise<PendleLPArkUserInput> {
     token: { address: tokenAddress, symbol: selectedMarket.token },
     marketId: selectedMarket.marketId,
     marketName: selectedMarket.marketName,
+    fleetName: fleetDefinition.fleetName,
   }
 
   return aggregatedData
@@ -122,7 +121,7 @@ async function deployPendleLPArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `PendleLp-${userInput.token.symbol}-${userInput.marketName}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const routerAddress = validateAddress(config.protocolSpecific.pendle.router, 'Pendle Router')
   const oracleAddress = validateAddress(

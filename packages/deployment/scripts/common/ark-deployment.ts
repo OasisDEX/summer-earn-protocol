@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { ArkType, BaseConfig } from '../../types/config-types'
+import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
@@ -9,6 +9,7 @@ import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-mo
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
@@ -23,20 +24,31 @@ import {
 import { MAX_UINT256_STRING } from './constants'
 
 export type ArkConfig = {
-  type: string
+  type: ArkType
   params: {
     asset: string
     vaultName?: string
   }
 }
+export type BaseArkParams = {
+  token: {
+    address: Address
+    symbol: Token
+  }
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  fleetName: string
+}
 
 export async function deployArk(
   arkConfig: ArkConfig,
   config: BaseConfig,
-  depositCap: string = MAX_UINT256_STRING,
+  fleetConfig: FleetConfig,
 ): Promise<Address> {
+  const depositCap = '0'
   const token = validateToken(config, arkConfig.params.asset)
-  const baseArkParams = {
+  const baseArkParams: BaseArkParams = {
     token: {
       address: config.tokens[token],
       symbol: token,
@@ -44,6 +56,7 @@ export async function deployArk(
     depositCap,
     maxRebalanceOutflow: MAX_UINT256_STRING,
     maxRebalanceInflow: MAX_UINT256_STRING,
+    fleetName: fleetConfig.fleetName,
   }
 
   let deployedArk
@@ -168,6 +181,21 @@ export async function deployArk(
       break
     }
 
+    case ArkType.SiloArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.pools[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloParams = {
+        ...baseArkParams,
+        siloId: vaultId,
+        siloName: vaultName,
+      }
+      deployedArk = await deploySiloArk(config, siloParams)
+      break
+    }
+
     default:
       throw new Error(`Unknown Ark type: ${arkConfig.type}`)
   }
@@ -234,6 +262,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SkyUsdsPsm3Ark: {
       deployedArk = await deploySkyUsdsPsm3Ark(config)
+      break
+    }
+
+    case ArkType.SiloArk: {
+      deployedArk = await deploySiloArk(config)
       break
     }
 

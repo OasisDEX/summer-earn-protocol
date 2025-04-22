@@ -3,6 +3,7 @@ import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborComm
 import { Vault, YieldAggregator } from '../../generated/schema'
 import { BigIntConstants } from '../common/constants'
 import {
+  getOrCreateAccount,
   getOrCreateArksDailySnapshots,
   getOrCreateArksHourlySnapshots,
   getOrCreatePositionDailySnapshot,
@@ -24,6 +25,10 @@ import {
 } from '../utils/vaultRateHandlers'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
+import {
+  getOrCreateGovernanceStaking,
+  updateAccountStakingRewards,
+} from './governanceRewardsManager'
 
 export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
   getOrCreateVault(event.params.fleetCommander, event.block)
@@ -141,6 +146,17 @@ export function handleInterval(block: ethereum.Block): void {
   if (!protocol || !protocol.vaultsArray) {
     log.warning('Protocol or vaultsArray is null', [])
     return
+  }
+
+  const gov = getOrCreateGovernanceStaking()
+  const hourPassed = hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)
+  if (hourPassed) {
+    let accounts: string[] | null = gov.accounts
+    for (let i = 0; i < accounts!.length; i++) {
+      const account = getOrCreateAccount(gov.accounts[i])
+      updateAccountStakingRewards(account, block.number)
+    }
+    accounts = null
   }
 
   const vaults = protocol.vaultsArray
