@@ -174,6 +174,14 @@ export interface BaseConfig {
         }
       }
     }
+    fluid: {
+      lite: {
+        [key in Token]: {
+          wrapper: Address
+          vault: Address
+        }
+      }
+    }
   }
 }
 
