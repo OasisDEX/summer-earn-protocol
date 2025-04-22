@@ -52,5 +52,12 @@
   "Spark_weth_1#SparkArk": "0x570957bC84b5607e2412dE72461FbbD02844b042",
   "MorphoVault_weth_Steakhouse_WETH_1#MorphoVaultArk": "0x4bd07e9D2AD23A68D232a20F1c8555e0C1573a4b",
   "AdmiralsQuartersModule#AdmiralsQuarters": "0x4758276018B944DFe320E98Da5C3f4c03c3a6BDB",
-  "TipJarModule#TipJar": "0x2d1A2637c3E0c80f31A91d0b6dbC5a107988a401"
+  "TipJarModule#TipJar": "0x2d1A2637c3E0c80f31A91d0b6dbC5a107988a401",
+  "FleetModule_LazyVault_HigherRisk_WETH#FleetCommander": "0x2E6abcbCCeD9Af05bc3B8a4908e0c98c29A88e10",
+  "LazyVault_HigherRisk_WETH_ERC4626_Fluid_weth_1#ERC4626Ark": "0x10Ef55E974c18CE0Ed9105868ffF412752FEd951",
+  "LazyVault_HigherRisk_WETH_ERC4626_Euler_Prime_weth_1#ERC4626Ark": "0xe2d4075734DBa76d5d17CD3fec8401f521522C34",
+  "LazyVault_HigherRisk_WETH_ERC4626_Euler_Swaap_Lend_weth_1#ERC4626Ark": "0x0f7C5a02f0763B2806CAe1bc7E965DaE089322dA",
+  "LazyVault_HigherRisk_WETH_MorphoVault_weth_Gauntlet_WETH_Core_1#MorphoVaultArk": "0x7e29e6503df46D4060301c1b4317adF2a6d6D371",
+  "LazyVault_HigherRisk_WETH_MorphoVault_weth_Mev_Capital_WETH_1#MorphoVaultArk": "0x4AA2B5d3a044AAe29AfbB90800E13382A295F63e",
+  "LazyVault_HigherRisk_WETH_MorphoVault_weth_Re7_WETH_1#MorphoVaultArk": "0x5982d78aB5f7ED0e7d3Feb08fdDd1DaAb15212CC"
 }
