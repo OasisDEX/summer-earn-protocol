@@ -25,4 +25,9 @@ interface ISyrupRouter {
         uint256 amount_,
         bytes32 depositData_
     ) external returns (uint256 shares_);
+
+    function deposit(
+        uint256 amount,
+        bytes32 depositData
+    ) external returns (uint256 shares_);
 }

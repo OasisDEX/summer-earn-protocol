@@ -17,6 +17,16 @@ import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISyrupPool} from "../../src/interfaces/syrup/ISyrupPool.sol";
 import {ISyrupRouter} from "../../src/interfaces/syrup/ISyrupRouter.sol";
+
+// Mock interface for PoolPermissionManager
+interface IPoolPermissionManager {
+    function setLenderAllowlist(
+        address poolManager_,
+        address[] calldata lenders_,
+        bool[] calldata booleans_
+    ) external;
+}
+
 contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SyrupArk public ark;
@@ -28,22 +38,18 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant routerAddress =
         0x134cCaaA4F1e4552eC8aEcb9E4A2360dDcF8df76;
+    address public constant poolManagerAddress =
+        0x7aD5fFa5fdF509E30186F4609c2f6269f4B6158F;
+    address public constant poolPermissionManagerAddress =
+        0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3;
+    address public constant syrupAdminAddress =
+        0xd6d4Bcde6c816F17889f1Dd3000aF0261B03a196;
+
     ISyrupPool public syrupPool;
     IERC20 public usdc;
 
     uint256 forkBlock = 22274128; // Using the same block as Aave test for consistency
     uint256 forkId;
-
-    // ark deposit autorization @ block 22274128
-    ISyrupRouter.AuthData authData =
-        ISyrupRouter.AuthData({
-            bitmap: 16,
-            deadline: 1744803326,
-            auth_v: 28,
-            auth_r: 0x24cf6b077bf7ba7544718ab03222808c5d46efe0838509c554fac69b35fd90a0,
-            auth_s: 0x07eb14e29af792dcdca8609c7d95fc72784d96bff450795c9a578ccf1b74379a
-        });
-    bytes authDataBytes = abi.encode(authData);
 
     function setUp() public {
         initializeCoreContracts();
@@ -61,7 +67,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true,
+            requiresKeeperData: false,
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
@@ -85,6 +91,18 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         nextArk.registerFleetCommander();
         vm.stopPrank();
 
+        vm.startPrank(syrupAdminAddress);
+        address[] memory lenders = new address[](1);
+        lenders[0] = address(ark);
+        bool[] memory booleans = new bool[](1);
+        booleans[0] = true;
+        IPoolPermissionManager(poolPermissionManagerAddress).setLenderAllowlist(
+            poolManagerAddress,
+            lenders,
+            booleans
+        );
+        vm.stopPrank();
+
         vm.label(commander, "Commander");
         vm.label(address(accessManager), "AccessManager");
         vm.label(address(configurationManager), "ConfigurationManager");
@@ -92,6 +110,8 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.label(address(syrupPool), "SyrupPool");
         vm.label(address(ark), "Ark");
         vm.label(address(nextArk), "NextArk");
+        vm.label(poolManagerAddress, "PoolManager");
+        vm.label(poolPermissionManagerAddress, "PoolPermissionManager");
     }
 
     function test_Board_Syrup_fork() public {
@@ -105,12 +125,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.expectCall(
             address(routerAddress),
             abi.encodeWithSelector(
-                ISyrupRouter.authorizeAndDeposit.selector,
-                authData.bitmap,
-                authData.deadline,
-                authData.auth_v,
-                authData.auth_r,
-                authData.auth_s,
+                ISyrupRouter.deposit.selector,
                 amount,
                 bytes32("summer")
             )
@@ -131,7 +146,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.board(amount, authDataBytes);
+        ark.board(amount, bytes(""));
 
         uint256 assetsAfterDeposit = ark.totalAssets();
         vm.warp(block.timestamp + 10000);
@@ -146,7 +161,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
 
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
-        ark.board(amount, authDataBytes);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Now test redeem request
@@ -181,7 +196,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
 
         vm.startPrank(commander);
         usdc.forceApprove(address(ark), amount);
-        ark.board(amount, authDataBytes);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Now test redeem request

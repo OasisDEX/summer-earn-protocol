@@ -138,21 +138,9 @@ contract SyrupArk is Ark {
         return IERC20(vault.asset()).balanceOf(address(this));
     }
 
-    function _board(uint256 amount, bytes calldata data) internal override {
-        ISyrupRouter.AuthData memory authData = abi.decode(
-            data,
-            (ISyrupRouter.AuthData)
-        );
+    function _board(uint256 amount, bytes calldata) internal override {
         IERC20(vault.asset()).forceApprove(address(router), amount);
-        router.authorizeAndDeposit(
-            authData.bitmap,
-            authData.deadline,
-            authData.auth_v,
-            authData.auth_r,
-            authData.auth_s,
-            amount,
-            summerReferralCode
-        );
+        router.deposit(amount, summerReferralCode);
     }
 
     function _disembark(uint256, bytes calldata) internal override {
@@ -175,7 +163,6 @@ contract SyrupArk is Ark {
 
     function _validateBoardData(bytes calldata) internal override {
         // No additional validation needed
-        // Transaction will fail if admin signature is invalid
     }
 
     function _validateDisembarkData(bytes calldata) internal override {}
