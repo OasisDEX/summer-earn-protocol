@@ -156,7 +156,7 @@ contract SyrupArk is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        // Initialize empty arrays as Syrup pools accrue interest automatically
+        // Syrup can be claimed permissionlessly, we can use sweep()
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
     }
