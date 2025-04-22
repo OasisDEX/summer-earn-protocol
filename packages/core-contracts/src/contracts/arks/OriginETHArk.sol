@@ -143,7 +143,7 @@ contract OriginETHArk is Ark {
             arm.requestWithdrawal(amount);
         } else {
             arm.requestWithdrawal(armBalance);
-            originETH.requestWithdrawal(amount - armBalance);
+            originETHVault.requestWithdrawal(amount - armBalance);
         }
     }
 
