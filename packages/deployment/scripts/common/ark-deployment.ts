@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { ArkType, BaseConfig } from '../../types/config-types'
+import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
@@ -30,14 +30,25 @@ export type ArkConfig = {
     vaultName?: string
   }
 }
+export type BaseArkParams = {
+  token: {
+    address: Address
+    symbol: Token
+  }
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  fleetName: string
+}
 
 export async function deployArk(
   arkConfig: ArkConfig,
   config: BaseConfig,
-  depositCap: string = MAX_UINT256_STRING,
+  fleetConfig: FleetConfig,
 ): Promise<Address> {
+  const depositCap = '0'
   const token = validateToken(config, arkConfig.params.asset)
-  const baseArkParams = {
+  const baseArkParams: BaseArkParams = {
     token: {
       address: config.tokens[token],
       symbol: token,
@@ -45,6 +56,7 @@ export async function deployArk(
     depositCap,
     maxRebalanceOutflow: MAX_UINT256_STRING,
     maxRebalanceInflow: MAX_UINT256_STRING,
+    fleetName: fleetConfig.fleetName,
   }
 
   let deployedArk

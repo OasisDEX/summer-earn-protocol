@@ -102,6 +102,11 @@
             "Steakhouse_EURC": "0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5",
             "Gauntlet_EURC_Core": "0x1c155be6bC51F2c37d472d4C2Eba7a637806e122",
             "Moonwell_Flagship_EURC": "0xf24608E0CCb972b0b0f4A6446a0BBf58c701a026"
+          },
+          "weth": {
+            "Moonwell_Flagship_WETH": "0xa0E430870c4604CcfC7B38Ca7845B1FF653D0ff1",
+            "Steakhouse_WETH": "0xbEEf050a7485865A7a8d8Ca0CC5f7536b7a3443e",
+            "Gauntlet_WETH_Core": "0x6b13c060F13Af1fdB319F52315BbbF3fb1D88844"
           }
         },
         "markets": {
@@ -123,6 +128,9 @@
         "pools": {
           "usdc": {
             "cToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
+          },
+          "weth": {
+            "cToken": "0x46e6b214b524310239732D51387075E0e70970bf"
           }
         },
         "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1"
@@ -133,6 +141,10 @@
         },
         "eurc": {
           "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"
+        },
+        "weth": {
+          "Fluid": "0x9272D6153133175175Bc276512B2336BE3931CE9",
+          "Euler_Base_WETH": "0x859160DB5841E5cfB8D3f144C6b3381A85A4b410"
         }
       },
       "moonwell": {
@@ -411,7 +423,8 @@
         "weth": {
           "Gearbox": "0xda0002859b2d05f66a753d8241fcde8623f26f4f",
           "Fluid": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
-          "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2"
+          "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
+          "Euler_Swaap_Lend": "0x716bF454066a84F39A2F78b5707e79a9d64f1225"
         }
       },
       "pendle": {
@@ -473,7 +486,9 @@
           "weth": {
             "Gauntlet_WETH_Prime": "0x2371e134e3455e0593363cBF89d3b6cf53740618",
             "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0",
-            "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4"
+            "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4",
+            "Mev_Capital_WETH": "0x9a8bC3B04b7f3D87cfC09ba407dCED575f2d61D8",
+            "Gauntlet_WETH_Core": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658"
           }
         },
         "markets": {

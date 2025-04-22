@@ -4,20 +4,15 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { createSyrupArkModule, SyrupArkContracts } from '../../ignition/modules/arks/syrup-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
 
-export interface SyrupArkUserInput {
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-  token: { address: Address; symbol: Token }
-}
-
-export async function deploySyrupArk(config: BaseConfig, arkParams?: SyrupArkUserInput) {
+export async function deploySyrupArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting SyrupArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
@@ -30,7 +25,7 @@ export async function deploySyrupArk(config: BaseConfig, arkParams?: SyrupArkUse
   }
 }
 
-async function getUserInput(config: BaseConfig): Promise<SyrupArkUserInput> {
+async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
   // Extract Syrup vaults from the configuration
   const syrupVaults = []
   if (!config.protocolSpecific.syrup) {
@@ -45,7 +40,7 @@ async function getUserInput(config: BaseConfig): Promise<SyrupArkUserInput> {
       })
     }
   }
-
+  const fleetDefinition = await getFleetConfig()
   const responses = await prompts([
     {
       type: 'select',
@@ -82,12 +77,13 @@ async function getUserInput(config: BaseConfig): Promise<SyrupArkUserInput> {
     maxRebalanceOutflow: responses.maxRebalanceOutflow,
     maxRebalanceInflow: responses.maxRebalanceInflow,
     token: { address: tokenAddress, symbol: selectedVault.token },
+    fleetName: fleetDefinition.fleetName,
   }
 
   return aggregatedData
 }
 
-async function confirmDeployment(userInput: SyrupArkUserInput, config: BaseConfig, skip: boolean) {
+async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(
     kleur.yellow(`Token                  : ${userInput.token.address} - ${userInput.token.symbol}`),
@@ -101,12 +97,12 @@ async function confirmDeployment(userInput: SyrupArkUserInput, config: BaseConfi
 
 async function deploySyrupArkContract(
   config: BaseConfig,
-  userInput: SyrupArkUserInput,
+  userInput: BaseArkParams,
 ): Promise<SyrupArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Syrup-${userInput.token.symbol}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const protocol = `Syrup`
 

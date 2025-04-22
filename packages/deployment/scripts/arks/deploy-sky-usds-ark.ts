@@ -7,18 +7,13 @@ import {
   createSkyUsdsArkModule,
 } from '../../ignition/modules/arks/sky-usds-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
-
-export interface SkyUsdsArkUserInput {
-  token: { address: Address; symbol: Token }
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-}
 
 /**
  * Main function to deploy a SkyUsdsArk.
@@ -29,7 +24,7 @@ export interface SkyUsdsArkUserInput {
  * - Deploying the SkyUsdsArk contract
  * - Logging deployment results
  */
-export async function deploySkyUsdsArk(config: BaseConfig, arkParams?: SkyUsdsArkUserInput) {
+export async function deploySkyUsdsArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting SkyUsdsArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
@@ -45,9 +40,9 @@ export async function deploySkyUsdsArk(config: BaseConfig, arkParams?: SkyUsdsAr
 /**
  * Prompts the user for SkyUsdsArk deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @returns {Promise<SkyUsdsArkUserInput>} An object containing the user's input for deployment parameters.
+ * @returns {Promise<BaseArkParams>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig): Promise<SkyUsdsArkUserInput> {
+async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as Token]
@@ -60,8 +55,8 @@ async function getUserInput(config: BaseConfig): Promise<SkyUsdsArkUserInput> {
       })
     }
   }
-
-  return await prompts([
+  const fleetDefinition = await getFleetConfig()
+  const responses = await prompts([
     {
       type: 'select',
       name: 'token',
@@ -87,19 +82,19 @@ async function getUserInput(config: BaseConfig): Promise<SkyUsdsArkUserInput> {
       message: 'Enter the max rebalance inflow:',
     },
   ])
+  return {
+    ...responses,
+    fleetName: fleetDefinition.fleetName,
+  }
 }
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {SkyUsdsArkUserInput} userInput - The user's input for deployment parameters.
+ * @param {BaseArkParams} userInput - The user's input for deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(
-  userInput: SkyUsdsArkUserInput,
-  config: BaseConfig,
-  skip: boolean,
-) {
+async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(
@@ -117,17 +112,17 @@ async function confirmDeployment(
 /**
  * Deploys the SkyUsdsArk contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @param {SkyUsdsArkUserInput} userInput - The user's input for deployment parameters.
+ * @param {BaseArkParams} userInput - The user's input for deployment parameters.
  * @returns {Promise<SkyUsdsArkContracts>} The deployed SkyUsdsArk contract.
  */
 async function deploySkyUsdsArkContract(
   config: BaseConfig,
-  userInput: SkyUsdsArkUserInput,
+  userInput: BaseArkParams,
 ): Promise<SkyUsdsArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `SkyUsds-${userInput.token.symbol}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const psmLiteAddress = validateAddress(
     config.protocolSpecific.sky.psmLite[userInput.token.symbol],

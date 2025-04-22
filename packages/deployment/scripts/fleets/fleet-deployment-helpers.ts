@@ -31,7 +31,7 @@ export async function deployArks(
     let retries = 0
     while (retries <= MAX_RETRIES) {
       try {
-        const arkAddress = await deployArk(arkConfig, config, fleetDefinition.depositCap)
+        const arkAddress = await deployArk(arkConfig, config, fleetDefinition)
         deployedArks.push(arkAddress)
         console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
         break
@@ -46,6 +46,7 @@ export async function deployArks(
         retries++
         console.log(
           kleur.yellow().bold(`Deployment attempt ${retries} failed, retrying in 13 seconds...`),
+          kleur.yellow(error),
         )
         await new Promise((resolve) => setTimeout(resolve, DELAY))
       }
