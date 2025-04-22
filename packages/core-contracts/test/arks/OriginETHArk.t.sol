@@ -27,9 +27,13 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     ArkParams public params;
 
     address public constant ORIGINETH_ADDRESS =
+        0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3; // IOriginETH address
+    address public constant ORIGIN_ETH_VAULT_ADDRESS =
         0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab; // IOriginETH address
     address public constant WETH_ADDRESS =
         0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // Mainnet WETH address
+    address public constant OETH_WETH_ARM =
+        0x6bac785889A4127dB0e0CeFEE88E0a9F1Aaf3cC7; // OETH WETH ARM address
 
     uint256 forkBlock = 21666256; // A recent block number
     uint256 forkId;
@@ -54,7 +58,12 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new OriginETHArk(ORIGINETH_ADDRESS, WETH_ADDRESS, params);
+        ark = new OriginETHArk(
+            ORIGINETH_ADDRESS,
+            WETH_ADDRESS,
+            OETH_WETH_ARM,
+            params
+        );
 
         // Permissioning
         vm.startPrank(governor);
@@ -72,20 +81,35 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     function test_Constructor() public {
         // Invalid OriginETH address
         vm.expectRevert(abi.encodeWithSignature("InvalidOriginETHAddress()"));
-        ark = new OriginETHArk(address(0), WETH_ADDRESS, params);
+        ark = new OriginETHArk(address(0), WETH_ADDRESS, OETH_WETH_ARM, params);
 
         // Invalid WETH address
         vm.expectRevert(abi.encodeWithSignature("InvalidWethAddress()"));
-        ark = new OriginETHArk(ORIGINETH_ADDRESS, address(0), params);
+        ark = new OriginETHArk(
+            ORIGINETH_ADDRESS,
+            address(0),
+            OETH_WETH_ARM,
+            params
+        );
 
         // Asset mismatch
         ArkParams memory badParams = params;
         badParams.asset = address(1); // Not WETH
         vm.expectRevert(abi.encodeWithSignature("AssetMismatch()"));
-        ark = new OriginETHArk(ORIGINETH_ADDRESS, WETH_ADDRESS, badParams);
+        ark = new OriginETHArk(
+            ORIGINETH_ADDRESS,
+            WETH_ADDRESS,
+            OETH_WETH_ARM,
+            badParams
+        );
 
         // Valid constructor
-        ark = new OriginETHArk(ORIGINETH_ADDRESS, WETH_ADDRESS, params);
+        ark = new OriginETHArk(
+            ORIGINETH_ADDRESS,
+            WETH_ADDRESS,
+            OETH_WETH_ARM,
+            params
+        );
 
         assertEq(
             address(ark.originETH()),
@@ -176,11 +200,11 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         vm.clearMockedCalls();
     }
 
-    function test_DisembarkNotImplemented() public {
+    function test_Disembark_OriginETH() public {
+        test_Board();
         uint256 amount = 1 ether; // 1 WETH
 
         vm.startPrank(commander);
-        vm.expectRevert(abi.encodeWithSignature("WithdrawalNotImplemented()"));
         ark.disembark(amount, bytes(""));
         vm.stopPrank();
     }

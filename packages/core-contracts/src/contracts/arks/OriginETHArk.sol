@@ -3,6 +3,8 @@ pragma solidity 0.8.28;
 
 import "../Ark.sol";
 import {IOriginETH} from "../../interfaces/origin/IOriginETH.sol";
+import {IArm} from "../../interfaces/origin/IArm.sol";
+import {IOriginETHVault} from "../../interfaces/origin/IOriginETHVault.sol";
 
 /**
  * @title OriginETHArk
@@ -22,6 +24,12 @@ contract OriginETHArk is Ark {
     /// @notice The WETH token address
     address public immutable weth;
 
+    /// @notice The ARM contract this Ark interacts with
+    IArm public immutable arm;
+
+    /// @notice The Origin ETH vault address
+    IOriginETHVault public immutable originETHVault;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -34,6 +42,7 @@ contract OriginETHArk is Ark {
     constructor(
         address _originETH,
         address _weth,
+        address _arm,
         ArkParams memory _params
     ) Ark(_params) {
         if (_originETH == address(0)) {
@@ -49,11 +58,14 @@ contract OriginETHArk is Ark {
             revert AssetMismatch();
         }
 
-        originETH = IOriginETH(_originETH);
-        weth = _weth;
+        if (_arm == address(0)) {
+            revert InvalidArmAddress();
+        }
 
-        // Approve Origin ETH to spend the Ark's WETH tokens
-        config.asset.forceApprove(_originETH, Constants.MAX_UINT256);
+        originETH = IOriginETH(_originETH);
+        arm = IArm(_arm);
+        weth = _weth;
+        originETHVault = IOriginETHVault(originETH.vaultAddress());
     }
 
     /**
@@ -62,9 +74,7 @@ contract OriginETHArk is Ark {
      * @return assets The total balance of underlying assets held in the vault for this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        // For now, just return the WETH balance, since we haven't implemented redemption
-        // In a complete implementation, this would need to track the value of Origin ETH shares
-        return config.asset.balanceOf(address(this));
+        assets = originETH.balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -81,7 +91,14 @@ contract OriginETHArk is Ark {
         override
         returns (uint256 withdrawableAssets)
     {
-        return 0; // No withdrawal implementation yet
+        uint256 arkBalance = config.asset.balanceOf(address(this));
+        uint256 originETHBalance = originETH.balanceOf(address(this));
+        uint256 armBalance = config.asset.balanceOf(address(arm));
+        uint256 redeemable = originETHBalance > armBalance
+            ? armBalance
+            : originETHBalance;
+        withdrawableAssets = arkBalance + redeemable;
+        return withdrawableAssets;
     }
 
     /**
@@ -90,64 +107,80 @@ contract OriginETHArk is Ark {
      * @param /// data Additional data (can be used to specify minShares parameter)
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        // Call Origin ETH's mint function with the specified parameters
-        config.asset.approve(address(originETH), amount);
-        originETH.mint(address(config.asset), amount, amount);
+        config.asset.approve(address(originETHVault), amount);
+        originETHVault.mint(address(config.asset), amount, amount);
     }
 
     /**
      * @notice Withdraws assets from the Origin ETH protocol (not implemented yet)
      * @param amount The amount of assets to withdraw
-     * @param data Additional data (unused in this implementation)
+     * @param /// data Additional data (unused in this implementation)
      */
-    function _disembark(uint256 amount, bytes calldata data) internal override {
-        // Not implemented yet
-        revert WithdrawalNotImplemented();
+    function _disembark(uint256 amount, bytes calldata) internal override {
+        uint256 wethBalance = config.asset.balanceOf(address(this));
+        if (wethBalance >= amount) {
+            return;
+        }
+        uint256 remaining = amount - wethBalance;
+        uint256 armBalance = config.asset.balanceOf(address(arm));
+        if (armBalance >= remaining) {
+            IERC20(address(originETH)).approve(address(arm), remaining);
+            arm.swapExactTokensForTokens(
+                address(originETH),
+                address(config.asset),
+                remaining,
+                0,
+                address(this)
+            );
+        } else {
+            revert InsufficientArmBalance();
+        }
+    }
+
+    function requestWithdrawal(uint256 amount) external onlyKeeper {
+        uint256 armBalance = config.asset.balanceOf(address(arm));
+        if (armBalance >= amount) {
+            arm.requestWithdrawal(amount);
+        } else {
+            arm.requestWithdrawal(armBalance);
+            originETH.requestWithdrawal(amount - armBalance);
+        }
     }
 
     /**
      * @notice Internal function for harvesting rewards
      * @dev This function is a no-op as Origin ETH auto-compounds the rewards
-     * @param data Additional data (unused in this implementation)
+     * @param /// data Additional data (unused in this implementation)
      * @return rewardTokens The addresses of the reward tokens (empty array in this case)
      * @return rewardAmounts The amounts of the reward tokens (empty array in this case)
      */
     function _harvest(
-        bytes calldata data
+        bytes calldata
     )
         internal
         pure
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        rewardTokens = new address[](1);
-        rewardAmounts = new uint256[](1);
-        rewardTokens[0] = address(0);
-        rewardAmounts[0] = 0;
+        rewardTokens = new address[](0);
+        rewardAmounts = new uint256[](0);
     }
 
     /**
      * @notice Validates the board data
      * @dev The data can be empty or contain a uint256 for minShares
-     * @param data Additional data to validate
+     * @param /// data Additional data to validate
      */
-    function _validateBoardData(bytes calldata data) internal pure override {
-        if (data.length > 0) {
-            // Ensure data is properly encoded as a uint256
-            abi.decode(data, (uint256));
-        }
-    }
+    function _validateBoardData(bytes calldata) internal pure override {}
 
     /**
      * @notice Validates the disembark data
      * @dev Not implemented yet
-     * @param data Additional data to validate
+     * @param /// data Additional data to validate
      */
     function _validateDisembarkData(
-        bytes calldata data
-    ) internal pure override {
-        // No validation needed as disembark is not implemented
-    }
+        bytes calldata
+    ) internal pure override {}
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -164,4 +197,10 @@ contract OriginETHArk is Ark {
 
     /// @notice Error thrown when an invalid Origin ETH address is provided
     error InvalidOriginETHAddress();
+
+    /// @notice Error thrown when an invalid ARM address is provided
+    error InvalidArmAddress();
+
+    /// @notice Error thrown when there is insufficient ARM balance
+    error InsufficientArmBalance();
 }
