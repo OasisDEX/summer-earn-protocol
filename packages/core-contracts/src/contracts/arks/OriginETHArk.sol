@@ -21,8 +21,8 @@ contract OriginETHArk is Ark {
     /// @notice The Origin ETH contract this Ark interacts with
     IOriginETH public immutable originETH;
 
-    /// @notice The WETH token address
-    address public immutable weth;
+    // /// @notice The WETH token address
+    // address public immutable weth;
 
     /// @notice The ARM contract this Ark interacts with
     IArm public immutable arm;
@@ -30,32 +30,24 @@ contract OriginETHArk is Ark {
     /// @notice The Origin ETH vault address
     IOriginETHVault public immutable originETHVault;
 
+    /// @notice The request ID for the withdrawal
+    uint256 public withdrawalRequestId;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
     /**
      * @notice Constructor to set up the OriginETHArk
      * @param _originETH Address of the OriginETH contract
-     * @param _weth Address of the WETH token
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
     constructor(
         address _originETH,
-        address _weth,
         address _arm,
         ArkParams memory _params
     ) Ark(_params) {
         if (_originETH == address(0)) {
             revert InvalidOriginETHAddress();
-        }
-
-        if (_weth == address(0)) {
-            revert InvalidWethAddress();
-        }
-
-        // Ensure the asset in params is WETH
-        if (address(config.asset) != _weth) {
-            revert AssetMismatch();
         }
 
         if (_arm == address(0)) {
@@ -64,8 +56,13 @@ contract OriginETHArk is Ark {
 
         originETH = IOriginETH(_originETH);
         arm = IArm(_arm);
-        weth = _weth;
-        originETHVault = IOriginETHVault(originETH.vaultAddress());
+
+        address vaultAddress = originETH.vaultAddress();
+        if (vaultAddress == address(0)) {
+            revert InvalidOriginETHVaultAddress();
+        }
+        
+        originETHVault = IOriginETHVault(vaultAddress);
     }
 
     /**
@@ -74,7 +71,15 @@ contract OriginETHArk is Ark {
      * @return assets The total balance of underlying assets held in the vault for this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        assets = originETH.balanceOf(address(this));
+        assets += config.asset.balanceOf(address(this));
+        assets += originETH.balanceOf(address(this));
+        if (withdrawalRequestId > 0) {
+            IOriginETHVault.WithdrawalRequest
+                memory withdrawalRequest = originETHVault.withdrawalRequests(
+                    withdrawalRequestId
+                );
+            assets += withdrawalRequest.amount;
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -129,7 +134,7 @@ contract OriginETHArk is Ark {
                 address(originETH),
                 address(config.asset),
                 remaining,
-                0,
+                remaining,
                 address(this)
             );
         } else {
@@ -138,13 +143,16 @@ contract OriginETHArk is Ark {
     }
 
     function requestWithdrawal(uint256 amount) external onlyKeeper {
-        uint256 armBalance = config.asset.balanceOf(address(arm));
-        if (armBalance >= amount) {
-            arm.requestWithdrawal(amount);
-        } else {
-            arm.requestWithdrawal(armBalance);
-            originETHVault.requestWithdrawal(amount - armBalance);
+        (uint256 requestId, ) = originETHVault.requestWithdrawal(amount);
+        withdrawalRequestId = requestId;
+    }
+
+    function claimWithdrawal() external onlyKeeper {
+        if (withdrawalRequestId == 0) {
+            revert NoWithdrawalRequest();
         }
+        originETHVault.claimWithdrawal(withdrawalRequestId);
+        withdrawalRequestId = 0;
     }
 
     /**
@@ -178,9 +186,7 @@ contract OriginETHArk is Ark {
      * @dev Not implemented yet
      * @param /// data Additional data to validate
      */
-    function _validateDisembarkData(
-        bytes calldata
-    ) internal pure override {}
+    function _validateDisembarkData(bytes calldata) internal pure override {}
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -203,4 +209,10 @@ contract OriginETHArk is Ark {
 
     /// @notice Error thrown when there is insufficient ARM balance
     error InsufficientArmBalance();
+
+    /// @notice Error thrown when there is no withdrawal request
+    error NoWithdrawalRequest();
+
+    /// @notice Error thrown when an invalid Origin ETH vault address is provided
+    error InvalidOriginETHVaultAddress();
 }

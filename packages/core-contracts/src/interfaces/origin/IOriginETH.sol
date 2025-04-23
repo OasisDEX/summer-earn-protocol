@@ -5,4 +5,5 @@ interface IOriginETH {
     function mint(address to, uint256 amount) external;
     function balanceOf(address account) external view returns (uint256);
     function vaultAddress() external view returns (address);
+    function transfer(address to, uint256 amount) external;
 }

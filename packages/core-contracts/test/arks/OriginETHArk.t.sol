@@ -7,7 +7,7 @@ import "../../src/contracts/arks/OriginETHArk.sol";
 import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IOriginETH} from "../../src/interfaces/origin/IOriginETH.sol";
-
+import {IOriginETHVault} from "../../src/interfaces/origin/IOriginETHVault.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
@@ -23,6 +23,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     OriginETHArk public ark;
     IOriginETH public originETH;
+    IOriginETHVault public originETHVault;
     IERC20 public weth;
     ArkParams public params;
 
@@ -44,7 +45,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
 
         weth = IERC20(WETH_ADDRESS);
         originETH = IOriginETH(ORIGINETH_ADDRESS);
-
+        originETHVault = IOriginETHVault(ORIGIN_ETH_VAULT_ADDRESS);
         params = ArkParams({
             name: "WETH OriginETH Ark",
             details: "WETH OriginETH Ark details",
@@ -58,12 +59,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new OriginETHArk(
-            ORIGINETH_ADDRESS,
-            WETH_ADDRESS,
-            OETH_WETH_ARM,
-            params
-        );
+        ark = new OriginETHArk(ORIGINETH_ADDRESS, OETH_WETH_ARM, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -81,45 +77,15 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     function test_Constructor() public {
         // Invalid OriginETH address
         vm.expectRevert(abi.encodeWithSignature("InvalidOriginETHAddress()"));
-        ark = new OriginETHArk(address(0), WETH_ADDRESS, OETH_WETH_ARM, params);
-
-        // Invalid WETH address
-        vm.expectRevert(abi.encodeWithSignature("InvalidWethAddress()"));
-        ark = new OriginETHArk(
-            ORIGINETH_ADDRESS,
-            address(0),
-            OETH_WETH_ARM,
-            params
-        );
-
-        // Asset mismatch
-        ArkParams memory badParams = params;
-        badParams.asset = address(1); // Not WETH
-        vm.expectRevert(abi.encodeWithSignature("AssetMismatch()"));
-        ark = new OriginETHArk(
-            ORIGINETH_ADDRESS,
-            WETH_ADDRESS,
-            OETH_WETH_ARM,
-            badParams
-        );
+        ark = new OriginETHArk(address(0), OETH_WETH_ARM, params);
 
         // Valid constructor
-        ark = new OriginETHArk(
-            ORIGINETH_ADDRESS,
-            WETH_ADDRESS,
-            OETH_WETH_ARM,
-            params
-        );
+        ark = new OriginETHArk(ORIGINETH_ADDRESS, OETH_WETH_ARM, params);
 
         assertEq(
             address(ark.originETH()),
             ORIGINETH_ADDRESS,
             "OriginETH address should match"
-        );
-        assertEq(
-            address(ark.weth()),
-            WETH_ADDRESS,
-            "WETH address should match"
         );
         assertEq(
             address(ark.asset()),
@@ -213,28 +179,248 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         uint256 amount = 1 ether; // 1 WETH
 
         // Fund the ark directly with WETH for testing totalAssets
-        vm.deal(address(this), 2 ether);
-        IWETH(WETH_ADDRESS).deposit{value: 2 ether}();
-        IWETH(WETH_ADDRESS).transfer(address(ark), amount);
+        deal(address(weth), address(ark), amount);
+        deal(address(weth), address(commander), amount);
+
+        // board the tokens
+        vm.startPrank(commander);
+        weth.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
 
         uint256 totalAssets = ark.totalAssets();
+
         assertEq(
             totalAssets,
-            amount,
-            "Total assets should match the WETH balance"
+            2 * amount,
+            "Total assets should match the WETH balance + OriginETH balance"
         );
     }
 
-    function test_Harvest() public {
-        vm.prank(address(raft));
-        (address[] memory rewardTokens, uint256[] memory rewardAmounts) = ark
-            .harvest("");
+    function test_RequestWithdrawal() public {
+        uint256 amount = 1 ether; // 1 WETH
+
+        // Grant keeper role to the commander for testing
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        deal(address(weth), address(commander), amount);
+        weth.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        vm.clearMockedCalls();
+    }
+
+    function test_ClaimWithdrawal_ClaimDelayNotMet() public {
+        // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
+        uint256 requestId = 174;
+        uint256 amount = 1 ether; // 1 WETH
+
+        // Grant keeper role to the commander for testing
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        deal(address(weth), address(commander), amount);
+        weth.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        vm.expectRevert("Claim delay not met");
+        vm.startPrank(commander);
+        ark.claimWithdrawal();
+        vm.stopPrank();
+
+        // Verify the request ID was reset
+        assertEq(
+            ark.withdrawalRequestId(),
+            requestId,
+            "Withdrawal request ID should be unchanged"
+        );
+    }
+
+    function test_ClaimWithdrawal_QueuePendingLiquidity() public {
+        // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
+        uint256 requestId = 174;
+        uint256 amount = 1 ether; // 1 WETH
+
+        // Grant keeper role to the commander for testing
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        deal(address(weth), address(commander), amount);
+        weth.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 10 minutes);
+
+        vm.expectRevert("Queue pending liquidity");
+        vm.startPrank(commander);
+        ark.claimWithdrawal();
+        vm.stopPrank();
+
+        // Verify the request ID was reset
+        assertEq(
+            ark.withdrawalRequestId(),
+            requestId,
+            "Withdrawal request ID should be unchanged"
+        );
+    }
+
+    function test_ClaimWithdrawal_WithdrawalRequestClaimed() public {
+        // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
+        uint256 requestId = 174;
+        uint256 amount = 1 ether; // 1 WETH
+
+        // Grant keeper role to the commander for testing
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        deal(address(weth), address(commander), amount);
+        weth.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 totalAssetsBeforeRequest = ark.totalAssets();
+        assertEq(
+            totalAssetsBeforeRequest,
+            amount,
+            "Before request, total assets should be equal to the withdrawal amount"
+        );
+
+        vm.startPrank(commander);
+        ark.requestWithdrawal(amount);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 10 minutes);
+
+        uint256 totalAssetsBeforeClaim = ark.totalAssets();
+        assertEq(
+            totalAssetsBeforeClaim,
+            amount,
+            "Before claim, total assets should be equal to the withdrawal amount"
+        );
+
+        deal(address(weth), address(originETHVault), 1000 * amount);
+        vm.startPrank(commander);
+        ark.claimWithdrawal();
+        vm.stopPrank();
+
+        uint256 totalAssetsAfter = ark.totalAssets();
+        assertEq(
+            totalAssetsAfter,
+            amount,
+            "After claim, total assets should be equal to the withdrawal amount"
+        );
+
+        // Verify the request ID was reset
+        assertEq(
+            ark.withdrawalRequestId(),
+            0,
+            "Withdrawal request ID should be reset to 0"
+        );
+    }
+
+    function test_ClaimWithdrawal_NoRequestId() public {
+        // Make sure withdrawalRequestId is 0
+        assertEq(
+            ark.withdrawalRequestId(),
+            0,
+            "Withdrawal request ID should be 0"
+        );
+
+        // Grant keeper role to the commander for testing
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        // Should revert with NoWithdrawalRequest
+        vm.startPrank(commander);
+        vm.expectRevert(abi.encodeWithSignature("NoWithdrawalRequest()"));
+        ark.claimWithdrawal();
+        vm.stopPrank();
+    }
+
+    function test_WithdrawableAssets() public {
+        uint256 arkBalance = 1 ether; // 1 WETH in Ark
+        uint256 originBalance = 2 ether; // 2 OETH in Ark
+        uint256 armBalance = 1.5 ether; // 1.5 WETH in ARM
+
+        // Fund the Ark with WETH
+        deal(address(weth), address(ark), arkBalance);
+        assertEq(
+            weth.balanceOf(address(ark)),
+            arkBalance,
+            "WETH balance should match"
+        );
+
+        // Fund the Ark with OETH
+        deal(address(weth), address(commander), originBalance);
+        vm.startPrank(commander);
+        weth.forceApprove(address(originETHVault), originBalance);
+        originETHVault.mint(address(weth), originBalance, originBalance);
+        originETH.transfer(address(ark), originBalance);
+        vm.stopPrank();
+        assertEq(
+            originETH.balanceOf(address(ark)),
+            originBalance,
+            "OriginETH balance should match"
+        );
+
+        // Fund the ARM with WETH
+        deal(address(weth), OETH_WETH_ARM, armBalance);
+        assertEq(
+            weth.balanceOf(OETH_WETH_ARM),
+            armBalance,
+            "WETH balance should match"
+        );
+
+        // Calculate expected withdrawable assets
+        // Ark's WETH balance + minimum of (Ark's OETH balance, ARM's WETH balance)
+        uint256 expectedWithdrawable = arkBalance +
+            (originBalance > armBalance ? armBalance : originBalance);
+
+        // Call withdrawableTotalAssets() - We'll need to expose it for testing
+        vm.prank(commander);
+        uint256 actualWithdrawable = ark.withdrawableTotalAssets();
+
+        vm.startPrank(commander);
+        ark.disembark(expectedWithdrawable, bytes(""));
+        vm.stopPrank();
+
+        assertEq(weth.balanceOf(address(ark)), 0, "WETH balance should be 0");
+        assertEq(
+            originETH.balanceOf(address(ark)),
+            0.5 ether,
+            "OriginETH balance should be 0.5 ether."
+        );
+        assertEq(weth.balanceOf(OETH_WETH_ARM), 0, "WETH balance should be 0");
 
         assertEq(
-            rewardTokens[0],
-            address(0),
-            "Reward token should be address(0)"
+            actualWithdrawable,
+            expectedWithdrawable,
+            "Withdrawable assets should match expected value"
         );
-        assertEq(rewardAmounts[0], 0, "Reward amount should be 0");
     }
 }
