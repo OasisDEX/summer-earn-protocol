@@ -61,7 +61,7 @@ contract OriginETHArk is Ark {
         if (vaultAddress == address(0)) {
             revert InvalidOriginETHVaultAddress();
         }
-        
+
         originETHVault = IOriginETHVault(vaultAddress);
     }
 
@@ -96,14 +96,12 @@ contract OriginETHArk is Ark {
         override
         returns (uint256 withdrawableAssets)
     {
-        uint256 arkBalance = config.asset.balanceOf(address(this));
+        withdrawableAssets += config.asset.balanceOf(address(this));
         uint256 originETHBalance = originETH.balanceOf(address(this));
         uint256 armBalance = config.asset.balanceOf(address(arm));
-        uint256 redeemable = originETHBalance > armBalance
+        withdrawableAssets += originETHBalance > armBalance
             ? armBalance
             : originETHBalance;
-        withdrawableAssets = arkBalance + redeemable;
-        return withdrawableAssets;
     }
 
     /**
