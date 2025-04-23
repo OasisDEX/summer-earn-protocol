@@ -106,14 +106,6 @@ contract OriginETHArk is Ark {
     }
 
     /**
-     * @notice Public accessor for withdrawableTotalAssets for testing purposes
-     * @return The total withdrawable assets
-     */
-    function withdrawableTotalAssets() public view returns (uint256) {
-        return _withdrawableTotalAssets();
-    }
-
-    /**
      * @notice Deposits assets into the Origin ETH protocol
      * @param amount The amount of assets to deposit
      * @param /// data Additional data (unused in this implementation)
