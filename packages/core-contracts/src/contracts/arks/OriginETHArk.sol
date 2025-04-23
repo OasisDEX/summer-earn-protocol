@@ -138,6 +138,9 @@ contract OriginETHArk is Ark {
     }
 
     function requestWithdrawal(uint256 amount) external onlyKeeper {
+        if (withdrawalRequestId > 0) {
+            revert WithdrawalAlreadyRequested();
+        }
         (uint256 requestId, ) = originETHVault.requestWithdrawal(amount);
         withdrawalRequestId = requestId;
     }
@@ -210,4 +213,7 @@ contract OriginETHArk is Ark {
 
     /// @notice Error thrown when an invalid Origin ETH vault address is provided
     error InvalidOriginETHVaultAddress();
+
+    /// @notice Error thrown when a withdrawal has already been requested
+    error WithdrawalAlreadyRequested();
 }
