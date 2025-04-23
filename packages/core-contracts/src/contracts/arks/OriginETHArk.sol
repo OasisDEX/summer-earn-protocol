@@ -21,9 +21,6 @@ contract OriginETHArk is Ark {
     /// @notice The Origin ETH contract this Ark interacts with
     IOriginETH public immutable originETH;
 
-    // /// @notice The WETH token address
-    // address public immutable weth;
-
     /// @notice The ARM contract this Ark interacts with
     IArm public immutable arm;
 
