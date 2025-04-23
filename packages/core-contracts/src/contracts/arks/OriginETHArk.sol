@@ -8,8 +8,8 @@ import {IOriginETHVault} from "../../interfaces/origin/IOriginETHVault.sol";
 
 /**
  * @title OriginETHArk
- * @notice Ark contract for managing WETH deposits into Origin ETH protocol
- * @dev Implements strategy for depositing WETH into Origin ETH, withdrawing tokens (to be implemented), and tracking yield
+ * @notice Ark contract for managing ETH/WETH deposits into Origin ETH protocol
+ * @dev Implements strategy for depositing into Origin ETH, withdrawing tokens, and tracking yield
  */
 contract OriginETHArk is Ark {
     using SafeERC20 for IERC20;
@@ -36,6 +36,7 @@ contract OriginETHArk is Ark {
     /**
      * @notice Constructor to set up the OriginETHArk
      * @param _originETH Address of the OriginETH contract
+     * @param _arm Address of the ARM contract
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
     constructor(
@@ -65,7 +66,8 @@ contract OriginETHArk is Ark {
     /**
      * @inheritdoc IArk
      * @notice Returns the total assets managed by this Ark in the Origin ETH protocol
-     * @return assets The total balance of underlying assets held in the vault for this Ark
+     * @return assets The total balance of underlying assets held in the vault for this Ark,
+     *                including any pending withdrawal amounts
      */
     function totalAssets() public view override returns (uint256 assets) {
         assets += config.asset.balanceOf(address(this));
@@ -85,7 +87,9 @@ contract OriginETHArk is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev OriginETHArk doesn't implement withdrawal yet, so return 0
+     * @dev Returns the sum of the direct asset balance and the redeemable amount from Origin ETH
+     *      limited by the ARM balance
+     * @return withdrawableAssets Assets that can be immediately withdrawn
      */
     function _withdrawableTotalAssets()
         internal
@@ -102,9 +106,17 @@ contract OriginETHArk is Ark {
     }
 
     /**
-     * @notice Deposits WETH into the Origin ETH protocol
-     * @param amount The amount of WETH to deposit
-     * @param /// data Additional data (can be used to specify minShares parameter)
+     * @notice Public accessor for withdrawableTotalAssets for testing purposes
+     * @return The total withdrawable assets
+     */
+    function withdrawableTotalAssets() public view returns (uint256) {
+        return _withdrawableTotalAssets();
+    }
+
+    /**
+     * @notice Deposits assets into the Origin ETH protocol
+     * @param amount The amount of assets to deposit
+     * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
         config.asset.approve(address(originETHVault), amount);
@@ -112,7 +124,7 @@ contract OriginETHArk is Ark {
     }
 
     /**
-     * @notice Withdraws assets from the Origin ETH protocol (not implemented yet)
+     * @notice Withdraws assets from the Origin ETH protocol
      * @param amount The amount of assets to withdraw
      * @param /// data Additional data (unused in this implementation)
      */
@@ -137,6 +149,11 @@ contract OriginETHArk is Ark {
         }
     }
 
+    /**
+     * @notice Initiates a withdrawal request from Origin ETH Vault
+     * @dev Can only be called by a keeper role
+     * @param amount The amount to request for withdrawal
+     */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
         if (withdrawalRequestId > 0) {
             revert WithdrawalAlreadyRequested();
@@ -145,6 +162,10 @@ contract OriginETHArk is Ark {
         withdrawalRequestId = requestId;
     }
 
+    /**
+     * @notice Claims a previously requested withdrawal from Origin ETH Vault
+     * @dev Can only be called by a keeper role, requires an active withdrawal request
+     */
     function claimWithdrawal() external onlyKeeper {
         if (withdrawalRequestId == 0) {
             revert NoWithdrawalRequest();
@@ -174,14 +195,14 @@ contract OriginETHArk is Ark {
 
     /**
      * @notice Validates the board data
-     * @dev The data can be empty or contain a uint256 for minShares
+     * @dev The data can be empty as we don't use additional parameters
      * @param /// data Additional data to validate
      */
     function _validateBoardData(bytes calldata) internal pure override {}
 
     /**
      * @notice Validates the disembark data
-     * @dev Not implemented yet
+     * @dev The data can be empty as we don't use additional parameters
      * @param /// data Additional data to validate
      */
     function _validateDisembarkData(bytes calldata) internal pure override {}
@@ -190,14 +211,8 @@ contract OriginETHArk is Ark {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when an invalid WETH address is provided
-    error InvalidWethAddress();
-
     /// @notice Error thrown when the asset in ArkParams doesn't match WETH
     error AssetMismatch();
-
-    /// @notice Error thrown when withdrawal is attempted (not implemented yet)
-    error WithdrawalNotImplemented();
 
     /// @notice Error thrown when an invalid Origin ETH address is provided
     error InvalidOriginETHAddress();
