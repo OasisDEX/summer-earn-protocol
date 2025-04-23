@@ -13,7 +13,7 @@ import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title CrossChainFleetProxy
  * @author SummerFi
