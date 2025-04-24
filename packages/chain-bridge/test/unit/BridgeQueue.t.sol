@@ -25,6 +25,7 @@ contract BridgeQueueTest is Test {
     address internal keeper = makeAddr("keeper");
     address internal governor = makeAddr("governor"); // For admin functions
     address internal testAdmin = address(this); // Address deploying the test contract is admin
+    address internal immutable MOCK_ADAPTER;
 
     // Constants
     uint16 internal constant DEST_CHAIN_ID = 10;
@@ -34,7 +35,11 @@ contract BridgeQueueTest is Test {
     uint256 internal constant TOTAL_NATIVE_FEE =
         (BASE_NATIVE_FEE * ROUTER_FEE_MULTIPLIER) / 100; // Fee user pays
     uint256 internal constant TOKEN_FEE = 1 ether; // Example token fee (not used in current queue logic)
-    address internal constant MOCK_ADAPTER = makeAddr("mockAdapter");
+
+    // Constructor to initialize immutable variables
+    constructor() {
+        MOCK_ADAPTER = makeAddr("mockAdapter");
+    }
 
     function setUp() public {
         // Deploy Mocks & REAL Access Manager
@@ -43,10 +48,8 @@ contract BridgeQueueTest is Test {
         asset = new ERC20Mock();
 
         // Configure Access Manager
-        bytes32 governorRole = accessManager.GOVERNOR_ROLE();
-
         vm.prank(testAdmin);
-        accessManager.grantRole(governorRole, governor);
+        accessManager.grantGovernorRole(governor);
 
         queue = new BridgeQueue(
             address(accessManager),
@@ -54,10 +57,8 @@ contract BridgeQueueTest is Test {
             queueManager
         );
 
-        vm.prank(testAdmin);
-        accessManager.grantRole(governorRole, address(queue));
-
-        router.setFeeMultiplier(ROUTER_FEE_MULTIPLIER);
+        // Set up mock bridge router
+        router.setBridgeQueueAddress(address(queue));
 
         asset.mint(queueManager, TRANSFER_AMOUNT * 10);
         vm.deal(queueManager, TOTAL_NATIVE_FEE * 10);
@@ -68,7 +69,7 @@ contract BridgeQueueTest is Test {
     // Helper to create default bridge options
     function _defaultOptions()
         internal
-        view
+        pure
         returns (BridgeTypes.BridgeOptions memory)
     {
         return
@@ -89,6 +90,89 @@ contract BridgeQueueTest is Test {
             keccak256(abi.encodePacked(block.chainid, address(queue), nonce));
     }
 
+    // Helper to get QueuedTransfer struct from public getter
+    function _getQueuedTransfer(
+        bytes32 queueId
+    ) internal view returns (BridgeQueue.QueuedTransfer memory) {
+        (
+            uint16 destinationChainId,
+            address asset_, // Use _ suffix to avoid shadowing
+            uint256 amount,
+            address recipient_, // Use _ suffix
+            BridgeTypes.BridgeOptions memory options,
+            address originator_, // Use _ suffix
+            uint256 feePaid,
+            bytes32 operationId
+        ) = queue.queuedTransfers(queueId);
+
+        // Reconstruct the struct in memory
+        return
+            BridgeQueue.QueuedTransfer({
+                destinationChainId: destinationChainId,
+                asset: asset_,
+                amount: amount,
+                recipient: recipient_,
+                options: options, // This is already memory
+                originator: originator_,
+                feePaid: feePaid,
+                operationId: operationId
+            });
+    }
+
+    // Helper to get QueuedReadState struct from public getter
+    function _getQueuedReadState(
+        bytes32 queueId
+    ) internal view returns (BridgeQueue.QueuedReadState memory) {
+        (
+            uint16 dstChainId,
+            address dstContract,
+            bytes4 selector,
+            bytes memory readParams, // memory already
+            BridgeTypes.BridgeOptions memory options, // memory already
+            address originator_,
+            uint256 feePaid,
+            bytes32 operationId
+        ) = queue.queuedReadStates(queueId);
+
+        return
+            BridgeQueue.QueuedReadState({
+                dstChainId: dstChainId,
+                dstContract: dstContract,
+                selector: selector,
+                readParams: readParams,
+                options: options,
+                originator: originator_,
+                feePaid: feePaid,
+                operationId: operationId
+            });
+    }
+
+    // Helper to get QueuedMessage struct from public getter
+    function _getQueuedMessage(
+        bytes32 queueId
+    ) internal view returns (BridgeQueue.QueuedMessage memory) {
+        (
+            uint16 destinationChainId,
+            address recipient_,
+            bytes memory message, // memory already
+            BridgeTypes.BridgeOptions memory options, // memory already
+            address originator_,
+            uint256 feePaid,
+            bytes32 operationId
+        ) = queue.queuedMessages(queueId);
+
+        return
+            BridgeQueue.QueuedMessage({
+                destinationChainId: destinationChainId,
+                recipient: recipient_,
+                message: message,
+                options: options,
+                originator: originator_,
+                feePaid: feePaid,
+                operationId: operationId
+            });
+    }
+
     // --- Test Queueing ---
 
     function test_QueueTransferAssets() public {
@@ -104,7 +188,6 @@ contract BridgeQueueTest is Test {
         bytes32 expectedQueueId = _expectedQueueId(currentNonce);
 
         // --- Mocking ---
-        // Mock the quote call on the router
         vm.expectCall(
             address(router),
             abi.encodeWithSelector(
@@ -114,9 +197,9 @@ contract BridgeQueueTest is Test {
                 amount,
                 options,
                 BridgeTypes.OperationType.TRANSFER_ASSET
-            ),
-            MockBridgeRouter.QUOTE_GAS // Provide gas estimate if needed by mock
+            )
         );
+
         vm.mockCall(
             address(router),
             abi.encodeWithSelector(
@@ -159,43 +242,74 @@ contract BridgeQueueTest is Test {
         // ID
         assertEq(queueId, expectedQueueId, "Incorrect queueId");
 
-        // State Storage
-        BridgeQueue.QueuedTransfer memory queuedData = queue.queuedTransfers(
+        // State Storage - Use the helper function
+        BridgeQueue.QueuedTransfer memory storedTransfer = _getQueuedTransfer(
             queueId
         );
+
+        // Access fields from the memory struct
         assertEq(
-            queuedData.destinationChainId,
+            storedTransfer.destinationChainId,
             destChainId,
             "Stored destChainId mismatch"
         );
-        assertEq(queuedData.asset, address(asset), "Stored asset mismatch");
-        assertEq(queuedData.amount, amount, "Stored amount mismatch");
-        assertEq(queuedData.recipient, recipient, "Stored recipient mismatch");
+        assertEq(storedTransfer.asset, address(asset), "Stored asset mismatch");
+        assertEq(storedTransfer.amount, amount, "Stored amount mismatch");
         assertEq(
-            queuedData.originator,
+            storedTransfer.recipient,
+            recipient,
+            "Stored recipient mismatch"
+        );
+        assertEq(
+            storedTransfer.originator,
             queueManager,
             "Stored originator mismatch"
         );
         assertEq(
-            queuedData.feePaid,
+            storedTransfer.feePaid,
             TOTAL_NATIVE_FEE,
             "Stored feePaid mismatch"
         );
         assertEq(
-            queuedData.operationId,
+            storedTransfer.operationId,
             bytes32(0),
             "Stored operationId should be zero"
         );
-        // assertEq(keccak256(abi.encode(queuedData.options)), keccak256(abi.encode(options)), "Stored options mismatch"); // Deep struct compare tricky
+        // Compare options fields individually from the memory struct
+        assertEq(
+            storedTransfer.options.specifiedAdapter,
+            options.specifiedAdapter,
+            "Stored options.specifiedAdapter mismatch"
+        );
+        assertEq(
+            storedTransfer.options.adapterParams.gasLimit,
+            options.adapterParams.gasLimit,
+            "Stored options.adapterParams.gasLimit mismatch"
+        );
+        assertEq(
+            storedTransfer.options.adapterParams.calldataSize,
+            options.adapterParams.calldataSize,
+            "Stored options.adapterParams.calldataSize mismatch"
+        );
+        assertEq(
+            storedTransfer.options.adapterParams.msgValue,
+            options.adapterParams.msgValue,
+            "Stored options.adapterParams.msgValue mismatch"
+        );
+        assertEq(
+            keccak256(storedTransfer.options.adapterParams.options), // Hash bytes for comparison
+            keccak256(options.adapterParams.options),
+            "Stored options.adapterParams.options mismatch"
+        );
 
         assertEq(
-            queue.queueIdToOperationType(queueId),
-            BridgeTypes.OperationType.TRANSFER_ASSET,
+            uint8(queue.queueIdToOperationType(queueId)),
+            uint8(BridgeTypes.OperationType.TRANSFER_ASSET),
             "Stored opType mismatch"
         );
         assertEq(
-            queue.queueIdToStatus(queueId),
-            BridgeTypes.OperationStatus.QUEUED,
+            uint8(queue.queueIdToStatus(queueId)),
+            uint8(BridgeTypes.OperationStatus.QUEUED),
             "Stored status mismatch"
         );
 
@@ -235,6 +349,264 @@ contract BridgeQueueTest is Test {
 
         // Nonce incremented
         // Note: We can't directly check the private `queueNonce`, but the next call should use nonce 1.
+    }
+
+    function test_QueueReadState() public {
+        // Arrange
+        uint16 dstChainId = DEST_CHAIN_ID;
+        address dstContract = makeAddr("destContract");
+        bytes4 selector = bytes4(keccak256("someFunction(uint256)"));
+        bytes memory readParams = abi.encode(uint256(123));
+        BridgeTypes.BridgeOptions memory options = _defaultOptions();
+        uint256 currentNonce = 0;
+        bytes32 expectedQueueId = _expectedQueueId(currentNonce);
+
+        // --- Mocking ---
+        vm.expectCall(
+            address(router),
+            abi.encodeWithSelector( // Use selector directly
+                    IBridgeRouter.quote.selector,
+                    dstChainId,
+                    address(0), // No asset for read
+                    0, // No amount for read
+                    options,
+                    BridgeTypes.OperationType.READ_STATE
+                )
+        );
+        vm.mockCall(
+            address(router),
+            abi.encodeWithSelector( // Use selector directly
+                    IBridgeRouter.quote.selector,
+                    dstChainId,
+                    address(0), // No asset for read
+                    0, // No amount for read
+                    options,
+                    BridgeTypes.OperationType.READ_STATE
+                ),
+            abi.encode(TOTAL_NATIVE_FEE, uint256(0), MOCK_ADAPTER) // No token fee, adapter returned
+        );
+
+        // --- Act ---
+        vm.startPrank(queueManager);
+        // Expect the event
+        vm.expectEmit(true, true, true, true, address(queue));
+        emit BridgeQueue.OperationQueued(
+            expectedQueueId,
+            BridgeTypes.OperationType.READ_STATE,
+            queueManager, // Originator is queueManager
+            dstChainId,
+            TOTAL_NATIVE_FEE
+        );
+        bytes32 queueId = queue.queueReadState{value: TOTAL_NATIVE_FEE}(
+            dstChainId,
+            dstContract,
+            selector,
+            readParams,
+            options
+        );
+        vm.stopPrank();
+
+        // --- Assert ---
+        assertEq(queueId, expectedQueueId, "Incorrect queueId");
+
+        // State Storage - Use the helper function
+        BridgeQueue.QueuedReadState memory storedRead = _getQueuedReadState(
+            queueId
+        );
+
+        // Access fields from the memory struct
+        assertEq(
+            storedRead.dstChainId,
+            dstChainId,
+            "Stored dstChainId mismatch"
+        );
+        assertEq(
+            storedRead.dstContract,
+            dstContract,
+            "Stored dstContract mismatch"
+        );
+        assertEq(storedRead.selector, selector, "Stored selector mismatch");
+        assertEq(
+            keccak256(storedRead.readParams),
+            keccak256(readParams),
+            "Stored readParams mismatch"
+        ); // Hash bytes
+        assertEq(
+            storedRead.originator,
+            queueManager,
+            "Stored originator mismatch"
+        );
+        assertEq(
+            storedRead.feePaid,
+            TOTAL_NATIVE_FEE,
+            "Stored feePaid mismatch"
+        );
+        assertEq(
+            storedRead.operationId,
+            bytes32(0),
+            "Stored operationId mismatch"
+        );
+        // Compare options fields individually
+        assertEq(
+            storedRead.options.specifiedAdapter,
+            options.specifiedAdapter,
+            "Stored options.specifiedAdapter mismatch"
+        );
+        assertEq(
+            storedRead.options.adapterParams.gasLimit,
+            options.adapterParams.gasLimit,
+            "Stored options.adapterParams.gasLimit mismatch"
+        );
+        // ... compare other adapterParams fields if necessary
+
+        assertEq(
+            uint8(queue.queueIdToOperationType(queueId)),
+            uint8(BridgeTypes.OperationType.READ_STATE),
+            "Stored opType mismatch"
+        );
+        assertEq(
+            uint8(queue.queueIdToStatus(queueId)),
+            uint8(BridgeTypes.OperationStatus.QUEUED),
+            "Stored status mismatch"
+        );
+        // Check pending queue list
+        assertEq(
+            queue.getPendingQueueCount(),
+            1,
+            "Pending queue count mismatch"
+        );
+        assertEq(
+            queue.getPendingQueueIdAtIndex(0),
+            queueId,
+            "Pending queue ID mismatch"
+        );
+    }
+
+    function test_QueueSendMessage() public {
+        // Arrange
+        uint16 destChainId = DEST_CHAIN_ID;
+        bytes memory message = abi.encode("hello world");
+        BridgeTypes.BridgeOptions memory options = _defaultOptions();
+        uint256 currentNonce = 0;
+        bytes32 expectedQueueId = _expectedQueueId(currentNonce);
+
+        // --- Mocking ---
+        vm.expectCall(
+            address(router),
+            abi.encodeWithSelector( // Use selector directly
+                    IBridgeRouter.quote.selector,
+                    destChainId,
+                    address(0), // No asset
+                    0, // No amount
+                    options,
+                    BridgeTypes.OperationType.MESSAGE
+                )
+        );
+        vm.mockCall(
+            address(router),
+            abi.encodeWithSelector( // Use selector directly
+                    IBridgeRouter.quote.selector,
+                    destChainId,
+                    address(0),
+                    0,
+                    options,
+                    BridgeTypes.OperationType.MESSAGE
+                ),
+            abi.encode(TOTAL_NATIVE_FEE, uint256(0), MOCK_ADAPTER) // No token fee
+        );
+
+        // --- Act ---
+        vm.startPrank(queueManager);
+        // Expect event
+        vm.expectEmit(true, true, true, true, address(queue));
+        emit BridgeQueue.OperationQueued(
+            expectedQueueId,
+            BridgeTypes.OperationType.MESSAGE,
+            queueManager,
+            destChainId,
+            TOTAL_NATIVE_FEE
+        );
+        bytes32 queueId = queue.queueSendMessage{value: TOTAL_NATIVE_FEE}(
+            destChainId,
+            recipient,
+            message,
+            options
+        );
+        vm.stopPrank();
+
+        // --- Assert ---
+        assertEq(queueId, expectedQueueId, "Incorrect queueId");
+
+        // State Storage - Fetch struct into memory variable
+        BridgeQueue.QueuedMessage memory storedMessage = _getQueuedMessage(
+            queueId
+        );
+
+        // Access fields from the memory struct
+        assertEq(
+            storedMessage.destinationChainId,
+            destChainId,
+            "Stored destChainId mismatch"
+        );
+        assertEq(
+            storedMessage.recipient,
+            recipient,
+            "Stored recipient mismatch"
+        );
+        assertEq(
+            keccak256(storedMessage.message),
+            keccak256(message),
+            "Stored message mismatch"
+        ); // Hash bytes
+        assertEq(
+            storedMessage.originator,
+            queueManager,
+            "Stored originator mismatch"
+        );
+        assertEq(
+            storedMessage.feePaid,
+            TOTAL_NATIVE_FEE,
+            "Stored feePaid mismatch"
+        );
+        assertEq(
+            storedMessage.operationId,
+            bytes32(0),
+            "Stored operationId mismatch"
+        );
+        // Compare options fields individually
+        assertEq(
+            storedMessage.options.specifiedAdapter,
+            options.specifiedAdapter,
+            "Stored options.specifiedAdapter mismatch"
+        );
+        assertEq(
+            storedMessage.options.adapterParams.gasLimit,
+            options.adapterParams.gasLimit,
+            "Stored options.adapterParams.gasLimit mismatch"
+        );
+        // ... compare other adapterParams fields if necessary
+
+        assertEq(
+            uint8(queue.queueIdToOperationType(queueId)),
+            uint8(BridgeTypes.OperationType.MESSAGE),
+            "Stored opType mismatch"
+        );
+        assertEq(
+            uint8(queue.queueIdToStatus(queueId)),
+            uint8(BridgeTypes.OperationStatus.QUEUED),
+            "Stored status mismatch"
+        );
+        // Check pending queue list
+        assertEq(
+            queue.getPendingQueueCount(),
+            1,
+            "Pending queue count mismatch"
+        );
+        assertEq(
+            queue.getPendingQueueIdAtIndex(0),
+            queueId,
+            "Pending queue ID mismatch"
+        );
     }
 
     // --- Test Queue Failures ---
@@ -321,15 +693,137 @@ contract BridgeQueueTest is Test {
         vm.stopPrank();
     }
 
-    // --- TODO: Add tests for ---
-    // test_QueueReadState
-    // test_QueueSendMessage
-    // test_ExecuteQueuedTransfer
-    // test_ExecuteQueuedReadState
-    // test_ExecuteQueuedMessage
-    // test_Execute_Fail_NotQueued
-    // test_Execute_Fail_RouterReverts
-    // test_DequeueOperation (including refunds)
-    // test_AdminFunctions (setters, withdrawals)
-    // test_GetOperationStatus (checking router status after execution)
+    // --- Test Execution ---
+    function test_ExecuteQueuedOperation_Transfer() public {
+        // Arrange
+        uint16 destChainId = DEST_CHAIN_ID;
+        uint256 amount = TRANSFER_AMOUNT;
+        BridgeTypes.BridgeOptions memory options = _defaultOptions();
+        vm.startPrank(queueManager);
+        vm.mockCall(
+            address(router),
+            abi.encodeWithSelector(
+                IBridgeRouter.quote.selector,
+                destChainId,
+                address(asset),
+                amount,
+                options,
+                BridgeTypes.OperationType.TRANSFER_ASSET
+            ),
+            abi.encode(TOTAL_NATIVE_FEE, TOKEN_FEE, MOCK_ADAPTER)
+        );
+        asset.approve(address(queue), amount);
+        bytes32 queueId = queue.queueTransferAssets{value: TOTAL_NATIVE_FEE}(
+            destChainId,
+            address(asset),
+            amount,
+            recipient,
+            options
+        );
+        vm.stopPrank();
+
+        // Prepare expected parameters for the router call (using the struct)
+        BridgeTypes.ExecuteTransferParams
+            memory expectedRouterParams = BridgeTypes.ExecuteTransferParams({
+                destinationChainId: destChainId,
+                asset: address(asset),
+                amount: amount,
+                recipient: recipient,
+                originator: queueManager, // Originator was queueManager
+                options: options
+            });
+        bytes32 expectedOperationId = keccak256(
+            // Match the MockBridgeRouter's operationId generation for the first call (nonce = 0)
+            abi.encodePacked("transfer", uint256(0))
+        );
+
+        // --- Mocking Router Execution ---
+        // Mock the quote call that happens *inside* executeQueuedOperation
+        vm.mockCall(
+            address(router),
+            abi.encodeWithSelector(
+                IBridgeRouter.quote.selector,
+                destChainId,
+                address(asset),
+                amount,
+                options,
+                BridgeTypes.OperationType.TRANSFER_ASSET
+            ),
+            abi.encode(BASE_NATIVE_FEE, TOKEN_FEE, MOCK_ADAPTER) // Return BASE fee now
+        );
+        // Mock the actual executeTransferAssets call on the router
+        vm.expectCall(
+            address(router),
+            TOTAL_NATIVE_FEE, // Expect the base fee to be sent
+            abi.encodeWithSelector(
+                IBridgeRouter.executeTransferAssets.selector,
+                expectedRouterParams
+            ) // Expect struct param
+        );
+        vm.mockCall(
+            address(router),
+            TOTAL_NATIVE_FEE,
+            abi.encodeWithSelector(
+                IBridgeRouter.executeTransferAssets.selector,
+                expectedRouterParams
+            ),
+            abi.encode(expectedOperationId) // Return operationId
+        );
+
+        // --- Act ---
+        vm.startPrank(keeper); // Keeper executes
+        // Expect event
+        vm.expectEmit(true, true, true, true, address(queue));
+        emit BridgeQueue.OperationExecuted(
+            queueId,
+            expectedOperationId,
+            keeper
+        );
+
+        bytes32 actualOperationId = queue.executeQueuedOperation(queueId);
+        vm.stopPrank();
+
+        // --- Assert ---
+        assertEq(
+            actualOperationId,
+            expectedOperationId,
+            "Returned operationId mismatch"
+        );
+
+        // Check queue state updated
+        assertEq(
+            uint8(queue.queueIdToStatus(queueId)),
+            uint8(BridgeTypes.OperationStatus.PENDING),
+            "Queue status should be PENDING"
+        );
+        assertEq(
+            queue.operationIdToQueueId(expectedOperationId),
+            queueId,
+            "operationId mapping incorrect"
+        );
+        assertEq(
+            queue.getPendingQueueCount(),
+            0,
+            "Pending queue should be empty"
+        ); // Item removed
+
+        // Verify operationId stored in the queued item using the helper
+        BridgeQueue.QueuedTransfer memory storedTransfer = _getQueuedTransfer(
+            queueId
+        );
+
+        assertEq(
+            storedTransfer.operationId,
+            expectedOperationId,
+            "Operation ID not stored in queued item"
+        );
+    }
+
+    // Add similar execution tests for ReadState and SendMessage, updating mocks for struct params
+
+    // --- Test Execution Failures ---
+    // ...
+
+    // --- Test Dequeueing ---
+    // ...
 }

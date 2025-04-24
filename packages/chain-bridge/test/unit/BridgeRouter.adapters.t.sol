@@ -6,6 +6,7 @@ import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -13,6 +14,7 @@ import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAcces
 
 contract BridgeRouterAdaptersTest is Test {
     BridgeRouter public router;
+    BridgeQueue public bridgeQueue;
     MockAdapter public mockAdapter;
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
@@ -20,6 +22,7 @@ contract BridgeRouterAdaptersTest is Test {
 
     address public governor = address(0x1);
     address public user = address(0x2);
+    address public keeper = address(0x3);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
@@ -29,14 +32,26 @@ contract BridgeRouterAdaptersTest is Test {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
 
+        // Deploy BridgeQueue first
+        bridgeQueue = new BridgeQueue(
+            address(accessManager),
+            address(0), // Router address set later
+            user // queueManager
+        );
+
         vm.startPrank(governor);
 
-        // Deploy contracts
+        // Deploy router, linking it to the queue
         router = new BridgeRouter(
             address(accessManager),
+            address(bridgeQueue), // Link to queue
             new uint16[](0), // Empty chainIds array
             new address[](0) // Empty routerAddresses array
         );
+
+        // Set the router address in the queue
+        bridgeQueue.setBridgeRouter(address(router));
+
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
         token = new ERC20Mock();
@@ -51,6 +66,9 @@ contract BridgeRouterAdaptersTest is Test {
         // Mint tokens for testing
         token.mint(governor, 10000e18);
         token.mint(user, 10000e18);
+
+        // Fund keeper for execution
+        vm.deal(keeper, 1 ether);
 
         vm.stopPrank();
     }
@@ -155,11 +173,26 @@ contract BridgeRouterAdaptersTest is Test {
         router.registerAdapter(address(mockAdapter2));
         vm.stopPrank();
 
-        // Get best adapter for lowest cost
-        address bestAdapter = router.getBestAdapter(
+        // Create dummy options just for quote
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 0, // Not relevant for mock adapter fee calc
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0), // Auto-select
+            adapterParams: adapterParams
+        });
+
+        // Get best adapter for lowest cost via quote
+        (, , address bestAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
-            TRANSFER_AMOUNT
+            TRANSFER_AMOUNT,
+            options, // Pass options
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Should select the cheaper adapter
@@ -178,8 +211,8 @@ contract BridgeRouterAdaptersTest is Test {
 
         vm.startPrank(user);
 
-        // Approve tokens
-        token.approve(address(router), TRANSFER_AMOUNT);
+        // Approve tokens for the bridge queue
+        token.approve(address(bridgeQueue), TRANSFER_AMOUNT);
 
         // Create bridge options with specified adapter
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
@@ -195,7 +228,7 @@ contract BridgeRouterAdaptersTest is Test {
             adapterParams: adapterParams
         });
 
-        // Get the required fee first
+        // Get the required fee first (using router.quote)
         (uint256 nativeFee, , ) = router.quote(
             DEST_CHAIN_ID,
             address(token),
@@ -207,26 +240,50 @@ contract BridgeRouterAdaptersTest is Test {
         // Give the user enough ETH to cover the fee
         vm.deal(user, nativeFee);
 
-        // Send transfer with specified adapter and include the fee
-        bytes32 operationId = router.transferAssets{value: nativeFee}(
+        // Queue the transfer via BridgeQueue
+        bytes32 queueId = bridgeQueue.queueTransferAssets{value: nativeFee}(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            user,
+            user, // recipient
             options
         );
 
-        // Verify the specified adapter was used
-        assertEq(router.operationToAdapter(operationId), address(mockAdapter2));
+        vm.stopPrank(); // User stops queueing
 
+        // Verify queue status
+        assertEq(
+            uint256(bridgeQueue.queueIdToStatus(queueId)),
+            uint256(BridgeTypes.OperationStatus.QUEUED)
+        );
+
+        // Execute the queued operation (can be keeper or anyone)
+        vm.startPrank(keeper);
+        bytes32 operationId = bridgeQueue.executeQueuedOperation(queueId);
         vm.stopPrank();
+
+        // Verify queue status updated post-execution
+        assertEq(
+            uint256(bridgeQueue.queueIdToStatus(queueId)),
+            uint256(BridgeTypes.OperationStatus.PENDING) // Should be pending as it's sent to adapter
+        );
+        // Verify queue maps operationId
+        assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
+
+        // Verify the specified adapter was used by checking the router's mapping
+        assertEq(router.operationToAdapter(operationId), address(mockAdapter2));
+        // Verify router status
+        assertEq(
+            uint256(router.getOperationStatus(operationId)),
+            uint256(BridgeTypes.OperationStatus.PENDING)
+        );
     }
 
     function testInvalidSpecifiedAdapter() public {
         vm.startPrank(user);
 
-        // Approve tokens
-        token.approve(address(router), TRANSFER_AMOUNT);
+        // Approve tokens for the bridge queue
+        token.approve(address(bridgeQueue), TRANSFER_AMOUNT);
 
         // Create bridge options with invalid adapter
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
@@ -242,15 +299,20 @@ contract BridgeRouterAdaptersTest is Test {
             adapterParams: adapterParams
         });
 
-        // Should revert when using unregistered adapter
+        // Get the required fee first. This quote call should revert.
+        // The check happens in the router during quoting.
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.transferAssets(
+        router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            user,
-            options
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
+
+        // Since quote reverts, queueing would also fail if it depends on a valid quote,
+        // or the execution would fail if the check is deferred.
+        // Let's keep the check on quote as it's the first point of failure.
 
         vm.stopPrank();
     }
@@ -283,11 +345,26 @@ contract BridgeRouterAdaptersTest is Test {
         }
         vm.stopPrank();
 
-        // Get best adapter - should now find the cheapest adapter
-        address bestAdapter = router.getBestAdapter(
+        // Create dummy options just for quote
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 0, // Not relevant for mock adapter fee calc
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0), // Auto-select
+            adapterParams: adapterParams
+        });
+
+        // Get best adapter - should now find the cheapest adapter via quote
+        (, , address bestAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
-            TRANSFER_AMOUNT
+            TRANSFER_AMOUNT,
+            options, // Pass options
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Should be the cheapest adapter (mockAdapter2)

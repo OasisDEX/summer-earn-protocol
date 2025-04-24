@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -13,6 +14,7 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
 contract BridgeRouterAdminTest is Test {
     BridgeRouter public router;
+    BridgeQueue public bridgeQueue;
     MockAdapter public mockAdapter;
     ERC20Mock public token;
     ProtocolAccessManager public accessManager;
@@ -20,6 +22,7 @@ contract BridgeRouterAdminTest is Test {
     address public governor = address(0x1);
     address public guardian = address(0x2);
     address public user = address(0x3);
+    address public keeper = address(0x4);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
@@ -31,15 +34,26 @@ contract BridgeRouterAdminTest is Test {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
 
+        // Deploy BridgeQueue first
+        bridgeQueue = new BridgeQueue(
+            address(accessManager),
+            address(0), // Router address set later
+            user // queueManager
+        );
+
         vm.startPrank(governor);
         accessManager.grantGuardianRole(guardian);
 
-        // Deploy BridgeRouter
+        // Deploy BridgeRouter, linking it to the queue
         router = new BridgeRouter(
             address(accessManager),
+            address(bridgeQueue), // Link to queue
             new uint16[](0), // Empty chainIds array
             new address[](0) // Empty routerAddresses array
         );
+
+        // Set the router address in the queue
+        bridgeQueue.setBridgeRouter(address(router));
 
         // Deploy mock adapter
         mockAdapter = new MockAdapter(address(router));
@@ -56,6 +70,9 @@ contract BridgeRouterAdminTest is Test {
         token.mint(governor, 10000e18);
         token.mint(guardian, 10000e18);
         token.mint(user, 10000e18);
+
+        // Fund keeper for execution
+        vm.deal(keeper, 1 ether);
 
         vm.stopPrank();
     }
@@ -117,10 +134,11 @@ contract BridgeRouterAdminTest is Test {
         vm.prank(governor);
         router.pause();
 
+        // User attempts to queue
         vm.startPrank(user);
 
-        // Approve tokens
-        token.approve(address(router), TRANSFER_AMOUNT);
+        // Approve tokens for the bridge queue
+        token.approve(address(bridgeQueue), TRANSFER_AMOUNT);
 
         // Create bridge options
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
@@ -136,15 +154,33 @@ contract BridgeRouterAdminTest is Test {
             adapterParams: adapterParams
         });
 
-        // Should revert when router is paused
-        vm.expectRevert(IBridgeRouter.Paused.selector);
-        router.transferAssets(
+        // Get fee estimate first
+        (uint256 nativeFee, , ) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            user,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+        vm.deal(user, nativeFee);
+
+        // Queue the transfer via BridgeQueue - this should succeed
+        bytes32 queueId = bridgeQueue.queueTransferAssets{value: nativeFee}(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            user, // recipient
             options
         );
+
+        vm.stopPrank(); // User stops queueing
+
+        // Attempt to execute the queued operation (e.g., by keeper)
+        vm.startPrank(keeper);
+
+        // Execution should revert because the router is paused
+        vm.expectRevert(IBridgeRouter.Paused.selector);
+        bridgeQueue.executeQueuedOperation(queueId);
 
         vm.stopPrank();
     }

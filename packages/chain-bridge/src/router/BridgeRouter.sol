@@ -52,8 +52,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @notice Add a new mapping to track confirmation statuses
     mapping(bytes32 operationId => bool confirmed) public confirmationSent;
 
-    /// @notice Standard gas limit for confirmation transactions
-    uint64 public confirmationGasLimit = 200000; // Default reasonable gas limit for confirmations
+    /// @notice Default gas limit to use when estimating adapter fees
+    uint64 public DEFAULT_GAS_LIMIT = 200000;
+
+    /// @notice Default calldata size to use when estimating adapter fees
+    uint32 internal constant DEFAULT_CALLDATA_SIZE = 100;
 
     /// @notice Mapping of chain IDs to their BridgeRouter addresses
     mapping(uint16 chainId => address routerAddress)
@@ -116,6 +119,225 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     modifier onlyBridgeQueue() {
         if (msg.sender != bridgeQueue) revert OnlyBridgeQueue();
         _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                           BRIDGE QUEUE OPERATIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @inheritdoc IBridgeRouter
+     */
+    function executeTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
+        // Validations
+        if (paused) revert Paused();
+        if (
+            params.amount == 0 ||
+            params.recipient == address(0) ||
+            params.originator == address(0)
+        ) revert InvalidParams();
+        if (params.asset == address(0)) revert InvalidParams(); // Ensure asset is specified for transfers
+
+        // Get required base fee and selected adapter (no multiplier)
+        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        // Validate fee provided by BridgeQueue
+        if (msg.value < requiredBaseFee) revert InsufficientFee();
+
+        // Refund excess fee (if any) to the originator
+        if (msg.value > requiredBaseFee) {
+            (bool success, ) = params.originator.call{
+                value: msg.value - requiredBaseFee
+            }("");
+            if (!success) revert TransferFailed();
+        }
+
+        // Use the base fee required by the adapter
+        uint256 baseFeeToSend = requiredBaseFee;
+
+        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
+        if (!IBridgeAdapter(selectedAdapter).supportsAssetTransfer()) {
+            revert UnsupportedAdapterOperation();
+        }
+
+        // Assuming the BridgeQueue has already ensured the Router has the necessary tokens.
+        // Approve the adapter to spend the Router's tokens.
+        IERC20(params.asset).approve(selectedAdapter, 0); // Reset approval first
+        IERC20(params.asset).approve(selectedAdapter, params.amount);
+
+        // Call the adapter to perform the transfer
+        operationId = IBridgeAdapter(selectedAdapter).transferAsset{
+            value: baseFeeToSend
+        }( // Send the exact base fee
+            params.destinationChainId,
+            params.asset,
+            params.recipient,
+            params.amount,
+            params.originator, // Pass originator to the adapter
+            params.options.adapterParams
+        );
+
+        // Update state
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationToAdapter[operationId] = selectedAdapter;
+
+        emit TransferInitiated(
+            operationId,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.recipient,
+            selectedAdapter
+        );
+
+        return operationId;
+    }
+
+    /**
+     * @inheritdoc IBridgeRouter
+     */
+    function executeReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params
+    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
+        // Validations
+        if (paused) revert Paused();
+        if (params.originator == address(0) || params.dstContract == address(0))
+            revert InvalidParams();
+
+        // Get required base fee and selected adapter (no multiplier)
+        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
+            params.dstChainId,
+            address(0), // No asset
+            0, // No amount
+            params.options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        // Validate fee provided by BridgeQueue
+        if (msg.value < requiredBaseFee) revert InsufficientFee();
+
+        // Refund excess fee (if any) to the originator
+        if (msg.value > requiredBaseFee) {
+            (bool success, ) = params.originator.call{
+                value: msg.value - requiredBaseFee
+            }("");
+            if (!success) revert TransferFailed();
+        }
+
+        // Use the base fee required by the adapter
+        uint256 baseFeeToSend = requiredBaseFee;
+
+        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
+
+        // Check if adapter supports state reads
+        if (!IBridgeAdapter(selectedAdapter).supportsStateRead()) {
+            revert UnsupportedAdapterOperation();
+        }
+
+        // Call the adapter with the base fee
+        operationId = IBridgeAdapter(selectedAdapter).readState{
+            value: baseFeeToSend
+        }(
+            uint16(block.chainid), // Source chain ID
+            params.dstChainId,
+            params.dstContract,
+            params.selector,
+            params.readParams,
+            params.originator, // Pass originator to adapter
+            params.options.adapterParams
+        );
+
+        // Store the originator for response delivery
+        readRequestToOriginator[operationId] = params.originator;
+
+        // Update state
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationToAdapter[operationId] = selectedAdapter;
+
+        emit ReadRequestInitiated(
+            operationId,
+            params.dstChainId,
+            params.dstContract,
+            params.selector,
+            params.readParams,
+            selectedAdapter
+        );
+
+        return operationId;
+    }
+
+    /**
+     * @inheritdoc IBridgeRouter
+     */
+    function executeSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
+        // Validations
+        if (paused) revert Paused();
+        if (params.recipient == address(0) || params.originator == address(0))
+            revert InvalidParams();
+
+        // Get required base fee and selected adapter (no multiplier)
+        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
+            params.destinationChainId,
+            address(0), // No asset
+            0, // No amount
+            params.options,
+            BridgeTypes.OperationType.MESSAGE
+        );
+
+        // Validate fee provided by BridgeQueue
+        if (msg.value < requiredBaseFee) revert InsufficientFee();
+
+        // Refund excess fee (if any) to the originator
+        if (msg.value > requiredBaseFee) {
+            (bool success, ) = params.originator.call{
+                value: msg.value - requiredBaseFee
+            }("");
+            if (!success) revert TransferFailed();
+        }
+
+        // Use the base fee required by the adapter
+        uint256 baseFeeToSend = requiredBaseFee;
+
+        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
+
+        // Check if adapter supports messaging
+        if (!IBridgeAdapter(selectedAdapter).supportsMessaging()) {
+            revert UnsupportedAdapterOperation();
+        }
+
+        // Call the adapter with the base fee
+        operationId = ISendAdapter(selectedAdapter).sendMessage{
+            value: baseFeeToSend
+        }(
+            params.destinationChainId,
+            params.recipient,
+            params.message,
+            params.originator, // Pass originator to adapter
+            params.options.adapterParams
+        );
+
+        // Update state
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationToAdapter[operationId] = selectedAdapter;
+
+        emit MessageInitiated(
+            operationId,
+            params.destinationChainId,
+            params.recipient,
+            selectedAdapter
+        );
+
+        return operationId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -191,7 +413,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             operationType
         );
 
-        // No multiplier applied here
         return (nativeFee, tokenFee, selectedAdapter);
     }
 
@@ -295,7 +516,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     ),
                     address(0), // No refund address needed
                     BridgeTypes.AdapterParams({
-                        gasLimit: confirmationGasLimit,
+                        gasLimit: DEFAULT_GAS_LIMIT,
                         msgValue: 0,
                         calldataSize: 0,
                         options: ""
@@ -501,8 +722,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                 !IBridgeAdapter(adapter).supportsAsset(chainId, asset)
             ) continue;
 
-            // If we get here, the adapter is suitable, so check its base fee
-            uint256 estimatedBaseFee = 0;
+            // If we get here, the adapter is suitable, so check its fee
+            uint256 estimatedFee = 0;
 
             try
                 IBridgeAdapter(adapter).estimateFee(
@@ -510,23 +731,23 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     asset,
                     amount,
                     BridgeTypes.AdapterParams({
-                        gasLimit: 200000, // Use a reasonable default for estimation
-                        calldataSize: 100, // Use a reasonable default for estimation
+                        gasLimit: DEFAULT_GAS_LIMIT, // Use constant default
+                        calldataSize: DEFAULT_CALLDATA_SIZE, // Use constant default
                         msgValue: 0,
                         options: ""
                     }),
                     operationType // Pass the operation type directly
                 )
             returns (uint256 fee, uint256) {
-                estimatedBaseFee = fee;
+                estimatedFee = fee;
             } catch {
                 // If estimation fails, consider this adapter infinitely expensive
-                estimatedBaseFee = type(uint256).max;
+                estimatedFee = type(uint256).max;
             }
 
-            // Compare based on the estimated base fee
-            if (estimatedBaseFee < lowestFee) {
-                lowestFee = estimatedBaseFee;
+            // Compare based on the estimated fee
+            if (estimatedFee < lowestFee) {
+                lowestFee = estimatedFee;
                 bestAdapter = adapter;
             }
         }
@@ -636,11 +857,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     }
 
     /// @inheritdoc IBridgeRouter
-    function setConfirmationGasLimit(
-        uint64 newConfirmationGasLimit
-    ) external onlyGovernor {
-        confirmationGasLimit = newConfirmationGasLimit;
-        emit ConfirmationGasLimitUpdated(newConfirmationGasLimit);
+    function setDefaultGasLimit(uint256 newGasLimit) external onlyGovernor {
+        DEFAULT_GAS_LIMIT = uint64(newGasLimit);
+        emit DefaultGasLimitUpdated(newGasLimit);
     }
 
     /// @inheritdoc IBridgeRouter
@@ -667,329 +886,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @inheritdoc IERC165
     function supportsInterface(
         bytes4 interfaceId
-    ) external view returns (bool) {
+    ) external pure returns (bool) {
         return (interfaceId == type(IBridgeRouter).interfaceId ||
             interfaceId == type(IERC165).interfaceId);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                           BRIDGE QUEUE OPERATIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @inheritdoc IBridgeRouter
-     */
-    function executeTransferAssets(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
-        // Call the INTERNAL execute function with isBridgeQueueCall = true
-        operationId = _executeTransferAssets(
-            destinationChainId,
-            asset,
-            amount,
-            recipient,
-            originator, // Pass originator from queue call
-            options
-        );
-        return operationId;
-    }
-
-    /**
-     * @inheritdoc IBridgeRouter
-     */
-    function executeReadState(
-        uint16 dstChainId,
-        address dstContract,
-        bytes4 selector,
-        bytes calldata readParams,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
-        operationId = _executeReadState(
-            dstChainId,
-            dstContract,
-            selector,
-            readParams,
-            originator,
-            options
-        );
-        return operationId;
-    }
-
-    /**
-     * @inheritdoc IBridgeRouter
-     */
-    function executeSendMessage(
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata message,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
-        operationId = _executeSendMessage(
-            destinationChainId,
-            recipient,
-            message,
-            originator,
-            options
-        );
-        return operationId;
-    }
-
-    /**
-     * @notice INTERNAL function to execute asset transfer operation.
-     * @dev Centralizes validation, fee handling, and adapter interaction. Assumes caller is BridgeQueue.
-     *      Expects `msg.value` to be the base fee required by the adapter.
-     * @param destinationChainId ID of the destination chain.
-     * @param asset Address of the asset to transfer.
-     * @param amount Amount of the asset to transfer.
-     * @param recipient Address of the recipient on the destination chain.
-     * @param originator Original address that requested the transfer (passed from BridgeQueue).
-     * @param options Additional options for the transfer.
-     * @return operationId Unique ID to track this transfer.
-     */
-    function _executeTransferAssets(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) internal returns (bytes32 operationId) {
-        // Validations
-        if (paused) revert Paused();
-        if (amount == 0 || recipient == address(0) || originator == address(0))
-            revert InvalidParams();
-        if (asset == address(0)) revert InvalidParams(); // Ensure asset is specified for transfers
-
-        // Get required base fee and selected adapter (no multiplier)
-        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
-            destinationChainId,
-            asset,
-            amount,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-
-        // Validate fee provided by BridgeQueue
-        if (msg.value < requiredBaseFee) revert InsufficientFee();
-
-        // Refund excess fee (if any) to the originator
-        if (msg.value > requiredBaseFee) {
-            (bool success, ) = originator.call{
-                value: msg.value - requiredBaseFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
-
-        // Use the base fee required by the adapter
-        uint256 baseFeeToSend = requiredBaseFee;
-
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-        if (!IBridgeAdapter(selectedAdapter).supportsAssetTransfer()) {
-            revert UnsupportedAdapterOperation();
-        }
-
-        // Assuming the BridgeQueue has already ensured the Router has the necessary tokens.
-        // Approve the adapter to spend the Router's tokens.
-        IERC20(asset).approve(selectedAdapter, 0); // Reset approval first
-        IERC20(asset).approve(selectedAdapter, amount);
-
-        // Call the adapter to perform the transfer
-        operationId = IBridgeAdapter(selectedAdapter).transferAsset{
-            value: baseFeeToSend
-        }( // Send the exact base fee
-            destinationChainId,
-            asset,
-            recipient,
-            amount,
-            originator, // Pass originator to the adapter
-            options.adapterParams
-        );
-
-        // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
-        operationToAdapter[operationId] = selectedAdapter;
-
-        emit TransferInitiated(
-            operationId,
-            destinationChainId,
-            asset,
-            amount,
-            recipient,
-            selectedAdapter
-        );
-
-        return operationId;
-    }
-
-    /**
-     * @notice INTERNAL function to execute cross-chain read state operation.
-     * @dev Centralizes validation, fee handling, and adapter interaction. Assumes caller is BridgeQueue.
-     *      Expects `msg.value` to be the base fee required by the adapter.
-     * @param dstChainId ID of the destination chain.
-     * @param dstContract Address of the contract on the destination chain to read from.
-     * @param selector Function selector to call.
-     * @param readParams Parameters for the function call.
-     * @param originator Original address that requested the read (passed from BridgeQueue).
-     * @param options Additional options for the read operation.
-     * @return operationId Unique ID to track this read operation.
-     */
-    function _executeReadState(
-        uint16 dstChainId,
-        address dstContract,
-        bytes4 selector,
-        bytes calldata readParams,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) internal returns (bytes32 operationId) {
-        // Validations
-        if (paused) revert Paused();
-        if (originator == address(0) || dstContract == address(0))
-            revert InvalidParams();
-
-        // Get required base fee and selected adapter (no multiplier)
-        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
-            dstChainId,
-            address(0), // No asset
-            0, // No amount
-            options,
-            BridgeTypes.OperationType.READ_STATE
-        );
-
-        // Validate fee provided by BridgeQueue
-        if (msg.value < requiredBaseFee) revert InsufficientFee();
-
-        // Refund excess fee (if any) to the originator
-        if (msg.value > requiredBaseFee) {
-            (bool success, ) = originator.call{
-                value: msg.value - requiredBaseFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
-
-        // Use the base fee required by the adapter
-        uint256 baseFeeToSend = requiredBaseFee;
-
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-
-        // Check if adapter supports state reads
-        if (!IBridgeAdapter(selectedAdapter).supportsStateRead()) {
-            revert UnsupportedAdapterOperation();
-        }
-
-        // Call the adapter with the base fee
-        operationId = IBridgeAdapter(selectedAdapter).readState{
-            value: baseFeeToSend
-        }(
-            uint16(block.chainid), // Source chain ID
-            dstChainId,
-            dstContract,
-            selector,
-            readParams,
-            originator, // Pass originator to adapter
-            options.adapterParams
-        );
-
-        // Store the originator for response delivery
-        readRequestToOriginator[operationId] = originator;
-
-        // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
-        operationToAdapter[operationId] = selectedAdapter;
-
-        emit ReadRequestInitiated(
-            operationId,
-            dstChainId,
-            dstContract,
-            selector,
-            readParams,
-            selectedAdapter
-        );
-
-        return operationId;
-    }
-
-    /**
-     * @notice INTERNAL function to execute cross-chain message send operation.
-     * @dev Centralizes validation, fee handling, and adapter interaction. Assumes caller is BridgeQueue.
-     *      Expects `msg.value` to be the base fee required by the adapter.
-     * @param destinationChainId ID of the destination chain.
-     * @param recipient Address of the recipient on the destination chain.
-     * @param message The message data to be sent cross-chain.
-     * @param originator Original address that requested the message send (passed from BridgeQueue).
-     * @param options Additional options for the message.
-     * @return operationId Unique ID to track this message.
-     */
-    function _executeSendMessage(
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata message,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) internal returns (bytes32 operationId) {
-        // Validations
-        if (paused) revert Paused();
-        if (recipient == address(0) || originator == address(0))
-            revert InvalidParams();
-
-        // Get required base fee and selected adapter (no multiplier)
-        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
-            destinationChainId,
-            address(0), // No asset
-            0, // No amount
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
-
-        // Validate fee provided by BridgeQueue
-        if (msg.value < requiredBaseFee) revert InsufficientFee();
-
-        // Refund excess fee (if any) to the originator
-        if (msg.value > requiredBaseFee) {
-            (bool success, ) = originator.call{
-                value: msg.value - requiredBaseFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
-
-        // Use the base fee required by the adapter
-        uint256 baseFeeToSend = requiredBaseFee;
-
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-
-        // Check if adapter supports messaging
-        if (!IBridgeAdapter(selectedAdapter).supportsMessaging()) {
-            revert UnsupportedAdapterOperation();
-        }
-
-        // Call the adapter with the base fee
-        operationId = ISendAdapter(selectedAdapter).sendMessage{
-            value: baseFeeToSend
-        }(
-            destinationChainId,
-            recipient,
-            message,
-            originator, // Pass originator to adapter
-            options.adapterParams
-        );
-
-        // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
-        operationToAdapter[operationId] = selectedAdapter;
-
-        emit MessageInitiated(
-            operationId,
-            destinationChainId,
-            recipient,
-            selectedAdapter
-        );
-
-        return operationId;
     }
 }

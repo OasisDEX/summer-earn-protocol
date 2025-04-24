@@ -31,8 +31,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // Add mapping for chain to router addresses if not already present
     mapping(uint16 => address) public chainToRouterAddress;
 
-    // Add storage variable for confirmation gas limit if not already present
-    uint64 public confirmationGasLimit = 200000; // Default value matching the real implementation
+    uint64 public DEFAULT_GAS_LIMIT = 200000; // Default value matching the real implementation
 
     // Mock-specific event
     event BridgeQueueAddressSet(address bridgeQueue); // Mock specific event
@@ -93,34 +92,37 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         return (nativeFee, tokenFee, selectedAdapter);
     }
 
-    // --- Internal Execution Functions (Called by BridgeQueue) ---
+    // --- Internal Execution Functions (Helper for external calls) ---
+    // Updated to accept the struct, although called by the external funcs below
 
     function _executeTransferAssets(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        address originator,
-        BridgeTypes.BridgeOptions calldata /* options */
+        BridgeTypes.ExecuteTransferParams calldata params
     ) internal returns (bytes32 operationId) {
         operationId = keccak256(abi.encodePacked("transfer", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
-        operationOriginators[operationId] = originator;
+        operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS; // Simulate adapter selection
         operationBaseFeesPaid[operationId] = msg.value; // Track base fee received
 
         // Simulate token transfer from queue (already approved)
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount); // Pull from queue
+        IERC20(params.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            params.amount
+        ); // Pull from queue
         // In a real scenario, this might transfer to the adapter or burn/lock
         // For mock, just holding it is fine, or transfer to a dummy address
-        IERC20(asset).safeTransfer(makeAddr("mock_adapter_vault"), amount);
+        IERC20(params.asset).safeTransfer(
+            makeAddr("mock_adapter_vault"),
+            params.amount
+        );
 
         emit TransferInitiated(
             operationId,
-            destinationChainId,
-            asset,
-            amount,
-            recipient,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.recipient,
             MOCK_ADAPTER_ADDRESS
         );
         emit OperationStatusUpdated(
@@ -132,25 +134,20 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     }
 
     function _executeReadState(
-        uint16 dstChainId,
-        address dstContract,
-        bytes4 selector,
-        bytes calldata readParams,
-        address originator,
-        BridgeTypes.BridgeOptions calldata /* options */
+        BridgeTypes.ExecuteReadStateParams calldata params
     ) internal returns (bytes32 operationId) {
         operationId = keccak256(abi.encodePacked("read", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
-        operationOriginators[operationId] = originator;
+        operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
         operationBaseFeesPaid[operationId] = msg.value;
 
         emit ReadRequestInitiated(
             operationId,
-            dstChainId,
-            dstContract,
-            selector,
-            readParams,
+            params.dstChainId,
+            params.dstContract,
+            params.selector,
+            params.readParams,
             MOCK_ADAPTER_ADDRESS
         );
         emit OperationStatusUpdated(
@@ -162,22 +159,18 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     }
 
     function _executeSendMessage(
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata /* message */,
-        address originator,
-        BridgeTypes.BridgeOptions calldata /* options */
+        BridgeTypes.ExecuteSendMessageParams calldata params
     ) internal returns (bytes32 operationId) {
         operationId = keccak256(abi.encodePacked("message", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
-        operationOriginators[operationId] = originator;
+        operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
         operationBaseFeesPaid[operationId] = msg.value;
 
         emit MessageInitiated(
             operationId,
-            destinationChainId,
-            recipient,
+            params.destinationChainId,
+            params.recipient,
             MOCK_ADAPTER_ADDRESS
         );
         emit OperationStatusUpdated(
@@ -359,14 +352,17 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         /* No-op in mock */
     }
 
-    function setConfirmationGasLimit(uint64 _limit) external override {
-        emit ConfirmationGasLimitUpdated(_limit);
+    // Renamed function
+    function setDefaultGasLimit(uint256 _limit) external override {
+        DEFAULT_GAS_LIMIT = uint64(_limit); // Update mock state
+        emit DefaultGasLimitUpdated(_limit);
     }
 
     function setChainRouterAddress(
         uint16 _chainId,
         address _routerAddress
     ) external override {
+        chainToRouterAddress[_chainId] = _routerAddress; // Store in mock
         emit ChainRouterAddressUpdated(_chainId, _routerAddress);
     }
 
@@ -402,58 +398,23 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     receive() external payable {}
     fallback() external payable {}
 
+    // --- External Execute Functions (Matching IBridgeRouter) ---
+
     function executeTransferAssets(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
-        return
-            _executeTransferAssets(
-                destinationChainId,
-                asset,
-                amount,
-                recipient,
-                originator,
-                options
-            );
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) external payable override onlyBridgeQueue returns (bytes32 operationId) {
+        return _executeTransferAssets(params);
     }
 
     function executeReadState(
-        uint16 dstChainId,
-        address dstContract,
-        bytes4 selector,
-        bytes calldata readParams,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
-        return
-            _executeReadState(
-                dstChainId,
-                dstContract,
-                selector,
-                readParams,
-                originator,
-                options
-            );
+        BridgeTypes.ExecuteReadStateParams calldata params
+    ) external payable override onlyBridgeQueue returns (bytes32 operationId) {
+        return _executeReadState(params);
     }
 
     function executeSendMessage(
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata message,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
-        return
-            _executeSendMessage(
-                destinationChainId,
-                recipient,
-                message,
-                originator,
-                options
-            );
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    ) external payable override onlyBridgeQueue returns (bytes32 operationId) {
+        return _executeSendMessage(params);
     }
 }

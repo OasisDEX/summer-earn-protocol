@@ -188,7 +188,7 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
         if (asset == address(0) || amount == 0 || recipient == address(0))
             revert InvalidParams();
 
-        (uint256 totalNativeFee, uint256 totalTokenFee) = _queueOperation(
+        (uint256 totalNativeFee, ) = _queueOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             destinationChainId,
             asset,
@@ -254,7 +254,7 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
     ) external payable onlyQueueManager returns (bytes32 queueId) {
         if (dstContract == address(0)) revert InvalidParams();
 
-        (uint256 totalNativeFee, uint256 totalTokenFee) = _queueOperation(
+        (uint256 totalNativeFee, ) = _queueOperation(
             BridgeTypes.OperationType.READ_STATE,
             dstChainId,
             address(0), // No asset
@@ -309,7 +309,7 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
     ) external payable onlyQueueManager returns (bytes32 queueId) {
         if (recipient == address(0)) revert InvalidParams();
 
-        (uint256 totalNativeFee, uint256 totalTokenFee) = _queueOperation(
+        (uint256 totalNativeFee, ) = _queueOperation(
             BridgeTypes.OperationType.MESSAGE,
             destinationChainId,
             address(0), // No asset
@@ -389,17 +389,21 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
                     transferData.amount
                 );
 
+                // Construct the params struct
+                BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+                    .ExecuteTransferParams({
+                        destinationChainId: transferData.destinationChainId,
+                        asset: transferData.asset,
+                        amount: transferData.amount,
+                        recipient: transferData.recipient,
+                        originator: transferData.originator, // Pass original requestor
+                        options: transferData.options
+                    });
+
                 // Call router's execute method
                 operationId = bridgeRouter.executeTransferAssets{
                     value: feePaid
-                }(
-                    transferData.destinationChainId,
-                    transferData.asset,
-                    transferData.amount,
-                    transferData.recipient,
-                    transferData.originator, // Pass original requestor
-                    transferData.options
-                );
+                }(params);
 
                 // Reset approval
                 IERC20(transferData.asset).approve(address(bridgeRouter), 0);
@@ -407,24 +411,36 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
                 QueuedReadState storage readData = queuedReadStates[queueId];
                 feePaid = readData.feePaid;
 
+                // Construct the params struct
+                BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+                    .ExecuteReadStateParams({
+                        dstChainId: readData.dstChainId,
+                        dstContract: readData.dstContract,
+                        selector: readData.selector,
+                        readParams: readData.readParams,
+                        originator: readData.originator,
+                        options: readData.options
+                    });
+
                 operationId = bridgeRouter.executeReadState{value: feePaid}(
-                    readData.dstChainId,
-                    readData.dstContract,
-                    readData.selector,
-                    readData.readParams,
-                    readData.originator,
-                    readData.options
+                    params
                 );
             } else if (opType == BridgeTypes.OperationType.MESSAGE) {
                 QueuedMessage storage messageData = queuedMessages[queueId];
                 feePaid = messageData.feePaid;
 
+                // Construct the params struct
+                BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+                    .ExecuteSendMessageParams({
+                        destinationChainId: messageData.destinationChainId,
+                        recipient: messageData.recipient,
+                        message: messageData.message,
+                        originator: messageData.originator,
+                        options: messageData.options
+                    });
+
                 operationId = bridgeRouter.executeSendMessage{value: feePaid}(
-                    messageData.destinationChainId,
-                    messageData.recipient,
-                    messageData.message,
-                    messageData.originator,
-                    messageData.options
+                    params
                 );
             } else {
                 revert("Unknown Operation Type"); // Should not happen

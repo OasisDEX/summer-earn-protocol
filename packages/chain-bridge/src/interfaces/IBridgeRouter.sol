@@ -91,8 +91,8 @@ interface IBridgeRouter is IERC165 {
         address routerAddress
     );
 
-    /// @notice Emitted when the confirmation gas limit is updated
-    event ConfirmationGasLimitUpdated(uint64 newConfirmationGasLimit); // uint64 matches implementation
+    /// @notice Emitted when the default gas limit is updated
+    event DefaultGasLimitUpdated(uint256 newDefaultGasLimit);
 
     /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
     event BridgeQueueUpdated(address indexed newBridgeQueue);
@@ -142,21 +142,11 @@ interface IBridgeRouter is IERC165 {
      * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
      *      Expects `msg.value` to cover the *base* fee required by the adapter.
      *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
-     * @param destinationChainId Destination chain ID.
-     * @param asset Asset address.
-     * @param amount Asset amount.
-     * @param recipient Recipient address on destination chain.
-     * @param originator The original user/contract that requested this via the queue.
-     * @param options Bridge options (adapter choice, params) passed from the queue.
+     * @param params Struct containing all parameters for the transfer execution.
      * @return operationId Unique operation ID.
      */
     function executeTransferAssets(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.ExecuteTransferParams calldata params
     ) external payable returns (bytes32 operationId);
 
     /**
@@ -164,22 +154,11 @@ interface IBridgeRouter is IERC165 {
      * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
      *      Expects `msg.value` to cover the *base* fee required by the adapter.
      *      The `originator` parameter represents the original requester; the implementation determines how the response is routed (e.g., back to the originator, or potentially to the BridgeQueue itself depending on the design).
-     *      The `options` parameter allows the BridgeQueue to specify adapter parameters if needed.
-     * @param dstChainId Destination chain ID.
-     * @param dstContract Contract address on destination chain.
-     * @param selector Function selector.
-     * @param readParams Function parameters.
-     * @param originator The original user/contract that requested this via the queue.
-     * @param options Bridge options (adapter choice, params) passed from the queue.
+     * @param params Struct containing all parameters for the state read execution.
      * @return operationId Unique operation ID.
      */
     function executeReadState(
-        uint16 dstChainId,
-        address dstContract,
-        bytes4 selector,
-        bytes calldata readParams,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.ExecuteReadStateParams calldata params
     ) external payable returns (bytes32 operationId);
 
     /**
@@ -187,19 +166,11 @@ interface IBridgeRouter is IERC165 {
      * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
      *      Expects `msg.value` to cover the *base* fee required by the adapter.
      *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
-     * @param destinationChainId Destination chain ID.
-     * @param recipient Recipient address on destination chain.
-     * @param message Message data.
-     * @param originator The original user/contract that requested this via the queue.
-     * @param options Bridge options (adapter choice, params) passed from the queue.
+     * @param params Struct containing all parameters for the message send execution.
      * @return operationId Unique operation ID.
      */
     function executeSendMessage(
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata message,
-        address originator,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.ExecuteSendMessageParams calldata params
     ) external payable returns (bytes32 operationId);
 
     /*//////////////////////////////////////////////////////////////
@@ -366,10 +337,10 @@ interface IBridgeRouter is IERC165 {
     ) external view returns (address routerAddress);
 
     /**
-     * @notice Get the configured gas limit for sending confirmation messages
+     * @notice Get the configured default gas limit for adapter interactions
      * @return The gas limit value
      */
-    function confirmationGasLimit() external view returns (uint64);
+    function DEFAULT_GAS_LIMIT() external view returns (uint64);
 
     /**
      * @notice Get the configured address of the BridgeQueue contract
@@ -419,11 +390,11 @@ interface IBridgeRouter is IERC165 {
     ) external;
 
     /**
-     * @notice Update the default gas limit for sending confirmation messages
-     * @param newConfirmationGasLimit New gas limit value
+     * @notice Update the default gas limit for adapter interactions (e.g., estimations, confirmations).
+     * @param newDefaultGasLimit New gas limit value.
      * @dev Governor role required.
      */
-    function setConfirmationGasLimit(uint64 newConfirmationGasLimit) external;
+    function setDefaultGasLimit(uint256 newDefaultGasLimit) external;
 
     /**
      * @notice Set the known BridgeRouter address for another chain (used for confirmations)
