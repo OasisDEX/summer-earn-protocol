@@ -126,7 +126,6 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
     error OperationNotQueued();
     error AlreadyProcessed();
     error RouterExecutionFailed();
-    error FeeCalculationError();
     error InsufficientBalance();
 
     /*//////////////////////////////////////////////////////////////
@@ -371,9 +370,6 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
 
         BridgeTypes.OperationType opType = queueIdToOperationType[queueId];
         uint256 feePaid = 0;
-        uint256 baseFee = 0;
-        uint256 routerFeeMultiplier = bridgeRouter.feeMultiplier();
-        if (routerFeeMultiplier == 0) revert FeeCalculationError(); // Avoid division by zero
 
         address executor = msg.sender; // Keeper executing the call
 
@@ -386,7 +382,6 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
             if (opType == BridgeTypes.OperationType.TRANSFER_ASSET) {
                 QueuedTransfer storage transferData = queuedTransfers[queueId];
                 feePaid = transferData.feePaid;
-                baseFee = (feePaid * 100) / routerFeeMultiplier; // Calculate base fee
 
                 // Approve router to spend the asset held by this queue contract
                 IERC20(transferData.asset).approve(
@@ -396,7 +391,7 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
 
                 // Call router's execute method
                 operationId = bridgeRouter.executeTransferAssets{
-                    value: baseFee
+                    value: feePaid
                 }(
                     transferData.destinationChainId,
                     transferData.asset,
@@ -411,9 +406,8 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
             } else if (opType == BridgeTypes.OperationType.READ_STATE) {
                 QueuedReadState storage readData = queuedReadStates[queueId];
                 feePaid = readData.feePaid;
-                baseFee = (feePaid * 100) / routerFeeMultiplier;
 
-                operationId = bridgeRouter.executeReadState{value: baseFee}(
+                operationId = bridgeRouter.executeReadState{value: feePaid}(
                     readData.dstChainId,
                     readData.dstContract,
                     readData.selector,
@@ -424,9 +418,8 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
             } else if (opType == BridgeTypes.OperationType.MESSAGE) {
                 QueuedMessage storage messageData = queuedMessages[queueId];
                 feePaid = messageData.feePaid;
-                baseFee = (feePaid * 100) / routerFeeMultiplier;
 
-                operationId = bridgeRouter.executeSendMessage{value: baseFee}(
+                operationId = bridgeRouter.executeSendMessage{value: feePaid}(
                     messageData.destinationChainId,
                     messageData.recipient,
                     messageData.message,

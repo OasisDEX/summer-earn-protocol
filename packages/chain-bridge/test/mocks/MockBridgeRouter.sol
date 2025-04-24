@@ -249,7 +249,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     function deliverReadResponse(
         bytes32 operationId,
-        bytes calldata resultData
+        bytes calldata
     ) external override {
         // require(msg.sender == operationAdapters[operationId], "Mock: Unauthorized adapter");
         address originator = operationOriginators[operationId];
@@ -300,7 +300,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint16,
         address,
         uint256
-    ) external view returns (address bestAdapter) {
+    ) external pure returns (address bestAdapter) {
         return MOCK_ADAPTER_ADDRESS;
     }
 
@@ -309,23 +309,23 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         address,
         uint256,
         BridgeTypes.OperationType
-    ) external view returns (address bestAdapter) {
+    ) external pure returns (address bestAdapter) {
         return MOCK_ADAPTER_ADDRESS;
     }
 
     function getBestAdapterForStateRead(
         uint16
-    ) external view returns (address) {
+    ) external pure returns (address) {
         return MOCK_ADAPTER_ADDRESS;
     }
 
-    function getAdapters() external view returns (address[] memory) {
+    function getAdapters() external pure returns (address[] memory) {
         address[] memory adapters = new address[](1);
         adapters[0] = MOCK_ADAPTER_ADDRESS;
         return adapters;
     }
 
-    function isValidAdapter(address adapter) external view returns (bool) {
+    function isValidAdapter(address adapter) external pure returns (bool) {
         return adapter == MOCK_ADAPTER_ADDRESS;
     }
 
@@ -370,17 +370,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit ChainRouterAddressUpdated(_chainId, _routerAddress);
     }
 
-    function removeRouterFunds(
-        address recipient,
-        uint256 amount
-    ) external override {
+    function recoverFunds(address recipient, uint256 amount) external override {
         (bool s, ) = payable(recipient).call{value: amount}("");
         require(s);
         emit RouterFundsRemoved(recipient, amount);
-    }
-
-    function addRouterFunds() external payable override {
-        emit RouterFundsAdded(msg.sender, msg.value);
     }
 
     function recoverOperationStatus(
@@ -394,37 +387,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     function setBridgeQueueAddress(address _bridgeQueue) external {
         mockBridgeQueueAddress = _bridgeQueue;
         emit BridgeQueueAddressSet(_bridgeQueue);
-    }
-
-    // --- Deprecated User Functions ---
-    // Revert or implement basic mock behavior if needed for specific tests
-    function transferAssets(
-        uint16,
-        address,
-        uint256,
-        address,
-        BridgeTypes.BridgeOptions calldata
-    ) external payable override returns (bytes32) {
-        revert("Mock: Deprecated");
-    }
-
-    function readState(
-        uint16,
-        address,
-        bytes4,
-        bytes calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external payable override returns (bytes32) {
-        revert("Mock: Deprecated");
-    }
-
-    function sendMessage(
-        uint16,
-        address,
-        bytes calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external payable override returns (bytes32) {
-        revert("Mock: Deprecated");
     }
 
     // --- Interface Support ---
