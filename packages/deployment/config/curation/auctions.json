@@ -62,5 +62,21 @@
     "duration": "4d",
     "kickerRewardPercentage": 0,
     "decayType": "linear"
+  },
+  {
+    "rewardTokenSymbol": "gear",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.00000185,
+      "usdt": 0.003267,
+      "usdc": 0.003267,
+      "dai": 0.003267,
+      "usde": 0.003267,
+      "usdce": 0.003267,
+      "eurc": 0.003267
+    },
+    "duration": "3d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear"
   }
 ]

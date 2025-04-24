@@ -2,11 +2,83 @@ import { TransactionBase } from '@safe-global/types-kit'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
-import { Address, encodeFunctionData, getAddress, createPublicClient, http } from 'viem'
-import { BaseConfig, Token } from '../../types/config-types'
+import { Address, createPublicClient, encodeFunctionData, getAddress, http } from 'viem'
+import { Token } from '../../types/config-types'
 import { logPercentageComparison, logValueComparison } from '../helpers/fleet-config-reader'
 
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+
+const addresses: Record<
+  SupportedChain,
+  {
+    raft: string
+    tokens: Partial<Record<Token, string>>
+  }
+> = {
+  base: {
+    raft: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
+    tokens: {
+      usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      dai: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
+      weth: '0x4200000000000000000000000000000000000006',
+      usds: '0x820C137fa70C8691f0e44Dc420a5e53c168921Dc',
+      stakedUsds: '0x5875eEE11Cf8398102FdAd704C9E96607675467a',
+      morpho: '0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842',
+      reul: '0xE08e1f00D388E201e48842E53fA96195568e6813',
+      eurc: '0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42',
+      seam: '0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85',
+      ws: '0x0000000000000000000000000000000000000000',
+      well: '0x0000000000000000000000000000000000000000',
+      gear: '0x0000000000000000000000000000000000000000',
+      usdt: '0x6047828dc181963ba44974801FF68e538dA5eaF9',
+      usde: '0x0000000000000000000000000000000000000000',
+    },
+  },
+  mainnet: {
+    raft: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
+    tokens: {
+      usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+      usds: '0xdC035D45d973E3EC169d2276DDab16f1e407384F',
+      stakedUsds: '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD',
+      usdt: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+      morpho: '0x58D97B57BB95320F9a05dC918Aef65434969c2B2',
+      reul: '0xf3e621395fc714b90da337aa9108771597b4e696',
+      seam: '0x0000000000000000000000000000000000000000',
+      ws: '0x0000000000000000000000000000000000000000',
+      gear: '0xBa3335588D9403515223F109EdC4eB7269a9Ab5D',
+    },
+  },
+  sonic: {
+    raft: '0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204',
+    tokens: {
+      usdce: '0x29219dd400f2Bf60E5a23d13Be72B486D4038894',
+      dai: '0x0000000000000000000000000000000000000000',
+      weth: '0x50c42dEAcD8Fc9773493ED674b675bE577f2634b',
+      usds: '0x0000000000000000000000000000000000000000',
+      stakedUsds: '0x0000000000000000000000000000000000000000',
+      usdt: '0x6047828dc181963ba44974801FF68e538dA5eaF9',
+      seam: '0x0000000000000000000000000000000000000000',
+      ws: '0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38',
+      reul: '0x0000000000000000000000000000000000000000',
+    },
+  },
+  arbitrum: {
+    raft: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
+    tokens: {
+      usdc: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
+      dai: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+      usde: '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34',
+      usdt: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+      usdce: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+      weth: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
+      morpho: '0x0000000000000000000000000000000000000000',
+      reul: '0x0000000000000000000000000000000000000000',
+      seam: '0x0000000000000000000000000000000000000000',
+      ws: '0x0000000000000000000000000000000000000000',
+    },
+  },
+}
 
 enum SupportedChain {
   base = 'base',
@@ -15,7 +87,12 @@ enum SupportedChain {
   sonic = 'sonic',
 }
 
-const SUPPORTED_CHAINS = [SupportedChain.base, SupportedChain.arbitrum, SupportedChain.mainnet, SupportedChain.sonic]
+const SUPPORTED_CHAINS = [
+  SupportedChain.base,
+  SupportedChain.arbitrum,
+  SupportedChain.mainnet,
+  SupportedChain.sonic,
+]
 
 const RPC_URL_MAP = {
   [SupportedChain.mainnet]: process.env.MAINNET_RPC_URL,
@@ -37,31 +114,179 @@ const CHAIN_MAP_BY_ID = Object.fromEntries(
 // Hardcoded ABIs - these will be replaced with actual ABIs
 const FLEET_COMMANDER_ABI = [
   // Add your FleetCommander ABI here
-  { inputs: [], name: "getConfig", outputs: [{"name": "bufferArk", "type": "address"}, { name: "depositCap", type: "uint256" }, { name: "minimumBufferBalance", type: "uint256" }], stateMutability: "view", type: "function" },
-  { inputs: [], name: "getCooldown", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
-  { inputs: [{ name: "cap", type: "uint256" }], name: "setFleetDepositCap", outputs: [], stateMutability: "nonpayable", type: "function" },
-  { inputs: [{ name: "balance", type: "uint256" }], name: "setMinimumBufferBalance", outputs: [], stateMutability: "nonpayable", type: "function" },
-  { inputs: [{ name: "cooldown", type: "uint256" }], name: "updateRebalanceCooldown", outputs: [], stateMutability: "nonpayable", type: "function" },
-  { inputs: [{ name: "arkAddress", type: "address" }, { name: "cap", type: "uint256" }], name: "setArkDepositCap", outputs: [], stateMutability: "nonpayable", type: "function" },
-  { inputs: [{ name: "arkAddress", type: "address" }, { name: "percentage", type: "uint256" }], name: "setArkMaxDepositPercentageOfTVL", outputs: [], stateMutability: "nonpayable", type: "function" },
-  { inputs: [{ name: "arkAddress", type: "address" }, { name: "amount", type: "uint256" }], name: "setArkMaxRebalanceInflow", outputs: [], stateMutability: "nonpayable", type: "function" },
-  { inputs: [{ name: "arkAddress", type: "address" }, { name: "amount", type: "uint256" }], name: "setArkMaxRebalanceOutflow", outputs: [], stateMutability: "nonpayable", type: "function" }
+  {
+    inputs: [],
+    name: 'getConfig',
+    outputs: [
+      { name: 'bufferArk', type: 'address' },
+      { name: 'depositCap', type: 'uint256' },
+      { name: 'minimumBufferBalance', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getCooldown',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'cap', type: 'uint256' }],
+    name: 'setFleetDepositCap',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'balance', type: 'uint256' }],
+    name: 'setMinimumBufferBalance',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'cooldown', type: 'uint256' }],
+    name: 'updateRebalanceCooldown',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'arkAddress', type: 'address' },
+      { name: 'cap', type: 'uint256' },
+    ],
+    name: 'setArkDepositCap',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'arkAddress', type: 'address' },
+      { name: 'percentage', type: 'uint256' },
+    ],
+    name: 'setArkMaxDepositPercentageOfTVL',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'arkAddress', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'setArkMaxRebalanceInflow',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'arkAddress', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'setArkMaxRebalanceOutflow',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ]
 
 const ARK_ABI = [
   // Add your Ark ABI here
-  { inputs: [], name: "depositCap", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
-  { inputs: [], name: "maxDepositPercentageOfTVL", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
-  { inputs: [], name: "maxRebalanceInflow", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
-  { inputs: [], name: "maxRebalanceOutflow", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" }
+  {
+    inputs: [],
+    name: 'depositCap',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'maxDepositPercentageOfTVL',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'maxRebalanceInflow',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'maxRebalanceOutflow',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ]
 
 const RAFT_ABI = [
   // Add your Raft ABI here
-  { inputs: [{ name: "arkAddress", type: "address" }, { name: "rewardTokenAddress", type: "address" }], name: "sweepableTokens", outputs: [{ name: "", type: "bool" }], stateMutability: "view", type: "function" },
-  { inputs: [{ name: "arkAddress", type: "address" }, { name: "rewardTokenAddress", type: "address" }], name: "arkAuctionParameters", outputs: [{ name: "duration", type: "uint256" }, { name: "startPrice", type: "uint256" }, { name: "endPrice", type: "uint256" }, { name: "kickerRewardPercentage", type: "uint256" }, { name: "decayType", type: "uint256" }], stateMutability: "view", type: "function" },
-  { inputs: [{ name: "arkAddress", type: "address" }, { name: "rewardTokenAddress", type: "address" }, { name: "params", type: "tuple", components: [{ name: "duration", type: "uint256" }, { name: "startPrice", type: "uint256" }, { name: "endPrice", type: "uint256" }, { name: "kickerRewardPercentage", type: "uint256" }, { name: "decayType", type: "uint256" }] }], name: "setArkAuctionParameters", outputs: [], stateMutability: "nonpayable", type: "function" },
-  { inputs: [{ name: "arkAddress", type: "address" }, { name: "rewardTokenAddress", type: "address" }, { name: "isSweepable", type: "bool" }], name: "setSweepableToken", outputs: [], stateMutability: "nonpayable", type: "function" }
+  {
+    inputs: [
+      { name: 'arkAddress', type: 'address' },
+      { name: 'rewardTokenAddress', type: 'address' },
+    ],
+    name: 'sweepableTokens',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'arkAddress', type: 'address' },
+      { name: 'rewardTokenAddress', type: 'address' },
+    ],
+    name: 'arkAuctionParameters',
+    outputs: [
+      { name: 'duration', type: 'uint256' },
+      { name: 'startPrice', type: 'uint256' },
+      { name: 'endPrice', type: 'uint256' },
+      { name: 'kickerRewardPercentage', type: 'uint256' },
+      { name: 'decayType', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'arkAddress', type: 'address' },
+      { name: 'rewardTokenAddress', type: 'address' },
+      {
+        name: 'params',
+        type: 'tuple',
+        components: [
+          { name: 'duration', type: 'uint40' },
+          { name: 'startPrice', type: 'uint256' },
+          { name: 'endPrice', type: 'uint256' },
+          { name: 'kickerRewardPercentage', type: 'uint256' },
+          { name: 'decayType', type: 'uint8' },
+        ],
+      },
+    ],
+    name: 'setArkAuctionParameters',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'arkAddress', type: 'address' },
+      { name: 'rewardTokenAddress', type: 'address' },
+      { name: 'isSweepable', type: 'bool' },
+    ],
+    name: 'setSweepableToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ]
 
 dotenv.config()
@@ -75,14 +300,6 @@ if (!process.env.CURATOR_MULTISIG_PROPOSER_PRIV_KEY) {
 }
 
 const safeAddress = getAddress(process.env.CURATOR_MULTISIG_ADDRESS as Address)
-
-// Build chain configuration.
-type ChainConfiguration = {
-  chain: any
-  chainId: number
-  config: BaseConfig
-  rpcUrl: string
-}
 
 interface ArkConfig {
   chain: string
@@ -121,7 +338,7 @@ async function loadConfigurations() {
   const auctionsConfigPath = path.join(__dirname, '../../config/curation/auctions.json')
   const auctionsConfig: AuctionConfig[] = JSON.parse(fs.readFileSync(auctionsConfigPath, 'utf-8'))
 
-  return { arksConfig,  auctionsConfig }
+  return { arksConfig, auctionsConfig }
 }
 
 function parseTimeString(timeStr: string): number {
@@ -206,18 +423,19 @@ function calculateAuctionMultipliers(
 
   return { startPrice, endPrice }
 }
-const rewardsConfig: Record<number, Record<string, string[]>> = {
-  1: {
-    morpho: ['morpho'],
-    euler: ['reul'],
+const rewardsConfig: Record<string, Record<string, Token[]>> = {
+  mainnet: {
+    morpho: [Token.MORPHO],
+    euler: [Token.REUL],
+    gearbox: [Token.GEAR],
   },
-  8453: {
-    morpho: ['morpho', 'seam'],
-    euler: ['ws'],
+  base: {
+    morpho: [Token.MORPHO, Token.SEAM],
+    euler: [Token.WS],
   },
-  146: {
-    aave_v3: ['ws'],
-    euler: ['ws'],
+  sonic: {
+    aave_v3: [Token.WS],
+    euler: [Token.WS],
   },
 }
 
@@ -225,20 +443,20 @@ const rewardsConfig: Record<number, Record<string, string[]>> = {
 async function readFleetConfig(fleetAddress: Address, chain: SupportedChain) {
   const publicClient = createPublicClient({
     chain: VIEM_CHAIN_MAP[chain],
-    transport: http(RPC_URL_MAP[chain])
+    transport: http(RPC_URL_MAP[chain]),
   })
 
-  const config = await publicClient.readContract({
+  const config = (await publicClient.readContract({
     address: fleetAddress,
     abi: FLEET_COMMANDER_ABI,
-    functionName: 'getConfig'
-  }) as bigint[]
+    functionName: 'getConfig',
+  })) as bigint[]
 
-  const rebalanceCooldown = await publicClient.readContract({
+  const rebalanceCooldown = (await publicClient.readContract({
     address: fleetAddress,
     abi: FLEET_COMMANDER_ABI,
-    functionName: 'getCooldown'
-  }) as bigint
+    functionName: 'getCooldown',
+  })) as bigint
 
   return {
     depositCap: BigInt(config[2]),
@@ -251,7 +469,7 @@ async function readFleetConfig(fleetAddress: Address, chain: SupportedChain) {
 async function readArkConfig(arkAddress: Address, chain: SupportedChain) {
   const publicClient = createPublicClient({
     chain: VIEM_CHAIN_MAP[chain],
-    transport: http(RPC_URL_MAP[chain])
+    transport: http(RPC_URL_MAP[chain]),
   })
 
   const [depositCap, maxDepositPercentageOfTVL, maxRebalanceInflow, maxRebalanceOutflow] =
@@ -259,23 +477,23 @@ async function readArkConfig(arkAddress: Address, chain: SupportedChain) {
       publicClient.readContract({
         address: arkAddress,
         abi: ARK_ABI,
-        functionName: 'depositCap'
+        functionName: 'depositCap',
       }),
       publicClient.readContract({
         address: arkAddress,
         abi: ARK_ABI,
-        functionName: 'maxDepositPercentageOfTVL'
+        functionName: 'maxDepositPercentageOfTVL',
       }),
       publicClient.readContract({
         address: arkAddress,
         abi: ARK_ABI,
-        functionName: 'maxRebalanceInflow'
+        functionName: 'maxRebalanceInflow',
       }),
       publicClient.readContract({
         address: arkAddress,
         abi: ARK_ABI,
-        functionName: 'maxRebalanceOutflow'
-      })
+        functionName: 'maxRebalanceOutflow',
+      }),
     ])
 
   return {
@@ -299,12 +517,7 @@ async function createAuctionConfigurationTransaction(
   // Determine reward token based on ark type
   const rewardTokenSymbols = rewardsConfig[chain][arkConfig.ark]
   for (const rewardTokenSymbol of rewardTokenSymbols) {
-    const txes = await handleSingleRewardToken(
-      rewardTokenSymbol,
-      auctionsConfig,
-      chain,
-      arkConfig,
-    )
+    const txes = await handleSingleRewardToken(rewardTokenSymbol, auctionsConfig, chain, arkConfig)
     if (txes && txes.length > 0) {
       transactions.push(...txes)
     }
@@ -348,31 +561,31 @@ async function handleSingleRewardToken(
   const decayType = auctionConfig.decayType === 'linear' ? 0 : 1
 
   // Get current auction parameters
-  const rewardTokenAddress = chainConfig.config.tokens[rewardTokenSymbol.toLowerCase() as Token]
+  const rewardTokenAddress = addresses[chain].tokens[rewardTokenSymbol.toLowerCase() as Token]
   if (!rewardTokenAddress || rewardTokenAddress === '0x0000000000000000000000000000000000000000') {
     throw new Error(`No reward token address found for ${auctionConfig.rewardTokenSymbol}`)
   }
 
   const publicClient = createPublicClient({
     chain: VIEM_CHAIN_MAP[chain],
-    transport: http(RPC_URL_MAP[chain])
+    transport: http(RPC_URL_MAP[chain]),
   })
 
-  const raftAddress = chainConfig.config.deployedContracts.core.raft.address as `0x${string}`
+  const raftAddress = addresses[chain].raft as `0x${string}`
 
-  const isWhitelistedInRaft = await publicClient.readContract({
+  const isWhitelistedInRaft = (await publicClient.readContract({
     address: raftAddress,
     abi: RAFT_ABI,
     functionName: 'sweepableTokens',
-    args: [arkConfig.arkAddress, rewardTokenAddress]
-  }) as boolean
+    args: [arkConfig.arkAddress, rewardTokenAddress],
+  })) as boolean
 
-  const currentAuctionParams = await publicClient.readContract({
+  const currentAuctionParams = (await publicClient.readContract({
     address: raftAddress,
     abi: RAFT_ABI,
     functionName: 'arkAuctionParameters',
-    args: [arkConfig.arkAddress, rewardTokenAddress]
-  }) as [bigint, bigint, bigint, bigint, bigint]
+    args: [arkConfig.arkAddress, rewardTokenAddress],
+  })) as [bigint, bigint, bigint, bigint, bigint]
 
   const currentDuration = currentAuctionParams[0]
   const currentStartPrice = currentAuctionParams[1]
@@ -383,12 +596,7 @@ async function handleSingleRewardToken(
   console.log(`\n🔄 Configuring ${arkConfig.ark.toUpperCase()} auction parameters: \n`)
   console.log(`Reward token: ${rewardTokenSymbol.toUpperCase()}`)
   logValueComparison('Duration', currentDuration, duration, ' seconds')
-  logValueComparison(
-    'Start price',
-    currentStartPrice,
-    startPrice,
-    ` ${arkConfig.fleetAsset}`,
-  )
+  logValueComparison('Start price', currentStartPrice, startPrice, ` ${arkConfig.fleetAsset}`)
   logValueComparison('End price', currentEndPrice, endPrice, ` ${arkConfig.fleetAsset}`)
   logValueComparison('Kicker reward', currentKickerRewardPercentage, kickerRewardPercentage, ' %')
   logValueComparison('Decay type', currentDecayType, decayType)
@@ -449,7 +657,6 @@ async function handleSingleRewardToken(
   return txes
 }
 async function createConfigurationTransactions(
-  // fleetDeployment: FleetDeployment,
   arkConfig: ArkConfig,
   auctionsConfig: AuctionConfig[],
   chain: SupportedChain,
@@ -531,7 +738,6 @@ async function createConfigurationTransactions(
   // Handle auction configuration
   const auctionTransactions = await createAuctionConfigurationTransaction(
     arkConfig,
-    // fleetDeployment,
     auctionsConfig,
     chain,
   )
@@ -639,12 +845,12 @@ async function main() {
   console.log('🚀 Starting fleet configuration update process...\n')
 
   // Load configurations
-  const { arksConfig: allArksConfig,  auctionsConfig } = await loadConfigurations()
+  const { arksConfig: allArksConfig, auctionsConfig } = await loadConfigurations()
 
   // Process each chain
   for (const chain of SUPPORTED_CHAINS) {
     console.log(`\n🔗 Processing chain: ${chain}`)
-    
+
     const chainConfig = {
       chain: VIEM_CHAIN_MAP[chain],
       chainId: VIEM_CHAIN_MAP[chain].id,
