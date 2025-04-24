@@ -19,9 +19,17 @@ contract BridgeRouterTestHelper is BridgeRouter {
      */
     constructor(
         address _accessManager,
+        address _bridgeQueue
         uint16[] memory _chainIds,
         address[] memory _routerAddresses
-    ) BridgeRouter(_accessManager, _chainIds, _routerAddresses) {}
+    )
+        BridgeRouter(
+            _accessManager,
+            _bridgeQueue,
+            new uint16[](0),
+            new address[](0)
+        )
+    {}
 
     /**
      * @notice Updates the operationToAdapter mapping for testing
