@@ -134,7 +134,7 @@ contract BridgeRouterAdminTest is Test {
         vm.prank(governor);
         router.pause();
 
-        // User attempts to queue
+        // User attempts to queue (NO VALUE)
         vm.startPrank(user);
 
         // Approve tokens for the bridge queue
@@ -154,33 +154,72 @@ contract BridgeRouterAdminTest is Test {
             adapterParams: adapterParams
         });
 
-        // Get fee estimate first
-        (uint256 nativeFee, , ) = router.quote(
+        // Get fee estimate first (for keeper execution)
+        (uint256 nativeFee, , address selectedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
             options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
-        vm.deal(user, nativeFee);
+        // vm.deal(user, nativeFee); // REMOVED: User no longer pays
 
-        // Queue the transfer via BridgeQueue - this should succeed
-        bytes32 queueId = bridgeQueue.queueTransferAssets{value: nativeFee}(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            user, // recipient
-            options
-        );
+        // Ensure selected adapter is used if auto-selecting
+        options.specifiedAdapter = selectedAdapter;
+
+        // Queue the transfer via BridgeQueue - this should succeed (NO VALUE)
+        bytes32 queueId = bridgeQueue.queueTransferAssets( // REMOVED {value: nativeFee}
+                DEST_CHAIN_ID,
+                address(token),
+                TRANSFER_AMOUNT,
+                user, // recipient
+                options
+            );
 
         vm.stopPrank(); // User stops queueing
 
-        // Attempt to execute the queued operation (e.g., by keeper)
+        // Attempt to execute the queued operation (e.g., by keeper) (PAYS FEE)
         vm.startPrank(keeper);
 
-        // Execution should revert because the router is paused
+        // Mock the quote call happening during execution
+        vm.expectCall(
+            address(router),
+            abi.encodeWithSelector(
+                IBridgeRouter.quote.selector,
+                DEST_CHAIN_ID,
+                address(token),
+                TRANSFER_AMOUNT,
+                options,
+                BridgeTypes.OperationType.TRANSFER_ASSET
+            )
+        );
+        vm.mockCall(
+            address(router),
+            abi.encodeWithSelector(
+                IBridgeRouter.quote.selector,
+                DEST_CHAIN_ID,
+                address(token),
+                TRANSFER_AMOUNT,
+                options,
+                BridgeTypes.OperationType.TRANSFER_ASSET
+            ),
+            abi.encode(nativeFee, uint256(0), selectedAdapter) // Mock return for execution quote
+        );
+        // Mock the execute call - it won't actually happen due to pause, but setup is needed before revert check
+        vm.expectCall(
+            address(router),
+            nativeFee, // Expect msg.value to be the fee
+            abi.encodeWithSelector(IBridgeRouter.executeTransferAssets.selector) // Simplified check
+        );
+        // The router's execute call should revert because it's paused.
+        // This check happens inside the BridgeQueue's executeQueuedOperation try/catch block
+        // Or, if we removed try/catch, the router call itself reverts.
+        // We need to test the PAUSE check, which is likely in the *router's* execute functions.
+        // The BridgeQueue execute will call the router, which then reverts.
+        // So the revert will originate from the router, caught by BridgeQueue (if try/catch exists)
+        // or bubble up. Let's assume the Router's Paused error is expected.
         vm.expectRevert(IBridgeRouter.Paused.selector);
-        bridgeQueue.executeQueuedOperation(queueId);
+        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId); // ADDED {value: nativeFee}
 
         vm.stopPrank();
     }

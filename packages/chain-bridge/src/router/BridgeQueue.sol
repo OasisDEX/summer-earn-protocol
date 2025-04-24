@@ -7,27 +7,32 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 
 /**
  * @title BridgeQueue
  * @notice Queues cross-chain operations (transfers, reads, messages) for later execution by keepers.
- * @dev Interacts with a BridgeRouter to get quotes and trigger executions.
+ * @dev Interacts with a BridgeRouter to get quotes and trigger executions. Implements IBridgeQueue.
  */
-contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
+contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Address of the associated BridgeRouter contract
-    IBridgeRouter public bridgeRouter;
+    /// @notice Address of the associated BridgeRouter contract. Accessed via bridgeRouter().
+    IBridgeRouter internal _bridgeRouter;
 
-    /// @notice Address allowed to queue operations (e.g., CrossChainArk or specific manager role)
-    address public queueManager; // Using a single address for simplicity, could be role-based
+    /// @inheritdoc IBridgeQueue
+    mapping(address => bool) public isQueueManager;
 
     /// @notice Nonce to ensure unique queue IDs
-    uint256 private queueNonce;
+    uint256 private _queueNonce;
+
+    /// @notice Pseudo-address used to represent native currency (ETH)
+    address public constant NATIVE_PSEUDO_ADDRESS =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /// @notice Struct to store queued transfer details
     struct QueuedTransfer {
@@ -36,8 +41,7 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
         uint256 amount;
         address recipient;
         BridgeTypes.BridgeOptions options;
-        address originator;
-        uint256 feePaid; // Total fee collected from originator
+        address originator; // Address that must pre-approve this contract for 'amount' of 'asset'
         bytes32 operationId; // ID returned by adapter upon execution
     }
 
@@ -49,7 +53,6 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
         bytes readParams;
         BridgeTypes.BridgeOptions options;
         address originator;
-        uint256 feePaid; // Total fee collected from originator
         bytes32 operationId; // ID returned by adapter upon execution
     }
 
@@ -60,80 +63,47 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
         bytes message;
         BridgeTypes.BridgeOptions options;
         address originator;
-        uint256 feePaid; // Total fee collected from originator
         bytes32 operationId; // ID returned by adapter upon execution
     }
 
-    /// @notice Mapping from queue IDs to queued transfer data
+    /// @inheritdoc IBridgeQueue
     mapping(bytes32 queueId => QueuedTransfer) public queuedTransfers;
-    /// @notice Mapping from queue IDs to queued read state data
+    /// @inheritdoc IBridgeQueue
     mapping(bytes32 queueId => QueuedReadState) public queuedReadStates;
-    /// @notice Mapping from queue IDs to queued message data
+    /// @inheritdoc IBridgeQueue
     mapping(bytes32 queueId => QueuedMessage) public queuedMessages;
 
-    /// @notice Mapping from queue IDs to the type of operation queued
+    /// @inheritdoc IBridgeQueue
     mapping(bytes32 queueId => BridgeTypes.OperationType)
         public queueIdToOperationType;
 
-    /// @notice Mapping from queue IDs to their status
+    /// @inheritdoc IBridgeQueue
     mapping(bytes32 queueId => BridgeTypes.OperationStatus)
         public queueIdToStatus;
 
-    /// @notice Mapping from adapter-generated operation IDs back to our queue ID
+    /// @inheritdoc IBridgeQueue
     mapping(bytes32 operationId => bytes32 queueId) public operationIdToQueueId;
 
-    /// @notice Array of pending queue IDs for keepers to process
-    bytes32[] public pendingQueueIds;
+    /// @notice Array of pending queue IDs for keepers to process. Accessed via pendingQueueIds().
+    bytes32[] internal _pendingQueueIds;
+
     /// @notice Mapping to efficiently find the index of a queue ID in pendingQueueIds (index + 1)
-    mapping(bytes32 queueId => uint256) private pendingQueueIdIndex;
-
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event BridgeRouterUpdated(address indexed newBridgeRouter);
-    event QueueManagerUpdated(address indexed newQueueManager);
-    event OperationQueued(
-        bytes32 indexed queueId,
-        BridgeTypes.OperationType indexed operationType,
-        address indexed originator,
-        uint16 destinationChainId,
-        uint256 feePaid
-    );
-    event OperationExecuted(
-        bytes32 indexed queueId,
-        bytes32 indexed operationId,
-        address indexed executor
-    );
-    event OperationDequeued(bytes32 indexed queueId, address indexed remover);
-    event QueueExecutionFailed(
-        bytes32 indexed queueId,
-        address indexed executor,
-        bytes reason
-    );
-
-    /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error InvalidBridgeRouter();
-    error InvalidQueueManager();
-    error CallerNotQueueManager();
-    error InvalidParams();
-    error InsufficientFee();
-    error TransferFailed();
-    error QueueIdNotFound();
-    error OperationNotQueued();
-    error AlreadyProcessed();
-    error RouterExecutionFailed();
-    error InsufficientBalance();
+    mapping(bytes32 queueId => uint256) private _pendingQueueIdIndex;
 
     /*//////////////////////////////////////////////////////////////
                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    modifier onlyQueueManager() {
-        if (msg.sender != queueManager) revert CallerNotQueueManager();
+    /**
+     * @dev Modifier to restrict functions to authorized queue managers OR the bridge router itself.
+     * The bridge router needs auth for potential confirmation transactions.
+     */
+    modifier onlyQueueManagerAuth() {
+        if (
+            !isQueueManager[msg.sender] && msg.sender != address(_bridgeRouter)
+        ) {
+            revert CallerNotQueueManager();
+        }
         _;
     }
 
@@ -143,129 +113,77 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
 
     constructor(
         address _accessManager,
-        address _bridgeRouter,
-        address _queueManager
+        address _initialBridgeRouter,
+        address _initialQueueManager
     ) ProtocolAccessManaged(_accessManager) {
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
-        if (_queueManager == address(0)) revert InvalidQueueManager();
-        bridgeRouter = IBridgeRouter(_bridgeRouter);
-        queueManager = _queueManager;
-        emit BridgeRouterUpdated(_bridgeRouter);
-        emit QueueManagerUpdated(_queueManager);
+        if (_initialQueueManager == address(0)) revert InvalidQueueManager(); // Use error for initial manager too
+
+        _bridgeRouter = IBridgeRouter(_initialBridgeRouter);
+        emit BridgeRouterUpdated(_initialBridgeRouter);
+
+        isQueueManager[_initialQueueManager] = true;
+        emit QueueManagerAdded(_initialQueueManager);
     }
 
     /*//////////////////////////////////////////////////////////////
                        QUEUEING FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _queueOperation(
-        BridgeTypes.OperationType opType,
-        uint16 destinationChainId,
-        address asset, // Only relevant for TRANSFER_ASSET
-        uint256 amount, // Only relevant for TRANSFER_ASSET
-        BridgeTypes.BridgeOptions memory options // memory to allow modification
-    ) internal view returns (uint256 totalNativeFee, uint256 totalTokenFee) {
-        // Ensure router is set
-        if (address(bridgeRouter) == address(0)) revert InvalidBridgeRouter();
-
-        // Get quote from the router
-        (totalNativeFee, totalTokenFee, ) = bridgeRouter.quote(
-            destinationChainId,
-            asset,
-            amount,
-            options,
-            opType
-        );
-    }
-
+    /// @inheritdoc IBridgeQueue
+    /// @notice No payment required at queue time. Originator must pre-approve this contract for token transfers.
     function queueTransferAssets(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
         address recipient,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyQueueManager returns (bytes32 queueId) {
+    ) external onlyQueueManagerAuth returns (bytes32 queueId) {
         if (asset == address(0) || amount == 0 || recipient == address(0))
             revert InvalidParams();
 
-        (uint256 totalNativeFee, ) = _queueOperation(
-            BridgeTypes.OperationType.TRANSFER_ASSET,
-            destinationChainId,
-            asset,
-            amount,
-            options
-        );
-
-        if (msg.value < totalNativeFee) revert InsufficientFee();
-        // Handle token fees if necessary in the future, currently assuming native fee only for simplicity
-
-        // Generate unique ID
         queueId = keccak256(
-            abi.encodePacked(block.chainid, address(this), queueNonce++)
+            abi.encodePacked(block.chainid, address(this), _queueNonce++)
         );
 
-        // Store details
         queuedTransfers[queueId] = QueuedTransfer({
             destinationChainId: destinationChainId,
             asset: asset,
             amount: amount,
             recipient: recipient,
             options: options,
-            originator: msg.sender, // The actual entity requesting via the queue manager
-            feePaid: msg.value, // Store the total fee paid
-            operationId: bytes32(0) // Not executed yet
+            originator: msg.sender, // The queue manager is responsible for ensuring approvals
+            operationId: bytes32(0)
         });
         queueIdToOperationType[queueId] = BridgeTypes
             .OperationType
             .TRANSFER_ASSET;
         queueIdToStatus[queueId] = BridgeTypes.OperationStatus.QUEUED;
 
-        // Add to pending list
-        pendingQueueIds.push(queueId);
-        pendingQueueIdIndex[queueId] = pendingQueueIds.length; // Store index + 1
-
-        // Transfer asset from originator (queue manager) to this queue contract
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-
-        // Return excess fee if any
-        if (msg.value > totalNativeFee) {
-            (bool success, ) = msg.sender.call{
-                value: msg.value - totalNativeFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
+        _pendingQueueIds.push(queueId);
+        _pendingQueueIdIndex[queueId] = _pendingQueueIds.length;
 
         emit OperationQueued(
             queueId,
             BridgeTypes.OperationType.TRANSFER_ASSET,
             msg.sender,
-            destinationChainId,
-            msg.value
+            destinationChainId
         );
         return queueId;
     }
 
+    /// @inheritdoc IBridgeQueue
+    /// @notice No payment required at queue time.
     function queueReadState(
         uint16 dstChainId,
         address dstContract,
         bytes4 selector,
         bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyQueueManager returns (bytes32 queueId) {
+    ) external onlyQueueManagerAuth returns (bytes32 queueId) {
         if (dstContract == address(0)) revert InvalidParams();
 
-        (uint256 totalNativeFee, ) = _queueOperation(
-            BridgeTypes.OperationType.READ_STATE,
-            dstChainId,
-            address(0), // No asset
-            0, // No amount
-            options
-        );
-
-        if (msg.value < totalNativeFee) revert InsufficientFee();
-
         queueId = keccak256(
-            abi.encodePacked(block.chainid, address(this), queueNonce++)
+            abi.encodePacked(block.chainid, address(this), _queueNonce++)
         );
 
         queuedReadStates[queueId] = QueuedReadState({
@@ -275,52 +193,35 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
             readParams: readParams,
             options: options,
             originator: msg.sender,
-            feePaid: msg.value,
             operationId: bytes32(0)
         });
         queueIdToOperationType[queueId] = BridgeTypes.OperationType.READ_STATE;
         queueIdToStatus[queueId] = BridgeTypes.OperationStatus.QUEUED;
 
-        pendingQueueIds.push(queueId);
-        pendingQueueIdIndex[queueId] = pendingQueueIds.length;
-
-        if (msg.value > totalNativeFee) {
-            (bool success, ) = msg.sender.call{
-                value: msg.value - totalNativeFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
+        _pendingQueueIds.push(queueId);
+        _pendingQueueIdIndex[queueId] = _pendingQueueIds.length;
 
         emit OperationQueued(
             queueId,
             BridgeTypes.OperationType.READ_STATE,
             msg.sender,
-            dstChainId,
-            msg.value
+            dstChainId
         );
         return queueId;
     }
 
+    /// @inheritdoc IBridgeQueue
+    /// @notice No payment required at queue time.
     function queueSendMessage(
         uint16 destinationChainId,
         address recipient,
         bytes calldata message,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyQueueManager returns (bytes32 queueId) {
+    ) external onlyQueueManagerAuth returns (bytes32 queueId) {
         if (recipient == address(0)) revert InvalidParams();
 
-        (uint256 totalNativeFee, ) = _queueOperation(
-            BridgeTypes.OperationType.MESSAGE,
-            destinationChainId,
-            address(0), // No asset
-            0, // No amount
-            options
-        );
-
-        if (msg.value < totalNativeFee) revert InsufficientFee();
-
         queueId = keccak256(
-            abi.encodePacked(block.chainid, address(this), queueNonce++)
+            abi.encodePacked(block.chainid, address(this), _queueNonce++)
         );
 
         queuedMessages[queueId] = QueuedMessage({
@@ -329,28 +230,19 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
             message: message,
             options: options,
             originator: msg.sender,
-            feePaid: msg.value,
             operationId: bytes32(0)
         });
         queueIdToOperationType[queueId] = BridgeTypes.OperationType.MESSAGE;
         queueIdToStatus[queueId] = BridgeTypes.OperationStatus.QUEUED;
 
-        pendingQueueIds.push(queueId);
-        pendingQueueIdIndex[queueId] = pendingQueueIds.length;
-
-        if (msg.value > totalNativeFee) {
-            (bool success, ) = msg.sender.call{
-                value: msg.value - totalNativeFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
+        _pendingQueueIds.push(queueId);
+        _pendingQueueIdIndex[queueId] = _pendingQueueIds.length;
 
         emit OperationQueued(
             queueId,
             BridgeTypes.OperationType.MESSAGE,
             msg.sender,
-            destinationChainId,
-            msg.value
+            destinationChainId
         );
         return queueId;
     }
@@ -359,105 +251,157 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
                        QUEUE EXECUTION FUNCTION
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IBridgeQueue
+    /// @notice Keeper pays required fees via msg.value.
     function executeQueuedOperation(
         bytes32 queueId
-    ) external nonReentrant returns (bytes32 operationId) {
-        // Check existence and status
-        uint256 index = pendingQueueIdIndex[queueId];
-        if (index == 0) revert QueueIdNotFound(); // Not in pending list
+    ) external payable nonReentrant returns (bytes32 operationId) {
+        uint256 index = _pendingQueueIdIndex[queueId];
+        if (index == 0) revert QueueIdNotFound();
         if (queueIdToStatus[queueId] != BridgeTypes.OperationStatus.QUEUED)
             revert OperationNotQueued();
 
         BridgeTypes.OperationType opType = queueIdToOperationType[queueId];
-        uint256 feePaid = 0;
-
         address executor = msg.sender; // Keeper executing the call
+        IBridgeRouter router = _bridgeRouter; // Load into memory
+        if (address(router) == address(0)) revert InvalidBridgeRouter();
 
-        // Prepare for router call based on type
-        try
-            bridgeRouter.supportsInterface(type(IBridgeRouter).interfaceId)
-        returns (bool routerSupported) {
-            if (!routerSupported) revert InvalidBridgeRouter(); // Basic check
+        // Get quote from the router based on stored data
+        uint256 totalNativeFee;
+
+        // Prepare for router call based on type and get quote
+        try router.supportsInterface(type(IBridgeRouter).interfaceId) returns (
+            bool routerSupported
+        ) {
+            if (!routerSupported) revert InvalidBridgeRouter();
 
             if (opType == BridgeTypes.OperationType.TRANSFER_ASSET) {
                 QueuedTransfer storage transferData = queuedTransfers[queueId];
-                feePaid = transferData.feePaid;
 
-                // Approve router to spend the asset held by this queue contract
-                IERC20(transferData.asset).approve(
-                    address(bridgeRouter),
+                // Get quote, ignore token fee
+                (totalNativeFee, , ) = router.quote(
+                    transferData.destinationChainId,
+                    transferData.asset,
+                    transferData.amount,
+                    transferData.options,
+                    opType
+                );
+                if (msg.value < totalNativeFee) revert InsufficientFee();
+
+                // Transfer assets from originator (must have pre-approved queue) to this contract
+                IERC20(transferData.asset).safeTransferFrom(
+                    transferData.originator,
+                    address(this),
                     transferData.amount
                 );
 
-                // Construct the params struct
+                // Approve router
+                IERC20(transferData.asset).approve(
+                    address(router),
+                    transferData.amount
+                );
+
                 BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
                     .ExecuteTransferParams({
                         destinationChainId: transferData.destinationChainId,
                         asset: transferData.asset,
                         amount: transferData.amount,
                         recipient: transferData.recipient,
-                        originator: transferData.originator, // Pass original requestor
+                        originator: transferData.originator, // Pass original originator info
                         options: transferData.options
                     });
 
-                // Call router's execute method
-                operationId = bridgeRouter.executeTransferAssets{
-                    value: feePaid
-                }(params);
+                // Execute with keeper's payment
+                operationId = router.executeTransferAssets{value: msg.value}(
+                    params
+                );
 
-                // Reset approval
-                IERC20(transferData.asset).approve(address(bridgeRouter), 0);
+                // Clean up approval
+                IERC20(transferData.asset).approve(address(router), 0);
             } else if (opType == BridgeTypes.OperationType.READ_STATE) {
                 QueuedReadState storage readData = queuedReadStates[queueId];
-                feePaid = readData.feePaid;
 
-                // Construct the params struct
+                // Get quote, ignore token fee
+                (totalNativeFee, , ) = router.quote(
+                    readData.dstChainId,
+                    address(0), // Asset not relevant for quote
+                    0, // Amount not relevant for quote
+                    readData.options,
+                    opType
+                );
+                if (msg.value < totalNativeFee) revert InsufficientFee();
+
                 BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
                     .ExecuteReadStateParams({
                         dstChainId: readData.dstChainId,
                         dstContract: readData.dstContract,
                         selector: readData.selector,
                         readParams: readData.readParams,
-                        originator: readData.originator,
+                        originator: readData.originator, // Pass original originator info
                         options: readData.options
                     });
 
-                operationId = bridgeRouter.executeReadState{value: feePaid}(
-                    params
-                );
+                // Execute with keeper's payment
+                operationId = router.executeReadState{value: msg.value}(params);
             } else if (opType == BridgeTypes.OperationType.MESSAGE) {
                 QueuedMessage storage messageData = queuedMessages[queueId];
-                feePaid = messageData.feePaid;
 
-                // Construct the params struct
+                // Get quote, ignore token fee
+                (totalNativeFee, , ) = router.quote(
+                    messageData.destinationChainId,
+                    address(0), // Asset not relevant for quote
+                    0, // Amount not relevant for quote
+                    messageData.options,
+                    opType
+                );
+                if (msg.value < totalNativeFee) revert InsufficientFee();
+
                 BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
                     .ExecuteSendMessageParams({
                         destinationChainId: messageData.destinationChainId,
                         recipient: messageData.recipient,
                         message: messageData.message,
-                        originator: messageData.originator,
+                        originator: messageData.originator, // Pass original originator info
                         options: messageData.options
                     });
 
-                operationId = bridgeRouter.executeSendMessage{value: feePaid}(
+                // Execute with keeper's payment
+                operationId = router.executeSendMessage{value: msg.value}(
                     params
                 );
             } else {
-                revert("Unknown Operation Type"); // Should not happen
+                revert UnknownOperationType();
             }
         } catch (bytes memory reason) {
+            // If execution fails, refund the keeper immediately
+            if (msg.value > 0) {
+                // Assign return value to satisfy compiler, even if not checked here
+                (bool success, ) = executor.call{value: msg.value}("");
+                if (!success) revert RefundFailed();
+
+                // Note: Failure to refund here is problematic, but continuing is likely worse.
+                // Consider if assets need returning if transferFrom succeeded before revert.
+                // If safeTransferFrom happened, we should attempt to return them to originator.
+                if (
+                    opType == BridgeTypes.OperationType.TRANSFER_ASSET &&
+                    operationId == bytes32(0)
+                ) {
+                    // Check if transferFrom likely succeeded before revert
+                    QueuedTransfer storage transferData = queuedTransfers[
+                        queueId
+                    ];
+                    IERC20(transferData.asset).safeTransfer(
+                        transferData.originator,
+                        transferData.amount
+                    ); // Attempt return
+                }
+            }
             emit QueueExecutionFailed(queueId, executor, reason);
-            // Keep the operation in the queue, maybe retry later or requires admin action
-            // Do NOT remove from pendingQueueIds here
             return bytes32(0); // Indicate failure
         }
 
         // --- Success Path ---
-
-        // Link operationId back to queueId
         operationIdToQueueId[operationId] = queueId;
-
-        // Store operationId in the specific queue struct
         if (opType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             queuedTransfers[queueId].operationId = operationId;
         } else if (opType == BridgeTypes.OperationType.READ_STATE) {
@@ -466,11 +410,16 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
             queuedMessages[queueId].operationId = operationId;
         }
 
-        // Update status (now PENDING in the router)
-        queueIdToStatus[queueId] = BridgeTypes.OperationStatus.PENDING; // Mirror router's initial state
-
-        // Remove from pending list
+        queueIdToStatus[queueId] = BridgeTypes.OperationStatus.PENDING;
         _removePendingId(queueId, index - 1);
+
+        // Refund any excess native fee to the keeper
+        if (msg.value > totalNativeFee) {
+            (bool success, ) = executor.call{value: msg.value - totalNativeFee}(
+                ""
+            );
+            if (!success) revert RefundFailed();
+        }
 
         emit OperationExecuted(queueId, operationId, executor);
 
@@ -481,43 +430,47 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Removes a queue ID from the pending list by swapping with the last element.
-     * @param queueId The ID to remove.
-     * @param index The index of the ID in the `pendingQueueIds` array.
-     */
     function _removePendingId(bytes32 queueId, uint256 index) internal {
-        uint256 lastIndex = pendingQueueIds.length - 1;
+        uint256 lastIndex = _pendingQueueIds.length - 1;
         if (index != lastIndex) {
-            // Swap with the last element
-            bytes32 lastId = pendingQueueIds[lastIndex];
-            pendingQueueIds[index] = lastId;
-            pendingQueueIdIndex[lastId] = index + 1; // Update index of the moved element
+            bytes32 lastId = _pendingQueueIds[lastIndex];
+            _pendingQueueIds[index] = lastId;
+            _pendingQueueIdIndex[lastId] = index + 1;
         }
-        // Remove the last element
-        pendingQueueIds.pop();
-        // Mark the removed ID's index as 0
-        pendingQueueIdIndex[queueId] = 0;
+        _pendingQueueIds.pop();
+        _pendingQueueIdIndex[queueId] = 0;
     }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getPendingQueueCount() external view returns (uint256) {
-        return pendingQueueIds.length;
+    /// @inheritdoc IBridgeQueue
+    function bridgeRouter() external view returns (IBridgeRouter) {
+        return _bridgeRouter;
     }
 
+    /// @inheritdoc IBridgeQueue
+    function getPendingQueueCount() external view returns (uint256) {
+        return _pendingQueueIds.length;
+    }
+
+    /// @inheritdoc IBridgeQueue
     function getPendingQueueIdAtIndex(
         uint256 index
     ) external view returns (bytes32) {
-        return pendingQueueIds[index];
+        return _pendingQueueIds[index];
     }
 
+    /// @inheritdoc IBridgeQueue
+    function pendingQueueIds() external view returns (bytes32[] memory) {
+        return _pendingQueueIds;
+    }
+
+    /// @inheritdoc IBridgeQueue
     function getOperationStatus(
         bytes32 queueId
     ) external view returns (BridgeTypes.OperationStatus) {
-        // If executed, query the router for the most up-to-date status
         bytes32 operationId = bytes32(0);
         if (
             queueIdToOperationType[queueId] ==
@@ -536,16 +489,14 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
         }
 
         if (operationId != bytes32(0)) {
-            try bridgeRouter.getOperationStatus(operationId) returns (
+            try _bridgeRouter.getOperationStatus(operationId) returns (
                 BridgeTypes.OperationStatus status
             ) {
                 return status;
             } catch {
-                // If router reverts (e.g., ID not found yet), return our last known status
                 return queueIdToStatus[queueId];
             }
         }
-        // Not executed yet, return our internal status
         return queueIdToStatus[queueId];
     }
 
@@ -553,96 +504,76 @@ contract BridgeQueue is ProtocolAccessManaged, ReentrancyGuard {
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IBridgeQueue
     function setBridgeRouter(address _newBridgeRouter) external onlyGovernor {
         if (_newBridgeRouter == address(0)) revert InvalidBridgeRouter();
-        bridgeRouter = IBridgeRouter(_newBridgeRouter);
+        _bridgeRouter = IBridgeRouter(_newBridgeRouter);
         emit BridgeRouterUpdated(_newBridgeRouter);
     }
 
-    function setQueueManager(address _newQueueManager) external onlyGovernor {
-        if (_newQueueManager == address(0)) revert InvalidQueueManager();
-        queueManager = _newQueueManager;
-        emit QueueManagerUpdated(_newQueueManager);
+    /// @inheritdoc IBridgeQueue
+    function addQueueManager(address manager) external onlyGovernor {
+        if (manager == address(0)) revert InvalidQueueManager();
+        if (!isQueueManager[manager]) {
+            isQueueManager[manager] = true;
+            emit QueueManagerAdded(manager);
+        }
     }
 
-    /**
-     * @notice Allows admin to remove an operation from the pending queue (e.g., if stuck or invalid).
-     * @param queueId The ID of the operation to dequeue.
-     */
+    /// @inheritdoc IBridgeQueue
+    function removeQueueManager(address manager) external onlyGovernor {
+        if (manager == address(0)) revert InvalidQueueManager(); // Also check for zero address on removal
+        if (isQueueManager[manager]) {
+            isQueueManager[manager] = false;
+            emit QueueManagerRemoved(manager);
+        }
+    }
+
+    /// @inheritdoc IBridgeQueue
     function dequeueOperation(
         bytes32 queueId
     ) external onlyGovernor nonReentrant {
-        uint256 index = pendingQueueIdIndex[queueId];
-        if (index == 0) revert QueueIdNotFound(); // Not pending
+        uint256 index = _pendingQueueIdIndex[queueId];
+        if (index == 0) revert QueueIdNotFound();
         if (queueIdToStatus[queueId] != BridgeTypes.OperationStatus.QUEUED)
             revert OperationNotQueued();
 
-        // Refund logic (optional, complex depending on asset/fee)
-        // For simplicity, we might require a separate refund mechanism or just burn fees/assets
-        // Example: Refund native fee if possible
-        BridgeTypes.OperationType opType = queueIdToOperationType[queueId];
-        uint256 feePaid = 0;
-        address originator = address(0);
-
-        if (opType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            feePaid = queuedTransfers[queueId].feePaid;
-            originator = queuedTransfers[queueId].originator;
-            // Potentially transfer asset back
-            IERC20(queuedTransfers[queueId].asset).safeTransfer(
-                originator,
-                queuedTransfers[queueId].amount
-            );
-        } else if (opType == BridgeTypes.OperationType.READ_STATE) {
-            feePaid = queuedReadStates[queueId].feePaid;
-            originator = queuedReadStates[queueId].originator;
-        } else if (opType == BridgeTypes.OperationType.MESSAGE) {
-            feePaid = queuedMessages[queueId].feePaid;
-            originator = queuedMessages[queueId].originator;
-        }
-
-        if (originator != address(0) && feePaid > 0) {
-            // Attempt to refund native fee - might fail if contract has insufficient balance
-            payable(originator).transfer(feePaid);
-        }
-
-        // Remove from pending list
         _removePendingId(queueId, index - 1);
+        queueIdToStatus[queueId] = BridgeTypes.OperationStatus.FAILED; // Mark as failed since dequeued
 
-        // Update status to FAILED (or a new DEQUEUED status if preferred)
-        queueIdToStatus[queueId] = BridgeTypes.OperationStatus.FAILED; // Using FAILED for simplicity
-
-        // Clean up storage (optional, saves gas on future reads but costs gas now)
-        // delete queuedTransfers[queueId];
-        // delete queuedReadStates[queueId];
-        // delete queuedMessages[queueId];
-        // delete queueIdToOperationType[queueId];
-        // delete operationIdToQueueId[queued...[queueId].operationId]; // If operationId was somehow set
-
-        emit OperationDequeued(queueId, msg.sender);
+        emit OperationDequeued(queueId, msg.sender); // Governor initiated dequeue
     }
 
-    // Allow governor to withdraw surplus native tokens (fees kept by router/queue)
-    function withdrawSurplusNative(
-        address payable recipient,
-        uint256 amount
-    ) external onlyGovernor {
-        if (recipient == address(0)) revert InvalidParams();
-        if (address(this).balance < amount) revert InsufficientBalance();
-        (bool success, ) = recipient.call{value: amount}("");
-        if (!success) revert TransferFailed();
-    }
-
-    // Allow governor to withdraw surplus ERC20 tokens (if any accumulate unexpectedly)
-    function withdrawSurplusERC20(
-        IERC20 token,
+    /// @inheritdoc IBridgeQueue
+    function recoverFunds(
+        address token,
         address recipient,
         uint256 amount
     ) external onlyGovernor {
         if (recipient == address(0)) revert InvalidParams();
-        token.safeTransfer(recipient, amount);
+
+        if (token == NATIVE_PSEUDO_ADDRESS) {
+            uint256 amountToRecover = amount == 0
+                ? address(this).balance
+                : amount;
+            if (address(this).balance < amountToRecover)
+                revert InsufficientBalance();
+            (bool success, ) = payable(recipient).call{value: amountToRecover}(
+                ""
+            );
+            if (!success) revert RefundFailed();
+            emit FundsRecovered(token, recipient, amountToRecover);
+        } else {
+            IERC20 erc20Token = IERC20(token);
+            uint256 amountToRecover = amount == 0
+                ? erc20Token.balanceOf(address(this))
+                : amount;
+            erc20Token.safeTransfer(recipient, amountToRecover);
+            emit FundsRecovered(token, recipient, amountToRecover);
+        }
     }
 
-    // Add receive() and fallback() if needed to accept plain ETH transfers
+    // --- Fallback/Receive ---
     receive() external payable {}
     fallback() external payable {}
 }

@@ -20,6 +20,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     address public mockBridgeQueueAddress;
     address public constant MOCK_ADAPTER_ADDRESS = address(0xAA);
     uint256 public constant QUOTE_GAS = 50000; // Example gas estimate
+    bool public shouldRevert = false; // Flag to control reverting behavior
 
     mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
     mapping(bytes32 => address) public operationOriginators; // Track who requested via queue
@@ -38,6 +39,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // --- Errors ---
     error CallerNotBridgeQueue();
+    error RefundFailed();
 
     // --- Modifiers ---
     modifier onlyBridgeQueue() {
@@ -55,6 +57,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // --- Mock Specific Setters ---
     function setFeeMultiplier(uint256 _multiplier) external {
         mockFeeMultiplier = _multiplier;
+    }
+
+    function setShouldRevert(bool _shouldRevert) external {
+        shouldRevert = _shouldRevert;
     }
 
     function setMockOperationStatus(
@@ -77,18 +83,15 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.OperationType /* operationType */
     )
         external
-        view
-        override
+        pure
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
     {
-        // Return pre-configured total fees based on the multiplier
-        // For simplicity, let's assume a base fee and calculate total
+        // Return base fees (without multiplier)
         uint256 mockBaseNativeFee = 0.1 ether; // Example base fee
         uint256 mockBaseTokenFee = 0; // Example base token fee
-        nativeFee = (mockBaseNativeFee * mockFeeMultiplier) / 100;
-        tokenFee = (mockBaseTokenFee * mockFeeMultiplier) / 100;
+        nativeFee = mockBaseNativeFee; // Return base fee, not total
+        tokenFee = mockBaseTokenFee;
         selectedAdapter = MOCK_ADAPTER_ADDRESS;
-        // We could add logic here to return different fees based on input if needed for tests
         return (nativeFee, tokenFee, selectedAdapter);
     }
 
@@ -98,6 +101,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     function _executeTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params
     ) internal returns (bytes32 operationId) {
+        if (shouldRevert) {
+            revert("MockRouter: Execution failed");
+        }
+
         operationId = keccak256(abi.encodePacked("transfer", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
         operationOriginators[operationId] = params.originator;
@@ -110,12 +117,8 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             address(this),
             params.amount
         ); // Pull from queue
-        // In a real scenario, this might transfer to the adapter or burn/lock
-        // For mock, just holding it is fine, or transfer to a dummy address
-        IERC20(params.asset).safeTransfer(
-            makeAddr("mock_adapter_vault"),
-            params.amount
-        );
+        // Keep tokens in the router for testing purposes
+        // In a real scenario, this would transfer to the adapter or burn/lock
 
         emit TransferInitiated(
             operationId,
@@ -129,6 +132,13 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             operationId,
             BridgeTypes.OperationStatus.PENDING
         );
+
+        // Refund any excess native fee to the keeper
+        uint256 baseFee = 0.1 ether; // Base fee from quote
+        if (msg.value > baseFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - baseFee}("");
+            if (!success) revert RefundFailed();
+        }
 
         return operationId;
     }

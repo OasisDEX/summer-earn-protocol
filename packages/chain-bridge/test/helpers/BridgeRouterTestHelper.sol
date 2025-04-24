@@ -14,6 +14,7 @@ contract BridgeRouterTestHelper is BridgeRouter {
     /**
      * @notice Constructor for BridgeRouterTestHelper
      * @param _accessManager Address of the access manager
+     * @param _bridgeQueue Address of the bridge queue
      * @param _chainIds Array of chain IDs
      * @param _routerAddresses Array of router addresses
      */
@@ -29,7 +30,9 @@ contract BridgeRouterTestHelper is BridgeRouter {
             new uint16[](0),
             new address[](0)
         )
-    {}
+    {
+        // Initialize any test-specific state here
+    }
 
     /**
      * @notice Updates the operationToAdapter mapping for testing
@@ -96,6 +99,5 @@ contract BridgeRouterTestHelper is BridgeRouter {
         BridgeTypes.OperationStatus status
     ) external {
         operationStatuses[operationId] = status;
-        emit OperationStatusUpdated(operationId, status);
     }
 }
