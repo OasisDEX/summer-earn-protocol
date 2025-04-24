@@ -33,4 +33,6 @@ interface IPsm3 {
     ) external returns (uint256 amountIn);
 
     function pocket() external view returns (address);
+
+    function usdc() external view returns (address);
 }

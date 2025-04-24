@@ -29,7 +29,7 @@ contract PsmLiteERC4626Ark is Ark {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     /// @notice The LitePSM contract for USDC -> USDS swaps
-    IPsmLite public immutable litePsm;
+    IPsmLite public immutable psmLite;
     /// @notice The USDS token contract
     IERC20 public immutable usds;
     /// @notice The susds vault contract
@@ -47,13 +47,14 @@ contract PsmLiteERC4626Ark is Ark {
     error InvalidPSMAddress();
     error InvalidUSDSAddress();
     error InvalidSUSDSAddress();
+    error InvalidGemAddress();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
     /**
      * @notice Creates a new PsmLiteERC4626Ark instance
-     * @param _litePsm Address of the PSM Lite contract
+     * @param _psmLite Address of the PSM Lite contract
      * @param _usds Address of the USDS token
      * @param _susds Address of the sUSDS vault
      * @param _erc4626Vault Address of the ERC4626 vault
@@ -61,25 +62,26 @@ contract PsmLiteERC4626Ark is Ark {
      * @param _params Ark parameters
      */
     constructor(
-        address _litePsm,
+        address _psmLite,
         address _usds,
         address _susds,
         address _erc4626Vault,
         bool _shouldStake,
         ArkParams memory _params
     ) Ark(_params) {
-        if (_litePsm == address(0)) revert InvalidPSMAddress();
+        if (_psmLite == address(0)) revert InvalidPSMAddress();
         if (_usds == address(0)) revert InvalidUSDSAddress();
         if (_susds == address(0)) revert InvalidSUSDSAddress();
         if (_erc4626Vault == address(0)) revert InvalidVaultAddress();
 
-        litePsm = IPsmLite(_litePsm);
-        TO_18_DECIMALS_CONVERSION_FACTOR = litePsm.to18ConversionFactor();
+        psmLite = IPsmLite(_psmLite);
+        TO_18_DECIMALS_CONVERSION_FACTOR = psmLite.to18ConversionFactor();
         usds = IERC20(_usds);
         susds = IERC4626(_susds);
         erc4626Vault = IERC4626(_erc4626Vault);
         shouldStake = _shouldStake;
 
+        if (psmLite.gem() != _params.asset) revert InvalidGemAddress();
         _validateVaultAsset();
     }
 
@@ -129,14 +131,20 @@ contract PsmLiteERC4626Ark is Ark {
     {
         uint256 shares = erc4626Vault.balanceOf(address(this));
         if (shares > 0) {
-            withdrawableAssets = erc4626Vault.maxWithdraw(address(this));
             if (shouldStake) {
+                // maximum amount of sUSDS that can be withdrawn from the ERC4626 vault
+                uint256 susdsAmount = erc4626Vault.maxWithdraw(address(this));
+                // amount of USDS that would be redeemed from the sUSDS vault, based on the amount of withdrawn sUSDS
+                // converted to USDC decimals
                 withdrawableAssets =
-                    susds.previewWithdraw(withdrawableAssets) /
+                    susds.previewRedeem(susdsAmount) /
                     TO_18_DECIMALS_CONVERSION_FACTOR;
             } else {
+                // maximum amount of USDS that can be withdrawn from the ERC4626 vault
+                uint256 usdsAmount = erc4626Vault.maxWithdraw(address(this));
+                // amount of USDS that can be withdrawn from the ERC4626 vault, converted to USDC decimals
                 withdrawableAssets =
-                    withdrawableAssets /
+                    usdsAmount /
                     TO_18_DECIMALS_CONVERSION_FACTOR;
             }
         }
@@ -167,8 +175,10 @@ contract PsmLiteERC4626Ark is Ark {
      * @param usdsAmount Amount of USDS to withdraw
      */
     function _handleUsdsDisembarking(uint256 usdsAmount) internal {
+        // withdraw the USDS from the ERC4626 vault
         erc4626Vault.withdraw(usdsAmount, address(this), address(this));
-        usds.forceApprove(address(litePsm), usdsAmount);
+        // approve the psmLite to take USDS
+        usds.forceApprove(address(psmLite), usdsAmount);
     }
 
     /**
@@ -176,10 +186,14 @@ contract PsmLiteERC4626Ark is Ark {
      * @param usdsAmount Amount of USDS to withdraw
      */
     function _handleSusdsDisembarking(uint256 usdsAmount) internal {
+        // amount of sUSDS needed for redemption, to get the specified amount of USDS
         uint256 susdsAmount = susds.previewWithdraw(usdsAmount);
+        // withdraw the sUSDS from the ERC4626 vault
         erc4626Vault.withdraw(susdsAmount, address(this), address(this));
+        // withdraw the USDS from the sUSDS vault
         susds.withdraw(usdsAmount, address(this), address(this));
-        usds.forceApprove(address(litePsm), usdsAmount);
+        // approve the psmLite to take USDS
+        usds.forceApprove(address(psmLite), usdsAmount);
     }
 
     /**
@@ -188,10 +202,10 @@ contract PsmLiteERC4626Ark is Ark {
      */
     function _board(uint256 amount, bytes calldata) internal override {
         // Approve PSM to take USDC
-        config.asset.forceApprove(address(litePsm), amount);
+        config.asset.forceApprove(address(psmLite), amount);
 
         // Swap USDC to USDS
-        uint256 usdsAmount = litePsm.sellGem(address(this), amount);
+        uint256 usdsAmount = psmLite.sellGem(address(this), amount);
 
         if (shouldStake) {
             _handleSusdsBoarding(usdsAmount);
@@ -205,6 +219,7 @@ contract PsmLiteERC4626Ark is Ark {
      * @param amount Amount of USDC to disembark
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
+        // amount of USDS to disembark, converted from USDC decimals to 18 decimals
         uint256 usdsAmount = amount * TO_18_DECIMALS_CONVERSION_FACTOR;
 
         if (shouldStake) {
@@ -213,7 +228,8 @@ contract PsmLiteERC4626Ark is Ark {
             _handleUsdsDisembarking(usdsAmount);
         }
 
-        litePsm.buyGem(address(this), amount);
+        // swap USDS to USDC
+        psmLite.buyGem(address(this), amount);
     }
 
     function _validateBoardData(bytes calldata) internal pure override {}

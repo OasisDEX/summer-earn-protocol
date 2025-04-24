@@ -45,6 +45,7 @@ contract Psm3ERC4626Ark is Ark {
     error InvalidPSMAddress();
     error InvalidUSDSAddress();
     error InvalidSUSDSAddress();
+    error InvalidGemAddress();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -77,6 +78,7 @@ contract Psm3ERC4626Ark is Ark {
         erc4626Vault = IERC4626(_erc4626Vault);
         shouldStake = _shouldStake;
 
+        if (psm.usdc() != _params.asset) revert InvalidGemAddress();
         _validateVaultAsset();
     }
 

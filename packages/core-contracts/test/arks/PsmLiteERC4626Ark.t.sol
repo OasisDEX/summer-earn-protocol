@@ -26,7 +26,7 @@ contract PsmLiteERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
 
     IERC20 public usdc;
     IERC20 public susds;
-    IPsmLite public litePsm;
+    IPsmLite public psmLite;
 
     uint256 forkBlock = 22338830; // A recent block number on Base
     uint256 forkId;
@@ -38,7 +38,7 @@ contract PsmLiteERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
 
         usdc = IERC20(USDC);
         susds = IERC20(SUSDS);
-        litePsm = IPsmLite(LITE_PSM);
+        psmLite = IPsmLite(LITE_PSM);
 
         params = ArkParams({
             name: "USDC LITE_PSM Ark",
@@ -133,7 +133,7 @@ contract PsmLiteERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
         );
 
         assertEq(
-            address(usdsArk.litePsm()),
+            address(usdsArk.psmLite()),
             LITE_PSM,
             "PSM address should match"
         );

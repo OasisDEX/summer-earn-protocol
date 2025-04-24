@@ -91,7 +91,7 @@ contract Psm3ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.label(USDC, "USDC");
         vm.label(USDS, "USDS");
         vm.label(SUSDS, "sUSDS");
-        vm.label(LITE_PSM, "LITE_PSM");
+        vm.label(PSM3, "PSM3");
         vm.label(USDS_VAULT, "USDS_VAULT");
         vm.label(SUSDS_VAULT, "SUSDS_VAULT");
     }
