@@ -90,14 +90,14 @@ export function logValueComparison(
 
   const formattedCurrent = formatValue(currentValue, unit)
   const formattedNew = formatValue(newValue, unit)
-
+  if (hasChanged) {
   console.log(
     color(
       `${label.padEnd(30)} ${formattedCurrent}${unit} ${arrow} ${formattedNew}${unit}${
         hasChanged ? ' (updating)' : ' (unchanged)'
       }`,
     ),
-  )
+  ) }
 }
 
 export function logPercentageComparison(
@@ -111,11 +111,12 @@ export function logPercentageComparison(
   const arrow = hasChanged ? '→' : '='
   const currentPercent = Number(currentValue) / Number(WAD)
   const newPercent = Number(newValue) / Number(WAD)
+  if (hasChanged) {
   console.log(
     color(
       `${label.padEnd(30)} ${currentPercent}% ${arrow} ${newPercent}%${
         hasChanged ? ' (updating)' : ' (unchanged)'
       }`,
     ),
-  )
+  ) }
 }

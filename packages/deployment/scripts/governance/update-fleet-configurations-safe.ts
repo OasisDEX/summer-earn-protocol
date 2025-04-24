@@ -329,6 +329,8 @@ interface AuctionConfig {
   duration: string
   kickerRewardPercentage: number
   decayType: string
+  maxMultiplier: number
+  minMultiplier: number
 }
 
 async function loadConfigurations() {
@@ -385,7 +387,10 @@ function parseAmount(amountValue: string | number, assetSymbol: string): bigint 
 
   // If it's already a number, convert directly
   if (typeof amountValue === 'number') {
-    return BigInt(Math.floor(amountValue * Math.pow(10, Number(decimals))))
+    if (amountValue < 1) {
+      return BigInt(Math.floor(amountValue * Math.pow(10, Number(decimals))))
+    }
+    return BigInt(amountValue) * BigInt(Math.pow(10, Number(decimals)))
   }
   // If it's a string, remove commas first and multiply by decimals
   const baseAmount = BigInt(amountValue.replace(/,/g, ''))
@@ -413,13 +418,17 @@ function parsePercentage(percentValue: string | number): bigint {
 function calculateAuctionMultipliers(
   basePrice: number,
   assetDecimals: bigint,
+  maxMultiplier: number,
+  minMultiplier: number,
 ): { startPrice: bigint; endPrice: bigint } {
   // Convert base price to asset decimals
   const baseWithDecimals = BigInt(Math.round(basePrice * Math.pow(10, Number(assetDecimals))))
-
+  const multiplierBase = 1000
+  const maxMultiplierBase = Math.round(maxMultiplier * multiplierBase)
+  const minMultiplierBase = Math.round(minMultiplier * multiplierBase)
   // Start at 2x price and end at 0.1x price
-  const startPrice = baseWithDecimals * 2n
-  const endPrice = baseWithDecimals / 5n // 0.1x
+  const startPrice = baseWithDecimals * BigInt(maxMultiplierBase) / BigInt(multiplierBase)
+  const endPrice = baseWithDecimals * BigInt(minMultiplierBase) / BigInt(multiplierBase)
 
   return { startPrice, endPrice }
 }
@@ -555,7 +564,7 @@ async function handleSingleRewardToken(
   }
 
   const assetDecimals = getAssetDecimals(arkConfig.fleetAsset)
-  const { startPrice, endPrice } = calculateAuctionMultipliers(basePrice, assetDecimals)
+  const { startPrice, endPrice } = calculateAuctionMultipliers(basePrice, assetDecimals, auctionConfig.maxMultiplier, auctionConfig.minMultiplier)
   const duration = parseTimeString(auctionConfig.duration)
   const kickerRewardPercentage = parsePercentage(auctionConfig.kickerRewardPercentage)
   const decayType = auctionConfig.decayType === 'linear' ? 0 : 1
@@ -593,7 +602,7 @@ async function handleSingleRewardToken(
   const currentKickerRewardPercentage = currentAuctionParams[3]
   const currentDecayType = currentAuctionParams[4]
 
-  console.log(`\n🔄 Configuring ${arkConfig.ark.toUpperCase()} auction parameters: \n`)
+  console.log(`\n🔄 Configuring ${arkConfig.ark.toUpperCase()} auction parameters - if they were modified. \n`)
   console.log(`Reward token: ${rewardTokenSymbol.toUpperCase()}`)
   logValueComparison('Duration', currentDuration, duration, ' seconds')
   logValueComparison('Start price', currentStartPrice, startPrice, ` ${arkConfig.fleetAsset}`)
@@ -751,7 +760,7 @@ async function createConfigurationTransactions(
   console.log(`\n📊 Reading current ark configuration for ${arkAddress}...`)
   const currentArkConfig = await readArkConfig(arkAddress as Address, chain)
 
-  console.log(`\n🔄 Ark parameters for ${arkConfig.arkSymbol} (${arkConfig.ark}):`)
+  console.log(`\n🔄 Ark parameters for ${arkConfig.arkSymbol} (${arkConfig.ark}) - showed only if they were modified.`)
 
   // Set ark deposit cap
   const arkCap = parseAmount(arkConfig.arkMaxCap, arkConfig.fleetAsset)
