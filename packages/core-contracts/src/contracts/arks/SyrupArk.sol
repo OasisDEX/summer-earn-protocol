@@ -95,7 +95,7 @@ contract SyrupArk is Ark {
      * @notice Request redemption of shares from the Syrup pool
      * @param amount Amount of shares to redeem
      */
-    function requestRedeem(uint256 amount) external onlyKeeper {
+    function requestWithdrawal(uint256 amount) external onlyKeeper {
         uint256 shares = 0;
         if (amount == type(uint256).max) {
             shares = vault.balanceOf(address(this));
