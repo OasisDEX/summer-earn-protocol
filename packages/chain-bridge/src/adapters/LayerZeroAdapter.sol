@@ -229,10 +229,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             if (supported) {
                 try
                     ICrossChainReceiver(recipient).receiveMessage(
-                        message,
-                        recipient,
                         srcChainId,
-                        messageId
+                        message
                     )
                 {
                     delivered = true;

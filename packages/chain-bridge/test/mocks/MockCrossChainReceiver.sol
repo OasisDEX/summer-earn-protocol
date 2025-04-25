@@ -33,17 +33,23 @@ contract MockCrossChainReceiver is ICrossChainReceiver {
     }
 
     function receiveMessage(
-        bytes calldata data,
-        address sender,
         uint16 sourceChainId,
-        bytes32 messageId
-    ) external override {
+        bytes calldata message
+    ) external {
         if (!receiveSuccess) revert("Receiver rejected call");
 
-        lastReceivedData = data;
-        lastSender = sender;
+        lastReceivedData = message;
         lastSourceChainId = sourceChainId;
-        lastMessageId = messageId;
+    }
+
+    function receiveMessageWithAssets(
+        address,
+        uint256,
+        bytes calldata message
+    ) external {
+        if (!receiveSuccess) revert("Receiver rejected call");
+
+        lastReceivedData = message;
     }
 
     function supportsInterface(
