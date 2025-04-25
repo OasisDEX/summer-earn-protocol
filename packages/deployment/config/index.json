@@ -145,6 +145,12 @@
         "weth": {
           "Fluid": "0x9272D6153133175175Bc276512B2336BE3931CE9",
           "Euler_Base_WETH": "0x859160DB5841E5cfB8D3f144C6b3381A85A4b410"
+        },
+        "usds": {
+          "Euler_Base_USDS": "0x556d518FDFDCC4027A3A1388699c5E11AC201D8b"
+        },
+        "susds": {
+          "Euler_Base_SUSDS": "0x65cFEF3Efbc5586f0c05299343b8BeFb3fF5d81a"
         }
       },
       "moonwell": {
