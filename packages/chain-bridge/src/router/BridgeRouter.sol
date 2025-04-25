@@ -838,7 +838,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
     /// @inheritdoc IBridgeRouter
     function setFeeMultiplier(uint256 multiplier) external onlyGovernor {
-        if (multiplier == 0) revert InvalidParams();
+        if (multiplier < 100) revert InvalidParams(); // must at least cover base fee
         feeMultiplier = multiplier;
     }
 
