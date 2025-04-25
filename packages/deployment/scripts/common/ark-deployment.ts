@@ -22,6 +22,7 @@ import {
   validateToken,
 } from '../helpers/validation'
 import { MAX_UINT256_STRING } from './constants'
+import { deployPsmERC4626Ark } from '../arks/deploy-psm-erc4626-ark'
 
 export type ArkConfig = {
   type: ArkType
@@ -196,6 +197,35 @@ export async function deployArk(
       break
     }
 
+    case ArkType.PsmLiteERC4626Ark: {
+       const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[token][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
+      )
+      deployedArk = await deployPsmERC4626Ark(config, {...baseArkParams, psmType: 'psmlite', vaultSelection: {
+        token: token,
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
+      }})
+      break
+    }
+
+    case ArkType.Psm3ERC4626Ark: {
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[token][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
+      )
+      deployedArk = await deployPsmERC4626Ark(config, {...baseArkParams, psmType: 'psm3', vaultSelection: {
+        token: token,
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
+      }})
+      break
+    }
+
+
     default:
       throw new Error(`Unknown Ark type: ${arkConfig.type}`)
   }
@@ -267,6 +297,16 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SiloArk: {
       deployedArk = await deploySiloArk(config)
+      break
+    }
+
+    case ArkType.PsmLiteERC4626Ark: {
+      deployedArk = await deployPsmERC4626Ark(config)
+      break
+    }
+
+    case ArkType.Psm3ERC4626Ark: {
+      deployedArk = await deployPsmERC4626Ark(config)
       break
     }
 

@@ -25,6 +25,8 @@ export enum ArkType {
   MoonwellArk = 'MoonwellArk',
   SyrupArk = 'SyrupArk',
   SiloArk = 'SiloArk',
+  PsmLiteERC4626Ark = 'PsmLiteERC4626Ark',
+  Psm3ERC4626Ark = 'Psm3ERC4626Ark',
 }
 
 export const arkTypes = [
@@ -42,6 +44,8 @@ export const arkTypes = [
   { title: 'MoonwellArk', value: ArkType.MoonwellArk },
   { title: 'SyrupArk', value: ArkType.SyrupArk },
   { title: 'SiloArk', value: ArkType.SiloArk },
+  { title: 'PsmLiteERC4626Ark', value: ArkType.PsmLiteERC4626Ark },
+  { title: 'Psm3ERC4626Ark', value: ArkType.Psm3ERC4626Ark },
 ]
 
 export interface Config {
