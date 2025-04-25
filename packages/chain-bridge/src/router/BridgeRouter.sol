@@ -193,7 +193,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         uint256 amount,
         address recipient,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 operationId) {
+    ) external payable nonReentrant returns (bytes32 operationId) {
         if (paused) revert Paused();
         if (amount == 0 || recipient == address(0)) revert InvalidParams();
 
@@ -222,7 +222,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Calculate base fee from total fee
-        uint256 baseFee = (msg.value * 100) / feeMultiplier;
+        uint256 baseFee = (totalFee * 100) / feeMultiplier;
 
         // Ensure user provided enough fee
         if (msg.value < totalFee) revert InsufficientFee();
@@ -299,7 +299,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Calculate base fee from total fee
-        uint256 baseFee = (msg.value * 100) / feeMultiplier;
+        uint256 baseFee = (totalFee * 100) / feeMultiplier;
 
         // Ensure user provided enough fee
         if (msg.value < totalFee) revert InsufficientFee();
@@ -381,7 +381,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Calculate base fee from total fee
         // baseFee = totalFee / 2 when feeMultiplier is 200%
         // This represents the actual messaging cost that the adapter needs
-        uint256 baseFee = (msg.value * 100) / feeMultiplier;
+        uint256 baseFee = (totalFee * 100) / feeMultiplier;
 
         // Ensure user provided enough fee
         if (msg.value < totalFee) revert InsufficientFee();
