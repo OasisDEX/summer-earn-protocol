@@ -21,6 +21,15 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
       positionDetails.stakedInputTokenBalanceNormalizedUSD
     position.unstakedInputTokenBalanceNormalizedInUSD =
       positionDetails.unstakedInputTokenBalanceNormalizedUSD
+    // ------------------------------------------------------------
+    // will be deprecated in the future
+    position.claimableSummerToken = positionDetails.claimableSummerToken
+    position.claimableSummerTokenNormalized = positionDetails.claimableSummerTokenNormalized
+    // ------------------------------------------------------------
+    for (let i = 0; i < positionDetails.rewards.length; i++) {
+      const reward = positionDetails.rewards[i]
+      reward.save()
+    }
     if (positionDetails.inputTokenDelta.gt(BigIntConstants.ZERO)) {
       position.inputTokenDeposits = position.inputTokenDeposits.plus(
         positionDetails.inputTokenDelta,

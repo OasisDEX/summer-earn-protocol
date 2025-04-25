@@ -13,7 +13,9 @@
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
-    "decayType": "linear"
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.2
   },
   {
     "rewardTokenSymbol": "reul",
@@ -29,7 +31,9 @@
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
-    "decayType": "linear"
+    "decayType": "linear",
+    "maxMultiplier": 1,
+    "minMultiplier": 0.99
   },
   {
     "rewardTokenSymbol": "seam",
@@ -45,7 +49,9 @@
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
-    "decayType": "linear"
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.2
   },
   {
     "rewardTokenSymbol": "ws",
@@ -59,8 +65,28 @@
       "usdce": 0.5,
       "eurc": 0.45
     },
-    "duration": "4d",
+    "duration": "1d",
     "kickerRewardPercentage": 0,
-    "decayType": "linear"
+    "decayType": "linear",
+    "maxMultiplier": 3,
+    "minMultiplier": 0.2
+  },
+  {
+    "rewardTokenSymbol": "gear",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.00000185,
+      "usdt": 0.003267,
+      "usdc": 0.003267,
+      "dai": 0.003267,
+      "usde": 0.003267,
+      "usdce": 0.003267,
+      "eurc": 0.003267
+    },
+    "duration": "3d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.2
   }
 ]

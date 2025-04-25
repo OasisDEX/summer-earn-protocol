@@ -1,5 +1,5 @@
 import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
-import { Token } from '../../generated/schema'
+import { PositionRewards, Token } from '../../generated/schema'
 
 export class VaultAndPositionDetails {
   vaultDetails: VaultDetails
@@ -29,6 +29,9 @@ export class PositionDetails {
   inputTokenDelta: BigInt
   inputTokenDeltaNormalized: BigDecimal
   inputTokenDeltaNormalizedUSD: BigDecimal
+  claimableSummerToken: BigInt
+  claimableSummerTokenNormalized: BigDecimal
+  rewards: PositionRewards[]
   vault: string
   account: string
   inputToken: Token
@@ -56,6 +59,9 @@ export class PositionDetails {
     inputTokenDelta: BigInt,
     inputTokenDeltaNormalized: BigDecimal,
     inputTokenDeltaNormalizedUSD: BigDecimal,
+    claimableSummerToken: BigInt,
+    claimableSummerTokenNormalized: BigDecimal,
+    rewards: PositionRewards[],
     vault: string,
     account: string,
     inputToken: Token,
@@ -77,6 +83,9 @@ export class PositionDetails {
     this.inputTokenDelta = inputTokenDelta
     this.inputTokenDeltaNormalized = inputTokenDeltaNormalized
     this.inputTokenDeltaNormalizedUSD = inputTokenDeltaNormalizedUSD
+    this.claimableSummerToken = claimableSummerToken
+    this.claimableSummerTokenNormalized = claimableSummerTokenNormalized
+    this.rewards = rewards
     this.stakedInputTokenDelta = stakedInputTokenDelta
     this.stakedInputTokenDeltaNormalized = stakedInputTokenDeltaNormalized
     this.stakedInputTokenDeltaNormalizedUSD = stakedInputTokenDeltaNormalizedUSD

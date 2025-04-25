@@ -7,18 +7,14 @@ import {
   MoonwellArkContracts,
 } from '../../ignition/modules/arks/moonwell-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
 
-export interface MoonwellArkUserInput {
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-  token: { address: Address; symbol: Token }
-}
 /**
  * Main function to deploy a MoonwellArk.
  * This function orchestrates the entire deployment process, including:
@@ -28,7 +24,7 @@ export interface MoonwellArkUserInput {
  * - Deploying the MoonwellArk contract
  * - Logging deployment results
  */
-export async function deployMoonwellArk(config: BaseConfig, arkParams?: MoonwellArkUserInput) {
+export async function deployMoonwellArk(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting MoonwellArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
@@ -44,9 +40,9 @@ export async function deployMoonwellArk(config: BaseConfig, arkParams?: Moonwell
 /**
  * Prompts the user for MoonwellArk deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @returns {Promise<MoonwellArkUserInput>} An object containing the user's input for deployment parameters.
+ * @returns {Promise<BaseArkParams>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig): Promise<MoonwellArkUserInput> {
+async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
   // Extract Moonwell markets from the configuration
   const moonwellMTokens = []
   for (const token in config.protocolSpecific.moonwell.pools) {
@@ -55,7 +51,7 @@ async function getUserInput(config: BaseConfig): Promise<MoonwellArkUserInput> {
       value: token,
     })
   }
-
+  const fleetDefinition = await getFleetConfig()
   const responses = await prompts([
     {
       type: 'select',
@@ -90,19 +86,16 @@ async function getUserInput(config: BaseConfig): Promise<MoonwellArkUserInput> {
   return {
     ...responses,
     token: { address: tokenAddress, symbol: selectedMarket },
+    fleetName: fleetDefinition.fleetName,
   }
 }
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {MoonwellArkUserInput} userInput - The user's input for deployment parameters.
+ * @param {BaseArkParams} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(
-  userInput: MoonwellArkUserInput,
-  config: BaseConfig,
-  skip: boolean,
-) {
+async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token                  : ${userInput.token}`))
   console.log(kleur.yellow(`Deposit Cap            : ${userInput.depositCap}`))
@@ -115,17 +108,17 @@ async function confirmDeployment(
 /**
  * Deploys the MoonwellArk contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @param {MoonwellArkUserInput} userInput - The user's input for deployment parameters.
+ * @param {BaseArkParams} userInput - The user's input for deployment parameters.
  * @returns {Promise<MoonwellArkContracts>} The deployed MoonwellArk contract.
  */
 async function deployMoonwellArkContract(
   config: BaseConfig,
-  userInput: MoonwellArkUserInput,
+  userInput: BaseArkParams,
 ): Promise<MoonwellArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Moonwell-${userInput.token.symbol}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const mToken = validateAddress(
     config.protocolSpecific.moonwell.pools[userInput.token.symbol].mToken,

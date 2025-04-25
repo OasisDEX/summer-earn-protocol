@@ -1,5 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import fs from 'node:fs'
+import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { FleetConfig } from '../types/config-types'
@@ -7,6 +9,10 @@ import { addArkToFleet } from './common/add-ark-to-fleet'
 import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
 import {
   getFleetConfig,
+  getFleetDeploymentDir,
+  getFleetDeploymentFileName,
+  getFleetDeploymentPath,
+  loadFleetDeployment,
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
 } from './common/fleet-deployment-files-helpers'
@@ -310,7 +316,7 @@ async function handleArkAddition(
     console.log(kleur.blue('Fleet Commander:'), kleur.cyan(fleetCommanderAddress))
 
     // Get existing ark addresses from deployment data
-    const existingArkAddresses = deploymentData.arkAddresses || []
+    const existingArkAddresses = deploymentData.arks || []
     console.log(kleur.blue('Existing Arks:'), kleur.cyan(existingArkAddresses.length.toString()))
 
     // Check if there are new arks in the config that aren't already deployed
@@ -414,22 +420,17 @@ async function handleArkAddition(
       }
     }
 
-    // Update deployment JSON with new Ark addresses
-    const updatedArkAddresses = [...existingArkAddresses, ...deployedArkAddresses]
-
-    // Save updated deployment data
-    saveFleetDeploymentJson(
-      fleetDefinition,
-      { fleetCommander: deploymentData.fleetCommander },
-      deploymentData.bufferArk,
-      updatedArkAddresses,
-      useBummerConfig,
-    )
+    const deploymentsDir = getFleetDeploymentDir()
+    const fleetFileName = getFleetDeploymentFileName(fleetDefinition)
+    const fleet = loadFleetDeployment(path.join(deploymentsDir, fleetFileName))
+    deploymentData.arks.push(...deployedArkAddresses)
+    const filePath = getFleetDeploymentPath(fleet)
+    fs.writeFileSync(filePath, JSON.stringify(deploymentData, null, 2))
 
     console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))
     console.log(
       kleur.green(
-        `Added ${deployedArkAddresses.length} new arks to a total of ${updatedArkAddresses.length} arks.`,
+        `Added ${deployedArkAddresses.length} new arks to a total of ${deployedArkAddresses.length + existingArkAddresses.length} arks.`,
       ),
     )
   } catch (error: unknown) {
