@@ -630,7 +630,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     ) internal pure returns (bool) {
         // If current status is unset (default value), allow setting to PENDING
         if (currentStatus == BridgeTypes.OperationStatus(0)) {
-            return newStatus == BridgeTypes.OperationStatus.PENDING;
+            return true;
         }
 
         // Failed is a terminal state, can't progress from it
