@@ -39,7 +39,11 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(governor);
 
         // Deploy BridgeRouter and adapters
-        router = new BridgeRouterTestHelper(address(accessManager));
+        router = new BridgeRouterTestHelper(
+            address(accessManager),
+            new uint16[](0),
+            new address[](0)
+        );
 
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));

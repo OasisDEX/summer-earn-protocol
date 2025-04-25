@@ -10,12 +10,11 @@ import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {console} from "forge-std/console.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
-import {MessagingParams, MessagingFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {MessagingParams, MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -169,8 +168,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // If the payload starts with a uint16 message type marker
         if (_payload.length >= 2) {
-            messageType = uint16(bytes2(_payload[:2]));
-            actualPayload = _payload[2:];
+            messageType = uint16(bytes2(_payload)); // Takes first 2 bytes
+            actualPayload = _payload[2:]; // Creates slice starting at index 2
         }
 
         // Check if this is a response from a read channel
@@ -440,7 +439,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Get the fee required
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            MessagingFee memory fee = _quote(
+            EndpointFee memory fee = _quote(
                 readChannelId,
                 payload,
                 options,
@@ -448,7 +447,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             );
             return (fee.nativeFee, fee.lzTokenFee);
         } else {
-            MessagingFee memory fee = _quote(dstEid, payload, options, false);
+            EndpointFee memory fee = _quote(dstEid, payload, options, false);
             return (fee.nativeFee, fee.lzTokenFee);
         }
     }
@@ -563,7 +562,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             readChannelId, // Use the stored read channel ID, not the threshold
             cmd,
             options,
-            MessagingFee(msg.value, 0),
+            EndpointFee(msg.value, 0),
             payable(originator)
         );
 
@@ -647,7 +646,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             lzDstEid,
             payload,
             options,
-            MessagingFee(msg.value, 0),
+            EndpointFee(msg.value, 0),
             payable(originator)
         );
 
@@ -768,12 +767,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         }
 
         // Quote the fee with our generated options
-        MessagingFee memory quoteFee = _quote(
-            _dstEid,
-            _payload,
-            options,
-            false
-        );
+        EndpointFee memory quoteFee = _quote(_dstEid, _payload, options, false);
         return quoteFee.nativeFee;
     }
 

@@ -33,10 +33,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         public operationStatuses;
 
     /// @notice Mapping of operation IDs to the adapter that processed them
-    mapping(bytes32 operationId => address adapter) public operationToAdapter;
+    mapping(bytes32 operationId => address adapterAddress)
+        public operationToAdapter;
 
     /// @notice Mapping of request IDs to the adapter that processed them
-    mapping(bytes32 requestId => address adapter)
+    mapping(bytes32 requestId => address receivingAdapter)
         public requestReceivedByAdapter;
 
     /// @notice Mapping to track read request originators
@@ -122,15 +123,23 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             if (
                 operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
                 !IBridgeAdapter(selectedAdapter).supportsAssetTransfer()
-            ) revert UnsupportedAdapterOperation();
+            ) {
+                revert UnsupportedAdapterOperation();
+            }
 
             if (
                 operationType == BridgeTypes.OperationType.READ_STATE &&
                 !IBridgeAdapter(selectedAdapter).supportsStateRead()
-            ) revert UnsupportedAdapterOperation();
-
-            if (!IBridgeAdapter(selectedAdapter).supportsMessaging())
+            ) {
                 revert UnsupportedAdapterOperation();
+            }
+
+            if (
+                operationType == BridgeTypes.OperationType.MESSAGE &&
+                !IBridgeAdapter(selectedAdapter).supportsMessaging()
+            ) {
+                revert UnsupportedAdapterOperation();
+            }
         } else {
             // Find the best adapter based on operation type
             selectedAdapter = getBestAdapter(
@@ -212,6 +221,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
+        // Calculate base fee from total fee
+        uint256 baseFee = (msg.value * 100) / feeMultiplier;
+
         // Ensure user provided enough fee
         if (msg.value < totalFee) revert InsufficientFee();
 
@@ -229,12 +241,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         IERC20(asset).approve(adapter, amount);
 
         // Only forward the base fee to the adapter, router keeps the rest for confirmation
-        operationId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
+        operationId = IBridgeAdapter(adapter).transferAsset{value: baseFee}(
             destinationChainId,
             asset,
             recipient,
             amount,
-            msg.sender, // Pass the originator for refunds
+            msg.sender,
             options.adapterParams
         );
 
@@ -287,7 +299,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Calculate base fee from total fee
-        uint256 baseFee = (totalFee * 100) / feeMultiplier;
+        uint256 baseFee = (msg.value * 100) / feeMultiplier;
 
         // Ensure user provided enough fee
         if (msg.value < totalFee) revert InsufficientFee();
@@ -355,6 +367,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         }
 
         // Get the total fee and base fee with proper operation type
+        // totalFee is inflated by feeMultiplier (e.g. 200%) to cover both:
+        // 1. Base fee for LayerZero messaging (paid to adapter)
+        // 2. Confirmation fee for sending status updates back (kept by router)
         (uint256 totalFee, , ) = _quote(
             destinationChainId,
             address(0),
@@ -362,6 +377,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             options,
             BridgeTypes.OperationType.MESSAGE
         );
+
+        // Calculate base fee from total fee
+        // baseFee = totalFee / 2 when feeMultiplier is 200%
+        // This represents the actual messaging cost that the adapter needs
+        uint256 baseFee = (msg.value * 100) / feeMultiplier;
 
         // Ensure user provided enough fee
         if (msg.value < totalFee) revert InsufficientFee();
@@ -371,9 +391,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             (bool success, ) = msg.sender.call{value: msg.value - totalFee}("");
             if (!success) revert TransferFailed();
         }
-
-        // Calculate base fee from total fee
-        uint256 baseFee = (totalFee * 100) / feeMultiplier;
 
         // Send the message through the selected adapter
         operationId = ISendAdapter(adapter).sendMessage{value: baseFee}(

@@ -49,7 +49,11 @@ contract StargateAdapterSetupTest is Test {
         vm.startPrank(governor);
 
         accessManagerA = new ProtocolAccessManager(governor);
-        routerA = new BridgeRouterTestHelper(address(accessManagerA));
+        routerA = new BridgeRouterTestHelper(
+            address(accessManagerA),
+            new uint16[](0),
+            new address[](0)
+        );
         tokenA = new ERC20Mock();
         stargateRouterA = new MockStargateRouter();
 
@@ -78,7 +82,11 @@ contract StargateAdapterSetupTest is Test {
         vm.startPrank(governor);
 
         accessManagerB = new ProtocolAccessManager(governor);
-        routerB = new BridgeRouterTestHelper(address(accessManagerB));
+        routerB = new BridgeRouterTestHelper(
+            address(accessManagerB),
+            new uint16[](0),
+            new address[](0)
+        );
         tokenB = new ERC20Mock();
         stargateRouterB = new MockStargateRouter();
 

@@ -18,12 +18,12 @@ contract MockCrossChainReceiver is ICrossChainReceiver {
         receiveSuccess = success;
     }
 
-    function receiveStateRead(
+    function _processReceipt(
         bytes calldata data,
         address sender,
         uint16 sourceChainId,
         bytes32 messageId
-    ) external override {
+    ) internal {
         if (!receiveSuccess) revert("Receiver rejected call");
 
         lastReceivedData = data;
@@ -32,18 +32,22 @@ contract MockCrossChainReceiver is ICrossChainReceiver {
         lastMessageId = messageId;
     }
 
+    function receiveStateRead(
+        bytes calldata data,
+        address sender,
+        uint16 sourceChainId,
+        bytes32 messageId
+    ) external override {
+        _processReceipt(data, sender, sourceChainId, messageId);
+    }
+
     function receiveMessage(
         bytes calldata data,
         address sender,
         uint16 sourceChainId,
         bytes32 messageId
     ) external override {
-        if (!receiveSuccess) revert("Receiver rejected call");
-
-        lastReceivedData = data;
-        lastSender = sender;
-        lastSourceChainId = sourceChainId;
-        lastMessageId = messageId;
+        _processReceipt(data, sender, sourceChainId, messageId);
     }
 
     function supportsInterface(

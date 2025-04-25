@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {ChainlinkAdapter} from "../../src/adapters/ChainlinkAdapter.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
@@ -24,14 +25,46 @@ contract ChainlinkAdapterTest is Test {
     }
 
     function testTransferAsset() public {
-        // Test sending assets through the adapter
+        // Test that transferAsset reverts with OperationNotSupported
+        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        adapter.transferAsset(
+            1, // destinationChainId
+            address(token), // asset
+            user, // recipient
+            100, // amount
+            user, // originator
+            BridgeTypes.AdapterParams({
+                gasLimit: 0,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
     }
 
     function testEstimateFee() public {
-        // Test fee estimation
+        // Test that estimateFee reverts with OperationNotSupported
+        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        adapter.estimateFee(
+            1, // destinationChainId
+            address(token), // asset
+            100, // amount
+            BridgeTypes.AdapterParams({
+                gasLimit: 0,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            }),
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
     }
 
     function testReceiveMessage() public {
-        // Test receiving a message from Chainlink
+        // Test that ccipReceive reverts with OperationNotSupported
+        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        adapter.ccipReceive(
+            bytes32(0), // messageId
+            "" // payload
+        );
     }
 }

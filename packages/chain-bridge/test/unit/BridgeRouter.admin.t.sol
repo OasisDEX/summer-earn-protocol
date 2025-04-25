@@ -10,6 +10,7 @@ import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+
 contract BridgeRouterAdminTest is Test {
     BridgeRouter public router;
     MockAdapter public mockAdapter;
@@ -142,6 +143,73 @@ contract BridgeRouterAdminTest is Test {
             address(token),
             TRANSFER_AMOUNT,
             user,
+            options
+        );
+
+        vm.stopPrank();
+    }
+
+    function testReadStateWhenPaused() public {
+        // Pause the router
+        vm.prank(governor);
+        router.pause();
+
+        vm.startPrank(user);
+
+        // Create bridge options
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0), // Auto-select
+            adapterParams: adapterParams
+        });
+
+        // Should revert when router is paused
+        vm.expectRevert(IBridgeRouter.Paused.selector);
+        router.readState(
+            DEST_CHAIN_ID,
+            address(mockAdapter), // Use mock adapter as target contract
+            bytes4(keccak256("test()")), // Example function selector
+            "", // Empty params
+            options
+        );
+
+        vm.stopPrank();
+    }
+
+    function testSendMessageWhenPaused() public {
+        // Pause the router
+        vm.prank(governor);
+        router.pause();
+
+        vm.startPrank(user);
+
+        // Create bridge options
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0), // Auto-select
+            adapterParams: adapterParams
+        });
+
+        // Should revert when router is paused
+        vm.expectRevert(IBridgeRouter.Paused.selector);
+        router.sendMessage(
+            DEST_CHAIN_ID,
+            user, // Send to self for testing
+            "", // Empty message
             options
         );
 
