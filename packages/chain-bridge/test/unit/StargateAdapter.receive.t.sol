@@ -78,9 +78,8 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
             address(adapterA)
         );
 
-        // Now setup a mock operation status in the router
-        vm.prank(address(adapterA));
-        routerA.updateOperationStatus(
+        // Now setup a mock operation status in the router using the test helper
+        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
             testTransferId,
             BridgeTypes.OperationStatus.PENDING
         );

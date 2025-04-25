@@ -125,6 +125,9 @@ interface IBridgeRouter {
     /// @notice Error thrown when trying to update status in invalid direction
     error InvalidStatusProgression();
 
+    /// @notice Error thrown when an invalid status is provided
+    error InvalidStatus();
+
     /// @notice Thrown when the contract is paused
     error Paused();
 

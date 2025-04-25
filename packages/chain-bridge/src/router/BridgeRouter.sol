@@ -433,6 +433,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         if (operationToAdapter[operationId] != msg.sender)
             revert Unauthorized();
 
+        if (!_isStatusProgression(operationStatuses[operationId], status))
+            revert InvalidStatus();
+
         operationStatuses[operationId] = status;
         emit OperationStatusUpdated(operationId, status);
     }
@@ -446,6 +449,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         requestReceivedByAdapter[requestId] = msg.sender;
 
         // Update the status
+        if (!_isStatusProgression(operationStatuses[requestId], status))
+            revert InvalidStatus();
+
         operationStatuses[requestId] = status;
         emit OperationStatusUpdated(requestId, status);
 
@@ -622,6 +628,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         BridgeTypes.OperationStatus currentStatus,
         BridgeTypes.OperationStatus newStatus
     ) internal pure returns (bool) {
+        // If current status is unset (default value), allow setting to PENDING
+        if (currentStatus == BridgeTypes.OperationStatus(0)) {
+            return newStatus == BridgeTypes.OperationStatus.PENDING;
+        }
+
         // Failed is a terminal state, can't progress from it
         if (currentStatus == BridgeTypes.OperationStatus.FAILED) {
             return false;

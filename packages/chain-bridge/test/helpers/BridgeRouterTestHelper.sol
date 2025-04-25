@@ -76,4 +76,18 @@ contract BridgeRouterTestHelper is BridgeRouter {
     ) external view returns (address) {
         return readRequestToOriginator[requestId];
     }
+
+    /**
+     * @notice Sets the operation status directly for testing purposes
+     * @param operationId ID of the operation
+     * @param status Status to set
+     * @dev This bypasses the normal status progression checks and should only be used in tests
+     */
+    function setOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external {
+        operationStatuses[operationId] = status;
+        emit OperationStatusUpdated(operationId, status);
+    }
 }
