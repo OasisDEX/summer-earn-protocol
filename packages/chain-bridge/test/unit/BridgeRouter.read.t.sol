@@ -234,13 +234,13 @@ contract BridgeRouterReadStateTest is Test {
         );
 
         // Queue read state (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueReadState( // REMOVED {value: fee}
-                DEST_CHAIN_ID,
-                targetContract,
-                targetSelector,
-                targetCalldata,
-                options
-            );
+        bytes32 queueId = bridgeQueue.queueReadState(
+            DEST_CHAIN_ID,
+            targetContract,
+            targetSelector,
+            targetCalldata,
+            options
+        );
         vm.stopPrank(); // mockReceiver stops queueing
 
         // Keeper executes (PAYS FEE)
@@ -310,14 +310,15 @@ contract BridgeRouterReadStateTest is Test {
                 abi.encode(uint256(100))
             )
         );
-        // Also expect the call to the receiver
+        // Also expect the call to the receiver with correct parameter order
         vm.expectCall(
             address(mockReceiver),
             abi.encodeWithSelector(
                 ICrossChainReceiver.receiveStateRead.selector,
-                operationId,
-                abi.encode(uint256(100)),
-                address(mockReceiver) // Originator was mockReceiver
+                abi.encode(uint256(100)), // resultData
+                address(mockReceiver), // originator
+                0, // sourceChainId
+                operationId // operationId
             )
         );
         router.deliverReadResponse(operationId, abi.encode(uint256(100)));
