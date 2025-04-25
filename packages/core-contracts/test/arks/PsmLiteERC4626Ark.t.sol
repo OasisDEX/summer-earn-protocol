@@ -58,7 +58,6 @@ contract PsmLiteERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             USDS,
             SUSDS,
             USDS_VAULT,
-            false,
             params
         );
 
@@ -67,7 +66,6 @@ contract PsmLiteERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             USDS,
             SUSDS,
             SUSDS_VAULT,
-            true,
             params
         );
 
@@ -107,7 +105,6 @@ contract PsmLiteERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             USDS,
             SUSDS,
             USDS_VAULT,
-            false,
             params
         );
 
@@ -118,7 +115,6 @@ contract PsmLiteERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             USDS,
             address(0),
             USDS_VAULT,
-            false,
             params
         );
 
@@ -128,7 +124,6 @@ contract PsmLiteERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             USDS,
             SUSDS,
             USDS_VAULT,
-            false,
             params
         );
 

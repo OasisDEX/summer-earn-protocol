@@ -56,7 +56,6 @@ contract Psm3ERC4626Ark is Ark {
      * @param _usds Address of the USDS token
      * @param _susds Address of the sUSDS token
      * @param _erc4626Vault Address of the ERC4626 vault
-     * @param _shouldStake Whether to stake in sUSDS vault
      * @param _params Ark parameters
      */
     constructor(
@@ -64,7 +63,6 @@ contract Psm3ERC4626Ark is Ark {
         address _usds,
         address _susds,
         address _erc4626Vault,
-        bool _shouldStake,
         ArkParams memory _params
     ) Ark(_params) {
         if (_psm == address(0)) revert InvalidPSMAddress();
@@ -76,7 +74,7 @@ contract Psm3ERC4626Ark is Ark {
         usds = IERC20(_usds);
         susds = IERC20(_susds);
         erc4626Vault = IERC4626(_erc4626Vault);
-        shouldStake = _shouldStake;
+        shouldStake = erc4626Vault.asset() == address(susds);
 
         if (psm.usdc() != _params.asset) revert InvalidGemAddress();
         _validateVaultAsset();

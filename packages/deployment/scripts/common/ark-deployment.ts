@@ -9,6 +9,7 @@ import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-mo
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deployPsmERC4626Ark } from '../arks/deploy-psm-erc4626-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
@@ -22,7 +23,6 @@ import {
   validateToken,
 } from '../helpers/validation'
 import { MAX_UINT256_STRING } from './constants'
-import { deployPsmERC4626Ark } from '../arks/deploy-psm-erc4626-ark'
 
 export type ArkConfig = {
   type: ArkType
@@ -198,16 +198,20 @@ export async function deployArk(
     }
 
     case ArkType.PsmLiteERC4626Ark: {
-       const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
       const erc4626VaultId = validateErc4626Address(
         config.protocolSpecific.erc4626[token][erc4626VaultName],
         `ERC4626-${erc4626VaultName}`,
       )
-      deployedArk = await deployPsmERC4626Ark(config, {...baseArkParams, psmType: 'psmlite', vaultSelection: {
-        token: token,
-        vaultId: erc4626VaultId,
-        vaultName: erc4626VaultName,
-      }})
+      deployedArk = await deployPsmERC4626Ark(config, {
+        ...baseArkParams,
+        psmType: 'psmlite',
+        vaultSelection: {
+          token: token,
+          vaultId: erc4626VaultId,
+          vaultName: erc4626VaultName,
+        },
+      })
       break
     }
 
@@ -217,14 +221,17 @@ export async function deployArk(
         config.protocolSpecific.erc4626[token][erc4626VaultName],
         `ERC4626-${erc4626VaultName}`,
       )
-      deployedArk = await deployPsmERC4626Ark(config, {...baseArkParams, psmType: 'psm3', vaultSelection: {
-        token: token,
-        vaultId: erc4626VaultId,
-        vaultName: erc4626VaultName,
-      }})
+      deployedArk = await deployPsmERC4626Ark(config, {
+        ...baseArkParams,
+        psmType: 'psm3',
+        vaultSelection: {
+          token: token,
+          vaultId: erc4626VaultId,
+          vaultName: erc4626VaultName,
+        },
+      })
       break
     }
-
 
     default:
       throw new Error(`Unknown Ark type: ${arkConfig.type}`)

@@ -12,11 +12,10 @@ export function createPsm3ERC4626ArkModule(moduleName: string) {
     const usds = m.getParameter('usds')
     const stakedUsds = m.getParameter('stakedUsds')
     const vault = m.getParameter('vault')
-    const shouldStake = m.getParameter('shouldStake')
     const arkParams = m.getParameter('arkParams')
 
-    const ark = m.contract('Psm3ERC4626Ark', [psm, usds, stakedUsds, vault, shouldStake, arkParams])
+    const ark = m.contract('Psm3ERC4626Ark', [psm, usds, stakedUsds, vault, arkParams])
 
     return { ark }
   })
-} 
+}

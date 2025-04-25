@@ -51,23 +51,9 @@ contract Psm3ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        susdsArk = new Psm3ERC4626Ark(
-            PSM3,
-            USDS,
-            SUSDS,
-            SUSDS_VAULT,
-            true,
-            params
-        );
+        susdsArk = new Psm3ERC4626Ark(PSM3, USDS, SUSDS, SUSDS_VAULT, params);
 
-        usdsArk = new Psm3ERC4626Ark(
-            PSM3,
-            USDS,
-            SUSDS,
-            USDS_VAULT,
-            false,
-            params
-        );
+        usdsArk = new Psm3ERC4626Ark(PSM3, USDS, SUSDS, USDS_VAULT, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -104,7 +90,6 @@ contract Psm3ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             USDS,
             SUSDS,
             SUSDS_VAULT,
-            true,
             params
         );
 
@@ -115,19 +100,11 @@ contract Psm3ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             USDS,
             address(0),
             SUSDS_VAULT,
-            true,
             params
         );
 
         // Valid constructor
-        susdsArk = new Psm3ERC4626Ark(
-            PSM3,
-            USDS,
-            SUSDS,
-            SUSDS_VAULT,
-            true,
-            params
-        );
+        susdsArk = new Psm3ERC4626Ark(PSM3, USDS, SUSDS, SUSDS_VAULT, params);
 
         assertEq(address(susdsArk.psm()), PSM3, "PSM address should match");
         assertEq(

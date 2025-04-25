@@ -2,6 +2,8 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
+import { createPsm3ERC4626ArkModule } from '../../ignition/modules/arks/psm3-erc4626-ark'
+import { createPsmLiteERC4626ArkModule } from '../../ignition/modules/arks/psmlite-erc4626-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
@@ -10,12 +12,11 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
-import { createPsm3ERC4626ArkModule } from '../../ignition/modules/arks/psm3-erc4626-ark'
-import { createPsmLiteERC4626ArkModule } from '../../ignition/modules/arks/psmlite-erc4626-ark'
 
 export interface PsmERC4626ArkUserInput extends BaseArkParams {
   vaultId: string
   vaultName: string
+  vaultToken: string
   psmType: 'psm3' | 'psmlite'
 }
 
@@ -50,10 +51,11 @@ async function getUserInput(config: BaseConfig): Promise<PsmERC4626ArkUserInput>
   const tokens = []
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as Token]
-    const psmAddress = psmTypeResponse.psmType === 'psm3' 
-      ? config.protocolSpecific.sky.psm3?.[tokenSymbol as Token]
-      : config.protocolSpecific.sky.psmLite?.[tokenSymbol as Token]
-    
+    const psmAddress =
+      psmTypeResponse.psmType === 'psm3'
+        ? config.protocolSpecific.sky.psm3?.[tokenSymbol as Token]
+        : config.protocolSpecific.sky.psmLite?.[tokenSymbol as Token]
+
     if (psmAddress && psmAddress != ADDRESS_ZERO) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
@@ -115,6 +117,7 @@ async function getUserInput(config: BaseConfig): Promise<PsmERC4626ArkUserInput>
     ...responses,
     vaultId: responses.vaultSelection.vaultId,
     vaultName: responses.vaultSelection.vaultName,
+    vaultToken: responses.vaultSelection.token,
     psmType: psmTypeResponse.psmType,
     fleetName: fleetDefinition.fleetName,
   }
@@ -127,7 +130,9 @@ async function confirmDeployment(
 ) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`PSM Type              : ${userInput.psmType.toUpperCase()}`))
-  console.log(kleur.yellow(`Token                 : ${userInput.token.address} (${userInput.token.symbol})`))
+  console.log(
+    kleur.yellow(`Token                 : ${userInput.token.address} (${userInput.token.symbol})`),
+  )
   console.log(kleur.yellow(`Vault ID              : ${userInput.vaultId}`))
   console.log(kleur.yellow(`Vault Name            : ${userInput.vaultName}`))
   console.log(kleur.yellow(`USDS                  : ${config.tokens.usds}`))
@@ -139,10 +144,7 @@ async function confirmDeployment(
   return skip ? true : await continueDeploymentCheck()
 }
 
-async function deployPsmERC4626ArkContract(
-  config: BaseConfig,
-  userInput: PsmERC4626ArkUserInput,
-) {
+async function deployPsmERC4626ArkContract(config: BaseConfig, userInput: PsmERC4626ArkUserInput) {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `ERC4626-${userInput.psmType.toUpperCase()}-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
@@ -157,6 +159,12 @@ async function deployPsmERC4626ArkContract(
   const usdsAddress = validateAddress(config.tokens.usds, 'USDS')
   const stakedUsdsAddress = validateAddress(config.tokens.stakedUsds, 'Staked USDS')
   const vaultAddress = validateAddress(userInput.vaultId, 'ERC4626 Vault')
+  if (
+    (userInput.vaultToken as Token) != Token.USDS &&
+    (userInput.vaultToken as Token) != Token.STAKED_USDS
+  ) {
+    throw new Error('Vault token must be USDS or Staked USDS')
+  }
 
   const deploymentParams = {
     parameters: {
@@ -165,7 +173,6 @@ async function deployPsmERC4626ArkContract(
         usds: usdsAddress,
         stakedUsds: stakedUsdsAddress,
         vault: vaultAddress,
-        shouldStake: true,
         arkParams: {
           name: arkName,
           details: JSON.stringify({
@@ -178,7 +185,8 @@ async function deployPsmERC4626ArkContract(
             vaultName: userInput.vaultName,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
-          configurationManager: config.deployedContracts.core.configurationManager.address as Address,
+          configurationManager: config.deployedContracts.core.configurationManager
+            .address as Address,
           asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
@@ -192,12 +200,18 @@ async function deployPsmERC4626ArkContract(
   }
 
   if (userInput.psmType === 'psm3') {
-    return (await hre.ignition.deploy(createPsm3ERC4626ArkModule(moduleName), deploymentParams)) as {
+    return (await hre.ignition.deploy(
+      createPsm3ERC4626ArkModule(moduleName),
+      deploymentParams,
+    )) as {
       ark: any
     }
   } else {
-    return (await hre.ignition.deploy(createPsmLiteERC4626ArkModule(moduleName), deploymentParams)) as {
+    return (await hre.ignition.deploy(
+      createPsmLiteERC4626ArkModule(moduleName),
+      deploymentParams,
+    )) as {
       ark: any
     }
   }
-} 
+}
