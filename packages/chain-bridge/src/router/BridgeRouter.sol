@@ -273,7 +273,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         bytes4 selector,
         bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 operationId) {
+    ) external payable nonReentrant returns (bytes32 operationId) {
         if (paused) revert Paused();
 
         // Select the adapter - must use specifiedAdapter if provided
@@ -347,7 +347,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         address recipient,
         bytes calldata message,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 operationId) {
+    ) external payable nonReentrant returns (bytes32 operationId) {
         if (paused) revert Paused();
         if (recipient == address(0)) revert InvalidParams();
 
@@ -827,6 +827,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
     /// @inheritdoc IBridgeRouter
     function setFeeMultiplier(uint256 multiplier) external onlyGovernor {
+        if (multiplier == 0) revert InvalidParams();
         feeMultiplier = multiplier;
     }
 
