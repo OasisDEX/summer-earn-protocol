@@ -7,17 +7,15 @@ import {
   MorphoVaultArkContracts,
 } from '../../ignition/modules/arks/morpho-vault-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
 
-export interface MorphoVaultArkUserInput {
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-  token: { address: Address; symbol: Token }
+export interface MorphoVaultArkUserInput extends BaseArkParams {
   vaultId: Address
   vaultName: string
 }
@@ -64,7 +62,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
       })
     }
   }
-
+  const fleetDefinition = await getFleetConfig()
   const responses = await prompts([
     {
       type: 'select',
@@ -103,6 +101,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
     token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
     vaultName: selectedVault.vaultName,
+    fleetName: fleetDefinition.fleetName,
   }
 
   return aggregatedData
@@ -141,7 +140,7 @@ async function deployMorphoVaultArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `MorphoVault-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const urdFactoryAddress = validateAddress(
     config.protocolSpecific.morpho.urdFactory,

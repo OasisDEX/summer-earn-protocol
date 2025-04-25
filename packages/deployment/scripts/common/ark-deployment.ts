@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { ArkType, BaseConfig } from '../../types/config-types'
+import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
@@ -9,9 +9,11 @@ import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-mo
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
+import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import {
   validateAddress,
   validateErc4626Address,
@@ -22,20 +24,31 @@ import {
 import { MAX_UINT256_STRING } from './constants'
 
 export type ArkConfig = {
-  type: string
+  type: ArkType
   params: {
     asset: string
     vaultName?: string
   }
 }
+export type BaseArkParams = {
+  token: {
+    address: Address
+    symbol: Token
+  }
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  fleetName: string
+}
 
 export async function deployArk(
   arkConfig: ArkConfig,
   config: BaseConfig,
-  depositCap: string = MAX_UINT256_STRING,
+  fleetConfig: FleetConfig,
 ): Promise<Address> {
+  const depositCap = '0'
   const token = validateToken(config, arkConfig.params.asset)
-  const baseArkParams = {
+  const baseArkParams: BaseArkParams = {
     token: {
       address: config.tokens[token],
       symbol: token,
@@ -43,11 +56,15 @@ export async function deployArk(
     depositCap,
     maxRebalanceOutflow: MAX_UINT256_STRING,
     maxRebalanceInflow: MAX_UINT256_STRING,
+    fleetName: fleetConfig.fleetName,
   }
 
   let deployedArk
 
   switch (arkConfig.type) {
+    case ArkType.SyrupArk:
+      deployedArk = await deploySyrupArk(config, baseArkParams)
+      break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config, baseArkParams)
       break
@@ -62,15 +79,15 @@ export async function deployArk(
       break
 
     case ArkType.ERC4626Ark:
-      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const vaultId = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][vaultName],
-        `ERC4626-${vaultName}`,
+      const erc4626VaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const erc4626VaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[token][erc4626VaultName],
+        `ERC4626-${erc4626VaultName}`,
       )
       deployedArk = await deployERC4626Ark(config, {
         ...baseArkParams,
-        vaultId,
-        vaultName: vaultName,
+        vaultId: erc4626VaultId,
+        vaultName: erc4626VaultName,
       })
       break
 
@@ -164,6 +181,21 @@ export async function deployArk(
       break
     }
 
+    case ArkType.SiloArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.pools[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloParams = {
+        ...baseArkParams,
+        siloId: vaultId,
+        siloName: vaultName,
+      }
+      deployedArk = await deploySiloArk(config, siloParams)
+      break
+    }
+
     default:
       throw new Error(`Unknown Ark type: ${arkConfig.type}`)
   }
@@ -178,6 +210,9 @@ export async function deployArk(
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
   let deployedArk
   switch (arkType) {
+    case ArkType.SyrupArk:
+      deployedArk = await deploySyrupArk(config)
+      break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config)
       break
@@ -227,6 +262,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SkyUsdsPsm3Ark: {
       deployedArk = await deploySkyUsdsPsm3Ark(config)
+      break
+    }
+
+    case ArkType.SiloArk: {
+      deployedArk = await deploySiloArk(config)
       break
     }
 

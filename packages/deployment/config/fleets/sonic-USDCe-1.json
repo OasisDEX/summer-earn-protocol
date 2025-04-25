@@ -38,6 +38,22 @@
         "vaultName": "Euler_Re7_Labs",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "SiloArk",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "market_20",
+        "protocol": "silo"
+      }
+    },
+    {
+      "type": "SiloArk",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "market_8",
+        "protocol": "silo"
+      }
     }
   ]
 }

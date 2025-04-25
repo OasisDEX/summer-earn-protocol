@@ -7,16 +7,14 @@ import {
   ERC4626ArkContracts,
 } from '../../ignition/modules/arks/erc4626-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-export interface ERC4626ArkUserInput {
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-  token: { address: Address; symbol: Token }
+export interface ERC4626ArkUserInput extends BaseArkParams {
   vaultId: string
   vaultName: string
 }
@@ -49,7 +47,7 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
       })
     }
   }
-
+  const fleetDefinition = await getFleetConfig()
   const responses = await prompts([
     {
       type: 'select',
@@ -88,6 +86,7 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
     token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
     vaultName: selectedVault.vaultName,
+    fleetName: fleetDefinition.fleetName,
   }
 
   return aggregatedData
@@ -117,8 +116,8 @@ async function deployERC4626ArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
-
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  console.log(moduleName)
   const protocol = userInput.vaultName.split('_')[0]
 
   return (await hre.ignition.deploy(createERC4626ArkModule(moduleName), {

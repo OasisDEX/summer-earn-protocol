@@ -62,8 +62,15 @@ export function handleTokensPurchased(event: TokensPurchased): void {
     tokensPurchased.tokensPurchasedNormalized,
   )
 
-  const marketPrice = getTokenPriceInUSD(Address.fromString(auction.buyToken), event.block)
-  tokensPurchased.marketPriceInUSDNormalized = marketPrice.price
+  const rewardTokenMarketPrice = getTokenPriceInUSD(
+    Address.fromString(auction.rewardToken),
+    event.block,
+  )
+  const buyTokenMarketPrice = getTokenPriceInUSD(Address.fromString(auction.buyToken), event.block)
+  tokensPurchased.marketPriceInUSDNormalized = rewardTokenMarketPrice.price
+  tokensPurchased.buyPriceInUSDNormalized = tokensPurchased.pricePerTokenNormalized.times(
+    buyTokenMarketPrice.price,
+  )
 
   tokensPurchased.timestamp = event.block.timestamp
   tokensPurchased.save()

@@ -39,7 +39,7 @@ export function updateVault(
       if (
         deltaTime.gt(BigDecimalConstants.ZERO) &&
         !pricePerShareDiff.equals(BigDecimalConstants.ZERO) &&
-        pricePerShareDiff.lt(BigDecimalConstants.TEN_BPS) &&
+        pricePerShareDiff.lt(BigDecimalConstants.THIRTY_BPS) &&
         vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare)
       ) {
         const baseApr = getAprForTimePeriod(
