@@ -24,6 +24,7 @@ export enum ArkType {
   SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
   MoonwellArk = 'MoonwellArk',
   SyrupArk = 'SyrupArk',
+  SkyRewardsArk = 'SkyRewardsArk',
   SiloArk = 'SiloArk',
 }
 
@@ -41,6 +42,7 @@ export const arkTypes = [
   { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
   { title: 'MoonwellArk', value: ArkType.MoonwellArk },
   { title: 'SyrupArk', value: ArkType.SyrupArk },
+  { title: 'SkyRewardsArk', value: ArkType.SkyRewardsArk },
   { title: 'SiloArk', value: ArkType.SiloArk },
 ]
 
@@ -152,6 +154,9 @@ export interface BaseConfig {
       }
       psm3: {
         [key in Token]: Address
+      }
+      staking: {
+        sky: Address
       }
     }
     moonwell: {
