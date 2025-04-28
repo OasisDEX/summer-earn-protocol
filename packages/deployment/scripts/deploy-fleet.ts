@@ -11,7 +11,6 @@ import {
   getFleetConfig,
   getFleetDeploymentDir,
   getFleetDeploymentFileName,
-  getFleetDeploymentPath,
   loadFleetDeployment,
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
@@ -399,13 +398,32 @@ async function handleArkAddition(
         kleur.yellow('Deployer does not have governor role. Creating governance proposal...'),
       )
 
+      // Ask for the specific Discourse URL for this ark addition
+      const discourseResponse = await prompts({
+        type: 'text',
+        name: 'url',
+        message: `Enter the Discourse URL for this specific Ark addition proposal (e.g., SIP2.X):`,
+        validate: (value) => (value.startsWith('http') ? true : 'Invalid URL format'),
+      })
+
+      if (!discourseResponse.url) {
+        console.log(kleur.red('Discourse URL is required. Proposal creation cancelled.'))
+        return
+      }
+
+      // Create a modified fleet definition for the proposal containing the specific URL
+      const proposalFleetDefinition = {
+        ...fleetDefinition,
+        discourseURL: discourseResponse.url,
+      }
+
       if (isHubChain) {
         // Create proposal for just adding arks on the hub chain
         await createArkAdditionProposal(
           fleetCommanderAddress,
           deployedArkAddresses, // Only the newly deployed arks
           config,
-          fleetDefinition,
+          proposalFleetDefinition, // Use the definition with the specific URL
           useBummerConfig,
         )
       } else {
@@ -414,25 +432,42 @@ async function handleArkAddition(
           fleetCommanderAddress,
           deployedArkAddresses,
           config,
-          fleetDefinition,
+          proposalFleetDefinition, // Use the definition with the specific URL
           useBummerConfig,
         )
       }
     }
 
+    // Update the deployment file with the new arks
     const deploymentsDir = getFleetDeploymentDir()
     const fleetFileName = getFleetDeploymentFileName(fleetDefinition)
-    const fleet = loadFleetDeployment(path.join(deploymentsDir, fleetFileName))
-    deploymentData.arks.push(...deployedArkAddresses)
-    const filePath = getFleetDeploymentPath(fleet)
-    fs.writeFileSync(filePath, JSON.stringify(deploymentData, null, 2))
+    const fleetFilePath = path.join(deploymentsDir, fleetFileName) // Define fleetFilePath
 
-    console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))
-    console.log(
-      kleur.green(
-        `Added ${deployedArkAddresses.length} new arks to a total of ${deployedArkAddresses.length + existingArkAddresses.length} arks.`,
-      ),
-    )
+    // Check if the file exists before reading
+    if (fs.existsSync(fleetFilePath)) {
+      const currentDeploymentData = loadFleetDeployment(fleetFilePath) // Load using path
+
+      // Ensure arks array exists
+      if (!currentDeploymentData.arks) {
+        currentDeploymentData.arks = []
+      }
+
+      currentDeploymentData.arks.push(...deployedArkAddresses)
+      fs.writeFileSync(fleetFilePath, JSON.stringify(currentDeploymentData, null, 2)) // Write back
+
+      console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))
+      console.log(
+        kleur.green(
+          `Added ${deployedArkAddresses.length} new arks to a total of ${currentDeploymentData.arks.length} arks.`,
+        ),
+      )
+    } else {
+      console.log(kleur.red(`Error: Fleet deployment file not found at ${fleetFilePath}`))
+      // Optionally create a new file if desired, or just report error
+      // For now, just log the error. If creating is needed, add logic here.
+      // deploymentData.arks = deployedArkAddresses; // Assuming deploymentData holds initial info
+      // fs.writeFileSync(fleetFilePath, JSON.stringify(deploymentData, null, 2));
+    }
   } catch (error: unknown) {
     console.error(
       kleur.red(

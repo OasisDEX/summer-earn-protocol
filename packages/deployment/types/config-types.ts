@@ -65,6 +65,9 @@ export enum Token {
   REUL = 'reul',
   WELL = 'well',
   WS = 'ws',
+  GEAR = 'gear',
+  MORPHO = 'morpho',
+  SYRUP = 'syrup',
 }
 
 export interface BaseConfig {
