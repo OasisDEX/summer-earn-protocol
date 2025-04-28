@@ -11,8 +11,12 @@ error InvalidBridgeQueue();
 error InvalidBridgeRouter();
 error InvalidTargetChain();
 error InvalidTargetProxy();
-error InvalidOperationId();
+error Unauthorized();
 error InvalidMessageId();
+error InvalidRequestId();
+error InvalidSourceChain();
+error InvalidRecipient();
+error InvalidRequestor();
 
 /**
  * @title CrossChainArk
@@ -34,10 +38,21 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
     uint16 public immutable targetChainId;
     /// @notice The target proxy address on the satellite chain
     address public immutable targetProxy;
-    /// @notice Mapping of operation IDs to their status
-    mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatus;
-    /// @notice Mapping of message IDs to their status
-    mapping(bytes32 => BridgeTypes.OperationStatus) public messageStatus;
+
+    /// @notice Configurable bridge options for cross-chain actions
+    BridgeTypes.BridgeOptions public bridgeOptions;
+
+    event BridgeOptionsUpdated(BridgeTypes.BridgeOptions newOptions);
+
+    /// @notice Only governor or curator can update options (adjust as needed)
+    modifier onlyGovernorOrCurator() {
+        // Replace with your actual access control logic
+        require(
+            msg.sender == governor || msg.sender == curator,
+            "Not authorized"
+        );
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -49,6 +64,7 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _targetChainId ID of the target chain
      * @param _targetProxy Address of the target proxy on the satellite chain
+     * @param _initialBridgeOptions Initial bridge options for cross-chain actions
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
@@ -56,6 +72,7 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
         address _bridgeRouter,
         uint16 _targetChainId,
         address _targetProxy,
+        BridgeTypes.BridgeOptions memory _initialBridgeOptions,
         ArkParams memory _params
     ) Ark(_params) {
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
@@ -67,6 +84,19 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         targetChainId = _targetChainId;
         targetProxy = _targetProxy;
+        bridgeOptions = _initialBridgeOptions;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Set new bridge options
+    function setBridgeOptions(
+        BridgeTypes.BridgeOptions calldata newOptions
+    ) external onlyGovernorOrCurator {
+        bridgeOptions = newOptions;
+        emit BridgeOptionsUpdated(newOptions);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -104,50 +134,28 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
      * @dev This function queues a cross-chain transfer to the target proxy
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        // Queue the cross-chain transfer
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            adapter: address(0), // Let the bridge queue choose the best adapter
-            gasLimit: 0, // Use default gas limit
-            maxFee: 0, // No max fee limit
-            params: bytes("") // No additional params needed
-        });
-
-        bytes32 queueId = bridgeQueue.queueTransferAssets(
+        bridgeQueue.queueTransferAssets(
             targetChainId,
             address(config.asset),
             amount,
             targetProxy,
-            options
+            bridgeOptions
         );
-
-        // Store the operation status
-        operationStatus[queueId] = BridgeTypes.OperationStatus.QUEUED;
     }
 
     /**
-     * @notice Disembarks the Ark by initiating a cross-chain withdrawal
+     * @notice Disembarks the Ark by sending a withdrawal request message to the proxy
      * @param amount Amount of tokens to withdraw
-     * @dev This function queues a cross-chain withdrawal from the target proxy
+     * @dev This function queues a message to the proxy requesting a withdrawal
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        // Queue the cross-chain withdrawal
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            adapter: address(0), // Let the bridge queue choose the best adapter
-            gasLimit: 0, // Use default gas limit
-            maxFee: 0, // No max fee limit
-            params: bytes("") // No additional params needed
-        });
-
-        bytes32 queueId = bridgeQueue.queueTransferAssets(
+        bytes memory message = abi.encode(amount);
+        bridgeQueue.queueSendMessage(
             targetChainId,
-            address(config.asset),
-            amount,
-            address(this), // Withdraw to this contract
-            options
+            targetProxy,
+            message,
+            bridgeOptions
         );
-
-        // Store the operation status
-        operationStatus[queueId] = BridgeTypes.OperationStatus.QUEUED;
     }
 
     /**
@@ -165,14 +173,8 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
         bytes32 requestId
     ) external {
         if (msg.sender != address(bridgeRouter)) revert Unauthorized();
-        if (sourceChainId != targetChainId) revert InvalidTargetChain();
-        if (requestor != address(this)) revert Unauthorized();
-        if (operationStatus[requestId] != BridgeTypes.OperationStatus.QUEUED) {
-            revert InvalidOperationId();
-        }
-
-        // Update operation status
-        operationStatus[requestId] = BridgeTypes.OperationStatus.COMPLETED;
+        if (sourceChainId != targetChainId) revert InvalidSourceChain();
+        if (requestor != address(this)) revert InvalidRequestor();
 
         // Process the result data if needed
         // This could be used to verify the state of the target proxy
@@ -193,14 +195,8 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
         bytes32 messageId
     ) external {
         if (msg.sender != address(bridgeRouter)) revert Unauthorized();
-        if (sourceChainId != targetChainId) revert InvalidTargetChain();
-        if (recipient != address(this)) revert Unauthorized();
-        if (messageStatus[messageId] != BridgeTypes.OperationStatus.QUEUED) {
-            revert InvalidMessageId();
-        }
-
-        // Update message status
-        messageStatus[messageId] = BridgeTypes.OperationStatus.COMPLETED;
+        if (sourceChainId != targetChainId) revert InvalidSourceChain();
+        if (recipient != address(this)) revert InvalidRecipient();
 
         // Process the message if needed
         // This could be used to handle notifications from the target proxy
