@@ -20,7 +20,7 @@ contract BridgeRouterTestHelper is BridgeRouter {
      */
     constructor(
         address _accessManager,
-        address _bridgeQueue
+        address _bridgeQueue,
         uint16[] memory _chainIds,
         address[] memory _routerAddresses
     )

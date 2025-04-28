@@ -245,15 +245,45 @@ contract BridgeRouterAdminTest is Test {
             adapterParams: adapterParams
         });
 
-        // Should revert when router is paused
-        vm.expectRevert(IBridgeRouter.Paused.selector);
-        router.readState(
+        // Queue the read state operation - this should succeed
+        bytes32 queueId = bridgeQueue.queueReadState(
             DEST_CHAIN_ID,
             address(mockAdapter), // Use mock adapter as target contract
             bytes4(keccak256("test()")), // Example function selector
             "", // Empty params
             options
         );
+
+        vm.stopPrank(); // User stops queueing
+
+        // Attempt to execute the queued operation (e.g., by keeper)
+        vm.startPrank(keeper);
+
+        // Get quote for execution
+        (uint256 nativeFee, , ) = router.quote(
+            DEST_CHAIN_ID,
+            address(0), // No asset
+            0, // No amount
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        // Mock the quote call happening during execution
+        vm.expectCall(
+            address(router),
+            abi.encodeWithSelector(
+                IBridgeRouter.quote.selector,
+                DEST_CHAIN_ID,
+                address(0),
+                0,
+                options,
+                BridgeTypes.OperationType.READ_STATE
+            )
+        );
+
+        // The router's execute call should revert because it's paused
+        vm.expectRevert(IBridgeRouter.Paused.selector);
+        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId);
 
         vm.stopPrank();
     }
@@ -279,14 +309,44 @@ contract BridgeRouterAdminTest is Test {
             adapterParams: adapterParams
         });
 
-        // Should revert when router is paused
-        vm.expectRevert(IBridgeRouter.Paused.selector);
-        router.sendMessage(
+        // Queue the message sending operation - this should succeed
+        bytes32 queueId = bridgeQueue.queueSendMessage(
             DEST_CHAIN_ID,
             user, // Send to self for testing
             "", // Empty message
             options
         );
+
+        vm.stopPrank(); // User stops queueing
+
+        // Attempt to execute the queued operation (e.g., by keeper)
+        vm.startPrank(keeper);
+
+        // Get quote for execution
+        (uint256 nativeFee, , ) = router.quote(
+            DEST_CHAIN_ID,
+            address(0), // No asset
+            0, // No amount
+            options,
+            BridgeTypes.OperationType.MESSAGE
+        );
+
+        // Mock the quote call happening during execution
+        vm.expectCall(
+            address(router),
+            abi.encodeWithSelector(
+                IBridgeRouter.quote.selector,
+                DEST_CHAIN_ID,
+                address(0),
+                0,
+                options,
+                BridgeTypes.OperationType.MESSAGE
+            )
+        );
+
+        // The router's execute call should revert because it's paused
+        vm.expectRevert(IBridgeRouter.Paused.selector);
+        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId);
 
         vm.stopPrank();
     }
