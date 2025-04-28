@@ -7,18 +7,13 @@ import {
   createCompoundV3ArkModule,
 } from '../../ignition/modules/arks/compoundv3-ark'
 import { BaseConfig, Token } from '../../types/config-types'
+import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
-
-export interface CompoundV3ArkUserInput {
-  token: { address: Address; symbol: Token }
-  depositCap: string
-  maxRebalanceOutflow: string
-  maxRebalanceInflow: string
-}
 
 /**
  * Main function to deploy a CompoundV3Ark.
@@ -29,7 +24,7 @@ export interface CompoundV3ArkUserInput {
  * - Deploying the CompoundV3Ark contract
  * - Logging deployment results
  */
-export async function deployCompoundV3Ark(config: BaseConfig, arkParams?: CompoundV3ArkUserInput) {
+export async function deployCompoundV3Ark(config: BaseConfig, arkParams?: BaseArkParams) {
   console.log(kleur.green().bold('Starting CompoundV3Ark deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
@@ -45,9 +40,9 @@ export async function deployCompoundV3Ark(config: BaseConfig, arkParams?: Compou
 /**
  * Prompts the user for CompoundV3Ark deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @returns {Promise<CompoundV3ArkUserInput>} An object containing the user's input for deployment parameters.
+ * @returns {Promise<BaseArkParams>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput> {
+async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
   // Extract Compound V3 pools from the configuration
   const compoundV3Pools = []
   for (const pool in config.protocolSpecific.compoundV3.pools) {
@@ -56,7 +51,7 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
       value: pool,
     })
   }
-
+  const fleetDefinition = await getFleetConfig()
   const responses = await prompts([
     {
       type: 'select',
@@ -91,19 +86,16 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
   return {
     ...responses,
     token: { address: tokenAddress, symbol: selectedPool },
+    fleetName: fleetDefinition.fleetName,
   }
 }
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {CompoundV3ArkUserInput} userInput - The user's input for deployment parameters.
+ * @param {BaseArkParams} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(
-  userInput: CompoundV3ArkUserInput,
-  config: BaseConfig,
-  skip: boolean,
-) {
+async function confirmDeployment(userInput: BaseArkParams, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.symbol}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
@@ -116,17 +108,17 @@ async function confirmDeployment(
 /**
  * Deploys the CompoundV3Ark contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @param {CompoundV3ArkUserInput} userInput - The user's input for deployment parameters.
+ * @param {BaseArkParams} userInput - The user's input for deployment parameters.
  * @returns {Promise<CompoundV3ArkContracts>} The deployed CompoundV3Ark contract.
  */
 async function deployCompoundV3ArkContract(
   config: BaseConfig,
-  userInput: CompoundV3ArkUserInput,
+  userInput: BaseArkParams,
 ): Promise<CompoundV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `CompoundV3-${userInput.token.symbol}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const compoundV3Pool = validateAddress(
     config.protocolSpecific.compoundV3.pools[userInput.token.symbol].cToken,

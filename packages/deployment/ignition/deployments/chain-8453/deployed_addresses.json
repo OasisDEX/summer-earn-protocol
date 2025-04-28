@@ -33,5 +33,21 @@
   "MorphoVault_usdc_Moonwell_Flagship_USDC_8453#MorphoVaultArk": "0x78DB8603b03337d3C1F53D20283294efa8E7337A",
   "MorphoVault_usdc_Seamless_USDC_8453#MorphoVaultArk": "0xa5D42Cf398bd3076eC26dA93A8270b8e75b8062c",
   "Moonwell_eurc_8453#MoonwellArk": "0xe2Ad084b9639ccc689217704577E538cA2c251E5",
-  "Moonwell_usdc_8453#MoonwellArk": "0x07e33789cf837B52821C7cDED1247938969008ef"
+  "Moonwell_usdc_8453#MoonwellArk": "0x07e33789cf837B52821C7cDED1247938969008ef",
+  "FleetModule_LazyVault_LowerRisk_WETH#FleetCommander": "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+  "LazyVault_LowerRisk_WETH_AaveV3_weth_8453#AaveV3Ark": "0x03b0a0168b51839614f6fB333480D572b754fD56",
+  "LazyVault_LowerRisk_WETH_CompoundV3_weth_8453#CompoundV3Ark": "0xcC725b576a9570F710e1934E7bf3395bf3250442",
+  "LazyVault_LowerRisk_WETH_ERC4626_Fluid_weth_8453#ERC4626Ark": "0xD29235aeD4366C03951cD7dffF1CC77f365Ee60F",
+  "LazyVault_LowerRisk_WETH_ERC4626_Euler_Base_WETH_weth_8453#ERC4626Ark": "0xAdEB60e50E7bc5E012dDc985B83f8bB24857A002",
+  "LazyVault_LowerRisk_WETH_MorphoVault_weth_Moonwell_Flagship_WETH_8453#MorphoVaultArk": "0xa510f65c0a1E12EC5B8067f6d614f92cD62e6744",
+  "LazyVault_LowerRisk_WETH_MorphoVault_weth_Steakhouse_WETH_8453#MorphoVaultArk": "0xb9ac2f768F2ADAA65A45988a095988153565a228",
+  "LazyVault_LowerRisk_WETH_MorphoVault_weth_Gauntlet_WETH_Core_8453#MorphoVaultArk": "0xEc3cc472e176d65B7B17E2BB6178317AD8da7822",
+  "FleetModule_LazyVault_LowerRisk_WETH_bummer#FleetCommander": "0x5c841955d7EE3E2F7a077Aa0aCa3A7d724b15Da2",
+  "LazyVault_LowerRisk_WETH_bummer_AaveV3_weth_8453#AaveV3Ark": "0x42AAdE02448FdAf56Bbb153B2984E3d53DC531c1",
+  "LazyVault_LowerRisk_WETH_bummer_CompoundV3_weth_8453#CompoundV3Ark": "0xf127d2ab1dfc3A0F383D246300640c4C3F635F43",
+  "LazyVault_LowerRisk_WETH_bummer_ERC4626_Fluid_weth_8453#ERC4626Ark": "0xcBbDF5dd22739988549dACDa57Ab966ecc16faF7",
+  "LazyVault_LowerRisk_WETH_bummer_ERC4626_Euler_Base_WETH_weth_8453#ERC4626Ark": "0x6D3CA0e1EDD9DbF2D7cc8F2Cbc5C21015B4c3C84",
+  "LazyVault_LowerRisk_WETH_bummer_MorphoVault_weth_Moonwell_Flagship_WETH_8453#MorphoVaultArk": "0x3991E35286a93BdA26046dD77CAE834133e4B487",
+  "LazyVault_LowerRisk_WETH_bummer_MorphoVault_weth_Steakhouse_WETH_8453#MorphoVaultArk": "0xe3E39f9043350801a32263efEfAD2992516231b8",
+  "LazyVault_LowerRisk_WETH_bummer_MorphoVault_weth_Gauntlet_WETH_Core_8453#MorphoVaultArk": "0xA5d396589bE17f91311B747D75fe74deaE0aCe73"
 }

@@ -618,6 +618,19 @@
   },
   {
     "type": "function",
+    "name": "whitelistMerklOperator",
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "withdrawableTotalAssets",
     "inputs": [],
     "outputs": [

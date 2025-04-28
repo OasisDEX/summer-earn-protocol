@@ -129,10 +129,8 @@ export async function generateFleetProposalDescription(
   )
   const formattedTipRate = formatTipRate(fleetDefinition.initialTipRate)
 
-  // Standard description for the destination chain (or single-chain proposal)
-  const standardDescription = `# SIP1.${fleetDefinition.sipNumber || 'X'}: Fleet Deployment: ${fleetDefinition.fleetName}
-
-## Summary
+  // Standard description body (does not include the H1 title)
+  const standardDescriptionBody = `## Summary
 This proposal activates the ${fleetDefinition.fleetName} Fleet (${fleetDefinition.symbol}).
 
 ## Motivation
@@ -161,11 +159,13 @@ ${rewardInfo?.tokens ? `${curatorAddress ? '6' : '5'}. Set up rewards for ${rewa
 ${rewardsSection}`
 
   if (!isCrossChain) {
+    // For single chain, prepend the title to the standard description body
+    const fullDescription = `# ${sourceTitle}\n\n${standardDescriptionBody}`
     return {
       title: sourceTitle,
-      description: standardDescription,
+      description: fullDescription,
       sourceTitle,
-      sourceDescription: standardDescription,
+      sourceDescription: fullDescription,
     }
   }
 
@@ -174,12 +174,10 @@ ${rewardsSection}`
   }
 
   // Destination chain description (what will be executed on the target chain)
-  const destinationDescription = standardDescription
+  const destinationDescription = `# ${sourceTitle}\n\n${standardDescriptionBody}`
 
-  // Source chain description (what will be shown on the hub chain)
-  const sourceDescription = `# SIP1.${fleetDefinition.sipNumber || 'X'}: Cross-chain Fleet Deployment Proposal
-
-## Summary
+  // Source chain description body (does not include the H1 title)
+  const sourceDescriptionBody = `## Summary
 This is a cross-chain governance proposal to activate the ${fleetDefinition.fleetName} Fleet on ${targetChain}.
 
 ## Motivation
@@ -214,12 +212,14 @@ This proposal uses LayerZero to execute governance actions across chains.
 - Initial Tip Rate: ${formattedTipRate}
 ${rewardsSection}
 `
+  // Prepend the title to the source description body
+  const fullSourceDescription = `# ${sourceTitle}\n\n${sourceDescriptionBody}`
 
   return {
     title: sourceTitle,
-    description: sourceDescription,
+    description: fullSourceDescription,
     sourceTitle,
-    sourceDescription,
+    sourceDescription: fullSourceDescription,
     destinationDescription,
   }
 }
@@ -1106,13 +1106,11 @@ export async function createArkAdditionCrossChainProposal(
   // Determine singular or plural based on number of arks
   const isMultiple = arkAddresses.length > 1
 
-  // Create proposal title and descriptions
+  // Create proposal title
   const title = `SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
 
-  // Destination chain description (what will be executed on the satellite chain)
-  const dstDescription = `# Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
-
-## Summary
+  // Destination chain description body (without H1 title)
+  const dstDescriptionBody = `## Summary
 This proposal adds ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
 
 ## New ${isMultiple ? 'Ark Addresses' : 'Ark Address'}
@@ -1125,11 +1123,11 @@ ${arkAddressList}
 ## References
 ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : ''}
 `
+  // Prepend title to destination description body
+  const dstDescription = `# ${title}\n\n${dstDescriptionBody}`
 
-  // Source chain description (what will be shown on the hub chain)
-  const srcDescription = `# Cross-chain Proposal: Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
-
-## Summary
+  // Source chain description body (without H1 title)
+  const srcDescriptionBody = `## Summary
 This is a cross-chain governance proposal to add ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
 
 ## Motivation
@@ -1156,6 +1154,8 @@ This proposal uses LayerZero to execute governance actions across chains.
 ## References
 ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : ''}
 `
+  // Prepend title to source description body
+  const srcDescription = `# ${title}\n\n${srcDescriptionBody}`
 
   // Prepare the source (hub) proposal
   const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
@@ -1510,14 +1510,15 @@ async function generateRewardSetupDescription(
 - Rewards Durations: ${formattedDurations.join(', ')}`
   }
 
-  // Standard description for the destination chain (or single-chain proposal)
-  const standardDescription = `# SIP3.${fleetDefinition.sipNumber || 'X'}: Set Up Rewards for ${fleetDefinition.fleetName} Fleet
+  // Generate title once
+  const title = `SIP3.${fleetDefinition.sipNumber || 'X'}: Set Up Rewards for ${fleetDefinition.fleetName} Fleet${isCrossChain ? ` on ${capitalize(targetChain || '')}` : ''}`
 
-## Summary
+  // Standard description body (does not include the H1 title)
+  const standardDescriptionBody = `## Summary
 This proposal sets up rewards for the ${fleetDefinition.fleetName} Fleet (${fleetDefinition.symbol}).
 
 ## Motivation
-Setting up rewards incentivizes liquidity providers and participants in the ${fleetDefinition.fleetName} Fleet ecosystem.
+Setting up rewards incentivizes liquidity providers and participants in the ${fleetDefinition.fleetName} Fleet ecosystem${isCrossChain ? ` on ${targetChain || 'the target chain'}` : ''}.
 
 ## Technical Details
 - Fleet Commander: ${fleetCommanderAddress}
@@ -1532,6 +1533,9 @@ ${rewardsSection}
 
 ${fleetDefinition.discourseURL ? `## References\nDiscourse: ${fleetDefinition.discourseURL}` : ''}`
 
+  // Prepend the title to the standard description body
+  const standardDescription = `# ${title}\n\n${standardDescriptionBody}`
+
   if (!isCrossChain) {
     return { description: standardDescription }
   }
@@ -1541,12 +1545,10 @@ ${fleetDefinition.discourseURL ? `## References\nDiscourse: ${fleetDefinition.di
   }
 
   // Destination chain description (what will be executed on the target chain)
-  const destinationDescription = standardDescription
+  const destinationDescription = standardDescription // Already includes title
 
-  // Source chain description (what will be shown on the hub chain)
-  const sourceDescription = `# SIP3.${fleetDefinition.sipNumber || 'X'}: Cross-chain Reward Setup Proposal for ${fleetDefinition.fleetName} Fleet on ${capitalize(targetChain)}
-
-## Summary
+  // Source chain description body (does not include the H1 title)
+  const sourceDescriptionBody = `## Summary
 This is a cross-chain governance proposal to set up rewards for the ${fleetDefinition.fleetName} Fleet on ${targetChain}.
 
 ## Motivation
@@ -1571,8 +1573,11 @@ This proposal uses LayerZero to execute governance actions across chains.
 
 ${fleetDefinition.discourseURL ? `## References\nDiscourse: ${fleetDefinition.discourseURL}` : ''}`
 
+  // Prepend the title to the source description body
+  const sourceDescription = `# ${title}\n\n${sourceDescriptionBody}`
+
   return {
-    description: standardDescription,
+    description: standardDescription, // Return standard description for consistency
     sourceDescription,
     destinationDescription,
   }

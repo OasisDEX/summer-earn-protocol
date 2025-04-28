@@ -25,6 +25,7 @@ export enum ArkType {
   MoonwellArk = 'MoonwellArk',
   SyrupArk = 'SyrupArk',
   SkyRewardsArk = 'SkyRewardsArk',
+  SiloArk = 'SiloArk',
 }
 
 export const arkTypes = [
@@ -42,6 +43,7 @@ export const arkTypes = [
   { title: 'MoonwellArk', value: ArkType.MoonwellArk },
   { title: 'SyrupArk', value: ArkType.SyrupArk },
   { title: 'SkyRewardsArk', value: ArkType.SkyRewardsArk },
+  { title: 'SiloArk', value: ArkType.SiloArk },
 ]
 
 export interface Config {
@@ -65,6 +67,9 @@ export enum Token {
   REUL = 'reul',
   WELL = 'well',
   WS = 'ws',
+  GEAR = 'gear',
+  MORPHO = 'morpho',
+  SYRUP = 'syrup',
 }
 
 export interface BaseConfig {
@@ -167,6 +172,13 @@ export interface BaseConfig {
         [key in Token]: {
           syrup: Address
           router: Address
+        }
+      }
+    }
+    silo: {
+      pools: {
+        [key in Token]: {
+          [key: string]: Address
         }
       }
     }
