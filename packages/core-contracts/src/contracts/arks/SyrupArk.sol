@@ -93,7 +93,7 @@ contract SyrupArk is Ark {
 
     /**
      * @notice Request redemption of shares from the Syrup pool
-     * @param amount Amount of shares to redeem
+     * @param amount Amount of token to withdraw
      */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
         uint256 shares = 0;
