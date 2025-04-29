@@ -2,10 +2,11 @@
 pragma solidity 0.8.28;
 
 import "../Ark.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/src/interfaces/ICrossChainReceiver.sol";
-import {IBridgeQueue} from "@summerfi/chain-bridge/src/interfaces/IBridgeQueue.sol";
-import {IBridgeRouter} from "@summerfi/chain-bridge/src/interfaces/IBridgeRouter.sol";
-import {BridgeTypes} from "@summerfi/chain-bridge/src/libraries/BridgeTypes.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
+import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
+import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 error InvalidBridgeQueue();
 error InvalidBridgeRouter();
@@ -23,7 +24,11 @@ error InvalidRequestor();
  * @notice Ark contract for managing cross-chain deposits and withdrawals
  * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages
  */
-contract CrossChainArk is Ark, ICrossChainReceiver {
+abstract contract CrossChainArk is
+    ProtocolAccessManaged,
+    Ark,
+    ICrossChainReceiver
+{
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -44,22 +49,13 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
 
     event BridgeOptionsUpdated(BridgeTypes.BridgeOptions newOptions);
 
-    /// @notice Only governor or curator can update options (adjust as needed)
-    modifier onlyGovernorOrCurator() {
-        // Replace with your actual access control logic
-        require(
-            msg.sender == governor || msg.sender == curator,
-            "Not authorized"
-        );
-        _;
-    }
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Constructor to set up the CrossChainArk
+     * @param accessManager Address of the ProtocolAccessManager contract
      * @param _bridgeQueue Address of the BridgeQueue contract
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _targetChainId ID of the target chain
@@ -68,6 +64,7 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
+        address accessManager,
         address _bridgeQueue,
         address _bridgeRouter,
         uint16 _targetChainId,
@@ -94,7 +91,7 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
     /// @notice Set new bridge options
     function setBridgeOptions(
         BridgeTypes.BridgeOptions calldata newOptions
-    ) external onlyGovernorOrCurator {
+    ) external onlyGovernor {
         bridgeOptions = newOptions;
         emit BridgeOptionsUpdated(newOptions);
     }
@@ -215,4 +212,25 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
      * @param data Additional data to validate (unused in this implementation)
      */
     function _validateDisembarkData(bytes calldata data) internal override {}
+
+    /**
+     * @notice Returns the total withdrawable assets
+     * @return The total balance of the underlying asset
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return config.asset.balanceOf(address(this));
+    }
+
+    /**
+     * @notice Harvests rewards from the Ark
+     * @dev This Ark does not implement harvesting as it's a cross-chain bridge
+     */
+    function _harvest() internal override {
+        // No-op as this is a cross-chain bridge
+    }
 }
