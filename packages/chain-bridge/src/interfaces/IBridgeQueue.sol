@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {IBridgeRouter} from "./IBridgeRouter.sol"; // Assuming IBridgeRouter is in the same directory
+import {IBridgeRouter} from "./IBridgeRouter.sol";
 
 /**
  * @title IBridgeQueue
@@ -127,7 +127,7 @@ interface IBridgeQueue {
     /**
      * @notice Returns the address of the associated BridgeRouter contract.
      */
-    function bridgeRouter() external view returns (IBridgeRouter);
+    function bridgeRouter() external view returns (address);
 
     /**
      * @notice Checks if an address is an authorized queue manager.

@@ -446,8 +446,8 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeQueue
-    function bridgeRouter() external view returns (IBridgeRouter) {
-        return _bridgeRouter;
+    function bridgeRouter() external view returns (address) {
+        return address(_bridgeRouter);
     }
 
     /// @inheritdoc IBridgeQueue
