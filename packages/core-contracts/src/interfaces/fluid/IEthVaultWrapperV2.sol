@@ -5,14 +5,11 @@ interface IEthVaultWrapperV2 {
     struct DepositData {
         string route;
         bytes swapCalldata;
-        uint256 minStEthIn;
     }
 
     struct WithdrawData {
         string route;
-        uint256 amount;
         bytes swapCalldata;
-        uint256 minEthOut;
     }
     /// @notice deposits msg.value as stETH into ETH vault. returns shares amount
     /// @param route_ Route string through which swap will go, e.g. "1INCH-A"

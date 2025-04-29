@@ -6,7 +6,7 @@ import {IEthVaultWrapperV2} from "../../interfaces/fluid/IEthVaultWrapperV2.sol"
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IWETH} from "../../interfaces/misc/IWETH.sol";
 import {ISteth} from "../../interfaces/lido/ISteth.sol";
-
+import {IWithdrawalQueue} from "../../interfaces/lido/IWithdrawalQueue.sol";
 /**
  * @title FluidLiteArk
  * @notice Ark contract for managing ETH/WETH through FluidLite's vault via eth wrapper
@@ -40,6 +40,12 @@ contract FluidLiteArk is Ark {
     /// @notice The slippage to apply to the amount
     uint256 public slippage;
 
+    /// @notice The withdrawal queue used for requesting withdrawals
+    IWithdrawalQueue public immutable withdrawalQueue;
+
+    /// @notice The request id for the withdrawal
+    uint256 public withdrawalRequestId;
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -50,7 +56,7 @@ contract FluidLiteArk is Ark {
     error ETHTransferFailed();
     error InvalidStETHAddress();
     error StETHSubmissionFailed();
-
+    error InvalidWithdrawalQueueAddress();
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -59,6 +65,8 @@ contract FluidLiteArk is Ark {
      * @param _wrapper Address of the FluidLite wrapper
      * @param _vault Address of the vault
      * @param _weth Address of the WETH token
+     * @param _steth Address of the StETH token
+     * @param _withdrawalQueue Address of the withdrawal queue
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
     constructor(
@@ -66,6 +74,7 @@ contract FluidLiteArk is Ark {
         address _vault,
         address _weth,
         address _steth,
+        address _withdrawalQueue,
         ArkParams memory _params
     ) Ark(_params) {
         if (_wrapper == address(0)) revert InvalidWrapperAddress();
@@ -73,11 +82,13 @@ contract FluidLiteArk is Ark {
         if (_weth == address(0)) revert InvalidWETHAddress();
         if (_steth == address(0)) revert InvalidStETHAddress();
         if (address(config.asset) != _weth) revert AssetMustBeWETH();
-
+        if (_withdrawalQueue == address(0))
+            revert InvalidWithdrawalQueueAddress();
         wrapper = IEthVaultWrapperV2(_wrapper);
         vault = IERC4626(_vault);
         weth = IWETH(_weth);
         steth = ISteth(_steth);
+        withdrawalQueue = IWithdrawalQueue(_withdrawalQueue);
         fee = 5;
         slippage = 6;
     }
@@ -100,6 +111,11 @@ contract FluidLiteArk is Ark {
 
         // Add any WETH balance held in this contract
         assets += config.asset.balanceOf(address(this));
+        if (withdrawalRequestId != 0) {
+            assets += withdrawalQueue
+                .getWithdrawalStatus(withdrawalRequestId)
+                .amountOfStETH;
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -148,18 +164,7 @@ contract FluidLiteArk is Ark {
      * @param  data Additional data (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata data) internal override {
-        IEthVaultWrapperV2.WithdrawData memory withdrawData = abi.decode(
-            data,
-            (IEthVaultWrapperV2.WithdrawData)
-        );
-        vault.approve(address(wrapper), amount);
-        wrapper.withdraw(
-            withdrawData.route,
-            amount,
-            withdrawData.swapCalldata,
-            applyFeeAndSlippage(amount),
-            address(this)
-        );
+        // handled by the Ark.sol
     }
 
     /**
@@ -177,6 +182,61 @@ contract FluidLiteArk is Ark {
         uint256 _slippage
     ) external onlyCurator(config.commander) {
         slippage = _slippage;
+    }
+
+    // TODO: verify the calcs
+    /**
+     * @notice Requests a withdrawal from the withdrawal queue
+     * @param amount The amount of shares to withdraw
+     */
+    function requestWithdrawal(uint256 amount) external onlyKeeper {
+        if (withdrawalRequestId != 0) revert WithdrawalAlreadyRequested();
+        uint256 shares = vault.withdraw(amount, address(this), address(this));
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = shares;
+        IERC20(address(steth)).approve(address(withdrawalQueue), shares);
+        uint256[] memory requestIds = withdrawalQueue.requestWithdrawals(
+            amounts,
+            address(this)
+        );
+        withdrawalRequestId = requestIds[0];
+    }
+
+    /**
+     * @notice Requests a withdrawal from the withdrawal queue
+     * @param amount The amount of shares to withdraw
+     * @param data Additional data (unused in this implementation)
+     */
+    function requestWithdrawal(
+        uint256 amount,
+        bytes calldata data
+    ) external onlyKeeper {
+        IEthVaultWrapperV2.WithdrawData memory withdrawData = abi.decode(
+            data,
+            (IEthVaultWrapperV2.WithdrawData)
+        );
+        vault.approve(address(wrapper), amount);
+        // TODO: does it require further sanitization?
+        uint256 ethAmount = wrapper.withdraw(
+            withdrawData.route,
+            amount,
+            withdrawData.swapCalldata,
+            applyFeeAndSlippage(amount),
+            address(this)
+        );
+        if (amount > ethAmount) revert WithdrawalFailed();
+    }
+
+    function claimWithdrawal() external onlyKeeper {
+        if (withdrawalRequestId == 0) revert NoWithdrawalToClaim();
+        IWithdrawalQueue.WithdrawalRequestStatus memory status = withdrawalQueue
+            .getWithdrawalStatus(withdrawalRequestId);
+        if (status.isClaimed) revert WithdrawalAlreadyClaimed();
+        // we can claim if the request is finalized and not claimed
+        if (!status.isFinalized) revert WithdrawalNotFinalized();
+
+        withdrawalQueue.claimWithdrawal(withdrawalRequestId);
+        withdrawalRequestId = 0;
     }
 
     /**
@@ -203,13 +263,7 @@ contract FluidLiteArk is Ark {
      * @dev Ensures the AuthData is properly encoded
      * @param data AuthData containing signature for deposit authorization
      */
-    function _validateBoardData(bytes calldata data) internal pure override {
-        // if (data.length == 0) {
-        //     revert InvalidAuthData();
-        // }
-        // // Try to decode the AuthData to ensure it's properly formatted
-        // abi.decode(data, (IEthVaultWrapperV2.DepositData));
-    }
+    function _validateBoardData(bytes calldata data) internal pure override {}
 
     /**
      * @notice Validates the disembark data
@@ -218,14 +272,7 @@ contract FluidLiteArk is Ark {
      */
     function _validateDisembarkData(
         bytes calldata data
-    ) internal pure override {
-        if (data.length == 0) {
-            revert InvalidAuthData();
-        }
-
-        // Try to decode the AuthData to ensure it's properly formatted
-        abi.decode(data, (IEthVaultWrapperV2.WithdrawData));
-    }
+    ) internal pure override {}
 
     /**
      * @dev Fallback function to accept ETH
@@ -236,4 +283,11 @@ contract FluidLiteArk is Ark {
      * @dev Error for invalid authentication data
      */
     error InvalidAuthData();
+
+    error WithdrawalAlreadyRequested();
+    error WithdrawalAlreadyClaimed();
+    error WithdrawalNotFinalized();
+    error WithdrawalNotClaimable();
+    error NoWithdrawalToClaim();
+    error WithdrawalFailed();
 }

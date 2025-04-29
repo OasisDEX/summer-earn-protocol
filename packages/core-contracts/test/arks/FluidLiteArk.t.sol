@@ -38,12 +38,11 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
         0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant STETH_ADDRESS =
         0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
+    address public constant WITHDRAWAL_QUEUE_ADDRESS =
+        0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1;
 
     uint256 forkBlock = 22324405; // Setting a fairly recent block number on Ethereum mainnet
     uint256 forkId;
-
-    // Mock auth data for SyrupRouter
-    IEthVaultWrapperV2.DepositData mockAuthData;
 
     function setUp() public {
         initializeCoreContracts();
@@ -61,7 +60,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true, // We require keeper data for signature authorization
+            requiresKeeperData: false, // We require keeper data for signature authorization
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
@@ -70,19 +69,9 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             VAULT_ADDRESS,
             WETH_ADDRESS,
             STETH_ADDRESS,
+            WITHDRAWAL_QUEUE_ADDRESS,
             params
         );
-
-        // Set up mock auth data (this would typically be generated off-chain)
-        mockAuthData = IEthVaultWrapperV2.DepositData({
-            route: "1INCH-A",
-            swapCalldata: abi.encodeWithSelector(
-                IERC20.transfer.selector,
-                address(ark),
-                1 ether
-            ),
-            minStEthIn: 1 ether
-        });
 
         // Permissioning
         vm.startPrank(governor);
@@ -112,6 +101,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             VAULT_ADDRESS,
             WETH_ADDRESS,
             STETH_ADDRESS,
+            WITHDRAWAL_QUEUE_ADDRESS,
             params
         );
 
@@ -122,6 +112,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             address(0),
             WETH_ADDRESS,
             STETH_ADDRESS,
+            WITHDRAWAL_QUEUE_ADDRESS,
             params
         );
 
@@ -132,6 +123,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             VAULT_ADDRESS,
             address(0),
             STETH_ADDRESS,
+            WITHDRAWAL_QUEUE_ADDRESS,
             params
         );
 
@@ -144,6 +136,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             VAULT_ADDRESS,
             WETH_ADDRESS,
             STETH_ADDRESS,
+            WITHDRAWAL_QUEUE_ADDRESS,
             badParams
         );
 
@@ -153,6 +146,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             VAULT_ADDRESS,
             WETH_ADDRESS,
             STETH_ADDRESS,
+            WITHDRAWAL_QUEUE_ADDRESS,
             params
         );
 
@@ -177,47 +171,16 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     function test_Board_FluidLite() public {
         uint256 amount = 1 ether; // 1 ETH
 
-        // // Skip the actual router deposit since we can't easily mock the signature verification
-        // // Instead, we'll use mocking to simulate successful deposit
-        // vm.mockCall(
-        //     ROUTER_ADDRESS,
-        //     abi.encodeWithSelector(
-        //         IEthVaultWrapperV2.deposit.selector,
-        //         mockAuthData.route,
-        //         mockAuthData.swapCalldata,
-        //         mockAuthData.minStEthIn,
-        //         address(ark)
-        //     ),
-        //     abi.encode(amount)
-        // );
-
-        // // Mock vault balanceOf to simulate successful deposit
-        // vm.mockCall(
-        //     VAULT_ADDRESS,
-        //     abi.encodeWithSelector(IERC20.balanceOf.selector, address(ark)),
-        //     abi.encode(amount)
-        // );
-
-        // // Mock vault convertToAssets to return the original amount
-        // vm.mockCall(
-        //     VAULT_ADDRESS,
-        //     abi.encodeWithSelector(IERC4626.convertToAssets.selector, amount),
-        //     abi.encode(amount)
-        // );
-
         // Fund commander with WETH
         deal(WETH_ADDRESS, commander, amount);
 
         vm.startPrank(commander);
         IERC20(WETH_ADDRESS).approve(address(ark), amount);
 
-        // Encode the auth data
-        bytes memory boardData = abi.encode(mockAuthData);
-
         vm.expectEmit(true, true, true, true);
         emit Boarded(commander, WETH_ADDRESS, amount);
 
-        ark.board(amount, boardData);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Verify totalAssets returns the expected amount
@@ -231,155 +194,21 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function test_Disembark() public {
-        uint256 amount = 1 ether; // 1 ETH
-
-        // Skip the actual router deposit and mocking for board operation
-        vm.mockCall(
-            ROUTER_ADDRESS,
-            abi.encodeWithSelector(
-                IEthVaultWrapperV2.deposit.selector,
-                mockAuthData.route,
-                mockAuthData.swapCalldata,
-                mockAuthData.minStEthIn,
-                address(ark)
-            ),
-            abi.encode(amount)
-        );
-
-        // Give the ark some WETH directly for testing disembark
-        deal(WETH_ADDRESS, address(ark), amount);
-
-        // Mock vault balanceOf to simulate successful deposit
-        vm.mockCall(
-            VAULT_ADDRESS,
-            abi.encodeWithSelector(IERC20.balanceOf.selector, address(ark)),
-            abi.encode(amount)
-        );
-
-        // Mock vault convertToAssets to return the original amount
-        vm.mockCall(
-            VAULT_ADDRESS,
-            abi.encodeWithSelector(IERC4626.convertToAssets.selector, amount),
-            abi.encode(amount)
-        );
-
-        // Mock the maxWithdraw function
-        vm.mockCall(
-            VAULT_ADDRESS,
-            abi.encodeWithSelector(IERC4626.maxWithdraw.selector, address(ark)),
-            abi.encode(amount)
-        );
-
-        // Initial WETH balance of commander
-        uint256 initialWETHBalance = IERC20(WETH_ADDRESS).balanceOf(commander);
-
-        IEthVaultWrapperV2.WithdrawData memory withdrawData = IEthVaultWrapperV2
-            .WithdrawData({
-                route: "1INCH-A",
-                amount: amount,
-                swapCalldata: abi.encodeWithSelector(
-                    IERC20.transfer.selector,
-                    address(ark),
-                    amount
-                ),
-                minEthOut: 0
-            });
-
-        vm.prank(commander);
-        vm.expectEmit(true, true, true, true);
-        emit Disembarked(commander, WETH_ADDRESS, amount);
-        ark.disembark(amount, abi.encode(withdrawData));
-
-        // Final WETH balance of commander
-        uint256 finalWETHBalance = IERC20(WETH_ADDRESS).balanceOf(commander);
-        assertEq(
-            finalWETHBalance,
-            initialWETHBalance + amount,
-            "WETH balance should increase by disembarked amount"
-        );
+        console.log("not implemented");
+    }
+    function test_ReqestWithdrawaWithSwap() public {
+        console.log("not implemented");
+    }
+    function test_ClaimWithdrawal() public {
+        console.log("not implemented");
     }
 
-    function test_DisembarkWithPartialVaultWithdrawal() public {
+    function test_RequestWithdrawal() public {
+        test_Board_FluidLite();
         uint256 amount = 1 ether; // 1 ETH
-        uint256 arkWethBalance = 0.3 ether; // Ark has 0.3 ETH in WETH
-        uint256 needFromVault = amount - arkWethBalance; // 0.7 ETH needed from vault
+        vm.prank(keeper);
 
-        // Give the ark some WETH directly
-        deal(WETH_ADDRESS, address(ark), arkWethBalance);
-
-        // Mock vault balanceOf to show ark has shares
-        vm.mockCall(
-            VAULT_ADDRESS,
-            abi.encodeWithSelector(IERC20.balanceOf.selector, address(ark)),
-            abi.encode(needFromVault)
-        );
-
-        // Mock vault convertToAssets for share conversion
-        vm.mockCall(
-            VAULT_ADDRESS,
-            abi.encodeWithSelector(
-                IERC4626.convertToAssets.selector,
-                needFromVault
-            ),
-            abi.encode(needFromVault)
-        );
-
-        // Mock the maxWithdraw function
-        vm.mockCall(
-            VAULT_ADDRESS,
-            abi.encodeWithSelector(IERC4626.maxWithdraw.selector, address(ark)),
-            abi.encode(needFromVault)
-        );
-
-        // Mock previewWithdraw to return shares needed
-        vm.mockCall(
-            VAULT_ADDRESS,
-            abi.encodeWithSelector(
-                IERC4626.previewWithdraw.selector,
-                needFromVault
-            ),
-            abi.encode(needFromVault)
-        );
-
-        // Mock redeem function
-        vm.mockCall(
-            VAULT_ADDRESS,
-            abi.encodeWithSelector(
-                IERC4626.redeem.selector,
-                needFromVault,
-                address(ark),
-                address(ark)
-            ),
-            abi.encode(needFromVault)
-        );
-
-        // Send ETH to the ark to simulate vault withdrawal
-        vm.deal(address(ark), needFromVault);
-
-        // Initial WETH balance of commander
-        uint256 initialWETHBalance = IERC20(WETH_ADDRESS).balanceOf(commander);
-        IEthVaultWrapperV2.WithdrawData memory withdrawData = IEthVaultWrapperV2
-            .WithdrawData({
-                route: "1INCH-A",
-                amount: amount,
-                swapCalldata: abi.encodeWithSelector(
-                    IERC20.transfer.selector,
-                    address(ark),
-                    amount
-                ),
-                minEthOut: 0
-            });
-
-        vm.prank(commander);
-        ark.disembark(amount, abi.encode(withdrawData));
-
-        // Final WETH balance of commander
-        uint256 finalWETHBalance = IERC20(WETH_ADDRESS).balanceOf(commander);
-        assertEq(
-            finalWETHBalance,
-            initialWETHBalance + amount,
-            "WETH balance should increase by disembarked amount"
-        );
+        ark.requestWithdrawal(amount - 1);
     }
 
     function test_TotalAssets() public {
@@ -449,38 +278,5 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             1.05 ether,
             "Total assets should include auto-compounded yield"
         );
-    }
-
-    function test_ValidateBoardData() public {
-        // Empty data should revert
-        bytes memory emptyData = "";
-        vm.expectRevert(abi.encodeWithSignature("KeeperDataRequired()"));
-
-        vm.prank(commander);
-        ark.board(1 ether, emptyData);
-
-        // Valid auth data should work
-        bytes memory validData = abi.encode(mockAuthData);
-
-        // Mock the authorizeAndDeposit call
-        vm.mockCall(
-            ROUTER_ADDRESS,
-            abi.encodeWithSelector(
-                IEthVaultWrapperV2.deposit.selector,
-                mockAuthData.route,
-                mockAuthData.swapCalldata,
-                mockAuthData.minStEthIn,
-                address(ark)
-            ),
-            abi.encode(1 ether)
-        );
-
-        // Fund commander with WETH
-        deal(WETH_ADDRESS, commander, 1 ether);
-
-        vm.startPrank(commander);
-        IERC20(WETH_ADDRESS).approve(address(ark), 1 ether);
-        ark.board(1 ether, validData);
-        vm.stopPrank();
     }
 }

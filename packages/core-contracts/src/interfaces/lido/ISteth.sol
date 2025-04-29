@@ -11,4 +11,10 @@ interface ISteth {
     function balanceOf(address _account) external view returns (uint256);
     function sharesOf(address _account) external view returns (uint256);
     function approve(address _spender, uint256 _amount) external returns (bool);
+    function getPooledEthByShares(
+        uint256 _shares
+    ) external view returns (uint256);
+    function getSharesByPooledEth(
+        uint256 _ethAmount
+    ) external view returns (uint256);
 }
