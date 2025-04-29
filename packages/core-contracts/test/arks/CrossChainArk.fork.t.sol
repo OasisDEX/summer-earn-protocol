@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
-import {ArkParams} from "../../src/contracts/arks/Ark.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {BridgeRouter} from "@summerfi/chain-bridge/router/BridgeRouter.sol";
 import {BridgeQueue} from "@summerfi/chain-bridge/router/BridgeQueue.sol";
@@ -29,7 +29,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
     uint256 public constant FORK_BLOCK = 22_145_762;
 
+    event Boarded(address indexed commander, address token, uint256 amount);
+
     function setUp() public {
+        // Create a mainnet fork
+        vm.createSelectFork("mainnet", FORK_BLOCK);
+
         initializeCoreContracts();
         setupBridgeContracts();
     }
@@ -133,6 +138,11 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             params
         );
 
+        // Add ark as queue manager
+        vm.startPrank(governor);
+        bridgeQueue.addQueueManager(address(ark));
+        vm.stopPrank();
+
         // Permissioning
         vm.prank(governor);
         accessManager.grantCommanderRole(address(ark), commander);
@@ -158,12 +168,17 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         ark.board(amount, bytes(""));
 
         // Assert
-        // Check that the transfer was queued in the bridge queue
-        uint256 queuedAmount = bridgeQueue.getQueuedAmount(
-            DEST_CHAIN_ID,
-            address(usdc),
-            ARB_PROXY
-        );
+        // Get the first pending queue ID (should be the one created by the board call)
+        bytes32 queueId = bridgeQueue.getPendingQueueIdAtIndex(0);
+        (
+            uint16 destinationChainId,
+            address asset,
+            uint256 queuedAmount,
+            address recipient,
+            BridgeTypes.BridgeOptions memory options,
+            address originator,
+            bytes32 operationId
+        ) = bridgeQueue.queuedTransfers(queueId);
         assertEq(
             queuedAmount,
             amount,
