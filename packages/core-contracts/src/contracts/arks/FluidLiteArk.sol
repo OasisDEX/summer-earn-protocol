@@ -225,6 +225,7 @@ contract FluidLiteArk is Ark {
             address(this)
         );
         if (amount > ethAmount) revert WithdrawalFailed();
+        weth.deposit{value: ethAmount}();
     }
 
     function claimWithdrawal() external onlyKeeper {
@@ -237,6 +238,7 @@ contract FluidLiteArk is Ark {
 
         withdrawalQueue.claimWithdrawal(withdrawalRequestId);
         withdrawalRequestId = 0;
+        weth.deposit{value: status.amountOfStETH}();
     }
 
     /**
