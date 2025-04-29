@@ -129,7 +129,6 @@ async function main() {
 
     // Execute the batch proposal
     const hash = await walletClient.writeContract({
-      account: walletClient.account,
       address: timelockAddress,
       abi: timelockAbi,
       functionName: 'executeBatch',
