@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -98,11 +98,24 @@ contract CrossChainFleetProxyTest is Test {
         accessManager.grantGovernorRole(governor);
         vm.stopPrank();
 
+        // Create bridge options
+        BridgeTypes.BridgeOptions memory bridgeOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(0),
+                adapterParams: BridgeTypes.AdapterParams({
+                    gasLimit: 100000,
+                    msgValue: 0,
+                    calldataSize: 0,
+                    options: ""
+                })
+            });
+
         proxy = new CrossChainFleetProxy(
             address(accessManager),
             address(mockBridgeRouter),
             address(fleetCommanderMock),
-            100000
+            bridgeOptions,
+            SOURCE_ARK_ADDRESS
         );
     }
 
@@ -133,18 +146,12 @@ contract CrossChainFleetProxyTest is Test {
 
     //----------------- CrossChainReceiver Tests -----------------//
 
-    function test_ReceiveMessage_UnauthorizedCaller() public {
-        // Only the bridge router can call receiveMessage
-        vm.expectRevert(IFleetProxy.CallerNotRegisteredAdapter.selector);
-        proxy.receiveMessage(SOURCE_CHAIN_ID, new bytes(0));
-    }
-
-    function test_ReceiveMessage_ReceiveAssets() public {
+    function test_ReceiveMessageWithAssets() public {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
         bytes memory message = abi.encodeWithSelector(
-            ICrossChainReceiver.receiveMessageWithAssets.selector,
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
             asset,
             amount
         );
@@ -158,77 +165,9 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
 
-    function test_ReceiveMessage_WithdrawAssets() public {
-        // First, deposit some tokens to the fleet
-        uint256 initialAmount = 1000;
-        uint256 withdrawAmount = 500;
-        _depositAssetsToFleet(initialAmount);
-
-        // Get the token from the fleetCommander
-        address token = address(mockToken);
-
-        // Prepare withdraw message - using simplified approach without selector
-        bytes memory withdrawMessage = abi.encode(
-            token,
-            withdrawAmount,
-            SOURCE_ARK_ADDRESS
-        );
-
-        // Send withdraw message
-        vm.prank(address(mockAdapter));
-        proxy.receiveMessage(SOURCE_CHAIN_ID, withdrawMessage);
-
-        // Verify remaining balance in the fleet commander
-        assertEq(
-            fleetCommanderMock.totalAssets(),
-            initialAmount - withdrawAmount
-        );
-    }
-
-    function test_ReceiveMessage_WithdrawAssets_InsufficientBalance() public {
-        // Get the token from the fleetCommander
-        address token = address(mockToken);
-        uint256 withdrawAmount = 1000; // No tokens in the contract
-
-        // Prepare withdraw message - should include token, amount, and recipient
-        bytes memory withdrawMessage = abi.encode(
-            token,
-            withdrawAmount,
-            SOURCE_ARK_ADDRESS
-        );
-
-        // Ensure the fleetCommanderMock's getConfig returns the correct asset
-        fleetCommanderMock.setBufferArk(address(bufferArkMock));
-
-        // Expect InsufficientBalance revert when trying to withdraw
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
-                address(proxy),
-                withdrawAmount,
-                0
-            )
-        );
-        vm.prank(address(mockAdapter));
-        proxy.receiveMessage(SOURCE_CHAIN_ID, withdrawMessage);
-    }
-
-    function test_ReceiveStateRead() public {
-        // Prepare state read result
-        bytes memory resultData = abi.encode(uint256(1000));
-        address requestor = SOURCE_ARK_ADDRESS;
-        uint16 sourceChainId = SOURCE_CHAIN_ID;
-        bytes32 requestId = keccak256(abi.encode("readRequest"));
-
-        // Mock the bridge router call - should not revert
-        vm.expectRevert(IFleetProxy.InvalidOperation.selector);
-        vm.prank(address(mockBridgeRouter));
-        proxy.receiveStateRead(resultData, requestor, sourceChainId, requestId);
-    }
-
     function test_SupportsInterface() public view {
-        // Should support ICrossChainReceiver interface
-        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
+        // Should support ICrossChainAssetReceiver interface
+        bytes4 interfaceId = type(ICrossChainAssetReceiver).interfaceId;
         assertTrue(proxy.supportsInterface(interfaceId));
 
         // Should support IERC165 interface
@@ -253,7 +192,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Prepare the message for receiving assets
         bytes memory message = abi.encodeWithSelector(
-            ICrossChainReceiver.receiveMessageWithAssets.selector,
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
             asset,
             amount
         );

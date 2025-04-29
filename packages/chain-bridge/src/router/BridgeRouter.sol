@@ -8,9 +8,9 @@ import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 
 /**
  * @title BridgeRouter
@@ -510,15 +510,16 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Try to deliver the response
         bool delivered = false;
 
-        // Check if the originator implements the ICrossChainReceiver interface
-        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
+        // Check if the originator implements the ICrossChainStateReadReceiver interface
+        bytes4 interfaceId = type(ICrossChainStateReadReceiver).interfaceId;
         try
-            ICrossChainReceiver(originator).supportsInterface(interfaceId)
+            ICrossChainStateReadReceiver(originator).supportsInterface(
+                interfaceId
+            )
         returns (bool supported) {
             if (supported) {
-                // Call the receiver's receiveStateRead method
                 try
-                    ICrossChainReceiver(originator).receiveStateRead(
+                    ICrossChainStateReadReceiver(originator).receiveStateRead(
                         resultData,
                         originator,
                         0, // sourceChainId (could be added as a parameter if needed)
@@ -527,15 +528,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                 {
                     delivered = true;
                 } catch {
-                    // Delivery failed, but don't revert
                     delivered = false;
                 }
             } else {
-                // Fallback for contracts that don't implement supportsInterface
-                // Just attempt to call the method directly
                 (bool success, ) = originator.call(
                     abi.encodeWithSelector(
-                        ICrossChainReceiver.receiveStateRead.selector,
+                        ICrossChainStateReadReceiver.receiveStateRead.selector,
                         resultData,
                         originator,
                         0, // sourceChainId
@@ -545,11 +543,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                 delivered = success;
             }
         } catch {
-            // Fallback for contracts that don't implement supportsInterface
-            // Just attempt to call the method directly
             (bool success, ) = originator.call(
                 abi.encodeWithSelector(
-                    ICrossChainReceiver.receiveStateRead.selector,
+                    ICrossChainStateReadReceiver.receiveStateRead.selector,
                     resultData,
                     originator,
                     0, // sourceChainId

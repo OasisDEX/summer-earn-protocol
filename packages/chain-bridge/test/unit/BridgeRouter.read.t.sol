@@ -9,7 +9,6 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
 contract BridgeRouterReadStateTest is Test {
@@ -167,7 +166,6 @@ contract BridgeRouterReadStateTest is Test {
         // Verify that the mockReceiver received the data
         assertEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
         assertEq(mockReceiver.lastSender(), address(mockReceiver));
-        assertEq(mockReceiver.lastMessageId(), requestId);
     }
 
     function testDeliverReadResponseUnauthorized() public {

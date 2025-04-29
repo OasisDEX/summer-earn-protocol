@@ -12,10 +12,11 @@ import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {console} from "forge-std/console.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 import {MessagingParams, MessagingFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
+import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -221,14 +222,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint16 srcChainId
     ) internal {
         bool delivered = false;
-        // Deliver the message directly here
-        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
+        bytes4 interfaceId = type(ICrossChainMessageReceiver).interfaceId;
         try
-            ICrossChainReceiver(recipient).supportsInterface(interfaceId)
+            ICrossChainMessageReceiver(recipient).supportsInterface(interfaceId)
         returns (bool supported) {
             if (supported) {
                 try
-                    ICrossChainReceiver(recipient).receiveMessage(
+                    ICrossChainMessageReceiver(recipient).receiveMessage(
                         srcChainId,
                         message
                     )
@@ -238,14 +238,11 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                     emit RelayFailed(messageId, reason);
                 }
             } else {
-                // Fallback for contracts that don't implement supportsInterface
                 (bool success, ) = recipient.call(
                     abi.encodeWithSelector(
-                        ICrossChainReceiver.receiveMessage.selector,
-                        message,
-                        recipient,
+                        ICrossChainMessageReceiver.receiveMessage.selector,
                         srcChainId,
-                        messageId
+                        message
                     )
                 );
                 if (success) {

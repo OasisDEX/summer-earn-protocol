@@ -10,9 +10,9 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 
 /**
  * @title CrossChainFleetProxy
@@ -39,29 +39,51 @@ contract CrossChainFleetProxy is
     /// @notice The address of the Fleet contract that this proxy covers
     address public immutable fleetContract;
 
-    /// @notice The gas limit for bridge operations
-    uint64 public immutable bridgeGasLimit;
+    /// @notice The bridge options for cross-chain transfers
+    BridgeTypes.BridgeOptions public bridgeOptions;
+
+    /// @notice The address of the source chain's CrossChainArk
+    address public immutable sourceChainArk;
+
+    /*//////////////////////////////////////////////////////////////
+                            EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when assets are withdrawn and transferred back to source chain
+    event AssetsWithdrawnAndTransferred(
+        uint256 amount,
+        address asset,
+        uint16 sourceChainId
+    );
+
+    /// @notice Emitted when bridge options are updated
+    event BridgeOptionsUpdated(BridgeTypes.BridgeOptions bridgeOptions);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the CrossChainArkProxy
+     * @notice Initializes the CrossChainFleetProxy
      * @param _accessManager Address of the access manager
      * @param _bridgeRouter Address of the bridge router
      * @param _fleetContract Address of the Fleet contract this proxy covers
-     * @param _bridgeGasLimit The gas limit for bridge operations
+     * @param _bridgeOptions The bridge options for cross-chain transfers
+     * @param _sourceChainArk Address of the source chain's CrossChainArk
      */
     constructor(
         address _accessManager,
         address _bridgeRouter,
         address _fleetContract,
-        uint64 _bridgeGasLimit
+        BridgeTypes.BridgeOptions memory _bridgeOptions,
+        address _sourceChainArk
     ) ProtocolAccessManaged(_accessManager) {
+        if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
+
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         fleetContract = _fleetContract;
-        bridgeGasLimit = _bridgeGasLimit;
+        bridgeOptions = _bridgeOptions;
+        sourceChainArk = _sourceChainArk;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -88,32 +110,20 @@ contract CrossChainFleetProxy is
         _unpause();
     }
 
+    /// @notice Updates the bridge options
+    /// @param _bridgeOptions The new bridge options
+    function setBridgeOptions(
+        BridgeTypes.BridgeOptions memory _bridgeOptions
+    ) external onlyGovernor {
+        bridgeOptions = _bridgeOptions;
+        emit BridgeOptionsUpdated(_bridgeOptions);
+    }
+
     /*//////////////////////////////////////////////////////////////
                     CROSS-CHAIN RECEIVER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // TODO: Need to consider what happens when received messages revert...
-    /// @inheritdoc ICrossChainReceiver
-    function receiveMessage(
-        uint16 sourceChainId,
-        bytes calldata message
-    ) external whenNotPaused nonReentrant {
-        // Only a registered adapter can call this function
-        if (!bridgeRouter.isValidAdapter(msg.sender)) {
-            revert CallerNotRegisteredAdapter();
-        }
-
-        // Since this is a proxy focused on withdrawals,
-        // we can simply interpret any message as a withdrawal request
-        (address token, uint256 amount, address recipient) = abi.decode(
-            message,
-            (address, uint256, address)
-        );
-
-        _handleWithdrawAssets(token, amount, recipient, sourceChainId);
-    }
-
-    /// @inheritdoc ICrossChainReceiver
+    /// @inheritdoc ICrossChainAssetReceiver
     function receiveMessageWithAssets(
         address asset,
         uint256 amount,
@@ -142,23 +152,12 @@ contract CrossChainFleetProxy is
         _handleReceiveAssets(asset, amount);
     }
 
-    /// @inheritdoc ICrossChainReceiver
-    function receiveStateRead(
-        bytes calldata,
-        address,
-        uint16,
-        bytes32
-    ) external view whenNotPaused {
-        // FleetProxy is not configured to receive the results of state reads from other chains
-        revert InvalidOperation();
-    }
-
     /// @inheritdoc IERC165
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure override(ICrossChainReceiver, IERC165) returns (bool) {
+    ) external pure override(ICrossChainAssetReceiver, IERC165) returns (bool) {
         return
-            interfaceId == type(ICrossChainReceiver).interfaceId ||
+            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 
@@ -188,69 +187,6 @@ contract CrossChainFleetProxy is
     }
 
     /**
-     * @notice Handle withdrawing assets back to the source chain
-     * @param token Address of the token
-     * @param amount Amount of tokens
-     * @param recipient Address to receive the tokens on the source chain
-     * @param sourceChainId ID of the source chain
-     */
-    function _handleWithdrawAssets(
-        address token,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId
-    ) internal {
-        // 1. First, withdraw the assets from the fleet contract
-        // The fleetContract should implement the IFleetCommander interface with a withdraw function
-        IFleetCommander(fleetContract).withdraw(
-            amount,
-            address(this), // Proxy receives the assets
-            address(this) // Proxy is the owner of the shares
-        );
-
-        // 2. Bridge the tokens back to the source chain
-        // First approve the router to spend the tokens
-        IERC20(token).approve(address(bridgeRouter), amount);
-
-        try
-            bridgeRouter.transferAssets{value: msg.value}(
-                sourceChainId,
-                token,
-                amount,
-                recipient,
-                _getBridgeOptions()
-            )
-        returns (bytes32 operationId) {
-            // Emit event for tracking
-            emit ProxyWithdrawal(recipient, token, amount, operationId);
-        } catch {
-            // If the bridge operation fails, revert
-            revert BridgeOperationFailed();
-        }
-    }
-
-    /**
-     * @notice Get default bridge options
-     * @return Default bridge options struct
-     */
-    function _getBridgeOptions()
-        internal
-        view
-        returns (BridgeTypes.BridgeOptions memory)
-    {
-        return
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(0),
-                adapterParams: BridgeTypes.AdapterParams({
-                    gasLimit: bridgeGasLimit,
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: ""
-                })
-            });
-    }
-
-    /**
      * @notice Internal function to get the balance of the main asset
      * @return The balance of the main asset
      */
@@ -263,4 +199,47 @@ contract CrossChainFleetProxy is
         // Return the actual token balance
         return IERC20(asset).balanceOf(address(this));
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        NEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Keeper function to withdraw and transfer assets
+    function withdrawAndTransfer(
+        uint256 amount,
+        uint16 sourceChainId
+    ) external payable whenNotPaused onlyKeeper {
+        // 1. Withdraw from fleet contract
+        IFleetCommander(fleetContract).withdraw(
+            amount,
+            address(this),
+            address(this)
+        );
+
+        // 2. Get the asset from fleet config
+        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
+            .getConfig();
+        address asset = address(config.bufferArk.asset());
+
+        // 3. Use BridgeRouter to transfer assets back to source chain's CrossChainArk
+        bridgeRouter.transferAssets{value: msg.value}(
+            sourceChainId,
+            asset,
+            amount,
+            sourceChainArk,
+            bridgeOptions
+        );
+
+        emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Error thrown when source chain ark address is invalid
+    error InvalidSourceChainArk();
+
+    /// @notice Error thrown when attempting to withdraw via message
+    error WithdrawalViaMessageNotSupported();
 }
