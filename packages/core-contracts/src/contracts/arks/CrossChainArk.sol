@@ -6,30 +6,51 @@ import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChain
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-
-error InvalidBridgeQueue();
-error InvalidBridgeRouter();
-error InvalidTargetChain();
-error InvalidTargetProxy();
-error Unauthorized();
-error InvalidMessageId();
-error InvalidRequestId();
-error InvalidSourceChain();
-error InvalidRecipient();
-error InvalidRequestor();
 
 /**
  * @title CrossChainArk
  * @notice Ark contract for managing cross-chain deposits and withdrawals
  * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages
  */
-abstract contract CrossChainArk is
-    ProtocolAccessManaged,
-    Ark,
-    ICrossChainReceiver
-{
+contract CrossChainArk is Ark, ICrossChainReceiver {
     using SafeERC20 for IERC20;
+
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when the provided BridgeQueue address is zero.
+    error InvalidBridgeQueue();
+
+    /// @notice Thrown when the provided BridgeRouter address is zero.
+    error InvalidBridgeRouter();
+
+    /// @notice Thrown when the provided target chain ID is zero.
+    error InvalidTargetChain();
+
+    /// @notice Thrown when the provided target proxy address is zero.
+    error InvalidTargetProxy();
+
+    /// @notice Thrown when the caller is not authorized to perform the action.
+    error Unauthorized();
+
+    /// @notice Thrown when a message ID is invalid.
+    error InvalidMessageId();
+
+    /// @notice Thrown when a request ID is invalid.
+    error InvalidRequestId();
+
+    /// @notice Thrown when the source chain ID is invalid.
+    error InvalidSourceChain();
+
+    /// @notice Thrown when the recipient address is invalid.
+    error InvalidRecipient();
+
+    /// @notice Thrown when the requestor address is invalid.
+    error InvalidRequestor();
+
+    /// @notice Thrown when receiveMessage is called (not supported for this Ark).
+    error ReceiveMessageNotSupported();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -47,7 +68,13 @@ abstract contract CrossChainArk is
     /// @notice Configurable bridge options for cross-chain actions
     BridgeTypes.BridgeOptions public bridgeOptions;
 
+    /// @notice Last known remote asset balance (from state read)
+    uint256 public lastRemoteAssetBalance;
+
     event BridgeOptionsUpdated(BridgeTypes.BridgeOptions newOptions);
+
+    /// @notice Emitted when the remote asset balance is updated via state read
+    event RemoteAssetBalanceUpdated(uint256 newBalance, bytes32 requestId);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -55,7 +82,6 @@ abstract contract CrossChainArk is
 
     /**
      * @notice Constructor to set up the CrossChainArk
-     * @param accessManager Address of the ProtocolAccessManager contract
      * @param _bridgeQueue Address of the BridgeQueue contract
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _targetChainId ID of the target chain
@@ -64,7 +90,6 @@ abstract contract CrossChainArk is
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address accessManager,
         address _bridgeQueue,
         address _bridgeRouter,
         uint16 _targetChainId,
@@ -106,7 +131,7 @@ abstract contract CrossChainArk is
      * @return assets The total balance of underlying assets held by this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        assets = config.asset.balanceOf(address(this));
+        assets = config.asset.balanceOf(address(this)) + lastRemoteAssetBalance;
     }
 
     /**
@@ -173,30 +198,22 @@ abstract contract CrossChainArk is
         if (sourceChainId != targetChainId) revert InvalidSourceChain();
         if (requestor != address(this)) revert InvalidRequestor();
 
-        // Process the result data if needed
-        // This could be used to verify the state of the target proxy
+        // Decode the remote asset balance (assume it's a uint256)
+        lastRemoteAssetBalance = abi.decode(resultData, (uint256));
+        emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
     }
 
     /**
      * @inheritdoc ICrossChainReceiver
-     * @notice Receives a general cross-chain message
-     * @param message The message content
-     * @param recipient The intended recipient of the message
-     * @param sourceChainId The chain ID where the message originated
-     * @param messageId The unique ID of the message
+     * @notice Receives a general cross-chain message (not supported)
      */
     function receiveMessage(
-        bytes calldata message,
-        address recipient,
-        uint16 sourceChainId,
-        bytes32 messageId
-    ) external {
-        if (msg.sender != address(bridgeRouter)) revert Unauthorized();
-        if (sourceChainId != targetChainId) revert InvalidSourceChain();
-        if (recipient != address(this)) revert InvalidRecipient();
-
-        // Process the message if needed
-        // This could be used to handle notifications from the target proxy
+        bytes calldata,
+        address,
+        uint16,
+        bytes32
+    ) external pure {
+        revert ReceiveMessageNotSupported();
     }
 
     /**
@@ -229,8 +246,18 @@ abstract contract CrossChainArk is
     /**
      * @notice Harvests rewards from the Ark
      * @dev This Ark does not implement harvesting as it's a cross-chain bridge
+     * @return rewardTokens Empty array of reward tokens
+     * @return rewardAmounts Empty array of reward amounts
      */
-    function _harvest() internal override {
-        // No-op as this is a cross-chain bridge
+    function _harvest(
+        bytes calldata
+    )
+        internal
+        pure
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        rewardTokens = new address[](0);
+        rewardAmounts = new uint256[](0);
     }
 }

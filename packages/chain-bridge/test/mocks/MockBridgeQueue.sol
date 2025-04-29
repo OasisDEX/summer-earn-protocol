@@ -41,6 +41,26 @@ contract MockBridgeQueue is IBridgeQueue {
         return keccak256("message");
     }
 
+    function queueReadState(
+        uint16 dstChainId,
+        address dstContract,
+        bytes4,
+        bytes calldata readParams,
+        BridgeTypes.BridgeOptions calldata options
+    ) external override returns (bytes32) {
+        lastDestinationChainId = dstChainId;
+        lastAsset = dstContract;
+        lastMessage = readParams;
+        lastOptions = options;
+        return keccak256("read");
+    }
+
+    function executeQueuedOperation(
+        bytes32
+    ) external payable override returns (bytes32) {
+        return keccak256("executed");
+    }
+
     // Implement stubs for other interface functions if needed for compilation
     // (You can leave them empty or revert)
     function bridgeRouter() external pure returns (address) {

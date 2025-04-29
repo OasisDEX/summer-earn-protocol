@@ -11,7 +11,8 @@ import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainArk ark;
@@ -19,6 +20,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     MockBridgeRouter router;
     address proxy = address(0x5);
     uint16 chainId = 1234;
+    FleetCommander fleetCommander;
 
     BridgeTypes.BridgeOptions defaultOptions;
 
@@ -37,13 +39,20 @@ contract CrossChainArkTest is Test, ArkTestBase {
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
             requiresKeeperData: false,
-            maxDepositPercentageOfTVL: 10000 // 100%
+            maxDepositPercentageOfTVL: PERCENTAGE_1
         });
 
-        defaultOptions = BridgeTypes.BridgeOptions({gasLimit: 0, params: ""});
+        defaultOptions = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0),
+            adapterParams: BridgeTypes.AdapterParams({
+                gasLimit: 0,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        });
 
         ark = new CrossChainArk(
-            address(accessManager),
             address(queue),
             address(router),
             chainId,
@@ -51,9 +60,25 @@ contract CrossChainArkTest is Test, ArkTestBase {
             defaultOptions,
             params
         );
+
+        // Set up FleetCommander with BufferArk
+        (address fleetCommanderAddress, ) = setupFleetCommanderWithBufferArk(
+            address(mockToken),
+            PERCENTAGE_1,
+            "TestFleet"
+        );
+        fleetCommander = FleetCommander(fleetCommanderAddress);
+
+        // Grant commander role to FleetCommander
+        vm.prank(governor);
+        accessManager.grantCommanderRole(address(ark), address(fleetCommander));
+
+        // Activate the Ark
+        vm.prank(governor);
+        fleetCommander.addArk(address(ark));
     }
 
-    function testConstructorSetsState() public {
+    function testConstructorSetsState() public view {
         assertEq(address(ark.bridgeQueue()), address(queue));
         assertEq(address(ark.bridgeRouter()), address(router));
         assertEq(ark.targetChainId(), chainId);
@@ -61,7 +86,13 @@ contract CrossChainArkTest is Test, ArkTestBase {
     }
 
     function testBoardCallsQueueTransferAssets() public {
-        ark._board(1000, "");
+        // Approve Ark to spend tokens from FleetCommander
+        deal(address(mockToken), address(fleetCommander), 1000);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+
+        vm.prank(address(fleetCommander));
+        ark.board(1000, "");
         assertEq(queue.lastDestinationChainId(), chainId);
         assertEq(queue.lastAsset(), address(mockToken));
         assertEq(queue.lastAmount(), 1000);
@@ -69,9 +100,30 @@ contract CrossChainArkTest is Test, ArkTestBase {
     }
 
     function testDisembarkCallsQueueSendMessage() public {
-        ark._disembark(500, "");
+        deal(address(mockToken), address(ark), 1000);
+
+        vm.prank(address(fleetCommander));
+        ark.disembark(500, "");
         assertEq(queue.lastDestinationChainId(), chainId);
         assertEq(queue.lastRecipient(), proxy);
         assertEq(abi.decode(queue.lastMessage(), (uint256)), 500);
+    }
+
+    function testReceiveStateReadUpdatesRemoteBalanceAndEmitsEvent() public {
+        uint256 remoteBalance = 12345;
+        bytes memory resultData = abi.encode(remoteBalance);
+        bytes32 requestId = keccak256("test-request");
+        uint16 sourceChain = chainId;
+
+        // Should emit the event and update the state
+        vm.expectEmit(true, true, true, true);
+        emit CrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
+
+        // Call as bridgeRouter, with correct sourceChain and requestor
+        vm.prank(address(router));
+        ark.receiveStateRead(resultData, address(ark), sourceChain, requestId);
+
+        // Check state
+        assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
     }
 }
