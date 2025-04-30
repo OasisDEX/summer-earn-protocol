@@ -60,7 +60,9 @@ async function setupGovernanceRewards() {
   ])
 
   // Convert reward amount to wei (assuming 18 decimals)
-  const rewardAmountInWei = BigInt(rewardAmount) * BigInt(10 ** 18)
+  // fetch the token’s actual decimals instead of assuming 18
+  const decimals = await summerToken.read.decimals()
+  const rewardAmountInWei = BigInt(rewardAmount) * BigInt(10 ** decimals)
 
   // Prepare proposal actions
   const targets: Address[] = []
