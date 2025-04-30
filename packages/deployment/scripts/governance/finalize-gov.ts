@@ -1,6 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, keccak256, toBytes } from 'viem'
+import { LZ_ENDPOINT_ABI } from '../bridge/lz-endpoint-abi'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
@@ -37,7 +38,13 @@ export async function finalizeGov(
   // Update delegate for SummerToken
   console.log(kleur.cyan().bold('\nUpdating delegate for SummerToken...'))
   try {
-    const currentTokenDelegate = (await summerToken.read.delegate()) as Address
+    const lzEndpoint = (await summerToken.read.endpoint()) as Address
+    const currentTokenDelegate = await publicClient.readContract({
+      address: lzEndpoint,
+      abi: LZ_ENDPOINT_ABI,
+      functionName: 'delegates',
+      args: [summerToken.address],
+    })
     if (currentTokenDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
       const hash = await summerToken.write.setDelegate([timelock.address])
       await publicClient.waitForTransactionReceipt({ hash })
@@ -52,7 +59,13 @@ export async function finalizeGov(
   // Update delegate for SummerGovernor
   console.log(kleur.cyan().bold('\nUpdating delegate for SummerGovernor...'))
   try {
-    const currentGovernorDelegate = (await summerGovernor.read.delegate()) as Address
+    const lzEndpoint = (await summerGovernor.read.endpoint()) as Address
+    const currentGovernorDelegate = await publicClient.readContract({
+      address: lzEndpoint,
+      abi: LZ_ENDPOINT_ABI,
+      functionName: 'delegates',
+      args: [summerGovernor.address],
+    })
     if (currentGovernorDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
       const hash = await summerGovernor.write.setDelegate([timelock.address])
       await publicClient.waitForTransactionReceipt({ hash })
