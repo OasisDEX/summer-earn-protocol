@@ -76,7 +76,6 @@ export async function deployArk(
     maxRebalanceInflow: params.maxRebalanceInflow || MAX_UINT256_STRING,
     fleetName: fleetConfig.fleetName,
   }
-  console.log('Base Ark Params [Debug]:', baseArkParams)
 
   let deployedArk
 
@@ -89,9 +88,6 @@ export async function deployArk(
       validateAddress(wrapper, 'FluidLite wrapper')
       validateAddress(vault, 'FluidLite vault')
       validateAddress(withdrawalQueue, 'FluidLite withdrawal queue')
-
-      console.log('FluidLiteArk params:')
-      console.log(baseArkParams)
 
       const ark = await deployFluidLiteArk(config, baseArkParams)
       deployedArk = ark
