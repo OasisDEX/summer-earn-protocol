@@ -630,11 +630,7 @@ function processFleetDeploymentData(
         name: fleet.fleetName || fleet.name || `Fleet on ${chainName}`,
         fleetCommander: fleet.fleetCommander || fleet.commanderAddress || fleet.fleetAddress,
         bufferArk: fleet.bufferArk || fleet.bufferArkAddress,
-        arks: Array.isArray(fleet.arks)
-          ? fleet.arks
-          : Array.isArray(fleet.arkAddresses)
-            ? fleet.arkAddresses
-            : [],
+        arks: Array.isArray(fleet.arks) ? fleet.arks : [],
         config: {
           depositCap: fleet.config?.depositCap || fleet.depositCap,
           minimumBufferBalance:
@@ -656,11 +652,7 @@ function processFleetDeploymentData(
       fleetCommander:
         fleetData.fleetCommander || fleetData.commanderAddress || fleetData.fleetAddress,
       bufferArk: fleetData.bufferArk || fleetData.bufferArkAddress,
-      arks: Array.isArray(fleetData.arks)
-        ? fleetData.arks
-        : Array.isArray(fleetData.arkAddresses)
-          ? fleetData.arkAddresses
-          : [],
+      arks: Array.isArray(fleetData.arks) ? fleetData.arks : [],
       config: {
         depositCap: fleetData.config?.depositCap || fleetData.depositCap,
         minimumBufferBalance:
