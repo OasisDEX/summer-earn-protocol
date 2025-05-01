@@ -66,6 +66,7 @@ export enum Token {
   USDS = 'usds',
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
+  STETH = 'steth',
   EURC = 'eurc',
   SEAM = 'seam',
   REUL = 'reul',

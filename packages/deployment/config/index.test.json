@@ -359,6 +359,7 @@
     "tokens": {
       "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       "weth": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "steth": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
       "usds": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
       "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
       "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7",

@@ -120,6 +120,7 @@ async function deployFluidLiteArkContract(
     'Fluid Lite vault',
   )
   const weth = validateAddress(config.tokens.weth, 'WETH')
+  const steth = validateAddress(config.tokens.steth, 'STETH')
   const withdrawalQueue = validateAddress(
     config.protocolSpecific.fluid.lite[userInput.token.symbol].withdrawalQueue,
     'Fluid Lite withdrawal queue',
@@ -131,6 +132,7 @@ async function deployFluidLiteArkContract(
         wrapper,
         vault,
         weth,
+        steth,
         withdrawalQueue,
         arkParams: {
           name: arkName,
