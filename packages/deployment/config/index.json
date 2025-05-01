@@ -551,7 +551,8 @@
         "lite": {
           "weth": {
             "wrapper": "0x64338FD8e7b1918B4a806A175e26eD152B3d0b7b",
-            "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78"
+            "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
+            "withdrawalQueue": "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
           }
         }
       }

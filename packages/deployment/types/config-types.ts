@@ -27,6 +27,7 @@ export enum ArkType {
   SkyRewardsArk = 'SkyRewardsArk',
   SiloArk = 'SiloArk',
   OriginETHArk = 'OriginETHArk',
+  FluidLiteArk = 'FluidLiteArk',
 }
 
 export const arkTypes = [
@@ -46,6 +47,7 @@ export const arkTypes = [
   { title: 'SkyRewardsArk', value: ArkType.SkyRewardsArk },
   { title: 'SiloArk', value: ArkType.SiloArk },
   { title: 'OriginETHArk', value: ArkType.OriginETHArk },
+  { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
 ]
 
 export interface Config {
@@ -189,6 +191,7 @@ export interface BaseConfig {
         [key in Token]: {
           wrapper: Address
           vault: Address
+          withdrawalQueue: Address
         }
       }
     }
@@ -205,6 +208,9 @@ export interface ArkConfig {
     asset: string
     protocol: string
     vaultName?: string // For ERC4626Ark
+    depositCap?: string // For FluidLiteArk
+    maxRebalanceOutflow?: string // For FluidLiteArk
+    maxRebalanceInflow?: string // For FluidLiteArk
   }
 }
 

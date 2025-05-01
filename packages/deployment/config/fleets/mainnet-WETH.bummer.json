@@ -15,6 +15,13 @@
         "asset": "WETH",
         "protocol": "origin"
       }
+    },
+    {
+      "type": "FluidLiteArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
     }
   ]
 }

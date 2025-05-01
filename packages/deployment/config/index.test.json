@@ -393,6 +393,15 @@
         "originETH": "0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3",
         "arm": "0x6bac785889A4127dB0e0CeFEE88E0a9F1Aaf3cC7"
       },
+      "fluid": {
+        "lite": {
+          "weth": {
+            "wrapper": "0x64338FD8e7b1918B4a806A175e26eD152B3d0b7b",
+            "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
+            "withdrawalQueue": "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
+          }
+        }
+      },
       "syrup": {
         "pools": {
           "usdc": {
