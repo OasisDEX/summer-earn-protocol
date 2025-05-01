@@ -1,0 +1,27 @@
+{
+  "fleetName": "BummerLazyVault_LowerRisk_USDC",
+  "symbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "100000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000",
+  "network": "mainnet",
+  "details": "",
+  "discourseURL": "",
+  "sipNumber": "1",
+  "rewardTokens": [],
+  "rewardAmounts": [],
+  "rewardsDuration": 0,
+  "bridgeAmount": "2000000000000000000000000",
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "arks": [
+    {
+      "type": "SkyRewardsArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "sky"
+      }
+    }
+  ]
+}

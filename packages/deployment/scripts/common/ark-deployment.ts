@@ -60,6 +60,9 @@ export async function deployArk(
     fleetName: fleetConfig.fleetName,
   }
 
+  console.log('GOT HERE..')
+  console.log('ark params', baseArkParams)
+
   let deployedArk
 
   switch (arkConfig.type) {
