@@ -59,5 +59,7 @@
   "LazyVault_HigherRisk_WETH_ERC4626_Euler_Swaap_Lend_weth_1#ERC4626Ark": "0x0f7C5a02f0763B2806CAe1bc7E965DaE089322dA",
   "LazyVault_HigherRisk_WETH_MorphoVault_weth_Gauntlet_WETH_Core_1#MorphoVaultArk": "0x7e29e6503df46D4060301c1b4317adF2a6d6D371",
   "LazyVault_HigherRisk_WETH_MorphoVault_weth_Mev_Capital_WETH_1#MorphoVaultArk": "0x4AA2B5d3a044AAe29AfbB90800E13382A295F63e",
-  "LazyVault_HigherRisk_WETH_MorphoVault_weth_Re7_WETH_1#MorphoVaultArk": "0x5982d78aB5f7ED0e7d3Feb08fdDd1DaAb15212CC"
+  "LazyVault_HigherRisk_WETH_MorphoVault_weth_Re7_WETH_1#MorphoVaultArk": "0x5982d78aB5f7ED0e7d3Feb08fdDd1DaAb15212CC",
+  "FleetModule_BummerLazyVault_USDC#FleetCommander": "0x8360E8224e3948CD7feBdC5fa8C12d50AF81187D",
+  "SkyRewards_usdc_1#SkyRewardsArk": "0xEbB995783F095bfB0526EAce1de50b3f80449a5e"
 }
