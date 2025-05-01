@@ -10,7 +10,7 @@
   "initialRebalanceCooldown": "3600",
   "depositCap": "0",
   "initialTipRate": "300000000000000000",
-  "arkAddresses": [
+  "arks": [
     "0x03b0a0168b51839614f6fB333480D572b754fD56",
     "0xcC725b576a9570F710e1934E7bf3395bf3250442",
     "0xD29235aeD4366C03951cD7dffF1CC77f365Ee60F",
