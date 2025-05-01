@@ -6,10 +6,12 @@ import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { MorphoArkUserInput, deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
+import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
+import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
@@ -62,8 +64,14 @@ export async function deployArk(
   let deployedArk
 
   switch (arkConfig.type) {
+    case ArkType.OriginETHArk:
+      deployedArk = await deployOriginETHArk(config, baseArkParams)
+      break
     case ArkType.SyrupArk:
       deployedArk = await deploySyrupArk(config, baseArkParams)
+      break
+    case ArkType.SkyRewardsArk:
+      deployedArk = await deploySkyRewardsArk(config, baseArkParams)
       break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config, baseArkParams)
@@ -212,6 +220,9 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
   switch (arkType) {
     case ArkType.SyrupArk:
       deployedArk = await deploySyrupArk(config)
+      break
+    case ArkType.SkyRewardsArk:
+      deployedArk = await deploySkyRewardsArk(config)
       break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config)

@@ -28,6 +28,7 @@ contract SyrupArk is Ark {
     ISyrupManager public immutable manager;
     ISyrupWithdrawalManager public immutable withdrawalManager;
     ISyrupRouter public immutable router;
+    bytes32 public immutable summerReferralCode;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -67,6 +68,7 @@ contract SyrupArk is Ark {
 
         // Approve vault to spend Ark's tokens
         config.asset.forceApprove(_vault, Constants.MAX_UINT256);
+        summerReferralCode = bytes32("summer");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -91,9 +93,9 @@ contract SyrupArk is Ark {
 
     /**
      * @notice Request redemption of shares from the Syrup pool
-     * @param amount Amount of shares to redeem
+     * @param amount Amount of token to withdraw
      */
-    function requestRedeem(uint256 amount) external onlyKeeper {
+    function requestWithdrawal(uint256 amount) external onlyKeeper {
         uint256 shares = 0;
         if (amount == type(uint256).max) {
             shares = vault.balanceOf(address(this));
@@ -136,21 +138,9 @@ contract SyrupArk is Ark {
         return IERC20(vault.asset()).balanceOf(address(this));
     }
 
-    function _board(uint256 amount, bytes calldata data) internal override {
-        ISyrupRouter.AuthData memory authData = abi.decode(
-            data,
-            (ISyrupRouter.AuthData)
-        );
+    function _board(uint256 amount, bytes calldata) internal override {
         IERC20(vault.asset()).forceApprove(address(router), amount);
-        router.authorizeAndDeposit(
-            authData.bitmap,
-            authData.deadline,
-            authData.auth_v,
-            authData.auth_r,
-            authData.auth_s,
-            amount,
-            authData.depositData
-        );
+        router.deposit(amount, summerReferralCode);
     }
 
     function _disembark(uint256, bytes calldata) internal override {
@@ -166,14 +156,13 @@ contract SyrupArk is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        // Initialize empty arrays as Syrup pools accrue interest automatically
+        // Syrup can be claimed permissionlessly, we can use sweep()
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
     }
 
     function _validateBoardData(bytes calldata) internal override {
         // No additional validation needed
-        // Transaction will fail if admin signature is invalid
     }
 
     function _validateDisembarkData(bytes calldata) internal override {}

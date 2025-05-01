@@ -79,11 +79,11 @@ export async function getFleetDeploymentInfo(chainName: string): Promise<
             file.endsWith('.json'),
         )
 
-        const arkAddresses: Address[] = []
+        const arks: Address[] = []
         for (const arkFile of arkFiles) {
           const arkPath = path.join(deploymentsDir, arkFile)
           const arkDeployment = JSON.parse(fs.readFileSync(arkPath, 'utf8'))
-          arkAddresses.push(arkDeployment.address)
+          arks.push(arkDeployment.address)
         }
 
         // Extract config from the fleet commander construction args if available
@@ -105,7 +105,7 @@ export async function getFleetDeploymentInfo(chainName: string): Promise<
           name: fleetName,
           fleetCommander: fcDeployment.address,
           bufferArk: bufferArkAddress,
-          arks: arkAddresses,
+          arks: arks,
           config,
         })
       } catch (error) {

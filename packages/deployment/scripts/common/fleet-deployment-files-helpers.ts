@@ -70,20 +70,26 @@ export function getFleetDeploymentPath(fleetDeployment: FleetDeployment | FleetC
 
 /**
  * Prompts the user for the fleet definition file and loads it.
+ * @param isBummer - Optional parameter to filter for bummer fleet configs
  * @returns The loaded fleet definition object.
  */
-export async function getFleetConfig(): Promise<FleetConfig> {
+export async function getFleetConfig(isBummer?: boolean): Promise<FleetConfig> {
   const fleetsDir = getFleetConfigDir()
-  const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
+  const fleetFiles = fs
+    .readdirSync(fleetsDir)
+    .filter((file) => file.endsWith('.json'))
+    .filter((file) => (isBummer ? file.includes('.bummer') : !file.includes('.bummer')))
 
   if (fleetFiles.length === 0) {
-    throw new Error('No fleet config files found in the fleets directory.')
+    throw new Error(
+      `No ${isBummer ? 'bummer ' : ''}fleet config files found in the fleets directory.`,
+    )
   }
 
   const response = await prompts({
     type: 'select',
     name: 'fleetConfigFile',
-    message: 'Select the fleet config file:',
+    message: `Select the ${isBummer ? 'bummer ' : ''}fleet config file:`,
     choices: fleetFiles.map((file) => ({ title: file, value: file })),
   })
 
@@ -148,7 +154,7 @@ export function saveFleetDeploymentJson(
   fleetDefinition: FleetConfig,
   deployedFleet: FleetContracts,
   bufferArkAddress: Address,
-  deployedArkAddresses?: Address[],
+  deployedArks?: Address[],
   isBummer?: boolean,
 ) {
   const deploymentInfo = {
@@ -163,7 +169,7 @@ export function saveFleetDeploymentJson(
     initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
     depositCap: fleetDefinition.depositCap,
     initialTipRate: fleetDefinition.initialTipRate,
-    arkAddresses: deployedArkAddresses?.map((address) => address.toString()),
+    arks: deployedArks?.map((address) => address.toString()),
   }
 
   const deploymentDir = getFleetDeploymentDir()

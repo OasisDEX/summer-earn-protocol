@@ -49,7 +49,12 @@
       "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
       "weth": "0x4200000000000000000000000000000000000006",
       "usds": "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
-      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a"
+      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
+      "morpho": "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842",
+      "reul": "0xE08e1f00D388E201e48842E53fA96195568e6813",
+      "eurc": "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
+      "seam": "0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85",
+      "ws": "0x0000000000000000000000000000000000000000"
     },
     "common": {
       "chainId": "8453",
@@ -73,6 +78,9 @@
       }
     },
     "protocolSpecific": {
+      "syrup": {
+        "pools": {}
+      },
       "aaveV3": {
         "pool": "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
         "rewards": "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44"
@@ -86,7 +94,19 @@
             "Gauntlet_USDC_Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12",
             "Gauntlet_USDC_Prime": "0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61",
             "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
-            "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
+            "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183",
+            "Spark_USDC": "0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A",
+            "Seamless_USDC": "0x616a4E1db48e22028f6bbf20444Cd3b8e3273738"
+          },
+          "eurc": {
+            "Steakhouse_EURC": "0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5",
+            "Gauntlet_EURC_Core": "0x1c155be6bC51F2c37d472d4C2Eba7a637806e122",
+            "Moonwell_Flagship_EURC": "0xf24608E0CCb972b0b0f4A6446a0BBf58c701a026"
+          },
+          "weth": {
+            "Moonwell_Flagship_WETH": "0xa0E430870c4604CcfC7B38Ca7845B1FF653D0ff1",
+            "Steakhouse_WETH": "0xbEEf050a7485865A7a8d8Ca0CC5f7536b7a3443e",
+            "Gauntlet_WETH_Core": "0x6b13c060F13Af1fdB319F52315BbbF3fb1D88844"
           }
         },
         "markets": {
@@ -108,6 +128,9 @@
         "pools": {
           "usdc": {
             "cToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
+          },
+          "weth": {
+            "cToken": "0x46e6b214b524310239732D51387075E0e70970bf"
           }
         },
         "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1"
@@ -115,7 +138,25 @@
       "erc4626": {
         "usdc": {
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+        },
+        "eurc": {
+          "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"
+        },
+        "weth": {
+          "Fluid": "0x9272D6153133175175Bc276512B2336BE3931CE9",
+          "Euler_Base_WETH": "0x859160DB5841E5cfB8D3f144C6b3381A85A4b410"
         }
+      },
+      "moonwell": {
+        "pools": {
+          "eurc": {
+            "mToken": "0xb682c840B5F4FC58B20769E691A6fa1305A501a2"
+          },
+          "usdc": {
+            "mToken": "0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22"
+          }
+        },
+        "comptroller": "0xfBb21d0380beE3312B33c4353c8936a0F13EF26C"
       },
       "sky": {
         "psm3": {
@@ -202,7 +243,8 @@
       "erc4626": {
         "usdc": {
           "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6",
-          "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096"
+          "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
+          "Sky_sUSDC": "0x940098b108fB7D0a7E374f6eDED7760787464609"
         },
         "usdce": {
           "Gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
@@ -319,7 +361,11 @@
       "weth": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
       "usds": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
       "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
-      "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+      "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "morpho": "0x58D97B57BB95320F9a05dC918Aef65434969c2B2",
+      "reul": "0xf3e621395fc714b90da337aa9108771597b4e696",
+      "seam": "0x0000000000000000000000000000000000000000",
+      "ws": "0x0000000000000000000000000000000000000000"
     },
     "common": {
       "chainId": "1",
@@ -343,6 +389,23 @@
       }
     },
     "protocolSpecific": {
+      "originETH": {
+        "originETH": "0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3",
+        "arm": "0x6bac785889A4127dB0e0CeFEE88E0a9F1Aaf3cC7"
+      },
+      "syrup": {
+        "pools": {
+          "usdc": {
+            "syrup": "0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b",
+            "router": "0x134cCaaA4F1e4552eC8aEcb9E4A2360dDcF8df76",
+            "poolManager": "0x7aD5fFa5fdF509E30186F4609c2f6269f4B6158F",
+            "poolPermissionManager": "0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3",
+            "syrupAdmin": "0xd6d4Bcde6c816F17889f1Dd3000aF0261B03a196",
+            "withdrawalManager": "0x1bc47a0Dd0FdaB96E9eF982fdf1F34DC6207cfE3",
+            "syrupRedeemer": "0x074a98D830eD61f39732FFa258e407f5cA7a8AaF"
+          }
+        }
+      },
       "erc4626": {
         "usdc": {
           "Gearbox": "0xda00000035fef4082f78def6a8903bee419fbf8e",
@@ -363,7 +426,8 @@
         "weth": {
           "Gearbox": "0xda0002859b2d05f66a753d8241fcde8623f26f4f",
           "Fluid": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
-          "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2"
+          "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
+          "Euler_Swaap_Lend": "0x716bF454066a84F39A2F78b5707e79a9d64f1225"
         }
       },
       "pendle": {
@@ -409,7 +473,8 @@
             "Flagship_USDC": "0x186514400e52270cef3D80e1c6F8d10A75d47344",
             "Steakhouse": "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
             "Gauntlet_USDC_Prime": "0xdd0f28e19C1780eb6396170735D45153D261490d",
-            "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78"
+            "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78",
+            "Smokehouse_USDC": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC"
           },
           "dai": {},
           "usde": {},
@@ -417,12 +482,16 @@
             "Flagship_USDT": "0x2C25f6C25770fFEC5959D34B94Bf898865e5D6b1",
             "Steakhouse_USDT": "0xbEef047a543E45807105E51A8BBEFCc5950fcfBa",
             "Gauntlet_USDT_Prime": "0x8CB3649114051cA5119141a34C200D65dc0Faa73",
-            "RE7_USDT": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8"
+            "RE7_USDT": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8",
+            "Smokehouse_USDT": "0xA0804346780b4c2e3bE118ac957D1DB82F9d7484"
           },
           "usdce": {},
           "weth": {
             "Gauntlet_WETH_Prime": "0x2371e134e3455e0593363cBF89d3b6cf53740618",
-            "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0"
+            "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0",
+            "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4",
+            "Mev_Capital_WETH": "0x9a8bC3B04b7f3D87cfC09ba407dCED575f2d61D8",
+            "Gauntlet_WETH_Core": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658"
           }
         },
         "markets": {
@@ -463,6 +532,9 @@
           "usde": "0x0000000000000000000000000000000000000000",
           "usdt": "0x0000000000000000000000000000000000000000",
           "usdce": "0x0000000000000000000000000000000000000000"
+        },
+        "staking": {
+          "sky": "0x0650CAF159C5A49f711e8169D4336ECB9b950275"
         }
       }
     }
@@ -518,7 +590,10 @@
       "weth": "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b",
       "usds": "0x0000000000000000000000000000000000000000",
       "stakedUsds": "0x0000000000000000000000000000000000000000",
-      "usdt": "0x6047828dc181963ba44974801FF68e538dA5eaF9"
+      "usdt": "0x6047828dc181963ba44974801FF68e538dA5eaF9",
+      "seam": "0x0000000000000000000000000000000000000000",
+      "ws": "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+      "reul": "0x0000000000000000000000000000000000000000"
     },
     "common": {
       "chainId": "146",
@@ -550,6 +625,9 @@
       }
     },
     "protocolSpecific": {
+      "syrup": {
+        "pools": {}
+      },
       "aaveV3": {
         "pool": "0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3",
         "rewards": "0x24bD6e9ca54F1737467DEf82dCA9702925B3Aa59"
@@ -565,6 +643,18 @@
         },
         "weth": {
           "Euler_MEV_Capital": "0xa5cd24d9792F4F131f5976Af935A505D19c8Db2b"
+        }
+      },
+      "silo": {
+        "pools": {
+          "usdc": {},
+          "dai": {},
+          "usde": {},
+          "usdt": {},
+          "usdce": {
+            "market_20": "0x322e1d5384aa4ED66AeCa770B95686271de61dc3",
+            "market_8": "0x4E216C15697C1392fE59e1014B009505E05810Df"
+          }
         }
       }
     }
