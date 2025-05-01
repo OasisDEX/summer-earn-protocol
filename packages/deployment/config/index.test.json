@@ -393,7 +393,12 @@
         "pools": {
           "usdc": {
             "syrup": "0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b",
-            "router": "0x134cCaaA4F1e4552eC8aEcb9E4A2360dDcF8df76"
+            "router": "0x134cCaaA4F1e4552eC8aEcb9E4A2360dDcF8df76",
+            "poolManager": "0x7aD5fFa5fdF509E30186F4609c2f6269f4B6158F",
+            "poolPermissionManager": "0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3",
+            "syrupAdmin": "0xd6d4Bcde6c816F17889f1Dd3000aF0261B03a196",
+            "withdrawalManager": "0x1bc47a0Dd0FdaB96E9eF982fdf1F34DC6207cfE3",
+            "syrupRedeemer": "0x074a98D830eD61f39732FFa258e407f5cA7a8AaF"
           }
         }
       },

@@ -68,15 +68,23 @@ export async function addArkToFleet(
       console.log(kleur.red('Ark already added to fleet. Skipping adding Ark to fleet.'))
       return
     }
+
+    // Additional check to ensure the ark is not already in the fleet
+    const fleetContract = await hre.viem.getContractAt(
+      'FleetCommander' as string,
+      fleet.fleetAddress,
+    )
+    const isArkInFleet = await fleetContract.read.isArkInFleet([arkAddress])
+    if (isArkInFleet) {
+      console.log(kleur.red('Ark is already in the fleet. Skipping adding Ark to fleet.'))
+      return
+    }
+
     await grantCommanderRole(
       config.deployedContracts.gov.protocolAccessManager.address as Address,
       arkAddress as Address,
       fleet.fleetAddress as Address,
       hre,
-    )
-    const fleetContract = await hre.viem.getContractAt(
-      'FleetCommander' as string,
-      fleet.fleetAddress,
     )
     const protocolAccessManager = await hre.viem.getContractAt(
       'ProtocolAccessManager' as string,

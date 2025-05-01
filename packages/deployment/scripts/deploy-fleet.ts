@@ -249,7 +249,7 @@ async function handleNewFleetDeployment(
         await createHubGovernanceProposal(
           deployedFleet,
           bufferArkAddress,
-          deployedArkAddresses,
+          deployedArks,
           config,
           fleetDefinition,
           useBummerConfig,
@@ -259,7 +259,7 @@ async function handleNewFleetDeployment(
         await createSatelliteGovernanceProposal(
           deployedFleet,
           bufferArkAddress,
-          deployedArkAddresses,
+          deployedArks,
           config,
           fleetDefinition,
           useBummerConfig,
@@ -386,7 +386,7 @@ async function handleArkAddition(
       console.log(kleur.green('Deployer has governor role. Adding Arks directly...'))
 
       // Add each Ark to the Fleet
-      for (const arkAddress of deployedArkAddresses) {
+      for (const arkAddress of deployedArks) {
         await addArkToFleet(arkAddress, config, hre, fleetDefinition)
       }
 
@@ -429,7 +429,7 @@ async function handleArkAddition(
         // Create cross-chain proposal for adding arks on a satellite chain
         await createArkAdditionCrossChainProposal(
           fleetCommanderAddress,
-          deployedArkAddresses,
+          deployedArks,
           config,
           proposalFleetDefinition, // Use the definition with the specific URL
           useBummerConfig,
