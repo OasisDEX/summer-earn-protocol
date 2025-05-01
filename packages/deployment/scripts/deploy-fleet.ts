@@ -99,7 +99,7 @@ async function deployFleet() {
   console.log(kleur.green().bold(`Starting ${deploymentMode} process...`))
 
   // Load fleet configuration
-  const fleetDefinition = await getFleetConfig()
+  const fleetDefinition = await getFleetConfig(useBummerConfig)
   validateToken(config, fleetDefinition.assetSymbol)
 
   // Handle the deployment based on the chosen mode
