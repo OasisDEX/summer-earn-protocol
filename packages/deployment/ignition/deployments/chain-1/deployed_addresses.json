@@ -62,5 +62,7 @@
   "LazyVault_HigherRisk_WETH_MorphoVault_weth_Re7_WETH_1#MorphoVaultArk": "0x5982d78aB5f7ED0e7d3Feb08fdDd1DaAb15212CC",
   "FleetModule_BummerLazyVault_USDC#FleetCommander": "0x8360E8224e3948CD7feBdC5fa8C12d50AF81187D",
   "SkyRewards_usdc_1#SkyRewardsArk": "0xEbB995783F095bfB0526EAce1de50b3f80449a5e",
-  "BummerLazyVault_USDC_Syrup_usdc_1#SyrupArk": "0x35e09f7dE2c96Fa4682505EF4a0eb7b148B7f0c0"
+  "BummerLazyVault_USDC_Syrup_usdc_1#SyrupArk": "0x35e09f7dE2c96Fa4682505EF4a0eb7b148B7f0c0",
+  "FleetModule_BummerLazyVault_WETH#FleetCommander": "0x40e9C802f9566B16A66A48d9a1d7a8D73FE55651",
+  "BummerLazyVault_WETH_OriginETH_weth_1#OriginETHArk": "0xb3eFCD66c7F5957ff7Da3beCA97d59fBf20f02F8"
 }

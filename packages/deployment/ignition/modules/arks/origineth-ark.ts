@@ -15,7 +15,7 @@ export function createOriginETHArkModule(moduleName: string) {
     const arkParams = m.getParameter('arkParams')
 
     const originETHArk = m.contract('OriginETHArk', [originETH, arm, arkParams])
-    console.log('originETHArk', originETHArk)
+
     return { originETHArk }
   })
 }
