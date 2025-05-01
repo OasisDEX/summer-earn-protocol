@@ -26,6 +26,7 @@ export enum ArkType {
   SyrupArk = 'SyrupArk',
   SkyRewardsArk = 'SkyRewardsArk',
   SiloArk = 'SiloArk',
+  OriginETHArk = 'OriginETHArk',
 }
 
 export const arkTypes = [
@@ -44,6 +45,7 @@ export const arkTypes = [
   { title: 'SyrupArk', value: ArkType.SyrupArk },
   { title: 'SkyRewardsArk', value: ArkType.SkyRewardsArk },
   { title: 'SiloArk', value: ArkType.SiloArk },
+  { title: 'OriginETHArk', value: ArkType.OriginETHArk },
 ]
 
 export interface Config {
@@ -181,6 +183,10 @@ export interface BaseConfig {
           [key: string]: Address
         }
       }
+    }
+    originETH: {
+      originETH: Address
+      arm: Address
     }
   }
 }
