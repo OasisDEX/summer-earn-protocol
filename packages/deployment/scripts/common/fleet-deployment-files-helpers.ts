@@ -148,7 +148,7 @@ export function saveFleetDeploymentJson(
   fleetDefinition: FleetConfig,
   deployedFleet: FleetContracts,
   bufferArkAddress: Address,
-  deployedArkAddresses?: Address[],
+  deployedArks?: Address[],
   isBummer?: boolean,
 ) {
   const deploymentInfo = {
@@ -163,7 +163,7 @@ export function saveFleetDeploymentJson(
     initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
     depositCap: fleetDefinition.depositCap,
     initialTipRate: fleetDefinition.initialTipRate,
-    arkAddresses: deployedArkAddresses?.map((address) => address.toString()),
+    arks: deployedArks?.map((address) => address.toString()),
   }
 
   const deploymentDir = getFleetDeploymentDir()

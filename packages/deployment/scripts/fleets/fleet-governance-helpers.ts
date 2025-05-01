@@ -31,7 +31,7 @@ export interface FleetCrossChainContent extends FleetSingleChainContent {
 export async function generateFleetProposalDescription(
   deployedFleet: FleetContracts,
   fleetDefinition: FleetConfig,
-  deployedArkAddresses: Address[],
+  deployedArks: Address[],
   bufferArkAddress: Address,
   isCrossChain: boolean = false,
   targetChain?: string,
@@ -134,12 +134,12 @@ export async function generateFleetProposalDescription(
 This proposal activates the ${fleetDefinition.fleetName} Fleet (${fleetDefinition.symbol}).
 
 ## Motivation
-This fleet deployment will expand the protocol's capabilities by adding ${deployedArkAddresses.length} new Arks to the ecosystem.
+This fleet deployment will expand the protocol's capabilities by adding ${deployedArks.length} new Arks to the ecosystem.
 
 ## Technical Details
 - Fleet Commander: ${deployedFleet.fleetCommander.address}
 - Buffer Ark: ${bufferArkAddress}
-- Number of Arks: ${deployedArkAddresses.length}
+- Number of Arks: ${deployedArks.length}
 ${curatorSection}
 
 ## Specifications
@@ -147,7 +147,7 @@ ${curatorSection}
 1. Add Fleet to Harbor Command
 2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
 3. Grant COMMANDER_ROLE to Fleet Commander for each Ark
-4. Add ${deployedArkAddresses.length} Arks to the Fleet
+4. Add ${deployedArks.length} Arks to the Fleet
 ${curatorAddress ? '5. Grant CURATOR_ROLE to Curator for the Fleet' : ''}
 ${rewardInfo?.tokens ? `${curatorAddress ? '6' : '5'}. Set up rewards for ${rewardInfo.tokens.length} tokens` : ''}
 
@@ -188,7 +188,7 @@ This cross-chain fleet deployment will expand the protocol's capabilities across
 - Target Chain: ${targetChain}
 - Fleet Commander: ${deployedFleet.fleetCommander.address}
 - Buffer Ark: ${bufferArkAddress}
-- Number of Arks: ${deployedArkAddresses.length}
+- Number of Arks: ${deployedArks.length}
 ${curatorSection}
 ${bridgeSection}
 
@@ -197,7 +197,7 @@ ${bridgeSection}
 This proposal will execute the following actions on ${targetChain}:
 ${bridgeAmount ? `1. Bridge ${formattedBridgeAmount} tokens to the target chain\n` : ''}${bridgeAmount ? '2' : '1'}. Add Fleet to Harbor Command
 ${bridgeAmount ? '3' : '2'}. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
-${bridgeAmount ? '4' : '3'}. Add ${deployedArkAddresses.length} Arks to the Fleet
+${bridgeAmount ? '4' : '3'}. Add ${deployedArks.length} Arks to the Fleet
 ${bridgeAmount ? '5' : '4'}. Grant COMMANDER_ROLE to Fleet Commander for each Ark
 ${curatorAddress ? `${bridgeAmount ? '6' : '5'}. Grant CURATOR_ROLE to Curator for the Fleet` : ''}
 ${rewardInfo?.tokens ? `${curatorAddress ? (bridgeAmount ? '7' : '6') : bridgeAmount ? '6' : '5'}. Set up rewards for ${rewardInfo.tokens.length} tokens` : ''}
@@ -318,7 +318,7 @@ function formatTipRate(tipRate: string): string {
  */
 export function prepareArkAdditionActions(
   fleetCommanderAddress: Address,
-  arkAddresses: Address[],
+  arks: Address[],
   protocolAccessManagerAddress: Address,
 ): { targets: Address[]; values: bigint[]; calldatas: Hex[] } {
   const targets: Address[] = []
@@ -326,7 +326,7 @@ export function prepareArkAdditionActions(
   const calldatas: Hex[] = []
 
   // Grant COMMANDER_ROLE to Fleet Commander for each Ark
-  for (const arkAddress of arkAddresses) {
+  for (const arkAddress of arks) {
     targets.push(protocolAccessManagerAddress)
     values.push(0n)
     calldatas.push(
@@ -340,7 +340,7 @@ export function prepareArkAdditionActions(
   }
 
   // Add each Ark to the Fleet Commander
-  for (const arkAddress of arkAddresses) {
+  for (const arkAddress of arks) {
     targets.push(fleetCommanderAddress)
     values.push(0n)
     calldatas.push(
@@ -499,7 +499,7 @@ export async function prepareRewardSetupActions(
  */
 export async function createArkAdditionProposal(
   fleetCommanderAddress: Address,
-  arkAddresses: Address[],
+  arks: Address[],
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
@@ -514,20 +514,20 @@ export async function createArkAdditionProposal(
   // Get the actions for adding arks
   const { targets, values, calldatas } = prepareArkAdditionActions(
     fleetCommanderAddress,
-    arkAddresses,
+    arks,
     protocolAccessManagerAddress,
   )
 
   // Format ark addresses for display in proposal
-  const arkAddressList = arkAddresses.map((addr, i) => `${i + 1}. \`${addr}\``).join('\n')
+  const arkAddressList = arks.map((addr, i) => `${i + 1}. \`${addr}\``).join('\n')
 
   // Create simplified proposal title and description with SIP2 prefix for ARK management
-  const isMultiple = arkAddresses.length > 1
-  const title = `SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet`
+  const isMultiple = arks.length > 1
+  const title = `SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${arks.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet`
   const description = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
 
 ## Summary
-This proposal adds ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet.
+This proposal adds ${arks.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet.
 
 ## New ${isMultiple ? 'Ark Addresses' : 'Ark Address'}
 ${arkAddressList}
@@ -584,7 +584,7 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
 export async function createHubGovernanceProposal(
   deployedFleet: FleetContracts,
   bufferArkAddress: Address,
-  deployedArkAddresses: Address[],
+  deployedArks: Address[],
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
@@ -623,7 +623,7 @@ export async function createHubGovernanceProposal(
   // 3. Add Arks and grant COMMANDER_ROLE
   const arkActions = prepareArkAdditionActions(
     deployedFleet.fleetCommander.address,
-    deployedArkAddresses,
+    deployedArks,
     protocolAccessManagerAddress,
   )
   targets = [...targets, ...arkActions.targets]
@@ -684,7 +684,7 @@ export async function createHubGovernanceProposal(
     console.log(kleur.cyan('Creating Tally draft proposal with the following actions:'))
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
     console.log(kleur.yellow('- Grant COMMANDER_ROLE to Fleet Commander for BufferArk'))
-    console.log(kleur.yellow(`- Add ${deployedArkAddresses.length} Arks to the Fleet`))
+    console.log(kleur.yellow(`- Add ${deployedArks.length} Arks to the Fleet`))
     if (curatorAddress) {
       console.log(kleur.yellow(`- Grant CURATOR_ROLE to ${curatorAddress} for the fleet`))
     }
@@ -697,7 +697,7 @@ export async function createHubGovernanceProposal(
     const proposalContent = await generateFleetProposalDescription(
       deployedFleet,
       fleetDefinition,
-      deployedArkAddresses,
+      deployedArks,
       bufferArkAddress,
       false, // isCrossChain
       HUB_CHAIN_NAME, // targetChain (will be overridden)
@@ -762,7 +762,7 @@ export async function createHubGovernanceProposal(
 export async function createSatelliteGovernanceProposal(
   deployedFleet: FleetContracts,
   bufferArkAddress: Address,
-  deployedArkAddresses: Address[],
+  deployedArks: Address[],
   targetChainConfig: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
@@ -828,7 +828,7 @@ export async function createSatelliteGovernanceProposal(
   // 3.3 & 3.4 Add Arks and grant COMMANDER_ROLE
   const arkActions = prepareArkAdditionActions(
     deployedFleet.fleetCommander.address,
-    deployedArkAddresses,
+    deployedArks,
     protocolAccessManagerAddress,
   )
   dstTargets.push(...arkActions.targets)
@@ -889,7 +889,7 @@ export async function createSatelliteGovernanceProposal(
   const proposalDescriptions = (await generateFleetProposalDescription(
     deployedFleet,
     fleetDefinition,
-    deployedArkAddresses,
+    deployedArks,
     bufferArkAddress,
     true, // isCrossChain
     hre.network.name, // targetChain
@@ -990,7 +990,7 @@ export async function createSatelliteGovernanceProposal(
     }
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
     console.log(kleur.yellow('- Grant COMMANDER_ROLE to Fleet Commander for BufferArk'))
-    console.log(kleur.yellow(`- Add ${deployedArkAddresses.length} Arks to the Fleet`))
+    console.log(kleur.yellow(`- Add ${deployedArks.length} Arks to the Fleet`))
     if (curatorAddress) {
       console.log(kleur.yellow(`- Grant CURATOR_ROLE to ${curatorAddress} for the fleet`))
     }
@@ -1070,7 +1070,7 @@ export async function createSatelliteGovernanceProposal(
  */
 export async function createArkAdditionCrossChainProposal(
   fleetCommanderAddress: Address,
-  arkAddresses: Address[],
+  arks: Address[],
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
@@ -1098,20 +1098,20 @@ export async function createArkAdditionCrossChainProposal(
     targets: dstTargets,
     values: dstValues,
     calldatas: dstCalldatas,
-  } = prepareArkAdditionActions(fleetCommanderAddress, arkAddresses, protocolAccessManagerAddress)
+  } = prepareArkAdditionActions(fleetCommanderAddress, arks, protocolAccessManagerAddress)
 
   // Format ark addresses for display in proposal
-  const arkAddressList = arkAddresses.map((addr, i) => `${i + 1}. \`${addr}\``).join('\n')
+  const arkAddressList = arks.map((addr, i) => `${i + 1}. \`${addr}\``).join('\n')
 
   // Determine singular or plural based on number of arks
-  const isMultiple = arkAddresses.length > 1
+  const isMultiple = arks.length > 1
 
   // Create proposal title
-  const title = `SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
+  const title = `SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${arks.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
 
   // Destination chain description body (without H1 title)
   const dstDescriptionBody = `## Summary
-This proposal adds ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
+This proposal adds ${arks.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
 
 ## New ${isMultiple ? 'Ark Addresses' : 'Ark Address'}
 ${arkAddressList}
@@ -1128,7 +1128,7 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
 
   // Source chain description body (without H1 title)
   const srcDescriptionBody = `## Summary
-This is a cross-chain governance proposal to add ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
+This is a cross-chain governance proposal to add ${arks.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
 
 ## Motivation
 Expanding this fleet with additional ${isMultiple ? 'Arks' : 'an Ark'} will enhance the protocol's capabilities on ${hre.network.name}.
@@ -1137,7 +1137,7 @@ Expanding this fleet with additional ${isMultiple ? 'Arks' : 'an Ark'} will enha
 - Hub Chain: ${HUB_CHAIN_NAME}${useBummerConfig ? ' (Bummer)' : ' (Production)'}
 - Target Chain: ${hre.network.name}
 - Fleet Commander: ${fleetCommanderAddress}
-- Number of ${isMultiple ? 'Arks' : 'Ark'} to add: ${arkAddresses.length}
+- Number of ${isMultiple ? 'Arks' : 'Ark'} to add: ${arks.length}
 
 ## New ${isMultiple ? 'Ark Addresses' : 'Ark Address'}
 ${arkAddressList}
