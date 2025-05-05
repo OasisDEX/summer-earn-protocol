@@ -2,6 +2,13 @@ specVersion: 0.0.8
 description: Rates
 schema:
   file: ./schema.graphql
+{{#enable-grafting}}
+features:
+  - grafting
+graft:
+  base: {{grafting-base}}
+  block: {{grafting-block}}
+{{/enable-grafting}}  
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
@@ -72,6 +79,8 @@ dataSources:
           file: ./abis/oracles/spark-oracle.json
         - name: AaveV2Oracle
           file: ./abis/oracles/aave-v2-price-oracle.json  
+        - name: IStakingRewards
+          file: ./abis/IStakingRewards.json
       blockHandlers:
         - handler: handleBlock
           filter:

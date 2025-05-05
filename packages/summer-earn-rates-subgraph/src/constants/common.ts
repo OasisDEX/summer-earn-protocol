@@ -22,6 +22,7 @@ export class BigIntConstants {
   static ZERO: BigInt = BigInt.fromI32(0)
   static ONE: BigInt = BigInt.fromI32(1)
   static TEN: BigInt = BigInt.fromI32(10)
+  static EIGHTEEN: BigInt = BigInt.fromI32(18)
   static WAD: BigInt = BigInt.fromI32(10).pow(18)
   static RAY: BigInt = BigInt.fromI32(10).pow(27)
   static RAD: BigInt = BigInt.fromI32(10).pow(45)
