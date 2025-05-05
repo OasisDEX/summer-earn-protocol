@@ -320,13 +320,6 @@ class ProtocolConfig {
       ]),
       new Protocol('Staked Stables', [
         new GenericVaultProduct(
-          getOrCreateToken(addresses.USDC),
-          Address.fromString('0x80ac24aa929eaf5013f6436cda2a7ba190f5cc0b'),
-          BigInt.fromI32(18928285),
-          'sUSDC',
-          Address.fromString('0xd2c59781f1db84080a0592ce83fe265642a4a8eb'),
-        ),
-        new GenericVaultProduct(
           getOrCreateToken(addresses.SUSDE),
           Address.fromString('0x9D39A5DE30e57443BfF2A8307A4256c8797A3497'),
           BigInt.fromI32(18928285),
