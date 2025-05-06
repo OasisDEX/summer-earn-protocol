@@ -6,7 +6,8 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
 contract StargateAdapterSendTest is StargateAdapterSetupTest {
     function testEstimateFee() public {
@@ -141,6 +142,14 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Verify it matches our pre-calculated ID
         assertEq(operationId, expectedOperationId);
+
+        // Verify the operation status is still PENDING
+        assertEq(
+            uint256(
+                IBridgeRouter(address(routerA)).getOperationStatus(operationId)
+            ),
+            uint256(BridgeTypes.OperationStatus.PENDING)
+        );
     }
 
     function testTransferAssetUnauthorized() public {

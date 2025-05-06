@@ -10,7 +10,7 @@ library BridgeTypes {
      * @notice Status of a cross-chain transfer
      */
     enum OperationStatus {
-        UNKNOWN,
+        QUEUED,
         PENDING,
         DELIVERED,
         FAILED,
@@ -40,5 +40,40 @@ library BridgeTypes {
         MESSAGE,
         READ_STATE,
         TRANSFER_ASSET
+    }
+
+    /**
+     * @notice Parameters for executeTransferAssets
+     */
+    struct ExecuteTransferParams {
+        uint16 destinationChainId;
+        address asset;
+        uint256 amount;
+        address recipient;
+        address originator;
+        BridgeOptions options;
+    }
+
+    /**
+     * @notice Parameters for executeReadState
+     */
+    struct ExecuteReadStateParams {
+        uint16 dstChainId;
+        address dstContract;
+        bytes4 selector;
+        bytes readParams;
+        address originator;
+        BridgeOptions options;
+    }
+
+    /**
+     * @notice Parameters for executeSendMessage
+     */
+    struct ExecuteSendMessageParams {
+        uint16 destinationChainId;
+        address recipient;
+        bytes message;
+        address originator;
+        BridgeOptions options;
     }
 }

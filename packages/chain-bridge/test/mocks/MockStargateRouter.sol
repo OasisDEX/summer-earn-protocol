@@ -12,7 +12,9 @@ contract MockStargateRouter {
         address refundAddress,
         uint256 amount,
         uint256 amountMin,
-        IStargateRouter.lzTxObj lzTxParams,
+        uint256 dstGasForCall,
+        uint256 dstNativeAmount,
+        bytes dstNativeAddr,
         bytes toAddress,
         bytes payload
     );
@@ -37,7 +39,9 @@ contract MockStargateRouter {
             _refundAddress,
             _amountLD,
             _minAmountLD,
-            _lzTxParams,
+            _lzTxParams.dstGasForCall,
+            _lzTxParams.dstNativeAmount,
+            _lzTxParams.dstNativeAddr,
             _to,
             _payload
         );

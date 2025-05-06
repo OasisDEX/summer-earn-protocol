@@ -8,6 +8,7 @@ import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {console} from "forge-std/console.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
+import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
 
 contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
     // Add a MockCrossChainReceiver instance
@@ -152,12 +153,11 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         // Set the originator for the read request to our mock receiver instead of user
         routerA.setReadRequestOriginator(operationId, address(mockReceiver));
 
-        vm.startPrank(address(this)); // Acting as the test contract
-        adapterA.updateOperationStatus(
+        // Set the initial status using the test helper
+        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
             operationId,
             BridgeTypes.OperationStatus.PENDING
         );
-        vm.stopPrank();
 
         // Verify pending status on chain A
         assertEq(

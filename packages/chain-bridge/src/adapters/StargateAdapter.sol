@@ -474,7 +474,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         bytes32 transferId = abi.decode(_payload, (bytes32));
 
         // Convert _srcAddress to an address (this would be the recipient encoded from the source chain)
-        address recipient = abi.decode(_srcAddress, (address));
+        address recipient = _srcAddress.length == 20
+            ? address(bytes20(_srcAddress))
+            : abi.decode(_srcAddress, (address));
 
         // Forward the tokens to the recipient (likely CrossChainArkProxy)
         IERC20(_token).safeTransfer(recipient, _amount);

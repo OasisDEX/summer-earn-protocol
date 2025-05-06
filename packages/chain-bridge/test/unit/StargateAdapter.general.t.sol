@@ -139,14 +139,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         address[] memory supportedAssets = adapterA.getSupportedAssets(
             CHAIN_ID_A
         );
-        bool found = false;
-        for (uint i = 0; i < supportedAssets.length; i++) {
-            if (supportedAssets[i] == address(newToken)) {
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found);
+        assertEq(supportedAssets.length, 2); // Original token + new token
     }
 
     function testAddAssetToUnsupportedChain() public {

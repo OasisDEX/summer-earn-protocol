@@ -14,10 +14,25 @@ contract BridgeRouterTestHelper is BridgeRouter {
     /**
      * @notice Constructor for BridgeRouterTestHelper
      * @param _accessManager Address of the access manager
+     * @param _bridgeQueue Address of the bridge queue
+     * @param _chainIds Array of chain IDs
+     * @param _routerAddresses Array of router addresses
      */
     constructor(
-        address _accessManager
-    ) BridgeRouter(_accessManager, new uint16[](0), new address[](0)) {}
+        address _accessManager,
+        address _bridgeQueue,
+        uint16[] memory _chainIds,
+        address[] memory _routerAddresses
+    )
+        BridgeRouter(
+            _accessManager,
+            _bridgeQueue,
+            new uint16[](0),
+            new address[](0)
+        )
+    {
+        // Initialize any test-specific state here
+    }
 
     /**
      * @notice Updates the operationToAdapter mapping for testing
@@ -71,5 +86,18 @@ contract BridgeRouterTestHelper is BridgeRouter {
         bytes32 requestId
     ) external view returns (address) {
         return readRequestToOriginator[requestId];
+    }
+
+    /**
+     * @notice Sets the operation status directly for testing purposes
+     * @param operationId ID of the operation
+     * @param status Status to set
+     * @dev This bypasses the normal status progression checks and should only be used in tests
+     */
+    function setOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external {
+        operationStatuses[operationId] = status;
     }
 }

@@ -2,15 +2,16 @@
 pragma solidity ^0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
  * @title IBridgeRouter
  * @notice Interface for the BridgeRouter contract that coordinates cross-chain operations
- * @dev This interface defines all external functions for interacting with bridge adapters.
- *      Access control is managed through ProtocolAccessManaged, using roles from the
- *      protocol's central access management system.
+ * @dev Defines external functions for adapter callbacks, BridgeQueue calls,
+ *      and governance. Access control is managed through ProtocolAccessManaged.
+ *      User-initiated operations are intended to go through the BridgeQueue.
  */
-interface IBridgeRouter {
+interface IBridgeRouter is IERC165 {
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -21,7 +22,7 @@ interface IBridgeRouter {
     /// @notice Emitted when an adapter is removed
     event AdapterRemoved(address indexed adapter);
 
-    /// @notice Emitted when a transfer is initiated
+    /// @notice Emitted when a transfer is initiated by the BridgeQueue
     event TransferInitiated(
         bytes32 indexed operationId,
         uint16 destinationChainId,
@@ -31,7 +32,7 @@ interface IBridgeRouter {
         address adapter
     );
 
-    /// @notice Emitted when a message is initiated
+    /// @notice Emitted when a message is initiated by the BridgeQueue
     event MessageInitiated(
         bytes32 indexed operationId,
         uint16 destinationChainId,
@@ -54,10 +55,10 @@ interface IBridgeRouter {
         uint16 sourceChainId
     );
 
-    /// @notice Emitted when a read request is initiated
+    /// @notice Emitted when a read request is initiated by the BridgeQueue
     event ReadRequestInitiated(
         bytes32 indexed operationId,
-        uint16 sourceChainId,
+        uint16 destinationChainId, // Corrected from sourceChainId for clarity
         address dstContract,
         bytes4 selector,
         bytes readParams,
@@ -66,16 +67,6 @@ interface IBridgeRouter {
 
     /// @notice Emitted when sending a confirmation message fails
     event ConfirmationFailed(bytes32 indexed operationId);
-
-    /// @notice Emitted when an operation status is manually updated
-    event ManualStatusUpdate(
-        bytes32 indexed operationId,
-        BridgeTypes.OperationStatus status,
-        address updater
-    );
-
-    /// @notice Emitted when funds are added to the router
-    event RouterFundsAdded(address indexed contributor, uint256 amount);
 
     /// @notice Emitted when funds are removed from the router
     event RouterFundsRemoved(address indexed recipient, uint256 amount);
@@ -100,8 +91,11 @@ interface IBridgeRouter {
         address routerAddress
     );
 
-    /// @notice Emitted when the confirmation gas limit is updated
-    event ConfirmationGasLimitUpdated(uint256 newConfirmationGasLimit);
+    /// @notice Emitted when the default gas limit is updated
+    event DefaultGasLimitUpdated(uint256 newDefaultGasLimit);
+
+    /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
+    event BridgeQueueUpdated(address indexed newBridgeQueue);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -109,72 +103,159 @@ interface IBridgeRouter {
 
     /// @notice Error thrown when an adapter is already registered
     error AdapterAlreadyRegistered();
-
     /// @notice Error thrown when an adapter is not registered
     error UnknownAdapter();
-
-    /// @notice Error thrown when a caller is not authorized
+    /// @notice Error thrown when a caller is not authorized (e.g., not a registered adapter)
     error Unauthorized();
-
-    /// @notice Error thrown when the receiver rejects a call
-    error ReceiverRejectedCall();
-
+    /// @notice Error thrown when the receiver rejects a call (e.g., in deliverReadResponse)
+    error ReceiverRejectedCall(); // Keep, might be useful for callbacks
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
 
     /// @notice Error thrown when trying to update status in invalid direction
     error InvalidStatusProgression();
 
+    /// @notice Error thrown when an invalid status is provided
+    error InvalidStatus();
+
     /// @notice Thrown when the contract is paused
     error Paused();
-
     /// @notice Thrown when the provided fee is insufficient
     error InsufficientFee();
-
-    /// @notice Thrown when no suitable adapter is found for a transfer
+    /// @notice Thrown when no suitable adapter is found for an operation
     error NoSuitableAdapter();
-
-    /// @notice Thrown when a transfer fails
+    /// @notice Thrown when a native token transfer fails (e.g., refund)
     error TransferFailed();
-
     /// @notice Thrown when an adapter doesn't support a requested operation
     error UnsupportedAdapterOperation();
-
-    /// @notice Thrown when there are insufficient funds in the router
+    /// @notice Thrown when there are insufficient native funds in the router
     error InsufficientBalance();
+    /// @notice Error for calls not originating from the configured BridgeQueue
+    error OnlyBridgeQueue();
 
     /*//////////////////////////////////////////////////////////////
-                        USER BRIDGE OPERATIONS
+                      BRIDGE QUEUE OPERATIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Transfer assets to a destination chain
-     * @param destinationChainId ID of the destination chain
-     * @param asset Address of the asset to transfer
-     * @param amount Amount of the asset to transfer
-     * @param recipient Address on the destination chain to receive the assets
-     * @param options Additional options for the transfer
-     * @return operationId Unique ID for tracking the transfer
-     * @dev The fee must be provided in the transaction's value (msg.value)
+     * @notice Execute asset transfer initiated by the BridgeQueue.
+     * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
+     *      Expects `msg.value` to cover the *base* fee required by the adapter.
+     *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
+     * @param params Struct containing all parameters for the transfer execution.
+     * @return operationId Unique operation ID.
      */
-    function transferAssets(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        BridgeTypes.BridgeOptions calldata options
+    function executeTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params
     ) external payable returns (bytes32 operationId);
 
     /**
-     * @notice Quote the fee for a bridge operation
-     * @param destinationChainId ID of the destination chain
-     * @param asset Address of the asset to transfer (address(0) for non-asset ops)
-     * @param amount Amount of the asset to transfer (0 for non-asset ops)
-     * @param options Additional options for the operation
-     * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET)
-     * @return nativeFee Fee in the chain's native token
-     * @return tokenFee Fee in the transferred token (if applicable)
-     * @return selectedAdapter Address of the adapter that would be used
+     * @notice Execute state read initiated by the BridgeQueue.
+     * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
+     *      Expects `msg.value` to cover the *base* fee required by the adapter.
+     *      The `originator` parameter represents the original requester; the implementation determines how the response is routed (e.g., back to the originator, or potentially to the BridgeQueue itself depending on the design).
+     * @param params Struct containing all parameters for the state read execution.
+     * @return operationId Unique operation ID.
+     */
+    function executeReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params
+    ) external payable returns (bytes32 operationId);
+
+    /**
+     * @notice Execute message send initiated by the BridgeQueue.
+     * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
+     *      Expects `msg.value` to cover the *base* fee required by the adapter.
+     *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
+     * @param params Struct containing all parameters for the message send execution.
+     * @return operationId Unique operation ID.
+     */
+    function executeSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    ) external payable returns (bytes32 operationId);
+
+    /*//////////////////////////////////////////////////////////////
+                        ADAPTER CALLBACK FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Update the status of an operation (called by adapters)
+     * @param operationId ID of the operation to update
+     * @param status New status of the operation
+     * @dev Called by the adapter handling the operation on the source chain. Requires caller == operationToAdapter[operationId].
+     */
+    function updateOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external;
+
+    /**
+     * @notice Update the status of a received message/transfer (called by adapters)
+     * @param requestId ID of the received request/operation
+     * @param recipient Address of the message recipient (used for event)
+     * @param status New status of the received request (e.g., DELIVERED, FAILED)
+     * @dev Called by the adapter on the destination chain after attempting delivery. Only adapter can call.
+     */
+    function updateReceiveStatus(
+        bytes32 requestId,
+        address recipient,
+        BridgeTypes.OperationStatus status
+    ) external;
+
+    /**
+     * @notice Notify the router that a message or transfer has arrived (called by adapters)
+     * @param operationId ID of the message/transfer received
+     * @param asset Address of the asset received (address(0) for messages)
+     * @param amount Amount of the asset received (0 for messages)
+     * @param recipient Address that received the assets/message
+     * @param sourceChainId ID of the chain where the operation originated
+     * @dev Called by adapter on destination chain upon successful receipt from the bridge protocol.
+     *      Sets status to DELIVERED and attempts to send confirmation back. Only adapter can call.
+     */
+    function notifyMessageReceived(
+        bytes32 operationId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        uint16 sourceChainId
+    ) external;
+
+    /**
+     * @notice Deliver read response data (called by adapters)
+     * @param operationId Unique identifier for the original read request
+     * @param resultData The data returned from the destination chain read
+     * @dev Called by adapter on the source chain upon receiving the response.
+     *      Attempts to forward the result to the original requester. Requires caller == operationToAdapter[operationId].
+     */
+    function deliverReadResponse(
+        bytes32 operationId,
+        bytes calldata resultData
+    ) external;
+
+    /**
+     * @notice Receive a confirmation message from a destination chain (called by adapters)
+     * @param operationId ID of the operation being confirmed (usually as COMPLETED)
+     * @param status The final status received from the confirmation message
+     * @dev Called by adapter on the source chain when a confirmation message arrives. Only adapter can call.
+     */
+    function receiveConfirmation(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external;
+
+    /*//////////////////////////////////////////////////////////////
+                           VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Estimate the base fee for a bridge operation without executing it.
+     * @param destinationChainId ID of the destination/source chain.
+     * @param asset Address of the asset (address(0) for non-asset ops).
+     * @param amount Amount to transfer (0 for non-asset ops).
+     * @param options Bridge options including adapter choice and params.
+     * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET).
+     * @return nativeFee Estimated base fee in native currency.
+     * @return tokenFee Estimated base fee in the asset token (if applicable).
+     * @return selectedAdapter The adapter that would be used for this operation.
      */
     function quote(
         uint16 destinationChainId,
@@ -188,104 +269,20 @@ interface IBridgeRouter {
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter);
 
     /**
-     * @notice Read data from another chain (async operation)
-     * @param sourceChainId ID of the source chain
-     * @param sourceContract Address of the contract on the source chain
-     * @param selector Function selector to call
-     * @param params Parameters for the function call
-     * @param options Additional options for the read operation
-     * @return operationId Unique ID to track this read request
-     * @dev This function initiates a cross-chain read operation that will be completed
-     *      asynchronously when the response is received from the source chain
-     */
-    function readState(
-        uint16 sourceChainId,
-        address sourceContract,
-        bytes4 selector,
-        bytes calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 operationId);
-
-    /**
-     * @notice Send a general cross-chain message
-     * @param destinationChainId ID of the destination chain
-     * @param recipient Address of the recipient on the destination chain
-     * @param message The message data to be sent cross-chain
-     * @param options Additional options for the message
-     * @return operationId Unique ID to track this message
-     * @dev This function selects the best adapter for messaging based on user preferences
-     *      and initiates the cross-chain message transfer
-     */
-    function sendMessage(
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata message,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable returns (bytes32 operationId);
-
-    /*//////////////////////////////////////////////////////////////
-                        ADAPTER CALLBACK FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Receive and deliver read responses from adapters
-     * @param operationId Unique identifier for the read request
-     * @param resultData The data returned from the source chain
-     * @dev This function is called by bridge adapters when a read request has been completed
-     *      It forwards the result to the original requester
-     */
-    function deliverReadResponse(
-        bytes32 operationId,
-        bytes calldata resultData
-    ) external;
-
-    /**
-     * @notice Update the status of an operation (called by adapters)
-     * @param operationId ID of the operation to update
-     * @param status New status of the operation
-     * @dev This function can only be called by the adapter that initiated the operation
-     */
-    function updateOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external;
-
-    /**
-     * @notice Update the status of a received operation (called by adapters)
-     * @param requestId ID of the received request to update
-     * @param status New status of the received request
-     * @param recipient Address of the message recipient (only needed for COMPLETED status)
-     * @dev This function can only be called by the adapter that received the request
-     */
-    function updateReceiveStatus(
-        bytes32 requestId,
-        address recipient,
-        BridgeTypes.OperationStatus status
-    ) external;
-
-    /*//////////////////////////////////////////////////////////////
-                           VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
      * @notice Get the status of an operation
      * @param operationId ID of the operation
      * @return Status of the operation
-     * @dev Returns the current status of a cross-chain operation (transfer, message, or read)
      */
     function getOperationStatus(
         bytes32 operationId
     ) external view returns (BridgeTypes.OperationStatus);
 
     /**
-     * @notice Get the best adapter for a specific transfer
+     * @notice Get the best adapter for a specific transfer (deprecated, use typed version)
      * @param chainId ID of the destination/source chain
-     * @param asset Address of the asset (address(0) for native/reads)
-     * @param amount Amount to transfer (0 for reads)
-     * @return bestAdapter Address of the best adapter
-     * @dev Determines the most suitable adapter based on fees:
-     *      - For transfers, selects the adapter with the lowest fee.
-     *      - For read operations (asset=address(0) or amount=0), returns first valid adapter.
+     * @param asset Address of the asset (address(0) for native/reads/messages)
+     * @param amount Amount to transfer (0 for reads/messages)
+     * @return bestAdapter Address of the best adapter based on lowest base fee
      */
     function getBestAdapter(
         uint16 chainId,
@@ -296,11 +293,10 @@ interface IBridgeRouter {
     /**
      * @notice Get the best adapter with explicit operation type
      * @param chainId ID of the destination/source chain
-     * @param asset Address of the asset (address(0) for non-asset operations)
-     * @param amount Amount to transfer (0 for non-asset operations)
+     * @param asset Address of the asset (address(0) for non-asset ops)
+     * @param amount Amount to transfer (0 for non-asset ops)
      * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET)
-     * @return bestAdapter Address of the best adapter
-     * @dev Extended version that allows specifying state read operations explicitly
+     * @return bestAdapter Address of the best adapter based on lowest base fee
      */
     function getBestAdapter(
         uint16 chainId,
@@ -310,9 +306,9 @@ interface IBridgeRouter {
     ) external view returns (address bestAdapter);
 
     /**
-     * @notice Get the best adapter for state read operations
-     * @param chainId Source chain ID to read from
-     * @return The address of the best adapter for state reading
+     * @notice Get the best adapter specifically for state read operations
+     * @param chainId Destination chain ID to read from
+     * @return The address of the best adapter for state reading based on lowest base fee
      */
     function getBestAdapterForStateRead(
         uint16 chainId
@@ -320,24 +316,37 @@ interface IBridgeRouter {
 
     /**
      * @notice Get all registered adapters
-     * @return adapterList Array of registered adapter addresses
-     * @dev Returns a list of all currently registered bridge adapters
+     * @return Array of registered adapter addresses
      */
-    function getAdapters() external view returns (address[] memory adapterList);
+    function getAdapters() external view returns (address[] memory);
 
     /**
      * @notice Check if an address is a registered adapter
      * @param adapter Address to check
      * @return isValid True if the address is a registered adapter
-     * @dev Verifies whether the given address is a registered bridge adapter
      */
     function isValidAdapter(address adapter) external view returns (bool);
 
     /**
-     * @notice Get the current balance of native tokens in the router
-     * @return The balance of native tokens in the router contract
+     * @notice Get the configured BridgeRouter address for a given chain ID
+     * @param chainId The chain ID
+     * @return routerAddress The configured router address for that chain
      */
-    function getRouterBalance() external view returns (uint256);
+    function chainToRouterAddress(
+        uint16 chainId
+    ) external view returns (address routerAddress);
+
+    /**
+     * @notice Get the configured default gas limit for adapter interactions
+     * @return The gas limit value
+     */
+    function DEFAULT_GAS_LIMIT() external view returns (uint64);
+
+    /**
+     * @notice Get the configured address of the BridgeQueue contract
+     * @return The address of the BridgeQueue
+     */
+    function bridgeQueue() external view returns (address);
 
     /*//////////////////////////////////////////////////////////////
                          GOVERNANCE FUNCTIONS
@@ -346,91 +355,52 @@ interface IBridgeRouter {
     /**
      * @notice Register a new bridge adapter
      * @param adapter Address of the adapter to register
-     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     * @dev Governor role required.
      */
     function registerAdapter(address adapter) external;
 
     /**
      * @notice Remove a bridge adapter
      * @param adapter Address of the adapter to remove
-     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     * @dev Governor role required.
      */
     function removeAdapter(address adapter) external;
 
     /**
-     * @notice Pause all bridge operations
-     * @dev Can be called by accounts with either the GOVERNOR_ROLE or GUARDIAN_ROLE
-     *      in the ProtocolAccessManager. This allows for emergency pausing by guardians.
+     * @notice Pause all bridge operations (transfers, reads, messages)
+     * @dev Guardian or Governor role required.
      */
     function pause() external;
 
     /**
      * @notice Unpause bridge operations
-     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager.
-     *      Guardians can pause but cannot unpause the system, ensuring proper governance
-     *      approval is required to resume operations after an emergency pause.
+     * @dev Governor role required.
      */
     function unpause() external;
 
     /**
-     * @notice Notify the router when a message or transfer is received on the destination chain
-     * @param operationId ID of the message/transfer that was received
-     * @param asset Address of the asset that was received (address(0) for general messages)
-     * @param amount Amount of the asset that was received (0 for general messages)
-     * @param recipient Address that received the assets or message
-     * @param sourceChainId ID of the chain where the operation originated
-     * @dev This function is called by adapters on the destination chain when they receive a message/assets
-     *      It automatically attempts to send a confirmation back to the source chain
-     */
-    function notifyMessageReceived(
-        bytes32 operationId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId
-    ) external;
-
-    /**
-     * @notice Receive a confirmation message from a destination chain
-     * @param operationId ID of the operation being confirmed
-     * @param status The final status of the operation
-     * @dev This function is called by adapters when they receive a confirmation message
-     */
-    function receiveConfirmation(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external;
-
-    /**
-     * @notice Allows recovery of operations when automated confirmations fail
+     * @notice Manually recover/update the status of an operation if automated flow failed
      * @param operationId ID of the operation to update
-     * @param status New status to set
-     * @dev Can only be called by authorized keepers or governance
+     * @param newStatus New status to set for the operation
+     * @dev Governor role required. Use with caution.
      */
     function recoverOperationStatus(
         bytes32 operationId,
-        BridgeTypes.OperationStatus status
+        BridgeTypes.OperationStatus newStatus // Renamed param
     ) external;
 
     /**
-     * @notice Update the fee multiplier
-     * @param multiplier New multiplier (200 = 200% = double fee)
-     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     * @notice Update the default gas limit for adapter interactions (e.g., estimations, confirmations).
+     * @param newDefaultGasLimit New gas limit value.
+     * @dev Governor role required.
      */
-    function setFeeMultiplier(uint256 multiplier) external;
+    function setDefaultGasLimit(uint256 newDefaultGasLimit) external;
 
     /**
-     * @notice Update the gas limit for confirmation transactions
-     * @param newConfirmationGasLimit New gas limit for confirmation transactions
-     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
-     */
-    function setConfirmationGasLimit(uint64 newConfirmationGasLimit) external;
-
-    /**
-     * @notice Set the BridgeRouter address for a specific chain
-     * @param chainId Chain ID
-     * @param routerAddress Address of the BridgeRouter on that chain
-     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     * @notice Set the known BridgeRouter address for another chain (used for confirmations)
+     * @param chainId The target chain ID
+     * @param routerAddress Address of the BridgeRouter contract on that chain
+     * @dev Governor role required.
      */
     function setChainRouterAddress(
         uint16 chainId,
@@ -438,19 +408,10 @@ interface IBridgeRouter {
     ) external;
 
     /**
-     * @notice Allows governance to withdraw native tokens from the contract
-     * @param recipient Address to send tokens to
-     * @param amount Amount to withdraw
-     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
+     * @notice Withdraw accumulated native tokens (e.g., from fee margins) from the router
+     * @param recipient Address to send the native tokens to
+     * @param amount Amount of native tokens to withdraw
+     * @dev Governor role required. This is the standard governance rescue mechanism for native tokens.
      */
-    function removeRouterFunds(address recipient, uint256 amount) external;
-
-    /*//////////////////////////////////////////////////////////////
-                          PUBLIC FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Allow anyone to fund the router with native tokens for confirmations
-     */
-    function addRouterFunds() external payable;
+    function recoverFunds(address recipient, uint256 amount) external;
 }

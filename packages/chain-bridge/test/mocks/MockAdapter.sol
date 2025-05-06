@@ -147,20 +147,13 @@ contract MockAdapter is IBridgeAdapter {
     function estimateFee(
         uint16,
         address,
-        uint256 amount,
+        uint256,
         BridgeTypes.AdapterParams calldata,
-        BridgeTypes.OperationType operationType
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Mock implementation that uses operation type
-        uint16 messageType = operationToMessageType[operationType];
-
-        // In a real implementation, the message type would affect the fee calculation
-        // For the mock, we'll just add the message type to the base fee
-        uint256 baseFee = (amount > 0) ? amount : 1 ether;
-
-        // Return fee based on multiplier and message type
-        nativeFee = (baseFee * feeMultiplier * messageType) / 100;
-        return (nativeFee, 0);
+        BridgeTypes.OperationType
+    ) external pure returns (uint256 nativeFee, uint256 tokenFee) {
+        // Return base fee of 0.1 ETH to match the router's base fee
+        nativeFee = 0.1 ether;
+        tokenFee = 0;
     }
 
     /// @inheritdoc IBridgeAdapter
