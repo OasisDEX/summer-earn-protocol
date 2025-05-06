@@ -337,7 +337,7 @@ class ProtocolConfig {
         new SkyRewardsProduct(
           getOrCreateToken(addresses.USDC),
           Address.fromString('0x0650CAF159C5A49f711e8169D4336ECB9b950275'),
-          BigInt.fromI32(22410091),
+          BigInt.fromI32(22373484),
           'Sky',
         ),
       ]),
@@ -363,7 +363,7 @@ class ProtocolConfig {
         new ERC4626Product(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xa0d3707c569ff8c87fa923d3823ec5d81c98be78'),
-          BigInt.fromI32(22410091),
+          BigInt.fromI32(22373484),
           'Fluid',
         ),
       ]),
@@ -418,13 +418,13 @@ class ProtocolConfig {
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
           Address.fromString('0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b'),
-          BigInt.fromI32(22410091),
+          BigInt.fromI32(22373484),
           'Syrup',
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.USDT),
           Address.fromString('0x356B8d89c1e1239Cbbb9dE4815c39A1474d5BA7D'),
-          BigInt.fromI32(22410091),
+          BigInt.fromI32(22373484),
           'Syrup',
         ),
       ]),
@@ -432,7 +432,7 @@ class ProtocolConfig {
         new OriginEthProduct(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3'),
-          BigInt.fromI32(22410091),
+          BigInt.fromI32(22373484),
           'Origin',
         ),
       ]),

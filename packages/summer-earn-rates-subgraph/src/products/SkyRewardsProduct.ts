@@ -35,7 +35,7 @@ export class SkyRewardsProduct extends Product {
     )
 
     // we assume staked token is USDS
-    return rewardRatePerYearNormalizedInUSD.div(stakedTokensAmountNormalized)
+    return rewardRatePerYearNormalizedInUSD.times(BigDecimalConstants.HUNDRED).div(stakedTokensAmountNormalized)
   }
 
   getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
