@@ -11,6 +11,7 @@
   "depositCap": "0",
   "initialTipRate": "300000000000000000",
   "arks": [
-    "0xb3eFCD66c7F5957ff7Da3beCA97d59fBf20f02F8"
+    "0xb3eFCD66c7F5957ff7Da3beCA97d59fBf20f02F8",
+    "0x00B437Df745c1DEAbe3f999Dfe41fdA9641d7EBA"
   ]
 }
