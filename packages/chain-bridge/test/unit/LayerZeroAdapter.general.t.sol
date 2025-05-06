@@ -38,7 +38,6 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 bytes("")
             );
         }
-        // Note: Removed duplicate if conditions
     }
 
     /*//////////////////////////////////////////////////////////////

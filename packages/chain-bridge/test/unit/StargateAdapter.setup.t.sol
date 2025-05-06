@@ -6,6 +6,7 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockStargateRouter} from "../mocks/MockStargateRouter.sol";
@@ -15,6 +16,7 @@ contract StargateAdapterSetupTest is Test {
     // Chain A contracts
     StargateAdapter public adapterA;
     BridgeRouterTestHelper public routerA;
+    BridgeQueue public bridgeQueueA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
     MockStargateRouter public stargateRouterA;
@@ -22,6 +24,7 @@ contract StargateAdapterSetupTest is Test {
     // Chain B contracts
     StargateAdapter public adapterB;
     BridgeRouterTestHelper public routerB;
+    BridgeQueue public bridgeQueueB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
     MockStargateRouter public stargateRouterB;
@@ -30,6 +33,7 @@ contract StargateAdapterSetupTest is Test {
     address public governor = address(0x1);
     address public user = address(0x2);
     address public recipient = address(0x3);
+    address public keeper = governor; // Assuming governor can also act as keeper
 
     // Chain IDs for testing
     uint16 public constant CHAIN_ID_A = 31337;
@@ -49,22 +53,27 @@ contract StargateAdapterSetupTest is Test {
         vm.startPrank(governor);
 
         accessManagerA = new ProtocolAccessManager(governor);
+        bridgeQueueA = new BridgeQueue(
+            address(accessManagerA),
+            address(0), // Router set later
+            governor // Use governor as queue manager
+        );
         routerA = new BridgeRouterTestHelper(
             address(accessManagerA),
+            address(bridgeQueueA), // Pass queue address
             new uint16[](0),
             new address[](0)
         );
+        bridgeQueueA.setBridgeRouter(address(routerA));
         tokenA = new ERC20Mock();
         stargateRouterA = new MockStargateRouter();
 
-        // Deploy adapter
         adapterA = new StargateAdapter(
             address(stargateRouterA),
             address(routerA),
             governor
         );
 
-        // Add supported chains and assets
         adapterA.addSupportedChain(CHAIN_ID_A, CHAIN_ID_A); // Map local chain ID to Stargate chain ID
         adapterA.addSupportedChain(CHAIN_ID_B, CHAIN_ID_B); // Map remote chain ID to Stargate chain ID
 
@@ -73,7 +82,7 @@ contract StargateAdapterSetupTest is Test {
 
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
-        tokenA.mint(address(routerA), 10000e18);
+        tokenA.mint(address(bridgeQueueA), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
 
@@ -82,22 +91,27 @@ contract StargateAdapterSetupTest is Test {
         vm.startPrank(governor);
 
         accessManagerB = new ProtocolAccessManager(governor);
+        bridgeQueueB = new BridgeQueue(
+            address(accessManagerB),
+            address(0), // Router set later
+            governor // Use governor as queue manager
+        );
         routerB = new BridgeRouterTestHelper(
             address(accessManagerB),
+            address(bridgeQueueB), // Pass queue address
             new uint16[](0),
             new address[](0)
         );
+        bridgeQueueB.setBridgeRouter(address(routerB));
         tokenB = new ERC20Mock();
         stargateRouterB = new MockStargateRouter();
 
-        // Deploy adapter
         adapterB = new StargateAdapter(
             address(stargateRouterB),
             address(routerB),
             governor
         );
 
-        // Add supported chains and assets
         adapterB.addSupportedChain(CHAIN_ID_B, CHAIN_ID_B); // Map local chain ID to Stargate chain ID
         adapterB.addSupportedChain(CHAIN_ID_A, CHAIN_ID_A); // Map remote chain ID to Stargate chain ID
 
@@ -106,7 +120,7 @@ contract StargateAdapterSetupTest is Test {
 
         routerB.registerAdapter(address(adapterB));
         tokenB.mint(user, 10000e18);
-        tokenB.mint(address(routerB), 10000e18);
+        tokenB.mint(address(bridgeQueueB), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
 
