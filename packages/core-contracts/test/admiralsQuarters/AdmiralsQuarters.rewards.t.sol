@@ -17,6 +17,13 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 
+bytes4 constant ENTER_FLEET_SELECTOR = bytes4(
+    keccak256("enterFleet(address,uint256,address)")
+);
+bytes4 constant ENTER_FLEET_WITH_REFERRAL_SELECTOR = bytes4(
+    keccak256("enterFleet(address,uint256,address,bytes)")
+);
+
 contract MockGovernanceRewardsManager {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -322,9 +329,11 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
             admiralsQuarters.depositTokens,
             (IERC20(USDC_ADDRESS), depositAmount)
         );
-        depositAndEnterCalls[1] = abi.encodeCall(
-            admiralsQuarters.enterFleet,
-            (address(usdcFleet), depositAmount, address(admiralsQuarters))
+        depositAndEnterCalls[1] = abi.encodeWithSelector(
+            ENTER_FLEET_SELECTOR,
+            address(usdcFleet),
+            depositAmount,
+            address(admiralsQuarters)
         );
         depositAndEnterCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -405,9 +414,11 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
             admiralsQuarters.depositTokens,
             (IERC20(USDC_ADDRESS), depositAmount)
         );
-        setupCalls[1] = abi.encodeCall(
-            admiralsQuarters.enterFleet,
-            (address(usdcFleet), depositAmount, address(admiralsQuarters))
+        setupCalls[1] = abi.encodeWithSelector(
+            ENTER_FLEET_SELECTOR,
+            address(usdcFleet),
+            depositAmount,
+            address(admiralsQuarters)
         );
         setupCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
