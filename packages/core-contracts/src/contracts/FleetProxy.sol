@@ -7,7 +7,7 @@ import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManaged, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
@@ -97,7 +97,7 @@ contract CrossChainFleetProxy is
 
     /// @inheritdoc IFleetProxy
     function totalAssets() external view returns (uint256) {
-        return _balanceOfAsset();
+        return IFleetCommander(fleetContract).totalAssets();
     }
 
     /// @inheritdoc IFleetProxy
@@ -114,7 +114,7 @@ contract CrossChainFleetProxy is
     /// @param _bridgeOptions The new bridge options
     function setBridgeOptions(
         BridgeTypes.BridgeOptions memory _bridgeOptions
-    ) external onlyGovernor {
+    ) external onlyGovernorOrKeeper {
         bridgeOptions = _bridgeOptions;
         emit BridgeOptionsUpdated(_bridgeOptions);
     }
@@ -186,20 +186,6 @@ contract CrossChainFleetProxy is
         emit ProxyDeposit(fleetContract, token, amount);
     }
 
-    /**
-     * @notice Internal function to get the balance of the main asset
-     * @return The balance of the main asset
-     */
-    function _balanceOfAsset() internal view returns (uint256) {
-        // Get the asset from the fleet config
-        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
-            .getConfig();
-        address asset = address(config.bufferArk.asset());
-
-        // Return the actual token balance
-        return IERC20(asset).balanceOf(address(this));
-    }
-
     /*//////////////////////////////////////////////////////////////
                         NEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -242,4 +228,26 @@ contract CrossChainFleetProxy is
 
     /// @notice Error thrown when attempting to withdraw via message
     error WithdrawalViaMessageNotSupported();
+
+    /// @notice Error thrown when caller is neither governor nor keeper
+    error CallerIsNotGovernorOrKeeper(address caller);
+
+    /*//////////////////////////////////////////////////////////////
+                            MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Modifier to restrict access to either governors or keepers
+    modifier onlyGovernorOrKeeper() {
+        if (
+            !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender) &&
+            !_accessManager.hasRole(
+                generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
+                msg.sender
+            ) &&
+            !_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)
+        ) {
+            revert CallerIsNotGovernorOrKeeper(msg.sender);
+        }
+        _;
+    }
 }
