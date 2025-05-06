@@ -6,13 +6,14 @@ import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChain
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
+import {GovernorOrKeeperAccess} from "@summerfi/access-contracts/contracts/GovernorOrKeeperAccess.sol";
 
 /**
  * @title CrossChainArk
  * @notice Ark contract for managing cross-chain deposits and withdrawals
  * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages
  */
-contract CrossChainArk is Ark, ICrossChainReceiver {
+contract CrossChainArk is Ark, ICrossChainReceiver, GovernorOrKeeperAccess {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -51,6 +52,9 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
 
     /// @notice Thrown when receiveMessage is called (not supported for this Ark).
     error ReceiveMessageNotSupported();
+
+    /// @notice Thrown when there are insufficient assets on the contract to perform the withdrawal.
+    error InsufficientAssets(uint256 requestedAmount, uint256 availableAmount);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -116,7 +120,7 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
     /// @notice Set new bridge options
     function setBridgeOptions(
         BridgeTypes.BridgeOptions calldata newOptions
-    ) external onlyGovernor {
+    ) external onlyGovernorOrKeeper {
         bridgeOptions = newOptions;
         emit BridgeOptionsUpdated(newOptions);
     }
@@ -166,18 +170,20 @@ contract CrossChainArk is Ark, ICrossChainReceiver {
     }
 
     /**
-     * @notice Disembarks the Ark by sending a withdrawal request message to the proxy
+     * @notice Disembarks the Ark by withdrawing assets that are available on the contract
      * @param amount Amount of tokens to withdraw
-     * @dev This function queues a message to the proxy requesting a withdrawal
+     * @dev This function handles withdrawals of assets that are already on the contract
+     * The Keeper on the satellite chain will handle withdrawals from the FleetProxy
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        bytes memory message = abi.encode(amount);
-        bridgeQueue.queueSendMessage(
-            targetChainId,
-            targetProxy,
-            message,
-            bridgeOptions
-        );
+        // Ensure we have enough assets on the contract
+        uint256 availableAssets = config.asset.balanceOf(address(this));
+        if (availableAssets < amount) {
+            revert InsufficientAssets(amount, availableAssets);
+        }
+
+        // Transfer assets to the caller
+        config.asset.safeTransfer(msg.sender, amount);
     }
 
     /**
