@@ -701,7 +701,7 @@ class ProtocolConfig {
         new OriginEthProduct(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3'),
-          BigInt.fromI32(29800679),
+          BigInt.fromI32(29506052),
           'Origin',
         ),
       ]),
