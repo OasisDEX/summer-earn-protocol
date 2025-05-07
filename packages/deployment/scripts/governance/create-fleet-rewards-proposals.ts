@@ -98,7 +98,7 @@ async function main() {
             abi: parseAbi([
               'function setRewardsDuration(address rewardToken, uint256 _rewardsDuration) external',
             ]),
-            args: [rewardManager.address as Address, BigInt(rewardManager.rewardsDuration)],
+            args: [rewardManager.rewardAddress as Address, BigInt(rewardManager.rewardsDuration)],
           }),
         )
 
@@ -111,7 +111,7 @@ async function main() {
               'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
             ]),
             args: [
-              rewardManager.address as Address,
+              rewardManager.rewardAddress as Address,
               BigInt(rewardManager.amount),
               BigInt(rewardManager.rewardsDuration),
             ],
@@ -155,7 +155,7 @@ async function main() {
             abi: parseAbi([
               'function setRewardsDuration(address rewardToken, uint256 _rewardsDuration) external',
             ]),
-            args: [rewardManager.address as Address, BigInt(rewardManager.rewardsDuration)],
+            args: [rewardManager.rewardAddress as Address, BigInt(rewardManager.rewardsDuration)],
           }),
         )
 
@@ -168,7 +168,7 @@ async function main() {
               'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
             ]),
             args: [
-              rewardManager.address as Address,
+              rewardManager.rewardAddress as Address,
               BigInt(rewardManager.amount),
               BigInt(rewardManager.rewardsDuration),
             ],
