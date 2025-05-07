@@ -62,20 +62,20 @@ export abstract class BaseVaultProduct extends Product {
       .times(BigDecimalConstants.SECONDS_PER_YEAR)
       .div(timeDiff.toBigDecimal())
       .times(BigDecimalConstants.HUNDRED)
-    const annualizedRateBelowZero = annualizedRate.lt(BigDecimalConstants.ZERO)
-    const annualizedRateBelowThreshold = annualizedRate.lt(this.threshold)
-    // if the rate is below zero - it's most likely vault taking a fee
-    // we return the previous rate as it's more likely to be correct
-    // and we don't want to report negative rates
-    // we update vault state to have a correct start point for next update calculation
+    const annualizedRateBelowZero = annualizedRate.lt(this.threshold.neg())
+    const annualizedRateWithinThreshold = annualizedRate.lt(this.threshold) && annualizedRate.gt(this.threshold.neg())
+    // If the rate is negative, this usually indicates the vault is taking a fee
+    // Rather than showing a negative rate, we return the previous rate which better reflects 
+    // the actual performance. We still update the vault state to maintain accurate calculations
+    // for the next update
     if (annualizedRateBelowZero) {
       this.updateVaultState(sharePrice, annualizedRate, currentTimestamp, vaultState)
       return previousRate
     }
-    // if the rate is above zero but below threshold - we want to keep displaying the same rate
-    // as it's most likely vault state change due to deposit/withdrawals
-    // we don't update the vault state in this case, to have a correct starting point for next update calculation (for timeDiff)
-    if (annualizedRateBelowThreshold) {
+    // If the rate change is minimal (within our threshold), we maintain the previous rate
+    // This filters out small fluctuations from routine vault operations like deposits/withdrawals
+    // We skip updating vault state to ensure the next calculation uses the original timestamp
+    if (annualizedRateWithinThreshold) {
       return previousRate
     }
 
