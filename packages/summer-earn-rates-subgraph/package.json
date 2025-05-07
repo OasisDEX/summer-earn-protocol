@@ -1,7 +1,7 @@
 {
   "name": "@summerfi/summer-earn-rates-subgraph",
   "license": "UNLICENSED",
-  "version": "1.8.6-add-usds-to-sky-rewards",
+  "version": "1.9.0-add-threshold-to-vault-product",
   "scripts": {
     "codegen": "graph codegen",
     "build:mainnet": "pnpm run prepare:mainnet && graph codegen && graph build",

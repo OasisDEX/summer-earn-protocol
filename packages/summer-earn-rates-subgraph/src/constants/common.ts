@@ -4,6 +4,7 @@ export const SUPPORTED_NETWORKS = ['mainnet', 'arbitrum-one', 'optimism', 'base'
 
 /** Numeric Constants */
 export class BigDecimalConstants {
+  static ONE_BPS: BigDecimal = BigDecimal.fromString('0.01')
   static ZERO: BigDecimal = BigDecimal.fromString('0')
   static ONE: BigDecimal = BigDecimal.fromString('1')
   static HUNDRED: BigDecimal = BigDecimal.fromString('100')
