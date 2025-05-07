@@ -63,9 +63,10 @@ export abstract class BaseVaultProduct extends Product {
       .div(timeDiff.toBigDecimal())
       .times(BigDecimalConstants.HUNDRED)
     const annualizedRateBelowZero = annualizedRate.lt(this.threshold.neg())
-    const annualizedRateWithinThreshold = annualizedRate.lt(this.threshold) && annualizedRate.gt(this.threshold.neg())
+    const annualizedRateWithinThreshold =
+      annualizedRate.lt(this.threshold) && annualizedRate.gt(this.threshold.neg())
     // If the rate is negative, this usually indicates the vault is taking a fee
-    // Rather than showing a negative rate, we return the previous rate which better reflects 
+    // Rather than showing a negative rate, we return the previous rate which better reflects
     // the actual performance. We still update the vault state to maintain accurate calculations
     // for the next update
     if (annualizedRateBelowZero) {
