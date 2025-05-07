@@ -14,7 +14,7 @@ import { promptForConfigType } from '../helpers/prompt-helpers'
 import { createGovernanceProposal } from '../helpers/proposal-helpers'
 
 // Target chains for the multi-chain proposal
-const TARGET_CHAINS = ['base', 'arbitrum', 'mainnet','sonic']
+const TARGET_CHAINS = ['base', 'arbitrum', 'mainnet', 'sonic']
 
 /**
  * Creates a multi-chain governance proposal to grant ADMIRALS_QUARTERS_ROLE to
