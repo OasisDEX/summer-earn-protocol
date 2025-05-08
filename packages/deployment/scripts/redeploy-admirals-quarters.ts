@@ -2,6 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
+import { createAdmiralsQuartersModule } from '../ignition/modules/admiralsQuartersModuleFactory'
 import { BaseConfig } from '../types/config-types'
 import { ADMIRALS_QUARTERS_ROLE, GOVERNOR_ROLE } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -10,7 +11,6 @@ import { getChainId } from './helpers/get-chainid'
 import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
 import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
 import { updateIndexJson } from './helpers/update-json'
-import { createAdmiralsQuartersModule } from '../ignition/modules/admiralsQuartersModuleFactory'
 
 export async function redeployAdmiralsQuarters() {
   const network = hre.network.name
@@ -58,7 +58,7 @@ export async function redeployAdmiralsQuarters() {
   const timestampString = new Date().toISOString().replace(/[-:Z.]/g, '')
   const moduleName = `AdmiralsQuartersModule_${timestampString}`
   const AdmiralsQuartersModule = createAdmiralsQuartersModule(moduleName)
-  
+
   const result = await hre.ignition.deploy(AdmiralsQuartersModule, {
     parameters: {
       [moduleName]: {
