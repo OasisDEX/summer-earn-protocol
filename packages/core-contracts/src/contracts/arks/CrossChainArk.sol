@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import "../Ark.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -13,7 +13,11 @@ import {GovernorOrKeeperAccess} from "@summerfi/access-contracts/contracts/Gover
  * @notice Ark contract for managing cross-chain deposits and withdrawals
  * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages
  */
-contract CrossChainArk is Ark, ICrossChainReceiver, GovernorOrKeeperAccess {
+contract CrossChainArk is
+    Ark,
+    ICrossChainAssetReceiver,
+    GovernorOrKeeperAccess
+{
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -52,6 +56,9 @@ contract CrossChainArk is Ark, ICrossChainReceiver, GovernorOrKeeperAccess {
 
     /// @notice Thrown when receiveMessage is called (not supported for this Ark).
     error ReceiveMessageNotSupported();
+
+    /// @notice Thrown when receiveMessageWithAssets is called (not supported for this Ark).
+    error ReceiveMessageWithAssetsNotSupported();
 
     /// @notice Thrown when there are insufficient assets on the contract to perform the withdrawal.
     error InsufficientAssets(uint256 requestedAmount, uint256 availableAmount);
@@ -139,15 +146,15 @@ contract CrossChainArk is Ark, ICrossChainReceiver, GovernorOrKeeperAccess {
     }
 
     /**
-     * @inheritdoc ICrossChainReceiver
+     * @inheritdoc ICrossChainAssetReceiver
      * @notice Checks if this contract supports the CrossChainReceiver interface
      * @param interfaceId The interface ID to check
-     * @return True if the contract implements ICrossChainReceiver
+     * @return True if the contract implements ICrossChainReceiver or ICrossChainAssetReceiver
      */
     function supportsInterface(
         bytes4 interfaceId
     ) external pure returns (bool) {
-        return interfaceId == type(ICrossChainReceiver).interfaceId;
+        return interfaceId == type(ICrossChainAssetReceiver).interfaceId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -184,10 +191,18 @@ contract CrossChainArk is Ark, ICrossChainReceiver, GovernorOrKeeperAccess {
 
         // Transfer assets to the caller
         config.asset.safeTransfer(msg.sender, amount);
+
+        // Send cross-chain message to notify satellite chain about withdrawal
+        bytes memory message = abi.encode(amount);
+        bridgeQueue.queueSendMessage(
+            targetChainId,
+            targetProxy,
+            message,
+            bridgeOptions
+        );
     }
 
     /**
-     * @inheritdoc ICrossChainReceiver
      * @notice Receives state read results from another chain
      * @param resultData The data returned from the cross-chain read
      * @param requestor The address that initiated the request
@@ -210,7 +225,6 @@ contract CrossChainArk is Ark, ICrossChainReceiver, GovernorOrKeeperAccess {
     }
 
     /**
-     * @inheritdoc ICrossChainReceiver
      * @notice Receives a general cross-chain message (not supported)
      */
     function receiveMessage(
@@ -220,6 +234,19 @@ contract CrossChainArk is Ark, ICrossChainReceiver, GovernorOrKeeperAccess {
         bytes32
     ) external pure {
         revert ReceiveMessageNotSupported();
+    }
+
+    /**
+     * @inheritdoc ICrossChainAssetReceiver
+     * @notice Receives a message with assets (not supported for this Ark)
+     */
+    function receiveMessageWithAssets(
+        address,
+        uint256,
+        bytes calldata,
+        uint16
+    ) external pure {
+        revert ReceiveMessageWithAssetsNotSupported();
     }
 
     /**

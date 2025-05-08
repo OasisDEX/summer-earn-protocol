@@ -177,12 +177,23 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address recipient,
             BridgeTypes.BridgeOptions memory options,
             address originator,
-            bytes32 operationId
+
         ) = bridgeQueue.queuedTransfers(queueId);
+
+        // Verify all the queued transfer parameters
         assertEq(
-            queuedAmount,
-            amount,
-            "Amount should be queued in bridge queue"
+            destinationChainId,
+            DEST_CHAIN_ID,
+            "Incorrect destination chain ID"
+        );
+        assertEq(asset, address(usdc), "Incorrect asset address");
+        assertEq(queuedAmount, amount, "Incorrect queued amount");
+        assertEq(recipient, ARB_PROXY, "Incorrect recipient address");
+        assertEq(originator, address(ark), "Incorrect originator address");
+        assertEq(
+            options.specifiedAdapter,
+            address(layerZeroAdapter),
+            "Incorrect adapter specified"
         );
     }
 
