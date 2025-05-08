@@ -463,5 +463,9 @@ contract MockBridgeRouter is IBridgeRouter {
     function setChainRouterAddress(uint16, address) external override {}
     function removeRouterFunds(address, uint256) external override {}
     function addRouterFunds() external payable override {}
-    function deliverReadResponse(bytes32, bytes calldata) external override {}
+    function deliverReadResponse(
+        bytes32 operationId,
+        uint16 sourceChainId,
+        bytes calldata resultData
+    ) external override {}
 }

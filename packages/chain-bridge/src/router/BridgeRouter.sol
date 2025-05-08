@@ -533,6 +533,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @inheritdoc IBridgeRouter
     function deliverReadResponse(
         bytes32 operationId,
+        uint16 sourceChainId,
         bytes calldata resultData
     ) external onlyRegisteredAdapter {
         if (operationToAdapter[operationId] != msg.sender) {
@@ -557,8 +558,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                     ICrossChainStateReadReceiver(originator).receiveStateRead(
                         resultData,
                         originator,
-                        0, // sourceChainId (could be added as a parameter if needed)
-                        operationId
+                        operationId,
+                        sourceChainId
                     )
                 {
                     delivered = true;
@@ -571,23 +572,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                         ICrossChainStateReadReceiver.receiveStateRead.selector,
                         resultData,
                         originator,
-                        0, // sourceChainId
-                        operationId
+                        operationId,
+                        sourceChainId
                     )
                 );
                 delivered = success;
             }
         } catch {
-            (bool success, ) = originator.call(
-                abi.encodeWithSelector(
-                    ICrossChainStateReadReceiver.receiveStateRead.selector,
-                    resultData,
-                    originator,
-                    0, // sourceChainId
-                    operationId
-                )
-            );
-            delivered = success;
+            delivered = false;
         }
 
         // Update status based on delivery result

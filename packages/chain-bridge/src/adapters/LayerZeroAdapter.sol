@@ -320,12 +320,12 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /**
      * @dev Handles responses from lzRead operations
-     * @param // _origin Source chain information
+     * @param _origin Source chain information
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Response payload
      */
     function _handleReadResponse(
-        Origin calldata,
+        Origin calldata _origin,
         bytes32 _guid,
         bytes calldata _payload
     ) internal {
@@ -337,14 +337,15 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             return;
         }
 
-        // For read responses, we don't need to call notifyTransferReceived
-        // since this is a response to our own request, not an incoming transfer
+        // Get the source chain ID from the origin
+        uint16 srcChainId = lzEidToChain[_origin.srcEid];
 
         // Forward the result to the bridge router
         bool delivered = false;
         try
             IBridgeRouter(bridgeRouter).deliverReadResponse(
                 operationId,
+                srcChainId,
                 _payload
             )
         {

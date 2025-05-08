@@ -252,8 +252,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     function deliverReadResponse(
         bytes32 operationId,
+        uint16,
         bytes calldata
-    ) external override {
+    ) external {
         // require(msg.sender == operationAdapters[operationId], "Mock: Unauthorized adapter");
         address originator = operationOriginators[operationId];
         // Simulate attempting to call originator - for tests, just update status & emit

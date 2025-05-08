@@ -23,33 +23,42 @@ contract MockCrossChainReceiver is
         receiveSuccess = success;
     }
 
-    function _processReceipt(
-        bytes calldata data,
-        address sender,
-        uint16 sourceChainId,
-        bytes32
-    ) external {
-        if (!receiveSuccess) revert("Receiver rejected call");
-
-        lastReceivedData = data;
-        lastSender = sender;
-        lastSourceChainId = sourceChainId;
-    }
-
     function receiveStateRead(
         bytes calldata data,
         address sender,
-        uint16 sourceChainId,
-        bytes32 messageId
-    ) external override {
-        _processReceipt(data, sender, sourceChainId, messageId);
+        bytes32 messageId,
+        uint16 sourceChainId
+    ) external {
+        _processReceipt(data, sender, messageId, sourceChainId);
     }
 
     function receiveMessage(
         uint16 sourceChainId,
         bytes calldata message
-    ) external override {
-        _processReceipt(data, sender, sourceChainId, messageId);
+    ) external {
+        _processReceipt(message, msg.sender, bytes32(0), sourceChainId);
+    }
+
+    function receiveMessageWithAssets(
+        address,
+        uint256,
+        bytes calldata message,
+        uint16 sourceChainId
+    ) external {
+        _processReceipt(message, msg.sender, bytes32(0), sourceChainId);
+    }
+
+    function _processReceipt(
+        bytes calldata data,
+        address sender,
+        bytes32,
+        uint16 sourceChainId
+    ) internal {
+        if (!receiveSuccess) revert("Receiver rejected call");
+
+        lastReceivedData = data;
+        lastSender = sender;
+        lastSourceChainId = sourceChainId;
     }
 
     function supportsInterface(
@@ -64,6 +73,9 @@ contract MockCrossChainReceiver is
         )
         returns (bool)
     {
-        return interfaceId == type(ICrossChainMessageReceiver).interfaceId;
+        return
+            interfaceId == type(ICrossChainMessageReceiver).interfaceId ||
+            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
+            interfaceId == type(ICrossChainStateReadReceiver).interfaceId;
     }
 }

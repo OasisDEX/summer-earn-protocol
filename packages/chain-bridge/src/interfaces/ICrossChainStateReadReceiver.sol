@@ -4,8 +4,8 @@ interface ICrossChainStateReadReceiver {
     function receiveStateRead(
         bytes calldata resultData,
         address requestor,
-        uint16 sourceChainId,
-        bytes32 requestId
+        bytes32 requestId,
+        uint16 sourceChainId
     ) external;
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
