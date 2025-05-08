@@ -1,58 +1,81 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+import {ICrossChainMessageReceiver} from "../../src/interfaces/ICrossChainMessageReceiver.sol";
+import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
 
 /**
  * @title MockCrossChainReceiver
  * @notice Mock contract that implements the ICrossChainReceiver interface for testing
  */
-contract MockCrossChainReceiver is ICrossChainReceiver {
+contract MockCrossChainReceiver is
+    ICrossChainMessageReceiver,
+    ICrossChainAssetReceiver,
+    ICrossChainStateReadReceiver
+{
     bytes public lastReceivedData;
     address public lastSender;
     uint16 public lastSourceChainId;
-    bytes32 public lastMessageId;
     bool public receiveSuccess = true;
 
     function setReceiveSuccess(bool success) external {
         receiveSuccess = success;
     }
 
+    function receiveStateRead(
+        bytes calldata data,
+        address sender,
+        bytes32 messageId,
+        uint16 sourceChainId
+    ) external {
+        _processReceipt(data, sender, messageId, sourceChainId);
+    }
+
+    function receiveMessage(
+        uint16 sourceChainId,
+        bytes calldata message
+    ) external {
+        _processReceipt(message, msg.sender, bytes32(0), sourceChainId);
+    }
+
+    function receiveMessageWithAssets(
+        address,
+        uint256,
+        bytes calldata message,
+        uint16 sourceChainId
+    ) external {
+        _processReceipt(message, msg.sender, bytes32(0), sourceChainId);
+    }
+
     function _processReceipt(
         bytes calldata data,
         address sender,
-        uint16 sourceChainId,
-        bytes32 messageId
+        bytes32,
+        uint16 sourceChainId
     ) internal {
         if (!receiveSuccess) revert("Receiver rejected call");
 
         lastReceivedData = data;
         lastSender = sender;
         lastSourceChainId = sourceChainId;
-        lastMessageId = messageId;
-    }
-
-    function receiveStateRead(
-        bytes calldata data,
-        address sender,
-        uint16 sourceChainId,
-        bytes32 messageId
-    ) external override {
-        _processReceipt(data, sender, sourceChainId, messageId);
-    }
-
-    function receiveMessage(
-        bytes calldata data,
-        address sender,
-        uint16 sourceChainId,
-        bytes32 messageId
-    ) external override {
-        _processReceipt(data, sender, sourceChainId, messageId);
     }
 
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure override returns (bool) {
-        return interfaceId == type(ICrossChainReceiver).interfaceId;
+    )
+        external
+        pure
+        override(
+            ICrossChainMessageReceiver,
+            ICrossChainAssetReceiver,
+            ICrossChainStateReadReceiver
+        )
+        returns (bool)
+    {
+        return
+            interfaceId == type(ICrossChainMessageReceiver).interfaceId ||
+            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
+            interfaceId == type(ICrossChainStateReadReceiver).interfaceId;
     }
 }

@@ -10,8 +10,8 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
 
 contract BridgeRouterReadStateTest is Test {
     BridgeRouterTestHelper public router;
@@ -307,6 +307,7 @@ contract BridgeRouterReadStateTest is Test {
             abi.encodeWithSelector(
                 IBridgeRouter.deliverReadResponse.selector,
                 operationId,
+                DEST_CHAIN_ID,
                 abi.encode(uint256(100))
             )
         );
@@ -314,20 +315,24 @@ contract BridgeRouterReadStateTest is Test {
         vm.expectCall(
             address(mockReceiver),
             abi.encodeWithSelector(
-                ICrossChainReceiver.receiveStateRead.selector,
+                ICrossChainStateReadReceiver.receiveStateRead.selector,
                 abi.encode(uint256(100)), // resultData
                 address(mockReceiver), // originator
-                0, // sourceChainId
-                operationId // operationId
+                operationId, // operationId
+                DEST_CHAIN_ID // sourceChainId
             )
         );
-        router.deliverReadResponse(operationId, abi.encode(uint256(100)));
+        router.deliverReadResponse(
+            operationId,
+            DEST_CHAIN_ID,
+            abi.encode(uint256(100))
+        );
 
         // Verify that the mockReceiver received the data
         assertEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
         // Originator of the read request was mockReceiver
         assertEq(mockReceiver.lastSender(), address(mockReceiver));
-        assertEq(mockReceiver.lastMessageId(), operationId);
+        assertEq(mockReceiver.lastSourceChainId(), DEST_CHAIN_ID);
     }
 
     function testDeliverReadResponseUnauthorized() public {
@@ -416,7 +421,11 @@ contract BridgeRouterReadStateTest is Test {
         // Test case 1: Non-adapter trying to deliver response
         vm.prank(address(0x999)); // Random non-adapter address
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.deliverReadResponse(operationId, abi.encode(uint256(100)));
+        router.deliverReadResponse(
+            operationId,
+            DEST_CHAIN_ID,
+            abi.encode(uint256(100))
+        );
 
         // Register second adapter
         vm.prank(governor);
@@ -425,7 +434,11 @@ contract BridgeRouterReadStateTest is Test {
         // Test case 2: Different adapter trying to deliver response
         vm.prank(address(mockAdapter2));
         vm.expectRevert(IBridgeRouter.Unauthorized.selector);
-        router.deliverReadResponse(operationId, abi.encode(uint256(100)));
+        router.deliverReadResponse(
+            operationId,
+            DEST_CHAIN_ID,
+            abi.encode(uint256(100))
+        );
     }
 
     function testDeliverReadResponseReceiverRejects() public {
@@ -532,6 +545,7 @@ contract BridgeRouterReadStateTest is Test {
             abi.encodeWithSelector(
                 IBridgeRouter.deliverReadResponse.selector,
                 operationId,
+                DEST_CHAIN_ID,
                 abi.encode(uint256(100))
             )
         );
@@ -539,16 +553,20 @@ contract BridgeRouterReadStateTest is Test {
         vm.expectCall(
             address(mockReceiver),
             abi.encodeWithSelector(
-                ICrossChainReceiver.receiveStateRead.selector,
+                ICrossChainStateReadReceiver.receiveStateRead.selector,
                 abi.encode(uint256(100)), // resultData
                 address(mockReceiver), // originator
-                0, // sourceChainId
-                operationId // operationId
+                operationId, // operationId
+                DEST_CHAIN_ID // sourceChainId
             )
             // Do not mock a return, let it revert
         );
 
-        router.deliverReadResponse(operationId, abi.encode(uint256(100)));
+        router.deliverReadResponse(
+            operationId,
+            DEST_CHAIN_ID,
+            abi.encode(uint256(100))
+        );
 
         // Verify status is FAILED (if checking router state)
         // assertEq(

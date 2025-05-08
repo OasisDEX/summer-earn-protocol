@@ -198,7 +198,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         );
 
         // Verify the mock receiver received the correct data
-        assertEq(mockReceiver.lastMessageId(), operationId);
         assertEq(
             abi.decode(mockReceiver.lastReceivedData(), (uint256)),
             mockReadValue

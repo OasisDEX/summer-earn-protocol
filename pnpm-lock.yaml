@@ -161,6 +161,9 @@ importers:
       '@summerfi/access-contracts':
         specifier: workspace:*
         version: link:../access-contracts
+      '@summerfi/chain-bridge-contracts':
+        specifier: workspace:*
+        version: link:../chain-bridge
       '@summerfi/constants':
         specifier: workspace:*
         version: link:../constants
