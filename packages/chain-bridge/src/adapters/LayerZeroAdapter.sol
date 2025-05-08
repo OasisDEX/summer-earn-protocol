@@ -11,10 +11,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 import {MessagingParams, MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
+import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -220,18 +221,15 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint16 srcChainId
     ) internal {
         bool delivered = false;
-        // Deliver the message directly here
-        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
+        bytes4 interfaceId = type(ICrossChainMessageReceiver).interfaceId;
         try
-            ICrossChainReceiver(recipient).supportsInterface(interfaceId)
+            ICrossChainMessageReceiver(recipient).supportsInterface(interfaceId)
         returns (bool supported) {
             if (supported) {
                 try
-                    ICrossChainReceiver(recipient).receiveMessage(
-                        message,
-                        recipient,
+                    ICrossChainMessageReceiver(recipient).receiveMessage(
                         srcChainId,
-                        messageId
+                        message
                     )
                 {
                     delivered = true;
@@ -239,14 +237,11 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                     emit RelayFailed(messageId, reason);
                 }
             } else {
-                // Fallback for contracts that don't implement supportsInterface
                 (bool success, ) = recipient.call(
                     abi.encodeWithSelector(
-                        ICrossChainReceiver.receiveMessage.selector,
-                        message,
-                        recipient,
+                        ICrossChainMessageReceiver.receiveMessage.selector,
                         srcChainId,
-                        messageId
+                        message
                     )
                 );
                 if (success) {
@@ -325,12 +320,12 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /**
      * @dev Handles responses from lzRead operations
-     * @param // _origin Source chain information
+     * @param _origin Source chain information
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Response payload
      */
     function _handleReadResponse(
-        Origin calldata,
+        Origin calldata _origin,
         bytes32 _guid,
         bytes calldata _payload
     ) internal {
@@ -342,14 +337,15 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             return;
         }
 
-        // For read responses, we don't need to call notifyTransferReceived
-        // since this is a response to our own request, not an incoming transfer
+        // Get the source chain ID from the origin
+        uint16 srcChainId = lzEidToChain[_origin.srcEid];
 
         // Forward the result to the bridge router
         bool delivered = false;
         try
             IBridgeRouter(bridgeRouter).deliverReadResponse(
                 operationId,
+                srcChainId,
                 _payload
             )
         {

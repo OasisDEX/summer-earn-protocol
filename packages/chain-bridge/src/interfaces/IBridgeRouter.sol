@@ -222,12 +222,14 @@ interface IBridgeRouter is IERC165 {
     /**
      * @notice Deliver read response data (called by adapters)
      * @param operationId Unique identifier for the original read request
+     * @param sourceChainId ID of the chain where the data was read from
      * @param resultData The data returned from the destination chain read
      * @dev Called by adapter on the source chain upon receiving the response.
      *      Attempts to forward the result to the original requester. Requires caller == operationToAdapter[operationId].
      */
     function deliverReadResponse(
         bytes32 operationId,
+        uint16 sourceChainId,
         bytes calldata resultData
     ) external;
 
