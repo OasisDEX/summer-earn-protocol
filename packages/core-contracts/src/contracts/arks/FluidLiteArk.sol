@@ -118,6 +118,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         // Add any WETH balance held in this contract
         assets += config.asset.balanceOf(address(this));
         assets += assetsInWithdrawalQueue();
+        assets = applyFeeAndSlippage(assets);
     }
 
     function assetsInWithdrawalQueue() public view returns (uint256) {
