@@ -33,11 +33,13 @@ interface IFleetProxy is ICrossChainAssetReceiver {
      * @param fleetContract Address of the fleet contract
      * @param token Address of the token deposited
      * @param amount Amount of tokens deposited
+     * @param sourceChainId Source chain ID
      */
     event ProxyDeposit(
         address indexed fleetContract,
         address indexed token,
-        uint256 amount
+        uint256 amount,
+        uint16 indexed sourceChainId
     );
 
     /**

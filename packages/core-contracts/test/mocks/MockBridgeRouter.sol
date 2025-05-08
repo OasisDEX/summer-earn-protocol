@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
  * @title MockBridgeRouter
@@ -175,7 +176,7 @@ contract MockBridgeRouter is IBridgeRouter {
         uint256 amount,
         address recipient,
         BridgeTypes.BridgeOptions calldata
-    ) external payable override returns (bytes32) {
+    ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
         if (shouldRevert) revert TransferFailed();
 
@@ -219,7 +220,7 @@ contract MockBridgeRouter is IBridgeRouter {
         address recipient,
         bytes calldata message,
         BridgeTypes.BridgeOptions calldata
-    ) external payable override returns (bytes32) {
+    ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
         if (shouldRevert) revert ReceiverRejectedCall();
 
@@ -260,7 +261,7 @@ contract MockBridgeRouter is IBridgeRouter {
         bytes4 selector,
         bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata
-    ) external payable override returns (bytes32) {
+    ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
         if (shouldRevert) revert ReceiverRejectedCall();
 
@@ -326,7 +327,7 @@ contract MockBridgeRouter is IBridgeRouter {
         return adapters.contains(adapter);
     }
 
-    function getRouterBalance() external view override returns (uint256) {
+    function getRouterBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
@@ -458,14 +459,61 @@ contract MockBridgeRouter is IBridgeRouter {
     }
 
     // Unused interface methods with empty implementations
-    function setFeeMultiplier(uint256) external override {}
-    function setConfirmationGasLimit(uint64) external override {}
-    function setChainRouterAddress(uint16, address) external override {}
-    function removeRouterFunds(address, uint256) external override {}
-    function addRouterFunds() external payable override {}
+    function setFeeMultiplier(uint256) external {}
+    function setConfirmationGasLimit(uint64) external {}
+    function setChainRouterAddress(uint16, address) external {}
+    function removeRouterFunds(address, uint256) external {}
+    function addRouterFunds() external payable {}
     function deliverReadResponse(
         bytes32 operationId,
         uint16 sourceChainId,
         bytes calldata resultData
-    ) external override {}
+    ) external {}
+
+    function DEFAULT_GAS_LIMIT() external pure returns (uint64) {
+        return 200000; // Default value matching the real implementation
+    }
+
+    function bridgeQueue() external pure returns (address) {
+        return address(0); // Mock implementation
+    }
+
+    function chainToRouterAddress(uint16) external pure returns (address) {
+        return address(0); // Mock implementation
+    }
+
+    function executeReadState(
+        BridgeTypes.ExecuteReadStateParams calldata
+    ) external payable returns (bytes32) {
+        return bytes32(0); // Mock implementation
+    }
+
+    function executeSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata
+    ) external payable returns (bytes32) {
+        return bytes32(0); // Mock implementation
+    }
+
+    function executeTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata
+    ) external payable returns (bytes32) {
+        return bytes32(0); // Mock implementation
+    }
+
+    function recoverFunds(address recipient, uint256 amount) external {
+        (bool success, ) = recipient.call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+
+    function setDefaultGasLimit(uint256) external {
+        // Mock implementation
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure returns (bool) {
+        return
+            interfaceId == type(IBridgeRouter).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
+    }
 }

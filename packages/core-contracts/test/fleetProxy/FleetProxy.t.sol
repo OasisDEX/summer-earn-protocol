@@ -159,7 +159,7 @@ contract CrossChainFleetProxyTest is Test {
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
         vm.prank(address(mockAdapter));
-        proxy.receiveMessageWithAssets(asset, amount, message);
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
 
         // Verify token balance was updated
         assertEq(fleetCommanderMock.totalAssets(), amount);
@@ -202,7 +202,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call from the bridge router address (via adapter)
         vm.prank(address(mockAdapter));
-        proxy.receiveMessageWithAssets(asset, amount, message);
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
 
         // Verify token balance was updated in the fleet commander
         assertEq(fleetCommanderMock.totalAssets(), amount);

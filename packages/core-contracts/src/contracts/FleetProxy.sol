@@ -127,7 +127,8 @@ contract CrossChainFleetProxy is
     function receiveMessageWithAssets(
         address asset,
         uint256 amount,
-        bytes calldata message
+        bytes calldata message,
+        uint16 sourceChainId
     ) external whenNotPaused nonReentrant {
         if (message.length == 0) {
             emit MessageContentNotExpected();
@@ -149,7 +150,7 @@ contract CrossChainFleetProxy is
             revert NoAssets();
         }
 
-        _handleReceiveAssets(asset, amount);
+        _handleReceiveAssets(asset, amount, sourceChainId);
     }
 
     /// @inheritdoc IERC165
@@ -169,8 +170,13 @@ contract CrossChainFleetProxy is
      * @notice Handle receiving assets from the source chain
      * @param token Address of the token
      * @param amount Amount of tokens
+     * @param sourceChainId Source chain ID
      */
-    function _handleReceiveAssets(address token, uint256 amount) internal {
+    function _handleReceiveAssets(
+        address token,
+        uint256 amount,
+        uint16 sourceChainId
+    ) internal {
         // Deposit the assets into the underlying fleet contract
         // First approve the fleetContract to spend the tokens
         IERC20(token).approve(fleetContract, amount);
@@ -183,7 +189,7 @@ contract CrossChainFleetProxy is
         );
 
         // Emit event for tracking
-        emit ProxyDeposit(fleetContract, token, amount);
+        emit ProxyDeposit(fleetContract, token, amount, sourceChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -208,12 +214,15 @@ contract CrossChainFleetProxy is
         address asset = address(config.bufferArk.asset());
 
         // 3. Use BridgeRouter to transfer assets back to source chain's CrossChainArk
-        bridgeRouter.transferAssets{value: msg.value}(
-            sourceChainId,
-            asset,
-            amount,
-            sourceChainArk,
-            bridgeOptions
+        bridgeRouter.executeTransferAssets{value: msg.value}(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: sourceChainId,
+                asset: asset,
+                amount: amount,
+                recipient: sourceChainArk,
+                options: bridgeOptions
+            })
         );
 
         emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
