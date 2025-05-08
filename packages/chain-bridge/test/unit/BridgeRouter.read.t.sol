@@ -301,17 +301,7 @@ contract BridgeRouterReadStateTest is Test {
 
         // Now deliver the response from the adapter
         vm.prank(address(mockAdapter));
-        // Assume direct interaction for test, mock if adapter calls back
-        vm.expectCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.deliverReadResponse.selector,
-                operationId,
-                DEST_CHAIN_ID,
-                abi.encode(uint256(100))
-            )
-        );
-        // Also expect the call to the receiver with correct parameter order
+        // Expect the call to the receiver with correct parameter order
         vm.expectCall(
             address(mockReceiver),
             abi.encodeWithSelector(
@@ -327,18 +317,6 @@ contract BridgeRouterReadStateTest is Test {
             DEST_CHAIN_ID,
             abi.encode(uint256(100))
         );
-        // Also expect the call to the receiver with correct parameter order
-        vm.expectCall(
-            address(mockReceiver),
-            abi.encodeWithSelector(
-                ICrossChainReceiver.receiveStateRead.selector,
-                abi.encode(uint256(100)), // resultData
-                address(mockReceiver), // originator
-                0, // sourceChainId
-                operationId // operationId
-            )
-        );
-        router.deliverReadResponse(operationId, abi.encode(uint256(100)));
 
         // Verify that the mockReceiver received the data
         assertEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
