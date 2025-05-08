@@ -126,11 +126,29 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @dev Internal function to handle refunds safely
+     * @param recipient Address to receive the refund
+     * @param amount Amount to refund
+     */
+    function _refund(address recipient, uint256 amount) internal {
+        if (amount > 0) {
+            (bool success, ) = recipient.call{value: amount}("");
+            if (!success) revert TransferFailed();
+        }
+    }
+
+    /**
      * @inheritdoc IBridgeRouter
      */
     function executeTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
+    )
+        external
+        payable
+        onlyBridgeQueue
+        nonReentrant
+        returns (bytes32 operationId)
+    {
         // Validations
         if (paused) revert Paused();
         if (
@@ -151,14 +169,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         // Validate fee provided by BridgeQueue
         if (msg.value < requiredBaseFee) revert InsufficientFee();
-
-        // Refund excess fee (if any) to the originator
-        if (msg.value > requiredBaseFee) {
-            (bool success, ) = params.originator.call{
-                value: msg.value - requiredBaseFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
 
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
@@ -198,6 +208,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             selectedAdapter
         );
 
+        // Refund excess fee after state changes
+        _refund(params.originator, msg.value - requiredBaseFee);
+
         return operationId;
     }
 
@@ -206,7 +219,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
      */
     function executeReadState(
         BridgeTypes.ExecuteReadStateParams calldata params
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
+    )
+        external
+        payable
+        onlyBridgeQueue
+        nonReentrant
+        returns (bytes32 operationId)
+    {
         // Validations
         if (paused) revert Paused();
         if (params.originator == address(0) || params.dstContract == address(0))
@@ -223,14 +242,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         // Validate fee provided by BridgeQueue
         if (msg.value < requiredBaseFee) revert InsufficientFee();
-
-        // Refund excess fee (if any) to the originator
-        if (msg.value > requiredBaseFee) {
-            (bool success, ) = params.originator.call{
-                value: msg.value - requiredBaseFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
 
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
@@ -271,6 +282,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             selectedAdapter
         );
 
+        // Refund excess fee after state changes
+        _refund(params.originator, msg.value - requiredBaseFee);
+
         return operationId;
     }
 
@@ -279,7 +293,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
      */
     function executeSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata params
-    ) external payable onlyBridgeQueue returns (bytes32 operationId) {
+    )
+        external
+        payable
+        onlyBridgeQueue
+        nonReentrant
+        returns (bytes32 operationId)
+    {
         // Validations
         if (paused) revert Paused();
         if (params.recipient == address(0) || params.originator == address(0))
@@ -296,14 +316,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         // Validate fee provided by BridgeQueue
         if (msg.value < requiredBaseFee) revert InsufficientFee();
-
-        // Refund excess fee (if any) to the originator
-        if (msg.value > requiredBaseFee) {
-            (bool success, ) = params.originator.call{
-                value: msg.value - requiredBaseFee
-            }("");
-            if (!success) revert TransferFailed();
-        }
 
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
@@ -336,6 +348,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             params.recipient,
             selectedAdapter
         );
+
+        // Refund excess fee after state changes
+        _refund(params.originator, msg.value - requiredBaseFee);
 
         return operationId;
     }

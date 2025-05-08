@@ -165,7 +165,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     ) internal override {
         // Extract message type from the first 2 bytes if available
         uint16 messageType = GENERAL_MESSAGE; // Default to GENERAL_MESSAGE
-        bytes calldata actualPayload = _payload;
+        bytes memory actualPayload = _payload;
 
         // If the payload starts with a uint16 message type marker
         if (_payload.length >= 2) {

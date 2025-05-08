@@ -167,6 +167,9 @@ contract CrossChainArk is
      * @dev This function queues a cross-chain transfer to the target proxy
      */
     function _board(uint256 amount, bytes calldata) internal override {
+        // Approve BridgeQueue to spend tokens
+        config.asset.approve(address(bridgeQueue), amount);
+
         bridgeQueue.queueTransferAssets(
             targetChainId,
             address(config.asset),

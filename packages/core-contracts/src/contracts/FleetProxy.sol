@@ -200,7 +200,7 @@ contract CrossChainFleetProxy is
     function withdrawAndTransfer(
         uint256 amount,
         uint16 sourceChainId
-    ) external payable whenNotPaused onlyKeeper {
+    ) external payable whenNotPaused nonReentrant onlyKeeper {
         // 1. Withdraw from fleet contract
         IFleetCommander(fleetContract).withdraw(
             amount,
