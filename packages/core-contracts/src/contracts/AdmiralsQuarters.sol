@@ -149,9 +149,36 @@ contract AdmiralsQuarters is
         fleetAsset.forceApprove(address(fleet), assets);
         shares = fleet.deposit(assets, receiver);
 
-        emit FleetEntered(receiver, fleetCommander, assets, shares);
+        emit FleetEntered(_msgSender(), fleetCommander, assets, shares);
     }
+    /// @inheritdoc IAdmiralsQuarters
+    function enterFleet(
+        address fleetCommander,
+        uint256 assets,
+        address receiver,
+        bytes calldata referralCode
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+        _validateFleetCommander(fleetCommander);
 
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        IERC20 fleetAsset = IERC20(fleet.asset());
+
+        uint256 balance = fleetAsset.balanceOf(address(this));
+        assets = assets == 0 ? balance : assets;
+        receiver = receiver == address(0) ? _msgSender() : receiver;
+        if (assets > balance) revert InsufficientOutputAmount();
+
+        fleetAsset.forceApprove(address(fleet), assets);
+        shares = fleet.deposit(assets, receiver, referralCode);
+
+        emit FleetEnteredWithReferral(
+            _msgSender(),
+            fleetCommander,
+            assets,
+            shares,
+            referralCode
+        );
+    }
     /// @inheritdoc IAdmiralsQuarters
     function exitFleet(
         address fleetCommander,
