@@ -143,12 +143,12 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         // Verify it matches our pre-calculated ID
         assertEq(operationId, expectedOperationId);
 
-        // Verify the operation status is still PENDING
+        // Verify the operation status is SENT
         assertEq(
             uint256(
                 IBridgeRouter(address(routerA)).getOperationStatus(operationId)
             ),
-            uint256(BridgeTypes.OperationStatus.PENDING)
+            uint256(BridgeTypes.OperationStatus.SENT)
         );
     }
 

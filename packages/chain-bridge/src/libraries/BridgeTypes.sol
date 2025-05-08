@@ -10,11 +10,9 @@ library BridgeTypes {
      * @notice Status of a cross-chain transfer
      */
     enum OperationStatus {
-        QUEUED,
-        PENDING,
-        DELIVERED,
-        FAILED,
-        COMPLETED
+        QUEUED, // Only used in BridgeQueue
+        SENT, // Operation has been sent to the destination chain
+        FAILED // Operation has failed
     }
 
     /**

@@ -63,7 +63,7 @@ contract BridgeRouterTransferTest is Test {
         mockAdapter2 = new MockAdapter(address(router));
         token = new ERC20Mock();
 
-        // Setup mock adapter
+        // Configure mock adapter to support chain 10 and the token
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
         mockAdapter.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
 
@@ -185,7 +185,7 @@ contract BridgeRouterTransferTest is Test {
         // Verify queue status updated post-execution
         assertEq(
             uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.PENDING)
+            uint256(BridgeTypes.OperationStatus.SENT)
         );
         // Verify queue maps operationId
         assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
@@ -263,7 +263,7 @@ contract BridgeRouterTransferTest is Test {
             adapterParams: adapterParams
         });
 
-        // Quoting for an unsupported destination chain should revert directly
+        // Should revert when no adapter supports the chain
         vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
         router.quote(
             999, // Unsupported chain ID
@@ -346,13 +346,13 @@ contract BridgeRouterTransferTest is Test {
         vm.prank(address(mockAdapter));
         router.updateOperationStatus(
             operationId,
-            BridgeTypes.OperationStatus.DELIVERED
+            BridgeTypes.OperationStatus.SENT
         );
 
         // Verify status was updated
         assertEq(
             uint256(router.operationStatuses(operationId)),
-            uint256(BridgeTypes.OperationStatus.DELIVERED)
+            uint256(BridgeTypes.OperationStatus.SENT)
         );
     }
 
@@ -433,7 +433,7 @@ contract BridgeRouterTransferTest is Test {
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.updateOperationStatus(
             operationId,
-            BridgeTypes.OperationStatus.DELIVERED
+            BridgeTypes.OperationStatus.SENT
         );
 
         // Register second adapter
@@ -445,7 +445,7 @@ contract BridgeRouterTransferTest is Test {
         vm.expectRevert(IBridgeRouter.Unauthorized.selector);
         router.updateOperationStatus(
             operationId,
-            BridgeTypes.OperationStatus.DELIVERED
+            BridgeTypes.OperationStatus.SENT
         );
     }
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
 contract MockAdapter is IBridgeAdapter {
     address public bridgeRouter;
@@ -33,6 +34,23 @@ contract MockAdapter is IBridgeAdapter {
     // Mapping of operation types to message types (similar to LayerZeroAdapter)
     mapping(BridgeTypes.OperationType => uint16) private operationToMessageType;
 
+    // Add ReceivedMessage struct from core-contracts version
+    struct ReceivedMessage {
+        bytes message;
+        address sender;
+        uint16 sourceChainId;
+        bytes32 messageId;
+    }
+
+    ReceivedMessage[] public receivedMessages;
+
+    // Add MessageRelayed event from core-contracts version
+    event MessageRelayed(
+        bytes32 messageId,
+        address recipient,
+        uint16 sourceChainId
+    );
+
     constructor(address _bridgeRouter) {
         bridgeRouter = _bridgeRouter;
 
@@ -40,6 +58,9 @@ contract MockAdapter is IBridgeAdapter {
         operationToMessageType[BridgeTypes.OperationType.MESSAGE] = 1; // Mock message type
         operationToMessageType[BridgeTypes.OperationType.READ_STATE] = 2; // Mock read type
         operationToMessageType[BridgeTypes.OperationType.TRANSFER_ASSET] = 3; // Mock transfer type
+
+        // Initialize default supported chain for testing
+        supportedChains[111] = true; // SOURCE_CHAIN_ID from tests
     }
 
     // Add helper function to set fee multiplier
@@ -164,54 +185,29 @@ contract MockAdapter is IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getSupportedChains()
-        external
-        view
-        override
-        returns (uint16[] memory)
-    {
-        // Count supported chains first
-        uint256 count = 0;
-        for (uint16 i = 0; i < 1000; i++) {
-            if (supportedChains[i]) {
-                count++;
-            }
-        }
-
-        // Create array and populate it
-        uint16[] memory chains = new uint16[](count);
-        uint256 index = 0;
-        for (uint16 i = 0; i < 1000; i++) {
-            if (supportedChains[i]) {
-                chains[index] = i;
-                index++;
-            }
-        }
-
+    function getSupportedChains() external pure returns (uint16[] memory) {
+        uint16[] memory chains = new uint16[](1);
+        chains[0] = 111; // SOURCE_CHAIN_ID from tests
         return chains;
     }
 
     /// @inheritdoc IBridgeAdapter
     function getSupportedAssets(
         uint16
-    ) external pure override returns (address[] memory) {
-        // This is a simplified implementation for mock purposes
-        // In a real implementation, you would need to track and return all supported assets
+    ) external pure returns (address[] memory) {
         address[] memory assets = new address[](1);
-        assets[0] = address(0x1); // Placeholder
+        assets[0] = address(0);
         return assets;
     }
 
-    function supportsChain(
-        uint16 chainId
-    ) external view override returns (bool) {
+    function supportsChain(uint16 chainId) external view returns (bool) {
         return supportedChains[chainId];
     }
 
     function supportsAsset(
         uint16 chainId,
         address asset
-    ) external view override returns (bool) {
+    ) external view returns (bool) {
         return supportedAssets[chainId][asset];
     }
 
@@ -274,5 +270,34 @@ contract MockAdapter is IBridgeAdapter {
         BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
         revert("Not implemented");
+    }
+
+    // Add simulateMessageReceived function from core-contracts version
+    function simulateMessageReceived(
+        bytes memory message,
+        address sender,
+        uint16 sourceChainId,
+        bytes32 messageId
+    ) external {
+        // Store the received message
+        receivedMessages.push(
+            ReceivedMessage({
+                message: message,
+                sender: sender,
+                sourceChainId: sourceChainId,
+                messageId: messageId
+            })
+        );
+
+        // Notify the bridge router about the received message
+        IBridgeRouter(bridgeRouter).notifyMessageReceived(
+            messageId,
+            address(0), // No asset for general message
+            0, // No amount for general message
+            sender, // The destination contract address
+            sourceChainId
+        );
+
+        emit MessageRelayed(messageId, sender, sourceChainId);
     }
 }

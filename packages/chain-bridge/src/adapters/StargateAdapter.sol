@@ -229,10 +229,10 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
             )
         );
 
-        // Update status in bridge router instead
+        // Set initial status as SENT
         IBridgeRouter(bridgeRouter).updateOperationStatus(
             operationId,
-            BridgeTypes.OperationStatus.PENDING
+            BridgeTypes.OperationStatus.SENT
         );
 
         return operationId;
@@ -335,7 +335,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
                 params.amount
             );
 
-            // Update transfer status to failed through bridge router
+            // Update transfer status to failed
             IBridgeRouter(bridgeRouter).updateOperationStatus(
                 params.operationId,
                 BridgeTypes.OperationStatus.FAILED
@@ -473,15 +473,15 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         // Decode the transfer ID from the payload
         bytes32 transferId = abi.decode(_payload, (bytes32));
 
-        // Convert _srcAddress to an address (this would be the recipient encoded from the source chain)
+        // Convert _srcAddress to an address
         address recipient = _srcAddress.length == 20
             ? address(bytes20(_srcAddress))
             : abi.decode(_srcAddress, (address));
 
-        // Forward the tokens to the recipient (likely CrossChainArkProxy)
+        // Forward the tokens to the recipient
         IERC20(_token).safeTransfer(recipient, _amount);
 
-        // Notify the BridgeRouter about the completed transfer
+        // Notify the BridgeRouter about the received transfer
         IBridgeRouter(bridgeRouter).notifyMessageReceived(
             transferId,
             _token,

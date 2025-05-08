@@ -183,7 +183,7 @@ contract BridgeRouterReadStateTest is Test {
         // Verify queue status updated post-execution
         assertEq(
             uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.PENDING) // Should be pending as it's sent to adapter
+            uint256(BridgeTypes.OperationStatus.SENT) // Should be SENT as it's sent to adapter
         );
         // Verify queue maps operationId
         assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
@@ -293,10 +293,10 @@ contract BridgeRouterReadStateTest is Test {
         vm.prank(address(router));
         router.setOperationToAdapter(operationId, address(mockAdapter));
         router.setReadRequestOriginator(operationId, address(mockReceiver));
-        // Set initial status to PENDING
+        // Set initial status to SENT
         router.setOperationStatus(
             operationId,
-            BridgeTypes.OperationStatus.PENDING
+            BridgeTypes.OperationStatus.SENT
         );
 
         // Now deliver the response from the adapter
@@ -521,10 +521,10 @@ contract BridgeRouterReadStateTest is Test {
         vm.prank(address(router));
         router.setOperationToAdapter(operationId, address(mockAdapter));
         router.setReadRequestOriginator(operationId, address(mockReceiver));
-        // Set initial status to PENDING
+        // Set initial status to SENT
         router.setOperationStatus(
             operationId,
-            BridgeTypes.OperationStatus.PENDING
+            BridgeTypes.OperationStatus.SENT
         );
 
         // Attempt to deliver the response

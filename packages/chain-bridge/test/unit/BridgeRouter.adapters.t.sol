@@ -305,7 +305,7 @@ contract BridgeRouterAdaptersTest is Test {
         // Verify queue status updated post-execution
         assertEq(
             uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.PENDING) // Should be pending as it's sent to adapter
+            uint256(BridgeTypes.OperationStatus.SENT) // Should be SENT as it's sent to adapter
         );
         // Verify queue maps operationId
         assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);

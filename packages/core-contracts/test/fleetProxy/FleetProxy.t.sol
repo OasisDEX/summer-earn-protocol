@@ -7,8 +7,8 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
-import {MockBridgeRouter} from "../mocks/MockBridgeRouter.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
+import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
+import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkParams} from "../../src/contracts/Ark.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
@@ -117,6 +117,10 @@ contract CrossChainFleetProxyTest is Test {
             bridgeOptions,
             SOURCE_ARK_ADDRESS
         );
+
+        // Register the mock adapter with the bridge router
+        vm.prank(governor);
+        mockBridgeRouter.registerAdapter(address(mockAdapter));
     }
 
     //----------------- Constructor Tests -----------------//

@@ -704,8 +704,8 @@ contract BridgeQueueTest is Test {
         // Check queue state updated
         assertEq(
             uint8(queue.queueIdToStatus(queueId)),
-            uint8(BridgeTypes.OperationStatus.PENDING),
-            "Queue status should be PENDING"
+            uint8(BridgeTypes.OperationStatus.SENT),
+            "Queue status should be SENT"
         );
         assertEq(
             queue.operationIdToQueueId(expectedOperationId),
@@ -848,7 +848,7 @@ contract BridgeQueueTest is Test {
         assertEq(actualOperationId, expectedOperationId, "Read Op ID mismatch");
         assertEq(
             uint8(queue.queueIdToStatus(queueId)),
-            uint8(BridgeTypes.OperationStatus.PENDING),
+            uint8(BridgeTypes.OperationStatus.SENT),
             "Read Status mismatch"
         );
         assertEq(
@@ -962,7 +962,7 @@ contract BridgeQueueTest is Test {
         );
         assertEq(
             uint8(queue.queueIdToStatus(queueId)),
-            uint8(BridgeTypes.OperationStatus.PENDING),
+            uint8(BridgeTypes.OperationStatus.SENT),
             "Message Status mismatch"
         );
         assertEq(

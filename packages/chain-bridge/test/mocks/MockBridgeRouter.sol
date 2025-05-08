@@ -21,6 +21,45 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     address public constant MOCK_ADAPTER_ADDRESS = address(0xAA);
     uint256 public constant QUOTE_GAS = 50000; // Example gas estimate
     bool public shouldRevert = false; // Flag to control reverting behavior
+    bool public mockPaused = false; // Added from core contracts version
+    uint256 public mockFee = 0.1 ether; // Added for quote function
+
+    // Variables to control mock behavior (Added from core contracts version)
+    bytes32 public nextTransferId;
+    bytes32 public nextMessageId;
+    bytes32 public nextReadId;
+
+    // Track calls for verification (Added from core contracts version)
+    struct TransferCall {
+        uint16 destinationChainId;
+        address asset;
+        uint256 amount;
+        address recipient;
+    }
+
+    struct MessageCall {
+        uint16 destinationChainId;
+        address recipient;
+        bytes message;
+    }
+
+    TransferCall[] public transferCalls;
+    MessageCall[] public messageCalls;
+
+    // Mock-specific events (Added from core contracts version)
+    event MockTransferAssets(
+        bytes32 operationId,
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient
+    );
+    event MockSendMessage(
+        bytes32 operationId,
+        uint16 destinationChainId,
+        address recipient,
+        bytes message
+    );
 
     mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
     mapping(bytes32 => address) public operationOriginators; // Track who requested via queue
@@ -36,6 +75,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // Mock-specific event
     event BridgeQueueAddressSet(address bridgeQueue); // Mock specific event
+
+    // Add mapping for registered adapters
+    mapping(address => bool) public registeredAdapters;
 
     // --- Errors ---
     error CallerNotBridgeQueue();
@@ -71,6 +113,16 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit OperationStatusUpdated(_operationId, _status); // Simulate update
     }
 
+    // Add registerAdapter function
+    function registerAdapter(address adapter) external {
+        registeredAdapters[adapter] = true;
+    }
+
+    // Add isValidAdapter function
+    function isValidAdapter(address adapter) external view returns (bool) {
+        return registeredAdapters[adapter];
+    }
+
     // --- IBridgeRouter Implementation ---
 
     // --- Main Functions ---
@@ -83,14 +135,11 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.OperationType /* operationType */
     )
         external
-        pure
+        view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
     {
-        // Return base fees (without multiplier)
-        uint256 mockBaseNativeFee = 0.1 ether; // Example base fee
-        uint256 mockBaseTokenFee = 0; // Example base token fee
-        nativeFee = mockBaseNativeFee; // Return base fee, not total
-        tokenFee = mockBaseTokenFee;
+        nativeFee = mockFee;
+        tokenFee = 0;
         selectedAdapter = MOCK_ADAPTER_ADDRESS;
         return (nativeFee, tokenFee, selectedAdapter);
     }
@@ -106,7 +155,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         }
 
         operationId = keccak256(abi.encodePacked("transfer", operationNonce++));
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS; // Simulate adapter selection
         operationBaseFeesPaid[operationId] = msg.value; // Track base fee received
@@ -130,7 +179,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         );
         emit OperationStatusUpdated(
             operationId,
-            BridgeTypes.OperationStatus.PENDING
+            BridgeTypes.OperationStatus.SENT
         );
 
         // Refund any excess native fee to the keeper
@@ -147,7 +196,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.ExecuteReadStateParams calldata params
     ) internal returns (bytes32 operationId) {
         operationId = keccak256(abi.encodePacked("read", operationNonce++));
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
         operationBaseFeesPaid[operationId] = msg.value;
@@ -162,7 +211,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         );
         emit OperationStatusUpdated(
             operationId,
-            BridgeTypes.OperationStatus.PENDING
+            BridgeTypes.OperationStatus.SENT
         );
 
         return operationId;
@@ -172,7 +221,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.ExecuteSendMessageParams calldata params
     ) internal returns (bytes32 operationId) {
         operationId = keccak256(abi.encodePacked("message", operationNonce++));
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
         operationBaseFeesPaid[operationId] = msg.value;
@@ -185,7 +234,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         );
         emit OperationStatusUpdated(
             operationId,
-            BridgeTypes.OperationStatus.PENDING
+            BridgeTypes.OperationStatus.SENT
         );
 
         return operationId;
@@ -215,9 +264,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         // require(msg.sender == MOCK_ADAPTER_ADDRESS, "Mock: Unauthorized adapter"); // Example check
         operationStatuses[requestId] = status;
         emit OperationStatusUpdated(requestId, status);
-        if (status == BridgeTypes.OperationStatus.DELIVERED) {
-            emit MessageDelivered(requestId, recipient, true);
-        } else if (status == BridgeTypes.OperationStatus.FAILED) {
+        if (status == BridgeTypes.OperationStatus.FAILED) {
             emit MessageDelivered(requestId, recipient, false);
         }
     }
@@ -230,11 +277,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint16 sourceChainId
     ) external override {
         // require(msg.sender == MOCK_ADAPTER_ADDRESS, "Mock: Unauthorized adapter"); // Example check
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.DELIVERED; // Simulate initial delivered status
-        emit OperationStatusUpdated(
-            operationId,
-            BridgeTypes.OperationStatus.DELIVERED
-        );
+        // Emit events for tracking
         emit MessageDelivered(operationId, recipient, true);
         if (asset != address(0) && amount > 0) {
             emit TransferReceived(
@@ -247,7 +290,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             // Simulate receiving asset from adapter
             // If testing asset flow end-to-end, adapter mock would need minting/transfer ability
         }
-        // Simulate trying to send confirmation back (can be mocked further if needed)
     }
 
     function deliverReadResponse(
@@ -260,35 +302,16 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         // Simulate attempting to call originator - for tests, just update status & emit
         bool delivered = originator != address(0); // Mock success if originator exists
         if (delivered) {
-            operationStatuses[operationId] = BridgeTypes
-                .OperationStatus
-                .COMPLETED;
-            emit OperationStatusUpdated(
-                operationId,
-                BridgeTypes.OperationStatus.COMPLETED
-            );
+            // Emit event for successful delivery
+            emit ReadResponseDelivered(operationId, originator, delivered);
         } else {
+            // Update status to FAILED if delivery failed
             operationStatuses[operationId] = BridgeTypes.OperationStatus.FAILED;
             emit OperationStatusUpdated(
                 operationId,
                 BridgeTypes.OperationStatus.FAILED
             );
-        }
-        emit ReadResponseDelivered(operationId, originator, delivered);
-    }
-
-    function receiveConfirmation(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external override {
-        // require(msg.sender == MOCK_ADAPTER_ADDRESS, "Mock: Unauthorized adapter"); // Example check
-        // Simulate basic status progression check
-        if (
-            status > operationStatuses[operationId] &&
-            operationStatuses[operationId] != BridgeTypes.OperationStatus.FAILED
-        ) {
-            operationStatuses[operationId] = status;
-            emit OperationStatusUpdated(operationId, status);
+            emit ReadResponseDelivered(operationId, originator, delivered);
         }
     }
 
@@ -329,10 +352,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         return adapters;
     }
 
-    function isValidAdapter(address adapter) external pure returns (bool) {
-        return adapter == MOCK_ADAPTER_ADDRESS;
-    }
-
     function getRouterBalance() external view returns (uint256) {
         return address(this).balance;
     }
@@ -347,20 +366,16 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // --- Admin Functions ---
     // Implement simplified versions for testing setup or ignore if not needed for queue tests
-    function registerAdapter(address adapter) external override {
-        emit AdapterRegistered(adapter);
-    }
-
     function removeAdapter(address adapter) external override {
         emit AdapterRemoved(adapter);
     }
 
     function pause() external override {
-        /* No-op in mock */
+        mockPaused = true;
     }
 
     function unpause() external override {
-        /* No-op in mock */
+        mockPaused = false;
     }
 
     // Renamed function
@@ -380,7 +395,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     function recoverFunds(address recipient, uint256 amount) external override {
         (bool s, ) = payable(recipient).call{value: amount}("");
         require(s);
-        emit RouterFundsRemoved(recipient, amount);
+        emit RouterFundsRecovered(recipient, amount);
     }
 
     function recoverOperationStatus(
@@ -427,5 +442,150 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.ExecuteSendMessageParams calldata params
     ) external payable override onlyBridgeQueue returns (bytes32 operationId) {
         return _executeSendMessage(params);
+    }
+
+    // Add missing functions from core contracts version
+    function clearCalls() external {
+        delete transferCalls;
+        delete messageCalls;
+    }
+
+    function getTransferCallCount() external view returns (uint256) {
+        return transferCalls.length;
+    }
+
+    function getMessageCallCount() external view returns (uint256) {
+        return messageCalls.length;
+    }
+
+    // Update transferAssets to record calls
+    function transferAssets(
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        BridgeTypes.BridgeOptions calldata
+    ) external payable returns (bytes32) {
+        if (mockPaused) revert Paused();
+        if (shouldRevert) revert TransferFailed();
+
+        // Record the call
+        transferCalls.push(
+            TransferCall({
+                destinationChainId: destinationChainId,
+                asset: asset,
+                amount: amount,
+                recipient: recipient
+            })
+        );
+
+        bytes32 operationId = nextTransferId;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
+        operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
+
+        emit TransferInitiated(
+            operationId,
+            destinationChainId,
+            asset,
+            amount,
+            recipient,
+            MOCK_ADAPTER_ADDRESS
+        );
+
+        emit MockTransferAssets(
+            operationId,
+            destinationChainId,
+            asset,
+            amount,
+            recipient
+        );
+
+        return operationId;
+    }
+
+    // Update sendMessage to record calls
+    function sendMessage(
+        uint16 destinationChainId,
+        address recipient,
+        bytes calldata message,
+        BridgeTypes.BridgeOptions calldata
+    ) external payable returns (bytes32) {
+        if (mockPaused) revert Paused();
+        if (shouldRevert) revert ReceiverRejectedCall();
+
+        // Record the call
+        messageCalls.push(
+            MessageCall({
+                destinationChainId: destinationChainId,
+                recipient: recipient,
+                message: message
+            })
+        );
+
+        bytes32 operationId = nextMessageId;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
+        operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
+
+        emit MessageInitiated(
+            operationId,
+            destinationChainId,
+            recipient,
+            MOCK_ADAPTER_ADDRESS
+        );
+
+        emit MockSendMessage(
+            operationId,
+            destinationChainId,
+            recipient,
+            message
+        );
+
+        return operationId;
+    }
+
+    // Add configureMock function from core contracts version
+    function configureMock(
+        bytes32 _nextTransferId,
+        bytes32 _nextMessageId,
+        bytes32 _nextReadId,
+        bool _mockPaused,
+        bool _shouldRevert,
+        uint256 _mockFee,
+        address
+    ) external {
+        nextTransferId = _nextTransferId;
+        nextMessageId = _nextMessageId;
+        nextReadId = _nextReadId;
+        mockPaused = _mockPaused;
+        shouldRevert = _shouldRevert;
+        mockFee = _mockFee;
+        // Note: We don't have mockSelectedAdapter in this version as we use MOCK_ADAPTER_ADDRESS
+    }
+
+    // Add readState function from core contracts version
+    function readState(
+        uint16 dstChainId,
+        address dstContract,
+        bytes4 selector,
+        bytes calldata readParams,
+        BridgeTypes.BridgeOptions calldata
+    ) external payable returns (bytes32) {
+        if (mockPaused) revert Paused();
+        if (shouldRevert) revert ReceiverRejectedCall();
+
+        bytes32 operationId = nextReadId;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
+        operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
+
+        emit ReadRequestInitiated(
+            operationId,
+            dstChainId,
+            dstContract,
+            selector,
+            readParams,
+            MOCK_ADAPTER_ADDRESS
+        );
+
+        return operationId;
     }
 }

@@ -49,9 +49,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @notice Pause state of the router
     bool public paused;
 
-    /// @notice Add a new mapping to track confirmation statuses
-    mapping(bytes32 operationId => bool confirmed) public confirmationSent;
-
     /// @notice Default gas limit to use when estimating adapter fees
     uint64 public DEFAULT_GAS_LIMIT = 200000;
 
@@ -196,7 +193,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationToAdapter[operationId] = selectedAdapter;
 
         emit TransferInitiated(
@@ -270,7 +267,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         readRequestToOriginator[operationId] = params.originator;
 
         // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationToAdapter[operationId] = selectedAdapter;
 
         emit ReadRequestInitiated(
@@ -339,7 +336,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.PENDING;
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationToAdapter[operationId] = selectedAdapter;
 
         emit MessageInitiated(
@@ -459,11 +456,20 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         if (operationToAdapter[operationId] != msg.sender)
             revert Unauthorized();
 
-        if (!_isStatusProgression(operationStatuses[operationId], status))
-            revert InvalidStatus();
-
-        operationStatuses[operationId] = status;
-        emit OperationStatusUpdated(operationId, status);
+        // Allow transitions from QUEUED to SENT, or from SENT to FAILED
+        if (
+            status == BridgeTypes.OperationStatus.SENT &&
+            operationStatuses[operationId] == BridgeTypes.OperationStatus.QUEUED
+        ) {
+            operationStatuses[operationId] = status;
+            emit OperationStatusUpdated(operationId, status);
+        } else if (
+            status == BridgeTypes.OperationStatus.FAILED &&
+            operationStatuses[operationId] == BridgeTypes.OperationStatus.SENT
+        ) {
+            operationStatuses[operationId] = status;
+            emit OperationStatusUpdated(operationId, status);
+        }
     }
 
     /// @inheritdoc IBridgeRouter
@@ -474,16 +480,18 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     ) external onlyRegisteredAdapter {
         requestReceivedByAdapter[requestId] = msg.sender;
 
-        // Update the status
-        if (!_isStatusProgression(operationStatuses[requestId], status))
-            revert InvalidStatus();
-
-        operationStatuses[requestId] = status;
-        emit OperationStatusUpdated(requestId, status);
-
-        if (status != BridgeTypes.OperationStatus.DELIVERED) {
-            emit MessageDelivered(requestId, recipient, false);
+        // Only update status if it's a failure
+        if (status == BridgeTypes.OperationStatus.FAILED) {
+            operationStatuses[requestId] = status;
+            emit OperationStatusUpdated(requestId, status);
         }
+
+        // Always emit delivery event
+        emit MessageDelivered(
+            requestId,
+            recipient,
+            status != BridgeTypes.OperationStatus.FAILED
+        );
     }
 
     /// @inheritdoc IBridgeRouter
@@ -497,16 +505,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Store which adapter received this request
         requestReceivedByAdapter[operationId] = msg.sender;
 
-        // Set initial status to DELIVERED
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.DELIVERED;
-        emit OperationStatusUpdated(
-            operationId,
-            BridgeTypes.OperationStatus.DELIVERED
-        );
-
+        // Emit events for tracking
         emit MessageDelivered(operationId, recipient, true);
 
-        // If this is a transfer (asset is not zero and amount > 0), emit the transfer event
+        // If this is a transfer, emit the transfer event
         if (asset != address(0) && amount > 0) {
             emit TransferReceived(
                 operationId,
@@ -515,33 +517,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                 recipient,
                 sourceChainId
             );
-        }
-
-        // Try to send confirmation back to source chain
-        if (!confirmationSent[operationId]) {
-            try
-                ISendAdapter(msg.sender).sendMessage(
-                    sourceChainId,
-                    chainToRouterAddress[sourceChainId] != address(0)
-                        ? chainToRouterAddress[sourceChainId]
-                        : address(this), // Fallback to this address if not configured
-                    abi.encode(
-                        operationId,
-                        BridgeTypes.OperationStatus.COMPLETED
-                    ),
-                    address(0), // No refund address needed
-                    BridgeTypes.AdapterParams({
-                        gasLimit: DEFAULT_GAS_LIMIT,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                )
-            returns (bytes32) {
-                confirmationSent[operationId] = true;
-            } catch {
-                emit ConfirmationFailed(operationId);
-            }
         }
     }
 
@@ -597,88 +572,22 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             delivered = false;
         }
 
-        // Update status based on delivery result
-        if (delivered) {
-            operationStatuses[operationId] = BridgeTypes
-                .OperationStatus
-                .COMPLETED;
-            emit OperationStatusUpdated(
-                operationId,
-                BridgeTypes.OperationStatus.COMPLETED
-            );
-            emit ReadResponseDelivered(operationId, originator, true);
-        } else {
+        // Emit event based on delivery result
+        emit ReadResponseDelivered(operationId, originator, delivered);
+
+        // Only update status if delivery failed
+        if (!delivered) {
             operationStatuses[operationId] = BridgeTypes.OperationStatus.FAILED;
             emit OperationStatusUpdated(
                 operationId,
                 BridgeTypes.OperationStatus.FAILED
             );
-            emit ReadResponseDelivered(operationId, originator, false);
-        }
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function receiveConfirmation(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external onlyRegisteredAdapter {
-        // Only update status in forward progression (pending->complete, not complete->pending)
-        if (_isStatusProgression(operationStatuses[operationId], status)) {
-            operationStatuses[operationId] = status;
-            emit OperationStatusUpdated(operationId, status);
         }
     }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Checks if a status change represents forward progression.
-     * @param currentStatus The current status of the operation.
-     * @param newStatus The proposed new status.
-     * @return True if the status change is valid forward progression.
-     * @dev Defines valid transitions: PENDING -> DELIVERED/COMPLETED/FAILED, DELIVERED -> COMPLETED/FAILED.
-     *      FAILED and COMPLETED are terminal states.
-     */
-    function _isStatusProgression(
-        BridgeTypes.OperationStatus currentStatus,
-        BridgeTypes.OperationStatus newStatus
-    ) internal pure returns (bool) {
-        // If current status is unset (default value), allow setting to PENDING
-        if (currentStatus == BridgeTypes.OperationStatus(0)) {
-            return true;
-        }
-
-        // Failed is a terminal state, can't progress from it
-        if (currentStatus == BridgeTypes.OperationStatus.FAILED) {
-            return false;
-        }
-
-        // Completed is a terminal state, can't progress from it
-        if (currentStatus == BridgeTypes.OperationStatus.COMPLETED) {
-            return false;
-        }
-
-        // Can always progress to FAILED from any non-terminal state
-        if (newStatus == BridgeTypes.OperationStatus.FAILED) {
-            return true;
-        }
-
-        // Status progression order: PENDING -> DELIVERED -> COMPLETED
-        if (currentStatus == BridgeTypes.OperationStatus.PENDING) {
-            return
-                newStatus == BridgeTypes.OperationStatus.DELIVERED ||
-                newStatus == BridgeTypes.OperationStatus.COMPLETED;
-        }
-
-        if (currentStatus == BridgeTypes.OperationStatus.DELIVERED) {
-            return newStatus == BridgeTypes.OperationStatus.COMPLETED;
-        }
-
-        // Default: no progression
-        return false;
-    }
 
     /**
      * @notice Finds the best adapter for an operation based on compatibility and estimated base fee.
@@ -857,7 +766,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         (bool success, ) = recipient.call{value: amount}("");
         if (!success) revert TransferFailed();
 
-        emit RouterFundsRemoved(recipient, amount);
+        emit RouterFundsRecovered(recipient, amount);
     }
 
     /// @inheritdoc IBridgeRouter

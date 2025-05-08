@@ -189,19 +189,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             (bytes memory message, address recipient, bytes32 messageId) = abi
                 .decode(actualPayload, (bytes, address, bytes32));
 
-            // Check if this is a confirmation message to the BridgeRouter
-            if (_isConfirmationMessage(recipient, message)) {
-                (bytes32 operationId, BridgeTypes.OperationStatus status) = abi
-                    .decode(message, (bytes32, BridgeTypes.OperationStatus));
-                _handleConfirmationMessage(operationId, status);
-            } else {
-                _handleGeneralMessage(
-                    message,
-                    recipient,
-                    messageId,
-                    srcChainId
-                );
-            }
+            _handleGeneralMessage(message, recipient, messageId, srcChainId);
         } else {
             revert UnsupportedMessageType();
         }
@@ -255,7 +243,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         }
 
         // Only call notifyMessageReceived if the delivery was successful
-        // This ensures confirmation is only sent if the message was delivered successfully
         if (delivered) {
             IBridgeRouter(bridgeRouter).notifyMessageReceived(
                 messageId,
@@ -277,48 +264,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     }
 
     /**
-     * @dev Checks if the message is a confirmation message to the BridgeRouter
-     * @param recipient The recipient address of the message
-     * @param message The message payload
-     * @return true if the message is a confirmation message, false otherwise
-     */
-    function _isConfirmationMessage(
-        address recipient,
-        bytes memory message
-    ) internal view returns (bool) {
-        // Check if recipient is the bridge router
-        if (recipient != bridgeRouter) return false;
-
-        // Check if message length matches our expected format
-        if (message.length != 64) return false; // 32 bytes for bytes32 + 32 bytes for enum
-
-        // Extract the potential status value from the last 32 bytes
-        uint256 statusValue;
-        assembly {
-            // message has a 32-byte length field, then data starts
-            // transferId is bytes 0-31, status is bytes 32-63
-            statusValue := mload(add(add(message, 32), 32))
-        }
-
-        // Check specifically for COMPLETED status (2)
-        // This is the only status we currently expect in confirmation messages
-        return statusValue == uint256(BridgeTypes.OperationStatus.COMPLETED);
-    }
-
-    /**
-     * @dev Handles confirmation messages
-     * @param operationId The ID of the operation being confirmed
-     * @param status The status to update to
-     */
-    function _handleConfirmationMessage(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) internal {
-        // Call receiveConfirmation on the BridgeRouter
-        IBridgeRouter(bridgeRouter).receiveConfirmation(operationId, status);
-    }
-
-    /**
      * @dev Handles responses from lzRead operations
      * @param _origin Source chain information
      * @param _guid Global unique identifier for tracking the packet
@@ -332,7 +277,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Extract requestId from the guid mapping
         bytes32 operationId = lzMessageToOperationId[_guid];
         if (operationId == bytes32(0)) {
-            // Siliently fail so it doesn't get locked with DVN
+            // Silently fail so it doesn't get locked with DVN
             emit ReadOperationNotFound(_guid, "No operationId found");
             return;
         }
@@ -571,6 +516,12 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             dstChainId,
             dstContract,
             selector
+        );
+
+        // Set initial status as SENT
+        IBridgeRouter(bridgeRouter).updateOperationStatus(
+            operationId,
+            BridgeTypes.OperationStatus.SENT
         );
 
         return operationId;

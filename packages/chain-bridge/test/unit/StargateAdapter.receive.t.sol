@@ -81,7 +81,7 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         // Now setup a mock operation status in the router using the test helper
         BridgeRouterTestHelper(address(routerA)).setOperationStatus(
             testTransferId,
-            BridgeTypes.OperationStatus.PENDING
+            BridgeTypes.OperationStatus.SENT
         );
 
         // Get operation status through adapter
@@ -90,6 +90,6 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         );
 
         // Verify status matches what was set
-        assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.PENDING));
+        assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.SENT));
     }
 }

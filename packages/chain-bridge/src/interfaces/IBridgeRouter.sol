@@ -65,12 +65,6 @@ interface IBridgeRouter is IERC165 {
         address adapter
     );
 
-    /// @notice Emitted when sending a confirmation message fails
-    event ConfirmationFailed(bytes32 indexed operationId);
-
-    /// @notice Emitted when funds are removed from the router
-    event RouterFundsRemoved(address indexed recipient, uint256 amount);
-
     /// @notice Emitted when a read response is delivered to the requester
     event ReadResponseDelivered(
         bytes32 indexed operationId,
@@ -90,6 +84,9 @@ interface IBridgeRouter is IERC165 {
         uint16 indexed chainId,
         address routerAddress
     );
+
+    /// @notice Emitted when funds are recovered from the router by governance
+    event RouterFundsRecovered(address indexed recipient, uint256 amount);
 
     /// @notice Emitted when the default gas limit is updated
     event DefaultGasLimitUpdated(uint256 newDefaultGasLimit);
@@ -231,17 +228,6 @@ interface IBridgeRouter is IERC165 {
         bytes32 operationId,
         uint16 sourceChainId,
         bytes calldata resultData
-    ) external;
-
-    /**
-     * @notice Receive a confirmation message from a destination chain (called by adapters)
-     * @param operationId ID of the operation being confirmed (usually as COMPLETED)
-     * @param status The final status received from the confirmation message
-     * @dev Called by adapter on the source chain when a confirmation message arrives. Only adapter can call.
-     */
-    function receiveConfirmation(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
     ) external;
 
     /*//////////////////////////////////////////////////////////////

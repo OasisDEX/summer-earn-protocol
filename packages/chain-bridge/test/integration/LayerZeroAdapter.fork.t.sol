@@ -234,7 +234,7 @@ contract LayerZeroIntegrationTest is Test {
         // Verify queue status updated post-execution
         assertEq(
             uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.PENDING)
+            uint256(BridgeTypes.OperationStatus.SENT)
         );
         // Verify queue maps operationId
         assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
@@ -348,7 +348,7 @@ contract LayerZeroIntegrationTest is Test {
         // Verify queue status updated post-execution
         assertEq(
             uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.PENDING)
+            uint256(BridgeTypes.OperationStatus.SENT)
         );
         // Verify queue maps operationId
         assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
@@ -361,22 +361,5 @@ contract LayerZeroIntegrationTest is Test {
         // );
         // Verify correct adapter was assigned by router/queue (if checking router state)
         // assertEq(router.operationToAdapter(operationId), selectedAdapter); // Check against quoted adapter
-    }
-
-    // Test confirmation mechanism
-    function testConfirmationMessageStructure() public pure {
-        bytes memory message = abi.encode(
-            bytes32(uint256(0x1234567890)), // Example operation ID
-            BridgeTypes.OperationStatus.COMPLETED
-        );
-
-        // Extract the status value as it would be done in _isConfirmationMessage
-        uint256 statusValue;
-        assembly {
-            statusValue := mload(add(add(message, 32), 32))
-        }
-
-        // Verify the extracted value matches OperationStatus.COMPLETED
-        assertEq(statusValue, uint256(BridgeTypes.OperationStatus.COMPLETED));
     }
 }

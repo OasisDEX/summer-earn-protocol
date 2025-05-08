@@ -262,8 +262,8 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             revert OperationNotQueued();
 
         BridgeTypes.OperationType opType = queueIdToOperationType[queueId];
-        address executor = msg.sender; // Keeper executing the call
-        IBridgeRouter router = _bridgeRouter; // Load into memory
+        address executor = msg.sender;
+        IBridgeRouter router = _bridgeRouter;
         if (address(router) == address(0)) revert InvalidBridgeRouter();
 
         // Get quote from the router based on stored data
@@ -307,7 +307,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                         asset: transferData.asset,
                         amount: transferData.amount,
                         recipient: transferData.recipient,
-                        originator: transferData.originator, // Pass original originator info
+                        originator: transferData.originator,
                         options: transferData.options
                     });
 
@@ -324,8 +324,8 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                 // Get quote, ignore token fee
                 (totalNativeFee, , ) = router.quote(
                     readData.dstChainId,
-                    address(0), // Asset not relevant for quote
-                    0, // Amount not relevant for quote
+                    address(0),
+                    0,
                     readData.options,
                     opType
                 );
@@ -337,7 +337,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                         dstContract: readData.dstContract,
                         selector: readData.selector,
                         readParams: readData.readParams,
-                        originator: readData.originator, // Pass original originator info
+                        originator: readData.originator,
                         options: readData.options
                     });
 
@@ -349,8 +349,8 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                 // Get quote, ignore token fee
                 (totalNativeFee, , ) = router.quote(
                     messageData.destinationChainId,
-                    address(0), // Asset not relevant for quote
-                    0, // Amount not relevant for quote
+                    address(0),
+                    0,
                     messageData.options,
                     opType
                 );
@@ -361,7 +361,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                         destinationChainId: messageData.destinationChainId,
                         recipient: messageData.recipient,
                         message: messageData.message,
-                        originator: messageData.originator, // Pass original originator info
+                        originator: messageData.originator,
                         options: messageData.options
                     });
 
@@ -375,33 +375,31 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         } catch (bytes memory reason) {
             // If execution fails, refund the keeper immediately
             if (msg.value > 0) {
-                // Assign return value to satisfy compiler, even if not checked here
                 (bool success, ) = executor.call{value: msg.value}("");
                 if (!success) revert RefundFailed();
 
-                // Note: Failure to refund here is problematic, but continuing is likely worse.
-                // Consider if assets need returning if transferFrom succeeded before revert.
-                // If safeTransferFrom happened, we should attempt to return them to originator.
                 if (
                     opType == BridgeTypes.OperationType.TRANSFER_ASSET &&
                     operationId == bytes32(0)
                 ) {
-                    // Check if transferFrom likely succeeded before revert
                     QueuedTransfer storage transferData = queuedTransfers[
                         queueId
                     ];
                     IERC20(transferData.asset).safeTransfer(
                         transferData.originator,
                         transferData.amount
-                    ); // Attempt return
+                    );
                 }
             }
             emit QueueExecutionFailed(queueId, executor, reason);
-            return bytes32(0); // Indicate failure
+            return bytes32(0);
         }
 
         // --- Success Path ---
         operationIdToQueueId[operationId] = queueId;
+        queueIdToStatus[queueId] = BridgeTypes.OperationStatus.SENT;
+
+        // Store operation ID in the appropriate struct
         if (opType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             queuedTransfers[queueId].operationId = operationId;
         } else if (opType == BridgeTypes.OperationType.READ_STATE) {
@@ -410,7 +408,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             queuedMessages[queueId].operationId = operationId;
         }
 
-        queueIdToStatus[queueId] = BridgeTypes.OperationStatus.PENDING;
+        // Remove from pending queue
         _removePendingId(queueId, index - 1);
 
         // Refund any excess native fee to the keeper
@@ -471,6 +469,12 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
     function getOperationStatus(
         bytes32 queueId
     ) external view returns (BridgeTypes.OperationStatus) {
+        // If still in queue, return QUEUED
+        if (_pendingQueueIdIndex[queueId] > 0) {
+            return BridgeTypes.OperationStatus.QUEUED;
+        }
+
+        // Otherwise check BridgeRouter status
         bytes32 operationId = bytes32(0);
         if (
             queueIdToOperationType[queueId] ==
@@ -494,10 +498,10 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             ) {
                 return status;
             } catch {
-                return queueIdToStatus[queueId];
+                return BridgeTypes.OperationStatus.FAILED;
             }
         }
-        return queueIdToStatus[queueId];
+        return BridgeTypes.OperationStatus.FAILED;
     }
 
     /*//////////////////////////////////////////////////////////////

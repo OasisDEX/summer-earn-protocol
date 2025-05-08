@@ -156,13 +156,13 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         // Set the initial status using the test helper
         BridgeRouterTestHelper(address(routerA)).setOperationStatus(
             operationId,
-            BridgeTypes.OperationStatus.PENDING
+            BridgeTypes.OperationStatus.SENT
         );
 
-        // Verify pending status on chain A
+        // Verify SENT status on chain A
         assertEq(
             uint256(routerA.operationStatuses(operationId)),
-            uint256(BridgeTypes.OperationStatus.PENDING)
+            uint256(BridgeTypes.OperationStatus.SENT)
         );
 
         // Create read response payload
@@ -191,10 +191,10 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             bytes("")
         );
 
-        // Verify the request status is now COMPLETED
+        // Verify the request status is now SENT (since we only have QUEUED, SENT, and FAILED)
         assertEq(
             uint256(routerA.operationStatuses(operationId)),
-            uint256(BridgeTypes.OperationStatus.COMPLETED)
+            uint256(BridgeTypes.OperationStatus.SENT)
         );
 
         // Verify the mock receiver received the correct data
