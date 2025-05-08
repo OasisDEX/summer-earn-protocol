@@ -2,19 +2,16 @@ import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
-import { ERC4626ArkUserInput, deployERC4626Ark } from '../arks/deploy-erc4626-ark'
+import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
-import { MorphoArkUserInput, deployMorphoArk } from '../arks/deploy-morpho-ark'
-import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
+import { deployMorphoArk } from '../arks/deploy-morpho-ark'
+import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
 import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
-import { PendleLPArkUserInput, deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
-import { PendlePTArkUserInput, deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
-import {
-  PendlePtOracleArkUserInput,
-  deployPendlePTOracleArk,
-} from '../arks/deploy-pendle-pt-oracle-ark'
-import { SiloArkUserInput, deploySiloArk } from '../arks/deploy-silo-ark'
+import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
+import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
+import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deploySiloArk } from '../arks/deploy-silo-ark'
 import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
@@ -50,7 +47,6 @@ export type BaseArkParams = {
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
   fleetName: string
-  marketId?: string
 }
 
 export async function deployArk(
@@ -81,42 +77,22 @@ export async function deployArk(
 
   switch (type) {
     case ArkType.FluidLiteArk: {
-      const wrapper = config.protocolSpecific.fluid.lite[token].wrapper
-      const vault = config.protocolSpecific.fluid.lite[token].vault
-      const withdrawalQueue = config.protocolSpecific.fluid.lite[token].withdrawalQueue
-
-      validateAddress(wrapper, 'FluidLite wrapper')
-      validateAddress(vault, 'FluidLite vault')
-      validateAddress(withdrawalQueue, 'FluidLite withdrawal queue')
-
       const ark = await deployFluidLiteArk(config, baseArkParams)
       deployedArk = ark
       break
     }
     case ArkType.AaveV3Ark: {
-      const marketId = validateMarketId(protocol, 'AaveV3 market ID')
-      const ark = await deployAaveV3Ark(config, {
-        ...baseArkParams,
-        marketId,
-      })
+      const ark = await deployAaveV3Ark(config, baseArkParams)
       deployedArk = ark
       break
     }
     case ArkType.SparkArk: {
-      const marketId = validateMarketId(protocol, 'Spark market ID')
-      const ark = await deploySparkArk(config, {
-        ...baseArkParams,
-        marketId,
-      })
+      const ark = await deploySparkArk(config, baseArkParams)
       deployedArk = ark
       break
     }
     case ArkType.CompoundV3Ark: {
-      const marketId = validateMarketId(protocol, 'CompoundV3 market ID')
-      const ark = await deployCompoundV3Ark(config, {
-        ...baseArkParams,
-        marketId,
-      })
+      const ark = await deployCompoundV3Ark(config, baseArkParams)
       deployedArk = ark
       break
     }
@@ -130,58 +106,85 @@ export async function deployArk(
         ...baseArkParams,
         vaultId: vaultAddress,
         vaultName: validatedVaultName,
-      } as ERC4626ArkUserInput)
+      })
       deployedArk = ark
       break
     }
     case ArkType.MorphoArk: {
-      const marketId = validateMarketId(protocol, 'Morpho market ID')
+      const marketName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const marketId = validateMarketId(
+        config.protocolSpecific.morpho.markets[token][marketName],
+        'Morpho market ID',
+      )
       const ark = await deployMorphoArk(config, {
         ...baseArkParams,
         marketId,
-      } as MorphoArkUserInput)
+        marketName,
+      })
       deployedArk = ark
       break
     }
     case ArkType.MorphoVaultArk: {
-      const marketId = validateMarketId(protocol, 'Morpho vault market ID')
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const marketId = validateMarketId(
+        config.protocolSpecific.morpho.vaults[token][vaultName],
+        'Morpho vault market ID',
+      )
       const ark = await deployMorphoVaultArk(config, {
         ...baseArkParams,
-        marketId,
-        vaultId: marketId,
-        vaultName: protocol,
-      } as MorphoVaultArkUserInput)
+        vaultId: marketId as `0x${string}`,
+        vaultName: vaultName,
+      })
       deployedArk = ark
       break
     }
     case ArkType.PendleLPArk: {
-      const marketId = validateMarketId(protocol, 'Pendle LP market ID')
-      const ark = await deployPendleLPArk(config, {
+      const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleMarket = validateAddress(
+        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        `Pendle-${token}`,
+      )
+      const pendleLPParams = {
         ...baseArkParams,
-        marketId,
-        marketName: protocol,
-      } as PendleLPArkUserInput)
-      deployedArk = ark
+        marketId: pendleMarket,
+        marketName: marketName,
+      }
+      deployedArk = await deployPendleLPArk(config, pendleLPParams)
       break
     }
-    case ArkType.PendlePTArk: {
-      const marketId = validateMarketId(protocol, 'Pendle PT market ID')
-      const ark = await deployPendlePTArk(config, {
+
+    case 'PendlePTArk': {
+      const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleMarket = validateAddress(
+        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        `Pendle-${token}`,
+      )
+      const pendlePTParams = {
         ...baseArkParams,
-        marketId,
-        marketName: protocol,
-      } as PendlePTArkUserInput)
-      deployedArk = ark
+        marketId: pendleMarket,
+        marketName: marketName,
+      }
+      deployedArk = await deployPendlePTArk(config, pendlePTParams)
       break
     }
-    case ArkType.PendlePtOracleArk: {
-      const marketId = validateMarketId(protocol, 'Pendle PT Oracle market ID')
-      const ark = await deployPendlePTOracleArk(config, {
+
+    case 'PendlePtOracleArk': {
+      const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleMarket = validateAddress(
+        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        `Pendle-${token}`,
+      )
+      const marketAssetOracle = validateAddress(
+        config.protocolSpecific.pendle.markets[token].swapInTokens[0].oracle,
+        `Pendle-${token}`,
+      )
+      const pendlePTOracleParams = {
         ...baseArkParams,
-        marketId,
-        marketName: protocol,
-      } as PendlePtOracleArkUserInput)
-      deployedArk = ark
+        marketId: pendleMarket,
+        marketName: marketName,
+        marketAssetOracle,
+      }
+      deployedArk = await deployPendlePTOracleArk(config, pendlePTOracleParams)
       break
     }
     case ArkType.SkyUsdsArk: {
@@ -195,19 +198,15 @@ export async function deployArk(
       break
     }
     case ArkType.MoonwellArk: {
-      const marketId = validateMarketId(protocol, 'Moonwell market ID')
       const ark = await deployMoonwellArk(config, {
         ...baseArkParams,
-        marketId,
       })
       deployedArk = ark
       break
     }
     case ArkType.SyrupArk: {
-      const marketId = validateMarketId(protocol, 'Syrup market ID')
       const ark = await deploySyrupArk(config, {
         ...baseArkParams,
-        marketId,
       })
       deployedArk = ark
       break
@@ -218,13 +217,17 @@ export async function deployArk(
       break
     }
     case ArkType.SiloArk: {
-      const marketId = validateMarketId(protocol, 'Silo market ID')
-      const ark = await deploySiloArk(config, {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.pools[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloParams = {
         ...baseArkParams,
-        siloId: marketId,
-        siloName: protocol,
-      } as SiloArkUserInput)
-      deployedArk = ark
+        siloId: vaultId,
+        siloName: vaultName,
+      }
+      deployedArk = await deploySiloArk(config, siloParams)
       break
     }
     case ArkType.OriginETHArk: {

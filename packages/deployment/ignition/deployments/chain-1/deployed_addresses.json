@@ -66,5 +66,8 @@
   "FleetModule_BummerLazyVault_WETH#FleetCommander": "0x40e9C802f9566B16A66A48d9a1d7a8D73FE55651",
   "BummerLazyVault_WETH_OriginETH_weth_1#OriginETHArk": "0xb3eFCD66c7F5957ff7Da3beCA97d59fBf20f02F8",
   "BummerLazyVault_WETH_FluidLite_weth_1#FluidLiteArk": "0x00B437Df745c1DEAbe3f999Dfe41fdA9641d7EBA",
-  "AdmiralsQuartersModule_20250506T105849780#AdmiralsQuarters": "0x1fff8345CFF27FBF204644FbbcC08450D7FC63Ee"
+  "AdmiralsQuartersModule_20250506T105849780#AdmiralsQuarters": "0x1fff8345CFF27FBF204644FbbcC08450D7FC63Ee",
+  "BummerLazyVault_WETH_OriginETH_weth_1_withdrawable#OriginETHArk": "0x113Ebd01DAb514136ca2867f4e47B6B9A42Dfb8B",
+  "BummerLazyVault_WETH_FluidLite_weth_1_withdrawable#FluidLiteArk": "0xFb7F78772078A48b72F066D46cd9e3BbDA4d48A7",
+  "BummerLazyVault_USDC_Syrup_usdc_1_withdrawable#SyrupArk": "0x1dfBa3bA2A98d401f025508E47fccF5ed035522A"
 }

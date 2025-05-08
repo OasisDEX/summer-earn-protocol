@@ -109,7 +109,7 @@ async function deployFluidLiteArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `FluidLite-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'withdrawable'
 
   const wrapper = validateAddress(
     config.protocolSpecific.fluid.lite[userInput.token.symbol].wrapper,

@@ -107,7 +107,7 @@ async function deployOriginETHArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `OriginETH-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'withdrawable'
 
   const originETHAddress = validateAddress(config.protocolSpecific.originETH.originETH, 'OriginETH')
   const armAddress = validateAddress(config.protocolSpecific.originETH.arm, 'OriginETH ARM')
