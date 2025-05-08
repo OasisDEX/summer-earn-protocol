@@ -654,9 +654,6 @@ importers:
 
   packages/summer-earn-gov-validator:
     dependencies:
-      '@summerfi/deployment':
-        specifier: workspace:*
-        version: link:../deployment
       ethers:
         specifier: ^6.11.1
         version: 6.11.1
