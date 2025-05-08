@@ -2,6 +2,11 @@
 pragma solidity 0.8.28;
 
 interface IEthVaultWrapperV2 {
+    error EthVaultWrapper__OutputInsufficient();
+    error EthVaultWrapper__UnexpectedWithdrawAmount();
+    error EthVaultWrapper__InvalidInput();
+    error EthVaultWrapper__OnlyWhitelisted();
+
     struct DepositData {
         string route;
         bytes swapCalldata;

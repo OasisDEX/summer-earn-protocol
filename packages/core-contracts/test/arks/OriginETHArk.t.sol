@@ -215,6 +215,12 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.requestWithdrawal(amount);
         vm.stopPrank();
 
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            amount,
+            "Assets in withdrawal queue should match the withdrawal amount"
+        );
+
         vm.clearMockedCalls();
     }
 
@@ -357,7 +363,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
 
         // Should revert with NoWithdrawalRequest
         vm.startPrank(commander);
-        vm.expectRevert(abi.encodeWithSignature("NoWithdrawalRequest()"));
+        vm.expectRevert(abi.encodeWithSignature("NoWithdrawalToClaim()"));
         ark.claimWithdrawal();
         vm.stopPrank();
     }

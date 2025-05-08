@@ -30,6 +30,6 @@ interface IWithdrawalQueue {
         address owner
     ) external view returns (uint256[] memory _requestIds);
     function getWithdrawalStatus(
-        uint256 _requestId
-    ) external view returns (WithdrawalRequestStatus memory _status);
+        uint256[] memory _requestIds
+    ) external view returns (WithdrawalRequestStatus[] memory _status);
 }

@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../Ark.sol";
+import "../ArkWithWithdrawalRequest.sol";
 import {IEthVaultWrapperV2} from "../../interfaces/fluid/IEthVaultWrapperV2.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IWETH} from "../../interfaces/misc/IWETH.sol";
 import {ISteth} from "../../interfaces/lido/ISteth.sol";
 import {IWithdrawalQueue} from "../../interfaces/lido/IWithdrawalQueue.sol";
+
 /**
  * @title FluidLiteArk
  * @notice Ark contract for managing ETH/WETH through FluidLite's vault via eth wrapper
  * @dev Implements strategy for depositing/withdrawing ETH/WETH through FluidLite, which requires unwrapping WETH to ETH
  */
-contract FluidLiteArk is Ark {
+contract FluidLiteArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -53,10 +54,10 @@ contract FluidLiteArk is Ark {
     error InvalidWrapperAddress();
     error InvalidWETHAddress();
     error AssetMustBeWETH();
-    error ETHTransferFailed();
     error InvalidStETHAddress();
-    error StETHSubmissionFailed();
     error InvalidWithdrawalQueueAddress();
+    error InvalidAuthData();
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -76,7 +77,7 @@ contract FluidLiteArk is Ark {
         address _steth,
         address _withdrawalQueue,
         ArkParams memory _params
-    ) Ark(_params) {
+    ) ArkWithWithdrawalRequest(_params) {
         if (_wrapper == address(0)) revert InvalidWrapperAddress();
         if (_vault == address(0)) revert InvalidVaultAddress();
         if (_weth == address(0)) revert InvalidWETHAddress();
@@ -90,7 +91,7 @@ contract FluidLiteArk is Ark {
         steth = ISteth(_steth);
         withdrawalQueue = IWithdrawalQueue(_withdrawalQueue);
         fee = 5;
-        slippage = 6;
+        slippage = 15;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -102,20 +103,32 @@ contract FluidLiteArk is Ark {
      * @notice Returns the total assets managed by this Ark in the vault
      * @return assets The total balance of underlying assets in the vault
      */
-    function totalAssets() public view override returns (uint256 assets) {
+    function totalAssets()
+        public
+        view
+        override(Ark, IArk)
+        returns (uint256 assets)
+    {
         // Get the balance of this contract's shares in the vault
         uint256 shares = vault.balanceOf(address(this));
         if (shares > 0) {
-            assets = vault.convertToAssets(shares);
+            assets += vault.convertToAssets(shares);
         }
 
         // Add any WETH balance held in this contract
         assets += config.asset.balanceOf(address(this));
-        if (withdrawalRequestId != 0) {
-            assets += withdrawalQueue
-                .getWithdrawalStatus(withdrawalRequestId)
-                .amountOfStETH;
+        assets += assetsInWithdrawalQueue();
+    }
+
+    function assetsInWithdrawalQueue() public view returns (uint256) {
+        if (withdrawalRequestId == 0) {
+            return 0;
         }
+        uint256[] memory requestIds = new uint256[](1);
+        requestIds[0] = withdrawalRequestId;
+        IWithdrawalQueue.WithdrawalRequestStatus[]
+            memory status = withdrawalQueue.getWithdrawalStatus(requestIds);
+        return status[0].amountOfStETH;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -134,12 +147,6 @@ contract FluidLiteArk is Ark {
     {
         // Get any currently held WETH
         withdrawableAssets = config.asset.balanceOf(address(this));
-
-        // Add withdrawable assets from the vault
-        uint256 shares = vault.balanceOf(address(this));
-        if (shares > 0) {
-            withdrawableAssets += vault.maxWithdraw(address(this));
-        }
     }
 
     /**
@@ -175,7 +182,8 @@ contract FluidLiteArk is Ark {
     function applyFeeAndSlippage(
         uint256 amount
     ) internal view returns (uint256) {
-        return (amount * (FEE_BASE - fee - slippage)) / FEE_BASE;
+        uint256 amountWithFee = (amount * (FEE_BASE - fee)) / FEE_BASE;
+        return (amountWithFee * (FEE_BASE - slippage)) / FEE_BASE;
     }
 
     function setSlippage(
@@ -184,21 +192,26 @@ contract FluidLiteArk is Ark {
         slippage = _slippage;
     }
 
-    // TODO: verify the calcs
     /**
      * @notice Requests a withdrawal from the withdrawal queue
      * @param amount The amount of shares to withdraw
      */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
         if (withdrawalRequestId != 0) revert WithdrawalAlreadyRequested();
+        uint256 stethBalanceBefore = steth.balanceOf(address(this));
         uint256 shares = vault.withdraw(amount, address(this), address(this));
+        uint256 stethBalanceAfter = steth.balanceOf(address(this));
+
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = shares;
-        IERC20(address(steth)).approve(address(withdrawalQueue), shares);
+        uint256 stethAmount = stethBalanceAfter - stethBalanceBefore;
+        amounts[0] = stethAmount;
+
+        IERC20(address(steth)).approve(address(withdrawalQueue), stethAmount);
         uint256[] memory requestIds = withdrawalQueue.requestWithdrawals(
             amounts,
             address(this)
         );
+
         withdrawalRequestId = requestIds[0];
     }
 
@@ -207,7 +220,7 @@ contract FluidLiteArk is Ark {
      * @param amount The amount of shares to withdraw
      * @param data Additional data (unused in this implementation)
      */
-    function requestWithdrawal(
+    function withdrawUsingSwap(
         uint256 amount,
         bytes calldata data
     ) external onlyKeeper {
@@ -215,30 +228,33 @@ contract FluidLiteArk is Ark {
             data,
             (IEthVaultWrapperV2.WithdrawData)
         );
+        uint256 amountWithAppliedFees = applyFeeAndSlippage(amount);
         vault.approve(address(wrapper), amount);
-        // TODO: does it require further sanitization?
         uint256 ethAmount = wrapper.withdraw(
             withdrawData.route,
             amount,
             withdrawData.swapCalldata,
-            applyFeeAndSlippage(amount),
+            amountWithAppliedFees,
             address(this)
         );
-        if (amount > ethAmount) revert WithdrawalFailed();
+        if (amountWithAppliedFees > ethAmount) revert WithdrawalFailed();
         weth.deposit{value: ethAmount}();
+        address bufferArk = IFleetCommander(config.commander).bufferArk();
+        IERC20(address(weth)).approve(bufferArk, weth.balanceOf(address(this)));
+        IArk(bufferArk).board(weth.balanceOf(address(this)), "");
     }
 
+    /**
+     * @notice Claims a withdrawal from the withdrawal queue
+     * @dev keeper manages the claim status
+     */
     function claimWithdrawal() external onlyKeeper {
         if (withdrawalRequestId == 0) revert NoWithdrawalToClaim();
-        IWithdrawalQueue.WithdrawalRequestStatus memory status = withdrawalQueue
-            .getWithdrawalStatus(withdrawalRequestId);
-        if (status.isClaimed) revert WithdrawalAlreadyClaimed();
-        // we can claim if the request is finalized and not claimed
-        if (!status.isFinalized) revert WithdrawalNotFinalized();
-
+        uint256 stethBalanceBefore = steth.balanceOf(address(this));
         withdrawalQueue.claimWithdrawal(withdrawalRequestId);
+        uint256 stethBalanceAfter = steth.balanceOf(address(this));
+        weth.deposit{value: stethBalanceAfter - stethBalanceBefore}();
         withdrawalRequestId = 0;
-        weth.deposit{value: status.amountOfStETH}();
     }
 
     /**
@@ -280,16 +296,4 @@ contract FluidLiteArk is Ark {
      * @dev Fallback function to accept ETH
      */
     receive() external payable {}
-
-    /**
-     * @dev Error for invalid authentication data
-     */
-    error InvalidAuthData();
-
-    error WithdrawalAlreadyRequested();
-    error WithdrawalAlreadyClaimed();
-    error WithdrawalNotFinalized();
-    error WithdrawalNotClaimable();
-    error NoWithdrawalToClaim();
-    error WithdrawalFailed();
 }

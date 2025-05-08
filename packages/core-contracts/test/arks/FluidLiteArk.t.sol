@@ -7,7 +7,7 @@ import "../../src/contracts/arks/FluidLiteArk.sol";
 import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IEthVaultWrapperV2} from "../../src/interfaces/fluid/IEthVaultWrapperV2.sol";
-
+import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
@@ -20,12 +20,24 @@ import {IWETH} from "../../src/interfaces/misc/IWETH.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
+contract MockBufferArk {
+    IERC20 public asset;
+    constructor(address _asset) {
+        asset = IERC20(_asset);
+    }
+    function board(uint256 amount, bytes calldata data) external {
+        asset.transferFrom(msg.sender, address(this), amount);
+    }
+}
+
 contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     FluidLiteArk public ark;
     IERC4626 public vault;
     IWETH public weth;
     ArkParams public params;
+    IEthVaultWrapperV2 public wrapper;
+    MockBufferArk public bufferArk;
 
     // Router and vault addresses provided in the requirement
     address public constant ROUTER_ADDRESS =
@@ -41,7 +53,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     address public constant WITHDRAWAL_QUEUE_ADDRESS =
         0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1;
 
-    uint256 forkBlock = 22324405; // Setting a fairly recent block number on Ethereum mainnet
+    uint256 forkBlock = 22438731; // Setting a fairly recent block number on Ethereum mainnet
     uint256 forkId;
 
     function setUp() public {
@@ -50,6 +62,8 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
 
         weth = IWETH(WETH_ADDRESS);
         vault = IERC4626(VAULT_ADDRESS);
+        wrapper = IEthVaultWrapperV2(ROUTER_ADDRESS);
+        bufferArk = new MockBufferArk(WETH_ADDRESS);
 
         params = ArkParams({
             name: "FluidLite ETH Ark",
@@ -196,19 +210,50 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     function test_Disembark() public {
         console.log("not implemented");
     }
-    function test_ReqestWithdrawaWithSwap() public {
-        console.log("not implemented");
+
+    function test_WithdrawUsingSwap() public {
+        test_Board_FluidLite();
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSelector(
+                IFleetCommanderConfigProvider.bufferArk.selector
+            ),
+            abi.encode(address(bufferArk))
+        );
+        IEthVaultWrapperV2.WithdrawData memory withdrawData = IEthVaultWrapperV2
+            .WithdrawData({
+                route: "ODOS-V2-A",
+                swapCalldata: hex"83bd37f90001ae7ab96520de3a18e5e111b5eaab095312d7fe840000080ddeeff45500c000080ddb50e23d656180004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE990000000164338FD8e7b1918B4a806A175e26eD152B3d0b7b1f1508ef0301020400560101020301000201ff000000000000000000000000000000000000dc24316b9ae028f1497c275eb9192a3ea0f67022ae7ab96520de3a18e5e111b5eaab095312d7fe84000000000000000000000000000000000000000000000000"
+            });
+        bytes memory data = abi.encode(withdrawData);
+        vm.prank(keeper);
+        ark.withdrawUsingSwap(1 ether - 1, data);
     }
+
     function test_ClaimWithdrawal() public {
         console.log("not implemented");
     }
 
     function test_RequestWithdrawal() public {
         test_Board_FluidLite();
+
         uint256 amount = 1 ether; // 1 ETH
         vm.prank(keeper);
-
+        vm.warp(block.timestamp + 100);
         ark.requestWithdrawal(amount - 1);
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            (9995 * (amount - 1)) / 10000,
+            "Assets in withdrawal queue should match the withdrawal amount"
+        );
+    }
+
+    function test_claimWithdrawal_revert() public {
+        test_RequestWithdrawal();
+        vm.prank(keeper);
+        vm.warp(block.timestamp + 100);
+        vm.expectRevert();
+        ark.claimWithdrawal();
     }
 
     function test_TotalAssets() public {
