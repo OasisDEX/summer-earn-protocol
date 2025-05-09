@@ -38,13 +38,15 @@ export async function finalizeGov(
   // Update delegate for SummerToken
   console.log(kleur.cyan().bold('\nUpdating delegate for SummerToken...'))
   try {
-    const lzEndpoint = (await summerToken.read.endpoint()) as Address
-    const currentTokenDelegate = await publicClient.readContract({
-      address: lzEndpoint,
-      abi: LZ_ENDPOINT_ABI,
-      functionName: 'delegates',
-      args: [summerToken.address],
-    })
+    const endpoint = await summerToken.read.endpoint()
+    const endpointContract = await hre.viem.getContractAt(
+      'ILayerZeroEndpointV2' as string,
+      endpoint as Address,
+    )
+
+    const currentTokenDelegate = (await endpointContract.read.delegates([
+      summerToken.address as Address,
+    ])) as Address
     if (currentTokenDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
       const hash = await summerToken.write.setDelegate([timelock.address])
       await publicClient.waitForTransactionReceipt({ hash })
