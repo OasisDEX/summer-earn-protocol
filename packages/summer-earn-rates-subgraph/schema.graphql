@@ -37,6 +37,7 @@ type VaultState @entity {
   id: Bytes!
   lastUpdateTimestamp: BigInt!
   lastSharePrice: BigDecimal!
+  lastRate: BigDecimal
 }
 
 type Token @entity(immutable: true) {
