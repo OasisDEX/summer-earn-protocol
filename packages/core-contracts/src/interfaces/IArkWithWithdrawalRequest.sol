@@ -69,7 +69,7 @@ interface IArkWithWithdrawalRequest is IArk {
      * @dev This function is only callable by the keeper
      * @dev This function is non-reentrant
      * @param amount The amount of assets to withdraw
-     * @param data The data to pass to the swap
+     * @param data The data to pass to the swap (router and swap calldata)
      */
     function withdrawUsingSwap(uint256 amount, bytes calldata data) external;
 
