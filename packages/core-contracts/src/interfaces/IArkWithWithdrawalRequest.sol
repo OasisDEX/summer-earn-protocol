@@ -75,6 +75,7 @@ interface IArkWithWithdrawalRequest is IArk {
 
     /**
      * @notice Sets the slippage for the swap
+     * @notice the base is 10000 so 500 is 5%
      * @dev This function is only callable by the curator
      * @param slippage The slippage to set
      */
