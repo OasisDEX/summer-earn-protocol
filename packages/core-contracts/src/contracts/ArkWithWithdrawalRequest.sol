@@ -12,7 +12,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
-
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 /**
  * @title Ark
  * @author SummerFi
@@ -24,12 +24,18 @@ import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next
 abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     using SafeERC20 for IERC20;
 
+    /// @notice The slippage for the swap
+    uint256 public slippage;
+    /// @notice base fee to apply to the amount
+    uint256 public constant FEE_BASE = 10000;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(ArkParams memory _params) Ark(_params) {}
-
+    constructor(ArkParams memory _params, uint256 _slippage) Ark(_params) {
+        slippage = _slippage;
+    }
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -58,5 +64,27 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         }
 
         emit ArkSwept(sweptTokens, sweptAmounts);
+    }
+    /// @inheritdoc IArkWithWithdrawalRequest
+    function setSlippage(
+        uint256 _slippage
+    ) external onlyCurator(config.commander) {
+        slippage = _slippage;
+    }
+
+    function _swap(
+        address token,
+        address router,
+        uint256 amount,
+        bytes memory swapCalldata
+    ) internal {
+        IERC20(token).approve(router, amount);
+        Address.functionCall(router, swapCalldata);
+    }
+
+    function _boardToBufferArk(uint256 amount) internal {
+        address bufferArk = IFleetCommander(config.commander).bufferArk();
+        IERC20(address(config.asset)).approve(bufferArk, amount);
+        IArk(bufferArk).board(amount, "");
     }
 }

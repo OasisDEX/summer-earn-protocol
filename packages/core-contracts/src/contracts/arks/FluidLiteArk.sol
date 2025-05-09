@@ -7,7 +7,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IWETH} from "../../interfaces/misc/IWETH.sol";
 import {ISteth} from "../../interfaces/lido/ISteth.sol";
 import {IWithdrawalQueue} from "../../interfaces/lido/IWithdrawalQueue.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title FluidLiteArk
  * @notice Ark contract for managing ETH/WETH through FluidLite's vault via eth wrapper
@@ -32,17 +32,10 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     /// @notice StETH token address used for wrapping/unwrapping ETH
     ISteth public immutable steth;
 
-    /// @notice base fee to apply to the amount
-    uint256 public constant FEE_BASE = 10000;
-
-    /// @notice The fee to apply to the amount
-    uint256 public immutable fee;
-
-    /// @notice The slippage to apply to the amount
-    uint256 public slippage;
-
     /// @notice The withdrawal queue used for requesting withdrawals
     IWithdrawalQueue public immutable withdrawalQueue;
+
+    uint256 constant WITHDRAWAL_FEE = 5;
 
     /// @notice The request id for the withdrawal
     uint256 public withdrawalRequestId;
@@ -77,7 +70,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         address _steth,
         address _withdrawalQueue,
         ArkParams memory _params
-    ) ArkWithWithdrawalRequest(_params) {
+    ) ArkWithWithdrawalRequest(_params, 15) {
         if (_wrapper == address(0)) revert InvalidWrapperAddress();
         if (_vault == address(0)) revert InvalidVaultAddress();
         if (_weth == address(0)) revert InvalidWETHAddress();
@@ -90,8 +83,6 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         weth = IWETH(_weth);
         steth = ISteth(_steth);
         withdrawalQueue = IWithdrawalQueue(_withdrawalQueue);
-        fee = 5;
-        slippage = 15;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -118,7 +109,6 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         // Add any WETH balance held in this contract
         assets += config.asset.balanceOf(address(this));
         assets += assetsInWithdrawalQueue();
-        assets = applyFeeAndSlippage(assets);
     }
 
     function assetsInWithdrawalQueue() public view returns (uint256) {
@@ -176,21 +166,14 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @notice Applies fee and slippage to the amount
-     * @param amount The amount to apply fee and slippage to
-     * @return The amount after applying fee and slippage
+     * @notice Applies slippage to the amount
+     * @param amount The amount to apply slippage to
+     * @return amountWithSlippage The amount after applying slippage
      */
-    function applyFeeAndSlippage(
+    function applySlippage(
         uint256 amount
-    ) internal view returns (uint256) {
-        uint256 amountWithFee = (amount * (FEE_BASE - fee)) / FEE_BASE;
-        return (amountWithFee * (FEE_BASE - slippage)) / FEE_BASE;
-    }
-
-    function setSlippage(
-        uint256 _slippage
-    ) external onlyCurator(config.commander) {
-        slippage = _slippage;
+    ) internal view returns (uint256 amountWithSlippage) {
+        amountWithSlippage = (amount * (FEE_BASE - slippage)) / FEE_BASE;
     }
 
     /**
@@ -200,7 +183,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     function requestWithdrawal(uint256 amount) external onlyKeeper {
         if (withdrawalRequestId != 0) revert WithdrawalAlreadyRequested();
         uint256 stethBalanceBefore = steth.balanceOf(address(this));
-        uint256 shares = vault.withdraw(amount, address(this), address(this));
+        vault.withdraw(amount, address(this), address(this));
         uint256 stethBalanceAfter = steth.balanceOf(address(this));
 
         uint256[] memory amounts = new uint256[](1);
@@ -220,29 +203,38 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
      * @notice Requests a withdrawal from the withdrawal queue
      * @param amount The amount of shares to withdraw
      * @param data Additional data (unused in this implementation)
+     * @dev https://github.com/lidofinance/core/issues/442
      */
     function withdrawUsingSwap(
         uint256 amount,
         bytes calldata data
     ) external onlyKeeper {
-        IEthVaultWrapperV2.WithdrawData memory withdrawData = abi.decode(
-            data,
-            (IEthVaultWrapperV2.WithdrawData)
+        uint256 stethBalanceBefore = steth.balanceOf(address(this));
+        vault.withdraw(amount, address(this), address(this));
+        uint256 stethWithdrawn = steth.balanceOf(address(this)) -
+            stethBalanceBefore;
+        uint256 amountAfterFee = amount - (amount * WITHDRAWAL_FEE) / FEE_BASE;
+
+        // adding a 3 wei buffer to account for stETH rounding errors
+        if (stethWithdrawn < amountAfterFee - 3) {
+            revert WithdrawalFailed();
+        }
+
+        SwapData memory swapData = abi.decode(data, (SwapData));
+        uint256 assetBalanceBefore = config.asset.balanceOf(address(this));
+        _swap(
+            address(steth),
+            swapData.router,
+            stethWithdrawn,
+            swapData.swapCalldata
         );
-        uint256 amountWithAppliedFees = applyFeeAndSlippage(amount);
-        vault.approve(address(wrapper), amount);
-        uint256 ethAmount = wrapper.withdraw(
-            withdrawData.route,
-            amount,
-            withdrawData.swapCalldata,
-            amountWithAppliedFees,
-            address(this)
-        );
-        if (amountWithAppliedFees > ethAmount) revert WithdrawalFailed();
-        weth.deposit{value: ethAmount}();
-        address bufferArk = IFleetCommander(config.commander).bufferArk();
-        IERC20(address(weth)).approve(bufferArk, weth.balanceOf(address(this)));
-        IArk(bufferArk).board(weth.balanceOf(address(this)), "");
+        uint256 assetBalanceAfter = config.asset.balanceOf(address(this));
+
+        uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
+        if (applySlippage(stethWithdrawn) > assetBought)
+            revert WithdrawalFailed();
+
+        _boardToBufferArk(assetBought);
     }
 
     /**

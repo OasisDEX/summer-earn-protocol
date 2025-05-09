@@ -41,7 +41,7 @@ contract OriginSuperOETHArk is ArkWithWithdrawalRequest {
     constructor(
         address _originETH,
         ArkParams memory _params
-    ) ArkWithWithdrawalRequest(_params) {
+    ) ArkWithWithdrawalRequest(_params, 15) {
         if (_originETH == address(0)) {
             revert InvalidOriginETHAddress();
         }
@@ -82,6 +82,19 @@ contract OriginSuperOETHArk is ArkWithWithdrawalRequest {
                 withdrawalRequestId
             );
         return withdrawalRequest.amount;
+    }
+
+    function withdrawUsingSwap(
+        uint256 amount,
+        bytes calldata data
+    ) external onlyKeeper nonReentrant {
+        // ISyrupRouter.WithdrawData memory withdrawData = abi.decode(
+        //     data,
+        //     (ISyrupRouter.WithdrawData)
+        // );
+        // uint256 amountWithAppliedFees = applySlippage(amount);
+        // vault.approve(address(router), amount);
+        // router.withdraw(amount, withdrawData.route, withdrawData.swapCalldata);
     }
 
     /*//////////////////////////////////////////////////////////////

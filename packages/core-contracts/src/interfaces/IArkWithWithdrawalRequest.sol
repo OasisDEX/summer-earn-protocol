@@ -19,6 +19,14 @@ interface IArkWithWithdrawalRequest is IArk {
     /// @notice Error thrown when a withdrawal has failed
     error WithdrawalFailed();
 
+    /// @notice Struct for the swap data
+    struct SwapData {
+        /// @notice The router address
+        address router;
+        /// @notice The swap data
+        bytes swapCalldata;
+    }
+
     /**
      * @notice Sweeps all underlying assets from the Ark and boards them to bufferArk
      * @dev This function is only callable by the keeper
@@ -55,4 +63,20 @@ interface IArkWithWithdrawalRequest is IArk {
      * @return The assets in the withdrawal queue
      */
     function assetsInWithdrawalQueue() external view returns (uint256);
+
+    /**
+     * @notice Withdraws assets from the Ark using a swap
+     * @dev This function is only callable by the keeper
+     * @dev This function is non-reentrant
+     * @param amount The amount of assets to withdraw
+     * @param data The data to pass to the swap
+     */
+    function withdrawUsingSwap(uint256 amount, bytes calldata data) external;
+
+    /**
+     * @notice Sets the slippage for the swap
+     * @dev This function is only callable by the curator
+     * @param slippage The slippage to set
+     */
+    function setSlippage(uint256 slippage) external;
 }

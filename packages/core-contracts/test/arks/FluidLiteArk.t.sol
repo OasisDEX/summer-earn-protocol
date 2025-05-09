@@ -53,7 +53,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     address public constant WITHDRAWAL_QUEUE_ADDRESS =
         0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1;
 
-    uint256 forkBlock = 22438731; // Setting a fairly recent block number on Ethereum mainnet
+    uint256 forkBlock = 22444969; // Setting a fairly recent block number on Ethereum mainnet
     uint256 forkId;
 
     function setUp() public {
@@ -220,12 +220,12 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             ),
             abi.encode(address(bufferArk))
         );
-        IEthVaultWrapperV2.WithdrawData memory withdrawData = IEthVaultWrapperV2
-            .WithdrawData({
-                route: "ODOS-V2-A",
-                swapCalldata: hex"83bd37f90001ae7ab96520de3a18e5e111b5eaab095312d7fe840000080ddeeff45500c000080ddb50e23d656180004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE990000000164338FD8e7b1918B4a806A175e26eD152B3d0b7b1f1508ef0301020400560101020301000201ff000000000000000000000000000000000000dc24316b9ae028f1497c275eb9192a3ea0f67022ae7ab96520de3a18e5e111b5eaab095312d7fe84000000000000000000000000000000000000000000000000"
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: 0xCf5540fFFCdC3d510B18bFcA6d2b9987b0772559,
+                swapCalldata: hex"83bd37f90001ae7ab96520de3a18e5e111b5eaab095312d7fe840001c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2080DDEEFF45500BFFF080ddabc115667a180004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef05010206004c0101026800010102030405ff000000000000000000000000000000c4ce391d82d164c166df9c8336ddf84206b2f8127f39c581f595b53c5cb19bd0b3f8da6c935e2ca0c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2775f661b0bd1739349b9a2a3ef60be277c5d2d290fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce900000000000000000000000000000000000000000000000000000000"
             });
-        bytes memory data = abi.encode(withdrawData);
+        bytes memory data = abi.encode(swapData);
         vm.prank(keeper);
         ark.withdrawUsingSwap(1 ether - 1, data);
     }

@@ -44,7 +44,7 @@ contract SyrupArk is ArkWithWithdrawalRequest {
         address _vault,
         address _router,
         ArkParams memory _params
-    ) ArkWithWithdrawalRequest(_params) {
+    ) ArkWithWithdrawalRequest(_params, 15) {
         if (_vault == address(0)) revert InvalidVaultAddress();
         if (_router == address(0)) revert InvalidRouterAddress();
 
@@ -130,6 +130,19 @@ contract SyrupArk is ArkWithWithdrawalRequest {
 
     function withdrawalRequestId() external view returns (uint256) {
         return withdrawalManager.requestIds(address(this));
+    }
+
+    function withdrawUsingSwap(
+        uint256 amount,
+        bytes calldata data
+    ) external onlyKeeper nonReentrant {
+        // ISyrupRouter.WithdrawData memory withdrawData = abi.decode(
+        //     data,
+        //     (ISyrupRouter.WithdrawData)
+        // );
+        // uint256 amountWithAppliedFees = applySlippage(amount);
+        // vault.approve(address(router), amount);
+        // router.withdraw(amount, withdrawData.route, withdrawData.swapCalldata);
     }
 
     /*//////////////////////////////////////////////////////////////
