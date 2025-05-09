@@ -1,6 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BridgeConfig } from '../types/bridge-types'
+import { Config } from '../types/config-types'
 import { deployBridgeContracts } from './bridge/bridge-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
 
@@ -9,8 +10,10 @@ async function deployBridge() {
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
   // Load network configuration
-  const config = getConfigByNetwork(network, { gov: true, core: true })
-  const allConfigs = getConfigByNetwork('all', { gov: true, core: true })
+  const config = getConfigByNetwork(network, { common: true }, false)
+
+  // Load all network configs for updating other chain configs
+  const allConfigs = getConfigByNetwork('all', { common: false }, false) as Config
 
   // Load bridge configuration
   const bridgeConfig: BridgeConfig = config.bridge

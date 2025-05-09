@@ -43,10 +43,7 @@ export const arkTypes = [
 ]
 
 export interface Config {
-  [SupportedNetworks.MAINNET]: BaseConfig
-  [SupportedNetworks.BASE]: BaseConfig
-  [SupportedNetworks.ARBITRUM]: BaseConfig
-  [SupportedNetworks.SONIC]: BaseConfig
+  [key: string]: BaseConfig
 }
 
 export enum Token {

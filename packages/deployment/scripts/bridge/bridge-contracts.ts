@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import { Address } from 'viem'
+import bridgeModule from '../../ignition/modules/bridge'
 import { BridgeConfig, DeployedBridge } from '../../types/bridge-types'
 
 export async function deployBridgeRouter(config: any): Promise<{ address: Address }> {
@@ -10,14 +11,16 @@ export async function deployBridgeRouter(config: any): Promise<{ address: Addres
   const chainIds = [currentChainId]
   const routerAddresses = ['0x0000000000000000000000000000000000000000'] // Placeholder for current chain
 
-  // Deploy BridgeRouter
-  const bridgeRouter = await hre.viem.deployContract('BridgeRouter', [
-    config.deployedContracts.gov.protocolAccessManager.address,
-    '0x0000000000000000000000000000000000000000', // BridgeQueue address will be set after deployment
-    chainIds,
-    routerAddresses,
-  ])
+  // Deploy using Ignition module
+  const result = await hre.ignition.deploy(bridgeModule, {
+    parameters: {
+      protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+      chainIds,
+      routerAddresses,
+    },
+  })
 
+  const bridgeRouter = result.bridgeRouter
   console.log(`BridgeRouter deployed at: ${bridgeRouter.address} on chain ${currentChainId}`)
   return { address: bridgeRouter.address as Address }
 }
@@ -26,20 +29,17 @@ export async function deployBridgeQueue(
   bridgeRouterAddress: Address,
   config: any,
 ): Promise<{ address: Address }> {
-  const [deployer] = await hre.viem.getWalletClients()
+  // BridgeQueue is now deployed as part of the Ignition module
+  const result = await hre.ignition.deploy(bridgeModule, {
+    parameters: {
+      protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+      chainIds: [Number(config.common.chainId)],
+      routerAddresses: ['0x0000000000000000000000000000000000000000'],
+    },
+  })
 
-  // Deploy BridgeQueue
-  const bridgeQueue = await hre.viem.deployContract('BridgeQueue', [
-    config.deployedContracts.gov.protocolAccessManager.address,
-    bridgeRouterAddress,
-    deployer.account.address, // Initial queue manager
-  ])
-
+  const bridgeQueue = result.bridgeQueue
   console.log(`BridgeQueue deployed at: ${bridgeQueue.address}`)
-
-  // Set BridgeQueue in BridgeRouter
-  const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
-  await bridgeRouter.write.setBridgeQueue([bridgeQueue.address])
 
   return { address: bridgeQueue.address as Address }
 }
@@ -90,7 +90,7 @@ export async function updateRouterMappings(
   config: any,
   allConfigs: Record<string, any>,
 ): Promise<void> {
-  const [deployer] = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
+  const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
   const currentChainId = Number(config.common.chainId)
 
   // Update mappings for all known chains
@@ -116,20 +116,23 @@ export async function deployBridgeContracts(
   networkConfig: any,
   allConfigs: Record<string, any>,
 ): Promise<DeployedBridge> {
-  // Deploy BridgeRouter
-  const bridgeRouter = await deployBridgeRouter(networkConfig)
-
-  // Deploy BridgeQueue
-  const bridgeQueue = await deployBridgeQueue(bridgeRouter.address, networkConfig)
+  // Deploy using Ignition module
+  const result = await hre.ignition.deploy(bridgeModule, {
+    parameters: {
+      protocolAccessManager: networkConfig.deployedContracts.gov.protocolAccessManager.address,
+      chainIds: [Number(networkConfig.common.chainId)],
+      routerAddresses: ['0x0000000000000000000000000000000000000000'],
+    },
+  })
 
   // Update all other chain configs with this chain's router address
-  await updateBridgeConfigs(bridgeRouter.address, networkConfig, allConfigs)
+  await updateBridgeConfigs(result.bridgeRouter.address as Address, networkConfig, allConfigs)
 
   // Update this chain's router with all known mappings
-  await updateRouterMappings(bridgeRouter.address, networkConfig, allConfigs)
+  await updateRouterMappings(result.bridgeRouter.address as Address, networkConfig, allConfigs)
 
   return {
-    bridgeRouter,
-    bridgeQueue,
+    bridgeRouter: { address: result.bridgeRouter.address as Address },
+    bridgeQueue: { address: result.bridgeQueue.address as Address },
   }
 }
