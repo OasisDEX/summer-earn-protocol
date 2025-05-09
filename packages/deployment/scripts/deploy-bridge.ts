@@ -2,23 +2,15 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { BridgeConfig } from '../types/bridge-types'
 import { deployBridgeContracts } from './bridge/bridge-contracts'
-import { saveBridgeDeploymentJson } from './bridge/bridge-deployment-helpers'
-import {
-  createBridgeGovernanceProposal,
-  setupBridgeGovernance,
-} from './bridge/bridge-governance-helpers'
-import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 
 async function deployBridge() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
-  const isHubChain = network === HUB_CHAIN_NAME
-  console.log(kleur.blue('Chain Type:'), isHubChain ? kleur.cyan('Hub') : kleur.cyan('Satellite'))
-
   // Load network configuration
   const config = getConfigByNetwork(network, { gov: true, core: true })
+  const allConfigs = getConfigByNetwork('all', { gov: true, core: true })
 
   // Load bridge configuration
   const bridgeConfig: BridgeConfig = config.bridge
@@ -26,35 +18,12 @@ async function deployBridge() {
   console.log(kleur.green().bold('Starting bridge deployment...'))
 
   // Deploy core bridge contracts
-  const deployedBridge = await deployBridgeContracts(bridgeConfig, config)
-
-  // Save deployment data
-  await saveBridgeDeploymentJson(deployedBridge, network)
-
-  // Check if deployer has governor role
-  const protocolAccessManager = await hre.viem.getContractAt(
-    'ProtocolAccessManager',
-    config.deployedContracts.gov.protocolAccessManager.address,
-  )
-  const [deployer] = await hre.viem.getWalletClients()
-  const hasGovernorRole = await protocolAccessManager.read.hasRole([
-    GOVERNOR_ROLE,
-    deployer.account.address,
-  ])
-
-  if (hasGovernorRole) {
-    // Direct setup
-    console.log(kleur.green('Deployer has governor role. Setting up governance directly...'))
-    await setupBridgeGovernance(deployedBridge, config)
-  } else {
-    // Create governance proposal
-    console.log(
-      kleur.yellow('Deployer does not have governor role. Creating governance proposal...'),
-    )
-    await createBridgeGovernanceProposal(deployedBridge, config)
-  }
+  const deployedBridge = await deployBridgeContracts(bridgeConfig, config, allConfigs)
 
   console.log(kleur.green().bold('Bridge deployment completed successfully!'))
+  console.log('Deployed contracts:')
+  console.log('- BridgeRouter:', deployedBridge.bridgeRouter.address)
+  console.log('- BridgeQueue:', deployedBridge.bridgeQueue.address)
 }
 
 // Execute the deployBridge function and handle any errors

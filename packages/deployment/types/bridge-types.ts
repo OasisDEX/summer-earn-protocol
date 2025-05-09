@@ -1,10 +1,12 @@
 import { Address } from 'viem'
 
-export type BridgeConfig = {
-  bridgeRouter: {
-    chainIds: number[]
-    routerAddresses: Address[]
-  }
+export interface BridgeRouterConfig {
+  chainIds: number[]
+  routerAddresses: Address[]
+}
+
+export interface BridgeConfig {
+  router: BridgeRouterConfig
   bridgeOptions: {
     adapterParams: {
       gasLimit: number
@@ -15,11 +17,7 @@ export type BridgeConfig = {
   }
 }
 
-export type DeployedBridge = {
-  bridgeRouter: {
-    address: Address
-  }
-  bridgeQueue: {
-    address: Address
-  }
+export interface DeployedBridge {
+  bridgeRouter: { address: Address }
+  bridgeQueue: { address: Address }
 }
