@@ -62,12 +62,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @notice Address of the associated BridgeQueue
     address public bridgeQueue;
 
-    /// @notice Error for calls not originating from the configured BridgeQueue
-    error OnlyBridgeQueue();
-
-    /// @notice Error thrown when an invalid bridge queue address is provided
-    error InvalidBridgeQueue();
-
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -85,11 +79,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         uint16[] memory chainIds,
         address[] memory routerAddresses
     ) ProtocolAccessManaged(accessManager) {
-        if (
-            chainIds.length != routerAddresses.length ||
-            _bridgeQueue == address(0)
-        ) revert InvalidParams();
-
         bridgeQueue = _bridgeQueue;
         emit BridgeQueueUpdated(_bridgeQueue);
 

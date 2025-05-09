@@ -144,8 +144,6 @@ export async function deployBridgeContracts(
     },
   }
 
-  console.log('Deployment parameters:', JSON.stringify(parameters, null, 2))
-
   // Deploy using Ignition module
   const result = await hre.ignition.deploy(bridgeModule, {
     parameters,

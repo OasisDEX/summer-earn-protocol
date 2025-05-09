@@ -129,6 +129,8 @@ interface IBridgeRouter is IERC165 {
     error InsufficientBalance();
     /// @notice Error for calls not originating from the configured BridgeQueue
     error OnlyBridgeQueue();
+    /// @notice Error thrown when an invalid bridge queue address is provided
+    error InvalidBridgeQueue();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
