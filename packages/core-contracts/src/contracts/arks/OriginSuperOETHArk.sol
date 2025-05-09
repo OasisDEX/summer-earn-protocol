@@ -88,13 +88,19 @@ contract OriginSuperOETHArk is ArkWithWithdrawalRequest {
         uint256 amount,
         bytes calldata data
     ) external onlyKeeper nonReentrant {
-        // ISyrupRouter.WithdrawData memory withdrawData = abi.decode(
-        //     data,
-        //     (ISyrupRouter.WithdrawData)
-        // );
-        // uint256 amountWithAppliedFees = applySlippage(amount);
-        // vault.approve(address(router), amount);
-        // router.withdraw(amount, withdrawData.route, withdrawData.swapCalldata);
+        SwapData memory swapData = abi.decode(data, (SwapData));
+        uint256 assetBalanceBefore = config.asset.balanceOf(address(this));
+        _swap(
+            address(originETH),
+            swapData.router,
+            amount,
+            swapData.swapCalldata
+        );
+        uint256 assetBalanceAfter = config.asset.balanceOf(address(this));
+        uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
+        if (_applySlippage(amount) > assetBought) revert WithdrawalFailed();
+
+        _boardToBufferArk(assetBought);
     }
 
     /*//////////////////////////////////////////////////////////////

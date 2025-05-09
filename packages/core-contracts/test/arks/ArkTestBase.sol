@@ -25,7 +25,7 @@ import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWrite
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract ArkTestBase is TestHelpers {
@@ -80,6 +80,33 @@ contract ArkTestBase is TestHelpers {
                 })
             );
         }
+    }
+
+    function setupFleetCommanderWithBufferArk(
+        address underlyingToken,
+        string memory fleetName
+    )
+        internal
+        returns (address fleetCommanderAddress, address bufferArkAddress)
+    {
+        FleetCommanderParams
+            memory fleetCommanderParams = FleetCommanderParams({
+                accessManager: address(accessManager),
+                configurationManager: address(configurationManager),
+                initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
+                initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
+                asset: underlyingToken,
+                name: fleetName,
+                details: "TestArk details",
+                symbol: "TEST-SUM",
+                initialTipRate: toPercentage(0),
+                depositCap: type(uint256).max
+            });
+        FleetCommander fleetCommander = new FleetCommander(
+            fleetCommanderParams
+        );
+        address _bufferArkAddress = fleetCommander.bufferArk();
+        return (address(fleetCommander), _bufferArkAddress);
     }
 
     function setupFleetCommanderWithBufferArk(

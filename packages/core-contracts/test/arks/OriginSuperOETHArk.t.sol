@@ -6,6 +6,7 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 import "../../src/contracts/arks/OriginSuperOETHArk.sol";
 import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {IOriginETH} from "../../src/interfaces/origin/IOriginETH.sol";
 import {IOriginETHVault} from "../../src/interfaces/origin/IOriginETHVault.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
@@ -32,13 +33,18 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     address public constant ORIGIN_ETH_VAULT_ADDRESS =
         0x98a0CbeF61bD2D21435f433bE4CD42B56B38CC93; // IOriginETH address
     address public constant WETH_ADDRESS =
-        0x4200000000000000000000000000000000000006; // Mainnet WETH address
+        0x4200000000000000000000000000000000000006; // Base WETH address
 
     uint256 forkBlock = 29348398; // A recent block number
     uint256 forkId;
 
     function setUp() public {
         initializeCoreContracts();
+        (address _commander, ) = setupFleetCommanderWithBufferArk(
+            WETH_ADDRESS,
+            "Test Fleet"
+        );
+        commander = _commander;
         forkId = vm.createSelectFork(vm.rpcUrl("base"), forkBlock);
 
         weth = IERC20(WETH_ADDRESS);
@@ -65,10 +71,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             address(address(ark)),
             address(commander)
         );
-        vm.stopPrank();
-
-        vm.startPrank(commander);
-        ark.registerFleetCommander();
+        IFleetCommanderConfigProvider(commander).addArk(address(ark));
         vm.stopPrank();
     }
 
@@ -126,6 +129,18 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         vm.clearMockedCalls();
+    }
+    function test_WithdrawUsingSwap_SuperOETH() public {
+        test_Board();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: 0x19cEeAd7105607Cd444F5ad10dd51356436095a1,
+                swapCalldata: hex"83bd37f90001dbfefd2e8460a6ee4955a68582f85708baea60a30002080de0b6b3a7640000080de06834c816bc8000418900012a8466a3135d1E4D51B2eBe07bfb9D1f6797795b0001302A94E3C28c290EAF2a4605FC52e11Eb915f3780001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef03010203004301010001020100ff00000000000000000000000000000000000000302a94e3c28c290eaf2a4605fc52e11eb915f378dbfefd2e8460a6ee4955a68582f85708baea60a3000000000000000000000000000000000000000000000000"
+            });
+        bytes memory data = abi.encode(swapData);
+
+        vm.startPrank(keeper);
+        ark.withdrawUsingSwap(1 ether, data);
     }
 
     function test_BoardWithMinShares() public {

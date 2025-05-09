@@ -20,16 +20,6 @@ import {IWETH} from "../../src/interfaces/misc/IWETH.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract MockBufferArk {
-    IERC20 public asset;
-    constructor(address _asset) {
-        asset = IERC20(_asset);
-    }
-    function board(uint256 amount, bytes calldata data) external {
-        asset.transferFrom(msg.sender, address(this), amount);
-    }
-}
-
 contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     FluidLiteArk public ark;
@@ -37,7 +27,6 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     IWETH public weth;
     ArkParams public params;
     IEthVaultWrapperV2 public wrapper;
-    MockBufferArk public bufferArk;
 
     // Router and vault addresses provided in the requirement
     address public constant ROUTER_ADDRESS =
@@ -58,12 +47,16 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
 
     function setUp() public {
         initializeCoreContracts();
+        (
+            address _commander,
+            address _bufferArk
+        ) = setupFleetCommanderWithBufferArk(WETH_ADDRESS, "Test Fleet");
+        commander = _commander;
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         weth = IWETH(WETH_ADDRESS);
         vault = IERC4626(VAULT_ADDRESS);
         wrapper = IEthVaultWrapperV2(ROUTER_ADDRESS);
-        bufferArk = new MockBufferArk(WETH_ADDRESS);
 
         params = ArkParams({
             name: "FluidLite ETH Ark",
@@ -93,10 +86,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
             address(address(ark)),
             address(commander)
         );
-        vm.stopPrank();
-
-        vm.startPrank(commander);
-        ark.registerFleetCommander();
+        IFleetCommanderConfigProvider(commander).addArk(address(ark));
         vm.stopPrank();
 
         vm.label(WETH_ADDRESS, "WETH");
@@ -213,13 +203,13 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
 
     function test_WithdrawUsingSwap() public {
         test_Board_FluidLite();
-        vm.mockCall(
-            address(commander),
-            abi.encodeWithSelector(
-                IFleetCommanderConfigProvider.bufferArk.selector
-            ),
-            abi.encode(address(bufferArk))
-        );
+        // vm.mockCall(
+        //     address(commander),
+        //     abi.encodeWithSelector(
+        //         IFleetCommanderConfigProvider.bufferArk.selector
+        //     ),
+        //     abi.encode(address(bufferArk))
+        // );
         IArkWithWithdrawalRequest.SwapData
             memory swapData = IArkWithWithdrawalRequest.SwapData({
                 router: 0xCf5540fFFCdC3d510B18bFcA6d2b9987b0772559,

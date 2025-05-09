@@ -166,17 +166,6 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @notice Applies slippage to the amount
-     * @param amount The amount to apply slippage to
-     * @return amountWithSlippage The amount after applying slippage
-     */
-    function applySlippage(
-        uint256 amount
-    ) internal view returns (uint256 amountWithSlippage) {
-        amountWithSlippage = (amount * (FEE_BASE - slippage)) / FEE_BASE;
-    }
-
-    /**
      * @notice Requests a withdrawal from the withdrawal queue
      * @param amount The amount of shares to withdraw
      */
@@ -231,7 +220,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         uint256 assetBalanceAfter = config.asset.balanceOf(address(this));
 
         uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
-        if (applySlippage(stethWithdrawn) > assetBought)
+        if (_applySlippage(stethWithdrawn) > assetBought)
             revert WithdrawalFailed();
 
         _boardToBufferArk(assetBought);

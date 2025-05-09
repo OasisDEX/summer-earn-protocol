@@ -65,6 +65,18 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
 
         emit ArkSwept(sweptTokens, sweptAmounts);
     }
+
+    /**
+     * @notice Applies slippage to the amount
+     * @param amount The amount to apply slippage to
+     * @return amountWithSlippage The amount after applying slippage
+     */
+    function _applySlippage(
+        uint256 amount
+    ) internal view returns (uint256 amountWithSlippage) {
+        amountWithSlippage = (amount * (FEE_BASE - slippage)) / FEE_BASE;
+    }
+
     /// @inheritdoc IArkWithWithdrawalRequest
     function setSlippage(
         uint256 _slippage
