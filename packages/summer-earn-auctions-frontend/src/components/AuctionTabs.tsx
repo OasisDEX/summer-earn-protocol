@@ -32,6 +32,7 @@ export function AuctionTabs({ activeAuctions, finishedAuctions }: AuctionTabsPro
       <TabsContent value="finished" className="space-y-4">
         {finishedAuctions.map(({ chainId, auctions }) =>
           auctions
+            .filter((auction) => auction.purchases && auction.purchases.length > 0)
             .sort((a, b) => parseInt(b.purchases[0].timestamp) - parseInt(a.purchases[0].timestamp))
             .map((auction) => (
               <FinishedAuctionCard

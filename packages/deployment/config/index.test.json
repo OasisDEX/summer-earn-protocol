@@ -243,7 +243,8 @@
       "erc4626": {
         "usdc": {
           "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6",
-          "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096"
+          "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
+          "Sky_sUSDC": "0x940098b108fB7D0a7E374f6eDED7760787464609"
         },
         "usdce": {
           "Gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
@@ -388,11 +389,20 @@
       }
     },
     "protocolSpecific": {
+      "originETH": {
+        "originETH": "0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3",
+        "arm": "0x6bac785889A4127dB0e0CeFEE88E0a9F1Aaf3cC7"
+      },
       "syrup": {
         "pools": {
           "usdc": {
             "syrup": "0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b",
-            "router": "0x134cCaaA4F1e4552eC8aEcb9E4A2360dDcF8df76"
+            "router": "0x134cCaaA4F1e4552eC8aEcb9E4A2360dDcF8df76",
+            "poolManager": "0x7aD5fFa5fdF509E30186F4609c2f6269f4B6158F",
+            "poolPermissionManager": "0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3",
+            "syrupAdmin": "0xd6d4Bcde6c816F17889f1Dd3000aF0261B03a196",
+            "withdrawalManager": "0x1bc47a0Dd0FdaB96E9eF982fdf1F34DC6207cfE3",
+            "syrupRedeemer": "0x074a98D830eD61f39732FFa258e407f5cA7a8AaF"
           }
         }
       },
@@ -522,6 +532,9 @@
           "usde": "0x0000000000000000000000000000000000000000",
           "usdt": "0x0000000000000000000000000000000000000000",
           "usdce": "0x0000000000000000000000000000000000000000"
+        },
+        "staking": {
+          "sky": "0x0650CAF159C5A49f711e8169D4336ECB9b950275"
         }
       }
     }
