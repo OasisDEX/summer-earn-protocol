@@ -1,9 +1,12 @@
 import hre from 'hardhat'
+import kleur from 'kleur'
 import { Address } from 'viem'
 import bridgeModule from '../../ignition/modules/bridge'
 import { BridgeConfig, DeployedBridge } from '../../types/bridge-types'
+import { ADDRESS_ZERO } from '../common/constants'
 
 export async function deployBridgeRouter(config: any): Promise<{ address: Address }> {
+  console.log(kleur.blue('Deploying bridge router'))
   const [deployer] = await hre.viem.getWalletClients()
   const currentChainId = Number(config.common.chainId)
 
@@ -14,9 +17,11 @@ export async function deployBridgeRouter(config: any): Promise<{ address: Addres
   // Deploy using Ignition module
   const result = await hre.ignition.deploy(bridgeModule, {
     parameters: {
-      protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
-      chainIds,
-      routerAddresses,
+      BridgeModule: {
+        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+        chainIds: [currentChainId],
+        routerAddresses: ['0x0000000000000000000000000000000000000000'],
+      },
     },
   })
 
@@ -29,12 +34,16 @@ export async function deployBridgeQueue(
   bridgeRouterAddress: Address,
   config: any,
 ): Promise<{ address: Address }> {
+  console.log(kleur.blue('Deploying queue'))
+
   // BridgeQueue is now deployed as part of the Ignition module
   const result = await hre.ignition.deploy(bridgeModule, {
     parameters: {
-      protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
-      chainIds: [Number(config.common.chainId)],
-      routerAddresses: ['0x0000000000000000000000000000000000000000'],
+      BridgeModule: {
+        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+        chainIds: [Number(config.common.chainId)],
+        routerAddresses: ['0x0000000000000000000000000000000000000000'],
+      },
     },
   })
 
@@ -116,13 +125,30 @@ export async function deployBridgeContracts(
   networkConfig: any,
   allConfigs: Record<string, any>,
 ): Promise<DeployedBridge> {
-  // Deploy using Ignition module
-  const result = await hre.ignition.deploy(bridgeModule, {
-    parameters: {
+  console.log(kleur.blue('Deploying bridge contracts'))
+
+  // Validate required configuration
+  if (networkConfig.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO) {
+    throw new Error('ProtocolAccessManager is not deployed')
+  }
+
+  if (!networkConfig.common.chainId) {
+    throw new Error('Chain ID is not configured')
+  }
+
+  const parameters = {
+    BridgeModule: {
       protocolAccessManager: networkConfig.deployedContracts.gov.protocolAccessManager.address,
       chainIds: [Number(networkConfig.common.chainId)],
       routerAddresses: ['0x0000000000000000000000000000000000000000'],
     },
+  }
+
+  console.log('Deployment parameters:', JSON.stringify(parameters, null, 2))
+
+  // Deploy using Ignition module
+  const result = await hre.ignition.deploy(bridgeModule, {
+    parameters,
   })
 
   // Update all other chain configs with this chain's router address

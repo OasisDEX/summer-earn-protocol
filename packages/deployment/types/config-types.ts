@@ -84,6 +84,10 @@ export interface BaseConfig {
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
     }
+    bridge?: {
+      bridgeRouter: { address: string }
+      bridgeQueue: { address: string }
+    }
   }
   tokens: {
     usdc: string

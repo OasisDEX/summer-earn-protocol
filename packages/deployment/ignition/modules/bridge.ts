@@ -2,7 +2,7 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { Address } from 'viem'
 
-export default buildModule('Bridge', (m) => {
+export default buildModule('BridgeModule', (m) => {
   // Get the deployer account
   const deployer = m.getAccount(0)
 
@@ -13,23 +13,23 @@ export default buildModule('Bridge', (m) => {
   const chainIds = m.getParameter<number[]>('chainIds')
   const routerAddresses = m.getParameter<Address[]>('routerAddresses')
 
-  // Deploy BridgeRouter
+  // Deploy BridgeQueue first since it's needed for BridgeRouter
+  const bridgeQueue = m.contract('BridgeQueue', [
+    protocolAccessManager,
+    '0x0000000000000000000000000000000000000000', // BridgeRouter address will be set after deployment
+    deployer, // Initial queue manager
+  ])
+
+  // Deploy BridgeRouter with BridgeQueue address
   const bridgeRouter = m.contract('BridgeRouter', [
     protocolAccessManager,
-    '0x0000000000000000000000000000000000000000', // BridgeQueue address will be set after deployment
+    bridgeQueue, // Pass BridgeQueue address directly
     chainIds,
     routerAddresses,
   ])
 
-  // Deploy BridgeQueue
-  const bridgeQueue = m.contract('BridgeQueue', [
-    protocolAccessManager,
-    bridgeRouter,
-    deployer, // Initial queue manager
-  ])
-
-  // Set BridgeQueue in BridgeRouter
-  m.call(bridgeRouter, 'setBridgeQueue', [bridgeQueue])
+  // Update BridgeQueue with BridgeRouter address
+  m.call(bridgeQueue, 'setBridgeRouter', [bridgeRouter])
 
   // Return the deployed contracts
   return {
