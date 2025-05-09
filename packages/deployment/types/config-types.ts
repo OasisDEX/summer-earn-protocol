@@ -1,7 +1,5 @@
 import { Address } from 'viem'
-import { BuyAndBurnContracts } from '../ignition/modules/buy-and-burn'
-import { CoreContracts } from '../ignition/modules/core'
-import { GovContracts } from '../ignition/modules/gov'
+import { BridgeConfig } from './bridge-types'
 
 export enum SupportedNetworks {
   MAINNET = 'mainnet',
@@ -71,112 +69,88 @@ export enum Token {
 
 export interface BaseConfig {
   deployedContracts: {
-    core: CoreContracts
-    gov: GovContracts
-    buyAndBurn: BuyAndBurnContracts
+    gov: {
+      summerGovernor: { address: string }
+      summerToken: { address: string }
+      timelock: { address: string }
+      protocolAccessManager: { address: string }
+      rewardsRedeemer: { address: string }
+    }
+    buyAndBurn: {
+      buyAndBurn: { address: string }
+    }
+    core: {
+      tipJar: { address: string }
+      raft: { address: string }
+      configurationManager: { address: string }
+      harborCommand: { address: string }
+      admiralsQuarters: { address: string }
+      fleetCommanderRewardsManagerFactory: { address: string }
+    }
+  }
+  tokens: {
+    usdc: string
+    dai: string
+    weth: string
+    usds: string
+    stakedUsds: string
+    morpho: string
+    reul: string
+    eurc: string
+    seam: string
+    ws: string
   }
   common: {
     chainId: string
     initialSupply: string
+    swapProvider: string
+    tipRate: string
     layerZero: {
-      lzEndpoint: Address
+      lzEndpoint: string
       eID: string
-      lzExecutor: Address
-      sendUln302: Address
-      receiveUln302: Address
-      blockedMessageLib: Address
-      lzDeadDVN: Address
+      lzExecutor: string
+      sendUln302: string
+      receiveUln302: string
+      blockedMessageLib: string
+      lzDeadDVN: string
       dvns: {
-        sonic: Record<string, Address>
+        [key: string]: {
+          lzLabs: string
+          stargate: string
+        }
       }
     }
-    swapProvider: Address
-    tipRate: string
-  }
-  tokens: {
-    [key in Token]: Address
   }
   protocolSpecific: {
-    erc4626: {
-      [key in Token]: {
-        [key: string]: Address
-      }
-    }
-    pendle: {
-      router: Address
-      'lp-oracle': Address
-      markets: {
-        [key in Token]: {
-          swapInTokens: Array<{
-            token: Token
-            oracle: Address
-          }>
-          marketAddresses: Record<string, Address>
-        }
-      }
+    syrup: {
+      pools: Record<string, any>
     }
     aaveV3: {
-      pool: Address
-      rewards: Address
-    }
-    spark: {
-      pool: Address
-      rewards: Address
+      pool: string
+      rewards: string
     }
     morpho: {
-      blue: Address
-      urdFactory: Address
-      vaults: {
-        [key in Token]: {
-          [key: string]: Address
-        }
-      }
-      markets: {
-        [key in Token]: {
-          [key: string]: Address
-        }
-      }
+      blue: string
+      urdFactory: string
+      vaults: Record<string, Record<string, string>>
+      markets: Record<string, Record<string, string>>
     }
     compoundV3: {
-      pools: {
-        [key in Token]: {
-          cToken: Address
-        }
-      }
-      rewards: Address
+      pools: Record<string, { cToken: string }>
+      rewards: string
+    }
+    erc4626: Record<string, Record<string, string>>
+    moonwell: {
+      pools: Record<string, { mToken: string }>
+      comptroller: string
     }
     sky: {
-      psmLite: {
-        [key in Token]: Address
-      }
       psm3: {
-        [key in Token]: Address
-      }
-    }
-    moonwell: {
-      pools: {
-        [key in Token]: {
-          mToken: Address
-        }
-      }
-      comptroller: Address
-    }
-    syrup: {
-      pools: {
-        [key in Token]: {
-          syrup: Address
-          router: Address
-        }
-      }
-    }
-    silo: {
-      pools: {
-        [key in Token]: {
-          [key: string]: Address
-        }
+        usdc: string
       }
     }
   }
+  bridge?: BridgeConfig
 }
 
 export interface ArkConfig {
