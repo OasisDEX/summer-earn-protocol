@@ -367,6 +367,13 @@ interface IBridgeRouter is IERC165 {
     function unpause() external;
 
     /**
+     * @notice Set the BridgeQueue address
+     * @param _newBridgeQueue The new BridgeQueue address
+     * @dev Governor role required.
+     */
+    function setBridgeQueue(address _newBridgeQueue) external;
+
+    /**
      * @notice Manually recover/update the status of an operation if automated flow failed
      * @param operationId ID of the operation to update
      * @param newStatus New status to set for the operation

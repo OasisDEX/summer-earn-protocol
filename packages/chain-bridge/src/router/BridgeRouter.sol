@@ -62,6 +62,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @notice Address of the associated BridgeQueue
     address public bridgeQueue;
 
+    /// @notice Error for calls not originating from the configured BridgeQueue
+    error OnlyBridgeQueue();
+
+    /// @notice Error thrown when an invalid bridge queue address is provided
+    error InvalidBridgeQueue();
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -802,5 +808,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     ) external pure returns (bool) {
         return (interfaceId == type(IBridgeRouter).interfaceId ||
             interfaceId == type(IERC165).interfaceId);
+    }
+
+    /// @notice Sets the BridgeQueue address. Can only be called by governance.
+    /// @param _newBridgeQueue The new BridgeQueue address
+    function setBridgeQueue(address _newBridgeQueue) external onlyGovernor {
+        if (_newBridgeQueue == address(0)) revert InvalidBridgeQueue();
+        bridgeQueue = _newBridgeQueue;
+        emit BridgeQueueUpdated(_newBridgeQueue);
     }
 }

@@ -13,23 +13,23 @@ export default buildModule('BridgeModule', (m) => {
   const chainIds = m.getParameter<number[]>('chainIds')
   const routerAddresses = m.getParameter<Address[]>('routerAddresses')
 
-  // Deploy BridgeQueue first since it's needed for BridgeRouter
-  const bridgeQueue = m.contract('BridgeQueue', [
-    protocolAccessManager,
-    '0x0000000000000000000000000000000000000000', // BridgeRouter address will be set after deployment
-    deployer, // Initial queue manager
-  ])
-
-  // Deploy BridgeRouter with BridgeQueue address
+  // Deploy BridgeRouter first
   const bridgeRouter = m.contract('BridgeRouter', [
     protocolAccessManager,
-    bridgeQueue, // Pass BridgeQueue address directly
+    '0x0000000000000000000000000000000000000000', // BridgeQueue address will be set after deployment
     chainIds,
     routerAddresses,
   ])
 
-  // Update BridgeQueue with BridgeRouter address
-  m.call(bridgeQueue, 'setBridgeRouter', [bridgeRouter])
+  // Deploy BridgeQueue with BridgeRouter as initial queue manager
+  const bridgeQueue = m.contract('BridgeQueue', [
+    protocolAccessManager,
+    bridgeRouter, // Pass BridgeRouter address directly
+    bridgeRouter, // BridgeRouter will be the initial queue manager
+  ])
+
+  // Set the BridgeQueue address in BridgeRouter via governance
+  m.call(bridgeRouter, 'setBridgeQueue', [bridgeQueue])
 
   // Return the deployed contracts
   return {
