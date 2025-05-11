@@ -10,9 +10,10 @@ export async function deployBridgeRouter(config: any): Promise<{ address: Addres
   const [deployer] = await hre.viem.getWalletClients()
   const currentChainId = Number(config.common.chainId)
 
-  // For initial deployment, we only need the current chain
-  const chainIds = [currentChainId]
-  const routerAddresses = ['0x0000000000000000000000000000000000000000'] // Placeholder for current chain
+  // Get router addresses from config
+  const routerAddresses = config.bridge?.router?.routerAddresses || [
+    '0x0000000000000000000000000000000000000000',
+  ]
 
   // Deploy using Ignition module
   const result = await hre.ignition.deploy(bridgeModule, {
@@ -20,7 +21,7 @@ export async function deployBridgeRouter(config: any): Promise<{ address: Addres
       BridgeModule: {
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         chainIds: [currentChainId],
-        routerAddresses: ['0x0000000000000000000000000000000000000000'],
+        routerAddresses,
       },
     },
   })
@@ -58,9 +59,7 @@ export async function updateBridgeConfigs(
   config: any,
   allConfigs: Record<string, any>,
 ): Promise<void> {
-  const [deployer] = await hre.viem.getWalletClients()
   const currentChainId = Number(config.common.chainId)
-  const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
 
   // Update all other chain configs with this chain's router address
   for (const [network, networkConfig] of Object.entries(allConfigs)) {
@@ -100,11 +99,13 @@ export async function updateRouterMappings(
   allConfigs: Record<string, any>,
 ): Promise<void> {
   const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
-  const currentChainId = Number(config.common.chainId)
 
   // Update mappings for all known chains
   for (const [network, networkConfig] of Object.entries(allConfigs)) {
     const targetChainId = Number(networkConfig.common.chainId)
+
+    // Skip current chain
+    if (targetChainId === Number(config.common.chainId)) continue
 
     // Skip if no bridge config or no router address
     if (!networkConfig.bridge?.router?.routerAddresses) continue

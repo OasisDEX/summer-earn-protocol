@@ -43,7 +43,7 @@ contract CrossChainFleetProxy is
     BridgeTypes.BridgeOptions public bridgeOptions;
 
     /// @notice The address of the source chain's CrossChainArk
-    address public immutable sourceChainArk;
+    address public sourceChainArk;
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
@@ -58,6 +58,9 @@ contract CrossChainFleetProxy is
 
     /// @notice Emitted when bridge options are updated
     event BridgeOptionsUpdated(BridgeTypes.BridgeOptions bridgeOptions);
+
+    /// @notice Emitted when the source chain ark address is updated
+    event SourceChainArkUpdated(address indexed newSourceChainArk);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -78,8 +81,6 @@ contract CrossChainFleetProxy is
         BridgeTypes.BridgeOptions memory _bridgeOptions,
         address _sourceChainArk
     ) ProtocolAccessManaged(_accessManager) {
-        if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
-
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         fleetContract = _fleetContract;
         bridgeOptions = _bridgeOptions;
@@ -117,6 +118,14 @@ contract CrossChainFleetProxy is
     ) external onlyGovernorOrKeeper {
         bridgeOptions = _bridgeOptions;
         emit BridgeOptionsUpdated(_bridgeOptions);
+    }
+
+    /// @notice Updates the source chain ark address
+    /// @param _sourceChainArk The new source chain ark address
+    function setSourceChainArk(address _sourceChainArk) external onlyGovernor {
+        if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
+        sourceChainArk = _sourceChainArk;
+        emit SourceChainArkUpdated(_sourceChainArk);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -1,14 +1,18 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { arkTypes } from '../types/config-types'
+import { BaseConfig, arkTypes } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { deployArkInteractive } from './common/ark-deployment'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 
 async function deployArk() {
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })
+  const config = getConfigByNetwork(hre.network.name, {
+    common: true,
+    gov: true,
+    core: true,
+  }) as BaseConfig
 
   console.log(kleur.green().bold('Starting Ark deployment process...'))
 
