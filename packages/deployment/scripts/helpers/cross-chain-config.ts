@@ -1,97 +1,148 @@
-import fs from 'fs'
-import path from 'path'
-import { Address } from 'viem'
+import * as fs from 'fs'
+import kleur from 'kleur'
+import * as path from 'path'
 
-interface CrossChainDeploymentConfig {
+export interface CrossChainProtocolConfig {
+  protocol: string
+  fleetProxyAddress: string | null
+  crossChainArkAddress: string | null
+  bridgeOptions: {
+    specifiedAdapter: string
+    adapterParams: {
+      gasLimit: number
+      calldataSize: number
+      msgValue: number
+      options: string
+    }
+  }
+}
+
+export interface CrossChainDestination {
+  chainId: number
+  name: string
+  protocols: CrossChainProtocolConfig[]
+}
+
+export interface CrossChainConfig {
   fleetName: string
-  fleetProxyAddress?: Address
-  crossChainArkAddress?: Address
-  sourceChainId?: number
-  satelliteChainId?: number
-  updated?: string // Timestamp for tracking when config was last updated
+  sourceChainId: number
+  destinations: CrossChainDestination[]
 }
 
-const CONFIG_DIR = path.join(__dirname, '../../deployments/cross-chain')
-const CONFIG_FILE_EXTENSION = '.json'
+const CONFIG_DIR = path.join(process.cwd(), 'config', 'cross-chain')
 
-/**
- * Ensures the config directory exists
- */
-function ensureConfigDir() {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true })
-  }
-}
-
-/**
- * Gets the path to the config file for a specific fleet
- */
-function getConfigPath(fleetName: string): string {
-  return path.join(CONFIG_DIR, `${fleetName}${CONFIG_FILE_EXTENSION}`)
-}
-
-/**
- * Saves cross-chain deployment configuration for a specific fleet
- * @param fleetName Name of the fleet
- * @param config Configuration data to save
- */
-export function saveCrossChainConfig(
-  fleetName: string,
-  config: Partial<CrossChainDeploymentConfig>,
-): void {
-  ensureConfigDir()
-
-  const configPath = getConfigPath(fleetName)
-  let existingConfig: CrossChainDeploymentConfig = { fleetName }
-
-  // Read existing config if it exists
-  if (fs.existsSync(configPath)) {
-    const fileContent = fs.readFileSync(configPath, 'utf8')
-    existingConfig = JSON.parse(fileContent) as CrossChainDeploymentConfig
-  }
-
-  // Merge new config with existing
-  const updatedConfig: CrossChainDeploymentConfig = {
-    ...existingConfig,
-    ...config,
-    updated: new Date().toISOString(),
-  }
-
-  // Write updated config to file
-  fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2))
-}
-
-/**
- * Loads cross-chain deployment configuration for a specific fleet
- * @param fleetName Name of the fleet
- * @returns The configuration data or null if not found
- */
-export function loadCrossChainConfig(fleetName: string): CrossChainDeploymentConfig | null {
-  const configPath = getConfigPath(fleetName)
-
+export function loadCrossChainConfig(fleetName: string): CrossChainConfig | null {
+  const configPath = path.join(CONFIG_DIR, `${fleetName}.json`)
   if (!fs.existsSync(configPath)) {
+    console.log(kleur.yellow(`No cross-chain config found for ${fleetName}`))
     return null
   }
 
-  const fileContent = fs.readFileSync(configPath, 'utf8')
-  return JSON.parse(fileContent) as CrossChainDeploymentConfig
+  try {
+    const configContent = fs.readFileSync(configPath, 'utf-8')
+    return JSON.parse(configContent) as CrossChainConfig
+  } catch (error) {
+    console.error(kleur.red(`Error loading cross-chain config for ${fleetName}: ${error}`))
+    return null
+  }
 }
 
-/**
- * Checks if cross-chain deployment is in progress for a fleet
- * @param fleetName Name of the fleet
- * @returns True if cross-chain deployment exists but is incomplete
- */
-export function isDeploymentInProgress(fleetName: string): boolean {
-  const config = loadCrossChainConfig(fleetName)
+export function saveCrossChainConfig(
+  fleetName: string,
+  updateData: {
+    chainId?: number
+    protocol?: string
+    fleetProxyAddress?: string
+    crossChainArkAddress?: string
+    sourceChainId?: number
+  },
+): void {
+  const configPath = path.join(CONFIG_DIR, `${fleetName}.json`)
 
-  if (!config) {
-    return false
+  // Create directories if they don't exist
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true })
   }
 
-  // If we have either address but not both, the deployment is in progress
-  return Boolean(
-    (config.fleetProxyAddress && !config.crossChainArkAddress) ||
-      (!config.fleetProxyAddress && config.crossChainArkAddress),
-  )
+  let config: CrossChainConfig
+
+  // Load existing config or create a new one
+  if (fs.existsSync(configPath)) {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as CrossChainConfig
+  } else {
+    config = {
+      fleetName,
+      sourceChainId: 0, // Will need to be set manually or by parameter
+      destinations: [],
+    }
+  }
+
+  // Update sourceChainId if provided
+  if (updateData.sourceChainId) {
+    config.sourceChainId = updateData.sourceChainId
+  }
+
+  // If chainId and protocol are provided, we need to update a specific protocol in a destination
+  if (updateData.chainId && updateData.protocol) {
+    // Find destination by chainId
+    let destination = config.destinations.find((d) => d.chainId === updateData.chainId)
+
+    // If destination doesn't exist, create it
+    if (!destination) {
+      destination = {
+        chainId: updateData.chainId,
+        name: `chain-${updateData.chainId}`, // Default name
+        protocols: [],
+      }
+      config.destinations.push(destination)
+    }
+
+    // Find protocol in the destination
+    let protocolConfig = destination.protocols.find((p) => p.protocol === updateData.protocol)
+
+    // If protocol doesn't exist, create it
+    if (!protocolConfig) {
+      protocolConfig = {
+        protocol: updateData.protocol,
+        fleetProxyAddress: null,
+        crossChainArkAddress: null,
+        bridgeOptions: {
+          specifiedAdapter: '0x0000000000000000000000000000000000000000',
+          adapterParams: {
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: '',
+          },
+        },
+      }
+      destination.protocols.push(protocolConfig)
+    }
+
+    // Update the protocol configuration
+    if (updateData.fleetProxyAddress) {
+      protocolConfig.fleetProxyAddress = updateData.fleetProxyAddress
+    }
+
+    if (updateData.crossChainArkAddress) {
+      protocolConfig.crossChainArkAddress = updateData.crossChainArkAddress
+    }
+  }
+
+  // Write the updated config back to the file
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+  console.log(kleur.green(`Updated cross-chain config for ${fleetName}`))
+}
+
+// Helper function to find a specific protocol configuration
+export function findProtocolConfig(
+  config: CrossChainConfig,
+  chainId: number,
+  protocol: string,
+): CrossChainProtocolConfig | null {
+  const destination = config.destinations.find((d) => d.chainId === chainId)
+  if (!destination) return null
+
+  const protocolConfig = destination.protocols.find((p) => p.protocol === protocol)
+  return protocolConfig || null
 }

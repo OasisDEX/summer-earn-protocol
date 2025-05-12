@@ -5,7 +5,7 @@ import { Address } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getFleetConfig, loadFleetDeploymentJson } from '../common/fleet-deployment-files-helpers'
 import { getConfigByNetwork } from '../helpers/config-handler'
-import { saveCrossChainConfig } from '../helpers/cross-chain-config'
+import { loadCrossChainConfig, saveCrossChainConfig } from '../helpers/cross-chain-config'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
@@ -18,6 +18,7 @@ interface FleetProxyParams {
   bridgeRouter: Address
   fleetContract: Address
   sourceChainId: number
+  protocol: string
   bridgeOptions: {
     specifiedAdapter: Address
     adapterParams: {
@@ -51,7 +52,7 @@ export async function deployFleetProxy() {
       common: true,
       gov: true,
       core: true,
-      bridge: true, // Now this is a valid option
+      bridge: true,
     },
     useBummerConfig,
   ) as BaseConfig
@@ -78,11 +79,15 @@ export async function deployFleetProxy() {
     throw error
   }
 
+  // Load or create cross-chain config
+  const crossChainConfig = loadCrossChainConfig(fleetDefinition.fleetName)
+
   // Get user input for deployment parameters
   const userInput = await getUserInput(
     config,
     fleetDefinition.fleetName,
     fleetDeployment?.fleetAddress,
+    crossChainConfig,
   )
 
   // Ask user to confirm parameters before deploying
@@ -94,8 +99,6 @@ export async function deployFleetProxy() {
     )
 
     console.log(kleur.green().bold('FleetProxy successfully deployed at:'), fleetProxyAddress)
-
-    // Custom logging for fleet proxy deployment (since ModuleLogger.logFleetProxy doesn't exist)
     console.log(kleur.green('Deployment recorded in cross-chain configuration.'))
     console.log(kleur.green('Next step: Deploy CrossChainArk on the source chain.'))
 
@@ -113,6 +116,7 @@ async function getUserInput(
   config: BaseConfig,
   fleetName: string,
   fleetAddress?: Address,
+  crossChainConfig?: any,
 ): Promise<FleetProxyParams> {
   // Use config values when available
   const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
@@ -123,7 +127,16 @@ async function getUserInput(
     type: 'number',
     name: 'sourceChainId',
     message: 'Enter the source chain ID (where the fleet is deployed):',
+    initial: crossChainConfig?.sourceChainId || 0,
     validate: (value) => (value > 0 ? true : 'Chain ID must be greater than 0'),
+  })
+
+  // Collect protocol information
+  const { protocol } = await prompts({
+    type: 'text',
+    name: 'protocol',
+    message: 'Enter the protocol this FleetProxy will work with (e.g. aaveV3):',
+    validate: (value) => (value ? true : 'Protocol is required'),
   })
 
   // Collect fleet address on source chain
@@ -149,6 +162,7 @@ async function getUserInput(
     bridgeRouter: bridgeRouterAddress,
     fleetContract: fleetContractResponse.fleetContract as Address,
     sourceChainId,
+    protocol,
     bridgeOptions: {
       specifiedAdapter: '0x0000000000000000000000000000000000000000' as Address,
       adapterParams: {
@@ -170,6 +184,7 @@ async function confirmDeployment(params: FleetProxyParams): Promise<boolean> {
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(params.bridgeRouter))
   console.log(kleur.blue('Fleet Contract:'), kleur.cyan(params.fleetContract))
   console.log(kleur.blue('Source Chain ID:'), kleur.cyan(params.sourceChainId.toString()))
+  console.log(kleur.blue('Protocol:'), kleur.cyan(params.protocol))
   console.log(
     kleur.blue('Gas Limit:'),
     kleur.cyan(params.bridgeOptions.adapterParams.gasLimit.toString()),
@@ -192,7 +207,7 @@ async function deployFleetProxyContract(
 
   // Create and deploy the module
   try {
-    // Create the FleetProxy module (need to add this module in the ignition folder)
+    // Create the FleetProxy module
     const createModule = require('../../ignition/modules/arks/fleet-proxy').createFleetProxyModule
     const module = createModule(moduleName)
 
@@ -213,18 +228,23 @@ async function deployFleetProxyContract(
       deploymentId,
     })
 
-    // Fix the type assertion for fleetProxy address
-    // Cast the result to FleetProxyContract to access the address correctly
     const fleetProxyContract = result as unknown as { fleetProxy: { address: Address } }
     const fleetProxyAddress = fleetProxyContract.fleetProxy.address
 
     // Save the FleetProxy address to cross-chain config
     saveCrossChainConfig(fleetName, {
-      fleetName,
-      fleetProxyAddress,
-      satelliteChainId: chainId,
-      sourceChainId: params.sourceChainId,
+      chainId: chainId,
+      protocol: params.protocol,
+      fleetProxyAddress: fleetProxyAddress,
     })
+
+    // Make sure the source chain ID is updated in the config
+    const crossChainConfig = loadCrossChainConfig(fleetName)
+    if (crossChainConfig && crossChainConfig.sourceChainId === 0) {
+      saveCrossChainConfig(fleetName, {
+        sourceChainId: params.sourceChainId,
+      })
+    }
 
     return fleetProxyAddress
   } catch (error) {

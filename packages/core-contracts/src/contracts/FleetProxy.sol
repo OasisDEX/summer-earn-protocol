@@ -128,6 +128,38 @@ contract CrossChainFleetProxy is
         emit SourceChainArkUpdated(_sourceChainArk);
     }
 
+    /// @notice Keeper function to withdraw and transfer assets
+    function withdrawAndTransfer(
+        uint256 amount,
+        uint16 sourceChainId
+    ) external payable whenNotPaused nonReentrant onlyKeeper {
+        // 1. Withdraw from fleet contract
+        IFleetCommander(fleetContract).withdraw(
+            amount,
+            address(this),
+            address(this)
+        );
+
+        // 2. Get the asset from fleet config
+        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
+            .getConfig();
+        address asset = address(config.bufferArk.asset());
+
+        // 3. Use BridgeRouter to transfer assets back to source chain's CrossChainArk
+        bridgeRouter.executeTransferAssets{value: msg.value}(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: sourceChainId,
+                asset: asset,
+                amount: amount,
+                recipient: sourceChainArk,
+                options: bridgeOptions
+            })
+        );
+
+        emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
+    }
+
     /*//////////////////////////////////////////////////////////////
                     CROSS-CHAIN RECEIVER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -199,42 +231,6 @@ contract CrossChainFleetProxy is
 
         // Emit event for tracking
         emit ProxyDeposit(fleetContract, token, amount, sourceChainId);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        NEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Keeper function to withdraw and transfer assets
-    function withdrawAndTransfer(
-        uint256 amount,
-        uint16 sourceChainId
-    ) external payable whenNotPaused nonReentrant onlyKeeper {
-        // 1. Withdraw from fleet contract
-        IFleetCommander(fleetContract).withdraw(
-            amount,
-            address(this),
-            address(this)
-        );
-
-        // 2. Get the asset from fleet config
-        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
-            .getConfig();
-        address asset = address(config.bufferArk.asset());
-
-        // 3. Use BridgeRouter to transfer assets back to source chain's CrossChainArk
-        bridgeRouter.executeTransferAssets{value: msg.value}(
-            BridgeTypes.ExecuteTransferParams({
-                originator: address(this),
-                destinationChainId: sourceChainId,
-                asset: asset,
-                amount: amount,
-                recipient: sourceChainArk,
-                options: bridgeOptions
-            })
-        );
-
-        emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
     }
 
     /*//////////////////////////////////////////////////////////////

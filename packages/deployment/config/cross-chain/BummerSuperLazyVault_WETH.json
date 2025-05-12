@@ -1,0 +1,46 @@
+{
+  "fleetName": "BummerSuperLazyVault_WETH",
+  "sourceChainId": 8453,
+  "destinations": [
+    {
+      "chainId": 1,
+      "name": "ethereum",
+      "protocols": [
+        {
+          "protocol": "aaveV3",
+          "fleetProxyAddress": "0x1234567890123456789012345678901234567890",
+          "crossChainArkAddress": null,
+          "bridgeOptions": {
+            "specifiedAdapter": "0x0000000000000000000000000000000000000000",
+            "adapterParams": {
+              "gasLimit": 500000,
+              "calldataSize": 0,
+              "msgValue": 0,
+              "options": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "chainId": 10,
+      "name": "optimism",
+      "protocols": [
+        {
+          "protocol": "aaveV3",
+          "fleetProxyAddress": null,
+          "crossChainArkAddress": null,
+          "bridgeOptions": {
+            "specifiedAdapter": "0x0000000000000000000000000000000000000000",
+            "adapterParams": {
+              "gasLimit": 500000,
+              "calldataSize": 0,
+              "msgValue": 0,
+              "options": ""
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

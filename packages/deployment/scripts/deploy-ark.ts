@@ -8,13 +8,24 @@ import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 
 async function deployArk() {
-  const config = getConfigByNetwork(hre.network.name, {
-    common: true,
-    gov: true,
-    core: true,
-  }) as BaseConfig
-
   console.log(kleur.green().bold('Starting Ark deployment process...'))
+
+  const { useBummerConfig } = await prompts({
+    type: 'confirm',
+    name: 'useBummerConfig',
+    message: 'Do you want to use the bummer config?',
+    initial: false,
+  })
+
+  const config = getConfigByNetwork(
+    hre.network.name,
+    {
+      common: true,
+      gov: true,
+      core: true,
+    },
+    useBummerConfig,
+  ) as BaseConfig
 
   const { selectedArkType } = await prompts({
     type: 'select',
