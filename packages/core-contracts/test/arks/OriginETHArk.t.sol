@@ -24,7 +24,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     OriginETHArk public ark;
     IOriginETH public originETH;
-    IOriginETHVault public originETHVault;
+    IOriginETHVault public originBaseVault;
     IERC20 public weth;
     ArkParams public params;
     address public bufferArk;
@@ -32,7 +32,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     address public constant ORIGINETH_ADDRESS =
         0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3; // IOriginETH address
     address public constant ORIGIN_ETH_VAULT_ADDRESS =
-        0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab; // IOriginETH address
+        0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab; // IOriginETHVault address
     address public constant WETH_ADDRESS =
         0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // Mainnet WETH address
     address public constant OETH_WETH_ARM =
@@ -53,7 +53,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
 
         weth = IERC20(WETH_ADDRESS);
         originETH = IOriginETH(ORIGINETH_ADDRESS);
-        originETHVault = IOriginETHVault(ORIGIN_ETH_VAULT_ADDRESS);
+        originBaseVault = IOriginETHVault(ORIGIN_ETH_VAULT_ADDRESS);
 
         params = ArkParams({
             name: "WETH OriginETH Ark",
@@ -202,6 +202,53 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.withdrawUsingSwap(1 ether, data);
     }
 
+    function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
+        test_Board();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: address(0x123), // Non-whitelisted router
+                swapCalldata: hex"83bd37f90001856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc30001c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2080de0b6b3a7640000080de05b2bee779880004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE990001cc7d5785AD5755B6164e21495E07aDb0Ff11C2A80001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef03010203006701010001020001ff00000000000000000000000000000000000000cc7d5785ad5755b6164e21495e07adb0ff11c2a8856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3000000000000000000000000000000000000000000000000"
+            });
+        bytes memory data = abi.encode(swapData);
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("RouterNotWhitelisted()"));
+        ark.withdrawUsingSwap(1 ether, data);
+    }
+
+    function test_RequestWithdrawal_MaxUint() public {
+        uint256 amount = 1 ether; // 1 WETH
+
+        // Grant keeper role to the commander for testing
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        deal(address(weth), address(commander), amount);
+        weth.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+        assertGt(
+            IERC20(ORIGINETH_ADDRESS).balanceOf(address(ark)),
+            0,
+            "There should be OETH in the ark"
+        );
+        vm.startPrank(commander);
+        ark.requestWithdrawal(type(uint256).max);
+        vm.stopPrank();
+
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            amount,
+            "Assets in withdrawal queue should match the total balance when using max uint"
+        );
+        assertEq(
+            IERC20(ORIGINETH_ADDRESS).balanceOf(address(ark)),
+            0,
+            "There should be no OETH in the ark"
+        );
+    }
+
     function test_TotalAssets() public {
         uint256 amount = 1 ether; // 1 WETH
 
@@ -348,7 +395,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             "Before claim, total assets should be equal to the withdrawal amount"
         );
 
-        deal(address(weth), address(originETHVault), 1000 * amount);
+        deal(address(weth), address(originBaseVault), 1000 * amount);
         vm.startPrank(commander);
         ark.claimWithdrawal();
         vm.stopPrank();
@@ -404,8 +451,8 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         // Fund the Ark with OETH
         deal(address(weth), address(commander), originBalance);
         vm.startPrank(commander);
-        weth.forceApprove(address(originETHVault), originBalance);
-        originETHVault.mint(address(weth), originBalance, originBalance);
+        weth.forceApprove(address(originBaseVault), originBalance);
+        originBaseVault.mint(address(weth), originBalance, originBalance);
         originETH.transfer(address(ark), originBalance);
         vm.stopPrank();
         assertEq(

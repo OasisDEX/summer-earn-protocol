@@ -31,7 +31,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     address public constant ORIGINETH_ADDRESS =
         0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3; // IOriginETH address
     address public constant ORIGIN_ETH_VAULT_ADDRESS =
-        0x98a0CbeF61bD2D21435f433bE4CD42B56B38CC93; // IOriginETH address
+        0x98a0CbeF61bD2D21435f433bE4CD42B56B38CC93; // IOriginETHVault address
     address public constant WETH_ADDRESS =
         0x4200000000000000000000000000000000000006; // Base WETH address
 
@@ -150,7 +150,55 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         vm.startPrank(keeper);
         ark.withdrawUsingSwap(1 ether, data);
     }
+    function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
+        test_Board();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: address(0x123), // Non-whitelisted router
+                swapCalldata: hex"83bd37f90001856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc30001c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2080de0b6b3a7640000080de05b2bee779880004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE990001cc7d5785AD5755B6164e21495E07aDb0Ff11C2A80001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef03010203006701010001020001ff00000000000000000000000000000000000000cc7d5785ad5755b6164e21495e07adb0ff11c2a8856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3000000000000000000000000000000000000000000000000"
+            });
+        bytes memory data = abi.encode(swapData);
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("RouterNotWhitelisted()"));
+        ark.withdrawUsingSwap(1 ether, data);
+    }
 
+    function test_RequestWithdrawal_MaxUint() public {
+        uint256 amount = 1 ether; // 1 WETH
+
+        // Grant keeper role to the commander for testing
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        deal(address(weth), address(commander), amount);
+        weth.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        assertGt(
+            IERC20(ORIGINETH_ADDRESS).balanceOf(address(ark)),
+            0,
+            "There should be OETH in the ark"
+        );
+
+        vm.startPrank(commander);
+        ark.requestWithdrawal(type(uint256).max);
+        vm.stopPrank();
+
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            amount,
+            "Assets in withdrawal queue should match the total balance when using max uint"
+        );
+
+        assertEq(
+            IERC20(ORIGINETH_ADDRESS).balanceOf(address(ark)),
+            0,
+            "There should be no OETH in the ark"
+        );
+    }
     function test_BoardWithMinShares() public {
         uint256 amount = 1 ether; // 1 WETH
         uint256 minShares = 0.9 ether; // Minimum expected shares

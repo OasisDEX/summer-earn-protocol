@@ -228,6 +228,45 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
         ark.withdrawUsingSwap(1 ether - 1, data);
     }
 
+    function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
+        test_Board_FluidLite();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: address(0x123), // Non-whitelisted router
+                swapCalldata: hex"83bd37f90001ae7ab96520de3a18e5e111b5eaab095312d7fe840001c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2080DDEEFF45500BFFF080ddabc115667a180004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef05010206004c0101026800010102030405ff000000000000000000000000000000c4ce391d82d164c166df9c8336ddf84206b2f8127f39c581f595b53c5cb19bd0b3f8da6c935e2ca0c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2775f661b0bd1739349b9a2a3ef60be277c5d2d290fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce900000000000000000000000000000000000000000000000000000000"
+            });
+        bytes memory data = abi.encode(swapData);
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("RouterNotWhitelisted()"));
+        ark.withdrawUsingSwap(1 ether - 1, data);
+    }
+
+    function test_RequestWithdrawal_MaxUint() public {
+        test_Board_FluidLite();
+        uint256 amount = 1 ether; // 1 ETH
+
+        assertGt(
+            IERC20(address(vault)).balanceOf(address(ark)),
+            0,
+            "There should be vault shares in the ark"
+        );
+        vm.prank(keeper);
+        vm.warp(block.timestamp + 100);
+
+        ark.requestWithdrawal(type(uint256).max);
+        // apply the 0.05% fee and round down
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            (9995 * (amount - 1)) / 10000,
+            "Assets in withdrawal queue should match the total balance when using max uint"
+        );
+        assertEq(
+            IERC20(address(vault)).balanceOf(address(ark)),
+            0,
+            "There should be no vault shares in the ark"
+        );
+    }
+
     function test_ClaimWithdrawal() public {
         console.log("not implemented");
     }

@@ -303,6 +303,48 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             "Total assets should be the initial amount"
         );
     }
+
+    function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
+        test_Board_Syrup_fork();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: address(0x123), // Non-whitelisted router
+                swapCalldata: hex"83bd37f9000180ac24aa929eaf5013f6436cda2a7ba190f5cc0b0001a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480569e9e421000574457d4f8d004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef04020204012fb5d42107010101020195538979e579d49999f780c04fc4bf68778b6f0000000000000000000006d9000d0101030101ff000000000000000000000080ac24aa929eaf5013f6436cda2a7ba190f5cc0ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb48ab22d1d671bb5cee8735c5ba29ea651ccda48a8e00000000"
+            });
+        bytes memory data = abi.encode(swapData);
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("RouterNotWhitelisted()"));
+        ark.withdrawUsingSwap(500000 * 10 ** 6, data);
+    }
+
+    function test_RequestWithdrawal_MaxUint() public {
+        // First board some assets
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+        deal(address(usdc), commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        assertGt(
+            IERC20(address(syrupPool)).balanceOf(address(ark)),
+            0,
+            "There should be syrupUSDC in the ark"
+        );
+        // Now test redeem request with max uint
+        vm.prank(keeper);
+        ark.requestWithdrawal(type(uint256).max);
+
+        // Verify we're waiting for withdrawal of the full amount
+        assertApproxEqAbs(ark.assetsInWithdrawalQueue(), amount, 1);
+
+        assertEq(
+            IERC20(address(syrupPool)).balanceOf(address(ark)),
+            0,
+            "There should be no syrupUSDC in the ark"
+        );
+    }
 }
 interface IMapleWithdrawalManager {
     function processRedemptions(uint256 maxShares) external;
