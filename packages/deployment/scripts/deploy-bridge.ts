@@ -5,6 +5,7 @@ import { BaseConfig } from '../types/config-types'
 import { deployBridgeContracts } from './bridge/bridge-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
+import { updateIndexJson } from './helpers/update-json'
 
 async function deployBridge() {
   const network = hre.network.name
@@ -72,6 +73,10 @@ async function deployBridge() {
     console.log('Deployed contracts:')
     console.log('- BridgeRouter:', deployedBridge.bridgeRouter.address)
     console.log('- BridgeQueue:', deployedBridge.bridgeQueue.address)
+
+    // Update the configuration with deployed addresses
+    console.log(kleur.blue('Updating configuration with deployed addresses...'))
+    await updateIndexJson('bridge', network, deployedBridge, useBummerConfig)
 
     return deployedBridge
   } catch (error) {
