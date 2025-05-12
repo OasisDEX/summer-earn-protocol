@@ -45,10 +45,10 @@
       },
       "bridge": {
         "bridgeRouter": {
-          "address": "0xdfAab7f380510ee0f15841381E0bcb8C1b15DA06"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "bridgeQueue": {
-          "address": "0x02367f72379b7E2cB5c437193d1DB30aE0baB4E8"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
