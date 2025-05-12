@@ -1,13 +1,14 @@
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
+import path from 'path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { BaseConfig } from '../../types/config-types'
-import { getFleetConfig, loadFleetDeploymentJson } from '../common/fleet-deployment-files-helpers'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { loadCrossChainConfig, saveCrossChainConfig } from '../helpers/cross-chain-config'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
-import { getChainId } from '../helpers/get-chainid'
+import { getChainIdByNetwork } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 /**
@@ -19,6 +20,7 @@ interface FleetProxyParams {
   fleetContract: Address
   sourceChainId: number
   protocol: string
+  fleetName: string
   bridgeOptions: {
     specifiedAdapter: Address
     adapterParams: {
@@ -57,46 +59,12 @@ export async function deployFleetProxy() {
     useBummerConfig,
   ) as BaseConfig
 
-  // Get fleet config and check if it's available
-  let fleetDefinition
-  try {
-    fleetDefinition = await getFleetConfig()
-  } catch (error) {
-    console.error(
-      kleur.red('Fleet configuration not found. Please create a fleet configuration first.'),
-    )
-    throw error
-  }
-
-  // Try to load fleet deployment info
-  let fleetDeployment
-  try {
-    fleetDeployment = await loadFleetDeploymentJson(fleetDefinition)
-  } catch (error) {
-    console.error(
-      kleur.red('Fleet deployment not found. Deploy the fleet on the source chain first.'),
-    )
-    throw error
-  }
-
-  // Load or create cross-chain config
-  const crossChainConfig = loadCrossChainConfig(fleetDefinition.fleetName)
-
   // Get user input for deployment parameters
-  const userInput = await getUserInput(
-    config,
-    fleetDefinition.fleetName,
-    fleetDeployment?.fleetAddress,
-    crossChainConfig,
-  )
+  const userInput = await getUserInput(config)
 
   // Ask user to confirm parameters before deploying
   if (await confirmDeployment(userInput)) {
-    const fleetProxyAddress = await deployFleetProxyContract(
-      userInput,
-      config,
-      fleetDefinition.fleetName,
-    )
+    const fleetProxyAddress = await deployFleetProxyContract(userInput, config, userInput.fleetName)
 
     console.log(kleur.green().bold('FleetProxy successfully deployed at:'), fleetProxyAddress)
     console.log(kleur.green('Deployment recorded in cross-chain configuration.'))
@@ -112,41 +80,48 @@ export async function deployFleetProxy() {
 /**
  * Prompt the user for deployment parameters
  */
-async function getUserInput(
-  config: BaseConfig,
-  fleetName: string,
-  fleetAddress?: Address,
-  crossChainConfig?: any,
-): Promise<FleetProxyParams> {
+async function getUserInput(config: BaseConfig): Promise<FleetProxyParams> {
   // Use config values when available
   const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
 
-  // Collect source chain ID
-  const { sourceChainId } = await prompts({
-    type: 'number',
-    name: 'sourceChainId',
-    message: 'Enter the source chain ID (where the fleet is deployed):',
-    initial: crossChainConfig?.sourceChainId || 0,
-    validate: (value) => (value > 0 ? true : 'Chain ID must be greater than 0'),
+  // List available fleet deployments
+  const deploymentsDir = path.resolve(__dirname, '../../deployments/fleets')
+  const deploymentFiles = fs
+    .readdirSync(deploymentsDir)
+    .filter((file) => file.endsWith('_deployment.json'))
+
+  if (deploymentFiles.length === 0) {
+    throw new Error('No fleet deployments found. Deploy a fleet on the source chain first.')
+  }
+
+  // Allow user to select a deployment file
+  const { selectedDeployment } = await prompts({
+    type: 'select',
+    name: 'selectedDeployment',
+    message: 'Select a deployed fleet:',
+    choices: deploymentFiles.map((file) => ({ title: file, value: file })),
   })
 
-  // Collect protocol information
-  const { protocol } = await prompts({
-    type: 'text',
-    name: 'protocol',
-    message: 'Enter the protocol this FleetProxy will work with (e.g. aaveV3):',
-    validate: (value) => (value ? true : 'Protocol is required'),
-  })
+  // Load the selected deployment file
+  const deploymentPath = path.join(deploymentsDir, selectedDeployment)
+  const deploymentContent = fs.readFileSync(deploymentPath, 'utf8')
+  const fleetDeployment = JSON.parse(deploymentContent)
 
-  // Collect fleet address on source chain
-  const fleetContractResponse = await prompts({
-    type: 'text',
-    name: 'fleetContract',
-    message: 'Enter the address of the fleet contract on source chain:',
-    initial: fleetAddress || '',
-    validate: (value) => (/^0x[a-fA-F0-9]{40}$/.test(value) ? true : 'Invalid address format'),
-  })
+  // Extract fleet information
+  const fleetName = fleetDeployment.fleetName
+  const fleetAddress = fleetDeployment.fleetAddress as Address
+  const sourceNetwork = fleetDeployment.network
+
+  const sourceChainId = getChainIdByNetwork(sourceNetwork)
+  const currentChainId = getChainIdByNetwork(hre.network.name)
+
+  // Validate that source chain is different from current chain
+  if (sourceChainId === currentChainId) {
+    throw new Error(
+      `Invalid deployment: Source chain (${sourceNetwork}) must be different from the current chain (${hre.network.name}). FleetProxy should be deployed on a satellite chain, not the source chain.`,
+    )
+  }
 
   // Get gas limit for cross-chain operations
   const { gasLimit } = await prompts({
@@ -157,12 +132,15 @@ async function getUserInput(
     validate: (value) => (value > 0 ? true : 'Gas limit must be greater than 0'),
   })
 
+  const fleetProxyProtocol = 'summerfi'
+
   return {
     accessManager: accessManagerAddress,
     bridgeRouter: bridgeRouterAddress,
-    fleetContract: fleetContractResponse.fleetContract as Address,
+    fleetContract: fleetAddress,
     sourceChainId,
-    protocol,
+    fleetName,
+    protocol: fleetProxyProtocol,
     bridgeOptions: {
       specifiedAdapter: '0x0000000000000000000000000000000000000000' as Address,
       adapterParams: {
@@ -180,6 +158,7 @@ async function getUserInput(
  */
 async function confirmDeployment(params: FleetProxyParams): Promise<boolean> {
   console.log(kleur.yellow('\nFleetProxy Deployment Configuration:'))
+  console.log(kleur.blue('Fleet Name:'), kleur.cyan(params.fleetName))
   console.log(kleur.blue('Access Manager:'), kleur.cyan(params.accessManager))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(params.bridgeRouter))
   console.log(kleur.blue('Fleet Contract:'), kleur.cyan(params.fleetContract))
@@ -201,7 +180,8 @@ async function deployFleetProxyContract(
   config: BaseConfig,
   fleetName: string,
 ): Promise<Address> {
-  const chainId = await getChainId()
+  // params.
+  const chainId = getChainIdByNetwork(hre.network.name)
   const deploymentId = await handleDeploymentId(chainId)
   const moduleName = `FleetProxy-${deploymentId}`
 
