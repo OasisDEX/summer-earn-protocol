@@ -3,9 +3,6 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { Address } from 'viem'
 
 export default buildModule('BridgeModule', (m) => {
-  // Get the deployer account
-  const deployer = m.getAccount(0)
-
   // Get the ProtocolAccessManager address from the config
   const protocolAccessManager = m.getParameter<Address>('protocolAccessManager')
 

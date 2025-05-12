@@ -58,7 +58,7 @@ export async function deployBridgeContracts(
   const parameters = {
     BridgeModule: {
       protocolAccessManager: networkConfig.deployedContracts.gov.protocolAccessManager.address,
-      chainIds,
+      chainIds: chainIds.map((id) => `${id}n`),
       routerAddresses,
     },
   }
