@@ -5,55 +5,6 @@ import bridgeModule from '../../ignition/modules/bridge'
 import { BridgeConfig, DeployedBridge } from '../../types/bridge-types'
 import { ADDRESS_ZERO } from '../common/constants'
 
-export async function deployBridgeRouter(config: any): Promise<{ address: Address }> {
-  console.log(kleur.blue('Deploying bridge router'))
-  const [deployer] = await hre.viem.getWalletClients()
-  const currentChainId = Number(config.common.chainId)
-
-  // Get router addresses from config
-  const routerAddresses = config.bridge?.router?.routerAddresses || [
-    '0x0000000000000000000000000000000000000000',
-  ]
-
-  // Deploy using Ignition module
-  const result = await hre.ignition.deploy(bridgeModule, {
-    parameters: {
-      BridgeModule: {
-        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
-        chainIds: [currentChainId],
-        routerAddresses,
-      },
-    },
-  })
-
-  const bridgeRouter = result.bridgeRouter
-  console.log(`BridgeRouter deployed at: ${bridgeRouter.address} on chain ${currentChainId}`)
-  return { address: bridgeRouter.address as Address }
-}
-
-export async function deployBridgeQueue(
-  bridgeRouterAddress: Address,
-  config: any,
-): Promise<{ address: Address }> {
-  console.log(kleur.blue('Deploying queue'))
-
-  // BridgeQueue is now deployed as part of the Ignition module
-  const result = await hre.ignition.deploy(bridgeModule, {
-    parameters: {
-      BridgeModule: {
-        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
-        chainIds: [Number(config.common.chainId)],
-        routerAddresses: ['0x0000000000000000000000000000000000000000'],
-      },
-    },
-  })
-
-  const bridgeQueue = result.bridgeQueue
-  console.log(`BridgeQueue deployed at: ${bridgeQueue.address}`)
-
-  return { address: bridgeQueue.address as Address }
-}
-
 export async function updateBridgeConfigs(
   bridgeRouterAddress: Address,
   config: any,
@@ -71,21 +22,13 @@ export async function updateBridgeConfigs(
     // Update the router address for this chain in the target chain's config
     if (!networkConfig.bridge) {
       networkConfig.bridge = {
-        router: {
-          chainIds: [],
-          routerAddresses: [],
-        },
+        bridgeRouter: { address: ADDRESS_ZERO },
+        bridgeQueue: { address: ADDRESS_ZERO },
       }
     }
 
-    // Add or update the mapping
-    const existingIndex = networkConfig.bridge.router.chainIds.indexOf(currentChainId)
-    if (existingIndex >= 0) {
-      networkConfig.bridge.router.routerAddresses[existingIndex] = bridgeRouterAddress
-    } else {
-      networkConfig.bridge.router.chainIds.push(currentChainId)
-      networkConfig.bridge.router.routerAddresses.push(bridgeRouterAddress)
-    }
+    // Update the bridgeRouter address
+    networkConfig.bridge.bridgeRouter.address = bridgeRouterAddress
 
     console.log(
       `Updated config for chain ${targetChainId} with router address ${bridgeRouterAddress}`,
@@ -108,15 +51,12 @@ export async function updateRouterMappings(
     if (targetChainId === Number(config.common.chainId)) continue
 
     // Skip if no bridge config or no router address
-    if (!networkConfig.bridge?.router?.routerAddresses) continue
+    if (!networkConfig.bridge?.bridgeRouter?.address) continue
 
-    const index = networkConfig.bridge.router.chainIds.indexOf(targetChainId)
-    if (index >= 0) {
-      const routerAddress = networkConfig.bridge.router.routerAddresses[index]
-      if (routerAddress !== '0x0000000000000000000000000000000000000000') {
-        await bridgeRouter.write.setChainRouterAddress([targetChainId, routerAddress])
-        console.log(`Updated mapping for chain ${targetChainId} to ${routerAddress}`)
-      }
+    const routerAddress = networkConfig.bridge.bridgeRouter.address
+    if (routerAddress !== ADDRESS_ZERO) {
+      await bridgeRouter.write.setChainRouterAddress([targetChainId, routerAddress])
+      console.log(`Updated mapping for chain ${targetChainId} to ${routerAddress}`)
     }
   }
 }
@@ -137,11 +77,29 @@ export async function deployBridgeContracts(
     throw new Error('Chain ID is not configured')
   }
 
+  // Get router addresses from other chains
+  const chainIds: number[] = []
+  const routerAddresses: string[] = []
+
+  // Add router addresses from other chains
+  for (const [, networkConfig] of Object.entries(allConfigs)) {
+    const targetChainId = Number(networkConfig.common.chainId)
+    if (targetChainId === Number(networkConfig.common.chainId)) continue
+
+    if (
+      networkConfig.bridge?.bridgeRouter?.address &&
+      networkConfig.bridge.bridgeRouter.address !== ADDRESS_ZERO
+    ) {
+      chainIds.push(targetChainId)
+      routerAddresses.push(networkConfig.bridge.bridgeRouter.address)
+    }
+  }
+
   const parameters = {
     BridgeModule: {
       protocolAccessManager: networkConfig.deployedContracts.gov.protocolAccessManager.address,
-      chainIds: [Number(networkConfig.common.chainId)],
-      routerAddresses: ['0x0000000000000000000000000000000000000000'],
+      chainIds,
+      routerAddresses,
     },
   }
 
