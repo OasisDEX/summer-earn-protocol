@@ -10,6 +10,8 @@ import { BaseConfig } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
+import { getConfigByNetwork } from '../helpers/config-handler'
+import { loadCrossChainConfig, saveCrossChainConfig } from '../helpers/cross-chain-config'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
@@ -24,6 +26,9 @@ interface BridgeOptions {
   }
 }
 
+// Export the type
+export { CrossChainArkContracts } from '../../ignition/modules/arks/cross-chain-ark'
+
 /**
  * Main function to deploy a CrossChainArk and FleetProxy.
  * This function orchestrates the entire deployment process, including:
@@ -34,34 +39,95 @@ interface BridgeOptions {
  * - Logging deployment results
  */
 export async function deployCrossChainArk(
-  config: BaseConfig,
+  config?: BaseConfig,
   arkParams?: BaseArkParams & {
-    bridgeQueue: Address
-    bridgeRouter: Address
-    targetChainId: number
-    fleetContract: Address
-    accessManager: Address
-    bridgeOptions: BridgeOptions
+    bridgeQueue?: Address
+    bridgeRouter?: Address
+    targetChainId?: number
+    fleetProxyAddress?: Address
+    accessManager?: Address
+    bridgeOptions?: BridgeOptions
   },
 ) {
-  console.log(kleur.green().bold('Starting CrossChainArk and FleetProxy deployment process...'))
+  console.log(kleur.green().bold('Starting CrossChainArk deployment process...'))
+  console.log(kleur.yellow('Note: CrossChainArk should be deployed on the source chain.'))
+  console.log(kleur.yellow('A FleetProxy should already be deployed on the satellite chain.'))
 
-  const userInput = arkParams || (await getUserInput(config))
+  // If no config was provided, ask for bummer config and get the config
+  if (!config) {
+    const { useBummerConfig } = await prompts({
+      type: 'confirm',
+      name: 'useBummerConfig',
+      message: 'Do you want to use bummer (test) config?',
+      initial: false,
+    })
+
+    config = getConfigByNetwork(
+      hre.network.name,
+      {
+        common: true,
+        gov: true,
+        core: true,
+        bridge: true,
+      },
+      useBummerConfig,
+    ) as BaseConfig
+  }
+
+  // Get fleet configuration
+  const fleetDefinition = await getFleetConfig()
+
+  // Check for existing cross-chain config with FleetProxy address
+  const crossChainConfig = loadCrossChainConfig(fleetDefinition.fleetName)
+  if (!crossChainConfig?.fleetProxyAddress) {
+    console.error(kleur.red('FleetProxy address not found in cross-chain config.'))
+    console.error(
+      kleur.red('Please deploy FleetProxy first using the deploy-fleet-proxy.ts script.'),
+    )
+    throw new Error('FleetProxy must be deployed before CrossChainArk')
+  }
+
+  const userInput =
+    arkParams || (await getUserInput(config, fleetDefinition.fleetName, crossChainConfig))
 
   if (await confirmDeployment(userInput, config, arkParams != undefined)) {
-    const deployedContracts = await deployCrossChainArkContract(config, userInput)
+    const deployedContracts = await deployCrossChainArkContract(
+      config,
+      userInput,
+      fleetDefinition.fleetName,
+    )
+
+    // Update cross-chain config with CrossChainArk address
+    saveCrossChainConfig(fleetDefinition.fleetName, {
+      crossChainArkAddress: deployedContracts.crossChainArk.address as Address,
+    })
+
+    console.log(
+      kleur.green().bold('CrossChainArk successfully deployed at:'),
+      deployedContracts.crossChainArk.address,
+    )
+    console.log(
+      kleur.yellow(
+        'IMPORTANT: You need to run the update-fleet-proxy.ts script on the satellite chain',
+      ),
+    )
+    console.log(kleur.yellow('to update the FleetProxy with the CrossChainArk address.'))
+
     return deployedContracts
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
+    return null as any
   }
 }
 
 /**
  * Prompts the user for deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @returns {Promise<BaseArkParams & CrossChainParams>} An object containing the user's input for deployment parameters.
+ * @param {string} fleetName - The name of the fleet.
+ * @param {object} crossChainConfig - Existing cross-chain configuration.
+ * @returns {Promise<object>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig) {
+async function getUserInput(config: BaseConfig, fleetName: string, crossChainConfig: any) {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as keyof typeof config.tokens]
@@ -72,17 +138,13 @@ async function getUserInput(config: BaseConfig) {
       })
     }
   }
-  const fleetDefinition = await getFleetConfig()
-  const fleetDeployment = await (
-    await import('../common/fleet-deployment-files-helpers')
-  ).loadFleetDeploymentJson(fleetDefinition)
 
   // Use config values for these fields
-  const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address
-  const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address
-  const targetChainId = Number(config.common.chainId)
-  const fleetContractAddress = fleetDeployment?.fleetAddress
-  const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address
+  const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address as Address
+  const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
+  const targetChainId = crossChainConfig.satelliteChainId || Number(config.common.chainId)
+  const fleetProxyAddress = crossChainConfig.fleetProxyAddress as Address
+  const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
 
   // Prompt only for these fields
   const { gasLimit } = await prompts({
@@ -121,12 +183,12 @@ async function getUserInput(config: BaseConfig) {
 
   return {
     ...responses,
-    fleetName: fleetDefinition.fleetName,
-    bridgeQueue: bridgeQueueAddress as Address,
-    bridgeRouter: bridgeRouterAddress as Address,
+    fleetName,
+    bridgeQueue: bridgeQueueAddress,
+    bridgeRouter: bridgeRouterAddress,
     targetChainId,
-    fleetContract: fleetContractAddress as Address,
-    accessManager: accessManagerAddress as Address,
+    fleetProxyAddress,
+    accessManager: accessManagerAddress,
     bridgeOptions: {
       specifiedAdapter: '0x0000000000000000000000000000000000000000' as Address,
       adapterParams: {
@@ -141,26 +203,15 @@ async function getUserInput(config: BaseConfig) {
 
 /**
  * Confirms the deployment with the user
- * @param {BaseArkParams & CrossChainParams} userInput - The user's input for deployment parameters
+ * @param {object} userInput - The user's input for deployment parameters
  * @param {BaseConfig} config - The configuration object for the current network
  * @param {boolean} isAutomated - Whether this is an automated deployment
  * @returns {Promise<boolean>} Whether the user confirmed the deployment
  */
-async function confirmDeployment(
-  userInput: BaseArkParams & {
-    bridgeQueue: Address
-    bridgeRouter: Address
-    targetChainId: number
-    fleetContract: Address
-    accessManager: Address
-    bridgeOptions: BridgeOptions
-  },
-  config: BaseConfig,
-  isAutomated: boolean,
-) {
+async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated: boolean) {
   if (isAutomated) return true
 
-  console.log(kleur.yellow('\nDeployment Configuration:'))
+  console.log(kleur.yellow('\nCrossChainArk Deployment Configuration:'))
   console.log(kleur.blue('Token:'), kleur.cyan(userInput.token.symbol))
   console.log(kleur.blue('Deposit Cap:'), kleur.cyan(userInput.depositCap))
   console.log(kleur.blue('Max Rebalance Outflow:'), kleur.cyan(userInput.maxRebalanceOutflow))
@@ -168,7 +219,7 @@ async function confirmDeployment(
   console.log(kleur.blue('Bridge Queue:'), kleur.cyan(userInput.bridgeQueue))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(userInput.bridgeRouter))
   console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))
-  console.log(kleur.blue('Fleet Contract:'), kleur.cyan(userInput.fleetContract))
+  console.log(kleur.blue('Fleet Proxy:'), kleur.cyan(userInput.fleetProxyAddress))
   console.log(kleur.blue('Access Manager:'), kleur.cyan(userInput.accessManager))
   console.log(kleur.blue('Gas Limit:'), kleur.cyan(userInput.bridgeOptions.adapterParams.gasLimit))
 
@@ -176,21 +227,16 @@ async function confirmDeployment(
 }
 
 /**
- * Deploys the CrossChainArk and FleetProxy contracts
+ * Deploys the CrossChainArk contract
  * @param {BaseConfig} config - The configuration object for the current network
- * @param {BaseArkParams & CrossChainParams} userInput - The user's input for deployment parameters
+ * @param {object} userInput - The user's input for deployment parameters
+ * @param {string} fleetName - The name of the fleet
  * @returns {Promise<CrossChainArkContracts>} The deployed contracts
  */
 async function deployCrossChainArkContract(
   config: BaseConfig,
-  userInput: BaseArkParams & {
-    bridgeQueue: Address
-    bridgeRouter: Address
-    targetChainId: number
-    fleetContract: Address
-    accessManager: Address
-    bridgeOptions: BridgeOptions
-  },
+  userInput: any,
+  fleetName: string,
 ): Promise<CrossChainArkContracts> {
   const chainId = await getChainId()
   const deploymentId = await handleDeploymentId(chainId)
@@ -203,8 +249,7 @@ async function deployCrossChainArkContract(
         bridgeQueue: userInput.bridgeQueue,
         bridgeRouter: userInput.bridgeRouter,
         targetChainId: userInput.targetChainId,
-        fleetContract: userInput.fleetContract,
-        accessManager: userInput.accessManager,
+        fleetProxy: userInput.fleetProxyAddress,
         bridgeOptions: {
           specifiedAdapter: userInput.bridgeOptions.specifiedAdapter,
           adapterParams: {
@@ -232,4 +277,13 @@ async function deployCrossChainArkContract(
   })
 
   return result as CrossChainArkContracts
+}
+
+// Direct invocation
+if (require.main === module) {
+  deployCrossChainArk(undefined).catch((error) => {
+    console.error(kleur.red('Error during CrossChainArk deployment:'))
+    console.error(error)
+    process.exit(1)
+  })
 }

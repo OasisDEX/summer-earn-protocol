@@ -1,0 +1,36 @@
+import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+
+/**
+ * Type definition for the returned contract addresses
+ */
+export type FleetProxyContract = {
+  fleetProxy: { address: string }
+}
+
+/**
+ * Factory function to create a FleetProxyModule for deploying FleetProxy on satellite chains
+ *
+ * @param {string} moduleName - Name of the module
+ * @returns {Function} A function that builds the module
+ */
+export function createFleetProxyModule(moduleName: string) {
+  return buildModule(moduleName, (m) => {
+    // Get parameters
+    const accessManager = m.getParameter('accessManager')
+    const bridgeRouter = m.getParameter('bridgeRouter')
+    const fleetContract = m.getParameter('fleetContract')
+    const bridgeOptions = m.getParameter('bridgeOptions')
+    const sourceChainArk = m.getParameter('sourceChainArk')
+
+    // Deploy FleetProxy
+    const fleetProxy = m.contract('CrossChainFleetProxy', [
+      accessManager,
+      bridgeRouter,
+      fleetContract,
+      bridgeOptions,
+      sourceChainArk,
+    ])
+
+    return { fleetProxy }
+  })
+}

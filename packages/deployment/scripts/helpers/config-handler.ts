@@ -10,6 +10,7 @@ type ValidateConfig = {
   common?: boolean
   gov?: boolean
   core?: boolean
+  bridge?: boolean
 }
 
 /**
@@ -63,6 +64,9 @@ export function getConfigByNetwork(
   if (validateConfig.core) {
     validateCoreDeployment(networkConfig)
   }
+  if (validateConfig.bridge) {
+    validateBridgeDeployment(networkConfig)
+  }
   return networkConfig
 }
 
@@ -101,4 +105,13 @@ export const validateCoreDeployment = (config: BaseConfig) => {
       `core.${contract}`,
     )
   }
+}
+
+export const validateBridgeDeployment = (config: BaseConfig) => {
+  if (!config.deployedContracts.bridge) {
+    throw new Error('Missing bridge deployment configuration')
+  }
+
+  validateAddress(config.deployedContracts.bridge.bridgeRouter.address, 'bridge.bridgeRouter')
+  validateAddress(config.deployedContracts.bridge.bridgeQueue.address, 'bridge.bridgeQueue')
 }

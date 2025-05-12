@@ -1,7 +1,9 @@
+import kleur from 'kleur'
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
+import { CrossChainArkContracts, deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { MorphoArkUserInput, deployMorphoArk } from '../arks/deploy-morpho-ark'
@@ -14,6 +16,7 @@ import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
+import { loadCrossChainConfig } from '../helpers/cross-chain-config'
 import {
   validateAddress,
   validateErc4626Address,
@@ -22,6 +25,7 @@ import {
   validateToken,
 } from '../helpers/validation'
 import { MAX_UINT256_STRING } from './constants'
+import { getFleetConfig } from './fleet-deployment-files-helpers'
 
 export type ArkConfig = {
   type: ArkType
@@ -196,19 +200,61 @@ export async function deployArk(
       break
     }
 
+    case ArkType.CrossChainArk: {
+      console.log(kleur.yellow('Starting CrossChainArk deployment process...'))
+      console.log(
+        kleur.yellow('This is a two-phase process requiring deployment on two different chains.'),
+      )
+
+      // Check if we already have a fleet config
+      const fleetDefinition = await getFleetConfig()
+      const crossChainConfig = loadCrossChainConfig(fleetDefinition.fleetName)
+
+      if (!crossChainConfig?.fleetProxyAddress) {
+        console.log(kleur.red('FleetProxy address not found.'))
+        console.log(kleur.red('Please run deploy-fleet-proxy.ts on the satellite chain first.'))
+        console.log(kleur.red('Then run this script again to deploy the CrossChainArk.'))
+        throw new Error('FleetProxy must be deployed before CrossChainArk')
+      }
+
+      // Deploy CrossChainArk using the FleetProxy address from config
+      deployedArk = await deployCrossChainArk(config)
+
+      if (deployedArk) {
+        console.log(kleur.green('CrossChainArk deployed successfully!'))
+        console.log(
+          kleur.yellow(
+            'IMPORTANT: You now need to run update-fleet-proxy.ts on the satellite chain',
+          ),
+        )
+        console.log(kleur.yellow('to complete the cross-chain deployment process.'))
+      }
+      break
+    }
+
     default:
       throw new Error(`Unknown Ark type: ${arkConfig.type}`)
   }
 
-  if (!deployedArk?.ark?.address) {
+  if (!deployedArk?.ark?.address && arkConfig.type !== ArkType.CrossChainArk) {
     throw new Error(`Failed to deploy ${arkConfig.type}`)
   }
 
-  return deployedArk.ark.address as Address
+  // Handle special case for CrossChainArk
+  if (arkConfig.type === ArkType.CrossChainArk) {
+    const crossChainArkResult = deployedArk as CrossChainArkContracts
+    if (!crossChainArkResult?.crossChainArk?.address) {
+      throw new Error(`Failed to deploy ${arkConfig.type}`)
+    }
+    return crossChainArkResult.crossChainArk.address as Address
+  } else {
+    return deployedArk.ark.address as Address
+  }
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
-  let deployedArk
+  let deployedArk: any
+
   switch (arkType) {
     case ArkType.SyrupArk:
       deployedArk = await deploySyrupArk(config)
@@ -270,13 +316,54 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       break
     }
 
+    case ArkType.CrossChainArk: {
+      console.log(kleur.yellow('Starting CrossChainArk deployment process...'))
+      console.log(
+        kleur.yellow('This is a two-phase process requiring deployment on two different chains.'),
+      )
+
+      // Check if we already have a fleet config
+      const fleetDefinition = await getFleetConfig()
+      const crossChainConfig = loadCrossChainConfig(fleetDefinition.fleetName)
+
+      if (!crossChainConfig?.fleetProxyAddress) {
+        console.log(kleur.red('FleetProxy address not found.'))
+        console.log(kleur.red('Please run deploy-fleet-proxy.ts on the satellite chain first.'))
+        console.log(kleur.red('Then run this script again to deploy the CrossChainArk.'))
+        throw new Error('FleetProxy must be deployed before CrossChainArk')
+      }
+
+      // Deploy CrossChainArk using the FleetProxy address from config
+      deployedArk = await deployCrossChainArk(config)
+
+      if (deployedArk) {
+        console.log(kleur.green('CrossChainArk deployed successfully!'))
+        console.log(
+          kleur.yellow(
+            'IMPORTANT: You now need to run update-fleet-proxy.ts on the satellite chain',
+          ),
+        )
+        console.log(kleur.yellow('to complete the cross-chain deployment process.'))
+      }
+      break
+    }
+
     default:
       throw new Error(`Unknown Ark type: ${arkType}`)
   }
 
-  if (!deployedArk?.ark?.address) {
+  if (!deployedArk?.ark?.address && arkType !== ArkType.CrossChainArk) {
     throw new Error(`Failed to deploy ${arkType}`)
   }
 
-  return deployedArk.ark.address as Address
+  // Handle special case for CrossChainArk which has a different return structure
+  if (arkType === ArkType.CrossChainArk) {
+    const crossChainArkResult = deployedArk as CrossChainArkContracts
+    if (!crossChainArkResult?.crossChainArk?.address) {
+      throw new Error(`Failed to deploy CrossChainArk`)
+    }
+    return crossChainArkResult.crossChainArk.address as Address
+  } else {
+    return deployedArk.ark.address as Address
+  }
 }
