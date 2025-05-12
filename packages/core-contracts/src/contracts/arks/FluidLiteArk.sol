@@ -167,7 +167,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
 
     /**
      * @notice Requests a withdrawal from the withdrawal queue
-     * @param amount The amount of shares to withdraw
+     * @param amount The amount of tokens to withdraw
      */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
         if (withdrawalRequestId != 0) revert WithdrawalAlreadyRequested();
@@ -185,7 +185,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         uint256 stethAmount = stethBalanceAfter - stethBalanceBefore;
         amounts[0] = stethAmount;
 
-        IERC20(address(steth)).approve(address(withdrawalQueue), stethAmount);
+        IERC20(address(steth)).forceApprove(address(withdrawalQueue), stethAmount);
         uint256[] memory requestIds = withdrawalQueue.requestWithdrawals(
             amounts,
             address(this)
@@ -196,12 +196,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         emit WithdrawalRequested(stethAmount, withdrawalRequestId);
     }
 
-    /**
-     * @notice Requests a withdrawal from the withdrawal queue
-     * @param amount The amount of shares to withdraw
-     * @param data Additional data (unused in this implementation)
-     * @dev https://github.com/lidofinance/core/issues/442
-     */
+    /// @inheritdoc IArkWithWithdrawalRequest
     function withdrawUsingSwap(
         uint256 amount,
         bytes calldata data

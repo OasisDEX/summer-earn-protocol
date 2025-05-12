@@ -106,7 +106,7 @@ async function deployOriginETHArkContract(
 ): Promise<OriginETHArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const arkName = `OriginETH-${userInput.token.symbol}-${chainId}`
+  const arkName = `Origin-${userInput.token.symbol}-${chainId}`
   const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'swappable'
 
   const originETHAddress = validateAddress(config.protocolSpecific.originETH.originETH, 'OriginETH')
@@ -117,7 +117,7 @@ async function deployOriginETHArkContract(
   const arkParams = {
     name: arkName,
     details: JSON.stringify({
-      protocol: 'OriginETH',
+      protocol: 'Origin',
       type: 'Lending',
       asset: userInput.token.address,
       marketAsset: userInput.token.address,
