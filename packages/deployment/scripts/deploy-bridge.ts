@@ -26,7 +26,7 @@ async function deployBridge() {
     throw new Error(`No configuration found for network ${network}`)
   }
 
-  if (!config.bridge) {
+  if (!config.deployedContracts.bridge) {
     throw new Error('Bridge configuration is missing')
   }
 
