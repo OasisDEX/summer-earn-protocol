@@ -146,10 +146,12 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         vm.prank(ORIGIN_ETH_VAULT_ADDRESS);
         originETH.changeSupply(totalSupplyBefore + 1 ether);
         uint256 totalArkAssetsAfter = ark.totalAssets();
-        assertLt(totalArkAssetsBefore, totalArkAssetsAfter, "Total assets should accrue interest");
+        assertLt(
+            totalArkAssetsBefore,
+            totalArkAssetsAfter,
+            "Total assets should accrue interest"
+        );
     }
-
-
 
     function test_BoardWithMinShares() public {
         uint256 amount = 1 ether; // 1 WETH
@@ -287,7 +289,6 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             amount,
             "Assets in withdrawal queue should match the withdrawal amount"
         );
-
     }
 
     function test_ClaimWithdrawal_ClaimDelayNotMet() public {
@@ -322,7 +323,6 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             "Withdrawal request ID should be unchanged"
         );
     }
-
 
     function test_ClaimWithdrawal_WithdrawalRequestClaimed() public {
         // Set withdrawal request ID manually (would normally be set by requestWithdrawal)

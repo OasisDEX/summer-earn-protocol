@@ -7,7 +7,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IWETH} from "../../interfaces/misc/IWETH.sol";
 import {ISteth} from "../../interfaces/lido/ISteth.sol";
 import {IWithdrawalQueue} from "../../interfaces/lido/IWithdrawalQueue.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title FluidLiteArk
  * @notice Ark contract for managing ETH/WETH through FluidLite's vault via eth wrapper
@@ -185,7 +185,10 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         uint256 stethAmount = stethBalanceAfter - stethBalanceBefore;
         amounts[0] = stethAmount;
 
-        IERC20(address(steth)).forceApprove(address(withdrawalQueue), stethAmount);
+        IERC20(address(steth)).forceApprove(
+            address(withdrawalQueue),
+            stethAmount
+        );
         uint256[] memory requestIds = withdrawalQueue.requestWithdrawals(
             amounts,
             address(this)
@@ -205,7 +208,9 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         vault.withdraw(amount, address(this), address(this));
         uint256 stethWithdrawn = steth.balanceOf(address(this)) -
             stethBalanceBefore;
-        uint256 amountAfterFee = amount - (amount * WITHDRAWAL_FEE) / FEE_BASE;
+        uint256 amountAfterFee = amount -
+            (amount * WITHDRAWAL_FEE) /
+            SLIPPAGE_BASE;
 
         // adding a 3 wei buffer to account for stETH rounding errors
         if (stethWithdrawn < amountAfterFee - 3) {

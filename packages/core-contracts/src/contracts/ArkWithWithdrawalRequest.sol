@@ -27,7 +27,7 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     /// @notice The slippage for the swap
     uint256 public slippage;
     /// @notice base fee to apply to the amount
-    uint256 public constant FEE_BASE = 10000;
+    uint256 public constant SLIPPAGE_BASE = 10000;
     uint256 public constant MAX_SLIPPAGE = 1000; // 10%
     /// @notice whitelisted routers
     mapping(address router => bool isWhitelisted) public whitelistedRouters;
@@ -91,7 +91,9 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     function _applySlippage(
         uint256 amount
     ) internal view returns (uint256 amountWithSlippage) {
-        amountWithSlippage = (amount * (FEE_BASE - slippage)) / FEE_BASE;
+        amountWithSlippage =
+            (amount * (SLIPPAGE_BASE - slippage)) /
+            SLIPPAGE_BASE;
     }
 
     /// @inheritdoc IArkWithWithdrawalRequest

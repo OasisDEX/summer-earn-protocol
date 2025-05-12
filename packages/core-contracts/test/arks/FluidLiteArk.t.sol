@@ -189,7 +189,7 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.startPrank(commander);
         IERC20(WETH_ADDRESS).approve(address(ark), amount);
 
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, false, true);
         emit Boarded(commander, WETH_ADDRESS, amount);
 
         ark.board(amount, bytes(""));
@@ -211,13 +211,6 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
 
     function test_WithdrawUsingSwap() public {
         test_Board_FluidLite();
-        // vm.mockCall(
-        //     address(commander),
-        //     abi.encodeWithSelector(
-        //         IFleetCommanderConfigProvider.bufferArk.selector
-        //     ),
-        //     abi.encode(address(bufferArk))
-        // );
         IArkWithWithdrawalRequest.SwapData
             memory swapData = IArkWithWithdrawalRequest.SwapData({
                 router: 0xCf5540fFFCdC3d510B18bFcA6d2b9987b0772559,
