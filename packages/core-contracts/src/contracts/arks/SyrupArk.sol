@@ -122,6 +122,10 @@ contract SyrupArk is ArkWithWithdrawalRequest {
             shares = vault.convertToShares(amount);
         }
         vault.requestRedeem(shares, address(this));
+        emit WithdrawalRequested(
+            amount,
+            withdrawalManager.requestIds(address(this))
+        );
     }
 
     function claimWithdrawal() external onlyKeeper {
@@ -143,7 +147,7 @@ contract SyrupArk is ArkWithWithdrawalRequest {
         uint256 assetBalanceAfter = config.asset.balanceOf(address(this));
         uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
         if (_applySlippage(amount) > assetBought) revert WithdrawalFailed();
-
+        emit Disembarked(msg.sender, address(config.asset), amount);
         _boardToBufferArk(assetBought);
     }
 

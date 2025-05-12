@@ -172,7 +172,13 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     function requestWithdrawal(uint256 amount) external onlyKeeper {
         if (withdrawalRequestId != 0) revert WithdrawalAlreadyRequested();
         uint256 stethBalanceBefore = steth.balanceOf(address(this));
-        vault.withdraw(amount, address(this), address(this));
+
+        if (amount == type(uint256).max) {
+            uint256 shares = vault.maxRedeem(address(this));
+            vault.redeem(shares, address(this), address(this));
+        } else {
+            vault.withdraw(amount, address(this), address(this));
+        }
         uint256 stethBalanceAfter = steth.balanceOf(address(this));
 
         uint256[] memory amounts = new uint256[](1);
@@ -186,6 +192,8 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         );
 
         withdrawalRequestId = requestIds[0];
+
+        emit WithdrawalRequested(stethAmount, withdrawalRequestId);
     }
 
     /**
@@ -222,7 +230,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
         if (_applySlippage(stethWithdrawn) > assetBought)
             revert WithdrawalFailed();
-
+        emit Disembarked(msg.sender, address(config.asset), amount);
         _boardToBufferArk(assetBought);
     }
 

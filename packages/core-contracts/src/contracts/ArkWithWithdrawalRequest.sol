@@ -28,12 +28,18 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     uint256 public slippage;
     /// @notice base fee to apply to the amount
     uint256 public constant FEE_BASE = 10000;
+    uint256 public constant MAX_SLIPPAGE = 1000; // 10%
+    /// @notice whitelisted routers
+    mapping(address router => bool isWhitelisted) public whitelistedRouters;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     constructor(ArkParams memory _params, uint256 _slippage) Ark(_params) {
+        if (_slippage > MAX_SLIPPAGE) {
+            revert SlippageTooHigh();
+        }
         slippage = _slippage;
     }
     /*//////////////////////////////////////////////////////////////
@@ -57,6 +63,8 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         address bufferArk = address(
             IFleetCommander(config.commander).bufferArk()
         );
+        // to keep compatibility with the subgraph
+        emit Disembarked(msg.sender, address(asset), sweptAmounts[0]);
 
         if (sweptAmounts[0] > 0 && address(this) != bufferArk) {
             asset.forceApprove(bufferArk, sweptAmounts[0]);
@@ -64,6 +72,15 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         }
 
         emit ArkSwept(sweptTokens, sweptAmounts);
+    }
+
+    /// @inheritdoc IArkWithWithdrawalRequest
+    function whitelistRouter(
+        address router,
+        bool isWhitelisted
+    ) external onlyCurator(config.commander) {
+        whitelistedRouters[router] = isWhitelisted;
+        emit RouterWhitelisted(router, isWhitelisted);
     }
 
     /**
@@ -81,7 +98,11 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     function setSlippage(
         uint256 _slippage
     ) external onlyCurator(config.commander) {
+        if (_slippage > MAX_SLIPPAGE) {
+            revert SlippageTooHigh();
+        }
         slippage = _slippage;
+        emit SlippageSet(_slippage);
     }
 
     function _swap(
@@ -90,8 +111,12 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
         uint256 amount,
         bytes memory swapCalldata
     ) internal {
+        if (!whitelistedRouters[router]) {
+            revert RouterNotWhitelisted();
+        }
         IERC20(token).approve(router, amount);
         Address.functionCall(router, swapCalldata);
+        emit Swapped(token, router, amount, swapCalldata);
     }
 
     function _boardToBufferArk(uint256 amount) internal {

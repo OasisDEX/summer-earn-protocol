@@ -39,6 +39,11 @@ contract ArkTestBase is TestHelpers {
     address public tipJar = address(3);
     address public treasury = address(5);
     address public keeper = address(6);
+    address public curator = address(7);
+    address constant ODOS_ROUTER_MAINNET =
+        0xCf5540fFFCdC3d510B18bFcA6d2b9987b0772559;
+    address constant ODOS_ROUTER_BASE =
+        0x19cEeAd7105607Cd444F5ad10dd51356436095a1;
     ERC20Mock public mockToken;
 
     ProtocolAccessManager public accessManager;

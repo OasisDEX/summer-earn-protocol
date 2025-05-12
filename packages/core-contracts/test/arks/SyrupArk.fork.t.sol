@@ -89,7 +89,15 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             address(address(ark)),
             address(commander)
         );
+        accessManager.grantCuratorRole(
+            address(address(commander)),
+            address(curator)
+        );
         IFleetCommanderConfigProvider(commander).addArk(address(ark));
+        vm.stopPrank();
+
+        vm.startPrank(curator);
+        ark.whitelistRouter(ODOS_ROUTER_MAINNET, true);
         vm.stopPrank();
 
         vm.startPrank(syrupAdminAddress);
@@ -103,6 +111,14 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             booleans
         );
         vm.stopPrank();
+
+        vm.makePersistent(address(usdc));
+        vm.makePersistent(address(syrupPool));
+        vm.makePersistent(address(routerAddress));
+        vm.makePersistent(address(syrupPoolAddress));
+        vm.makePersistent(address(withdrawalManagerAddress));
+        vm.makePersistent(address(syrup_redeemer));
+        vm.makePersistent(address(syrupAdminAddress));
 
         vm.label(commander, "Commander");
         vm.label(address(accessManager), "AccessManager");
@@ -159,7 +175,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         test_Board_Syrup_fork();
         IArkWithWithdrawalRequest.SwapData
             memory swapData = IArkWithWithdrawalRequest.SwapData({
-                router: 0xCf5540fFFCdC3d510B18bFcA6d2b9987b0772559,
+                router: ODOS_ROUTER_MAINNET,
                 swapCalldata: hex"83bd37f9000180ac24aa929eaf5013f6436cda2a7ba190f5cc0b0001a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480569e9e421000574457d4f8d004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef04020204012fb5d42107010101020195538979e579d49999f780c04fc4bf68778b6f0000000000000000000006d9000d0101030101ff000000000000000000000080ac24aa929eaf5013f6436cda2a7ba190f5cc0ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb48ab22d1d671bb5cee8735c5ba29ea651ccda48a8e00000000"
             });
         bytes memory data = abi.encode(swapData);
@@ -261,16 +277,10 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             1,
             "Post redeem request, assets in withdrawal queue should be the same as the redeem amount"
         );
-        deal(
-            address(usdc),
-            address(address(withdrawalManager)),
-            redeemAmount * 1000
-        );
 
         // process withdrawals
         vm.startPrank(syrup_redeemer);
-        withdrawalManager.processRedemptions(redeemAmount * 1000);
-        withdrawalManager.processRedemptions(redeemAmount * 1000);
+        withdrawalManager.processRedemptions(redeemAmount);
         vm.stopPrank();
 
         // Now withdrawable assets should match the processed withdrawal amount

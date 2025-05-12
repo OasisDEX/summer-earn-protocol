@@ -19,6 +19,12 @@ interface IArkWithWithdrawalRequest is IArk {
     /// @notice Error thrown when a withdrawal has failed
     error WithdrawalFailed();
 
+    /// @notice Error thrown when a router is not whitelisted
+    error RouterNotWhitelisted();
+
+    /// @notice Error thrown when the slippage is too high
+    error SlippageTooHigh();
+
     /// @notice Struct for the swap data
     struct SwapData {
         /// @notice The router address
@@ -80,4 +86,22 @@ interface IArkWithWithdrawalRequest is IArk {
      * @param slippage The slippage to set
      */
     function setSlippage(uint256 slippage) external;
+
+    /**
+     * @notice Whitelists a router
+     * @dev This function is only callable by the curator
+     * @param router The router to whitelist
+     * @param isWhitelisted The boolean to set the whitelist to
+     */
+    function whitelistRouter(address router, bool isWhitelisted) external;
+
+    event WithdrawalRequested(uint256 amount, uint256 withdrawalId);
+    event RouterWhitelisted(address router, bool isWhitelisted);
+    event SlippageSet(uint256 slippage);
+    event Swapped(
+        address token,
+        address router,
+        uint256 amount,
+        bytes swapCalldata
+    );
 }

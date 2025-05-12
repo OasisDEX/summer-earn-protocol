@@ -106,7 +106,7 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
         uint256 assetBalanceAfter = config.asset.balanceOf(address(this));
         uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
         if (_applySlippage(amount) > assetBought) revert WithdrawalFailed();
-
+        emit Disembarked(msg.sender, address(config.asset), amount);
         _boardToBufferArk(assetBought);
     }
 
@@ -179,8 +179,12 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
         if (withdrawalRequestId > 0) {
             revert WithdrawalAlreadyRequested();
         }
+        if (amount == type(uint256).max) {
+            amount = originETH.balanceOf(address(this));
+        }
         (uint256 requestId, ) = originETHVault.requestWithdrawal(amount);
         withdrawalRequestId = requestId;
+        emit WithdrawalRequested(amount, withdrawalRequestId);
     }
 
     /**

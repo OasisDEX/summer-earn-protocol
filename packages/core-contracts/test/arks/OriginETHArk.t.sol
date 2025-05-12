@@ -76,7 +76,15 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             address(address(ark)),
             address(commander)
         );
+        accessManager.grantCuratorRole(
+            address(address(commander)),
+            address(curator)
+        );
         IFleetCommanderConfigProvider(commander).addArk(address(ark));
+        vm.stopPrank();
+
+        vm.startPrank(curator);
+        ark.whitelistRouter(ODOS_ROUTER_MAINNET, true);
         vm.stopPrank();
     }
 

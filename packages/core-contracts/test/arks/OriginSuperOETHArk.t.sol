@@ -71,7 +71,15 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             address(address(ark)),
             address(commander)
         );
+        accessManager.grantCuratorRole(
+            address(address(commander)),
+            address(curator)
+        );
         IFleetCommanderConfigProvider(commander).addArk(address(ark));
+        vm.stopPrank();
+
+        vm.startPrank(curator);
+        ark.whitelistRouter(ODOS_ROUTER_BASE, true);
         vm.stopPrank();
     }
 
@@ -134,7 +142,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         test_Board();
         IArkWithWithdrawalRequest.SwapData
             memory swapData = IArkWithWithdrawalRequest.SwapData({
-                router: 0x19cEeAd7105607Cd444F5ad10dd51356436095a1,
+                router: ODOS_ROUTER_BASE,
                 swapCalldata: hex"83bd37f90001dbfefd2e8460a6ee4955a68582f85708baea60a30002080de0b6b3a7640000080de06834c816bc8000418900012a8466a3135d1E4D51B2eBe07bfb9D1f6797795b0001302A94E3C28c290EAF2a4605FC52e11Eb915f3780001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef03010203004301010001020100ff00000000000000000000000000000000000000302a94e3c28c290eaf2a4605fc52e11eb915f378dbfefd2e8460a6ee4955a68582f85708baea60a3000000000000000000000000000000000000000000000000"
             });
         bytes memory data = abi.encode(swapData);
