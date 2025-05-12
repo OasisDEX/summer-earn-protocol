@@ -38,7 +38,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     address public constant OETH_WETH_ARM =
         0x6bac785889A4127dB0e0CeFEE88E0a9F1Aaf3cC7; // OETH WETH ARM address
 
-    uint256 forkBlock = 22445334; // A recent block number
+    uint256 forkBlock = 22420334; // A recent block number
     uint256 forkId;
 
     function setUp() public {
@@ -86,6 +86,17 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         vm.startPrank(curator);
         ark.whitelistRouter(ODOS_ROUTER_MAINNET, true);
         vm.stopPrank();
+
+        vm.makePersistent(ORIGINETH_ADDRESS);
+        vm.makePersistent(ORIGIN_ETH_VAULT_ADDRESS);
+        vm.makePersistent(WETH_ADDRESS);
+        vm.makePersistent(OETH_WETH_ARM);
+        vm.makePersistent(commander);
+        vm.makePersistent(curator);
+        vm.makePersistent(governor);
+        vm.makePersistent(address(ark));
+        vm.makePersistent(0x8309B55488500b7b062c849873717Bff8243061f);
+        vm.makePersistent(0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3);
     }
 
     function test_Constructor() public {
@@ -122,18 +133,6 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         // Approve the ark to spend WETH
         weth.forceApprove(address(ark), amount);
 
-        // We need to mock the OriginETH.mint call since we can't fully simulate it in the test
-        vm.mockCall(
-            ORIGINETH_ADDRESS,
-            abi.encodeWithSelector(
-                IOriginETH.mint.selector,
-                address(ark),
-                amount,
-                0
-            ),
-            abi.encode()
-        );
-
         vm.expectEmit(true, true, true, true);
         emit Boarded(commander, WETH_ADDRESS, amount);
 
@@ -141,8 +140,16 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        vm.clearMockedCalls();
+        uint256 totalSupplyBefore = originETH.totalSupply();
+        uint256 totalArkAssetsBefore = ark.totalAssets();
+
+        vm.prank(ORIGIN_ETH_VAULT_ADDRESS);
+        originETH.changeSupply(totalSupplyBefore + 1 ether);
+        uint256 totalArkAssetsAfter = ark.totalAssets();
+        assertLt(totalArkAssetsBefore, totalArkAssetsAfter, "Total assets should accrue interest");
     }
+
+
 
     function test_BoardWithMinShares() public {
         uint256 amount = 1 ether; // 1 WETH
@@ -158,26 +165,12 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         // Approve the ark to spend WETH
         weth.forceApprove(address(ark), amount);
 
-        // We need to mock the OriginETH.mint call since we can't fully simulate it in the test
-        vm.mockCall(
-            ORIGINETH_ADDRESS,
-            abi.encodeWithSelector(
-                IOriginETH.mint.selector,
-                address(ark),
-                amount,
-                minShares
-            ),
-            abi.encode()
-        );
-
         vm.expectEmit(true, true, true, true);
         emit Boarded(commander, WETH_ADDRESS, amount);
 
         // Board the tokens with minShares parameter
         ark.board(amount, bytes(""));
         vm.stopPrank();
-
-        vm.clearMockedCalls();
     }
 
     function test_Disembark_OriginETH() public {
@@ -295,12 +288,11 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             "Assets in withdrawal queue should match the withdrawal amount"
         );
 
-        vm.clearMockedCalls();
     }
 
     function test_ClaimWithdrawal_ClaimDelayNotMet() public {
         // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
-        uint256 requestId = 434;
+        uint256 requestId = 421;
         uint256 amount = 1 ether; // 1 WETH
 
         // Grant keeper role to the commander for testing
@@ -331,37 +323,10 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         );
     }
 
-    // function test_ClaimWithdrawal_QueuePendingLiquidity() public {
-    //     // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
-    //     uint256 requestId = 434;
-    //     uint256 amount = 1000 ether; // 1 WETH
-
-    //     // Grant keeper role to the commander for testing
-    //     vm.startPrank(governor);
-    //     accessManager.grantKeeperRole(address(ark), address(commander));
-    //     vm.stopPrank();
-
-    //     vm.startPrank(commander);
-    //     deal(address(weth), address(commander), amount);
-    //     weth.forceApprove(address(ark), amount);
-    //     ark.board(amount, bytes(""));
-    //     vm.stopPrank();
-
-    //     vm.startPrank(commander);
-    //     ark.requestWithdrawal(amount);
-    //     vm.stopPrank();
-
-    //     vm.warp(block.timestamp + 10 minutes);
-
-    //     vm.expectRevert("Queue pending liquidity");
-    //     vm.startPrank(commander);
-    //     ark.claimWithdrawal();
-    //     vm.stopPrank();
-    // }
 
     function test_ClaimWithdrawal_WithdrawalRequestClaimed() public {
         // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
-        uint256 requestId = 434;
+        uint256 requestId = 421;
         uint256 amount = 1 ether; // 1 WETH
 
         // Grant keeper role to the commander for testing
@@ -375,9 +340,9 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        uint256 totalAssetsBeforeRequest = ark.totalAssets();
+        uint256 totalArkAssetsBeforeRequest = ark.totalAssets();
         assertEq(
-            totalAssetsBeforeRequest,
+            totalArkAssetsBeforeRequest,
             amount,
             "Before request, total assets should be equal to the withdrawal amount"
         );
@@ -388,9 +353,9 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
 
         vm.warp(block.timestamp + 10 minutes);
 
-        uint256 totalAssetsBeforeClaim = ark.totalAssets();
+        uint256 totalArkAssetsBeforeClaim = ark.totalAssets();
         assertEq(
-            totalAssetsBeforeClaim,
+            totalArkAssetsBeforeClaim,
             amount,
             "Before claim, total assets should be equal to the withdrawal amount"
         );
@@ -400,9 +365,9 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.claimWithdrawal();
         vm.stopPrank();
 
-        uint256 totalAssetsAfter = ark.totalAssets();
+        uint256 totalArkAssetsAfter = ark.totalAssets();
         assertEq(
-            totalAssetsAfter,
+            totalArkAssetsAfter,
             amount,
             "After claim, total assets should be equal to the withdrawal amount"
         );

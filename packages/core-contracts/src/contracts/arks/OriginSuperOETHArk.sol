@@ -54,6 +54,7 @@ contract OriginSuperOETHArk is ArkWithWithdrawalRequest {
         }
 
         originETHVault = IOriginETHVault(vaultAddress);
+        originETH.rebaseOptIn();
     }
 
     /**

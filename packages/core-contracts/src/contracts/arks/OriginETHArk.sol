@@ -61,6 +61,7 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
         }
 
         originETHVault = IOriginETHVault(vaultAddress);
+        originETH.rebaseOptIn();
     }
 
     /**

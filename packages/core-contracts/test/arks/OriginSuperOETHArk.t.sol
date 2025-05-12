@@ -116,27 +116,12 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
 
         // Approve the ark to spend WETH
         weth.forceApprove(address(ark), amount);
-
-        // We need to mock the OriginETH.mint call since we can't fully simulate it in the test
-        vm.mockCall(
-            ORIGINETH_ADDRESS,
-            abi.encodeWithSelector(
-                IOriginETH.mint.selector,
-                address(ark),
-                amount,
-                0
-            ),
-            abi.encode()
-        );
-
         vm.expectEmit(true, true, true, true);
         emit Boarded(commander, WETH_ADDRESS, amount);
 
         // Board the tokens - use empty bytes for default minShares (0)
         ark.board(amount, bytes(""));
         vm.stopPrank();
-
-        vm.clearMockedCalls();
     }
     function test_WithdrawUsingSwap_SuperOETH() public {
         test_Board();
@@ -213,26 +198,12 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         // Approve the ark to spend WETH
         weth.forceApprove(address(ark), amount);
 
-        // We need to mock the OriginETH.mint call since we can't fully simulate it in the test
-        vm.mockCall(
-            ORIGINETH_ADDRESS,
-            abi.encodeWithSelector(
-                IOriginETH.mint.selector,
-                address(ark),
-                amount,
-                minShares
-            ),
-            abi.encode()
-        );
-
         vm.expectEmit(true, true, true, true);
         emit Boarded(commander, WETH_ADDRESS, amount);
 
         // Board the tokens with minShares parameter
         ark.board(amount, bytes(""));
         vm.stopPrank();
-
-        vm.clearMockedCalls();
     }
 
     function test_Disembark_OriginETH() public {
@@ -291,8 +262,6 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             amount,
             "Assets in withdrawal queue should match the withdrawal amount"
         );
-
-        vm.clearMockedCalls();
     }
 
     function test_ClaimWithdrawal_ClaimDelayNotMet() public {
