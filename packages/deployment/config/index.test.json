@@ -171,14 +171,6 @@
           "usdc": "0x1601843c5E9bC251A3272907010AFa41Fa18347E"
         }
       }
-    },
-    "bridge": {
-      "bridgeRouter": {
-        "address": "0x0000000000000000000000000000000000000000"
-      },
-      "bridgeQueue": {
-        "address": "0x0000000000000000000000000000000000000000"
-      }
     }
   },
   "arbitrum": {
@@ -223,6 +215,14 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xA6040c5A92FFf881b8e74E6a5576DE156C0B6B1a"
+        }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
@@ -376,6 +376,14 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xA2e47Bb397f908aba018276a3CC683608404123f"
+        }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
@@ -600,6 +608,14 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xB3be2a9bF327a201D2BEFa3172B5E6aC2671B80b"
+        }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },

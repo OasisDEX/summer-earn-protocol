@@ -1,6 +1,4 @@
-import fs from 'fs'
 import kleur from 'kleur'
-import path from 'path'
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
@@ -18,7 +16,6 @@ import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
-import { findProtocolConfig, loadCrossChainConfig } from '../helpers/cross-chain-config'
 import {
   validateAddress,
   validateErc4626Address,
@@ -27,7 +24,6 @@ import {
   validateToken,
 } from '../helpers/validation'
 import { MAX_UINT256_STRING } from './constants'
-import { getFleetConfig } from './fleet-deployment-files-helpers'
 
 export type ArkConfig = {
   type: ArkType
@@ -213,8 +209,8 @@ export async function deployArk(
         throw new Error('CrossChainArk requires targetChainId and protocol parameters')
       }
 
-      deployedArk = await setupCrossChainArkDeployment(config, fleetConfig.fleetName, {
-        baseArkParams,
+      deployedArk = await deployCrossChainArk(config, {
+        ...baseArkParams,
         targetChainId,
         targetProtocol,
       })
@@ -306,8 +302,7 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
     }
 
     case ArkType.CrossChainArk: {
-      const fleetDefinition = await getFleetConfig()
-      deployedArk = await setupCrossChainArkDeployment(config, fleetDefinition.fleetName)
+      deployedArk = await deployCrossChainArk(config)
       break
     }
 
@@ -331,102 +326,138 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
   }
 }
 
-/**
- * Helper function to handle CrossChainArk deployment setup and validation
- */
-async function setupCrossChainArkDeployment(
-  config: BaseConfig,
-  fleetName: string,
-  params?: {
-    baseArkParams?: BaseArkParams
-    targetChainId?: number
-    targetProtocol?: string
-  },
-) {
-  console.log(kleur.yellow('Starting CrossChainArk deployment process...'))
-  console.log(
-    kleur.yellow('This is a two-phase process requiring deployment on two different chains.'),
-  )
+// /**
+//  * Helper function to handle CrossChainArk deployment setup and validation
+//  */,
+// async function setupCrossChainArkDeployment(
+//   config: BaseConfig,
+//   params?: {
+//     baseArkParams?: BaseArkParams
+//     targetChainId?: number
+//     targetProtocol?: string
+//     crossChainConfig?: any // Allow passing in an already loaded config
+//   },
+// ) {
+//   console.log(kleur.yellow('Starting CrossChainArk deployment process...'))
+//   console.log(
+//     kleur.yellow('This is a two-phase process requiring deployment on two different chains.'),
+//   )
 
-  console.log(kleur.blue('Fleet name:'), kleur.cyan(fleetName))
+//   // Add debugging for config directory
+//   const configDir = path.join(process.cwd(), 'config', 'cross-chain')
 
-  // Add debugging for config directory
-  const configDir = path.join(process.cwd(), 'config', 'cross-chain')
-  const crossChainConfigPath = path.join(configDir, `${fleetName}.json`)
-  console.log(kleur.blue('Cross-chain config path:'), kleur.cyan(crossChainConfigPath))
-  console.log(
-    kleur.blue('File exists:'),
-    kleur.cyan(fs.existsSync(crossChainConfigPath) ? 'Yes' : 'No'),
-  )
+//   // List all available configs
+//   console.log(kleur.blue('Available cross-chain configurations:'))
 
-  if (!fs.existsSync(crossChainConfigPath)) {
-    console.log(kleur.red('Cross-chain config not found.'))
-    console.log(kleur.red('Please create a cross-chain config file first.'))
-    throw new Error('Cross-chain config must exist before CrossChainArk deployment')
-  }
+//   if (!fs.existsSync(configDir)) {
+//     console.log(kleur.red('Cross-chain config directory not found.'))
+//     throw new Error('Cross-chain config directory must exist before CrossChainArk deployment')
+//   }
 
-  if (fs.existsSync(configDir)) {
-    console.log(kleur.blue('Files in cross-chain directory:'))
-    const files = fs.readdirSync(configDir)
-    files.forEach((file) => {
-      console.log(kleur.cyan(`  - ${file}`))
-    })
-  }
+//   const files = fs.readdirSync(configDir)
+//   const configFiles = files.filter((file) => file.endsWith('.json'))
 
-  const crossChainConfig = loadCrossChainConfig(fleetName)
+//   if (configFiles.length === 0) {
+//     console.log(kleur.red('No cross-chain config files found.'))
+//     throw new Error('No cross-chain config files found')
+//   }
 
-  if (!crossChainConfig) {
-    console.log(kleur.red('Cross-chain config not found.'))
-    console.log(kleur.red('Please create a cross-chain config file first.'))
-    throw new Error('Cross-chain config must exist before CrossChainArk deployment')
-  }
+//   // Get or load the cross-chain config
+//   let crossChainConfig = params?.crossChainConfig
+//   let configName: string
 
-  // For programmatic deployment, validate target chain and protocol
-  let deploymentResult
+//   if (!crossChainConfig) {
+//     // If there's only one config file, use it
+//     if (configFiles.length === 1) {
+//       configName = configFiles[0].replace('.json', '')
+//       console.log(kleur.green(`Only one config found, using: ${configName}`))
+//     } else {
+//       // Let user select which config file to use
+//       const prompts = await import('prompts')
+//       const configChoices = configFiles.map((file, index) => ({
+//         title: file.replace('.json', ''),
+//         value: file.replace('.json', ''),
+//       }))
 
-  if (params?.targetChainId && params?.targetProtocol && params?.baseArkParams) {
-    // Find the protocol config for this target chain and protocol
-    const protocolConfig = findProtocolConfig(
-      crossChainConfig,
-      params.targetChainId,
-      params.targetProtocol,
-    )
+//       const response = await prompts.default({
+//         type: 'select',
+//         name: 'configName',
+//         message: 'Select a cross-chain configuration:',
+//         choices: configChoices,
+//       })
 
-    if (!protocolConfig || !protocolConfig.fleetProxyAddress) {
-      console.log(
-        kleur.red(
-          `FleetProxy not found for chain ${params.targetChainId} and protocol ${params.targetProtocol}.`,
-        ),
-      )
-      console.log(kleur.red('Please run deploy-fleet-proxy.ts on the satellite chain first.'))
-      console.log(kleur.red('Then run this script again to deploy the CrossChainArk.'))
-      throw new Error('FleetProxy must be deployed before CrossChainArk')
-    }
+//       if (!response.configName) {
+//         console.log(kleur.red('No configuration selected. Exiting.'))
+//         throw new Error('No configuration selected')
+//       }
 
-    // Deploy CrossChainArk using the FleetProxy address from config
-    // and the bridge options from the config
-    deploymentResult = await deployCrossChainArk(
-      config,
-      {
-        ...params.baseArkParams,
-        targetChainId: params.targetChainId,
-        targetProtocol: params.targetProtocol,
-        bridgeOptions: protocolConfig.bridgeOptions,
-      },
-      { fleetName },
-    )
-  } else {
-    // Interactive deployment - let user select chain and protocol
-    deploymentResult = await deployCrossChainArk(config, undefined, { fleetName })
-  }
+//       configName = response.configName
+//     }
 
-  if (deploymentResult) {
-    console.log(kleur.green('CrossChainArk deployed successfully!'))
-    console.log(
-      kleur.yellow('IMPORTANT: You now need to run update-fleet-proxy.ts on the satellite chain'),
-    )
-    console.log(kleur.yellow('to complete the cross-chain deployment process.'))
-  }
+//     console.log(kleur.green(`Loading cross-chain config: ${configName}`))
+//     const crossChainConfigPath = path.join(configDir, `${configName}.json`)
+//     console.log(kleur.blue('Cross-chain config path:'), kleur.cyan(crossChainConfigPath))
 
-  return deploymentResult
-}
+//     crossChainConfig = loadCrossChainConfig(configName)
+//   } else {
+//     console.log(kleur.green('Using provided cross-chain configuration'))
+//     configName = 'provided-config'
+//   }
+
+//   if (!crossChainConfig) {
+//     console.log(kleur.red('Cross-chain config not found or invalid.'))
+//     throw new Error('Cross-chain config must exist and be valid before CrossChainArk deployment')
+//   }
+
+//   // For programmatic deployment, validate target chain and protocol
+//   let deploymentResult
+
+//   if (params?.targetChainId && params?.targetProtocol && params?.baseArkParams) {
+//     // Find the protocol config for this target chain and protocol
+//     const protocolConfig = findProtocolConfig(
+//       crossChainConfig,
+//       params.targetChainId,
+//       params.targetProtocol,
+//     )
+
+//     if (!protocolConfig || !protocolConfig.fleetProxyAddress) {
+//       console.log(
+//         kleur.red(
+//           `FleetProxy not found for chain ${params.targetChainId} and protocol ${params.targetProtocol}.`,
+//         ),
+//       )
+//       console.log(kleur.red('Please run deploy-fleet-proxy.ts on the satellite chain first.'))
+//       console.log(kleur.red('Then run this script again to deploy the CrossChainArk.'))
+//       throw new Error('FleetProxy must be deployed before CrossChainArk')
+//     }
+
+//     // Deploy CrossChainArk using the FleetProxy address from config
+//     // and the bridge options from the config
+//     deploymentResult = await deployCrossChainArk(
+//       config,
+//       {
+//         ...params.baseArkParams
+//         targetChainId: params.targetChainId,
+//         targetProtocol: params.targetProtocol,
+//         bridgeOptions: protocolConfig.bridgeOptions,
+//       },
+//       { configName, crossChainConfig },
+//     )
+//   } else {
+//     // Interactive deployment
+//     deploymentResult = await deployCrossChainArk(config, undefined, {
+//       configName,
+//       crossChainConfig,
+//     })
+//   }
+
+//   if (deploymentResult) {
+//     console.log(kleur.green('CrossChainArk deployed successfully!'))
+//     console.log(
+//       kleur.yellow('IMPORTANT: You now need to run update-fleet-proxy.ts on the satellite chain'),
+//     )
+//     console.log(kleur.yellow('to complete the cross-chain deployment process.'))
+//   }
+
+//   return deploymentResult
+// }
