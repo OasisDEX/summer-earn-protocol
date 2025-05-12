@@ -411,4 +411,11 @@ interface IBridgeRouter is IERC165 {
      * @dev Governor role required. This is the standard governance rescue mechanism for native tokens.
      */
     function recoverFunds(address recipient, uint256 amount) external;
+
+    /**
+     * @notice Sets the BridgeQueue address. Can only be called by governance.
+     * @param _newBridgeQueue The new BridgeQueue address
+     * @dev Governor role required.
+     */
+    function setBridgeQueue(address _newBridgeQueue) external;
 }
