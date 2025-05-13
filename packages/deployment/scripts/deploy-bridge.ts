@@ -1,6 +1,5 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { BridgeConfig } from '../types/bridge-types'
 import { BaseConfig } from '../types/config-types'
 import { deployBridgeContracts } from './bridge/bridge-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -39,9 +38,6 @@ async function deployBridge() {
     throw new Error('Failed to load all network configurations')
   }
 
-  // Load bridge configuration
-  const bridgeConfig = config.bridge as BridgeConfig
-
   // Check for existing contracts
   if (config.deployedContracts.bridge) {
     const bridgeContracts = config.deployedContracts.bridge
@@ -67,7 +63,7 @@ async function deployBridge() {
 
   try {
     // Deploy core bridge contracts
-    const deployedBridge = await deployBridgeContracts(bridgeConfig, config, allConfigs)
+    const deployedBridge = await deployBridgeContracts(config, allConfigs)
 
     console.log(kleur.green().bold('Bridge deployment completed successfully!'))
     console.log('Deployed contracts:')

@@ -2,11 +2,10 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
 import bridgeModule from '../../ignition/modules/bridge'
-import { BridgeConfig, DeployedBridge } from '../../types/bridge-types'
+import { DeployedBridge } from '../../types/bridge-types'
 import { ADDRESS_ZERO } from '../common/constants'
 
 export async function deployBridgeContracts(
-  config: BridgeConfig,
   networkConfig: any,
   allConfigs: Record<string, any>,
 ): Promise<DeployedBridge> {
