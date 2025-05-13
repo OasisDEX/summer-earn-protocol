@@ -4,6 +4,7 @@ import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { Address } from 'viem'
+import { createFleetProxyModule } from '../../ignition/modules/arks/fleet-proxy'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { loadCrossChainConfig, saveCrossChainConfig } from '../helpers/cross-chain-config'
@@ -116,10 +117,9 @@ async function getUserInput(config: BaseConfig): Promise<FleetProxyParams> {
   const sourceChainId = getChainIdByNetwork(sourceNetwork)
   const currentChainId = getChainIdByNetwork(hre.network.name)
 
-  // Validate that source chain is different from current chain
-  if (sourceChainId === currentChainId) {
+  if (sourceChainId !== currentChainId) {
     throw new Error(
-      `Invalid deployment: Source chain (${sourceNetwork}) must be different from the current chain (${hre.network.name}). FleetProxy should be deployed on a satellite chain, not the source chain.`,
+      `Invalid deployment: Current chain must be the same as same as the fleet's source chain.`,
     )
   }
 
@@ -147,7 +147,7 @@ async function getUserInput(config: BaseConfig): Promise<FleetProxyParams> {
         gasLimit,
         calldataSize: 0,
         msgValue: 0,
-        options: '',
+        options: '0x',
       },
     },
   }
@@ -182,14 +182,13 @@ async function deployFleetProxyContract(
 ): Promise<Address> {
   // params.
   const chainId = getChainIdByNetwork(hre.network.name)
-  const deploymentId = await handleDeploymentId(chainId)
-  const moduleName = `FleetProxy-${deploymentId}`
+  const deploymentId = (await handleDeploymentId(chainId)).replace(/-/g, '_')
+  const moduleName = `FleetProxy_${deploymentId}`
 
   // Create and deploy the module
   try {
     // Create the FleetProxy module
-    const createModule = require('../../ignition/modules/arks/fleet-proxy').createFleetProxyModule
-    const module = createModule(moduleName)
+    const module = createFleetProxyModule(moduleName)
 
     const result = await hre.ignition.deploy(module, {
       parameters: {
