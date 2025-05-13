@@ -7,7 +7,7 @@ import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ProtocolAccessManaged, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedExt, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedExt.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
@@ -22,7 +22,7 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
  */
 contract CrossChainFleetProxy is
     IFleetProxy,
-    ProtocolAccessManaged,
+    ProtocolAccessManagedExt,
     ReentrancyGuard,
     Pausable,
     IERC165
@@ -77,7 +77,7 @@ contract CrossChainFleetProxy is
         address _fleetContract,
         BridgeTypes.BridgeOptions memory _bridgeOptions,
         address _sourceChainArk
-    ) ProtocolAccessManaged(_accessManager) {
+    ) ProtocolAccessManagedExt(_accessManager) {
         if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
 
         bridgeRouter = IBridgeRouter(_bridgeRouter);
@@ -238,25 +238,7 @@ contract CrossChainFleetProxy is
     /// @notice Error thrown when attempting to withdraw via message
     error WithdrawalViaMessageNotSupported();
 
-    /// @notice Error thrown when caller is neither governor nor keeper
-    error CallerIsNotGovernorOrKeeper(address caller);
-
     /*//////////////////////////////////////////////////////////////
                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Modifier to restrict access to either governors or keepers
-    modifier onlyGovernorOrKeeper() {
-        if (
-            !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender) &&
-            !_accessManager.hasRole(
-                generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
-                msg.sender
-            ) &&
-            !_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotGovernorOrKeeper(msg.sender);
-        }
-        _;
-    }
 }

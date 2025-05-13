@@ -4,11 +4,11 @@ pragma solidity 0.8.28;
 import {ProtocolAccessManaged, ContractSpecificRoles} from "./ProtocolAccessManaged.sol";
 
 /**
- * @title GovernorOrKeeperAccess
+ * @title ProtocolAccessManagedExt
  * @notice Contract that provides shared access control for governor and keeper roles
  * @dev This contract can be inherited by contracts that need governor and keeper access control
  */
-abstract contract GovernorOrKeeperAccess is ProtocolAccessManaged {
+abstract contract ProtocolAccessManagedExt is ProtocolAccessManaged {
     /*//////////////////////////////////////////////////////////////
                             ERRORS
     //////////////////////////////////////////////////////////////*/

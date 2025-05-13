@@ -312,9 +312,9 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     });
 
                 // Execute with keeper's payment
-                operationId = router.executeTransferAssets{value: msg.value}(
-                    params
-                );
+                operationId = router.executeTransferAssets{
+                    value: totalNativeFee
+                }(params);
 
                 // Clean up approval
                 IERC20(transferData.asset).approve(address(router), 0);
@@ -342,7 +342,9 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     });
 
                 // Execute with keeper's payment
-                operationId = router.executeReadState{value: msg.value}(params);
+                operationId = router.executeReadState{value: totalNativeFee}(
+                    params
+                );
             } else if (opType == BridgeTypes.OperationType.MESSAGE) {
                 QueuedMessage storage messageData = queuedMessages[queueId];
 
@@ -366,7 +368,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     });
 
                 // Execute with keeper's payment
-                operationId = router.executeSendMessage{value: msg.value}(
+                operationId = router.executeSendMessage{value: totalNativeFee}(
                     params
                 );
             } else {

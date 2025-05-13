@@ -525,7 +525,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         bytes32 operationId,
         uint16 sourceChainId,
         bytes calldata resultData
-    ) external onlyRegisteredAdapter {
+    ) external nonReentrant onlyRegisteredAdapter {
         if (operationToAdapter[operationId] != msg.sender) {
             revert Unauthorized();
         }

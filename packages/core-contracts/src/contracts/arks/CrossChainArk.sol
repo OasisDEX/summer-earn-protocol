@@ -6,7 +6,7 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
-import {GovernorOrKeeperAccess} from "@summerfi/access-contracts/contracts/GovernorOrKeeperAccess.sol";
+import {ProtocolAccessManagedExt} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedExt.sol";
 
 /**
  * @title CrossChainArk
@@ -16,7 +16,7 @@ import {GovernorOrKeeperAccess} from "@summerfi/access-contracts/contracts/Gover
 contract CrossChainArk is
     Ark,
     ICrossChainAssetReceiver,
-    GovernorOrKeeperAccess
+    ProtocolAccessManagedExt
 {
     using SafeERC20 for IERC20;
 
