@@ -814,7 +814,7 @@ contract BridgeQueueTest is Test {
         // Mock the actual executeReadState call on the router
         vm.expectCall(
             address(router),
-            TOTAL_NATIVE_FEE, // Router receives full fee
+            BASE_NATIVE_FEE, // Use BASE_NATIVE_FEE instead of TOTAL_NATIVE_FEE
             abi.encodeWithSelector(
                 IBridgeRouter.executeReadState.selector,
                 expectedRouterParams
@@ -924,7 +924,7 @@ contract BridgeQueueTest is Test {
         // Mock the actual executeSendMessage call on the router
         vm.expectCall(
             address(router),
-            TOTAL_NATIVE_FEE, // Router receives full fee
+            BASE_NATIVE_FEE, // Use BASE_NATIVE_FEE instead of TOTAL_NATIVE_FEE
             abi.encodeWithSelector(
                 IBridgeRouter.executeSendMessage.selector,
                 expectedRouterParams

@@ -46,9 +46,15 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
     function testFeatureSupport() public view {
         // StargateAdapter supports asset transfers but not messaging or state reads
-        assertTrue(adapterA.supportsAssetTransfer());
-        assertFalse(adapterA.supportsMessaging());
-        assertFalse(adapterA.supportsStateRead());
+        assertTrue(
+            adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
+        assertFalse(
+            adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
+        );
+        assertFalse(
+            adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

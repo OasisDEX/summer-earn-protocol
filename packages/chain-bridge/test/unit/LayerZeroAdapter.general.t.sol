@@ -216,8 +216,14 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function testSupportsFeatures() public view {
         // Test capability flags directly on adapter
-        assertTrue(adapterA.supportsMessaging());
-        assertTrue(adapterA.supportsStateRead());
-        assertFalse(adapterA.supportsAssetTransfer());
+        assertTrue(
+            adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
+        );
+        assertTrue(
+            adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE)
+        );
+        assertFalse(
+            adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
     }
 }

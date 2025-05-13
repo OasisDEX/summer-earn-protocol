@@ -431,18 +431,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function supportsAssetTransfer() external pure returns (bool) {
-        return true;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsMessaging() external pure returns (bool) {
-        return false;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsStateRead() external pure returns (bool) {
-        return false;
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external pure override returns (bool) {
+        // Stargate only supports asset transfers
+        return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 
     /*//////////////////////////////////////////////////////////////

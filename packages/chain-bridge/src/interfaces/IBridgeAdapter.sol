@@ -119,8 +119,12 @@ interface IBridgeAdapter is ISendAdapter {
         address asset
     ) external view returns (bool);
 
-    // Capability flags
-    function supportsAssetTransfer() external view returns (bool);
-    function supportsMessaging() external view returns (bool);
-    function supportsStateRead() external view returns (bool);
+    /**
+     * @notice Check if an adapter supports a specific operation type
+     * @param operationType Type of operation to check support for
+     * @return Whether the adapter supports the operation type
+     */
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool);
 }

@@ -16,6 +16,9 @@ contract MockAdapter is IBridgeAdapter {
     mapping(uint16 => bool) public supportedChains;
     mapping(uint16 => mapping(address => bool)) public supportedAssets;
 
+    // Add mapping to track supported operations
+    mapping(BridgeTypes.OperationType => bool) public supportedOperations;
+
     // Add mapping to track operation statuses
     mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
 
@@ -61,6 +64,11 @@ contract MockAdapter is IBridgeAdapter {
 
         // Initialize default supported chain for testing
         supportedChains[111] = true; // SOURCE_CHAIN_ID from tests
+
+        // Initialize default supported operations
+        supportedOperations[BridgeTypes.OperationType.MESSAGE] = true;
+        supportedOperations[BridgeTypes.OperationType.READ_STATE] = true;
+        supportedOperations[BridgeTypes.OperationType.TRANSFER_ASSET] = true;
     }
 
     // Add helper function to set fee multiplier
@@ -79,6 +87,14 @@ contract MockAdapter is IBridgeAdapter {
         bool supported
     ) external {
         supportedAssets[chainId][asset] = supported;
+    }
+
+    // Add helper function to configure supported operations
+    function setSupportedOperation(
+        BridgeTypes.OperationType operationType,
+        bool supported
+    ) external {
+        supportedOperations[operationType] = supported;
     }
 
     /// @inheritdoc ISendAdapter
@@ -211,6 +227,13 @@ contract MockAdapter is IBridgeAdapter {
         return supportedAssets[chainId][asset];
     }
 
+    /// @inheritdoc IBridgeAdapter
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool) {
+        return supportedOperations[operationType];
+    }
+
     event ActionComposed(
         bytes32 indexed transferId,
         uint16 destinationChainId,
@@ -242,24 +265,6 @@ contract MockAdapter is IBridgeAdapter {
         bytes[] actions,
         address originator
     );
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsAssetTransfer() external pure returns (bool) {
-        // Mock adapter supports asset transfers for testing
-        return true;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsMessaging() external pure returns (bool) {
-        // Mock adapter supports messaging for testing
-        return true;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsStateRead() external pure returns (bool) {
-        // Mock adapter supports state reads for testing
-        return true;
-    }
 
     /// @inheritdoc ISendAdapter
     function sendMessage(

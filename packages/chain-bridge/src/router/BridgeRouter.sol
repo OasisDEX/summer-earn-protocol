@@ -169,30 +169,16 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     }
 
     /**
-     * @dev Internal function to validate an adapter for a specific operation type
+     * @dev Internal function to validate if an adapter supports a specific operation type
      * @param adapter The adapter address to validate
      * @param operationType The type of operation to check support for
      */
-    function _validateAdapter(
+    function _validateAdapterSupportsOperation(
         address adapter,
         BridgeTypes.OperationType operationType
     ) internal view {
         if (adapter == address(0)) revert NoSuitableAdapter();
-
-        if (
-            operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-            !IBridgeAdapter(adapter).supportsAssetTransfer()
-        ) {
-            revert UnsupportedAdapterOperation();
-        } else if (
-            operationType == BridgeTypes.OperationType.READ_STATE &&
-            !IBridgeAdapter(adapter).supportsStateRead()
-        ) {
-            revert UnsupportedAdapterOperation();
-        } else if (
-            operationType == BridgeTypes.OperationType.MESSAGE &&
-            !IBridgeAdapter(adapter).supportsMessaging()
-        ) {
+        if (!IBridgeAdapter(adapter).supportsOperation(operationType)) {
             revert UnsupportedAdapterOperation();
         }
     }
@@ -255,10 +241,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
 
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-        if (!IBridgeAdapter(selectedAdapter).supportsAssetTransfer()) {
-            revert UnsupportedAdapterOperation();
-        }
+        _validateAdapterSupportsOperation(
+            selectedAdapter,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
 
         // Assuming the BridgeQueue has already ensured the Router has the necessary tokens.
         // Approve the adapter to spend the Router's tokens.
@@ -326,12 +312,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
 
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-
-        // Check if adapter supports state reads
-        if (!IBridgeAdapter(selectedAdapter).supportsStateRead()) {
-            revert UnsupportedAdapterOperation();
-        }
+        _validateAdapterSupportsOperation(
+            selectedAdapter,
+            BridgeTypes.OperationType.READ_STATE
+        );
 
         // Call the adapter with the base fee
         operationId = IBridgeAdapter(selectedAdapter).readState{
@@ -398,12 +382,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
 
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-
-        // Check if adapter supports messaging
-        if (!IBridgeAdapter(selectedAdapter).supportsMessaging()) {
-            revert UnsupportedAdapterOperation();
-        }
+        _validateAdapterSupportsOperation(
+            selectedAdapter,
+            BridgeTypes.OperationType.MESSAGE
+        );
 
         // Call the adapter with the base fee
         operationId = ISendAdapter(selectedAdapter).sendMessage{
@@ -464,27 +446,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         if (selectedAdapter != address(0)) {
             if (!this.isValidAdapter(selectedAdapter)) revert UnknownAdapter();
-            // Adapter capability checks remain the same...
-            if (
-                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-                !IBridgeAdapter(selectedAdapter).supportsAssetTransfer()
-            ) {
-                revert UnsupportedAdapterOperation();
-            }
-
-            if (
-                operationType == BridgeTypes.OperationType.READ_STATE &&
-                !IBridgeAdapter(selectedAdapter).supportsStateRead()
-            ) {
-                revert UnsupportedAdapterOperation();
-            }
-
-            if (
-                operationType == BridgeTypes.OperationType.MESSAGE &&
-                !IBridgeAdapter(selectedAdapter).supportsMessaging()
-            ) {
-                revert UnsupportedAdapterOperation();
-            }
+            _validateAdapterSupportsOperation(selectedAdapter, operationType);
         } else {
             // Finding the best adapter based on base fees
             selectedAdapter = _getBestAdapterForOperation(
@@ -695,19 +657,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             // Check if adapter supports this chain
             if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
 
-            // Check capability support
-            if (
-                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-                !IBridgeAdapter(adapter).supportsAssetTransfer()
-            ) continue;
-            if (
-                operationType == BridgeTypes.OperationType.READ_STATE &&
-                !IBridgeAdapter(adapter).supportsStateRead()
-            ) continue;
-            if (
-                operationType == BridgeTypes.OperationType.MESSAGE &&
-                !IBridgeAdapter(adapter).supportsMessaging()
-            ) continue;
+            // Check capability support using the new operation type method
+            if (!IBridgeAdapter(adapter).supportsOperation(operationType))
+                continue;
 
             // For asset transfers, check if the asset is supported
             if (

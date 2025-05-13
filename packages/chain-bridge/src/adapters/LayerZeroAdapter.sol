@@ -738,22 +738,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function supportsAssetTransfer() external pure returns (bool) {
-        // This adapter doesn't support native asset transfers
-        // as it has no liquidity management
-        return false;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsMessaging() external pure returns (bool) {
-        // This adapter supports general cross-chain messaging
-        return true;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsStateRead() external pure returns (bool) {
-        // This adapter supports state reading
-        return true;
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external pure override returns (bool) {
+        // LayerZero supports messaging and state reading operations, but not asset transfer
+        return
+            operationType == BridgeTypes.OperationType.MESSAGE ||
+            operationType == BridgeTypes.OperationType.READ_STATE;
     }
 
     /**
