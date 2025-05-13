@@ -319,7 +319,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint16 srcChainId = lzEidToChain[_origin.srcEid];
 
         // Forward the result to the bridge router
-        bool delivered = false;
         try
             IBridgeRouter(bridgeRouter).deliverReadResponse(
                 operationId,
@@ -327,7 +326,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 _payload
             )
         {
-            delivered = true;
+            emit ReadResponseDelivered(operationId, _payload, delivered);
         } catch (bytes memory reason) {
             // Mark as failed if delivery fails
             _updateOperationStatus(
@@ -335,11 +334,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 BridgeTypes.OperationStatus.FAILED
             );
             emit RelayFailed(operationId, reason);
-        }
-
-        // Emit event for read response delivery
-        if (delivered) {
-            emit ReadResponseDelivered(operationId, _payload, delivered);
         }
     }
 
