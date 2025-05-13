@@ -72,5 +72,7 @@
   "BummerLazyVault_USDC_Syrup_usdc_1_withdrawable#SyrupArk": "0x1dfBa3bA2A98d401f025508E47fccF5ed035522A",
   "BummerLazyVault_WETH_OriginETH_weth_1_swappable#OriginETHArk": "0xF77515Cb0A3804bBfE3e05813Bb51ad2265fF230",
   "BummerLazyVault_WETH_FluidLite_weth_1_swappable#FluidLiteArk": "0x7102b696CD1c46Bd8A676B25536Ba218f2fC349B",
-  "BummerLazyVault_USDC_Syrup_usdc_1_swappable#SyrupArk": "0xCaC00FeAf6600E0Da426112315805A7796e3a27e"
+  "BummerLazyVault_USDC_Syrup_usdc_1_swappable#SyrupArk": "0xCaC00FeAf6600E0Da426112315805A7796e3a27e",
+  "BummerLazyVault_WETH_Origin_weth_1_staging#OriginETHArk": "0x49EBD7E4b66Dde6dce3F9f16647d0a3A1aCcC908",
+  "BummerLazyVault_WETH_FluidLite_weth_1_staging#FluidLiteArk": "0xD01cf27BB74F7B47e5238552E7F9089807b9F015"
 }
