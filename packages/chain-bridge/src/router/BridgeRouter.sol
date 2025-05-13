@@ -118,6 +118,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         _;
     }
 
+    /**
+     * @dev Modifier ensuring the contract is not paused.
+     * Reverts with `Paused` if the contract is in the paused state.
+     */
+    modifier whenNotPaused() {
+        if (paused) revert Paused();
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                            BRIDGE QUEUE OPERATIONS
     //////////////////////////////////////////////////////////////*/
@@ -143,11 +152,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         external
         payable
         onlyBridgeQueue
+        whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
     {
-        // Validations
-        if (paused) revert Paused();
         if (
             params.amount == 0 ||
             params.recipient == address(0) ||
@@ -220,11 +228,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         external
         payable
         onlyBridgeQueue
+        whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
     {
-        // Validations
-        if (paused) revert Paused();
         if (params.originator == address(0) || params.dstContract == address(0))
             revert InvalidParams();
 
@@ -294,11 +301,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         external
         payable
         onlyBridgeQueue
+        whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
     {
         // Validations
-        if (paused) revert Paused();
         if (params.recipient == address(0) || params.originator == address(0))
             revert InvalidParams();
 

@@ -234,11 +234,4 @@ contract CrossChainFleetProxy is
 
     /// @notice Error thrown when source chain ark address is invalid
     error InvalidSourceChainArk();
-
-    /// @notice Error thrown when attempting to withdraw via message
-    error WithdrawalViaMessageNotSupported();
-
-    /*//////////////////////////////////////////////////////////////
-                            MODIFIERS
-    //////////////////////////////////////////////////////////////*/
 }
