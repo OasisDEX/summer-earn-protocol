@@ -369,6 +369,7 @@
     "tokens": {
       "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       "weth": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "steth": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
       "usds": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
       "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
       "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -545,6 +546,15 @@
         },
         "staking": {
           "sky": "0x0650CAF159C5A49f711e8169D4336ECB9b950275"
+        }
+      },
+      "fluid": {
+        "lite": {
+          "weth": {
+            "wrapper": "0x64338FD8e7b1918B4a806A175e26eD152B3d0b7b",
+            "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
+            "withdrawalQueue": "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
+          }
         }
       }
     }

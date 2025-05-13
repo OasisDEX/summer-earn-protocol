@@ -65,5 +65,15 @@
   "BummerLazyVault_USDC_Syrup_usdc_1#SyrupArk": "0x35e09f7dE2c96Fa4682505EF4a0eb7b148B7f0c0",
   "FleetModule_BummerLazyVault_WETH#FleetCommander": "0x40e9C802f9566B16A66A48d9a1d7a8D73FE55651",
   "BummerLazyVault_WETH_OriginETH_weth_1#OriginETHArk": "0xb3eFCD66c7F5957ff7Da3beCA97d59fBf20f02F8",
-  "AdmiralsQuartersModule_20250506T105849780#AdmiralsQuarters": "0x1fff8345CFF27FBF204644FbbcC08450D7FC63Ee"
+  "BummerLazyVault_WETH_FluidLite_weth_1#FluidLiteArk": "0x00B437Df745c1DEAbe3f999Dfe41fdA9641d7EBA",
+  "AdmiralsQuartersModule_20250506T105849780#AdmiralsQuarters": "0x1fff8345CFF27FBF204644FbbcC08450D7FC63Ee",
+  "BummerLazyVault_WETH_OriginETH_weth_1_withdrawable#OriginETHArk": "0x113Ebd01DAb514136ca2867f4e47B6B9A42Dfb8B",
+  "BummerLazyVault_WETH_FluidLite_weth_1_withdrawable#FluidLiteArk": "0xFb7F78772078A48b72F066D46cd9e3BbDA4d48A7",
+  "BummerLazyVault_USDC_Syrup_usdc_1_withdrawable#SyrupArk": "0x1dfBa3bA2A98d401f025508E47fccF5ed035522A",
+  "BummerLazyVault_WETH_OriginETH_weth_1_swappable#OriginETHArk": "0xF77515Cb0A3804bBfE3e05813Bb51ad2265fF230",
+  "BummerLazyVault_WETH_FluidLite_weth_1_swappable#FluidLiteArk": "0x7102b696CD1c46Bd8A676B25536Ba218f2fC349B",
+  "BummerLazyVault_USDC_Syrup_usdc_1_swappable#SyrupArk": "0xCaC00FeAf6600E0Da426112315805A7796e3a27e",
+  "BummerLazyVault_WETH_Origin_weth_1_staging#OriginETHArk": "0x49EBD7E4b66Dde6dce3F9f16647d0a3A1aCcC908",
+  "BummerLazyVault_WETH_FluidLite_weth_1_staging#FluidLiteArk": "0xD01cf27BB74F7B47e5238552E7F9089807b9F015",
+  "BummerLazyVault_WETH_FluidLite_weth_1_staging_2#FluidLiteArk": "0x8545Fd72553bE7f16Ba0a41E502593B067D24C94"
 }

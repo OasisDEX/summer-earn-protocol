@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../Ark.sol";
+import "../ArkWithWithdrawalRequest.sol";
 import {ISyrupPool} from "../../interfaces/syrup/ISyrupPool.sol";
 import {ISyrupManager} from "../../interfaces/syrup/ISyrupManager.sol";
 import {ISyrupWithdrawalManager} from "../../interfaces/syrup/ISyrupWithdrawalManager.sol";
@@ -16,7 +16,7 @@ error InvalidRouterAddress();
  * @notice Ark contract for managing token supply and yield generation through Maple Finance Syrup pools
  * @dev Implements strategy for depositing tokens with signature authorization and managing withdrawals
  */
-contract SyrupArk is Ark {
+contract SyrupArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
     using SafeERC20 for ISyrupPool;
 
@@ -44,7 +44,7 @@ contract SyrupArk is Ark {
         address _vault,
         address _router,
         ArkParams memory _params
-    ) Ark(_params) {
+    ) ArkWithWithdrawalRequest(_params, 15) {
         if (_vault == address(0)) revert InvalidVaultAddress();
         if (_router == address(0)) revert InvalidRouterAddress();
 
@@ -80,8 +80,13 @@ contract SyrupArk is Ark {
      * @notice Returns the total assets managed by this Ark
      * @return assets Sum of withdrawable assets, shares in Ark, and shares in withdrawal queue
      */
-    function totalAssets() public view override returns (uint256 assets) {
-        assets = _withdrawableTotalAssets();
+    function totalAssets()
+        public
+        view
+        override(Ark, IArk)
+        returns (uint256 assets)
+    {
+        assets += _withdrawableTotalAssets();
         assets += assetsInWithdrawalQueue();
 
         // Add value of shares held by Ark
@@ -89,6 +94,20 @@ contract SyrupArk is Ark {
         if (sharesInArk > 0) {
             assets += vault.convertToAssets(sharesInArk);
         }
+    }
+
+    function assetsInWithdrawalQueue() public view returns (uint256) {
+        uint128 withdrawalRequestId = withdrawalManager.requestIds(
+            address(this)
+        );
+        if (withdrawalRequestId == 0) {
+            return 0;
+        }
+        ISyrupWithdrawalManager.WithdrawalRequest
+            memory withdrawalRequest = withdrawalManager.requests(
+                withdrawalRequestId
+            );
+        return vault.convertToAssets(withdrawalRequest.shares);
     }
 
     /**
@@ -102,26 +121,37 @@ contract SyrupArk is Ark {
         } else {
             shares = vault.convertToShares(amount);
         }
-        vault.forceApprove(address(withdrawalManager), shares);
         vault.requestRedeem(shares, address(this));
+        emit WithdrawalRequested(
+            amount,
+            withdrawalManager.requestIds(address(this))
+        );
     }
 
-    /**
-     * @notice Check if Ark has a pending withdrawal request
-     * @return amount of assets in withdrawal queue
-     */
-    function assetsInWithdrawalQueue() public view returns (uint256) {
-        uint128 withdrawalRequestId = withdrawalManager.requestIds(
-            address(this)
+    function claimWithdrawal() external onlyKeeper {
+        // no-op
+    }
+
+    function withdrawalRequestId() external view returns (uint256) {
+        return withdrawalManager.requestIds(address(this));
+    }
+
+    function withdrawUsingSwap(
+        uint256 amount,
+        bytes calldata data
+    ) external onlyKeeper nonReentrant {
+        uint256 shares = vault.convertToShares(amount);
+        SwapData memory swapData = abi.decode(data, (SwapData));
+        uint256 assetBought = _swap(
+            address(vault),
+            address(config.asset),
+            swapData.router,
+            shares,
+            _applySlippage(amount),
+            swapData.swapCalldata
         );
-        if (withdrawalRequestId == 0) {
-            return 0;
-        }
-        ISyrupWithdrawalManager.WithdrawalRequest
-            memory withdrawalRequest = withdrawalManager.requests(
-                withdrawalRequestId
-            );
-        return vault.convertToAssets(withdrawalRequest.shares);
+        emit Disembarked(msg.sender, address(config.asset), amount);
+        _boardToBufferArk(assetBought);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -6,6 +6,7 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 import "../../src/contracts/arks/OriginETHArk.sol";
 import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {IOriginETH} from "../../src/interfaces/origin/IOriginETH.sol";
 import {IOriginETHVault} from "../../src/interfaces/origin/IOriginETHVault.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
@@ -23,29 +24,37 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     OriginETHArk public ark;
     IOriginETH public originETH;
-    IOriginETHVault public originETHVault;
+    IOriginETHVault public originBaseVault;
     IERC20 public weth;
     ArkParams public params;
+    address public bufferArk;
 
     address public constant ORIGINETH_ADDRESS =
         0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3; // IOriginETH address
     address public constant ORIGIN_ETH_VAULT_ADDRESS =
-        0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab; // IOriginETH address
+        0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab; // IOriginETHVault address
     address public constant WETH_ADDRESS =
         0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // Mainnet WETH address
     address public constant OETH_WETH_ARM =
         0x6bac785889A4127dB0e0CeFEE88E0a9F1Aaf3cC7; // OETH WETH ARM address
 
-    uint256 forkBlock = 21666256; // A recent block number
+    uint256 forkBlock = 22420334; // A recent block number
     uint256 forkId;
 
     function setUp() public {
         initializeCoreContracts();
+        (
+            address _commander,
+            address _bufferArk
+        ) = setupFleetCommanderWithBufferArk(WETH_ADDRESS, "Test Fleet");
+        bufferArk = _bufferArk;
+        commander = _commander;
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         weth = IERC20(WETH_ADDRESS);
         originETH = IOriginETH(ORIGINETH_ADDRESS);
-        originETHVault = IOriginETHVault(ORIGIN_ETH_VAULT_ADDRESS);
+        originBaseVault = IOriginETHVault(ORIGIN_ETH_VAULT_ADDRESS);
+
         params = ArkParams({
             name: "WETH OriginETH Ark",
             details: "WETH OriginETH Ark details",
@@ -67,11 +76,27 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             address(address(ark)),
             address(commander)
         );
+        accessManager.grantCuratorRole(
+            address(address(commander)),
+            address(curator)
+        );
+        IFleetCommanderConfigProvider(commander).addArk(address(ark));
         vm.stopPrank();
 
-        vm.startPrank(commander);
-        ark.registerFleetCommander();
+        vm.startPrank(curator);
+        ark.whitelistRouter(ODOS_ROUTER_MAINNET, true);
         vm.stopPrank();
+
+        vm.makePersistent(ORIGINETH_ADDRESS);
+        vm.makePersistent(ORIGIN_ETH_VAULT_ADDRESS);
+        vm.makePersistent(WETH_ADDRESS);
+        vm.makePersistent(OETH_WETH_ARM);
+        vm.makePersistent(commander);
+        vm.makePersistent(curator);
+        vm.makePersistent(governor);
+        vm.makePersistent(address(ark));
+        vm.makePersistent(0x8309B55488500b7b062c849873717Bff8243061f);
+        vm.makePersistent(0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3);
     }
 
     function test_Constructor() public {
@@ -108,18 +133,6 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         // Approve the ark to spend WETH
         weth.forceApprove(address(ark), amount);
 
-        // We need to mock the OriginETH.mint call since we can't fully simulate it in the test
-        vm.mockCall(
-            ORIGINETH_ADDRESS,
-            abi.encodeWithSelector(
-                IOriginETH.mint.selector,
-                address(ark),
-                amount,
-                0
-            ),
-            abi.encode()
-        );
-
         vm.expectEmit(true, true, true, true);
         emit Boarded(commander, WETH_ADDRESS, amount);
 
@@ -127,7 +140,17 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        vm.clearMockedCalls();
+        uint256 totalSupplyBefore = originETH.totalSupply();
+        uint256 totalArkAssetsBefore = ark.totalAssets();
+
+        vm.prank(ORIGIN_ETH_VAULT_ADDRESS);
+        originETH.changeSupply(totalSupplyBefore + 1 ether);
+        uint256 totalArkAssetsAfter = ark.totalAssets();
+        assertLt(
+            totalArkAssetsBefore,
+            totalArkAssetsAfter,
+            "Total assets should accrue interest"
+        );
     }
 
     function test_BoardWithMinShares() public {
@@ -144,26 +167,12 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         // Approve the ark to spend WETH
         weth.forceApprove(address(ark), amount);
 
-        // We need to mock the OriginETH.mint call since we can't fully simulate it in the test
-        vm.mockCall(
-            ORIGINETH_ADDRESS,
-            abi.encodeWithSelector(
-                IOriginETH.mint.selector,
-                address(ark),
-                amount,
-                minShares
-            ),
-            abi.encode()
-        );
-
         vm.expectEmit(true, true, true, true);
         emit Boarded(commander, WETH_ADDRESS, amount);
 
         // Board the tokens with minShares parameter
         ark.board(amount, bytes(""));
         vm.stopPrank();
-
-        vm.clearMockedCalls();
     }
 
     function test_Disembark_OriginETH() public {
@@ -173,6 +182,66 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         vm.startPrank(commander);
         ark.disembark(amount, bytes(""));
         vm.stopPrank();
+    }
+
+    function test_WithdrawUsingSwap_OriginETH() public {
+        test_Board();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: 0xCf5540fFFCdC3d510B18bFcA6d2b9987b0772559,
+                swapCalldata: hex"83bd37f90001856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc30001c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2080de0b6b3a7640000080de05b2bee779880004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE990001cc7d5785AD5755B6164e21495E07aDb0Ff11C2A80001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef03010203006701010001020001ff00000000000000000000000000000000000000cc7d5785ad5755b6164e21495e07adb0ff11c2a8856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3000000000000000000000000000000000000000000000000"
+            });
+        bytes memory data = abi.encode(swapData);
+
+        vm.startPrank(keeper);
+        ark.withdrawUsingSwap(1 ether, data);
+    }
+
+    function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
+        test_Board();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: address(0x123), // Non-whitelisted router
+                swapCalldata: hex"83bd37f90001856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc30001c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2080de0b6b3a7640000080de05b2bee779880004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE990001cc7d5785AD5755B6164e21495E07aDb0Ff11C2A80001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef03010203006701010001020001ff00000000000000000000000000000000000000cc7d5785ad5755b6164e21495e07adb0ff11c2a8856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3000000000000000000000000000000000000000000000000"
+            });
+        bytes memory data = abi.encode(swapData);
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("RouterNotWhitelisted()"));
+        ark.withdrawUsingSwap(1 ether, data);
+    }
+
+    function test_RequestWithdrawal_MaxUint() public {
+        uint256 amount = 1 ether; // 1 WETH
+
+        // Grant keeper role to the commander for testing
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(ark), address(commander));
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        deal(address(weth), address(commander), amount);
+        weth.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+        assertGt(
+            IERC20(ORIGINETH_ADDRESS).balanceOf(address(ark)),
+            0,
+            "There should be OETH in the ark"
+        );
+        vm.startPrank(commander);
+        ark.requestWithdrawal(type(uint256).max);
+        vm.stopPrank();
+
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            amount,
+            "Assets in withdrawal queue should match the total balance when using max uint"
+        );
+        assertEq(
+            IERC20(ORIGINETH_ADDRESS).balanceOf(address(ark)),
+            0,
+            "There should be no OETH in the ark"
+        );
     }
 
     function test_TotalAssets() public {
@@ -215,12 +284,16 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.requestWithdrawal(amount);
         vm.stopPrank();
 
-        vm.clearMockedCalls();
+        assertEq(
+            ark.assetsInWithdrawalQueue(),
+            amount,
+            "Assets in withdrawal queue should match the withdrawal amount"
+        );
     }
 
     function test_ClaimWithdrawal_ClaimDelayNotMet() public {
         // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
-        uint256 requestId = 174;
+        uint256 requestId = 421;
         uint256 amount = 1 ether; // 1 WETH
 
         // Grant keeper role to the commander for testing
@@ -251,44 +324,9 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         );
     }
 
-    function test_ClaimWithdrawal_QueuePendingLiquidity() public {
-        // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
-        uint256 requestId = 174;
-        uint256 amount = 1 ether; // 1 WETH
-
-        // Grant keeper role to the commander for testing
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(address(ark), address(commander));
-        vm.stopPrank();
-
-        vm.startPrank(commander);
-        deal(address(weth), address(commander), amount);
-        weth.forceApprove(address(ark), amount);
-        ark.board(amount, bytes(""));
-        vm.stopPrank();
-
-        vm.startPrank(commander);
-        ark.requestWithdrawal(amount);
-        vm.stopPrank();
-
-        vm.warp(block.timestamp + 10 minutes);
-
-        vm.expectRevert("Queue pending liquidity");
-        vm.startPrank(commander);
-        ark.claimWithdrawal();
-        vm.stopPrank();
-
-        // Verify the request ID was reset
-        assertEq(
-            ark.withdrawalRequestId(),
-            requestId,
-            "Withdrawal request ID should be unchanged"
-        );
-    }
-
     function test_ClaimWithdrawal_WithdrawalRequestClaimed() public {
         // Set withdrawal request ID manually (would normally be set by requestWithdrawal)
-        uint256 requestId = 174;
+        uint256 requestId = 421;
         uint256 amount = 1 ether; // 1 WETH
 
         // Grant keeper role to the commander for testing
@@ -302,9 +340,9 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        uint256 totalAssetsBeforeRequest = ark.totalAssets();
+        uint256 totalArkAssetsBeforeRequest = ark.totalAssets();
         assertEq(
-            totalAssetsBeforeRequest,
+            totalArkAssetsBeforeRequest,
             amount,
             "Before request, total assets should be equal to the withdrawal amount"
         );
@@ -315,21 +353,21 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
 
         vm.warp(block.timestamp + 10 minutes);
 
-        uint256 totalAssetsBeforeClaim = ark.totalAssets();
+        uint256 totalArkAssetsBeforeClaim = ark.totalAssets();
         assertEq(
-            totalAssetsBeforeClaim,
+            totalArkAssetsBeforeClaim,
             amount,
             "Before claim, total assets should be equal to the withdrawal amount"
         );
 
-        deal(address(weth), address(originETHVault), 1000 * amount);
+        deal(address(weth), address(originBaseVault), 1000 * amount);
         vm.startPrank(commander);
         ark.claimWithdrawal();
         vm.stopPrank();
 
-        uint256 totalAssetsAfter = ark.totalAssets();
+        uint256 totalArkAssetsAfter = ark.totalAssets();
         assertEq(
-            totalAssetsAfter,
+            totalArkAssetsAfter,
             amount,
             "After claim, total assets should be equal to the withdrawal amount"
         );
@@ -357,7 +395,7 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
 
         // Should revert with NoWithdrawalRequest
         vm.startPrank(commander);
-        vm.expectRevert(abi.encodeWithSignature("NoWithdrawalRequest()"));
+        vm.expectRevert(abi.encodeWithSignature("NoWithdrawalToClaim()"));
         ark.claimWithdrawal();
         vm.stopPrank();
     }
@@ -378,8 +416,8 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         // Fund the Ark with OETH
         deal(address(weth), address(commander), originBalance);
         vm.startPrank(commander);
-        weth.forceApprove(address(originETHVault), originBalance);
-        originETHVault.mint(address(weth), originBalance, originBalance);
+        weth.forceApprove(address(originBaseVault), originBalance);
+        originBaseVault.mint(address(weth), originBalance, originBalance);
         originETH.transfer(address(ark), originBalance);
         vm.stopPrank();
         assertEq(

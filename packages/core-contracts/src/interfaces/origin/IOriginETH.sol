@@ -6,4 +6,8 @@ interface IOriginETH {
     function balanceOf(address account) external view returns (uint256);
     function vaultAddress() external view returns (address);
     function transfer(address to, uint256 amount) external;
+    function rebaseOptIn() external;
+    function rebaseState(address account) external view returns (uint8);
+    function changeSupply(uint256 amount) external;
+    function totalSupply() external view returns (uint256);
 }

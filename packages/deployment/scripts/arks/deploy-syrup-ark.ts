@@ -102,7 +102,7 @@ async function deploySyrupArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Syrup-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'staging'
 
   const protocol = `Syrup`
 

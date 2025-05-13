@@ -8,7 +8,7 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 
 import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-
+import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -30,7 +30,6 @@ interface IPoolPermissionManager {
 contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SyrupArk public ark;
-    SyrupArk public nextArk;
     IMapleWithdrawalManager public withdrawalManager;
 
     address public constant syrupPoolAddress =
@@ -53,11 +52,16 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
     ISyrupPool public syrupPool;
     IERC20 public usdc;
 
-    uint256 forkBlock = 22274128; // Using the same block as Aave test for consistency
+    uint256 forkBlock = 22445541; // Using the same block as Aave test for consistency
     uint256 forkId;
 
     function setUp() public {
         initializeCoreContracts();
+        (address _commander, ) = setupFleetCommanderWithBufferArk(
+            usdcAddress,
+            "Test Fleet"
+        );
+        commander = _commander;
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         usdc = IERC20(usdcAddress);
@@ -78,7 +82,6 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         });
 
         ark = new SyrupArk(address(syrupPool), routerAddress, params);
-        nextArk = new SyrupArk(address(syrupPool), routerAddress, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -86,15 +89,15 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             address(address(ark)),
             address(commander)
         );
-        accessManager.grantCommanderRole(
-            address(address(nextArk)),
-            address(commander)
+        accessManager.grantCuratorRole(
+            address(address(commander)),
+            address(curator)
         );
+        IFleetCommanderConfigProvider(commander).addArk(address(ark));
         vm.stopPrank();
 
-        vm.startPrank(commander);
-        ark.registerFleetCommander();
-        nextArk.registerFleetCommander();
+        vm.startPrank(curator);
+        ark.whitelistRouter(ODOS_ROUTER_MAINNET, true);
         vm.stopPrank();
 
         vm.startPrank(syrupAdminAddress);
@@ -109,13 +112,20 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         );
         vm.stopPrank();
 
+        vm.makePersistent(address(usdc));
+        vm.makePersistent(address(syrupPool));
+        vm.makePersistent(address(routerAddress));
+        vm.makePersistent(address(syrupPoolAddress));
+        vm.makePersistent(address(withdrawalManagerAddress));
+        vm.makePersistent(address(syrup_redeemer));
+        vm.makePersistent(address(syrupAdminAddress));
+
         vm.label(commander, "Commander");
         vm.label(address(accessManager), "AccessManager");
         vm.label(address(configurationManager), "ConfigurationManager");
         vm.label(address(usdc), "USDC");
         vm.label(address(syrupPool), "SyrupPool");
         vm.label(address(ark), "Ark");
-        vm.label(address(nextArk), "NextArk");
         vm.label(poolManagerAddress, "PoolManager");
         vm.label(poolPermissionManagerAddress, "PoolPermissionManager");
         vm.label(withdrawalManagerAddress, "WithdrawalManager");
@@ -123,7 +133,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
 
     function test_Board_Syrup_fork() public {
         // Arrange
-        uint256 amount = 5 * 10 ** 6; // 1000 USDC
+        uint256 amount = 500000 * 10 ** 6; // 500000 USDC
         deal(address(usdc), commander, amount);
 
         vm.prank(commander);
@@ -159,6 +169,18 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.warp(block.timestamp + 10000);
         uint256 assetsAfterAccrual = ark.totalAssets();
         assertTrue(assetsAfterAccrual > assetsAfterDeposit);
+    }
+
+    function test_WithdrawUsingSwap_Syrup() public {
+        test_Board_Syrup_fork();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: ODOS_ROUTER_MAINNET,
+                swapCalldata: hex"83bd37f9000180ac24aa929eaf5013f6436cda2a7ba190f5cc0b0001a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480569e9e421000574457d4f8d004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef04020204012fb5d42107010101020195538979e579d49999f780c04fc4bf68778b6f0000000000000000000006d9000d0101030101ff000000000000000000000080ac24aa929eaf5013f6436cda2a7ba190f5cc0ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb48ab22d1d671bb5cee8735c5ba29ea651ccda48a8e00000000"
+            });
+        bytes memory data = abi.encode(swapData);
+        vm.startPrank(keeper);
+        ark.withdrawUsingSwap(500000 * 10 ** 6, data);
     }
 
     function test_RequestPartialRedeem_Syrup_fork() public {
@@ -255,16 +277,10 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             1,
             "Post redeem request, assets in withdrawal queue should be the same as the redeem amount"
         );
-        deal(
-            address(usdc),
-            address(address(withdrawalManager)),
-            redeemAmount * 1000
-        );
 
         // process withdrawals
         vm.startPrank(syrup_redeemer);
-        withdrawalManager.processRedemptions(redeemAmount * 1000);
-        withdrawalManager.processRedemptions(redeemAmount * 1000);
+        withdrawalManager.processRedemptions(redeemAmount);
         vm.stopPrank();
 
         // Now withdrawable assets should match the processed withdrawal amount
@@ -285,6 +301,48 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             amount,
             2,
             "Total assets should be the initial amount"
+        );
+    }
+
+    function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
+        test_Board_Syrup_fork();
+        IArkWithWithdrawalRequest.SwapData
+            memory swapData = IArkWithWithdrawalRequest.SwapData({
+                router: address(0x123), // Non-whitelisted router
+                swapCalldata: hex"83bd37f9000180ac24aa929eaf5013f6436cda2a7ba190f5cc0b0001a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480569e9e421000574457d4f8d004189000176edF8C155A1e0D9B2aD11B04d9671CBC25fEE9900000001A4AD4f68d0b91CFD19687c881e50f3A00242828c1f1508ef04020204012fb5d42107010101020195538979e579d49999f780c04fc4bf68778b6f0000000000000000000006d9000d0101030101ff000000000000000000000080ac24aa929eaf5013f6436cda2a7ba190f5cc0ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb48ab22d1d671bb5cee8735c5ba29ea651ccda48a8e00000000"
+            });
+        bytes memory data = abi.encode(swapData);
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSignature("RouterNotWhitelisted()"));
+        ark.withdrawUsingSwap(500000 * 10 ** 6, data);
+    }
+
+    function test_RequestWithdrawal_MaxUint() public {
+        // First board some assets
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+        deal(address(usdc), commander, amount);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        assertGt(
+            IERC20(address(syrupPool)).balanceOf(address(ark)),
+            0,
+            "There should be syrupUSDC in the ark"
+        );
+        // Now test redeem request with max uint
+        vm.prank(keeper);
+        ark.requestWithdrawal(type(uint256).max);
+
+        // Verify we're waiting for withdrawal of the full amount
+        assertApproxEqAbs(ark.assetsInWithdrawalQueue(), amount, 1);
+
+        assertEq(
+            IERC20(address(syrupPool)).balanceOf(address(ark)),
+            0,
+            "There should be no syrupUSDC in the ark"
         );
     }
 }
