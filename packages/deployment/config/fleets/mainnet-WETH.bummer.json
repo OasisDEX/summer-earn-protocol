@@ -50,6 +50,13 @@
         "asset": "WETH",
         "protocol": "fluid"
       }
+    },
+    {
+      "type": "FluidLiteArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
     }
   ]
 }

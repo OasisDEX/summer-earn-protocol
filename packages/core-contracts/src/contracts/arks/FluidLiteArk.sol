@@ -236,10 +236,12 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
      */
     function claimWithdrawal() external onlyKeeper {
         if (withdrawalRequestId == 0) revert NoWithdrawalToClaim();
-        uint256 stethBalanceBefore = steth.balanceOf(address(this));
+        uint256 balanceBefore = address(this).balance;
         withdrawalQueue.claimWithdrawal(withdrawalRequestId);
-        uint256 stethBalanceAfter = steth.balanceOf(address(this));
-        weth.deposit{value: stethBalanceAfter - stethBalanceBefore}();
+        uint256 balanceAfter = address(this).balance;
+        if (balanceAfter > balanceBefore) {
+            weth.deposit{value: balanceAfter - balanceBefore}();
+        }
         withdrawalRequestId = 0;
     }
 
