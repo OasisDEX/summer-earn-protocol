@@ -15,8 +15,10 @@ import { Address } from 'viem'
 export interface BridgeAdaptersConfig {
   layerZero?: {
     endpoint: Address
-    supportedChains: number[]
-    lzEids: number[]
+    supportedChains: Array<{
+      chainId: number
+      lzEid: number
+    }>
     readChannelId?: number
     minGasLimits?: Record<string, number>
   }

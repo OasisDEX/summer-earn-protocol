@@ -1,11 +1,21 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
+import { Address } from 'viem'
+import { BaseConfig } from '../types/config-types'
 import { deployBridgeAdapters } from './bridge/bridge-adapters'
 import { getBridgeAdapterConfigs } from './bridge/bridge-config-helpers'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
+
+/**
+ * Interface for deployed bridge adapters
+ */
+interface DeployedBridgeAdapters {
+  layerZero?: { address: Address }
+  stargate?: { address: Address }
+}
 
 async function deployAdapters() {
   const network = hre.network.name
@@ -19,7 +29,7 @@ async function deployAdapters() {
     network,
     { common: true, gov: true, bridge: true },
     useBummerConfig,
-  ) as any
+  ) as BaseConfig
 
   // Validate required configuration
   if (!config) {
@@ -31,7 +41,7 @@ async function deployAdapters() {
   }
 
   // Load bridge configuration
-  const bridgeConfig = getBridgeAdapterConfigs(config)
+  let bridgeConfig = getBridgeAdapterConfigs(config)
   console.log('bridgeConfig [debug]', bridgeConfig)
   if (!bridgeConfig) {
     const continueWithoutConfig = await promptForContinueWithoutConfig()
@@ -53,8 +63,12 @@ async function deployAdapters() {
   console.log(kleur.green().bold('Starting bridge adapters deployment...'))
 
   try {
-    // Deploy bridge adapters
-    const deployedAdapters = await deployBridgeAdapters(bridgeRouterAddress, bridgeConfig, config)
+    // Use the original bridge-adapters.ts function for deployment
+    const deployedAdapters = await deployBridgeAdapters(
+      bridgeRouterAddress as Address,
+      bridgeConfig,
+      config,
+    )
 
     console.log(kleur.green().bold('Bridge adapters deployment completed successfully!'))
 

@@ -89,6 +89,10 @@ export interface BaseConfig {
     bridge?: {
       bridgeRouter: { address: string }
       bridgeQueue: { address: string }
+      adapters?: {
+        layerZero?: { address: string }
+        stargate?: { address: string }
+      }
     }
   }
   tokens: {

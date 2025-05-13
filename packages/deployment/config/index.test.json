@@ -45,10 +45,10 @@
       },
       "bridge": {
         "bridgeRouter": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x77B4a430f67fB0A436e07dc320C7F1835D3EB5f8"
         },
         "bridgeQueue": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x1Fd588A01a04307AaF486cDe7568c057048a03EE"
         }
       }
     },
@@ -81,6 +81,60 @@
           "sonic": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
             "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          }
+        }
+      },
+      "bridge": {
+        "adapters": {
+          "layerZero": {
+            "endpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+            "supportedChains": [
+              {
+                "chainId": 1,
+                "lzEid": 30101
+              },
+              {
+                "chainId": 42161,
+                "lzEid": 30110
+              },
+              {
+                "chainId": 146,
+                "lzEid": 30332
+              }
+            ],
+            "minGasLimits": {
+              "stateRead": 300000,
+              "generalMessage": 300000
+            },
+            "readChannelId": 1
+          },
+          "stargate": {
+            "router": "0xcdf31d62140204c08853b547e64707110fbc6680",
+            "supportedChains": [
+              {
+                "chainId": 1,
+                "stargateChainId": 1
+              },
+              {
+                "chainId": 42161,
+                "stargateChainId": 110
+              }
+            ],
+            "supportedAssets": {
+              "1": [
+                {
+                  "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                  "poolId": 1
+                }
+              ],
+              "42161": [
+                {
+                  "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                  "poolId": 1
+                }
+              ]
+            },
+            "minDstGasForCall": 300000
           }
         }
       }
@@ -169,6 +223,60 @@
       "sky": {
         "psm3": {
           "usdc": "0x1601843c5E9bC251A3272907010AFa41Fa18347E"
+        }
+      }
+    },
+    "bridge": {
+      "adapters": {
+        "layerZero": {
+          "endpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+          "supportedChains": [
+            {
+              "chainId": 1,
+              "lzEid": 30101
+            },
+            {
+              "chainId": 42161,
+              "lzEid": 30110
+            },
+            {
+              "chainId": 146,
+              "lzEid": 30332
+            }
+          ],
+          "minGasLimits": {
+            "stateRead": 300000,
+            "generalMessage": 300000
+          },
+          "readChannelId": 1
+        },
+        "stargate": {
+          "router": "0xcdf31d62140204c08853b547e64707110fbc6680",
+          "supportedChains": [
+            {
+              "chainId": 1,
+              "stargateChainId": 1
+            },
+            {
+              "chainId": 42161,
+              "stargateChainId": 110
+            }
+          ],
+          "supportedAssets": {
+            "1": [
+              {
+                "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "poolId": 1
+              }
+            ],
+            "42161": [
+              {
+                "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                "poolId": 1
+              }
+            ]
+          },
+          "minDstGasForCall": 300000
         }
       }
     }
