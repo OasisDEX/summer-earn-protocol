@@ -218,18 +218,14 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         }
 
         SwapData memory swapData = abi.decode(data, (SwapData));
-        uint256 assetBalanceBefore = config.asset.balanceOf(address(this));
-        _swap(
+        uint256 assetBought = _swap(
             address(steth),
+            address(config.asset),
             swapData.router,
             stethWithdrawn,
+            _applySlippage(stethWithdrawn),
             swapData.swapCalldata
         );
-        uint256 assetBalanceAfter = config.asset.balanceOf(address(this));
-
-        uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
-        if (_applySlippage(stethWithdrawn) > assetBought)
-            revert WithdrawalFailed();
         emit Disembarked(msg.sender, address(config.asset), amount);
         _boardToBufferArk(assetBought);
     }

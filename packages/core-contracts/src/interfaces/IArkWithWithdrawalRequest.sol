@@ -25,6 +25,9 @@ interface IArkWithWithdrawalRequest is IArk {
     /// @notice Error thrown when the slippage is too high
     error SlippageTooHigh();
 
+    /// @notice Error thrown when the received amount is less than expected
+    error ReceivedLessThanExpected();
+
     /// @notice Struct for the swap data
     struct SwapData {
         /// @notice The router address

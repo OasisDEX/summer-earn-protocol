@@ -90,16 +90,14 @@ contract OriginSuperOETHArk is ArkWithWithdrawalRequest {
         bytes calldata data
     ) external onlyKeeper nonReentrant {
         SwapData memory swapData = abi.decode(data, (SwapData));
-        uint256 assetBalanceBefore = config.asset.balanceOf(address(this));
-        _swap(
+        uint256 assetBought = _swap(
             address(originETH),
+            address(config.asset),
             swapData.router,
             amount,
+            _applySlippage(amount),
             swapData.swapCalldata
         );
-        uint256 assetBalanceAfter = config.asset.balanceOf(address(this));
-        uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
-        if (_applySlippage(amount) > assetBought) revert WithdrawalFailed();
         emit Disembarked(msg.sender, address(config.asset), amount);
         _boardToBufferArk(assetBought);
     }

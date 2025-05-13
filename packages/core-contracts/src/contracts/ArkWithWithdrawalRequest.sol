@@ -108,17 +108,29 @@ abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
     }
 
     function _swap(
-        address token,
+        address sellToken,
+        address buyToken,
         address router,
-        uint256 amount,
+        uint256 amountIn,
+        uint256 amountOutMin,
         bytes memory swapCalldata
-    ) internal {
+    ) internal returns (uint256 amountOut) {
         if (!whitelistedRouters[router]) {
             revert RouterNotWhitelisted();
         }
-        IERC20(token).approve(router, amount);
+        IERC20(sellToken).approve(router, amountIn);
+        uint256 buyTokenBalanceBefore = IERC20(buyToken).balanceOf(
+            address(this)
+        );
         Address.functionCall(router, swapCalldata);
-        emit Swapped(token, router, amount, swapCalldata);
+        uint256 buyTokenBalanceAfter = IERC20(buyToken).balanceOf(
+            address(this)
+        );
+        amountOut = buyTokenBalanceAfter - buyTokenBalanceBefore;
+        if (amountOut < amountOutMin) {
+            revert ReceivedLessThanExpected();
+        }
+        emit Swapped(sellToken, router, amountIn, swapCalldata);
     }
 
     function _boardToBufferArk(uint256 amount) internal {

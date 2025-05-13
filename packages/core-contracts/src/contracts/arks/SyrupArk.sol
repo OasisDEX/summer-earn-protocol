@@ -142,11 +142,14 @@ contract SyrupArk is ArkWithWithdrawalRequest {
     ) external onlyKeeper nonReentrant {
         uint256 shares = vault.convertToShares(amount);
         SwapData memory swapData = abi.decode(data, (SwapData));
-        uint256 assetBalanceBefore = config.asset.balanceOf(address(this));
-        _swap(address(vault), swapData.router, shares, swapData.swapCalldata);
-        uint256 assetBalanceAfter = config.asset.balanceOf(address(this));
-        uint256 assetBought = assetBalanceAfter - assetBalanceBefore;
-        if (_applySlippage(amount) > assetBought) revert WithdrawalFailed();
+        uint256 assetBought = _swap(
+            address(vault),
+            address(config.asset),
+            swapData.router,
+            shares,
+            _applySlippage(amount),
+            swapData.swapCalldata
+        );
         emit Disembarked(msg.sender, address(config.asset), amount);
         _boardToBufferArk(assetBought);
     }
