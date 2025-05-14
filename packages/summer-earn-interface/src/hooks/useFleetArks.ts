@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Abi, MulticallParameters, createPublicClient, http } from 'viem'
+import { Abi, createPublicClient, http } from 'viem'
 import { arkAbi } from '../abis/Ark'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
 import { CHAIN_RPC_URLS, VIEM_CHAIN_ENTITIES } from '../config/chains'
@@ -70,10 +70,10 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
         }
 
         // Execute multicall
+        // @ts-expect-error - Type instantiation is excessively deep
         const results = await client.multicall({
-          // @ts-expect-error - viem types are not updated
           contracts: multicallData,
-        } as MulticallParameters)
+        })
 
         // Process results
         const arksData: ArkInfo[] = []
