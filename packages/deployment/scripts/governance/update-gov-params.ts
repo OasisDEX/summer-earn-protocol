@@ -149,6 +149,7 @@ async function updateGovernanceParams() {
       votingPeriod,
       executionDelay,
       discourseURL,
+      currentTimelockDelays: {}, // Pass an empty object as a placeholder
     },
     hubConfig,
     satelliteConfigs,
@@ -169,6 +170,7 @@ async function createMultiChainGovernanceParamsProposal(
     votingPeriod: number
     executionDelay: number
     discourseURL: string
+    currentTimelockDelays: Record<string, number>
   },
   hubConfig: BaseConfig,
   satelliteConfigs: Record<string, BaseConfig>,
