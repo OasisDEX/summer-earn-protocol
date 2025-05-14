@@ -545,8 +545,6 @@ async function fetchCurrentGovernanceParams(hubConfig: BaseConfig): Promise<{
   currentVotingPeriod: number
   currentTimelockDelay: number
 }> {
-  console.log(kleur.cyan('Reading current governance parameters from contracts...'))
-
   const publicClient = await hre.viem.getPublicClient()
   const governorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
   const timelockAddress = hubConfig.deployedContracts.gov.timelock.address as Address
@@ -603,23 +601,6 @@ async function fetchCurrentGovernanceParams(hubConfig: BaseConfig): Promise<{
         abi: getMinDelayAbi,
         functionName: 'getMinDelay',
       }),
-    )
-
-    console.log(kleur.green('Successfully read current governance parameters:'))
-    console.log(
-      kleur.yellow(
-        `- Current Voting Delay: ${currentVotingDelay} seconds (${currentVotingDelay / 86400} days)`,
-      ),
-    )
-    console.log(
-      kleur.yellow(
-        `- Current Voting Period: ${currentVotingPeriod} seconds (${currentVotingPeriod / 86400} days)`,
-      ),
-    )
-    console.log(
-      kleur.yellow(
-        `- Timelock Delay (Execution): ${currentTimelockDelay} seconds (${currentTimelockDelay / 86400} days)`,
-      ),
     )
 
     return { currentVotingDelay, currentVotingPeriod, currentTimelockDelay }
