@@ -64,7 +64,7 @@ async function updateGovernanceParams() {
   }
 
   // Fetch current governance parameters
-  const { currentVotingDelay, currentVotingPeriod, currentExecutionDelay } =
+  const { currentVotingDelay, currentVotingPeriod, currentTimelockDelay } =
     await fetchCurrentGovernanceParams(hubConfig)
 
   // Fetch timelock delays from all chains
@@ -78,21 +78,51 @@ async function updateGovernanceParams() {
   // Display chains being targeted based on bummer config
   const effectiveTargetChains = TARGET_CHAINS.filter(filterTargetChains)
 
-  // Confirm network selection
-  const confirmNetworks = await prompts({
+  // First show current values
+  console.log(kleur.cyan('Reading current governance parameters from contracts...'))
+  console.log(kleur.yellow(`Hub Chain (${HUB_CHAIN_NAME}):`))
+  console.log(
+    kleur.yellow(
+      `- Voting Delay: ${currentVotingDelay} seconds (${currentVotingDelay / 86400} days)`,
+    ),
+  )
+  console.log(
+    kleur.yellow(
+      `- Voting Period: ${currentVotingPeriod} seconds (${currentVotingPeriod / 86400} days)`,
+    ),
+  )
+  console.log(
+    kleur.yellow(
+      `- Timelock Delay (Execution): ${currentTimelockDelay} seconds (${currentTimelockDelay / 86400} days)`,
+    ),
+  )
+
+  console.log(kleur.yellow(`\nSatellite Chains (${effectiveTargetChains.join(', ')}):`))
+  console.log(
+    kleur.yellow(
+      `- Timelock Delay (Execution): ${currentTimelockDelay} seconds (${currentTimelockDelay / 86400} days)`,
+    ),
+  )
+
+  // Then clearly indicate we're starting proposal creation
+  console.log(kleur.cyan('\nPreparing to create a governance parameter update proposal'))
+
+  // Ask if user wants to continue
+  const confirmProceed = await prompts({
     type: 'confirm',
     name: 'continue',
-    message: `This will create a governance proposal to update parameters on ${HUB_CHAIN_NAME} (voting params + timelock delay) and satellite chains (timelock delay only). Continue?`,
+    message: `Do you want to create a proposal to update these parameters?`,
     initial: true,
   })
 
-  if (!confirmNetworks.continue) {
+  if (!confirmProceed.continue) {
     console.log(kleur.red('Operation cancelled by user.'))
     return
   }
 
-  // Prompt for new governance parameters with current values as defaults
-  const { votingDelay, votingPeriod, executionDelay, discourseURL } = await prompts([
+  // Then ask for new values
+  console.log(kleur.cyan('\nEnter new governance parameters:'))
+  const { votingDelay, votingPeriod, timelockDelay, discourseURL } = await prompts([
     {
       type: 'number',
       name: 'votingDelay',
@@ -109,10 +139,10 @@ async function updateGovernanceParams() {
     },
     {
       type: 'number',
-      name: 'executionDelay',
-      message: 'Enter the new execution delay for all chains (in seconds):',
-      initial: currentExecutionDelay, // Use current value as default
-      validate: (value) => (value >= 0 ? true : 'Execution delay must be non-negative'),
+      name: 'timelockDelay',
+      message: 'Enter the new timelock delay (execution delay) for all chains (in seconds):',
+      initial: currentTimelockDelay,
+      validate: (value) => (value >= 0 ? true : 'Timelock delay must be non-negative'),
     },
     {
       type: 'text',
@@ -131,12 +161,16 @@ async function updateGovernanceParams() {
     kleur.yellow(`- Voting Period: ${votingPeriod} seconds (${votingPeriod / 86400} days)`),
   )
   console.log(
-    kleur.yellow(`- Execution Delay: ${executionDelay} seconds (${executionDelay / 86400} days)`),
+    kleur.yellow(
+      `- Timelock Delay (Execution): ${timelockDelay} seconds (${timelockDelay / 86400} days)`,
+    ),
   )
 
   console.log(kleur.yellow(`\nSatellite Chains (${effectiveTargetChains.join(', ')}):`))
   console.log(
-    kleur.yellow(`- Execution Delay: ${executionDelay} seconds (${executionDelay / 86400} days)`),
+    kleur.yellow(
+      `- Timelock Delay (Execution): ${timelockDelay} seconds (${timelockDelay / 86400} days)`,
+    ),
   )
 
   const confirmParams = await prompts({
@@ -156,7 +190,7 @@ async function updateGovernanceParams() {
     {
       votingDelay,
       votingPeriod,
-      executionDelay,
+      timelockDelay,
       discourseURL,
       currentTimelockDelays,
     },
@@ -177,7 +211,7 @@ async function createMultiChainGovernanceParamsProposal(
   params: {
     votingDelay: number
     votingPeriod: number
-    executionDelay: number
+    timelockDelay: number
     discourseURL: string
     currentTimelockDelays: Record<string, number>
   },
@@ -260,7 +294,7 @@ async function createMultiChainGovernanceParamsProposal(
           },
         ],
         functionName: 'updateDelay',
-        args: [BigInt(params.executionDelay)],
+        args: [BigInt(params.timelockDelay)],
       }),
     )
 
@@ -287,7 +321,7 @@ async function createMultiChainGovernanceParamsProposal(
         return true
       }
 
-      const isChanging = currentDelay !== params.executionDelay
+      const isChanging = currentDelay !== params.timelockDelay
 
       if (!isChanging) {
         console.log(
@@ -300,7 +334,7 @@ async function createMultiChainGovernanceParamsProposal(
 
       console.log(
         kleur.green(
-          `- Including ${chainName} to update delay from ${currentDelay} seconds to ${params.executionDelay} seconds`,
+          `- Including ${chainName} to update delay from ${currentDelay} seconds to ${params.timelockDelay} seconds`,
         ),
       )
       return true
@@ -333,7 +367,7 @@ async function createMultiChainGovernanceParamsProposal(
             },
           ],
           functionName: 'updateDelay',
-          args: [BigInt(params.executionDelay)],
+          args: [BigInt(params.timelockDelay)],
         }),
       )
 
@@ -352,7 +386,7 @@ async function createMultiChainGovernanceParamsProposal(
 
 ## Summary
 This cross-chain proposal updates the timelock execution delay on ${chainName} to:
-- Set Execution Delay: ${params.executionDelay} seconds (${params.executionDelay / 86400} days)
+- Set Execution Delay: ${params.timelockDelay} seconds (${params.timelockDelay / 86400} days)
 
 ## Actions
 1. Update execution delay (minDelay) on the TimelockController contract
@@ -414,10 +448,10 @@ This proposal adjusts the governance parameters across all Lazy Summer Protocol 
 - On ${HUB_CHAIN_NAME} (Hub Chain):
   - Voting Delay: ${params.votingDelay} seconds (${params.votingDelay / 86400} days)
   - Voting Period: ${params.votingPeriod} seconds (${params.votingPeriod / 86400} days)
-  - Execution Delay: ${params.executionDelay} seconds (${params.executionDelay / 86400} days)
+  - Timelock Delay (Execution): ${params.timelockDelay} seconds (${params.timelockDelay / 86400} days)
 
 - On Satellite Chains:
-  - Execution Delay: ${params.executionDelay} seconds (${params.executionDelay / 86400} days)
+  - Timelock Delay (Execution): ${params.timelockDelay} seconds (${params.timelockDelay / 86400} days)
 
 ## Motivation
 As discussed in the [governance forum](https://forum.summer.fi/t/rfc-adjust-governance-parameters-reduce-execution-delay-voting-period/206), the current governance parameters have been found to be longer than necessary. These adjustments will streamline the governance process while still maintaining adequate time for community participation and security considerations.
@@ -431,12 +465,12 @@ The new governance flow will be:
 ### Actions on ${HUB_CHAIN_NAME} (Hub Chain):
 1. Update voting delay to ${params.votingDelay} seconds
 2. Update voting period to ${params.votingPeriod} seconds
-3. Update execution delay to ${params.executionDelay} seconds
+3. Update execution delay to ${params.timelockDelay} seconds
 
 ${effectiveTargetChains
   .map(
     (chainName) => `### Actions on ${chainName} (via Cross-Chain Proposal):
-1. Update execution delay to ${params.executionDelay} seconds`,
+1. Update execution delay to ${params.timelockDelay} seconds`,
   )
   .join('\n\n')}
 
@@ -482,7 +516,7 @@ Since all governance voting occurs on the hub chain, voting delay and period par
       [
         `Update voting delay to ${params.votingDelay / 86400} days (Hub only)`,
         `Update voting period to ${params.votingPeriod / 86400} days (Hub only)`,
-        `Update execution delay to ${params.executionDelay / 86400} days (All chains)`,
+        `Update execution delay to ${params.timelockDelay / 86400} days (All chains)`,
         ...effectiveTargetChains.map(
           (chain) => `Send cross-chain proposal to update timelock delay on ${chain}`,
         ),
@@ -509,7 +543,7 @@ Since all governance voting occurs on the hub chain, voting delay and period par
 async function fetchCurrentGovernanceParams(hubConfig: BaseConfig): Promise<{
   currentVotingDelay: number
   currentVotingPeriod: number
-  currentExecutionDelay: number
+  currentTimelockDelay: number
 }> {
   console.log(kleur.cyan('Reading current governance parameters from contracts...'))
 
@@ -563,7 +597,7 @@ async function fetchCurrentGovernanceParams(hubConfig: BaseConfig): Promise<{
       },
     ] as const
 
-    const currentExecutionDelay = Number(
+    const currentTimelockDelay = Number(
       await publicClient.readContract({
         address: timelockAddress,
         abi: getMinDelayAbi,
@@ -584,11 +618,11 @@ async function fetchCurrentGovernanceParams(hubConfig: BaseConfig): Promise<{
     )
     console.log(
       kleur.yellow(
-        `- Current Execution Delay: ${currentExecutionDelay} seconds (${currentExecutionDelay / 86400} days)`,
+        `- Timelock Delay (Execution): ${currentTimelockDelay} seconds (${currentTimelockDelay / 86400} days)`,
       ),
     )
 
-    return { currentVotingDelay, currentVotingPeriod, currentExecutionDelay }
+    return { currentVotingDelay, currentVotingPeriod, currentTimelockDelay }
   } catch (error) {
     console.error(kleur.red('Error reading current governance parameters:'), error)
     throw error
@@ -617,7 +651,7 @@ async function fetchCurrentTimelockDelay(
       },
     ] as const
 
-    const currentExecutionDelay = Number(
+    const currentTimelockDelay = Number(
       await publicClient.readContract({
         address: timelockAddress,
         abi: getMinDelayAbi,
@@ -625,7 +659,7 @@ async function fetchCurrentTimelockDelay(
       }),
     )
 
-    return currentExecutionDelay
+    return currentTimelockDelay
   } catch (error) {
     console.error(kleur.red(`Error reading timelock delay for ${chainName}:`), error)
     throw error
