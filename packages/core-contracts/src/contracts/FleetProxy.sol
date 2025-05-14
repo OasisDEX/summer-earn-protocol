@@ -8,6 +8,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ProtocolAccessManagedExt, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedExt.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
@@ -77,7 +78,7 @@ contract CrossChainFleetProxy is
         address _fleetContract,
         BridgeTypes.BridgeOptions memory _bridgeOptions,
         address _sourceChainArk
-    ) ProtocolAccessManagedExt(_accessManager) {
+    ) ProtocolAccessManaged(_accessManager) {
         if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
 
         bridgeRouter = IBridgeRouter(_bridgeRouter);
