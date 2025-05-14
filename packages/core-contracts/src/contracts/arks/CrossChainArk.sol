@@ -191,8 +191,9 @@ contract CrossChainArk is
     /**
      * @notice Disembarks the Ark by withdrawing assets that are available on the contract
      * @param amount Amount of tokens to withdraw
-     * @dev This function handles withdrawals of assets that are already on the contract
-     * The Keeper on the satellite chain will handle withdrawals from the FleetProxy
+     * @dev This function only validates that enough assets are available on this contract
+     * The actual withdrawal from the satellite chain is processed by a keeper through
+     * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
         // Ensure we have enough assets on the contract
@@ -201,17 +202,8 @@ contract CrossChainArk is
             revert InsufficientAssets(amount, availableAssets);
         }
 
-        // Transfer assets to the caller
-        config.asset.safeTransfer(msg.sender, amount);
-
-        // Send cross-chain message to notify satellite chain about withdrawal
-        bytes memory message = abi.encode(amount);
-        bridgeQueue.queueSendMessage(
-            targetChainId,
-            targetProxy,
-            message,
-            bridgeOptions
-        );
+        // Note: The actual token transfer is handled by the parent Ark.disembark method
+        // No cross-chain message is required as satellite chain withdrawals are keeper-managed
     }
 
     /**
