@@ -32,11 +32,7 @@ interface IBridgeAdapter is ISendAdapter {
     );
 
     /// @notice Emitted when a read response is delivered through the adapter
-    event ReadResponseDelivered(
-        bytes32 indexed requestId,
-        bytes response,
-        bool delivered
-    );
+    event ReadResponseDelivered(bytes32 indexed requestId, bytes response);
 
     /// @notice Emitted when a relay or messaging operation fails
     event RelayFailed(bytes32 indexed transferId, bytes reason);

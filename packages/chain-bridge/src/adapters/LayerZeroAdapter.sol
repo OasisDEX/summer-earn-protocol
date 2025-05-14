@@ -326,7 +326,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 _payload
             )
         {
-            emit ReadResponseDelivered(operationId, _payload, delivered);
+            emit ReadResponseDelivered(operationId, _payload);
         } catch (bytes memory reason) {
             // Mark as failed if delivery fails
             _updateOperationStatus(
