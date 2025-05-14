@@ -5,6 +5,7 @@ import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
+import { getChainPublicClient } from '../helpers/client-by-chain-helper'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { getChainIdByNetwork } from '../helpers/get-chainid'
 import { getSipMinorNumber } from '../helpers/get-sip-minor-number'
@@ -52,10 +53,6 @@ async function updateGovernanceParams() {
     useBummerConfig,
   )
 
-  // Fetch current governance parameters
-  const { currentVotingDelay, currentVotingPeriod, currentExecutionDelay } =
-    await fetchCurrentGovernanceParams(hubConfig)
-
   // Load configurations for satellite chains
   const satelliteConfigs: Record<string, BaseConfig> = {}
   for (const chain of TARGET_CHAINS.filter(filterTargetChains)) {
@@ -65,6 +62,18 @@ async function updateGovernanceParams() {
       useBummerConfig,
     )
   }
+
+  // Fetch current governance parameters
+  const { currentVotingDelay, currentVotingPeriod, currentExecutionDelay } =
+    await fetchCurrentGovernanceParams(hubConfig)
+
+  // Fetch timelock delays from all chains
+  console.log(kleur.cyan('\nFetching current timelock delays from satellite chains...'))
+  const currentTimelockDelays = await fetchAllTimelockDelays(
+    hubConfig,
+    satelliteConfigs,
+    filterTargetChains,
+  )
 
   // Display chains being targeted based on bummer config
   const effectiveTargetChains = TARGET_CHAINS.filter(filterTargetChains)
@@ -149,7 +158,7 @@ async function updateGovernanceParams() {
       votingPeriod,
       executionDelay,
       discourseURL,
-      currentTimelockDelays: {}, // Pass an empty object as a placeholder
+      currentTimelockDelays,
     },
     hubConfig,
     satelliteConfigs,
@@ -251,7 +260,7 @@ async function createMultiChainGovernanceParamsProposal(
           },
         ],
         functionName: 'updateDelay',
-        args: [params.executionDelay],
+        args: [BigInt(params.executionDelay)],
       }),
     )
 
@@ -266,7 +275,39 @@ async function createMultiChainGovernanceParamsProposal(
 
     // 2. Prepare cross-chain actions for each satellite chain
     console.log(kleur.yellow('Preparing cross-chain actions for satellite chains...'))
-    for (const chainName of TARGET_CHAINS.filter(filterTargetChains)) {
+
+    // Calculate which chains need updates
+    const chainsNeedingUpdate = TARGET_CHAINS.filter(filterTargetChains).filter((chainName) => {
+      // Skip chains where the timelock delay isn't changing
+      const currentDelay = params.currentTimelockDelays[chainName]
+      if (currentDelay === undefined) {
+        console.log(
+          kleur.yellow(`- Including ${chainName} because current delay couldn't be fetched`),
+        )
+        return true
+      }
+
+      const isChanging = currentDelay !== params.executionDelay
+
+      if (!isChanging) {
+        console.log(
+          kleur.blue(
+            `- Skipping ${chainName} as execution delay is already ${currentDelay} seconds (${currentDelay / 86400} days)`,
+          ),
+        )
+        return false
+      }
+
+      console.log(
+        kleur.green(
+          `- Including ${chainName} to update delay from ${currentDelay} seconds to ${params.executionDelay} seconds`,
+        ),
+      )
+      return true
+    })
+
+    // Only process chains that need updates
+    for (const chainName of chainsNeedingUpdate) {
       const satelliteConfig = satelliteConfigs[chainName]
       const timelockAddress = satelliteConfig.deployedContracts.gov.timelock.address as Address
       const currentChainEndpointId = satelliteConfig.common.layerZero.eID
@@ -292,7 +333,7 @@ async function createMultiChainGovernanceParamsProposal(
             },
           ],
           functionName: 'updateDelay',
-          args: [params.executionDelay],
+          args: [BigInt(params.executionDelay)],
         }),
       )
 
@@ -512,18 +553,20 @@ async function fetchCurrentGovernanceParams(hubConfig: BaseConfig): Promise<{
     )
 
     // Read minDelay from TimelockController
+    const getMinDelayAbi = [
+      {
+        name: 'getMinDelay',
+        type: 'function',
+        inputs: [],
+        outputs: [{ type: 'uint256', name: '' }],
+        stateMutability: 'view',
+      },
+    ] as const
+
     const currentExecutionDelay = Number(
       await publicClient.readContract({
         address: timelockAddress,
-        abi: [
-          {
-            name: 'getMinDelay',
-            type: 'function',
-            inputs: [],
-            outputs: [{ type: 'uint256', name: '' }],
-            stateMutability: 'view',
-          },
-        ],
+        abi: getMinDelayAbi,
         functionName: 'getMinDelay',
       }),
     )
@@ -550,6 +593,87 @@ async function fetchCurrentGovernanceParams(hubConfig: BaseConfig): Promise<{
     console.error(kleur.red('Error reading current governance parameters:'), error)
     throw error
   }
+}
+
+/**
+ * Fetches the current timelock delay from a specific chain
+ */
+async function fetchCurrentTimelockDelay(
+  chainName: string,
+  timelockAddress: Address,
+): Promise<number> {
+  try {
+    // Get a public client for the specified chain
+    const publicClient = await getChainPublicClient(chainName)
+
+    // Read minDelay from TimelockController
+    const getMinDelayAbi = [
+      {
+        name: 'getMinDelay',
+        type: 'function',
+        inputs: [],
+        outputs: [{ type: 'uint256', name: '' }],
+        stateMutability: 'view',
+      },
+    ] as const
+
+    const currentExecutionDelay = Number(
+      await publicClient.readContract({
+        address: timelockAddress,
+        abi: getMinDelayAbi,
+        functionName: 'getMinDelay',
+      }),
+    )
+
+    return currentExecutionDelay
+  } catch (error) {
+    console.error(kleur.red(`Error reading timelock delay for ${chainName}:`), error)
+    throw error
+  }
+}
+
+/**
+ * Fetches timelock delays from all chains
+ */
+async function fetchAllTimelockDelays(
+  hubConfig: BaseConfig,
+  satelliteConfigs: Record<string, BaseConfig>,
+  filterTargetChains: (chainName: string) => boolean,
+): Promise<Record<string, number>> {
+  console.log(kleur.cyan('Reading current timelock delays from all chains...'))
+
+  const delays: Record<string, number> = {}
+
+  // Fetch hub chain timelock delay
+  try {
+    const hubTimelockAddress = hubConfig.deployedContracts.gov.timelock.address as Address
+    delays[HUB_CHAIN_NAME] = await fetchCurrentTimelockDelay(HUB_CHAIN_NAME, hubTimelockAddress)
+    console.log(
+      kleur.yellow(
+        `- ${HUB_CHAIN_NAME}: ${delays[HUB_CHAIN_NAME]} seconds (${delays[HUB_CHAIN_NAME] / 86400} days)`,
+      ),
+    )
+  } catch (error) {
+    console.error(kleur.red(`Could not fetch timelock delay for ${HUB_CHAIN_NAME}`))
+  }
+
+  // Fetch satellite chain timelock delays
+  for (const chainName of TARGET_CHAINS.filter(filterTargetChains)) {
+    try {
+      const timelockAddress = satelliteConfigs[chainName].deployedContracts.gov.timelock
+        .address as Address
+      delays[chainName] = await fetchCurrentTimelockDelay(chainName, timelockAddress)
+      console.log(
+        kleur.yellow(
+          `- ${chainName}: ${delays[chainName]} seconds (${delays[chainName] / 86400} days)`,
+        ),
+      )
+    } catch (error) {
+      console.error(kleur.red(`Could not fetch timelock delay for ${chainName}`))
+    }
+  }
+
+  return delays
 }
 
 // Execute the script if called directly
