@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
+import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
@@ -37,6 +38,9 @@ contract CrossChainFleetProxy is
     /// @notice The bridge router used for cross-chain communication
     IBridgeRouter public immutable bridgeRouter;
 
+    /// @notice The bridge queue used for queuing cross-chain transfers
+    IBridgeQueue public immutable bridgeQueue;
+
     /// @notice The address of the Fleet contract that this proxy covers
     address public immutable fleetContract;
 
@@ -68,6 +72,7 @@ contract CrossChainFleetProxy is
      * @notice Initializes the CrossChainFleetProxy
      * @param _accessManager Address of the access manager
      * @param _bridgeRouter Address of the bridge router
+     * @param _bridgeQueue Address of the bridge queue
      * @param _fleetContract Address of the Fleet contract this proxy covers
      * @param _bridgeOptions The bridge options for cross-chain transfers
      * @param _sourceChainArk Address of the source chain's CrossChainArk
@@ -75,6 +80,7 @@ contract CrossChainFleetProxy is
     constructor(
         address _accessManager,
         address _bridgeRouter,
+        address _bridgeQueue,
         address _fleetContract,
         BridgeTypes.BridgeOptions memory _bridgeOptions,
         address _sourceChainArk
@@ -82,6 +88,7 @@ contract CrossChainFleetProxy is
         if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
 
         bridgeRouter = IBridgeRouter(_bridgeRouter);
+        bridgeQueue = IBridgeQueue(_bridgeQueue);
         fleetContract = _fleetContract;
         bridgeOptions = _bridgeOptions;
         sourceChainArk = _sourceChainArk;
@@ -212,18 +219,18 @@ contract CrossChainFleetProxy is
         // 2. Get the asset from fleet config
         FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
             .getConfig();
-        address asset = address(config.bufferArk.asset());
+        address asset = address(config.asset);
 
-        // 3. Use BridgeRouter to transfer assets back to source chain's CrossChainArk
-        bridgeRouter.executeTransferAssets{value: msg.value}(
-            BridgeTypes.ExecuteTransferParams({
-                originator: address(this),
-                destinationChainId: sourceChainId,
-                asset: asset,
-                amount: amount,
-                recipient: sourceChainArk,
-                options: bridgeOptions
-            })
+        // 3. Approve the bridge queue to transfer the assets
+        IERC20(asset).approve(address(bridgeQueue), amount);
+
+        // 4. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
+        bridgeQueue.queueTransferAssets(
+            sourceChainId,
+            asset,
+            amount,
+            sourceChainArk,
+            bridgeOptions
         );
 
         emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
