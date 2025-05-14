@@ -269,132 +269,105 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         // Get quote from the router based on stored data
         uint256 totalNativeFee;
 
-        // Prepare for router call based on type and get quote
-        try router.supportsInterface(type(IBridgeRouter).interfaceId) returns (
-            bool routerSupported
-        ) {
-            if (!routerSupported) revert InvalidBridgeRouter();
+        // Execute operation based on type
+        if (opType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            QueuedTransfer storage transferData = queuedTransfers[queueId];
 
-            if (opType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-                QueuedTransfer storage transferData = queuedTransfers[queueId];
+            // Get quote, ignore token fee
+            (totalNativeFee, , ) = router.quote(
+                transferData.destinationChainId,
+                transferData.asset,
+                transferData.amount,
+                transferData.options,
+                opType
+            );
+            if (msg.value < totalNativeFee) revert InsufficientFee();
 
-                // Get quote, ignore token fee
-                (totalNativeFee, , ) = router.quote(
-                    transferData.destinationChainId,
-                    transferData.asset,
-                    transferData.amount,
-                    transferData.options,
-                    opType
-                );
-                if (msg.value < totalNativeFee) revert InsufficientFee();
+            // Transfer assets from originator to this contract
+            IERC20(transferData.asset).safeTransferFrom(
+                transferData.originator,
+                address(this),
+                transferData.amount
+            );
 
-                // Transfer assets from originator (must have pre-approved queue) to this contract
-                IERC20(transferData.asset).safeTransferFrom(
-                    transferData.originator,
-                    address(this),
-                    transferData.amount
-                );
+            // Approve router
+            IERC20(transferData.asset).approve(
+                address(router),
+                transferData.amount
+            );
 
-                // Approve router
-                IERC20(transferData.asset).approve(
-                    address(router),
-                    transferData.amount
-                );
+            BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+                .ExecuteTransferParams({
+                    destinationChainId: transferData.destinationChainId,
+                    asset: transferData.asset,
+                    amount: transferData.amount,
+                    recipient: transferData.recipient,
+                    originator: transferData.originator,
+                    options: transferData.options
+                });
 
-                BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
-                    .ExecuteTransferParams({
-                        destinationChainId: transferData.destinationChainId,
-                        asset: transferData.asset,
-                        amount: transferData.amount,
-                        recipient: transferData.recipient,
-                        originator: transferData.originator,
-                        options: transferData.options
-                    });
+            // Execute with keeper's payment
+            operationId = router.executeTransferAssets{value: totalNativeFee}(
+                params
+            );
 
-                // Execute with keeper's payment
-                operationId = router.executeTransferAssets{
-                    value: totalNativeFee
-                }(params);
+            // Clean up approval
+            IERC20(transferData.asset).approve(address(router), 0);
+        } else if (opType == BridgeTypes.OperationType.READ_STATE) {
+            QueuedReadState storage readData = queuedReadStates[queueId];
 
-                // Clean up approval
-                IERC20(transferData.asset).approve(address(router), 0);
-            } else if (opType == BridgeTypes.OperationType.READ_STATE) {
-                QueuedReadState storage readData = queuedReadStates[queueId];
+            // Get quote, ignore token fee
+            (totalNativeFee, , ) = router.quote(
+                readData.dstChainId,
+                address(0),
+                0,
+                readData.options,
+                opType
+            );
+            if (msg.value < totalNativeFee) revert InsufficientFee();
 
-                // Get quote, ignore token fee
-                (totalNativeFee, , ) = router.quote(
-                    readData.dstChainId,
-                    address(0),
-                    0,
-                    readData.options,
-                    opType
-                );
-                if (msg.value < totalNativeFee) revert InsufficientFee();
+            BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+                .ExecuteReadStateParams({
+                    dstChainId: readData.dstChainId,
+                    dstContract: readData.dstContract,
+                    selector: readData.selector,
+                    readParams: readData.readParams,
+                    originator: readData.originator,
+                    options: readData.options
+                });
 
-                BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
-                    .ExecuteReadStateParams({
-                        dstChainId: readData.dstChainId,
-                        dstContract: readData.dstContract,
-                        selector: readData.selector,
-                        readParams: readData.readParams,
-                        originator: readData.originator,
-                        options: readData.options
-                    });
+            // Execute with keeper's payment
+            operationId = router.executeReadState{value: totalNativeFee}(
+                params
+            );
+        } else if (opType == BridgeTypes.OperationType.MESSAGE) {
+            QueuedMessage storage messageData = queuedMessages[queueId];
 
-                // Execute with keeper's payment
-                operationId = router.executeReadState{value: totalNativeFee}(
-                    params
-                );
-            } else if (opType == BridgeTypes.OperationType.MESSAGE) {
-                QueuedMessage storage messageData = queuedMessages[queueId];
+            // Get quote, ignore token fee
+            (totalNativeFee, , ) = router.quote(
+                messageData.destinationChainId,
+                address(0),
+                0,
+                messageData.options,
+                opType
+            );
+            if (msg.value < totalNativeFee) revert InsufficientFee();
 
-                // Get quote, ignore token fee
-                (totalNativeFee, , ) = router.quote(
-                    messageData.destinationChainId,
-                    address(0),
-                    0,
-                    messageData.options,
-                    opType
-                );
-                if (msg.value < totalNativeFee) revert InsufficientFee();
+            BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+                .ExecuteSendMessageParams({
+                    destinationChainId: messageData.destinationChainId,
+                    recipient: messageData.recipient,
+                    message: messageData.message,
+                    originator: messageData.originator,
+                    options: messageData.options
+                });
 
-                BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
-                    .ExecuteSendMessageParams({
-                        destinationChainId: messageData.destinationChainId,
-                        recipient: messageData.recipient,
-                        message: messageData.message,
-                        originator: messageData.originator,
-                        options: messageData.options
-                    });
-
-                // Execute with keeper's payment
-                operationId = router.executeSendMessage{value: totalNativeFee}(
-                    params
-                );
-            } else {
-                revert UnknownOperationType();
-            }
-        } catch (bytes memory reason) {
-            // If execution fails, refund the keeper immediately
-            if (msg.value > 0) {
-                (bool success, ) = executor.call{value: msg.value}("");
-                if (!success) revert RefundFailed();
-
-                if (
-                    opType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-                    operationId == bytes32(0)
-                ) {
-                    QueuedTransfer storage transferData = queuedTransfers[
-                        queueId
-                    ];
-                    IERC20(transferData.asset).safeTransfer(
-                        transferData.originator,
-                        transferData.amount
-                    );
-                }
-            }
-            emit QueueExecutionFailed(queueId, executor, reason);
-            return bytes32(0);
+            // Execute with keeper's payment
+            operationId = router.executeSendMessage{value: totalNativeFee}(
+                params
+            );
+        } else {
+            revert UnknownOperationType();
         }
 
         // --- Success Path ---
@@ -513,6 +486,18 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
     /// @inheritdoc IBridgeQueue
     function setBridgeRouter(address _newBridgeRouter) external onlyGovernor {
         if (_newBridgeRouter == address(0)) revert InvalidBridgeRouter();
+
+        // Verify that the new router supports the required interface
+        try
+            IBridgeRouter(_newBridgeRouter).supportsInterface(
+                type(IBridgeRouter).interfaceId
+            )
+        returns (bool routerSupported) {
+            if (!routerSupported) revert InvalidBridgeRouter();
+        } catch {
+            revert InvalidBridgeRouter();
+        }
+
         _bridgeRouter = IBridgeRouter(_newBridgeRouter);
         emit BridgeRouterUpdated(_newBridgeRouter);
     }
