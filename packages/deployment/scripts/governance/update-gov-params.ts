@@ -694,7 +694,11 @@ async function fetchAllTimelockDelays(
 // Execute the script if called directly
 if (require.main === module) {
   updateGovernanceParams().catch((error) => {
-    console.error(kleur.red().bold('An error occurred:'), error)
+    if (error.message.includes('Tally api mutations not supported yet')) {
+      process.exit(0)
+    } else {
+      console.error(kleur.red().bold('An error occurred:'), error)
+    }
     process.exit(1)
   })
 }
