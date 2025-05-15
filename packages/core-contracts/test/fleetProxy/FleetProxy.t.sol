@@ -34,6 +34,7 @@ contract CrossChainFleetProxyTest is Test {
     // Role constants
     bytes32 constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     bytes32 constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+    bytes32 constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     // Contracts under test
     CrossChainFleetProxy public proxy;
@@ -122,6 +123,10 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_ARK_ADDRESS
         );
 
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(proxy), governor);
+        vm.stopPrank();
+
         // Register the mock adapter with the bridge router
         vm.prank(governor);
         mockBridgeRouter.registerAdapter(address(mockAdapter));
@@ -130,8 +135,11 @@ contract CrossChainFleetProxyTest is Test {
     //----------------- Constructor Tests -----------------//
 
     function test_Constructor() public view {
-        // Test basic constructor values
+        // Test all constructor values are properly initialized
         assertEq(address(proxy.bridgeRouter()), address(mockBridgeRouter));
+        assertEq(address(proxy.bridgeQueue()), address(mockBridgeQueue));
+        assertEq(proxy.fleetContract(), address(fleetCommanderMock));
+        assertEq(proxy.sourceChainArk(), SOURCE_ARK_ADDRESS);
     }
 
     //----------------- Administrative Tests -----------------//
@@ -140,6 +148,32 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(guardian);
         proxy.pause();
         assertTrue(proxy.paused());
+
+        // Verify operations are blocked when paused
+        // Try to receive assets while paused
+        address asset = address(mockToken);
+        uint256 amount = 1000;
+        bytes memory message = abi.encodeWithSelector(
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
+            asset,
+            amount
+        );
+        mockToken.mint(address(proxy), amount);
+
+        // Should revert with Paused error
+        vm.prank(address(mockAdapter));
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+
+        // Setup keeper role for testing withdrawAndTransfer
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(proxy), governor);
+        vm.stopPrank();
+
+        // Try withdrawAndTransfer while paused
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        proxy.withdrawAndTransfer(100, SOURCE_CHAIN_ID);
 
         // Non-governor can't unpause
         vm.prank(guardian);
@@ -150,6 +184,11 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(governor);
         proxy.unpause();
         assertFalse(proxy.paused());
+
+        // Operations should work after unpausing
+        vm.prank(address(mockAdapter));
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+        assertEq(fleetCommanderMock.totalAssets(), amount);
     }
 
     //----------------- CrossChainReceiver Tests -----------------//
