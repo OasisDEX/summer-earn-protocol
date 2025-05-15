@@ -16,7 +16,7 @@ import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import {CrossChainFleetProxy} from "../../src/contracts/FleetProxy.sol";
+import {CrossChainFleetProxy, IFleetProxy} from "../../src/contracts/FleetProxy.sol";
 import {IFleetProxy} from "../../src/interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
@@ -216,5 +216,102 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(fleetCommanderMock.totalAssets(), amount);
 
         return messageId;
+    }
+
+    function test_ReceiveMessageWithAssets_UnauthorizedSender() public {
+        // Prepare the message for receiving assets
+        address asset = address(mockToken);
+        uint256 amount = 1000;
+        bytes memory message = abi.encodeWithSelector(
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
+            asset,
+            amount
+        );
+
+        // Mint tokens to the proxy
+        mockToken.mint(address(proxy), amount);
+
+        // Call from an unauthorized address (not the adapter)
+        address unauthorizedCaller = address(0x123);
+        vm.prank(unauthorizedCaller);
+
+        // Should revert with CallerNotRegisteredAdapter error
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerNotRegisteredAdapter()")
+        );
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+    }
+
+    function test_ReceiveMessageWithAssets_InvalidAsset() public {
+        // Create a different token that doesn't match the fleet's configured asset
+        ERC20Mock invalidToken = new ERC20Mock();
+        uint256 amount = 1000;
+
+        bytes memory message = abi.encodeWithSelector(
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
+            address(invalidToken),
+            amount
+        );
+
+        // Mint invalid tokens to the proxy
+        invalidToken.mint(address(proxy), amount);
+
+        // Call from the adapter but with invalid asset
+        vm.prank(address(mockAdapter));
+
+        // Should revert with InvalidAsset error
+        vm.expectRevert(abi.encodeWithSignature("InvalidAsset()"));
+        proxy.receiveMessageWithAssets(
+            address(invalidToken),
+            amount,
+            message,
+            SOURCE_CHAIN_ID
+        );
+    }
+
+    function test_ReceiveMessageWithAssets_ZeroAmount() public {
+        // Prepare the message with zero amount
+        address asset = address(mockToken);
+        uint256 amount = 0;
+
+        bytes memory message = abi.encodeWithSelector(
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
+            asset,
+            amount
+        );
+
+        // Call from the adapter with zero amount
+        vm.prank(address(mockAdapter));
+
+        // Should revert with NoAssets error
+        vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+    }
+
+    function test_ReceiveMessageWithAssets_EmptyMessage() public {
+        // Use empty message
+        address asset = address(mockToken);
+        uint256 amount = 1000;
+        bytes memory emptyMessage = new bytes(0);
+
+        // Mint tokens to the proxy
+        mockToken.mint(address(proxy), amount);
+
+        // Call from the adapter with empty message
+        // This should emit the in-code message warning but still process the assets
+        vm.prank(address(mockAdapter));
+
+        // No event expectation since MessageContentNotExpected isn't declared as an event
+
+        // Call should succeed
+        proxy.receiveMessageWithAssets(
+            asset,
+            amount,
+            emptyMessage,
+            SOURCE_CHAIN_ID
+        );
+
+        // Verify tokens were still processed correctly
+        assertEq(fleetCommanderMock.totalAssets(), amount);
     }
 }
