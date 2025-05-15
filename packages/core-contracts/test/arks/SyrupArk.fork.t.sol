@@ -31,7 +31,7 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
     SyrupArk public ark;
     IMapleWithdrawalManager public withdrawalManager;
-
+    address public bufferArk;
     address public constant syrupPoolAddress =
         0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
     address public constant usdcAddress =
@@ -57,11 +57,12 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
 
     function setUp() public {
         initializeCoreContracts();
-        (address _commander, ) = setupFleetCommanderWithBufferArk(
-            usdcAddress,
-            "Test Fleet"
-        );
+        (
+            address _commander,
+            address _bufferArk
+        ) = setupFleetCommanderWithBufferArk(usdcAddress, "Test Fleet");
         commander = _commander;
+        bufferArk = _bufferArk;
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         usdc = IERC20(usdcAddress);
@@ -259,11 +260,20 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             1,
             "Pre redeem request, total assets should be the same as the initial amount"
         );
-
+        assertEq(
+            ark.isWithdrawalClaimRequired(),
+            false,
+            "Withdrawal claim should not be required"
+        );
         // Request withdrawal of half the assets
         uint256 redeemAmount = 500 * 10 ** 6; // 500 USDC
         vm.prank(keeper);
         ark.requestWithdrawal(redeemAmount);
+        assertEq(
+            ark.isWithdrawalClaimRequired(),
+            false,
+            "Withdrawal claim should not be required"
+        );
 
         // Withdrawable assets should still be 0 since the withdrawal is still in queue
         assertEq(
@@ -302,8 +312,103 @@ contract SyrupArkTestFork is Test, IArkEvents, ArkTestBase {
             2,
             "Total assets should be the initial amount"
         );
-    }
 
+        uint256 bufferArkUsdcBalanceBefore = IERC20(usdcAddress).balanceOf(
+            bufferArk
+        );
+        vm.expectEmit(true, true, true, true);
+        emit Disembarked(address(keeper), usdcAddress, redeemAmount - 1);
+
+        vm.prank(keeper);
+        ark.sweep();
+
+        assertEq(
+            IERC20(usdcAddress).balanceOf(bufferArk),
+            bufferArkUsdcBalanceBefore + redeemAmount - 1
+        );
+    }
+    function test_WithdrawableTotalAssets_Syrup_maxuint_fork() public {
+        // First board some assets
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+        deal(address(usdc), commander, amount);
+        deal(address(usdc), syrupPoolAddress, amount * 100);
+
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // Initially, withdrawable assets should be 0 since everything is in the vault
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "Pre redeem request, withdrawable assets should be 0"
+        );
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            amount,
+            1,
+            "Pre redeem request, total assets should be the same as the initial amount"
+        );
+
+        // Request withdrawal of half the assets
+        uint256 redeemAmount = amount; // 1000 USDC
+        vm.prank(keeper);
+        ark.requestWithdrawal(type(uint256).max);
+
+        // Withdrawable assets should still be 0 since the withdrawal is still in queue
+        assertEq(
+            ark.withdrawableTotalAssets(),
+            0,
+            "Post redeem request, withdrawable assets should still be 0"
+        );
+        assertApproxEqAbs(
+            ark.assetsInWithdrawalQueue(),
+            redeemAmount,
+            1,
+            "Post redeem request, assets in withdrawal queue should be the same as the redeem amount"
+        );
+
+        // process withdrawals
+        vm.startPrank(syrup_redeemer);
+        withdrawalManager.processRedemptions(redeemAmount);
+        vm.stopPrank();
+
+        // Now withdrawable assets should match the processed withdrawal amount
+        assertApproxEqAbs(
+            ark.withdrawableTotalAssets(),
+            redeemAmount,
+            1,
+            "Withdrawable assets should be greater than the processed withdrawal amount"
+        );
+        assertApproxEqAbs(
+            ark.assetsInWithdrawalQueue(),
+            0,
+            1,
+            "Assets in withdrawal queue should be 0"
+        );
+        assertApproxEqAbs(
+            ark.totalAssets(),
+            amount,
+            1,
+            "Total assets should be greater than the initial amount"
+        );
+
+        uint256 bufferArkUsdcBalanceBefore = IERC20(usdcAddress).balanceOf(
+            bufferArk
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit Disembarked(address(keeper), usdcAddress, amount - 1);
+
+        vm.prank(keeper);
+        ark.sweep();
+
+        assertEq(
+            IERC20(usdcAddress).balanceOf(bufferArk),
+            bufferArkUsdcBalanceBefore + amount - 1
+        );
+    }
     function test_WithdrawUsingSwap_NonWhitelistedRouter() public {
         test_Board_Syrup_fork();
         IArkWithWithdrawalRequest.SwapData

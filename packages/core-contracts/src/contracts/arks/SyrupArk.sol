@@ -96,6 +96,9 @@ contract SyrupArk is ArkWithWithdrawalRequest {
         }
     }
 
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
     function assetsInWithdrawalQueue() public view returns (uint256) {
         uint128 withdrawalRequestId = withdrawalManager.requestIds(
             address(this)
@@ -128,14 +131,32 @@ contract SyrupArk is ArkWithWithdrawalRequest {
         );
     }
 
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @notice Syrup processes withdrawals automatically
+     */
     function claimWithdrawal() external onlyKeeper {
         // no-op
     }
 
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @notice Syrup processes withdrawals automatically
+     */
+    function isWithdrawalClaimRequired() public view returns (bool) {
+        return false;
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
     function withdrawalRequestId() external view returns (uint256) {
         return withdrawalManager.requestIds(address(this));
     }
 
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
     function withdrawUsingSwap(
         uint256 amount,
         bytes calldata data
