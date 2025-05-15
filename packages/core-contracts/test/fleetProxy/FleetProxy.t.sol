@@ -353,4 +353,11 @@ contract CrossChainFleetProxyTest is Test {
         // Verify tokens were still processed correctly
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
+
+    function test_WithdrawAndTransfer_ZeroAmount() public {
+        // Try to withdraw and transfer with zero amount
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
+        proxy.withdrawAndTransfer(0, SOURCE_CHAIN_ID);
+    }
 }

@@ -212,6 +212,7 @@ contract CrossChainFleetProxy is
         uint256 amount,
         uint16 sourceChainId
     ) external payable whenNotPaused nonReentrant onlyKeeper {
+        if (amount == 0) revert NoAssets();
         // 1. Withdraw from fleet contract
         IFleetCommander(fleetContract).withdraw(
             amount,
