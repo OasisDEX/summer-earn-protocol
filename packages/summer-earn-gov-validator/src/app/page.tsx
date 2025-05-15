@@ -11,6 +11,7 @@ import {
 } from '@/services/validation'
 import styles from '@/styles/Form.module.scss'
 import { useState } from 'react'
+import { ProposalList } from '@/components/ProposalList'
 
 interface ValidationErrors {
   targets: string[]
@@ -232,10 +233,37 @@ export default function Home() {
     }
   }
 
+  const handleProposalSelect = (proposal: any) => {
+    setFormData({
+      targets: proposal.targets,
+      values: proposal.values,
+      calldatas: proposal.calldatas,
+      description: proposal.description,
+    })
+
+    // Update decoded data for each calldata
+    const newDecodedData = proposal.calldatas.map((calldata: string, index: number) => {
+      if (isCrossChainExecution(proposal.targets[index], calldata)) {
+        return decodeCrossChainCalldata(calldata)
+      }
+      return decodeCalldata(calldata)
+    })
+    setDecodedData(newDecodedData)
+
+    // Update contract names
+    const targetsValidation = validateTargets(proposal.targets)
+    setContractNames(targetsValidation.contractNames)
+  }
+
   return (
     <main className={styles.main}>
       <h1>Governance Proposal Validator</h1>
       <form onSubmit={handleSubmit} className={styles.form}>
+        <div className={styles.section}>
+          <h2>Select Existing Proposal</h2>
+          <ProposalList onSelectProposal={handleProposalSelect} />
+        </div>
+
         <div className={styles.section}>
           <h2>Targets (ETH Addresses)</h2>
           {formData.targets.map((target, index) => (
@@ -247,144 +275,84 @@ export default function Home() {
                   onChange={(e) => handleArrayInputChange(index, 'targets', e.target.value)}
                   placeholder="0x..."
                   required
-                  className={
-                    errors.targets.some((err) => err.includes(`index ${index}`)) ? styles.error : ''
-                  }
+                  className={errors.targets[index] ? styles.error : ''}
                 />
-                {contractNames[index] && contractNames[index] !== 'Unknown' && (
+                {contractNames[index] && (
                   <span className={styles.contractLabel}>{contractNames[index]}</span>
                 )}
               </div>
+              <input
+                type="text"
+                value={formData.values[index]}
+                onChange={(e) => handleArrayInputChange(index, 'values', e.target.value)}
+                placeholder="Value in wei"
+                required
+                className={errors.values[index] ? styles.error : ''}
+              />
+              <input
+                type="text"
+                value={formData.calldatas[index]}
+                onChange={(e) => handleArrayInputChange(index, 'calldatas', e.target.value)}
+                placeholder="Calldata"
+                required
+                className={errors.calldatas[index] ? styles.error : ''}
+              />
               {index > 0 && (
                 <button
                   type="button"
-                  onClick={() => removeArrayField('targets', index)}
                   className={styles.removeButton}
+                  onClick={() => removeArrayField('targets', index)}
                 >
                   Remove
                 </button>
               )}
             </div>
           ))}
-          {errors.targets.length > 0 && (
-            <div className={styles.errorList}>
-              {errors.targets.map((error, i) => (
-                <p key={i} className={styles.error}>
-                  {error}
-                </p>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => addArrayField('targets')}
-            className={styles.addButton}
-          >
+          <button type="button" className={styles.addButton} onClick={() => addArrayField('targets')}>
             Add Target
           </button>
         </div>
 
-        <div className={styles.section}>
-          <h2>Values (ETH Amounts)</h2>
-          {formData.values.map((value, index) => (
-            <div key={`value-${index}`} className={styles.arrayField}>
-              <input
-                type="number"
-                value={value}
-                onChange={(e) => handleArrayInputChange(index, 'values', e.target.value)}
-                placeholder="0"
-                required
-                className={
-                  errors.values.some((err) => err.includes(`index ${index}`)) ? styles.error : ''
-                }
-              />
-              {index > 0 && (
-                <button
-                  type="button"
-                  onClick={() => removeArrayField('values', index)}
-                  className={styles.removeButton}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-          {errors.values.length > 0 && (
-            <div className={styles.errorList}>
-              {errors.values.map((error, i) => (
-                <p key={i} className={styles.error}>
-                  {error}
-                </p>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => addArrayField('values')}
-            className={styles.addButton}
-          >
-            Add Value
-          </button>
-        </div>
-
-        <div className={styles.section}>
-          <h2>Calldatas (Bytes)</h2>
-          {formData.calldatas.map((calldata, index) => (
-            <div key={`calldata-${index}`} className={styles.arrayField}>
-              <input
-                type="text"
-                value={calldata}
-                onChange={(e) => handleArrayInputChange(index, 'calldatas', e.target.value)}
-                placeholder="0x..."
-                required
-                className={
-                  errors.calldatas.some((err) => err.includes(`index ${index}`)) ? styles.error : ''
-                }
-              />
-              {index > 0 && (
-                <button
-                  type="button"
-                  onClick={() => removeArrayField('calldatas', index)}
-                  className={styles.removeButton}
-                >
-                  Remove
-                </button>
-              )}
-              {renderDecodedData(index)}
-            </div>
-          ))}
-          {errors.calldatas.length > 0 && (
-            <div className={styles.errorList}>
-              {errors.calldatas.map((error, i) => (
-                <p key={i} className={styles.error}>
-                  {error}
-                </p>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => addArrayField('calldatas')}
-            className={styles.addButton}
-          >
-            Add Calldata
-          </button>
-        </div>
+        {decodedData.some((data) => data !== null) && (
+          <div className={styles.section}>
+            <h2>Decoded Data</h2>
+            {decodedData.map((data, index) => (
+              <div key={`decoded-${index}`}>{renderDecodedData(index)}</div>
+            ))}
+          </div>
+        )}
 
         <div className={styles.section}>
           <h2>Description</h2>
           <textarea
-            value={formData.description}
-            onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-            placeholder="Enter proposal description..."
-            required
             className={styles.textarea}
+            value={formData.description}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                description: e.target.value,
+              }))
+            }
+            placeholder="Enter proposal description"
+            required
           />
         </div>
 
-        {/* <button type="submit" className={styles.submitButton}>
+        {Object.values(errors).some((errorArray) => errorArray.length > 0) && (
+          <div className={styles.errorList}>
+            {Object.entries(errors).map(([field, errorArray]) =>
+              errorArray.map((error: string, index: number) => (
+                <p key={`${field}-${index}`} className={styles.error}>
+                  {error}
+                </p>
+              )),
+            )}
+          </div>
+        )}
+
+        <button type="submit" className={styles.addButton}>
           Validate Proposal
-        </button> */}
+        </button>
       </form>
     </main>
   )
