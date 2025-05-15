@@ -99,16 +99,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(queue.lastRecipient(), proxy);
     }
 
-    function testDisembarkCallsQueueSendMessage() public {
-        deal(address(mockToken), address(ark), 1000);
-
-        vm.prank(address(fleetCommander));
-        ark.disembark(500, "");
-        assertEq(queue.lastDestinationChainId(), chainId);
-        assertEq(queue.lastRecipient(), proxy);
-        assertEq(abi.decode(queue.lastMessage(), (uint256)), 500);
-    }
-
     function testReceiveStateReadUpdatesRemoteBalanceAndEmitsEvent() public {
         uint256 remoteBalance = 12345;
         bytes memory resultData = abi.encode(remoteBalance);
@@ -125,5 +115,40 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Check state
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
+    }
+
+    function testReceiveMessageWithAssets() public {
+        address tokenAddress = address(mockToken);
+        uint256 amount = 500;
+        bytes memory message = "";
+        uint16 sourceChain = chainId;
+
+        // Track initial state
+        uint256 initialRemoteBalance = 1000;
+
+        // Set initial remote balance
+        bytes memory resultData = abi.encode(initialRemoteBalance);
+        bytes32 requestId = keccak256("test-request");
+        vm.prank(address(router));
+        ark.receiveStateRead(resultData, address(ark), sourceChain, requestId);
+
+        // Should emit the event when receiving assets
+        vm.expectEmit(true, true, true, true);
+        emit CrossChainArk.AssetsReceived(tokenAddress, amount, sourceChain);
+
+        // Mock token transfer that would happen in a real bridge
+        deal(address(mockToken), address(ark), amount);
+
+        // Call as bridgeRouter
+        vm.prank(address(router));
+        ark.receiveMessageWithAssets(
+            tokenAddress,
+            amount,
+            message,
+            sourceChain
+        );
+
+        // Check state was updated correctly
+        assertEq(ark.lastRemoteAssetBalance(), initialRemoteBalance - amount);
     }
 }

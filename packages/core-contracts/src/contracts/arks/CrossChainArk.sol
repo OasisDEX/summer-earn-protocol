@@ -63,6 +63,9 @@ contract CrossChainArk is
     /// @notice Thrown when there are insufficient assets on the contract to perform the withdrawal.
     error InsufficientAssets(uint256 requestedAmount, uint256 availableAmount);
 
+    /// @notice Thrown when the provided asset address is invalid.
+    error InvalidAsset();
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -89,6 +92,13 @@ contract CrossChainArk is
 
     /// @notice Emitted when the remote asset balance is updated via state read
     event RemoteAssetBalanceUpdated(uint256 newBalance, bytes32 requestId);
+
+    /// @notice Emitted when assets are received from another chain
+    event AssetsReceived(
+        address indexed token,
+        uint256 amount,
+        uint16 sourceChainId
+    );
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -247,15 +257,31 @@ contract CrossChainArk is
 
     /**
      * @inheritdoc ICrossChainAssetReceiver
-     * @notice Receives a message with assets (not supported for this Ark)
+     * @notice Receives assets from another chain along with a message
+     * @param tokenAddress The address of the received token
+     * @param amount The amount of tokens received
+     * @param message The associated message data
+     * @param sourceChainId The chain ID where the message originated from
      */
     function receiveMessageWithAssets(
-        address,
-        uint256,
-        bytes calldata,
-        uint16
-    ) external pure {
-        revert ReceiveMessageWithAssetsNotSupported();
+        address tokenAddress,
+        uint256 amount,
+        bytes calldata message, // TODO: Use this to send latest true balance after withdrawal
+        uint16 sourceChainId
+    ) external {
+        if (msg.sender != address(bridgeRouter)) revert Unauthorized();
+        if (sourceChainId != targetChainId) revert InvalidSourceChain();
+        if (tokenAddress != address(config.asset)) revert InvalidAsset();
+
+        // Update the remote asset tracking
+        // Since we've received these assets, we can reduce the remote balance
+        if (amount <= lastRemoteAssetBalance) {
+            lastRemoteAssetBalance -= amount;
+        } else {
+            lastRemoteAssetBalance = 0;
+        }
+
+        emit AssetsReceived(tokenAddress, amount, sourceChainId);
     }
 
     /**
