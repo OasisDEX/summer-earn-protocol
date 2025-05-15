@@ -219,7 +219,7 @@ contract CrossChainFleetProxy is
         // 2. Get the asset from fleet config
         FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
             .getConfig();
-        address asset = address(config.asset);
+        address asset = address(config.bufferArk.asset());
 
         // 3. Approve the bridge queue to transfer the assets
         IERC20(asset).approve(address(bridgeQueue), amount);

@@ -195,7 +195,7 @@ contract CrossChainArk is
      * The actual withdrawal from the satellite chain is processed by a keeper through
      * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
-    function _disembark(uint256 amount, bytes calldata) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal view override {
         // Ensure we have enough assets on the contract
         uint256 availableAssets = config.asset.balanceOf(address(this));
         if (availableAssets < amount) {

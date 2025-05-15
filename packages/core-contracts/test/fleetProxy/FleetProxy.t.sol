@@ -8,6 +8,7 @@ import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
+import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkParams} from "../../src/contracts/Ark.sol";
@@ -40,6 +41,7 @@ contract CrossChainFleetProxyTest is Test {
     // Mocks
     ERC20Mock public mockToken;
     MockBridgeRouter public mockBridgeRouter;
+    MockBridgeQueue public mockBridgeQueue;
     ProtocolAccessManager public accessManager;
     MockAdapter public mockAdapter;
     ArkMock public bufferArkMock;
@@ -56,6 +58,7 @@ contract CrossChainFleetProxyTest is Test {
         // Deploy mocks
         mockToken = new ERC20Mock();
         mockBridgeRouter = new MockBridgeRouter();
+        mockBridgeQueue = new MockBridgeQueue();
         accessManager = new ProtocolAccessManager(governor);
         mockAdapter = new MockAdapter(address(mockBridgeRouter));
         mockBridgeRouter.registerAdapter(address(mockAdapter));
@@ -113,6 +116,7 @@ contract CrossChainFleetProxyTest is Test {
         proxy = new CrossChainFleetProxy(
             address(accessManager),
             address(mockBridgeRouter),
+            address(mockBridgeQueue),
             address(fleetCommanderMock),
             bridgeOptions,
             SOURCE_ARK_ADDRESS
