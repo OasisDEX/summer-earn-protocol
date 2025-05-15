@@ -2,14 +2,19 @@ specVersion: 0.0.8
 description: Rates
 schema:
   file: ./schema.graphql
+features:
+  - grafting
+graft:
+  base: QmZeBkfYq1eJA7SRK3in7cgY6xCw6XbGBTJHLKvCLHp2tu
+  block: 22477747
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: arbitrum-one
+    network: mainnet
     source:
       abi: Comet
-      startBlock: 293165006
-      address: "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3"
+      startBlock: 21575816
+      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -72,9 +77,11 @@ dataSources:
           file: ./abis/oracles/spark-oracle.json
         - name: AaveV2Oracle
           file: ./abis/oracles/aave-v2-price-oracle.json  
+        - name: IStakingRewards
+          file: ./abis/IStakingRewards.json
       blockHandlers:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 240    
+            every: 50    
       file: ./src/mapping.ts

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../Ark.sol";
+import "../ArkWithWithdrawalRequest.sol";
 import {IOriginETH} from "../../interfaces/origin/IOriginETH.sol";
 import {IArm} from "../../interfaces/origin/IArm.sol";
 import {IOriginETHVault} from "../../interfaces/origin/IOriginETHVault.sol";
@@ -11,7 +11,7 @@ import {IOriginETHVault} from "../../interfaces/origin/IOriginETHVault.sol";
  * @notice Ark contract for managing ETH/WETH deposits into Origin ETH protocol
  * @dev Implements strategy for depositing into Origin ETH, withdrawing tokens, and tracking yield
  */
-contract OriginSuperOETHArk is Ark {
+contract OriginSuperOETHArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -38,7 +38,10 @@ contract OriginSuperOETHArk is Ark {
      * @param _originETH Address of the OriginETH contract
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
-    constructor(address _originETH, ArkParams memory _params) Ark(_params) {
+    constructor(
+        address _originETH,
+        ArkParams memory _params
+    ) ArkWithWithdrawalRequest(_params, 15) {
         if (_originETH == address(0)) {
             revert InvalidOriginETHAddress();
         }
@@ -51,6 +54,7 @@ contract OriginSuperOETHArk is Ark {
         }
 
         originETHVault = IOriginETHVault(vaultAddress);
+        originETH.rebaseOptIn();
     }
 
     /**
@@ -59,16 +63,79 @@ contract OriginSuperOETHArk is Ark {
      * @return assets The total balance of underlying assets held in the vault for this Ark,
      *                including any pending withdrawal amounts
      */
-    function totalAssets() public view override returns (uint256 assets) {
+    function totalAssets()
+        public
+        view
+        override(Ark, IArk)
+        returns (uint256 assets)
+    {
         assets += config.asset.balanceOf(address(this));
         assets += originETH.balanceOf(address(this));
-        if (withdrawalRequestId > 0) {
-            IOriginETHVault.WithdrawalRequest
-                memory withdrawalRequest = originETHVault.withdrawalRequests(
-                    withdrawalRequestId
-                );
-            assets += withdrawalRequest.amount;
+        assets += assetsInWithdrawalQueue();
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function assetsInWithdrawalQueue() public view returns (uint256) {
+        if (withdrawalRequestId == 0) {
+            return 0;
         }
+        IOriginETHVault.WithdrawalRequest
+            memory withdrawalRequest = originETHVault.withdrawalRequests(
+                withdrawalRequestId
+            );
+        return withdrawalRequest.amount;
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function withdrawUsingSwap(
+        uint256 amount,
+        bytes calldata data
+    ) external onlyKeeper nonReentrant {
+        SwapData memory swapData = abi.decode(data, (SwapData));
+        uint256 assetBought = _swap(
+            address(originETH),
+            address(config.asset),
+            swapData.router,
+            amount,
+            _applySlippage(amount),
+            swapData.swapCalldata
+        );
+        emit Disembarked(msg.sender, address(config.asset), amount);
+        _boardToBufferArk(assetBought);
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function requestWithdrawal(uint256 amount) external onlyKeeper {
+        if (withdrawalRequestId > 0) {
+            revert WithdrawalAlreadyRequested();
+        }
+        if (amount == type(uint256).max) {
+            amount = originETH.balanceOf(address(this));
+        }
+        (uint256 requestId, ) = originETHVault.requestWithdrawal(amount);
+        withdrawalRequestId = requestId;
+        emit WithdrawalRequested(amount, withdrawalRequestId);
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function claimWithdrawal() external onlyKeeper {
+        if (withdrawalRequestId == 0) {
+            revert NoWithdrawalToClaim();
+        }
+        originETHVault.claimWithdrawal(withdrawalRequestId);
+        withdrawalRequestId = 0;
+    }
+
+    function isWithdrawalClaimRequired() public view returns (bool) {
+        return withdrawalRequestId != 0;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -107,31 +174,6 @@ contract OriginSuperOETHArk is Ark {
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
         // handled by Ark.sol
-    }
-
-    /**
-     * @notice Initiates a withdrawal request from Origin ETH Vault
-     * @dev Can only be called by a keeper role
-     * @param amount The amount to request for withdrawal
-     */
-    function requestWithdrawal(uint256 amount) external onlyKeeper {
-        if (withdrawalRequestId > 0) {
-            revert WithdrawalAlreadyRequested();
-        }
-        (uint256 requestId, ) = originETHVault.requestWithdrawal(amount);
-        withdrawalRequestId = requestId;
-    }
-
-    /**
-     * @notice Claims a previously requested withdrawal from Origin ETH Vault
-     * @dev Can only be called by a keeper role, requires an active withdrawal request
-     */
-    function claimWithdrawal() external onlyKeeper {
-        if (withdrawalRequestId == 0) {
-            revert NoWithdrawalRequest();
-        }
-        originETHVault.claimWithdrawal(withdrawalRequestId);
-        withdrawalRequestId = 0;
     }
 
     /**
@@ -177,18 +219,6 @@ contract OriginSuperOETHArk is Ark {
     /// @notice Error thrown when an invalid Origin ETH address is provided
     error InvalidOriginETHAddress();
 
-    /// @notice Error thrown when an invalid ARM address is provided
-    error InvalidArmAddress();
-
-    /// @notice Error thrown when there is insufficient ARM balance
-    error InsufficientArmBalance();
-
-    /// @notice Error thrown when there is no withdrawal request
-    error NoWithdrawalRequest();
-
     /// @notice Error thrown when an invalid Origin ETH vault address is provided
     error InvalidOriginETHVaultAddress();
-
-    /// @notice Error thrown when a withdrawal has already been requested
-    error WithdrawalAlreadyRequested();
 }

@@ -49,7 +49,9 @@
     "update-fleet-configurations": "hardhat run scripts/governance/update-fleet-configurations-safe.ts --network $NETWORK",
     "configure:new-chain-layerzero": "hardhat run scripts/bridge/configure-new-chain-lz.ts --network $NETWORK --no-compile",
     "gov:submit-proposal": "hardhat run scripts/governance/submit-proposal.ts --network $NETWORK",
+    "gov:execute-proposal": "hardhat run scripts/governance/execute-proposal.ts --network $NETWORK",
     "gov:create-fleet-rewards-proposals": "hardhat run scripts/governance/create-fleet-rewards-proposals.ts --network $NETWORK",
+    "update-vesting-goals": "hardhat run scripts/governance/update-vesting-goals-safe.ts --network $NETWORK",
     "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts",
     "check-angl-rewards": "tsx scripts/check-angl-rewards.ts"
   },

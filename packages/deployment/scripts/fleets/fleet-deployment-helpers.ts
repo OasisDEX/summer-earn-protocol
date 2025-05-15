@@ -31,6 +31,7 @@ export async function deployArks(
     let retries = 0
     while (retries <= MAX_RETRIES) {
       try {
+        console.log('Deploying Ark - fleet deployment helper [Debug]')
         const arkAddress = await deployArk(arkConfig, config, fleetDefinition)
         deployedArks.push(arkAddress)
         console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
@@ -268,6 +269,8 @@ export async function getRewardsManagerAddress(fleetCommander: Address): Promise
       )
       const linkedFleetCommander = (await rewardsManagerContract.read.fleetCommander()) as Address
 
+      console.log('linkedFleetCommander', linkedFleetCommander)
+      console.log('fleetCommander', fleetCommander)
       if (linkedFleetCommander.toLowerCase() !== fleetCommander.toLowerCase()) {
         throw new Error(
           `Rewards manager verification failed: linked to ${linkedFleetCommander} instead of ${fleetCommander}`,
@@ -317,6 +320,8 @@ export async function promptForFleetDeploymentOutput(
   // Find fleet deployments related to the specified chain
   const fleetDeploymentFiles = fs.readdirSync(fleetsDir).filter((file) => {
     // Look for files that might be related to the chain
+    console.log('file', file)
+    console.log('chainName', chainName)
     return file.toLowerCase().includes(chainName.toLowerCase()) && file.endsWith('.json')
   })
 

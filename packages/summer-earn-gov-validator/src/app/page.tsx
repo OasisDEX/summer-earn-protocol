@@ -21,6 +21,7 @@ interface ValidationErrors {
 interface DecodedFunction {
   functionName: string
   args: any[]
+  paramNames?: string[]
 }
 
 // Helper function to convert BigInt values to strings
@@ -154,36 +155,49 @@ export default function Home() {
       return (
         <div className={styles.decodedData}>
           <h4>Cross-chain Execution to {data.dstEid}</h4>
-          <p>Targets:</p>
-          <ul className={styles.targetsList}>
-            {data.dstTargets.map((target, i) => (
-              <li key={i}>
-                <span className={styles.address}>{target}</span>
-                <span className={styles.contractName}>{data.dstTargetNames[i]}</span>
-              </li>
-            ))}
-          </ul>
-          <p>Values: {data.dstValues.join(', ')}</p>
-          <p>Description Hash: {data.dstDescriptionHash}</p>
-          {data.decodedCalldatas && data.decodedCalldatas.length > 0 && (
-            <div className={styles.nestedCalldatas}>
-              <h5>Nested Proposals:</h5>
-              {data.decodedCalldatas.map((decoded, i) => (
-                <div key={i} className={styles.nestedCalldata}>
-                  {decoded ? (
-                    <>
-                      <h6>Function: {decoded.functionName}</h6>
-                      <p>
-                        Arguments: {JSON.stringify(convertBigIntToString(decoded.args), null, 2)}
-                      </p>
-                    </>
-                  ) : (
-                    <p className={styles.error}>Could not decode calldata</p>
-                  )}
+          {data.formattedProposals?.map((proposal, i) => (
+            <div key={i} className={styles.proposal}>
+              <div className={styles.proposalHeader}>
+                <div className={styles.targetInfo}>
+                  <span className={styles.label}>Target:</span>
+                  <span className={styles.address}>{proposal.target}</span>
+                  <span className={styles.contractName}>({proposal.targetName})</span>
                 </div>
-              ))}
+                <div className={styles.valueInfo}>
+                  <span className={styles.label}>Value:</span>
+                  <span className={styles.value}>{proposal.value} ETH</span>
+                </div>
+              </div>
+              {proposal.decodedCall && (
+                <div className={styles.decodedCall}>
+                  <div className={styles.functionInfo}>
+                    <span className={styles.label}>Function:</span>
+                    <span className={styles.functionName}>{proposal.decodedCall.functionName}</span>
+                  </div>
+                  <div className={styles.arguments}>
+                    <span className={styles.label}>Arguments:</span>
+                    <ul className={styles.argsList}>
+                      {proposal.decodedCall.args.map((arg: unknown, j: number) => {
+                        const paramName = proposal.decodedCall?.paramNames?.[j] || `arg${j}`
+                        return (
+                          <li key={j}>
+                            <span className={styles.paramName}>{paramName}:</span>{' '}
+                            {typeof arg === 'string' &&
+                            arg.startsWith('0x') &&
+                            arg.length === 42 ? (
+                              <span className={styles.address}>{arg}</span>
+                            ) : (
+                              <span>{String(arg)}</span>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          ))}
         </div>
       )
     } else {
@@ -191,8 +205,28 @@ export default function Home() {
       const convertedArgs = convertBigIntToString(data.args)
       return (
         <div className={styles.decodedData}>
-          <h4>Function: {data.functionName}</h4>
-          <p>Arguments: {JSON.stringify(convertedArgs, null, 2)}</p>
+          <div className={styles.functionInfo}>
+            <span className={styles.label}>Function:</span>
+            <span className={styles.functionName}>{data.functionName}</span>
+          </div>
+          <div className={styles.arguments}>
+            <span className={styles.label}>Arguments:</span>
+            <ul className={styles.argsList}>
+              {convertedArgs.map((arg: unknown, i: number) => {
+                const paramName = data.paramNames?.[i] || `arg${i}`
+                return (
+                  <li key={i}>
+                    <span className={styles.paramName}>{paramName}:</span>{' '}
+                    {typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42 ? (
+                      <span className={styles.address}>{arg}</span>
+                    ) : (
+                      <span>{String(arg)}</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         </div>
       )
     }
@@ -348,9 +382,9 @@ export default function Home() {
           />
         </div>
 
-        <button type="submit" className={styles.submitButton}>
+        {/* <button type="submit" className={styles.submitButton}>
           Validate Proposal
-        </button>
+        </button> */}
       </form>
     </main>
   )

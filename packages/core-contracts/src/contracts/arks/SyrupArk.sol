@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../Ark.sol";
+import "../ArkWithWithdrawalRequest.sol";
 import {ISyrupPool} from "../../interfaces/syrup/ISyrupPool.sol";
 import {ISyrupManager} from "../../interfaces/syrup/ISyrupManager.sol";
 import {ISyrupWithdrawalManager} from "../../interfaces/syrup/ISyrupWithdrawalManager.sol";
@@ -16,7 +16,7 @@ error InvalidRouterAddress();
  * @notice Ark contract for managing token supply and yield generation through Maple Finance Syrup pools
  * @dev Implements strategy for depositing tokens with signature authorization and managing withdrawals
  */
-contract SyrupArk is Ark {
+contract SyrupArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
     using SafeERC20 for ISyrupPool;
 
@@ -44,7 +44,7 @@ contract SyrupArk is Ark {
         address _vault,
         address _router,
         ArkParams memory _params
-    ) Ark(_params) {
+    ) ArkWithWithdrawalRequest(_params, 15) {
         if (_vault == address(0)) revert InvalidVaultAddress();
         if (_router == address(0)) revert InvalidRouterAddress();
 
@@ -80,8 +80,13 @@ contract SyrupArk is Ark {
      * @notice Returns the total assets managed by this Ark
      * @return assets Sum of withdrawable assets, shares in Ark, and shares in withdrawal queue
      */
-    function totalAssets() public view override returns (uint256 assets) {
-        assets = _withdrawableTotalAssets();
+    function totalAssets()
+        public
+        view
+        override(Ark, IArk)
+        returns (uint256 assets)
+    {
+        assets += _withdrawableTotalAssets();
         assets += assetsInWithdrawalQueue();
 
         // Add value of shares held by Ark
@@ -92,23 +97,7 @@ contract SyrupArk is Ark {
     }
 
     /**
-     * @notice Request redemption of shares from the Syrup pool
-     * @param amount Amount of token to withdraw
-     */
-    function requestWithdrawal(uint256 amount) external onlyKeeper {
-        uint256 shares = 0;
-        if (amount == type(uint256).max) {
-            shares = vault.balanceOf(address(this));
-        } else {
-            shares = vault.convertToShares(amount);
-        }
-        vault.forceApprove(address(withdrawalManager), shares);
-        vault.requestRedeem(shares, address(this));
-    }
-
-    /**
-     * @notice Check if Ark has a pending withdrawal request
-     * @return amount of assets in withdrawal queue
+     * @inheritdoc IArkWithWithdrawalRequest
      */
     function assetsInWithdrawalQueue() public view returns (uint256) {
         uint128 withdrawalRequestId = withdrawalManager.requestIds(
@@ -122,6 +111,68 @@ contract SyrupArk is Ark {
                 withdrawalRequestId
             );
         return vault.convertToAssets(withdrawalRequest.shares);
+    }
+
+    /**
+     * @notice Request redemption of shares from the Syrup pool
+     * @param amount Amount of token to withdraw
+     */
+    function requestWithdrawal(uint256 amount) external onlyKeeper {
+        uint256 shares = 0;
+        if (amount == type(uint256).max) {
+            shares = vault.balanceOf(address(this));
+        } else {
+            shares = vault.convertToShares(amount);
+        }
+        vault.requestRedeem(shares, address(this));
+        emit WithdrawalRequested(
+            amount,
+            withdrawalManager.requestIds(address(this))
+        );
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @notice Syrup processes withdrawals automatically
+     */
+    function claimWithdrawal() external onlyKeeper {
+        // no-op
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     * @notice Syrup processes withdrawals automatically
+     */
+    function isWithdrawalClaimRequired() public view returns (bool) {
+        return false;
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function withdrawalRequestId() external view returns (uint256) {
+        return withdrawalManager.requestIds(address(this));
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function withdrawUsingSwap(
+        uint256 amount,
+        bytes calldata data
+    ) external onlyKeeper nonReentrant {
+        uint256 shares = vault.convertToShares(amount);
+        SwapData memory swapData = abi.decode(data, (SwapData));
+        uint256 assetBought = _swap(
+            address(vault),
+            address(config.asset),
+            swapData.router,
+            shares,
+            _applySlippage(amount),
+            swapData.swapCalldata
+        );
+        emit Disembarked(msg.sender, address(config.asset), amount);
+        _boardToBufferArk(assetBought);
     }
 
     /*//////////////////////////////////////////////////////////////
