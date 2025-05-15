@@ -72,7 +72,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             });
 
         // Should revert when estimating fee for unsupported asset
-        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(StargateAdapter.UnsupportedAsset.selector)
+        );
         adapterA.estimateFee(
             CHAIN_ID_B,
             address(0xdead), // Unsupported asset
@@ -212,6 +214,15 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         useNetworkA();
         vm.deal(address(routerA), 1 ether); // Provide ETH to the router
 
+        // vm.prank(governor);
+        // routerA.registerAdapter(address(adapterA));
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            bytes32(
+                0x528376a1966c744b216d0b277b4672bcda5b6ddb690dc471e2cb20923fbda502
+            ),
+            address(adapterA)
+        );
+
         // Setup adapter params
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
@@ -222,8 +233,10 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             });
 
         // Should revert when transferring unsupported asset
-        vm.prank(address(routerA));
-        vm.expectRevert(IBridgeAdapter.UnsupportedAsset.selector);
+        vm.startPrank(address(routerA));
+        vm.expectRevert(
+            abi.encodeWithSelector(StargateAdapter.UnsupportedAsset.selector)
+        );
         adapterA.transferAsset{value: 0.1 ether}(
             CHAIN_ID_B,
             address(0xdead), // Unsupported asset
@@ -232,6 +245,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             user,
             adapterParams
         );
+        vm.stopPrank();
     }
 
     function testTransferAssetInsufficientFee() public {

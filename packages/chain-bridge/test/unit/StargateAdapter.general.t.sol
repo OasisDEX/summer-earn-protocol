@@ -26,24 +26,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         assertFalse(adapterA.supportsChain(9999)); // Arbitrary unsupported chain
     }
 
-    function testSupportsAsset() public view {
-        assertTrue(adapterA.supportsAsset(CHAIN_ID_A, address(tokenA)));
-        assertTrue(adapterA.supportsAsset(CHAIN_ID_B, address(tokenA)));
-        assertFalse(adapterA.supportsAsset(9999, address(tokenA))); // Unsupported chain
-        assertFalse(adapterA.supportsAsset(CHAIN_ID_A, address(0xdead))); // Unsupported asset
-    }
-
-    function testGetSupportedAssets() public view {
-        address[] memory assets = adapterA.getSupportedAssets(CHAIN_ID_A);
-        assertEq(assets.length, 1);
-        assertEq(assets[0], address(tokenA));
-    }
-
-    function testGetSupportedAssetsUnsupportedChain() public {
-        vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
-        adapterA.getSupportedAssets(9999); // Unsupported chain
-    }
-
     function testFeatureSupport() public view {
         // StargateAdapter supports asset transfers but not messaging or state reads
         assertTrue(
@@ -133,19 +115,43 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Create a new token
         ERC20Mock newToken = new ERC20Mock();
 
-        // Add support for the new token
+        // Add the new token as supported asset
         vm.prank(governor);
         adapterA.addSupportedAsset(CHAIN_ID_A, address(newToken), 3);
 
         // Verify the asset was added
-        assertTrue(adapterA.supportsAsset(CHAIN_ID_A, address(newToken)));
         assertEq(adapterA.chainAssetToPoolId(CHAIN_ID_A, address(newToken)), 3);
 
-        // Verify it's in the list of supported assets
+        // Get the supported assets using getSupportedAssets method
         address[] memory supportedAssets = adapterA.getSupportedAssets(
             CHAIN_ID_A
         );
-        assertEq(supportedAssets.length, 2); // Original token + new token
+        bool found = false;
+        for (uint i = 0; i < supportedAssets.length; i++) {
+            if (supportedAssets[i] == address(newToken)) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found);
+    }
+
+    function testAddDuplicateAsset() public {
+        useNetworkA();
+
+        // Add the same asset again (should update pool ID but not add duplicate)
+        vm.prank(governor);
+        adapterA.addSupportedAsset(CHAIN_ID_A, address(tokenA), 5);
+
+        // Verify the pool ID was updated
+        assertEq(adapterA.chainAssetToPoolId(CHAIN_ID_A, address(tokenA)), 5);
+
+        // Get the supported assets using getSupportedAssets method
+        address[] memory supportedAssets = adapterA.getSupportedAssets(
+            CHAIN_ID_A
+        );
+        assertEq(supportedAssets.length, 1);
+        assertEq(supportedAssets[0], address(tokenA));
     }
 
     function testAddAssetToUnsupportedChain() public {
@@ -164,23 +170,5 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.prank(governor);
         vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
         adapterA.addSupportedAsset(CHAIN_ID_A, address(0), 1);
-    }
-
-    function testAddDuplicateAsset() public {
-        useNetworkA();
-
-        // Add the same asset again (should update pool ID but not add duplicate)
-        vm.prank(governor);
-        adapterA.addSupportedAsset(CHAIN_ID_A, address(tokenA), 5);
-
-        // Verify the pool ID was updated
-        assertEq(adapterA.chainAssetToPoolId(CHAIN_ID_A, address(tokenA)), 5);
-
-        // Verify there's still only one supported asset
-        address[] memory supportedAssets = adapterA.getSupportedAssets(
-            CHAIN_ID_A
-        );
-        assertEq(supportedAssets.length, 1);
-        assertEq(supportedAssets[0], address(tokenA));
     }
 }

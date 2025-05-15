@@ -661,13 +661,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             if (!IBridgeAdapter(adapter).supportsOperation(operationType))
                 continue;
 
-            // For asset transfers, check if the asset is supported
-            if (
-                asset != address(0) &&
-                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-                !IBridgeAdapter(adapter).supportsAsset(chainId, asset)
-            ) continue;
-
             // If we get here, the adapter is suitable, so check its fee
             uint256 estimatedFee = 0;
 

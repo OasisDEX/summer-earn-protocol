@@ -57,13 +57,6 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         assertFalse(adapterA.supportsChain(2)); // Arbitrary unsupported chain
     }
 
-    function testSupportsAsset() public view {
-        // Currently all assets are supported on supported chains
-        assertTrue(adapterA.supportsAsset(CHAIN_ID_A, address(tokenA)));
-        assertTrue(adapterA.supportsAsset(CHAIN_ID_B, address(tokenB)));
-        assertFalse(adapterA.supportsAsset(2, address(tokenA))); // Unsupported chain
-    }
-
     // Update test for UnsupportedMessageType error since type 5 is now COMPOSE
     function testUnsupportedMessageType() public {
         // Create a message with an unsupported type (9 - which doesn't exist)

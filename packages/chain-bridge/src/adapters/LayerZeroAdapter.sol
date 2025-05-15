@@ -445,21 +445,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         return chains;
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getSupportedAssets(
-        uint16 chainId
-    ) external view override returns (address[] memory) {
-        // Check if the chain is supported first
-        if (chainToLzEid[chainId] == 0) revert UnsupportedChain();
-
-        // For this implementation, we'll assume all ERC20 tokens are supported
-        // In a real implementation, you'd maintain a list of supported assets per chain
-        address[] memory supportedAssets = new address[](1);
-        supportedAssets[0] = address(0); // Native token
-
-        return supportedAssets;
-    }
-
     /// @inheritdoc ISendAdapter
     function readState(
         uint16 srcChainId,
@@ -547,21 +532,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint16 chainId
     ) external view override returns (bool) {
         return chainToLzEid[chainId] != 0;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsAsset(
-        uint16 chainId,
-        address
-    ) external view override returns (bool) {
-        // First check if the chain is supported
-        if (!this.supportsChain(chainId)) {
-            return false;
-        }
-
-        // Currently all assets are supported for supported chains
-        // This could be modified to check specific assets if needed
-        return true;
     }
 
     /// @inheritdoc ISendAdapter

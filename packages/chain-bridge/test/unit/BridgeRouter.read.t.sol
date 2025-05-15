@@ -66,7 +66,6 @@ contract BridgeRouterReadStateTest is Test {
 
         // Setup mock adapter
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-        mockAdapter.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
 
         // Register adapter
         router.registerAdapter(address(mockAdapter));
