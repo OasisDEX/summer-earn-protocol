@@ -81,6 +81,9 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
         assets += assetsInWithdrawalQueue();
     }
 
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
     function assetsInWithdrawalQueue() public view returns (uint256) {
         if (withdrawalRequestId == 0) {
             return 0;
@@ -92,6 +95,9 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
         return withdrawalRequest.amount;
     }
 
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
     function withdrawUsingSwap(
         uint256 amount,
         bytes calldata data
@@ -107,6 +113,36 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
         );
         emit Disembarked(msg.sender, address(config.asset), amount);
         _boardToBufferArk(assetBought);
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function requestWithdrawal(uint256 amount) external onlyKeeper {
+        if (withdrawalRequestId > 0) {
+            revert WithdrawalAlreadyRequested();
+        }
+        if (amount == type(uint256).max) {
+            amount = originETH.balanceOf(address(this));
+        }
+        (uint256 requestId, ) = originETHVault.requestWithdrawal(amount);
+        withdrawalRequestId = requestId;
+        emit WithdrawalRequested(amount, withdrawalRequestId);
+    }
+
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
+    function claimWithdrawal() external onlyKeeper {
+        if (withdrawalRequestId == 0) {
+            revert NoWithdrawalToClaim();
+        }
+        originETHVault.claimWithdrawal(withdrawalRequestId);
+        withdrawalRequestId = 0;
+    }
+
+    function isWithdrawalClaimRequired() public view returns (bool) {
+        return withdrawalRequestId != 0;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -167,39 +203,6 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
         } else {
             revert InsufficientArmBalance();
         }
-    }
-
-    /**
-     * @notice Initiates a withdrawal request from Origin ETH Vault
-     * @dev Can only be called by a keeper role
-     * @param amount The amount to request for withdrawal
-     */
-    function requestWithdrawal(uint256 amount) external onlyKeeper {
-        if (withdrawalRequestId > 0) {
-            revert WithdrawalAlreadyRequested();
-        }
-        if (amount == type(uint256).max) {
-            amount = originETH.balanceOf(address(this));
-        }
-        (uint256 requestId, ) = originETHVault.requestWithdrawal(amount);
-        withdrawalRequestId = requestId;
-        emit WithdrawalRequested(amount, withdrawalRequestId);
-    }
-
-    /**
-     * @notice Claims a previously requested withdrawal from Origin ETH Vault
-     * @dev Can only be called by a keeper role, requires an active withdrawal request
-     */
-    function claimWithdrawal() external onlyKeeper {
-        if (withdrawalRequestId == 0) {
-            revert NoWithdrawalToClaim();
-        }
-        originETHVault.claimWithdrawal(withdrawalRequestId);
-        withdrawalRequestId = 0;
-    }
-
-    function isWithdrawalClaimRequired() public view returns (bool) {
-        return withdrawalRequestId != 0;
     }
 
     /**

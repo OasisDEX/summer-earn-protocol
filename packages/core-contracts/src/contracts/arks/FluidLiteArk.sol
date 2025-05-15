@@ -111,6 +111,9 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         assets += assetsInWithdrawalQueue();
     }
 
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
     function assetsInWithdrawalQueue() public view returns (uint256) {
         if (withdrawalRequestId == 0) {
             return 0;
@@ -166,8 +169,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @notice Requests a withdrawal from the withdrawal queue
-     * @param amount The amount of tokens to withdraw
+     * @inheritdoc IArkWithWithdrawalRequest
      */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
         if (withdrawalRequestId != 0) revert WithdrawalAlreadyRequested();
@@ -199,7 +201,9 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         emit WithdrawalRequested(stethAmount, withdrawalRequestId);
     }
 
-    /// @inheritdoc IArkWithWithdrawalRequest
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
     function withdrawUsingSwap(
         uint256 amount,
         bytes calldata data
@@ -231,8 +235,7 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @notice Claims a withdrawal from the withdrawal queue
-     * @dev keeper manages the claim status
+     * @inheritdoc IArkWithWithdrawalRequest
      */
     function claimWithdrawal() external onlyKeeper {
         if (withdrawalRequestId == 0) revert NoWithdrawalToClaim();
@@ -245,6 +248,9 @@ contract FluidLiteArk is ArkWithWithdrawalRequest {
         withdrawalRequestId = 0;
     }
 
+    /**
+     * @inheritdoc IArkWithWithdrawalRequest
+     */
     function isWithdrawalClaimRequired() public view returns (bool) {
         return withdrawalRequestId != 0;
     }
