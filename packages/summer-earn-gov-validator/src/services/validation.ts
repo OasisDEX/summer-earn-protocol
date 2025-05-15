@@ -56,6 +56,7 @@ interface ValidationResult {
 interface DecodedFunction {
   functionName: string
   args: any[]
+  paramNames: string[]
 }
 
 export interface CrossChainData {
@@ -67,6 +68,12 @@ export interface CrossChainData {
   dstDescriptionHash: string
   options: any
   decodedCalldatas?: DecodedFunction[]
+  formattedProposals?: Array<{
+    target: string
+    targetName: string
+    value: string
+    decodedCall?: DecodedFunction
+  }>
 }
 
 // Map of known function ABIs
@@ -91,6 +98,18 @@ const KNOWN_ABIS = {
 
   // ERC20 functions
   approve: 'function approve(address spender, uint256 amount) external returns (bool)',
+
+  // gov
+  setVotingDelay: 'function setVotingDelay(uint256 newVotingDelay) external',
+  setVotingPeriod: 'function setVotingPeriod(uint256 newVotingPeriod) external',
+  setQuorumNumerator: 'function setQuorumNumerator(uint256 newQuorumNumerator) external',
+  setProposalThreshold: 'function setProposalThreshold(uint256 newProposalThreshold) external',
+  setProposalMaxOperations:
+    'function setProposalMaxOperations(uint256 newProposalMaxOperations) external',
+  setProposalMaxDuration:
+    'function setProposalMaxDuration(uint256 newProposalMaxDuration) external',
+  updateDelay: 'function updateDelay(uint256 newDelay) external',
+  addToWhitelist: 'function addToWhitelist(address account) external',
 }
 
 // Create interfaces for each ABI
@@ -102,15 +121,39 @@ const interfaces = Object.entries(KNOWN_ABIS).reduce(
   {} as Record<string, ethers.Interface>,
 )
 
+// Helper function to decode an address to its contract name
+function decodeAddress(address: string): string {
+  // Try to find the contract name in each network
+  for (const network of Object.values(SupportedNetworks)) {
+    const contractName = addresToContractName(address, network)
+    if (contractName !== 'Unknown') {
+      return `${network}:${contractName}`
+    }
+  }
+  return address
+}
+
 // Function to decode any calldata using known ABIs
 export const decodeCalldata = (calldata: string): DecodedFunction | null => {
   for (const [name, iface] of Object.entries(interfaces)) {
     try {
       const decoded = iface.parseTransaction({ data: calldata })
       if (decoded) {
+        // Get parameter names from the ABI
+        const paramNames = iface.fragments[0].inputs.map((input: any) => input.name)
+
+        // Decode addresses in arguments
+        const decodedArgs = decoded.args.map((arg: any) => {
+          if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
+            return decodeAddress(arg)
+          }
+          return arg
+        })
+
         return {
           functionName: name,
-          args: decoded.args,
+          args: decodedArgs,
+          paramNames,
         }
       }
     } catch (error) {
@@ -144,6 +187,14 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
       addresToContractName(target, network),
     )
 
+    // Format proposals for better readability
+    const formattedProposals = dstTargets.map((target: string, index: number) => ({
+      target: target.toLowerCase(),
+      targetName: targetContractNames[index],
+      value: dstValues[index].toString(),
+      decodedCall: decodedCalldatas[index],
+    }))
+
     return {
       dstEid: network,
       dstTargets: dstTargets.map((addr: string) => addr.toLowerCase()),
@@ -153,6 +204,7 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
       dstDescriptionHash: dstDescriptionHash,
       options,
       decodedCalldatas,
+      formattedProposals,
     }
   } catch (error) {
     console.error('Error decoding cross-chain calldata:', error)
@@ -164,6 +216,7 @@ function addresToContractName(address: string, network: SupportedNetworks): stri
   const networkConfig = typedConfig[network]
   const normalizedAddress = address.toLowerCase()
 
+  // First check the main config
   // Iterate through top-level contract categories (core, gov, buyAndBurn)
   for (const category in networkConfig.deployedContracts) {
     const contracts = networkConfig.deployedContracts[category]
@@ -185,6 +238,27 @@ function addresToContractName(address: string, network: SupportedNetworks): stri
     if (tokenAddress && tokenAddress.toLowerCase() === normalizedAddress) {
       return `token.${tokenName}`
     }
+  }
+
+  // Check network-specific deployed addresses
+  try {
+    const deployedAddresses = require(`../config/deployed/${network}.json`) as Record<
+      string,
+      string
+    >
+
+    // Iterate through all contracts in the deployed addresses
+    for (const [contractName, contractAddress] of Object.entries(deployedAddresses)) {
+      if (
+        typeof contractAddress === 'string' &&
+        contractAddress.toLowerCase() === normalizedAddress
+      ) {
+        return `deployed.${contractName}`
+      }
+    }
+  } catch (error) {
+    // If file doesn't exist or can't be loaded, just continue
+    console.warn(`No deployed addresses found for network ${network}`)
   }
 
   return 'Unknown'

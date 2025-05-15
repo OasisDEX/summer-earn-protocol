@@ -24,7 +24,7 @@ import {
   validateString,
   validateToken,
 } from '../helpers/validation'
-import {  ZERO_STRING } from './constants'
+import { ZERO_STRING } from './constants'
 
 export type ArkConfig = {
   type: ArkType

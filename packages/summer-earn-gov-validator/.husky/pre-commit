@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Check if any relevant files have changed
+if git diff --cached --name-only | grep -q "packages/deployment/config/index.json\|packages/deployment/ignition/deployments/chain-.*/deployed_addresses.json"; then
+  echo "Deployment config or addresses changed, syncing to gov validator..."
+  npm run sync-config
+  git add src/config/
+fi

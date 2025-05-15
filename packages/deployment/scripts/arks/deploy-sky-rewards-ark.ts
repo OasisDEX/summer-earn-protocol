@@ -8,11 +8,11 @@ import {
 } from '../../ignition/modules/arks/sky-rewards-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
-import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 
 export interface SkyRewardsArkUserInput {
   fleetName: string
