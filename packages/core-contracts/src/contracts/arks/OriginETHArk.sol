@@ -198,6 +198,10 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
         withdrawalRequestId = 0;
     }
 
+    function isWithdrawalClaimRequired() public view returns (bool) {
+        return withdrawalRequestId != 0;
+    }
+
     /**
      * @notice Internal function for harvesting rewards
      * @dev This function is a no-op as Origin ETH auto-compounds the rewards

@@ -307,9 +307,19 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
+        assertEq(
+            ark.isWithdrawalClaimRequired(),
+            false,
+            "Withdrawal claim should not be required"
+        );
         vm.startPrank(commander);
         ark.requestWithdrawal(amount);
         vm.stopPrank();
+        assertEq(
+            ark.isWithdrawalClaimRequired(),
+            true,
+            "Withdrawal claim should be required"
+        );
 
         vm.expectRevert("Claim delay not met");
         vm.startPrank(commander);
@@ -371,12 +381,37 @@ contract OriginETHArkTest is Test, IArkEvents, ArkTestBase {
             amount,
             "After claim, total assets should be equal to the withdrawal amount"
         );
+        assertEq(
+            IERC20(ORIGINETH_ADDRESS).balanceOf(address(ark)),
+            0,
+            "There should be no OETH in the ark"
+        );
+        assertEq(
+            IERC20(WETH_ADDRESS).balanceOf(address(ark)),
+            amount,
+            "There should be WETH in the ark"
+        );
 
         // Verify the request ID was reset
         assertEq(
             ark.withdrawalRequestId(),
             0,
             "Withdrawal request ID should be reset to 0"
+        );
+
+        uint256 bufferArkWethBalanceBefore = IERC20(WETH_ADDRESS).balanceOf(
+            bufferArk
+        );
+        vm.expectEmit(true, true, true, true);
+        emit Disembarked(address(keeper), WETH_ADDRESS, amount);
+
+        vm.prank(keeper);
+        ark.sweep();
+
+        vm.assertEq(IERC20(WETH_ADDRESS).balanceOf(address(ark)), 0 ether);
+        vm.assertEq(
+            IERC20(WETH_ADDRESS).balanceOf(bufferArk),
+            bufferArkWethBalanceBefore + amount
         );
     }
 

@@ -132,6 +132,10 @@ contract SyrupArk is ArkWithWithdrawalRequest {
         // no-op
     }
 
+    function isWithdrawalClaimRequired() public view returns (bool) {
+        return false;
+    }
+
     function withdrawalRequestId() external view returns (uint256) {
         return withdrawalManager.requestIds(address(this));
     }
