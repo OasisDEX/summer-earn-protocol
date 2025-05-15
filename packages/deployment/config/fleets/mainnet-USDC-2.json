@@ -8,6 +8,13 @@
   "initialTipRate": "1000000000000000000",
   "network": "mainnet",
   "details": "",
+  "discourseURL": "https://forum.summer.fi/t/sip1-5-onboard-usdc-fleet-mainnet-higher-risk/201/3",
+  "sipNumber": "5",
+  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
+  "rewardAmounts": ["3458333000000000000000000"],
+  "rewardsDuration": [7171200],
+  "bridgeAmount": "3458333000000000000000000",
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
   "arks": [
     {
       "type": "ERC4626Ark",
@@ -45,7 +52,7 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler_Resolve",
+        "vaultName": "Euler_Resolv",
         "protocol": "erc4626"
       }
     },

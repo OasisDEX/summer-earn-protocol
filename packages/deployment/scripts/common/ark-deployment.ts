@@ -24,7 +24,7 @@ import {
   validateString,
   validateToken,
 } from '../helpers/validation'
-import { MAX_UINT256_STRING } from './constants'
+import {  ZERO_STRING } from './constants'
 
 export type ArkConfig = {
   type: ArkType
@@ -67,9 +67,9 @@ export async function deployArk(
       address: config.tokens[token] as Address,
       symbol: token,
     },
-    depositCap: params.depositCap || MAX_UINT256_STRING,
-    maxRebalanceOutflow: params.maxRebalanceOutflow || MAX_UINT256_STRING,
-    maxRebalanceInflow: params.maxRebalanceInflow || MAX_UINT256_STRING,
+    depositCap: params.depositCap || ZERO_STRING,
+    maxRebalanceOutflow: params.maxRebalanceOutflow || ZERO_STRING,
+    maxRebalanceInflow: params.maxRebalanceInflow || ZERO_STRING,
     fleetName: fleetConfig.fleetName,
   }
 
