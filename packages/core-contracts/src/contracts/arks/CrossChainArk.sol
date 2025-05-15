@@ -155,10 +155,7 @@ contract CrossChainArk is
      * @return assets The total balance of underlying assets held by this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        assets =
-            config.asset.balanceOf(address(this)) +
-            lastRemoteAssetBalance +
-            inFlightAssets;
+        assets = config.asset.balanceOf(address(this)) + lastRemoteAssetBalance;
     }
 
     /**
