@@ -17,7 +17,6 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
 import {CrossChainFleetProxy, IFleetProxy} from "../../src/contracts/FleetProxy.sol";
-import {IFleetProxy} from "../../src/interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";

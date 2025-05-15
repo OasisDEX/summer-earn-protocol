@@ -213,22 +213,27 @@ contract CrossChainFleetProxy is
         uint16 sourceChainId
     ) external payable whenNotPaused nonReentrant onlyKeeper {
         if (amount == 0) revert NoAssets();
-        // 1. Withdraw from fleet contract
+
+        // 1. Get the asset from fleet config
+        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
+            .getConfig();
+        address asset = address(config.bufferArk.asset());
+
+        // 2. Withdraw from fleet contract
         IFleetCommander(fleetContract).withdraw(
             amount,
             address(this),
             address(this)
         );
 
-        // 2. Get the asset from fleet config
-        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
-            .getConfig();
-        address asset = address(config.bufferArk.asset());
+        // 3. Verify we received the expected amount
+        if (IERC20(asset).balanceOf(address(this)) < amount)
+            revert WithdrawalFailed();
 
-        // 3. Approve the bridge queue to transfer the assets
+        // 4. Approve the bridge queue to transfer the assets
         IERC20(asset).approve(address(bridgeQueue), amount);
 
-        // 4. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
+        // 5. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
         bridgeQueue.queueTransferAssets(
             sourceChainId,
             asset,
@@ -252,4 +257,6 @@ contract CrossChainFleetProxy is
     error InvalidBridgeQueue();
     /// @notice Error thrown when fleet contract address is invalid
     error InvalidFleetContract();
+    /// @notice Error thrown when withdrawal failed
+    error WithdrawalFailed();
 }
