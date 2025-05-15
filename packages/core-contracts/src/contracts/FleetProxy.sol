@@ -86,6 +86,9 @@ contract CrossChainFleetProxy is
         address _sourceChainArk
     ) ProtocolAccessManaged(_accessManager) {
         if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
+        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
+        if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
+        if (_fleetContract == address(0)) revert InvalidFleetContract();
 
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         bridgeQueue = IBridgeQueue(_bridgeQueue);
@@ -242,4 +245,10 @@ contract CrossChainFleetProxy is
 
     /// @notice Error thrown when source chain ark address is invalid
     error InvalidSourceChainArk();
+    /// @notice Error thrown when bridge router address is invalid
+    error InvalidBridgeRouter();
+    /// @notice Error thrown when bridge queue address is invalid
+    error InvalidBridgeQueue();
+    /// @notice Error thrown when fleet contract address is invalid
+    error InvalidFleetContract();
 }
