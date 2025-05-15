@@ -85,9 +85,6 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
-    /// @notice Assets that have been queued for transfer but not yet confirmed on target chain
-    uint256 public inFlightAssets;
-
     event BridgeOptionsUpdated(BridgeTypes.BridgeOptions newOptions);
 
     /// @notice Emitted when the remote asset balance is updated via state read
@@ -183,9 +180,6 @@ contract CrossChainArk is
         // Approve BridgeQueue to spend tokens
         config.asset.approve(address(bridgeQueue), amount);
 
-        // Track the in-flight assets
-        inFlightAssets += amount;
-
         bridgeQueue.queueTransferAssets(
             targetChainId,
             address(config.asset),
@@ -233,8 +227,6 @@ contract CrossChainArk is
         // Decode the remote asset balance
         uint256 newRemoteBalance = abi.decode(resultData, (uint256));
 
-        // Reset in-flight assets as we now have confirmed remote balance
-        inFlightAssets = 0;
         lastRemoteAssetBalance = newRemoteBalance;
 
         emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
