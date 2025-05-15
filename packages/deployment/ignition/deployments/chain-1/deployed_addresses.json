@@ -75,5 +75,18 @@
   "BummerLazyVault_USDC_Syrup_usdc_1_swappable#SyrupArk": "0xCaC00FeAf6600E0Da426112315805A7796e3a27e",
   "BummerLazyVault_WETH_Origin_weth_1_staging#OriginETHArk": "0x49EBD7E4b66Dde6dce3F9f16647d0a3A1aCcC908",
   "BummerLazyVault_WETH_FluidLite_weth_1_staging#FluidLiteArk": "0xD01cf27BB74F7B47e5238552E7F9089807b9F015",
-  "BummerLazyVault_WETH_FluidLite_weth_1_staging_2#FluidLiteArk": "0x8545Fd72553bE7f16Ba0a41E502593B067D24C94"
+  "BummerLazyVault_WETH_FluidLite_weth_1_staging_2#FluidLiteArk": "0x8545Fd72553bE7f16Ba0a41E502593B067D24C94",
+  "LazyVault_LowerRisk_USDC_Syrup_usdc_1_gov#SyrupArk": "0x3F9e195a8ee39Ed7B4a14A919F4a165c872976e5",
+  "FleetModule_LazyVault_HigherRisk_USDC#FleetCommander": "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
+  "LazyVault_HigherRisk_USDC_ERC4626_Fluid_usdc_1#ERC4626Ark": "0x9Ad7ea2B4Eeb732339b19c5EabF087c6164e80eB",
+  "LazyVault_HigherRisk_USDC_ERC4626_Sky_sUSDC_usdc_1#ERC4626Ark": "0x3f289b064CD07E42210a57819908a937BEC859e8",
+  "LazyVault_HigherRisk_USDC_ERC4626_Euler_Yield_usdc_1#ERC4626Ark": "0x2E890e54495361aa78ada62084478B7C65F88721",
+  "LazyVault_HigherRisk_USDC_ERC4626_Euler_Swaap_Lend_usdc_1#ERC4626Ark": "0xC496c6a4D1D1E184A87424dc66F4Eb6FDb9F2aD5",
+  "LazyVault_HigherRisk_USDC_ERC4626_Euler_Resolv_usdc_1#ERC4626Ark": "0x827d166823d9372Bb8573FcBB0eE776d82289A28",
+  "LazyVault_HigherRisk_USDC_ERC4626_Euler_Stablecoin_Maxi_usdc_1#ERC4626Ark": "0xB2dE822f840a9F1EC160212e14e08749783E0F29",
+  "LazyVault_HigherRisk_USDC_MorphoVault_usdc_Gauntlet_Frontier_USDC_1#MorphoVaultArk": "0xd3faCda7eD0356F2439f96C3dC378042864F14C6",
+  "LazyVault_HigherRisk_USDC_MorphoVault_usdc_Relend_USDC_1#MorphoVaultArk": "0xb9a97499C3A400E70a99EE62BabCE2B7a6f8fd6D",
+  "LazyVault_HigherRisk_USDC_MorphoVault_usdc_MEV_Capital_USDC_1#MorphoVaultArk": "0x40087B15127791FF55746c4E87e4e4AFb88a8AEb",
+  "LazyVault_HigherRisk_USDC_SkyRewards_usdc_1#SkyRewardsArk": "0x3d8C278F05F655F26dcbf828C084E5182FD8d409",
+  "LazyVault_HigherRisk_USDC_Syrup_usdc_1_gov#SyrupArk": "0x1bf7ef7eD5AC8285DFE6e538b92364Ad095dd1A3"
 }

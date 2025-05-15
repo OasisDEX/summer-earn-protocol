@@ -6,15 +6,16 @@ import {
   SkyRewardsArkContracts,
   createSkyRewardsArkModule,
 } from '../../ignition/modules/arks/sky-rewards-ark'
-import { SkyUsdsArkContracts } from '../../ignition/modules/arks/sky-usds-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
+import { getFleetConfig } from '../common/fleet-deployment-files-helpers'
 
 export interface SkyRewardsArkUserInput {
+  fleetName: string
   token: { address: Address; symbol: Token }
   depositCap: string
   maxRebalanceOutflow: string
@@ -61,8 +62,8 @@ async function getUserInput(config: BaseConfig): Promise<SkyRewardsArkUserInput>
       })
     }
   }
-
-  return await prompts([
+  const fleetDefinition = await getFleetConfig()
+  const reponses = await prompts([
     {
       type: 'select',
       name: 'token',
@@ -88,6 +89,10 @@ async function getUserInput(config: BaseConfig): Promise<SkyRewardsArkUserInput>
       message: 'Enter the max rebalance inflow:',
     },
   ])
+  return {
+    fleetName: fleetDefinition.fleetName,
+    ...reponses,
+  }
 }
 
 /**
@@ -129,7 +134,7 @@ async function deploySkyRewardsArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `SkyRewards-${userInput.token.symbol}-${chainId}`
-  const moduleName = arkName.replace(/-/g, '_')
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const psmLiteAddress = validateAddress(
     config.protocolSpecific.sky.psmLite[userInput.token.symbol],
