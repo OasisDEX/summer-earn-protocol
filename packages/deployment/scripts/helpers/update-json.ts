@@ -25,21 +25,31 @@ export async function updateIndexJson<T extends Record<string, any>>(
   // Update addresses while preserving existing fields
   const existingConfig = indexJson[network].deployedContracts[moduleType] || {}
 
-  // Create updated config by merging with existing config
-  const updatedConfig = { ...existingConfig }
-
-  // Update only the fields that were deployed
-  Object.entries(deployedContracts).forEach(([key, value]) => {
-    if (typeof value === 'object' && value.address) {
-      updatedConfig[key] = {
-        ...updatedConfig[key], // Preserve any existing fields
-        address: value.address,
+  // Recursively merge objects to handle nested structures
+  const mergeObjects = (target: any, source: any): any => {
+    for (const key in source) {
+      if (typeof source[key] === 'object' && source[key] !== null) {
+        if (source[key].address) {
+          // If it's an object with an address, update it directly
+          target[key] = { ...target[key], ...source[key] }
+        } else {
+          // Otherwise recursively merge deeper objects
+          target[key] = target[key] || {}
+          mergeObjects(target[key], source[key])
+        }
+      } else {
+        // For non-objects, just copy the value
+        target[key] = source[key]
       }
     }
-  })
+    return target
+  }
 
   // Apply the merged config
-  indexJson[network].deployedContracts[moduleType] = updatedConfig
+  indexJson[network].deployedContracts[moduleType] = mergeObjects(
+    { ...existingConfig },
+    deployedContracts,
+  )
 
   fs.writeFileSync(indexPath, JSON.stringify(indexJson, null, 2))
   console.log(kleur.green().bold(`${configFile} updated successfully!`))
