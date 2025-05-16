@@ -81,7 +81,36 @@ const KNOWN_ABIS = {
   // Cross-chain execution
   sendProposalToTargetChain:
     'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
-
+  send: {
+    inputs: [
+      {
+        components: [
+          { name: 'dstEid', type: 'uint32' },
+          { name: 'to', type: 'bytes32' },
+          { name: 'amountLD', type: 'uint256' },
+          { name: 'minAmountLD', type: 'uint256' },
+          { name: 'extraOptions', type: 'bytes' },
+          { name: 'composeMsg', type: 'bytes' },
+          { name: 'oftCmd', type: 'bytes' },
+        ],
+        name: 'sendParams',
+        type: 'tuple',
+      },
+      {
+        components: [
+          { name: 'nativeFee', type: 'uint256' },
+          { name: 'lzTokenFee', type: 'uint256' },
+        ],
+        name: 'feeParams',
+        type: 'tuple',
+      },
+      { name: '_refundAddress', type: 'address' },
+    ],
+    name: 'send',
+    outputs: [],
+    stateMutability: 'external',
+    type: 'function',
+  },
   // Harbor Command functions
   grantCuratorRole: 'function grantCuratorRole(address fleetAddress, address account) external',
   grantAdmiralsQuartersRole: 'function grantAdmiralsQuartersRole(address account) external',
@@ -100,8 +129,8 @@ const KNOWN_ABIS = {
   approve: 'function approve(address spender, uint256 amount) external returns (bool)',
 
   // gov
-  setVotingDelay: 'function setVotingDelay(uint256 newVotingDelay) external',
-  setVotingPeriod: 'function setVotingPeriod(uint256 newVotingPeriod) external',
+  setVotingDelay: 'function setVotingDelay(uint48 newVotingDelay) external',
+  setVotingPeriod: 'function setVotingPeriod(uint32 newVotingPeriod) external',
   setQuorumNumerator: 'function setQuorumNumerator(uint256 newQuorumNumerator) external',
   setProposalThreshold: 'function setProposalThreshold(uint256 newProposalThreshold) external',
   setProposalMaxOperations:
@@ -139,21 +168,67 @@ export const decodeCalldata = (calldata: string): DecodedFunction | null => {
     try {
       const decoded = iface.parseTransaction({ data: calldata })
       if (decoded) {
-        // Get parameter names from the ABI
-        const paramNames = iface.fragments[0].inputs.map((input: any) => input.name)
+        // Recursively get parameter names from the ABI
+        const getParamNames = (
+          inputs: readonly ethers.ParamType[],
+        ): (string | { name: string; components: any[] })[] => {
+          return inputs.map((input) => {
+            if (input.type === 'tuple') {
+              // For tuples, create an object with nested parameter names
+              const nestedNames = getParamNames(input.components || [])
+              return {
+                name: input.name,
+                components: nestedNames,
+              }
+            }
+            return input.name
+          })
+        }
 
-        // Decode addresses in arguments
-        const decodedArgs = decoded.args.map((arg: any) => {
+        // Get parameter names from the ABI
+        const fragment = iface.fragments[0]
+        const paramNames = fragment.inputs ? getParamNames(fragment.inputs) : []
+
+        // Recursively process arguments to handle tuples
+        const processArg = (arg: any, paramName: any): any => {
+          if (Array.isArray(arg)) {
+            // If we have component names, use them as keys
+            if (paramName?.components) {
+              const result: any = {}
+              arg.forEach((value, index) => {
+                const componentName = paramName.components[index]
+                if (typeof componentName === 'string') {
+                  result[componentName] = processArg(value, paramName.components[index])
+                } else {
+                  result[componentName.name] = processArg(value, componentName)
+                }
+              })
+              return result
+            }
+            // Otherwise, just process each array element
+            return arg.map((item, index) => processArg(item, paramName?.[index]))
+          }
+          if (typeof arg === 'object' && arg !== null) {
+            // Handle tuple types
+            const processedObj: any = {}
+            for (const [key, value] of Object.entries(arg)) {
+              const nestedParamName = paramName?.components?.[key] || key
+              processedObj[nestedParamName] = processArg(value, paramName?.components?.[key])
+            }
+            return processedObj
+          }
           if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
             return decodeAddress(arg)
           }
           return arg
-        })
+        }
+
+        const decodedArgs = decoded.args.map((arg, index) => processArg(arg, paramNames[index]))
 
         return {
           functionName: name,
           args: decodedArgs,
-          paramNames,
+          paramNames: paramNames.map((p) => (typeof p === 'string' ? p : p.name)),
         }
       }
     } catch (error) {
