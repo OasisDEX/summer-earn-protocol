@@ -2,8 +2,11 @@ export type ArkParams = {
   name: string
   accessManager: string
   configurationManager: string
-  token: string
-  depositCap: number
-  maxRebalanceOutflow: number
-  maxRebalanceInflow: number
+  asset: string
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  requiresKeeperData: boolean
+  maxDepositPercentageOfTVL: string
+  details: string
 }
