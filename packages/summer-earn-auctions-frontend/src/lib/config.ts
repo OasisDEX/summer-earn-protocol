@@ -52,7 +52,7 @@ export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
     name: 'Sonic',
     id: sonic.id,
     chain: sonic,
-    subgraphEndpoint: 'https://subgraph.staging.oasisapp.dev/summer-earn-protocol-gov-base',
+    subgraphEndpoint: 'https://subgraph.staging.oasisapp.dev/summer-auctions-sonic',
     raftAddress: '0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204',
     rpcUrl: validateRpcUrl(getEnvVar('SONIC_RPC_URL'), 'Optimism'),
   },

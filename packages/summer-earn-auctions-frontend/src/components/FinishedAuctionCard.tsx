@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { CHAIN_CONFIGS } from '@/lib/config'
 import { ArkDisplay } from './ArkDisplay'
 import { AuctionPurchase } from './AuctionPurchase'
 
@@ -41,12 +42,15 @@ interface FinishedAuctionCardProps {
 }
 
 export function FinishedAuctionCard({ auction, chainId }: FinishedAuctionCardProps) {
+  const networkName = CHAIN_CONFIGS[chainId]?.name || `Chain ${chainId}`
+
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-4">
           <ArkDisplay address={auction.ark.address} commander={auction.ark.commander} />
           <div className="text-sm text-muted-foreground">Auction #{auction.auctionId}</div>
+          <div className="text-sm text-muted-foreground">Network: {networkName}</div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Chain ID: {chainId}</span>
