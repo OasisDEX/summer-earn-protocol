@@ -88,7 +88,6 @@ contract CrossChainFleetProxy is
         BridgeTypes.BridgeOptions memory _bridgeOptions,
         address _sourceChainArk
     ) ProtocolAccessManaged(_accessManager) {
-        if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
         if (_fleetContract == address(0)) revert InvalidFleetContract();
