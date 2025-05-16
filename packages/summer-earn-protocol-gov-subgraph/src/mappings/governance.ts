@@ -1,5 +1,4 @@
 import { ByteArray, Bytes, crypto } from '@graphprotocol/graph-ts'
-import { Proposal } from '../../generated/schema'
 import {
   ProposalCanceled,
   ProposalCreated,
@@ -7,6 +6,7 @@ import {
   ProposalQueued,
   ProposalSentCrossChain,
 } from '../../generated/SummerGovernor/SummerGovernor'
+import { Proposal } from '../../generated/schema'
 
 // Create a map of dstEid to chainId
 const dstEidToChainIdMap = new Map<string, string>()
