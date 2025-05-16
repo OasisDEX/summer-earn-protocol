@@ -21,7 +21,7 @@ export async function GET() {
 
     const query = `
       {
-        proposals {
+        proposals(first:1000) {
           id
           description
           status
@@ -46,7 +46,7 @@ export async function GET() {
     }
 
     const data = await response.json()
-
+    console.log(data)
     if (data.errors) {
       throw new Error(data.errors[0].message)
     }

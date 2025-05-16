@@ -156,7 +156,7 @@ function decodeAddress(address: string): string {
   for (const network of Object.values(SupportedNetworks)) {
     const contractName = addresToContractName(address, network)
     if (contractName !== 'Unknown') {
-      return `${network}:${contractName}`
+      return `${network}:${contractName}(${address})`
     }
   }
   return address
@@ -328,7 +328,7 @@ export function addresToContractName(address: string, network: SupportedNetworks
         typeof contractAddress === 'string' &&
         contractAddress.toLowerCase() === normalizedAddress
       ) {
-        return `deployed.${contractName}`
+        return `${contractName}`
       }
     }
   } catch (error) {
@@ -379,14 +379,14 @@ export const validateTargets = (targets: string[]): ValidationResult => {
     for (const network of Object.values(SupportedNetworks)) {
       const contractName = addresToContractName(normalizedTarget, network)
       if (contractName !== 'Unknown') {
-        contractNames[index] = `${network}:${contractName}`
+        contractNames[index] = `${network}:${contractName}(${normalizedTarget})`
         found = true
         break
       }
     }
 
     if (!found) {
-      contractNames[index] = 'Unknown'
+      contractNames[index] = `Unknown(${normalizedTarget})`
       if (!validAddresses.has(normalizedTarget)) {
         errors.push(
           `Target at index ${index} (${normalizedTarget}) is not a known contract address`,
