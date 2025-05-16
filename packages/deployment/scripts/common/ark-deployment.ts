@@ -1,7 +1,9 @@
+import kleur from 'kleur'
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
+import { CrossChainArkContracts, deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
@@ -30,8 +32,9 @@ export type ArkConfig = {
   type: ArkType
   params: {
     asset: string
-    protocol: string
-    vaultName?: string // For ERC4626Ark
+    protocol?: string
+    vaultName?: string
+    targetChainId?: string
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
@@ -230,6 +233,24 @@ export async function deployArk(
       deployedArk = await deploySiloArk(config, siloParams)
       break
     }
+
+    case ArkType.CrossChainArk: {
+      const targetChainId = Number(arkConfig.params.targetChainId)
+      const targetProtocol = arkConfig.params.protocol
+
+      if (!targetChainId || !targetProtocol) {
+        console.log(kleur.red('Missing targetChainId or protocol in ark configuration.'))
+        throw new Error('CrossChainArk requires targetChainId and protocol parameters')
+      }
+
+      deployedArk = await deployCrossChainArk(config, {
+        ...baseArkParams,
+        targetChainId,
+        targetProtocol,
+      })
+      break
+    }
+
     case ArkType.OriginETHArk: {
       const ark = await deployOriginETHArk(config, baseArkParams)
       deployedArk = ark
@@ -239,15 +260,29 @@ export async function deployArk(
       throw new Error(`Unknown Ark type: ${type}`)
   }
 
+  if (!deployedArk?.ark?.address && arkConfig.type !== ArkType.CrossChainArk) {
+    throw new Error(`Failed to deploy ${arkConfig.type}`)
+  }
+
   if (!deployedArk?.ark?.address) {
     throw new Error(`Failed to deploy ${type}`)
   }
 
-  return deployedArk.ark.address as Address
+  // Handle special case for CrossChainArk
+  if (arkConfig.type === ArkType.CrossChainArk) {
+    const crossChainArkResult = deployedArk as CrossChainArkContracts
+    if (!crossChainArkResult?.crossChainArk?.address) {
+      throw new Error(`Failed to deploy ${arkConfig.type}`)
+    }
+    return crossChainArkResult.crossChainArk.address as Address
+  } else {
+    return deployedArk.ark.address as Address
+  }
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
-  let deployedArk
+  let deployedArk: any
+
   switch (arkType) {
     case ArkType.SyrupArk:
       deployedArk = await deploySyrupArk(config)
@@ -312,13 +347,27 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       break
     }
 
+    case ArkType.CrossChainArk: {
+      deployedArk = await deployCrossChainArk(config)
+      break
+    }
+
     default:
       throw new Error(`Unknown Ark type: ${arkType}`)
   }
 
-  if (!deployedArk?.ark?.address) {
+  if (!deployedArk?.ark?.address && arkType !== ArkType.CrossChainArk) {
     throw new Error(`Failed to deploy ${arkType}`)
   }
 
-  return deployedArk.ark.address as Address
+  // Handle special case for CrossChainArk which has a different return structure
+  if (arkType === ArkType.CrossChainArk) {
+    const crossChainArkResult = deployedArk as CrossChainArkContracts
+    if (!crossChainArkResult?.crossChainArk?.address) {
+      throw new Error(`Failed to deploy CrossChainArk`)
+    }
+    return crossChainArkResult.crossChainArk.address as Address
+  } else {
+    return deployedArk.ark.address as Address
+  }
 }

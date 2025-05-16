@@ -2,6 +2,7 @@ import hre from 'hardhat'
 import { Address } from 'viem'
 import { CHAIN_MAP_BY_ID } from '../common/chain-config-map'
 import { getConfigByNetwork } from './config-handler'
+import { getChainIdByNetwork } from './get-chainid'
 
 /**
  * Gets the hub chain ID from the SummerGovernor contract and determines if
@@ -53,7 +54,11 @@ export function getChainNameById(chainId: number): string {
  * @returns The chain ID
  */
 export function getChainId(networkName?: string): number {
-  const network = networkName || hre.network.name
+  if (networkName) {
+    return getChainIdByNetwork(networkName)
+  }
+
+  const network = hre.network.name
 
   const chainId = CHAIN_MAP_BY_ID[network as keyof typeof CHAIN_MAP_BY_ID]?.id
 

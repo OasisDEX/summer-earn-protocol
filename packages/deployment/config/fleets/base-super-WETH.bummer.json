@@ -1,0 +1,25 @@
+{
+  "fleetName": "BummerSuperLazyVault_WETH",
+  "isBummer": true,
+  "symbol": "SLVWETH",
+  "assetSymbol": "WETH",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000000000000",
+  "initialTipRate": "300000000000000000",
+  "network": "base",
+  "details": "",
+  "discourseURL": "",
+  "sipNumber": "4",
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+  "arks": [
+    {
+      "type": "CrossChainArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "aaveV3",
+        "targetChainId": 1
+      }
+    }
+  ]
+}

@@ -48,7 +48,7 @@ contract CrossChainFleetProxy is
     BridgeTypes.BridgeOptions public bridgeOptions;
 
     /// @notice The address of the source chain's CrossChainArk
-    address public immutable sourceChainArk;
+    address public sourceChainArk;
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
@@ -63,6 +63,9 @@ contract CrossChainFleetProxy is
 
     /// @notice Emitted when bridge options are updated
     event BridgeOptionsUpdated(BridgeTypes.BridgeOptions bridgeOptions);
+
+    /// @notice Emitted when the source chain ark address is updated
+    event SourceChainArkUpdated(address indexed newSourceChainArk);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -128,6 +131,52 @@ contract CrossChainFleetProxy is
     ) external onlyGovernorOrKeeper {
         bridgeOptions = _bridgeOptions;
         emit BridgeOptionsUpdated(_bridgeOptions);
+    }
+
+    /// @notice Updates the source chain ark address
+    /// @param _sourceChainArk The new source chain ark address
+    function setSourceChainArk(address _sourceChainArk) external onlyGovernor {
+        if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
+        sourceChainArk = _sourceChainArk;
+        emit SourceChainArkUpdated(_sourceChainArk);
+    }
+
+    /// @notice Keeper function to withdraw and transfer assets
+    function withdrawAndTransfer(
+        uint256 amount,
+        uint16 sourceChainId
+    ) external payable whenNotPaused nonReentrant onlyKeeper {
+        if (amount == 0) revert NoAssets();
+
+        // 1. Get the asset from fleet config
+        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
+            .getConfig();
+        address asset = address(config.bufferArk.asset());
+
+        // 2. Withdraw from fleet contract
+        IFleetCommander(fleetContract).withdraw(
+            amount,
+            address(this),
+            address(this)
+        );
+
+        // 3. Verify we received the expected amount
+        if (IERC20(asset).balanceOf(address(this)) < amount)
+            revert WithdrawalFailed();
+
+        // 4. Approve the bridge queue to transfer the assets
+        IERC20(asset).approve(address(bridgeQueue), amount);
+
+        // 5. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
+        bridgeQueue.queueTransferAssets(
+            sourceChainId,
+            asset,
+            amount,
+            sourceChainArk,
+            bridgeOptions
+        );
+
+        emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -201,48 +250,6 @@ contract CrossChainFleetProxy is
 
         // Emit event for tracking
         emit ProxyDeposit(fleetContract, token, amount, sourceChainId);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        NEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Keeper function to withdraw and transfer assets
-    function withdrawAndTransfer(
-        uint256 amount,
-        uint16 sourceChainId
-    ) external payable whenNotPaused nonReentrant onlyKeeper {
-        if (amount == 0) revert NoAssets();
-
-        // 1. Get the asset from fleet config
-        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
-            .getConfig();
-        address asset = address(config.bufferArk.asset());
-
-        // 2. Withdraw from fleet contract
-        IFleetCommander(fleetContract).withdraw(
-            amount,
-            address(this),
-            address(this)
-        );
-
-        // 3. Verify we received the expected amount
-        if (IERC20(asset).balanceOf(address(this)) < amount)
-            revert WithdrawalFailed();
-
-        // 4. Approve the bridge queue to transfer the assets
-        IERC20(asset).approve(address(bridgeQueue), amount);
-
-        // 5. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
-        bridgeQueue.queueTransferAssets(
-            sourceChainId,
-            asset,
-            amount,
-            sourceChainArk,
-            bridgeOptions
-        );
-
-        emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
     }
 
     /*//////////////////////////////////////////////////////////////

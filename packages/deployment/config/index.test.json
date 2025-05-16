@@ -42,6 +42,14 @@
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x90CaD67E09F79436F51E6a07B9267b002DfDFF03"
         }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x77B4a430f67fB0A436e07dc320C7F1835D3EB5f8"
+        },
+        "bridgeQueue": {
+          "address": "0x1Fd588A01a04307AaF486cDe7568c057048a03EE"
+        }
       }
     },
     "tokens": {
@@ -73,6 +81,60 @@
           "sonic": {
             "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
             "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          }
+        }
+      },
+      "bridge": {
+        "adapters": {
+          "layerZero": {
+            "endpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+            "supportedChains": [
+              {
+                "chainId": 1,
+                "lzEid": 30101
+              },
+              {
+                "chainId": 42161,
+                "lzEid": 30110
+              },
+              {
+                "chainId": 146,
+                "lzEid": 30332
+              }
+            ],
+            "minGasLimits": {
+              "stateRead": 300000,
+              "generalMessage": 300000
+            },
+            "readChannelId": 1
+          },
+          "stargate": {
+            "router": "0xcdf31d62140204c08853b547e64707110fbc6680",
+            "supportedChains": [
+              {
+                "chainId": 1,
+                "stargateChainId": 1
+              },
+              {
+                "chainId": 42161,
+                "stargateChainId": 110
+              }
+            ],
+            "supportedAssets": {
+              "1": [
+                {
+                  "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                  "poolId": 1
+                }
+              ],
+              "42161": [
+                {
+                  "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                  "poolId": 1
+                }
+              ]
+            },
+            "minDstGasForCall": 300000
           }
         }
       }
@@ -163,6 +225,60 @@
           "usdc": "0x1601843c5E9bC251A3272907010AFa41Fa18347E"
         }
       }
+    },
+    "bridge": {
+      "adapters": {
+        "layerZero": {
+          "endpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+          "supportedChains": [
+            {
+              "chainId": 1,
+              "lzEid": 30101
+            },
+            {
+              "chainId": 42161,
+              "lzEid": 30110
+            },
+            {
+              "chainId": 146,
+              "lzEid": 30332
+            }
+          ],
+          "minGasLimits": {
+            "stateRead": 300000,
+            "generalMessage": 300000
+          },
+          "readChannelId": 1
+        },
+        "stargate": {
+          "router": "0xcdf31d62140204c08853b547e64707110fbc6680",
+          "supportedChains": [
+            {
+              "chainId": 1,
+              "stargateChainId": 1
+            },
+            {
+              "chainId": 42161,
+              "stargateChainId": 110
+            }
+          ],
+          "supportedAssets": {
+            "1": [
+              {
+                "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "poolId": 1
+              }
+            ],
+            "42161": [
+              {
+                "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                "poolId": 1
+              }
+            ]
+          },
+          "minDstGasForCall": 300000
+        }
+      }
     }
   },
   "arbitrum": {
@@ -207,6 +323,14 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xA6040c5A92FFf881b8e74E6a5576DE156C0B6B1a"
+        }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
@@ -309,6 +433,14 @@
         },
         "rewards": "0x88730d254A2f7e6AC8388c3198aFd694bA9f7fae"
       }
+    },
+    "bridge": {
+      "bridgeRouter": {
+        "address": "0x0000000000000000000000000000000000000000"
+      },
+      "bridgeQueue": {
+        "address": "0x0000000000000000000000000000000000000000"
+      }
     }
   },
   "mainnet": {
@@ -353,6 +485,14 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xA2e47Bb397f908aba018276a3CC683608404123f"
+        }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
@@ -546,6 +686,14 @@
         "staking": {
           "sky": "0x0650CAF159C5A49f711e8169D4336ECB9b950275"
         }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
       }
     }
   },
@@ -591,6 +739,14 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xB3be2a9bF327a201D2BEFa3172B5E6aC2671B80b"
+        }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
@@ -665,6 +821,14 @@
             "market_20": "0x322e1d5384aa4ED66AeCa770B95686271de61dc3",
             "market_8": "0x4E216C15697C1392fE59e1014B009505E05810Df"
           }
+        }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     }

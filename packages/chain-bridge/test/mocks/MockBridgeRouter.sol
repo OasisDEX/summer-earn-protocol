@@ -411,6 +411,11 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit BridgeQueueAddressSet(_bridgeQueue);
     }
 
+    function setBridgeQueue(address _newBridgeQueue) external override {
+        mockBridgeQueueAddress = _newBridgeQueue;
+        emit BridgeQueueAddressSet(_newBridgeQueue);
+    }
+
     // --- Interface Support ---
     function supportsInterface(
         bytes4 interfaceId

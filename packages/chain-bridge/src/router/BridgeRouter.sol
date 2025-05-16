@@ -80,11 +80,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         uint16[] memory chainIds,
         address[] memory routerAddresses
     ) ProtocolAccessManaged(accessManager) {
-        if (
-            chainIds.length != routerAddresses.length ||
-            _bridgeQueue == address(0)
-        ) revert InvalidParams();
-
         bridgeQueue = _bridgeQueue;
         emit BridgeQueueUpdated(_bridgeQueue);
 
@@ -837,5 +832,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     ) external pure returns (bool) {
         return (interfaceId == type(IBridgeRouter).interfaceId ||
             interfaceId == type(IERC165).interfaceId);
+    }
+
+    /// @notice Sets the BridgeQueue address. Can only be called by governance.
+    /// @param _newBridgeQueue The new BridgeQueue address
+    function setBridgeQueue(address _newBridgeQueue) external onlyGovernor {
+        if (_newBridgeQueue == address(0)) revert InvalidBridgeQueue();
+        bridgeQueue = _newBridgeQueue;
+        emit BridgeQueueUpdated(_newBridgeQueue);
     }
 }
