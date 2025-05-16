@@ -1,5 +1,6 @@
 'use client'
 
+import { ProposalList } from '@/components/ProposalList'
 import {
   CrossChainData,
   decodeCalldata,
@@ -11,7 +12,6 @@ import {
 } from '@/services/validation'
 import styles from '@/styles/Form.module.scss'
 import { useState } from 'react'
-import { ProposalList } from '@/components/ProposalList'
 
 interface ValidationErrors {
   targets: string[]
@@ -41,6 +41,36 @@ const convertBigIntToString = (value: any): any => {
     return result
   }
   return value
+}
+
+// Helper function to format argument value
+const formatArgValue = (arg: any): React.ReactNode => {
+  if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
+    return <span className={styles.address}>{arg}</span>
+  }
+  if (typeof arg === 'object' && arg !== null) {
+    if (Array.isArray(arg)) {
+      return (
+        <ul className={styles.nestedArgsList}>
+          {arg.map((value, index) => (
+            <li key={index}>
+              <span className={styles.paramName}>{index}:</span> {formatArgValue(value)}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    return (
+      <ul className={styles.nestedArgsList}>
+        {Object.entries(arg).map(([key, value]) => (
+          <li key={key}>
+            <span className={styles.paramName}>{key}:</span> {formatArgValue(value)}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  return <span>{String(arg)}</span>
 }
 
 export default function Home() {
@@ -183,13 +213,7 @@ export default function Home() {
                         return (
                           <li key={j}>
                             <span className={styles.paramName}>{paramName}:</span>{' '}
-                            {typeof arg === 'string' &&
-                            arg.startsWith('0x') &&
-                            arg.length === 42 ? (
-                              <span className={styles.address}>{arg}</span>
-                            ) : (
-                              <span>{String(arg)}</span>
-                            )}
+                            {formatArgValue(arg)}
                           </li>
                         )
                       })}
@@ -217,12 +241,7 @@ export default function Home() {
                 const paramName = data.paramNames?.[i] || `arg${i}`
                 return (
                   <li key={i}>
-                    <span className={styles.paramName}>{paramName}:</span>{' '}
-                    {typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42 ? (
-                      <span className={styles.address}>{arg}</span>
-                    ) : (
-                      <span>{String(arg)}</span>
-                    )}
+                    <span className={styles.paramName}>{paramName}:</span> {formatArgValue(arg)}
                   </li>
                 )
               })}
@@ -265,7 +284,7 @@ export default function Home() {
         </div>
 
         <div className={styles.section}>
-          <h2>Targets (ETH Addresses)</h2>
+          <h2>Target / Value / Calldata</h2>
           {formData.targets.map((target, index) => (
             <div key={`target-${index}`} className={styles.arrayField}>
               <div className={styles.inputWithLabel}>
@@ -308,8 +327,12 @@ export default function Home() {
               )}
             </div>
           ))}
-          <button type="button" className={styles.addButton} onClick={() => addArrayField('targets')}>
-            Add Target
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={() => addArrayField('targets')}
+          >
+            Add calldata
           </button>
         </div>
 

@@ -1,6 +1,12 @@
+import { ByteArray, Bytes, crypto } from '@graphprotocol/graph-ts'
 import { Proposal } from '../../generated/schema'
-import { ProposalCanceled, ProposalCreated, ProposalExecuted, ProposalQueued, ProposalSentCrossChain } from '../../generated/SummerGovernor/SummerGovernor'
-import { Address, ByteArray, Bytes, crypto } from '@graphprotocol/graph-ts'
+import {
+  ProposalCanceled,
+  ProposalCreated,
+  ProposalExecuted,
+  ProposalQueued,
+  ProposalSentCrossChain,
+} from '../../generated/SummerGovernor/SummerGovernor'
 
 // Create a map of dstEid to chainId
 const dstEidToChainIdMap = new Map<string, string>()
@@ -15,7 +21,9 @@ export function handleProposalCreated(event: ProposalCreated): void {
   proposal.values = event.params.values
   proposal.calldatas = event.params.calldatas
   proposal.description = event.params.description
-  proposal.descriptionHash = Bytes.fromHexString(crypto.keccak256(ByteArray.fromUTF8(event.params.description)).toHexString())
+  proposal.descriptionHash = Bytes.fromHexString(
+    crypto.keccak256(ByteArray.fromUTF8(event.params.description)).toHexString(),
+  )
   proposal.status = 'Pending'
   proposal.chains = []
   proposal.save()
@@ -43,7 +51,6 @@ export function handleProposalSentCrossChain(event: ProposalSentCrossChain): voi
   // const proposal = getOrCreateProposal(event.params.proposalId.toString())
   // const dstEid = event.params.dstEid.toString()
   // const chainId = dstEidToChainIdMap.get(dstEid)
-  
   // if (chainId) {
   //   let chains = proposal.chains
   //   if (!chains) {

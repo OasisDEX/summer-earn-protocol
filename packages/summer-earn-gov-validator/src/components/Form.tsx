@@ -1,92 +1,92 @@
-import { useState } from 'react';
-import { ProposalList } from './ProposalList';
-import styles from '../styles/Form.module.scss';
+import { useState } from 'react'
+import styles from '../styles/Form.module.scss'
+import { ProposalList } from './ProposalList'
 
 interface Proposal {
-  id: string;
-  targets: string[];
-  values: string[];
-  calldatas: string[];
-  description: string;
-  descriptionHash: string;
-  status: string;
-  chains: string[];
+  id: string
+  targets: string[]
+  values: string[]
+  calldatas: string[]
+  description: string
+  descriptionHash: string
+  status: string
+  chains: string[]
 }
 
 export function Form() {
-  const [targets, setTargets] = useState<string[]>(['']);
-  const [values, setValues] = useState<string[]>(['']);
-  const [calldatas, setCalldatas] = useState<string[]>(['']);
-  const [description, setDescription] = useState('');
-  const [errors, setErrors] = useState<string[]>([]);
+  const [targets, setTargets] = useState<string[]>([''])
+  const [values, setValues] = useState<string[]>([''])
+  const [calldatas, setCalldatas] = useState<string[]>([''])
+  const [description, setDescription] = useState('')
+  const [errors, setErrors] = useState<string[]>([])
 
   const handleAddField = () => {
-    setTargets([...targets, '']);
-    setValues([...values, '']);
-    setCalldatas([...calldatas, '']);
-  };
+    setTargets([...targets, ''])
+    setValues([...values, ''])
+    setCalldatas([...calldatas, ''])
+  }
 
   const handleRemoveField = (index: number) => {
-    setTargets(targets.filter((_, i) => i !== index));
-    setValues(values.filter((_, i) => i !== index));
-    setCalldatas(calldatas.filter((_, i) => i !== index));
-  };
+    setTargets(targets.filter((_, i) => i !== index))
+    setValues(values.filter((_, i) => i !== index))
+    setCalldatas(calldatas.filter((_, i) => i !== index))
+  }
 
   const handleTargetChange = (index: number, value: string) => {
-    const newTargets = [...targets];
-    newTargets[index] = value;
-    setTargets(newTargets);
-  };
+    const newTargets = [...targets]
+    newTargets[index] = value
+    setTargets(newTargets)
+  }
 
   const handleValueChange = (index: number, value: string) => {
-    const newValues = [...values];
-    newValues[index] = value;
-    setValues(newValues);
-  };
+    const newValues = [...values]
+    newValues[index] = value
+    setValues(newValues)
+  }
 
   const handleCalldataChange = (index: number, value: string) => {
-    const newCalldatas = [...calldatas];
-    newCalldatas[index] = value;
-    setCalldatas(newCalldatas);
-  };
+    const newCalldatas = [...calldatas]
+    newCalldatas[index] = value
+    setCalldatas(newCalldatas)
+  }
 
   const handleProposalSelect = (proposal: Proposal) => {
-    setTargets(proposal.targets);
-    setValues(proposal.values);
-    setCalldatas(proposal.calldatas);
-    setDescription(proposal.description);
-  };
+    setTargets(proposal.targets)
+    setValues(proposal.values)
+    setCalldatas(proposal.calldatas)
+    setDescription(proposal.description)
+  }
 
   const validateForm = () => {
-    const newErrors: string[] = [];
+    const newErrors: string[] = []
 
-    if (targets.some(target => !target)) {
-      newErrors.push('All target addresses must be filled');
+    if (targets.some((target) => !target)) {
+      newErrors.push('All target addresses must be filled')
     }
 
-    if (values.some(value => !value)) {
-      newErrors.push('All values must be filled');
+    if (values.some((value) => !value)) {
+      newErrors.push('All values must be filled')
     }
 
-    if (calldatas.some(calldata => !calldata)) {
-      newErrors.push('All calldatas must be filled');
+    if (calldatas.some((calldata) => !calldata)) {
+      newErrors.push('All calldatas must be filled')
     }
 
     if (!description) {
-      newErrors.push('Description is required');
+      newErrors.push('Description is required')
     }
 
-    setErrors(newErrors);
-    return newErrors.length === 0;
-  };
+    setErrors(newErrors)
+    return newErrors.length === 0
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (validateForm()) {
       // Handle form submission
-      console.log({ targets, values, calldatas, description });
+      console.log({ targets, values, calldatas, description })
     }
-  };
+  }
 
   return (
     <div className={styles.main}>
@@ -106,7 +106,9 @@ export function Form() {
                 placeholder="Target Address"
                 value={targets[index]}
                 onChange={(e) => handleTargetChange(index, e.target.value)}
-                className={errors.includes('All target addresses must be filled') ? styles.error : ''}
+                className={
+                  errors.includes('All target addresses must be filled') ? styles.error : ''
+                }
               />
               <input
                 type="text"
@@ -163,5 +165,5 @@ export function Form() {
         </button>
       </form>
     </div>
-  );
-} 
+  )
+}

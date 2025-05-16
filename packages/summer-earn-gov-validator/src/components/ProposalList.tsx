@@ -1,48 +1,66 @@
-import { useEffect, useState } from 'react';
-import styles from '../styles/Form.module.scss';
-import ReactMarkdown from 'react-markdown';
+import { useEffect, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import styles from '../styles/Form.module.scss'
 
 interface Proposal {
-  id: string;
-  targets: string[];
-  values: string[];
-  calldatas: string[];
-  description: string;
-  descriptionHash: string;
-  status: string;
-  chains: string[];
+  id: string
+  targets: string[]
+  values: string[]
+  calldatas: string[]
+  description: string
+  descriptionHash: string
+  status: string
+  chains: string[]
 }
 
-const SUBGRAPH_URL = 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-base';
+interface RawProposal {
+  id: string
+  description: string
+  status: string
+  targets: string[]
+  values: string[]
+  calldatas: string[]
+}
 
-type StatusFilter = 'all' | 'pending' | 'executed' | 'canceled';
+const SUBGRAPH_URL = 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-base'
 
-export function ProposalList({ onSelectProposal }: { onSelectProposal: (proposal: Proposal) => void }) {
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [expandedDescription, setExpandedDescription] = useState<string | null>(null);
+type StatusFilter = 'pending' | 'executed' | 'canceled'
+
+const STATUS_LABELS: Record<StatusFilter, string> = {
+  pending: 'Pending',
+  executed: 'Executed',
+  canceled: 'Canceled',
+}
+
+export function ProposalList({
+  onSelectProposal,
+}: {
+  onSelectProposal: (proposal: Proposal) => void
+}) {
+  const [proposals, setProposals] = useState<Proposal[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
+  const [expandedProposal, setExpandedProposal] = useState<string | null>(null)
+  const [contractNames, setContractNames] = useState<string[]>([])
 
   useEffect(() => {
     const fetchProposals = async () => {
       try {
-        console.log('Fetching proposals from:', SUBGRAPH_URL);
-        
+        console.log('Fetching proposals from:', SUBGRAPH_URL)
+
         const query = `
           {
             proposals {
               id
+              description
+              status
               targets
               values
               calldatas
-              description
-              descriptionHash
-              status
-              chains
             }
           }
-        `;
+        `
 
         const response = await fetch(SUBGRAPH_URL, {
           method: 'POST',
@@ -50,56 +68,91 @@ export function ProposalList({ onSelectProposal }: { onSelectProposal: (proposal
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ query }),
-        });
+        })
 
-        console.log('Response status:', response.status);
-        
+        console.log('Response status:', response.status)
+
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error response:', errorText);
-          throw new Error(`Failed to fetch proposals: ${response.status} ${errorText}`);
+          const errorText = await response.text()
+          console.error('Error response:', errorText)
+          throw new Error(`Failed to fetch proposals: ${response.status} ${errorText}`)
         }
 
-        const data = await response.json();
-        console.log('Received data:', data);
-        
+        const data = await response.json()
+        console.log('Received data:', data)
+
         if (data.errors) {
-          console.error('GraphQL errors:', data.errors);
-          throw new Error(data.errors[0].message);
+          console.error('GraphQL errors:', data.errors)
+          throw new Error(data.errors[0].message)
         }
 
         if (!data.data || !data.data.proposals) {
-          console.error('Unexpected data structure:', data);
-          throw new Error('Invalid response format from subgraph');
+          console.error('Unexpected data structure:', data)
+          throw new Error('Invalid response format from subgraph')
         }
 
-        setProposals(data.data.proposals);
+        const fetchedProposals = data.data.proposals.map((p: RawProposal) => ({
+          ...p,
+          status: p.status.toLowerCase(),
+        }))
+
+        setProposals(fetchedProposals)
+
+        // Get contract names for all targets
+        const names = await Promise.all(
+          fetchedProposals
+            .flatMap((p: RawProposal) => p.targets)
+            .map(async (target: string) => {
+              try {
+                const response = await fetch(
+                  `https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${target}&apikey=${process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY}`,
+                )
+                const data = await response.json()
+                return data.result[0]?.ContractName || 'Unknown'
+              } catch (error) {
+                return 'Unknown'
+              }
+            }),
+        )
+        setContractNames(names)
       } catch (err) {
-        console.error('Error fetching proposals:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        console.error('Error fetching proposals:', err)
+        setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-
-    fetchProposals();
-  }, []);
-
-  const filteredProposals = proposals.filter(proposal => 
-    statusFilter === 'all' || proposal.status.toLowerCase() === statusFilter
-  );
-
-  const proposalsByStatus = filteredProposals.reduce((acc, proposal) => {
-    const status = proposal.status;
-    if (!acc[status]) {
-      acc[status] = [];
     }
-    acc[status].push(proposal);
-    return acc;
-  }, {} as Record<string, Proposal[]>);
+
+    fetchProposals()
+  }, [])
+
+  const filteredProposals = proposals.filter(
+    (proposal) => proposal.status.toLowerCase() === statusFilter,
+  )
+
+  const proposalsByStatus = filteredProposals.reduce(
+    (acc, proposal) => {
+      const status = proposal.status
+      if (!acc[status]) {
+        acc[status] = []
+      }
+      acc[status].push(proposal)
+      return acc
+    },
+    {} as Record<string, Proposal[]>,
+  )
+
+  const getProposalTitle = (description: string) => {
+    const firstLine = description.split('\n')[0]
+    return firstLine.length > 20 ? firstLine.substring(0, 100) + '...' : firstLine
+  }
+
+  const toggleProposal = (id: string) => {
+    setExpandedProposal(expandedProposal === id ? null : id)
+  }
 
   if (loading) {
-    return <div className={styles.loading}>Loading proposals...</div>;
+    return <div className={styles.loading}>Loading proposals...</div>
   }
 
   if (error) {
@@ -109,7 +162,7 @@ export function ProposalList({ onSelectProposal }: { onSelectProposal: (proposal
         <p>{error}</p>
         <p>Please check the console for more details.</p>
       </div>
-    );
+    )
   }
 
   if (proposals.length === 0) {
@@ -118,97 +171,67 @@ export function ProposalList({ onSelectProposal }: { onSelectProposal: (proposal
         <h3>No Proposals Found</h3>
         <p>There are no proposals available in the subgraph.</p>
       </div>
-    );
+    )
   }
 
   return (
     <div className={styles.proposalList}>
       <div className={styles.statusFilter}>
-        <button
-          className={`${styles.filterButton} ${statusFilter === 'all' ? styles.active : ''}`}
-          onClick={() => setStatusFilter('all')}
-        >
-          All
-        </button>
-        <button
-          className={`${styles.filterButton} ${statusFilter === 'pending' ? styles.active : ''}`}
-          onClick={() => setStatusFilter('pending')}
-        >
-          Pending
-        </button>
-        <button
-          className={`${styles.filterButton} ${statusFilter === 'executed' ? styles.active : ''}`}
-          onClick={() => setStatusFilter('executed')}
-        >
-          Executed
-        </button>
-        <button
-          className={`${styles.filterButton} ${statusFilter === 'canceled' ? styles.active : ''}`}
-          onClick={() => setStatusFilter('canceled')}
-        >
-          Canceled
-        </button>
+        {Object.entries(STATUS_LABELS).map(([status, label]) => (
+          <button
+            key={status}
+            className={`${styles.filterButton} ${statusFilter === status ? styles.active : ''}`}
+            onClick={() => setStatusFilter(status as StatusFilter)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
+      {proposals.map((proposal) => {
+        if (proposal.status !== statusFilter) {
+          return null
+        }
 
-      {Object.entries(proposalsByStatus).map(([status, statusProposals]) => (
-        <div key={status} className={styles.proposalSection}>
-          <h3>{status} Proposals ({statusProposals.length})</h3>
-          {statusProposals.map((proposal) => (
-            <div key={proposal.id} className={styles.proposal}>
-              <div className={styles.proposalHeader}>
-                <div className={styles.targetInfo}>
-                  <span className={styles.label}>Targets:</span>
-                  {proposal.targets.map((target, index) => (
-                    <span key={index} className={styles.address}>
-                      {target}
-                    </span>
-                  ))}
-                </div>
-                <div className={styles.valueInfo}>
-                  <span className={styles.label}>Values:</span>
-                  {proposal.values.map((value, index) => (
-                    <span key={index} className={styles.value}>
-                      {value}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className={styles.description}>
-                <div 
-                  className={styles.descriptionPreview}
-                  onClick={() => setExpandedDescription(
-                    expandedDescription === proposal.id ? null : proposal.id
-                  )}
+        const isExpanded = expandedProposal === proposal.id
+        const title = getProposalTitle(proposal.description)
+
+        return (
+          <div key={proposal.id} className={styles.proposal}>
+            <div className={styles.proposalHeader} onClick={() => toggleProposal(proposal.id)}>
+              <div className={styles.proposalTitle}>
+                <span className={styles.title}>{title}</span>
+                <button
+                  className={styles.selectButton}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectProposal(proposal)
+                  }}
                 >
-                  <p>{proposal.description.split('\n')[0]}...</p>
-                  <span className={styles.expandIcon}>
-                    {expandedDescription === proposal.id ? '▼' : '▶'}
-                  </span>
-                </div>
-                {expandedDescription === proposal.id && (
-                  <div className={styles.descriptionFull}>
-                    <ReactMarkdown>{proposal.description}</ReactMarkdown>
-                  </div>
-                )}
+                  Use this proposal
+                </button>
               </div>
-              <div className={styles.chains}>
-                <span className={styles.label}>Chains:</span>
-                {proposal.chains.map((chain, index) => (
-                  <span key={index} className={styles.chain}>
-                    {chain}
-                  </span>
-                ))}
-              </div>
-              <button
-                className={styles.selectButton}
-                onClick={() => onSelectProposal(proposal)}
-              >
-                Use This Proposal
-              </button>
+              <span className={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</span>
             </div>
-          ))}
-        </div>
-      ))}
+            {isExpanded && (
+              <div className={styles.proposalDetails}>
+                <div className={styles.description}>
+                  <ReactMarkdown>{proposal.description}</ReactMarkdown>
+                </div>
+                <div className={styles.targetsList}>
+                  {proposal.targets.map((target, index) => (
+                    <li key={index}>
+                      <span className={styles.label}>Target {index + 1}:</span>
+                      <span className={styles.address}>{target}</span>
+                      <span className={styles.contractName}>({contractNames[index]})</span>
+                      <span className={styles.value}>{proposal.values[index]} ETH</span>
+                    </li>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
-  );
-} 
+  )
+}
