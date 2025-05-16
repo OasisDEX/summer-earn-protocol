@@ -85,6 +85,9 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
+    /// @notice Amount of assets currently in-flight (being bridged)
+    uint256 public inflightAssets;
+
     event BridgeOptionsUpdated(BridgeTypes.BridgeOptions newOptions);
 
     /// @notice Emitted when the remote asset balance is updated via state read
@@ -96,6 +99,9 @@ contract CrossChainArk is
         uint256 amount,
         uint16 sourceChainId
     );
+
+    /// @notice Emitted when inflight assets amount is updated
+    event InflightAssetsUpdated(uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -142,6 +148,21 @@ contract CrossChainArk is
         emit BridgeOptionsUpdated(newOptions);
     }
 
+    /// @notice Updates the inflight assets amount when a bridge operation is executed
+    /// @param amount Amount of assets that are now in-flight
+    function updateInflightAssets(uint256 amount) external {
+        // Only the bridge queue or router should be able to call this
+        if (
+            msg.sender != address(bridgeQueue) &&
+            msg.sender != address(bridgeRouter)
+        ) {
+            revert Unauthorized();
+        }
+
+        inflightAssets = amount;
+        emit InflightAssetsUpdated(amount);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -152,7 +173,10 @@ contract CrossChainArk is
      * @return assets The total balance of underlying assets held by this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        assets = config.asset.balanceOf(address(this)) + lastRemoteAssetBalance;
+        assets =
+            config.asset.balanceOf(address(this)) +
+            lastRemoteAssetBalance +
+            inflightAssets;
     }
 
     /**
@@ -179,6 +203,10 @@ contract CrossChainArk is
     function _board(uint256 amount, bytes calldata) internal override {
         // Approve BridgeQueue to spend tokens
         config.asset.approve(address(bridgeQueue), amount);
+
+        // Update inflight assets before sending
+        inflightAssets += amount;
+        emit InflightAssetsUpdated(inflightAssets);
 
         bridgeQueue.queueTransferAssets(
             targetChainId,
@@ -228,6 +256,10 @@ contract CrossChainArk is
         uint256 newRemoteBalance = abi.decode(resultData, (uint256));
 
         lastRemoteAssetBalance = newRemoteBalance;
+
+        // Reset inflight assets as the state read now reflects the current remote balance
+        inflightAssets = 0;
+        emit InflightAssetsUpdated(0);
 
         emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
     }

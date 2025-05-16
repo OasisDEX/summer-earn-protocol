@@ -12,6 +12,7 @@ import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 
 /**
  * @title BridgeRouter
@@ -250,6 +251,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Approve the adapter to spend the Router's tokens.
         IERC20(params.asset).approve(selectedAdapter, 0); // Reset approval first
         IERC20(params.asset).approve(selectedAdapter, params.amount);
+
+        // Notify originator that assets are now officially in-flight
+        // Attempt to call updateInflightAssets if the originator supports it
+        try
+            ICrossChainArk(params.originator).updateInflightAssets(
+                params.amount
+            )
+        {} catch {}
 
         // Call the adapter to perform the transfer
         operationId = IBridgeAdapter(selectedAdapter).transferAsset{
