@@ -1,3 +1,4 @@
+import { SupportedNetworks, addresToContractName } from '@/services/validation'
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import styles from '../styles/Form.module.scss'
@@ -22,8 +23,6 @@ interface RawProposal {
   calldatas: string[]
 }
 
-const SUBGRAPH_URL = 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-base'
-
 type StatusFilter = 'pending' | 'executed' | 'canceled'
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
@@ -47,51 +46,18 @@ export function ProposalList({
   useEffect(() => {
     const fetchProposals = async () => {
       try {
-        console.log('Fetching proposals from:', SUBGRAPH_URL)
-
-        const query = `
-          {
-            proposals {
-              id
-              description
-              status
-              targets
-              values
-              calldatas
-            }
-          }
-        `
-
-        const response = await fetch(SUBGRAPH_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query }),
-        })
-
-        console.log('Response status:', response.status)
+        const start = Date.now()
+        const response = await fetch('/api/proposals')
+        const end = Date.now()
+        console.log(`Time taken: ${end - start}ms`)
 
         if (!response.ok) {
-          const errorText = await response.text()
-          console.error('Error response:', errorText)
-          throw new Error(`Failed to fetch proposals: ${response.status} ${errorText}`)
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to fetch proposals')
         }
 
         const data = await response.json()
-        console.log('Received data:', data)
-
-        if (data.errors) {
-          console.error('GraphQL errors:', data.errors)
-          throw new Error(data.errors[0].message)
-        }
-
-        if (!data.data || !data.data.proposals) {
-          console.error('Unexpected data structure:', data)
-          throw new Error('Invalid response format from subgraph')
-        }
-
-        const fetchedProposals = data.data.proposals.map((p: RawProposal) => ({
+        const fetchedProposals = data.proposals.map((p: RawProposal) => ({
           ...p,
           status: p.status.toLowerCase(),
         }))
@@ -99,21 +65,11 @@ export function ProposalList({
         setProposals(fetchedProposals)
 
         // Get contract names for all targets
-        const names = await Promise.all(
-          fetchedProposals
-            .flatMap((p: RawProposal) => p.targets)
-            .map(async (target: string) => {
-              try {
-                const response = await fetch(
-                  `https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${target}&apikey=${process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY}`,
-                )
-                const data = await response.json()
-                return data.result[0]?.ContractName || 'Unknown'
-              } catch (error) {
-                return 'Unknown'
-              }
-            }),
-        )
+        const names = fetchedProposals
+          .flatMap((p: RawProposal) => p.targets)
+          .map((target: string) => {
+            return addresToContractName(target, SupportedNetworks.BASE)
+          })
         setContractNames(names)
       } catch (err) {
         console.error('Error fetching proposals:', err)

@@ -287,7 +287,7 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
   }
 }
 
-function addresToContractName(address: string, network: SupportedNetworks): string {
+export function addresToContractName(address: string, network: SupportedNetworks): string {
   const networkConfig = typedConfig[network]
   const normalizedAddress = address.toLowerCase()
 
