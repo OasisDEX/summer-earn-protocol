@@ -7,14 +7,6 @@ import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
 
-/**
- * Interface for deployed bridge adapters
- */
-interface DeployedBridgeAdapters {
-  layerZero?: { address: Address }
-  stargate?: { address: Address }
-}
-
 async function deployAdapters() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
@@ -44,11 +36,7 @@ async function deployAdapters() {
 
   try {
     // Use the updated bridge-adapters.ts function for deployment (no longer needs bridgeConfig)
-    const deployedAdapters = await deployBridgeAdapters(
-      bridgeRouterAddress as Address,
-      {}, // Empty config object as adapters now use specialized configs
-      config,
-    )
+    const deployedAdapters = await deployBridgeAdapters(bridgeRouterAddress as Address, config)
 
     console.log(kleur.green().bold('Bridge adapters deployment completed successfully!'))
 

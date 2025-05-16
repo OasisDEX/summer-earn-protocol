@@ -24,7 +24,6 @@ export interface DeployedBridgeAdapters {
  */
 export async function deployLayerZeroAdapter(
   bridgeRouterAddress: Address,
-  config: BridgeAdaptersConfig,
   networkConfig: any,
 ): Promise<Address> {
   console.log(kleur.blue('Deploying LayerZero adapter using Ignition module'))
@@ -79,7 +78,6 @@ export async function deployLayerZeroAdapter(
  */
 export async function deployStargateAdapter(
   bridgeRouterAddress: Address,
-  config: BridgeAdaptersConfig,
   networkConfig: any,
 ): Promise<Address> {
   console.log(kleur.blue('Deploying Stargate adapter using Ignition module'))
@@ -314,11 +312,7 @@ export async function deployBridgeAdapters(
 
   // Deploy LayerZero adapter
   try {
-    const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-      bridgeRouterAddress,
-      config,
-      networkConfig,
-    )
+    const layerZeroAdapterAddress = await deployLayerZeroAdapter(bridgeRouterAddress, networkConfig)
     deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
 
     // Configure the adapter post-deployment
@@ -330,11 +324,7 @@ export async function deployBridgeAdapters(
   // Deploy Stargate adapter if configured
   if (config.stargate) {
     try {
-      const stargateAdapterAddress = await deployStargateAdapter(
-        bridgeRouterAddress,
-        config,
-        networkConfig,
-      )
+      const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
       deployedAdapters.stargate = { address: stargateAdapterAddress }
 
       // Configure the adapter post-deployment
