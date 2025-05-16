@@ -13,6 +13,7 @@
   "CoreModule#Raft": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E",
   "CoreModule#TipJar": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6",
   "FleetModule_LazyVault_LowerRisk_USDC#FleetCommander": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
+  "FleetModule_LazyVault_LowerRisk_USDC#FleetCommander2": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
   "FleetModule_LazyVault_LowerRisk_USDC#RewardsManager": "0xB1A851b8c70A4749408754d398702153A61DFc78",
   "AaveV3_usdc_1#AaveV3Ark": "0xC9dd080C9ecCFcdbf379714D84CdC8Bd01046AE1",
   "CompoundV3_usdc_1#CompoundV3Ark": "0xedC6a603B31391B7D13fBa6A721fd4DDa401f9eA",
