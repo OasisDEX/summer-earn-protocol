@@ -44,6 +44,22 @@ interface IAdmiralsQuarters is
     ) external payable returns (uint256 shares);
 
     /**
+     * @notice Enters a FleetCommander by depositing tokens
+     * @param fleetCommander The address of the FleetCommander contract
+     * @param assets The amount of inputToken to be deposited (0 for all)
+     * @param receiver The address to receive the shares
+     * @return shares The number of shares received from the FleetCommander
+     * @param referralCode The referral data to be used for the deposit
+     * @dev Emits a FleetEntered event
+     */
+    function enterFleet(
+        address fleetCommander,
+        uint256 assets,
+        address receiver,
+        bytes calldata referralCode
+    ) external payable returns (uint256 shares);
+
+    /**
      * @notice Stakes shares in a FleetCommander
      * @dev If zero shares are provided, the full balance of the FleetCommander is staked
      * @param fleetCommander The address of the FleetCommander contract

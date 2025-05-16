@@ -16,6 +16,7 @@ import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oa
 import {MessagingParams, MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -24,6 +25,7 @@ import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadRe
  */
 contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.UintSet;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -74,6 +76,9 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Mapping of operation types to message types
     mapping(BridgeTypes.OperationType => uint16) private operationToMessageType;
 
+    /// @notice Use EnumerableSet for storage
+    EnumerableSet.UintSet private _supportedChainIds;
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -102,6 +107,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         for (uint i = 0; i < _supportedChains.length; i++) {
             chainToLzEid[_supportedChains[i]] = _lzEids[i];
             lzEidToChain[_lzEids[i]] = _supportedChains[i];
+            _supportedChainIds.add(_supportedChains[i]);
         }
 
         // Initialize default minimum gas limits
@@ -142,6 +148,33 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     function activateReadChannel(uint32 _readChannelId) external onlyOwner {
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
+    }
+
+    /**
+     * @notice Adds a supported chain
+     * @param chainId Chain ID to add
+     * @param lzEid LayerZero endpoint ID for the chain
+     * @dev Can only be called by the contract owner
+     */
+    function addSupportedChain(
+        uint16 chainId,
+        uint32 lzEid
+    ) external onlyOwner {
+        chainToLzEid[chainId] = lzEid;
+        lzEidToChain[lzEid] = chainId;
+        _supportedChainIds.add(chainId);
+    }
+
+    /**
+     * @notice Removes a supported chain
+     * @param chainId Chain ID to remove
+     * @dev Can only be called by the contract owner
+     */
+    function removeSupportedChain(uint16 chainId) external onlyOwner {
+        uint32 lzEid = chainToLzEid[chainId];
+        delete chainToLzEid[chainId];
+        delete lzEidToChain[lzEid];
+        _supportedChainIds.remove(chainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -286,7 +319,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint16 srcChainId = lzEidToChain[_origin.srcEid];
 
         // Forward the result to the bridge router
-        bool delivered = false;
         try
             IBridgeRouter(bridgeRouter).deliverReadResponse(
                 operationId,
@@ -294,7 +326,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 _payload
             )
         {
-            delivered = true;
+            emit ReadResponseDelivered(operationId, _payload);
         } catch (bytes memory reason) {
             // Mark as failed if delivery fails
             _updateOperationStatus(
@@ -302,11 +334,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 BridgeTypes.OperationStatus.FAILED
             );
             emit RelayFailed(operationId, reason);
-        }
-
-        // Emit event for read response delivery
-        if (delivered) {
-            emit ReadResponseDelivered(operationId, _payload, delivered);
         }
     }
 
@@ -407,42 +434,15 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         override
         returns (uint16[] memory)
     {
-        // Count how many supported chains we have
-        uint256 count = 0;
-        for (uint16 i = 1; i < 65535; i++) {
-            if (chainToLzEid[i] != 0) {
-                count++;
-            }
+        uint256 length = _supportedChainIds.length();
+        uint16[] memory chains = new uint16[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            // Need to cast from uint256 to uint16
+            chains[i] = uint16(_supportedChainIds.at(i));
         }
 
-        // Create an array of the exact size
-        uint16[] memory supportedChains = new uint16[](count);
-
-        // Fill the array with supported chains
-        uint256 index = 0;
-        for (uint16 i = 1; i < 65535; i++) {
-            if (chainToLzEid[i] != 0) {
-                supportedChains[index] = i;
-                index++;
-            }
-        }
-
-        return supportedChains;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function getSupportedAssets(
-        uint16 chainId
-    ) external view override returns (address[] memory) {
-        // Check if the chain is supported first
-        if (chainToLzEid[chainId] == 0) revert UnsupportedChain();
-
-        // For this implementation, we'll assume all ERC20 tokens are supported
-        // In a real implementation, you'd maintain a list of supported assets per chain
-        address[] memory supportedAssets = new address[](1);
-        supportedAssets[0] = address(0); // Native token
-
-        return supportedAssets;
+        return chains;
     }
 
     /// @inheritdoc ISendAdapter
@@ -532,21 +532,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint16 chainId
     ) external view override returns (bool) {
         return chainToLzEid[chainId] != 0;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsAsset(
-        uint16 chainId,
-        address
-    ) external view override returns (bool) {
-        // First check if the chain is supported
-        if (!this.supportsChain(chainId)) {
-            return false;
-        }
-
-        // Currently all assets are supported for supported chains
-        // This could be modified to check specific assets if needed
-        return true;
     }
 
     /// @inheritdoc ISendAdapter
@@ -738,22 +723,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function supportsAssetTransfer() external pure returns (bool) {
-        // This adapter doesn't support native asset transfers
-        // as it has no liquidity management
-        return false;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsMessaging() external pure returns (bool) {
-        // This adapter supports general cross-chain messaging
-        return true;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsStateRead() external pure returns (bool) {
-        // This adapter supports state reading
-        return true;
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external pure override returns (bool) {
+        // LayerZero supports messaging and state reading operations, but not asset transfer
+        return
+            operationType == BridgeTypes.OperationType.MESSAGE ||
+            operationType == BridgeTypes.OperationType.READ_STATE;
     }
 
     /**

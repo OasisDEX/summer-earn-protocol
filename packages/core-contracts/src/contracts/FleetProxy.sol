@@ -3,11 +3,13 @@ pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
+import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ProtocolAccessManaged, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedExt, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedExt.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
@@ -22,7 +24,7 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
  */
 contract CrossChainFleetProxy is
     IFleetProxy,
-    ProtocolAccessManaged,
+    ProtocolAccessManagedExt,
     ReentrancyGuard,
     Pausable,
     IERC165
@@ -35,6 +37,9 @@ contract CrossChainFleetProxy is
 
     /// @notice The bridge router used for cross-chain communication
     IBridgeRouter public immutable bridgeRouter;
+
+    /// @notice The bridge queue used for queuing cross-chain transfers
+    IBridgeQueue public immutable bridgeQueue;
 
     /// @notice The address of the Fleet contract that this proxy covers
     address public immutable fleetContract;
@@ -70,6 +75,7 @@ contract CrossChainFleetProxy is
      * @notice Initializes the CrossChainFleetProxy
      * @param _accessManager Address of the access manager
      * @param _bridgeRouter Address of the bridge router
+     * @param _bridgeQueue Address of the bridge queue
      * @param _fleetContract Address of the Fleet contract this proxy covers
      * @param _bridgeOptions The bridge options for cross-chain transfers
      * @param _sourceChainArk Address of the source chain's CrossChainArk
@@ -77,11 +83,18 @@ contract CrossChainFleetProxy is
     constructor(
         address _accessManager,
         address _bridgeRouter,
+        address _bridgeQueue,
         address _fleetContract,
         BridgeTypes.BridgeOptions memory _bridgeOptions,
         address _sourceChainArk
     ) ProtocolAccessManaged(_accessManager) {
+        if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
+        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
+        if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
+        if (_fleetContract == address(0)) revert InvalidFleetContract();
+
         bridgeRouter = IBridgeRouter(_bridgeRouter);
+        bridgeQueue = IBridgeQueue(_bridgeQueue);
         fleetContract = _fleetContract;
         bridgeOptions = _bridgeOptions;
         sourceChainArk = _sourceChainArk;
@@ -133,28 +146,34 @@ contract CrossChainFleetProxy is
         uint256 amount,
         uint16 sourceChainId
     ) external payable whenNotPaused nonReentrant onlyKeeper {
-        // 1. Withdraw from fleet contract
+        if (amount == 0) revert NoAssets();
+
+        // 1. Get the asset from fleet config
+        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
+            .getConfig();
+        address asset = address(config.bufferArk.asset());
+
+        // 2. Withdraw from fleet contract
         IFleetCommander(fleetContract).withdraw(
             amount,
             address(this),
             address(this)
         );
 
-        // 2. Get the asset from fleet config
-        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
-            .getConfig();
-        address asset = address(config.bufferArk.asset());
+        // 3. Verify we received the expected amount
+        if (IERC20(asset).balanceOf(address(this)) < amount)
+            revert WithdrawalFailed();
 
-        // 3. Use BridgeRouter to transfer assets back to source chain's CrossChainArk
-        bridgeRouter.executeTransferAssets{value: msg.value}(
-            BridgeTypes.ExecuteTransferParams({
-                originator: address(this),
-                destinationChainId: sourceChainId,
-                asset: asset,
-                amount: amount,
-                recipient: sourceChainArk,
-                options: bridgeOptions
-            })
+        // 4. Approve the bridge queue to transfer the assets
+        IERC20(asset).approve(address(bridgeQueue), amount);
+
+        // 5. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
+        bridgeQueue.queueTransferAssets(
+            sourceChainId,
+            asset,
+            amount,
+            sourceChainArk,
+            bridgeOptions
         );
 
         emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
@@ -239,29 +258,12 @@ contract CrossChainFleetProxy is
 
     /// @notice Error thrown when source chain ark address is invalid
     error InvalidSourceChainArk();
-
-    /// @notice Error thrown when attempting to withdraw via message
-    error WithdrawalViaMessageNotSupported();
-
-    /// @notice Error thrown when caller is neither governor nor keeper
-    error CallerIsNotGovernorOrKeeper(address caller);
-
-    /*//////////////////////////////////////////////////////////////
-                            MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Modifier to restrict access to either governors or keepers
-    modifier onlyGovernorOrKeeper() {
-        if (
-            !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender) &&
-            !_accessManager.hasRole(
-                generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
-                msg.sender
-            ) &&
-            !_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotGovernorOrKeeper(msg.sender);
-        }
-        _;
-    }
+    /// @notice Error thrown when bridge router address is invalid
+    error InvalidBridgeRouter();
+    /// @notice Error thrown when bridge queue address is invalid
+    error InvalidBridgeQueue();
+    /// @notice Error thrown when fleet contract address is invalid
+    error InvalidFleetContract();
+    /// @notice Error thrown when withdrawal failed
+    error WithdrawalFailed();
 }

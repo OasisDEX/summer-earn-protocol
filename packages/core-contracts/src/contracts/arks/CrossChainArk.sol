@@ -6,7 +6,7 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
-import {GovernorOrKeeperAccess} from "@summerfi/access-contracts/contracts/GovernorOrKeeperAccess.sol";
+import {ProtocolAccessManagedExt} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedExt.sol";
 
 /**
  * @title CrossChainArk
@@ -16,7 +16,7 @@ import {GovernorOrKeeperAccess} from "@summerfi/access-contracts/contracts/Gover
 contract CrossChainArk is
     Ark,
     ICrossChainAssetReceiver,
-    GovernorOrKeeperAccess
+    ProtocolAccessManagedExt
 {
     using SafeERC20 for IERC20;
 
@@ -63,6 +63,9 @@ contract CrossChainArk is
     /// @notice Thrown when there are insufficient assets on the contract to perform the withdrawal.
     error InsufficientAssets(uint256 requestedAmount, uint256 availableAmount);
 
+    /// @notice Thrown when the provided asset address is invalid.
+    error InvalidAsset();
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -82,10 +85,23 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
+    /// @notice Amount of assets currently in-flight (being bridged)
+    uint256 public inflightAssets;
+
     event BridgeOptionsUpdated(BridgeTypes.BridgeOptions newOptions);
 
     /// @notice Emitted when the remote asset balance is updated via state read
     event RemoteAssetBalanceUpdated(uint256 newBalance, bytes32 requestId);
+
+    /// @notice Emitted when assets are received from another chain
+    event AssetsReceived(
+        address indexed token,
+        uint256 amount,
+        uint16 sourceChainId
+    );
+
+    /// @notice Emitted when inflight assets amount is updated
+    event InflightAssetsUpdated(uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -132,6 +148,21 @@ contract CrossChainArk is
         emit BridgeOptionsUpdated(newOptions);
     }
 
+    /// @notice Updates the inflight assets amount when a bridge operation is executed
+    /// @param amount Amount of assets that are now in-flight
+    function updateInflightAssets(uint256 amount) external {
+        // Only the bridge queue or router should be able to call this
+        if (
+            msg.sender != address(bridgeQueue) &&
+            msg.sender != address(bridgeRouter)
+        ) {
+            revert Unauthorized();
+        }
+
+        inflightAssets = amount;
+        emit InflightAssetsUpdated(amount);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -142,7 +173,10 @@ contract CrossChainArk is
      * @return assets The total balance of underlying assets held by this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        assets = config.asset.balanceOf(address(this)) + lastRemoteAssetBalance;
+        assets =
+            config.asset.balanceOf(address(this)) +
+            lastRemoteAssetBalance +
+            inflightAssets;
     }
 
     /**
@@ -170,6 +204,10 @@ contract CrossChainArk is
         // Approve BridgeQueue to spend tokens
         config.asset.approve(address(bridgeQueue), amount);
 
+        // Update inflight assets before sending
+        inflightAssets += amount;
+        emit InflightAssetsUpdated(inflightAssets);
+
         bridgeQueue.queueTransferAssets(
             targetChainId,
             address(config.asset),
@@ -182,27 +220,19 @@ contract CrossChainArk is
     /**
      * @notice Disembarks the Ark by withdrawing assets that are available on the contract
      * @param amount Amount of tokens to withdraw
-     * @dev This function handles withdrawals of assets that are already on the contract
-     * The Keeper on the satellite chain will handle withdrawals from the FleetProxy
+     * @dev This function only validates that enough assets are available on this contract
+     * The actual withdrawal from the satellite chain is processed by a keeper through
+     * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
-    function _disembark(uint256 amount, bytes calldata) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal view override {
         // Ensure we have enough assets on the contract
         uint256 availableAssets = config.asset.balanceOf(address(this));
         if (availableAssets < amount) {
             revert InsufficientAssets(amount, availableAssets);
         }
 
-        // Transfer assets to the caller
-        config.asset.safeTransfer(msg.sender, amount);
-
-        // Send cross-chain message to notify satellite chain about withdrawal
-        bytes memory message = abi.encode(amount);
-        bridgeQueue.queueSendMessage(
-            targetChainId,
-            targetProxy,
-            message,
-            bridgeOptions
-        );
+        // Note: The actual token transfer is handled by the parent Ark.disembark method
+        // No cross-chain message is required as satellite chain withdrawals are keeper-managed
     }
 
     /**
@@ -222,8 +252,15 @@ contract CrossChainArk is
         if (sourceChainId != targetChainId) revert InvalidSourceChain();
         if (requestor != address(this)) revert InvalidRequestor();
 
-        // Decode the remote asset balance (assume it's a uint256)
-        lastRemoteAssetBalance = abi.decode(resultData, (uint256));
+        // Decode the remote asset balance
+        uint256 newRemoteBalance = abi.decode(resultData, (uint256));
+
+        lastRemoteAssetBalance = newRemoteBalance;
+
+        // Reset inflight assets as the state read now reflects the current remote balance
+        inflightAssets = 0;
+        emit InflightAssetsUpdated(0);
+
         emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
     }
 
@@ -241,15 +278,31 @@ contract CrossChainArk is
 
     /**
      * @inheritdoc ICrossChainAssetReceiver
-     * @notice Receives a message with assets (not supported for this Ark)
+     * @notice Receives assets from another chain along with a message
+     * @param tokenAddress The address of the received token
+     * @param amount The amount of tokens received
+     * @param message The associated message data
+     * @param sourceChainId The chain ID where the message originated from
      */
     function receiveMessageWithAssets(
-        address,
-        uint256,
-        bytes calldata,
-        uint16
-    ) external pure {
-        revert ReceiveMessageWithAssetsNotSupported();
+        address tokenAddress,
+        uint256 amount,
+        bytes calldata message, // TODO: Use this to send latest true balance after withdrawal
+        uint16 sourceChainId
+    ) external {
+        if (msg.sender != address(bridgeRouter)) revert Unauthorized();
+        if (sourceChainId != targetChainId) revert InvalidSourceChain();
+        if (tokenAddress != address(config.asset)) revert InvalidAsset();
+
+        // Update the remote asset tracking
+        // Since we've received these assets, we can reduce the remote balance
+        if (amount <= lastRemoteAssetBalance) {
+            lastRemoteAssetBalance -= amount;
+        } else {
+            lastRemoteAssetBalance = 0;
+        }
+
+        emit AssetsReceived(tokenAddress, amount, sourceChainId);
     }
 
     /**

@@ -58,7 +58,6 @@ contract BridgeRouterAdaptersTest is Test {
 
         // Setup mock adapter
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-        mockAdapter.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
 
         // Register adapter
         router.registerAdapter(address(mockAdapter));
@@ -168,7 +167,6 @@ contract BridgeRouterAdaptersTest is Test {
         // Setup second adapter with different fee
         vm.startPrank(governor);
         mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
-        mockAdapter2.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
         mockAdapter2.setFeeMultiplier(150); // 50% more expensive
         router.registerAdapter(address(mockAdapter2));
         vm.stopPrank();
@@ -203,7 +201,6 @@ contract BridgeRouterAdaptersTest is Test {
         vm.startPrank(governor);
         // Configure mockAdapter2 to support the destination chain and asset
         mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
-        mockAdapter2.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
 
         // Register second adapter
         router.registerAdapter(address(mockAdapter2));
@@ -364,7 +361,6 @@ contract BridgeRouterAdaptersTest is Test {
 
         // Setup second adapter
         mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
-        mockAdapter2.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
         router.registerAdapter(address(mockAdapter2));
 
         // Register adapters with different support combinations
@@ -373,23 +369,16 @@ contract BridgeRouterAdaptersTest is Test {
         // Adapter that doesn't support the chain
         otherAdapters[0] = new MockAdapter(address(router));
         otherAdapters[0].setSupportedChain(DEST_CHAIN_ID, false);
-        otherAdapters[0].setSupportedAsset(DEST_CHAIN_ID, address(token), true);
         router.registerAdapter(address(otherAdapters[0]));
 
         // Adapter that doesn't support the asset
         otherAdapters[1] = new MockAdapter(address(router));
         otherAdapters[1].setSupportedChain(DEST_CHAIN_ID, true);
-        otherAdapters[1].setSupportedAsset(
-            DEST_CHAIN_ID,
-            address(token),
-            false
-        );
         router.registerAdapter(address(otherAdapters[1]));
 
         // Adapter that supports everything
         otherAdapters[2] = new MockAdapter(address(router));
         otherAdapters[2].setSupportedChain(DEST_CHAIN_ID, true);
-        otherAdapters[2].setSupportedAsset(DEST_CHAIN_ID, address(token), true);
         router.registerAdapter(address(otherAdapters[2]));
 
         vm.stopPrank();
@@ -434,15 +423,20 @@ contract BridgeRouterAdaptersTest is Test {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Test with unsupported asset
-        ERC20Mock unsupportedToken = new ERC20Mock();
-        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
-        router.quote(
+        // Test with a new token (Mock adapters accept any token)
+        ERC20Mock newToken = new ERC20Mock();
+        (, , address selectedAdapterForNewToken) = router.quote(
             DEST_CHAIN_ID,
-            address(unsupportedToken),
+            address(newToken),
             TRANSFER_AMOUNT,
             options,
             BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+        // Should still find an adapter since MockAdapter supports any token
+        assertEq(
+            selectedAdapterForNewToken,
+            address(mockAdapter),
+            "Should select adapter for new token"
         );
     }
 

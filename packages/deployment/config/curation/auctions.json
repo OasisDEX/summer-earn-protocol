@@ -15,7 +15,7 @@
     "kickerRewardPercentage": 0,
     "decayType": "linear",
     "maxMultiplier": 2,
-    "minMultiplier": 0.2
+    "minMultiplier": 0.1
   },
   {
     "rewardTokenSymbol": "reul",
@@ -82,6 +82,24 @@
       "usde": 0.003267,
       "usdce": 0.003267,
       "eurc": 0.003267
+    },
+    "duration": "3d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.2
+  },
+  {
+    "rewardTokenSymbol": "syrup",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.000081,
+      "usdt": 0.15,
+      "usdc": 0.15,
+      "dai": 0.15,
+      "usde": 0.15,
+      "usdce": 0.15,
+      "eurc": 0.15
     },
     "duration": "3d",
     "kickerRewardPercentage": 0,

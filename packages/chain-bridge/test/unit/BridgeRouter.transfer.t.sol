@@ -65,7 +65,6 @@ contract BridgeRouterTransferTest is Test {
 
         // Configure mock adapter to support chain 10 and the token
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-        mockAdapter.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
 
         // Register adapter
         router.registerAdapter(address(mockAdapter));

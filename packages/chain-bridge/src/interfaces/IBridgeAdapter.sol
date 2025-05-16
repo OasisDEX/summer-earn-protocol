@@ -32,11 +32,7 @@ interface IBridgeAdapter is ISendAdapter {
     );
 
     /// @notice Emitted when a read response is delivered through the adapter
-    event ReadResponseDelivered(
-        bytes32 indexed requestId,
-        bytes response,
-        bool delivered
-    );
+    event ReadResponseDelivered(bytes32 indexed requestId, bytes response);
 
     /// @notice Emitted when a relay or messaging operation fails
     event RelayFailed(bytes32 indexed transferId, bytes reason);
@@ -56,9 +52,6 @@ interface IBridgeAdapter is ISendAdapter {
 
     /// @notice Thrown when a chain is not supported
     error UnsupportedChain();
-
-    /// @notice Thrown when an asset is not supported for a specific chain
-    error UnsupportedAsset();
 
     /// @notice Thrown when the operation is not supported by the adapter
     error OperationNotSupported();
@@ -100,27 +93,16 @@ interface IBridgeAdapter is ISendAdapter {
     function getSupportedChains() external view returns (uint16[] memory);
 
     /**
-     * @notice Get the list of supported assets for a chain
-     */
-    function getSupportedAssets(
-        uint16 chainId
-    ) external view returns (address[] memory);
-
-    /**
      * @notice Check if an adapter supports a specific chain
      */
     function supportsChain(uint16 chainId) external view returns (bool);
 
     /**
-     * @notice Check if an adapter supports a specific asset for a chain
+     * @notice Check if an adapter supports a specific operation type
+     * @param operationType Type of operation to check support for
+     * @return Whether the adapter supports the operation type
      */
-    function supportsAsset(
-        uint16 chainId,
-        address asset
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
     ) external view returns (bool);
-
-    // Capability flags
-    function supportsAssetTransfer() external view returns (bool);
-    function supportsMessaging() external view returns (bool);
-    function supportsStateRead() external view returns (bool);
 }

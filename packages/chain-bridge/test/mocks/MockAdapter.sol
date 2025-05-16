@@ -14,7 +14,9 @@ contract MockAdapter is IBridgeAdapter {
 
     // Add mappings to track supported chains and assets
     mapping(uint16 => bool) public supportedChains;
-    mapping(uint16 => mapping(address => bool)) public supportedAssets;
+
+    // Add mapping to track supported operations
+    mapping(BridgeTypes.OperationType => bool) public supportedOperations;
 
     // Add mapping to track operation statuses
     mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
@@ -61,6 +63,11 @@ contract MockAdapter is IBridgeAdapter {
 
         // Initialize default supported chain for testing
         supportedChains[111] = true; // SOURCE_CHAIN_ID from tests
+
+        // Initialize default supported operations
+        supportedOperations[BridgeTypes.OperationType.MESSAGE] = true;
+        supportedOperations[BridgeTypes.OperationType.READ_STATE] = true;
+        supportedOperations[BridgeTypes.OperationType.TRANSFER_ASSET] = true;
     }
 
     // Add helper function to set fee multiplier
@@ -73,12 +80,12 @@ contract MockAdapter is IBridgeAdapter {
         supportedChains[chainId] = supported;
     }
 
-    function setSupportedAsset(
-        uint16 chainId,
-        address asset,
+    // Add helper function to configure supported operations
+    function setSupportedOperation(
+        BridgeTypes.OperationType operationType,
         bool supported
     ) external {
-        supportedAssets[chainId][asset] = supported;
+        supportedOperations[operationType] = supported;
     }
 
     /// @inheritdoc ISendAdapter
@@ -95,8 +102,6 @@ contract MockAdapter is IBridgeAdapter {
 
         // Verify chain and asset are supported
         if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
-        if (!this.supportsAsset(destinationChainId, asset))
-            revert UnsupportedAsset();
 
         // Generate deterministic transfer ID for testing
         transferId = keccak256(
@@ -191,24 +196,15 @@ contract MockAdapter is IBridgeAdapter {
         return chains;
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getSupportedAssets(
-        uint16
-    ) external pure returns (address[] memory) {
-        address[] memory assets = new address[](1);
-        assets[0] = address(0);
-        return assets;
-    }
-
     function supportsChain(uint16 chainId) external view returns (bool) {
         return supportedChains[chainId];
     }
 
-    function supportsAsset(
-        uint16 chainId,
-        address asset
+    /// @inheritdoc IBridgeAdapter
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
     ) external view returns (bool) {
-        return supportedAssets[chainId][asset];
+        return supportedOperations[operationType];
     }
 
     event ActionComposed(
@@ -242,24 +238,6 @@ contract MockAdapter is IBridgeAdapter {
         bytes[] actions,
         address originator
     );
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsAssetTransfer() external pure returns (bool) {
-        // Mock adapter supports asset transfers for testing
-        return true;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsMessaging() external pure returns (bool) {
-        // Mock adapter supports messaging for testing
-        return true;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsStateRead() external pure returns (bool) {
-        // Mock adapter supports state reads for testing
-        return true;
-    }
 
     /// @inheritdoc ISendAdapter
     function sendMessage(

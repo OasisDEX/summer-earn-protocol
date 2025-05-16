@@ -23,7 +23,10 @@ export enum ArkType {
   SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
   MoonwellArk = 'MoonwellArk',
   SyrupArk = 'SyrupArk',
+  SkyRewardsArk = 'SkyRewardsArk',
   SiloArk = 'SiloArk',
+  OriginETHArk = 'OriginETHArk',
+  FluidLiteArk = 'FluidLiteArk',
 }
 
 export const arkTypes = [
@@ -41,7 +44,10 @@ export const arkTypes = [
   { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
   { title: 'MoonwellArk', value: ArkType.MoonwellArk },
   { title: 'SyrupArk', value: ArkType.SyrupArk },
+  { title: 'SkyRewardsArk', value: ArkType.SkyRewardsArk },
   { title: 'SiloArk', value: ArkType.SiloArk },
+  { title: 'OriginETHArk', value: ArkType.OriginETHArk },
+  { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
 ]
 
 export interface Config {
@@ -57,6 +63,7 @@ export enum Token {
   USDS = 'usds',
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
+  STETH = 'steth',
   EURC = 'eurc',
   SEAM = 'seam',
   REUL = 'reul',
@@ -64,6 +71,7 @@ export enum Token {
   WS = 'ws',
   GEAR = 'gear',
   MORPHO = 'morpho',
+  SYRUP = 'syrup',
 }
 
 export interface BaseConfig {
@@ -129,9 +137,6 @@ export interface BaseConfig {
     }
   }
   protocolSpecific: {
-    syrup: {
-      pools: Record<string, any>
-    }
     aaveV3: {
       pool: string
       rewards: string
@@ -147,14 +152,49 @@ export interface BaseConfig {
       rewards: string
     }
     erc4626: Record<string, Record<string, string>>
-    moonwell: {
-      pools: Record<string, { mToken: string }>
-      comptroller: string
-    }
     sky: {
       psm3: {
-        usdc: string
+        [key in Token]: Address
       }
+      staking: {
+        sky: Address
+      }
+    }
+    moonwell: {
+      pools: {
+        [key in Token]: {
+          mToken: Address
+        }
+      }
+      comptroller: Address
+    }
+    syrup: {
+      pools: {
+        [key in Token]: {
+          syrup: Address
+          router: Address
+        }
+      }
+    }
+    silo: {
+      pools: {
+        [key in Token]: {
+          [key: string]: Address
+        }
+      }
+    }
+    fluid: {
+      lite: {
+        [key in Token]: {
+          wrapper: Address
+          vault: Address
+          withdrawalQueue: Address
+        }
+      }
+    }
+    originETH: {
+      originETH: Address
+      arm: Address
     }
   }
   bridge?: BridgeConfig
@@ -166,6 +206,9 @@ export interface ArkConfig {
     asset: string
     protocol: string
     vaultName?: string // For ERC4626Ark
+    depositCap?: string // For FluidLiteArk
+    maxRebalanceOutflow?: string // For FluidLiteArk
+    maxRebalanceInflow?: string // For FluidLiteArk
   }
 }
 

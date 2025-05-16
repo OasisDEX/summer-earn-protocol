@@ -8,6 +8,7 @@ import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
+import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkParams} from "../../src/contracts/Ark.sol";
@@ -15,8 +16,7 @@ import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import {CrossChainFleetProxy} from "../../src/contracts/FleetProxy.sol";
-import {IFleetProxy} from "../../src/interfaces/IFleetProxy.sol";
+import {CrossChainFleetProxy, IFleetProxy} from "../../src/contracts/FleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
@@ -33,6 +33,7 @@ contract CrossChainFleetProxyTest is Test {
     // Role constants
     bytes32 constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     bytes32 constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+    bytes32 constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     // Contracts under test
     CrossChainFleetProxy public proxy;
@@ -40,6 +41,7 @@ contract CrossChainFleetProxyTest is Test {
     // Mocks
     ERC20Mock public mockToken;
     MockBridgeRouter public mockBridgeRouter;
+    MockBridgeQueue public mockBridgeQueue;
     ProtocolAccessManager public accessManager;
     MockAdapter public mockAdapter;
     ArkMock public bufferArkMock;
@@ -56,6 +58,7 @@ contract CrossChainFleetProxyTest is Test {
         // Deploy mocks
         mockToken = new ERC20Mock();
         mockBridgeRouter = new MockBridgeRouter();
+        mockBridgeQueue = new MockBridgeQueue();
         accessManager = new ProtocolAccessManager(governor);
         mockAdapter = new MockAdapter(address(mockBridgeRouter));
         mockBridgeRouter.registerAdapter(address(mockAdapter));
@@ -113,10 +116,15 @@ contract CrossChainFleetProxyTest is Test {
         proxy = new CrossChainFleetProxy(
             address(accessManager),
             address(mockBridgeRouter),
+            address(mockBridgeQueue),
             address(fleetCommanderMock),
             bridgeOptions,
             SOURCE_ARK_ADDRESS
         );
+
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(proxy), governor);
+        vm.stopPrank();
 
         // Register the mock adapter with the bridge router
         vm.prank(governor);
@@ -126,8 +134,11 @@ contract CrossChainFleetProxyTest is Test {
     //----------------- Constructor Tests -----------------//
 
     function test_Constructor() public view {
-        // Test basic constructor values
+        // Test all constructor values are properly initialized
         assertEq(address(proxy.bridgeRouter()), address(mockBridgeRouter));
+        assertEq(address(proxy.bridgeQueue()), address(mockBridgeQueue));
+        assertEq(proxy.fleetContract(), address(fleetCommanderMock));
+        assertEq(proxy.sourceChainArk(), SOURCE_ARK_ADDRESS);
     }
 
     //----------------- Administrative Tests -----------------//
@@ -136,6 +147,32 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(guardian);
         proxy.pause();
         assertTrue(proxy.paused());
+
+        // Verify operations are blocked when paused
+        // Try to receive assets while paused
+        address asset = address(mockToken);
+        uint256 amount = 1000;
+        bytes memory message = abi.encodeWithSelector(
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
+            asset,
+            amount
+        );
+        mockToken.mint(address(proxy), amount);
+
+        // Should revert with Paused error
+        vm.prank(address(mockAdapter));
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+
+        // Setup keeper role for testing withdrawAndTransfer
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(address(proxy), governor);
+        vm.stopPrank();
+
+        // Try withdrawAndTransfer while paused
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        proxy.withdrawAndTransfer(100, SOURCE_CHAIN_ID);
 
         // Non-governor can't unpause
         vm.prank(guardian);
@@ -146,6 +183,11 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(governor);
         proxy.unpause();
         assertFalse(proxy.paused());
+
+        // Operations should work after unpausing
+        vm.prank(address(mockAdapter));
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+        assertEq(fleetCommanderMock.totalAssets(), amount);
     }
 
     //----------------- CrossChainReceiver Tests -----------------//
@@ -212,5 +254,109 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(fleetCommanderMock.totalAssets(), amount);
 
         return messageId;
+    }
+
+    function test_ReceiveMessageWithAssets_UnauthorizedSender() public {
+        // Prepare the message for receiving assets
+        address asset = address(mockToken);
+        uint256 amount = 1000;
+        bytes memory message = abi.encodeWithSelector(
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
+            asset,
+            amount
+        );
+
+        // Mint tokens to the proxy
+        mockToken.mint(address(proxy), amount);
+
+        // Call from an unauthorized address (not the adapter)
+        address unauthorizedCaller = address(0x123);
+        vm.prank(unauthorizedCaller);
+
+        // Should revert with CallerNotRegisteredAdapter error
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerNotRegisteredAdapter()")
+        );
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+    }
+
+    function test_ReceiveMessageWithAssets_InvalidAsset() public {
+        // Create a different token that doesn't match the fleet's configured asset
+        ERC20Mock invalidToken = new ERC20Mock();
+        uint256 amount = 1000;
+
+        bytes memory message = abi.encodeWithSelector(
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
+            address(invalidToken),
+            amount
+        );
+
+        // Mint invalid tokens to the proxy
+        invalidToken.mint(address(proxy), amount);
+
+        // Call from the adapter but with invalid asset
+        vm.prank(address(mockAdapter));
+
+        // Should revert with InvalidAsset error
+        vm.expectRevert(abi.encodeWithSignature("InvalidAsset()"));
+        proxy.receiveMessageWithAssets(
+            address(invalidToken),
+            amount,
+            message,
+            SOURCE_CHAIN_ID
+        );
+    }
+
+    function test_ReceiveMessageWithAssets_ZeroAmount() public {
+        // Prepare the message with zero amount
+        address asset = address(mockToken);
+        uint256 amount = 0;
+
+        bytes memory message = abi.encodeWithSelector(
+            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
+            asset,
+            amount
+        );
+
+        // Call from the adapter with zero amount
+        vm.prank(address(mockAdapter));
+
+        // Should revert with NoAssets error
+        vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
+        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+    }
+
+    function test_ReceiveMessageWithAssets_EmptyMessage() public {
+        // Use empty message
+        address asset = address(mockToken);
+        uint256 amount = 1000;
+        bytes memory emptyMessage = new bytes(0);
+
+        // Mint tokens to the proxy
+        mockToken.mint(address(proxy), amount);
+
+        // Call from the adapter with empty message
+        // This should emit the in-code message warning but still process the assets
+        vm.prank(address(mockAdapter));
+
+        // No event expectation since MessageContentNotExpected isn't declared as an event
+
+        // Call should succeed
+        proxy.receiveMessageWithAssets(
+            asset,
+            amount,
+            emptyMessage,
+            SOURCE_CHAIN_ID
+        );
+
+        // Verify tokens were still processed correctly
+        assertEq(fleetCommanderMock.totalAssets(), amount);
+    }
+
+    function test_WithdrawAndTransfer_ZeroAmount() public {
+        // Try to withdraw and transfer with zero amount
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
+        proxy.withdrawAndTransfer(0, SOURCE_CHAIN_ID);
     }
 }

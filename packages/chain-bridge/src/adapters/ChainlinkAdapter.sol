@@ -70,13 +70,6 @@ contract ChainlinkAdapter is IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getSupportedAssets(
-        uint16
-    ) external pure override returns (address[] memory) {
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IBridgeAdapter
     function estimateFee(
         uint16,
         address,
@@ -94,28 +87,9 @@ contract ChainlinkAdapter is IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function supportsAsset(
-        uint16,
-        address
+    function supportsOperation(
+        BridgeTypes.OperationType
     ) external pure override returns (bool) {
-        // This is a placeholder implementation
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsAssetTransfer() external pure override returns (bool) {
-        // This is a placeholder implementation
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsMessaging() external pure override returns (bool) {
-        // This is a placeholder implementation
-        revert OperationNotSupported();
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsStateRead() external pure override returns (bool) {
         // This is a placeholder implementation
         revert OperationNotSupported();
     }

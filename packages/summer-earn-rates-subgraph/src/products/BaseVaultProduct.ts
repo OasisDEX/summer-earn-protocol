@@ -1,6 +1,6 @@
 import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { Token, VaultState } from '../../generated/schema'
-import { BigDecimalConstants } from '../constants/common'
+import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { Product } from '../models/Product'
 
 export class RewardRate {
@@ -32,6 +32,7 @@ export class RewardRate {
  *   return for the Pendle LPs.
  */
 export abstract class BaseVaultProduct extends Product {
+  threshold: BigDecimal = BigDecimalConstants.ONE_BPS
   abstract getSharePrice(): BigDecimal
 
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
@@ -42,25 +43,44 @@ export abstract class BaseVaultProduct extends Product {
     if (sharePrice.equals(BigDecimalConstants.ZERO)) {
       return BigDecimalConstants.ZERO
     }
+    const vaultState = this.getOrCreateVaultState()
     // if the share price is the same as the previous share price, return 0
     // this is to prevent division by zero in the calculation,
     // not update the lastSharePrice,lastUpdateTimestamp
     // and to avoid unnecessary calculations
-    const previousSharePrice = this.getPreviousSharePrice()
+    const previousSharePrice = vaultState.lastSharePrice
+    const previousRate = vaultState.lastRate!
     if (previousSharePrice.equals(sharePrice)) {
-      return BigDecimalConstants.ZERO
+      return previousRate
     }
     const priceChange = sharePrice.minus(previousSharePrice).div(previousSharePrice)
-    const timeDiff = this.getTimeDifference(currentTimestamp)
-    this.updatePreviousSharePrice(sharePrice, currentTimestamp)
-
+    const timeDiff = this.getTimeDifference(currentTimestamp, vaultState)
     if (timeDiff.equals(BigInt.zero())) {
-      return BigDecimalConstants.ZERO
+      return previousRate
     }
     const annualizedRate = priceChange
       .times(BigDecimalConstants.SECONDS_PER_YEAR)
       .div(timeDiff.toBigDecimal())
       .times(BigDecimalConstants.HUNDRED)
+    const annualizedRateBelowZero = annualizedRate.lt(this.threshold.neg())
+    const annualizedRateWithinThreshold =
+      annualizedRate.lt(this.threshold) && annualizedRate.gt(this.threshold.neg())
+    // If the rate is negative, this usually indicates the vault is taking a fee
+    // Rather than showing a negative rate, we return the previous rate which better reflects
+    // the actual performance. We still update the vault state to maintain accurate calculations
+    // for the next update
+    if (annualizedRateBelowZero) {
+      this.updateVaultState(sharePrice, annualizedRate, currentTimestamp, vaultState)
+      return previousRate
+    }
+    // If the rate change is minimal (within our threshold), we maintain the previous rate
+    // This filters out small fluctuations from routine vault operations like deposits/withdrawals
+    // We skip updating vault state to ensure the next calculation uses the original timestamp
+    if (annualizedRateWithinThreshold) {
+      return previousRate
+    }
+
+    this.updateVaultState(sharePrice, annualizedRate, currentTimestamp, vaultState)
 
     return annualizedRate
   }
@@ -68,34 +88,33 @@ export abstract class BaseVaultProduct extends Product {
     return []
   }
 
-  private getTimeDifference(currentTimestamp: BigInt): BigInt {
-    let vaultState = VaultState.load(this.poolAddress)
-    if (!vaultState) {
-      return BigInt.zero()
-    } else {
-      return currentTimestamp.minus(vaultState.lastUpdateTimestamp)
-    }
+  private getTimeDifference(currentTimestamp: BigInt, vaultState: VaultState): BigInt {
+    return currentTimestamp.minus(vaultState.lastUpdateTimestamp)
   }
 
-  private getPreviousSharePrice(): BigDecimal {
-    let vaultState = VaultState.load(this.poolAddress)
-    if (!vaultState || vaultState.lastSharePrice.equals(BigDecimalConstants.ZERO)) {
-      return BigDecimalConstants.ONE
-    } else {
-      return vaultState.lastSharePrice
-    }
-  }
-
-  private updatePreviousSharePrice(newSharePrice: BigDecimal, currentTimestamp: BigInt): void {
+  private getOrCreateVaultState(): VaultState {
     let vaultState = VaultState.load(this.poolAddress)
     if (!vaultState) {
       vaultState = new VaultState(this.poolAddress)
-      vaultState.lastSharePrice = newSharePrice
-      vaultState.lastUpdateTimestamp = currentTimestamp
-    } else {
-      vaultState.lastSharePrice = newSharePrice
-      vaultState.lastUpdateTimestamp = currentTimestamp
+      vaultState.lastSharePrice = BigDecimalConstants.ONE
+      vaultState.lastRate = BigDecimalConstants.ZERO
+      vaultState.lastUpdateTimestamp = BigIntConstants.ZERO
     }
+    if (!vaultState.lastRate) {
+      vaultState.lastRate = BigDecimalConstants.ZERO
+    }
+    return vaultState
+  }
+
+  private updateVaultState(
+    newSharePrice: BigDecimal,
+    newRate: BigDecimal,
+    currentTimestamp: BigInt,
+    vaultState: VaultState,
+  ): void {
+    vaultState.lastSharePrice = newSharePrice
+    vaultState.lastRate = newRate
+    vaultState.lastUpdateTimestamp = currentTimestamp
     vaultState.save()
   }
 }

@@ -3,10 +3,27 @@
     "fleetRewards": [
       {
         "address": "0xb1a851b8c70a4749408754d398702153a61dfc78",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
         "fleetCommanderAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
-        "amount": "2427226030000000000000000",
+        "amount": "1630000000000000000000000",
         "rewardsDuration": "7776000",
         "description": "Base USDC"
+      },
+      {
+        "address": "0xdf8dFc3c051c88e62bB5D81819F312F15d5414a1",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
+        "fleetCommanderAddress": "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0",
+        "amount": "540000000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Base EURC"
+      },
+      {
+        "address": "0x7A49E6c6C64B32b7E89Bd9c0De121165977c422d",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
+        "fleetCommanderAddress": "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+        "amount": "1630000000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Base WETH"
       }
     ]
   },
@@ -14,10 +31,19 @@
     "fleetRewards": [
       {
         "address": "0xb1a851b8c70a4749408754d398702153a61dfc78",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
         "fleetCommanderAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
-        "amount": "2427226030000000000000000",
+        "amount": "1475000000000000000000000",
         "rewardsDuration": "7776000",
         "description": "Arbitrum USDT"
+      },
+      {
+        "address": "0x8dcA3e548C8b80C93EE8404cFC3cA46010C81679",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
+        "fleetCommanderAddress": "0x4F63cfEa7458221CB3a0EEE2F31F7424Ad34bb58",
+        "amount": "1592500000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Arbitrum USDC"
       }
     ]
   },
@@ -25,24 +51,35 @@
     "fleetRewards": [
       {
         "address": "0xb1a851b8c70a4749408754d398702153a61dfc78",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
         "fleetCommanderAddress": "0x98c49e13bf99d7cad8069faa2a370933ec9ecf17",
-        "amount": "4854450000000000000000000",
+        "amount": "5000000000000000000000000",
         "rewardsDuration": "7776000",
         "description": "Mainnet USDC"
       },
       {
         "address": "0x8dca3e548c8b80c93ee8404cfc3ca46010c81679",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
         "fleetCommanderAddress": "0x17ee2d03e88b55e762c66c76ec99c3a28a54ad8d",
-        "amount": "4854450000000000000000000",
+        "amount": "3082500000000000000000000",
         "rewardsDuration": "7776000",
         "description": "Mainnet USDT"
       },
       {
         "address": "0xc1768910a0e22a282f1d36725ab2eb29de5334f4",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
         "fleetCommanderAddress": "0x67e536797570b3d8919df052484273815a0ab506",
-        "amount": "4854450000000000000000000",
+        "amount": "6085000000000000000000000",
         "rewardsDuration": "7776000",
         "description": "Mainnet ETH"
+      },
+      {
+        "address": "0xdf8dFc3c051c88e62bB5D81819F312F15d5414a1",
+        "rewardAddress": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624",
+        "fleetCommanderAddress": "0x2E6abcbCCeD9Af05bc3B8a4908e0c98c29A88e10",
+        "amount": "5000000000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Mainnet ETH HR"
       }
     ]
   }

@@ -1,4 +1,5 @@
 import { Address, BigInt } from '@graphprotocol/graph-ts'
+import { Ark as ArkContract } from '../../generated/Raft/Ark'
 import {
   ArkAuctionParametersSet,
   ArkRewardTokenAuctionStarted,
@@ -8,6 +9,7 @@ import {
 import { TokensPurchased as TokensPurchasedEntity } from '../../generated/schema'
 import {
   getOrCreateAccount,
+  getOrCreateArk,
   getOrCreateArkAuctionParameters,
   getOrCreateAuction,
   getOrCreateToken,
@@ -23,6 +25,13 @@ export function handleArkRewardTokenAuctionStarted(event: ArkRewardTokenAuctionS
     event.params.rewardToken,
     event.block.timestamp,
   )
+  const ark = getOrCreateArk(event.params.ark)
+  const arkContract = ArkContract.bind(event.params.ark)
+  const commander = arkContract.try_commander()
+  if (!commander.reverted && commander.value.toHexString() != ark.commander) {
+    ark.commander = commander.value.toHexString()
+    ark.save()
+  }
 }
 
 export function handleAuctionFinalized(event: AuctionFinalized): void {

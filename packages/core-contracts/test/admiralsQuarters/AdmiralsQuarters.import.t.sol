@@ -15,7 +15,12 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Test, console} from "forge-std/Test.sol";
-
+bytes4 constant ENTER_FLEET_SELECTOR = bytes4(
+    keccak256("enterFleet(address,uint256,address)")
+);
+bytes4 constant ENTER_FLEET_WITH_REFERRAL_SELECTOR = bytes4(
+    keccak256("enterFleet(address,uint256,address,bytes)")
+);
 contract AdmiralsQuartersImportTest is
     FleetCommanderTestBase,
     OneInchTestHelpers
@@ -140,10 +145,13 @@ contract AdmiralsQuartersImportTest is
             admiralsQuarters.moveFromCompoundToAdmiralsQuarters,
             (CUSDC_ADDRESS, cTokenAmount)
         );
-        importCalls[1] = abi.encodeCall(
-            admiralsQuarters.enterFleet,
-            (address(usdcFleet), 0, address(admiralsQuarters))
+        importCalls[1] = abi.encodeWithSelector(
+            ENTER_FLEET_SELECTOR,
+            address(usdcFleet),
+            0,
+            address(admiralsQuarters)
         );
+
         importCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
             (address(usdcFleet), 0)
@@ -183,9 +191,11 @@ contract AdmiralsQuartersImportTest is
             admiralsQuarters.moveFromAaveToAdmiralsQuarters,
             (AUSDC_ADDRESS, aTokenAmount)
         );
-        importCalls[1] = abi.encodeCall(
-            admiralsQuarters.enterFleet,
-            (address(usdcFleet), 0, address(admiralsQuarters))
+        importCalls[1] = abi.encodeWithSelector(
+            ENTER_FLEET_SELECTOR,
+            address(usdcFleet),
+            0,
+            address(admiralsQuarters)
         );
         importCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -230,9 +240,11 @@ contract AdmiralsQuartersImportTest is
             admiralsQuarters.moveFromERC4626ToAdmiralsQuarters,
             (USDC_4626_VAULT, sharesToRedeem)
         );
-        importCalls[1] = abi.encodeCall(
-            admiralsQuarters.enterFleet,
-            (address(usdcFleet), 0, address(admiralsQuarters))
+        importCalls[1] = abi.encodeWithSelector(
+            ENTER_FLEET_SELECTOR,
+            address(usdcFleet),
+            0,
+            address(admiralsQuarters)
         );
         importCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -310,9 +322,11 @@ contract AdmiralsQuartersImportTest is
             admiralsQuarters.moveFromERC4626ToAdmiralsQuarters,
             (USDC_4626_VAULT, vaultSharesAmount)
         );
-        importCalls[3] = abi.encodeCall(
-            admiralsQuarters.enterFleet,
-            (address(usdcFleet), 0, address(admiralsQuarters))
+        importCalls[3] = abi.encodeWithSelector(
+            ENTER_FLEET_SELECTOR,
+            address(usdcFleet),
+            0,
+            address(admiralsQuarters)
         );
         importCalls[4] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -359,9 +373,11 @@ contract AdmiralsQuartersImportTest is
             admiralsQuarters.moveFromCompoundToAdmiralsQuarters,
             (CUSDC_ADDRESS, 0)
         );
-        importCalls[1] = abi.encodeCall(
-            admiralsQuarters.enterFleet,
-            (address(usdcFleet), 0, address(0))
+        importCalls[1] = abi.encodeWithSelector(
+            ENTER_FLEET_SELECTOR,
+            address(usdcFleet),
+            0,
+            address(0)
         );
         admiralsQuarters.multicall(importCalls);
 

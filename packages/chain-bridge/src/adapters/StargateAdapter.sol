@@ -19,6 +19,9 @@ import {IStargateReceiver} from "../interfaces/IStargateReceiver.sol";
 contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     using SafeERC20 for IERC20;
 
+    /// @notice Error for unsupported asset
+    error UnsupportedAsset();
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -164,7 +167,8 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
 
         // Check if chain and asset are supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
-        if (!supportsAsset(destinationChainId, asset))
+
+        if (!isAssetSupported(destinationChainId, asset))
             revert UnsupportedAsset();
 
         // Generate a unique transfer ID and mark as pending
@@ -351,12 +355,18 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         address asset,
         uint256,
         BridgeTypes.AdapterParams calldata adapterParams,
-        BridgeTypes.OperationType
+        BridgeTypes.OperationType operationType
     ) public view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Check if chain and asset are supported
+        // Check if chain is supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
-        if (!supportsAsset(destinationChainId, asset))
+
+        // Check if asset is supported (for asset transfers)
+        if (
+            operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
+            chainAssetToPoolId[destinationChainId][asset] == 0
+        ) {
             revert UnsupportedAsset();
+        }
 
         // Get Stargate chain ID
         uint16 dstChainId = chainToStargateChainId[destinationChainId];
@@ -406,43 +416,27 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getSupportedAssets(
-        uint16 chainId
-    ) external view override returns (address[] memory) {
-        if (!supportsChain(chainId)) revert UnsupportedChain();
-        return chainToSupportedAssets[chainId];
-    }
-
-    /// @inheritdoc IBridgeAdapter
     function supportsChain(uint16 chainId) public view override returns (bool) {
         return chainToStargateChainId[chainId] != 0;
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function supportsAsset(
-        uint16 chainId,
-        address asset
-    ) public view override returns (bool) {
-        if (!supportsChain(chainId)) {
-            return false;
-        }
-
-        return chainAssetToPoolId[chainId][asset] != 0;
+    /**
+     * @notice Get the list of supported assets for a specific chain
+     * @param chainId Chain ID to get supported assets for
+     * @return Array of addresses representing supported assets
+     */
+    function getSupportedAssets(
+        uint16 chainId
+    ) external view returns (address[] memory) {
+        return chainToSupportedAssets[chainId];
     }
 
     /// @inheritdoc IBridgeAdapter
-    function supportsAssetTransfer() external pure returns (bool) {
-        return true;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsMessaging() external pure returns (bool) {
-        return false;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsStateRead() external pure returns (bool) {
-        return false;
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external pure override returns (bool) {
+        // Stargate only supports asset transfers
+        return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -520,5 +514,13 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         BridgeTypes.AdapterParams calldata
     ) external payable returns (bytes32) {
         revert OperationNotSupported();
+    }
+
+    // Helper function to check if an asset is supported on a specific chain
+    function isAssetSupported(
+        uint16 chainId,
+        address asset
+    ) public view returns (bool) {
+        return chainAssetToPoolId[chainId][asset] != 0;
     }
 }

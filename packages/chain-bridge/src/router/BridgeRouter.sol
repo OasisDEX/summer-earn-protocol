@@ -12,6 +12,7 @@ import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 
 /**
  * @title BridgeRouter
@@ -113,9 +114,82 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         _;
     }
 
+    /**
+     * @dev Modifier ensuring the contract is not paused.
+     * Reverts with `Paused` if the contract is in the paused state.
+     */
+    modifier whenNotPaused() {
+        if (paused) revert Paused();
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
-                           BRIDGE QUEUE OPERATIONS
+                       INTERNAL UTILITY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Internal function to validate transfer parameters
+     * @param params Parameters to validate
+     */
+    function _validateTransferParams(
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) internal pure {
+        if (
+            params.amount == 0 ||
+            params.recipient == address(0) ||
+            params.originator == address(0) ||
+            params.asset == address(0)
+        ) revert InvalidParams();
+    }
+
+    /**
+     * @dev Internal function to validate read state parameters
+     * @param params Parameters to validate
+     */
+    function _validateReadStateParams(
+        BridgeTypes.ExecuteReadStateParams calldata params
+    ) internal pure {
+        if (params.originator == address(0) || params.dstContract == address(0))
+            revert InvalidParams();
+    }
+
+    /**
+     * @dev Internal function to validate send message parameters
+     * @param params Parameters to validate
+     */
+    function _validateSendMessageParams(
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    ) internal pure {
+        if (params.recipient == address(0) || params.originator == address(0))
+            revert InvalidParams();
+    }
+
+    /**
+     * @dev Internal function to validate if an adapter supports a specific operation type
+     * @param adapter The adapter address to validate
+     * @param operationType The type of operation to check support for
+     */
+    function _validateAdapterSupportsOperation(
+        address adapter,
+        BridgeTypes.OperationType operationType
+    ) internal view {
+        if (adapter == address(0)) revert NoSuitableAdapter();
+        if (!IBridgeAdapter(adapter).supportsOperation(operationType)) {
+            revert UnsupportedAdapterOperation();
+        }
+    }
+
+    /**
+     * @dev Internal function to validate provided fee against required fee
+     * @param providedFee The fee provided with the transaction
+     * @param requiredFee The required fee for the operation
+     */
+    function _validateFee(
+        uint256 providedFee,
+        uint256 requiredFee
+    ) internal pure {
+        if (providedFee < requiredFee) revert InsufficientFee();
+    }
 
     /**
      * @dev Internal function to handle refunds safely
@@ -129,6 +203,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         }
     }
 
+    /*//////////////////////////////////////////////////////////////
+                           BRIDGE QUEUE OPERATIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @inheritdoc IBridgeRouter
      */
@@ -138,17 +216,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         external
         payable
         onlyBridgeQueue
+        whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
     {
-        // Validations
-        if (paused) revert Paused();
-        if (
-            params.amount == 0 ||
-            params.recipient == address(0) ||
-            params.originator == address(0)
-        ) revert InvalidParams();
-        if (params.asset == address(0)) revert InvalidParams(); // Ensure asset is specified for transfers
+        _validateTransferParams(params);
 
         // Get required base fee and selected adapter (no multiplier)
         (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
@@ -160,20 +232,28 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Validate fee provided by BridgeQueue
-        if (msg.value < requiredBaseFee) revert InsufficientFee();
+        _validateFee(msg.value, requiredBaseFee);
 
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
 
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-        if (!IBridgeAdapter(selectedAdapter).supportsAssetTransfer()) {
-            revert UnsupportedAdapterOperation();
-        }
+        _validateAdapterSupportsOperation(
+            selectedAdapter,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
 
         // Assuming the BridgeQueue has already ensured the Router has the necessary tokens.
         // Approve the adapter to spend the Router's tokens.
         IERC20(params.asset).approve(selectedAdapter, 0); // Reset approval first
         IERC20(params.asset).approve(selectedAdapter, params.amount);
+
+        // Notify originator that assets are now officially in-flight
+        // Attempt to call updateInflightAssets if the originator supports it
+        try
+            ICrossChainArk(params.originator).updateInflightAssets(
+                params.amount
+            )
+        {} catch {}
 
         // Call the adapter to perform the transfer
         operationId = IBridgeAdapter(selectedAdapter).transferAsset{
@@ -215,13 +295,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         external
         payable
         onlyBridgeQueue
+        whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
     {
-        // Validations
-        if (paused) revert Paused();
-        if (params.originator == address(0) || params.dstContract == address(0))
-            revert InvalidParams();
+        _validateReadStateParams(params);
 
         // Get required base fee and selected adapter (no multiplier)
         (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
@@ -233,17 +311,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Validate fee provided by BridgeQueue
-        if (msg.value < requiredBaseFee) revert InsufficientFee();
+        _validateFee(msg.value, requiredBaseFee);
 
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
 
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-
-        // Check if adapter supports state reads
-        if (!IBridgeAdapter(selectedAdapter).supportsStateRead()) {
-            revert UnsupportedAdapterOperation();
-        }
+        _validateAdapterSupportsOperation(
+            selectedAdapter,
+            BridgeTypes.OperationType.READ_STATE
+        );
 
         // Call the adapter with the base fee
         operationId = IBridgeAdapter(selectedAdapter).readState{
@@ -289,13 +365,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         external
         payable
         onlyBridgeQueue
+        whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
     {
-        // Validations
-        if (paused) revert Paused();
-        if (params.recipient == address(0) || params.originator == address(0))
-            revert InvalidParams();
+        _validateSendMessageParams(params);
 
         // Get required base fee and selected adapter (no multiplier)
         (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
@@ -307,17 +381,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Validate fee provided by BridgeQueue
-        if (msg.value < requiredBaseFee) revert InsufficientFee();
+        _validateFee(msg.value, requiredBaseFee);
 
         // Use the base fee required by the adapter
         uint256 baseFeeToSend = requiredBaseFee;
 
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
-
-        // Check if adapter supports messaging
-        if (!IBridgeAdapter(selectedAdapter).supportsMessaging()) {
-            revert UnsupportedAdapterOperation();
-        }
+        _validateAdapterSupportsOperation(
+            selectedAdapter,
+            BridgeTypes.OperationType.MESSAGE
+        );
 
         // Call the adapter with the base fee
         operationId = ISendAdapter(selectedAdapter).sendMessage{
@@ -377,28 +449,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         selectedAdapter = options.specifiedAdapter;
 
         if (selectedAdapter != address(0)) {
-            if (!adapters.contains(selectedAdapter)) revert UnknownAdapter();
-            // Adapter capability checks remain the same...
-            if (
-                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-                !IBridgeAdapter(selectedAdapter).supportsAssetTransfer()
-            ) {
-                revert UnsupportedAdapterOperation();
-            }
-
-            if (
-                operationType == BridgeTypes.OperationType.READ_STATE &&
-                !IBridgeAdapter(selectedAdapter).supportsStateRead()
-            ) {
-                revert UnsupportedAdapterOperation();
-            }
-
-            if (
-                operationType == BridgeTypes.OperationType.MESSAGE &&
-                !IBridgeAdapter(selectedAdapter).supportsMessaging()
-            ) {
-                revert UnsupportedAdapterOperation();
-            }
+            if (!this.isValidAdapter(selectedAdapter)) revert UnknownAdapter();
+            _validateAdapterSupportsOperation(selectedAdapter, operationType);
         } else {
             // Finding the best adapter based on base fees
             selectedAdapter = _getBestAdapterForOperation(
@@ -520,7 +572,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         bytes32 operationId,
         uint16 sourceChainId,
         bytes calldata resultData
-    ) external onlyRegisteredAdapter {
+    ) external nonReentrant onlyRegisteredAdapter {
         if (operationToAdapter[operationId] != msg.sender) {
             revert Unauthorized();
         }
@@ -609,26 +661,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             // Check if adapter supports this chain
             if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
 
-            // Check capability support
-            if (
-                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-                !IBridgeAdapter(adapter).supportsAssetTransfer()
-            ) continue;
-            if (
-                operationType == BridgeTypes.OperationType.READ_STATE &&
-                !IBridgeAdapter(adapter).supportsStateRead()
-            ) continue;
-            if (
-                operationType == BridgeTypes.OperationType.MESSAGE &&
-                !IBridgeAdapter(adapter).supportsMessaging()
-            ) continue;
-
-            // For asset transfers, check if the asset is supported
-            if (
-                asset != address(0) &&
-                operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-                !IBridgeAdapter(adapter).supportsAsset(chainId, asset)
-            ) continue;
+            // Check capability support using the new operation type method
+            if (!IBridgeAdapter(adapter).supportsOperation(operationType))
+                continue;
 
             // If we get here, the adapter is suitable, so check its fee
             uint256 estimatedFee = 0;
