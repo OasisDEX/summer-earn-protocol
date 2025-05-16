@@ -1,6 +1,8 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address } from 'viem'
+import layerZeroConfig from '../../config/adapters/layerzero.json'
+import stargateConfig from '../../config/adapters/stargate.json'
 import LayerZeroAdapterModule from '../../ignition/modules/adapters/layerzero'
 import StargateAdapterModule from '../../ignition/modules/adapters/stargate'
 import { BridgeAdaptersConfig } from '../../types/bridge-types'
@@ -27,25 +29,25 @@ export async function deployLayerZeroAdapter(
 ): Promise<Address> {
   console.log(kleur.blue('Deploying LayerZero adapter using Ignition module'))
 
-  // Validate required configuration
-  if (!config.layerZero?.endpoint) {
-    throw new Error('LayerZero endpoint not configured')
+  // Get current chain ID
+  const chainId = Number(networkConfig.common.chainId)
+
+  // Use endpoint from specialized config
+  const endpoint = layerZeroConfig.endpoints[chainId.toString()]
+  if (!endpoint) {
+    throw new Error(`LayerZero endpoint not configured for chain ID ${chainId}`)
   }
 
-  if (!config.layerZero.supportedChains) {
-    throw new Error('LayerZero supported chains not configured')
-  }
-
-  // Extract chainIds and lzEids from supportedChains array
+  // Extract chainIds and lzEids from specialized config
   const chainIds: number[] = []
   const lzEids: number[] = []
 
-  for (const item of config.layerZero.supportedChains) {
-    chainIds.push(item.chainId)
-    lzEids.push(item.lzEid)
+  for (const mapping of layerZeroConfig.chainMapping) {
+    chainIds.push(mapping.chainId)
+    lzEids.push(mapping.lzEid)
   }
 
-  // Get the deployer address using viem
+  // Get the deployer address
   const [deployer] = await hre.viem.getWalletClients()
   const signerAddress = deployer.account.address
 
@@ -54,7 +56,7 @@ export async function deployLayerZeroAdapter(
     parameters: {
       LayerZeroAdapterModule: {
         bridgeRouter: bridgeRouterAddress,
-        lzEndpoint: config.layerZero.endpoint,
+        lzEndpoint: endpoint,
         chainIds,
         lzEids,
         owner: signerAddress,
@@ -82,9 +84,13 @@ export async function deployStargateAdapter(
 ): Promise<Address> {
   console.log(kleur.blue('Deploying Stargate adapter using Ignition module'))
 
-  // Validate required configuration
-  if (!config.stargate?.router) {
-    throw new Error('Stargate router not configured')
+  // Get current chain ID
+  const chainId = Number(networkConfig.common.chainId)
+
+  // Use router address from specialized config
+  const router = stargateConfig.router[chainId.toString() as keyof typeof stargateConfig.router]
+  if (!router) {
+    throw new Error(`Stargate router not configured for chain ID ${chainId}`)
   }
 
   // Get signer address
@@ -96,7 +102,7 @@ export async function deployStargateAdapter(
     parameters: {
       StargateAdapterModule: {
         bridgeRouter: bridgeRouterAddress,
-        stargateRouter: config.stargate.router,
+        stargateRouter: router,
         owner: signerAddress,
       },
     },
@@ -119,22 +125,14 @@ export async function configureStargateAdapter(
 ): Promise<void> {
   console.log(kleur.blue('Configuring Stargate adapter'))
 
-  if (!config.stargate?.chainMapping) {
-    throw new Error('Stargate chain mappings not configured')
-  }
-
-  if (!config.stargate?.supportedAssets) {
-    throw new Error('Stargate supported assets not configured')
-  }
-
   // Get adapter contract
   const stargateAdapter = await hre.viem.getContractAt(
     'StargateAdapter' as string,
     stargateAdapterAddress,
   )
 
-  // Add supported chains
-  for (const chainInfo of config.stargate.chainMapping) {
+  // Add supported chains from specialized config
+  for (const chainInfo of stargateConfig.chainMapping) {
     console.log(
       `Adding supported chain ${chainInfo.chainId} with Stargate chain ID ${chainInfo.stargateChainId}`,
     )
@@ -156,55 +154,62 @@ export async function configureStargateAdapter(
     }
   }
 
-  // Add supported assets
-  console.log('config.stargate.supportedAssets [debug]', config.stargate.supportedAssets)
-  // Iterate through each chain ID
-  for (const chainId of Object.keys(config.stargate.supportedAssets)) {
-    // Iterate through assets for this chain
-    for (const assetInfo of config.stargate.supportedAssets[chainId]) {
+  // Add supported assets from pool-based specialized config
+  for (const [poolId, poolInfo] of Object.entries(stargateConfig.pools)) {
+    // For each pool
+    for (const [chainId, assetAddress] of Object.entries(poolInfo.assets)) {
       console.log(
-        `Adding supported asset ${assetInfo.asset} on chain ${chainId} with pool ID ${assetInfo.poolId}`,
+        `Adding supported asset ${assetAddress} on chain ${chainId} with pool ID ${poolId}`,
       )
 
-      // Check if the asset is already supported to avoid unnecessary transactions
+      // Check if the asset is already supported
       try {
-        const isSupported = await stargateAdapter.read.supportsAsset([
-          Number(chainId), // Convert string chainId to number
-          assetInfo.asset,
+        const isSupported = await stargateAdapter.read.isAssetSupported([
+          Number(chainId),
+          assetAddress,
         ])
         if (!isSupported) {
           const hash = await stargateAdapter.write.addSupportedAsset([
-            Number(chainId), // Convert string chainId to number
-            assetInfo.asset,
-            assetInfo.poolId,
+            Number(chainId),
+            assetAddress,
+            Number(poolId),
           ])
           console.log(
             kleur.green(
-              `Asset ${assetInfo.asset} on chain ${chainId} added successfully, tx: ${hash}`,
+              `Asset ${assetAddress} on chain ${chainId} added successfully, tx: ${hash}`,
             ),
           )
         } else {
           console.log(
-            kleur.yellow(
-              `Asset ${assetInfo.asset} on chain ${chainId} already supported, skipping`,
-            ),
+            kleur.yellow(`Asset ${assetAddress} on chain ${chainId} already supported, skipping`),
           )
         }
       } catch (error) {
-        console.error(
-          kleur.red(`Error adding asset ${assetInfo.asset} on chain ${chainId}:`),
-          error,
-        )
+        console.error(kleur.red(`Error adding asset ${assetAddress} on chain ${chainId}:`), error)
       }
     }
   }
 
+  // Set minimum gas limit if configured
+  try {
+    const currentGasLimit = await stargateAdapter.read.minDstGasForCall()
+    const configuredGasLimit = BigInt(stargateConfig.minDstGasForCall)
+
+    if (currentGasLimit !== configuredGasLimit) {
+      await stargateAdapter.write.setMinDstGasForCall([configuredGasLimit])
+      console.log(kleur.green(`Minimum destination gas set to ${configuredGasLimit}`))
+    } else {
+      console.log(
+        kleur.yellow(`Minimum destination gas already set to ${currentGasLimit}, skipping`),
+      )
+    }
+  } catch (error) {
+    console.error(kleur.red('Error setting minimum destination gas:'), error)
+  }
+
   // Register adapter with bridge router
   try {
-    const bridgeRouter = await hre.viem.getContractAt(
-      'BridgeRouter' as string,
-      config.stargate.router,
-    )
+    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', config.bridgeRouterAddress)
     await bridgeRouter.write.registerAdapter([stargateAdapterAddress])
     console.log(kleur.green(`Stargate adapter registered with bridge router`))
   } catch (error) {
@@ -216,33 +221,31 @@ export async function configureStargateAdapter(
  * Configure LayerZero adapter read channel
  * @param layerZeroAdapterAddress Address of the deployed LayerZero adapter
  * @param bridgeRouterAddress Address of the deployed BridgeRouter
- * @param config Bridge adapter configuration
+ * @param networkConfig Network configuration
  */
 export async function configureLayerZeroAdapter(
   layerZeroAdapterAddress: Address,
   bridgeRouterAddress: Address,
-  config: BridgeAdaptersConfig,
+  networkConfig: any,
 ): Promise<void> {
   console.log(kleur.blue('Configuring LayerZero adapter'))
 
-  if (!config.layerZero) {
-    console.log(kleur.yellow('No LayerZero configuration found, skipping'))
+  const chainId = Number(networkConfig.common.chainId)
+  const chainConfig = layerZeroConfig.chainConfig[chainId.toString()]
+
+  if (!chainConfig) {
+    console.log(kleur.yellow(`No LayerZero configuration found for chain ${chainId}, skipping`))
     return
   }
 
   // Get adapter contract
-  const layerZeroAdapter = await hre.viem.getContractAt(
-    'LayerZeroAdapter' as string,
-    layerZeroAdapterAddress,
-  )
+  const layerZeroAdapter = await hre.viem.getContractAt('LayerZeroAdapter', layerZeroAdapterAddress)
 
   // Activate read channel if configured
-  if (config.layerZero.readChannelId) {
-    console.log(`Activating read channel with ID ${config.layerZero.readChannelId}`)
+  if (chainConfig.readChannelId) {
+    console.log(`Activating read channel with ID ${chainConfig.readChannelId}`)
     try {
-      const hash = await layerZeroAdapter.write.activateReadChannel([
-        config.layerZero.readChannelId,
-      ])
+      const hash = await layerZeroAdapter.write.activateReadChannel([chainConfig.readChannelId])
       console.log(kleur.green(`Read channel activated successfully, tx: ${hash}`))
     } catch (error) {
       console.error(kleur.red('Error activating read channel:'), error)
@@ -250,14 +253,14 @@ export async function configureLayerZeroAdapter(
   }
 
   // Set minimum gas limits if configured
-  if (config.layerZero.minGasLimits) {
+  if (chainConfig.minGasLimits) {
     // Map string message types to numeric values
     const messageTypeMap: Record<string, number> = {
       stateRead: 2, // STATE_READ constant in LayerZeroAdapter.sol
       generalMessage: 3, // GENERAL_MESSAGE constant in LayerZeroAdapter.sol
     }
 
-    for (const [strMsgType, gasLimit] of Object.entries(config.layerZero.minGasLimits)) {
+    for (const [strMsgType, gasLimit] of Object.entries(chainConfig.minGasLimits)) {
       const numMsgType = messageTypeMap[strMsgType]
       if (numMsgType === undefined) {
         console.error(kleur.red(`Unknown message type: ${strMsgType}, skipping`))
@@ -285,7 +288,7 @@ export async function configureLayerZeroAdapter(
 
   // Register adapter with bridge router
   try {
-    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter' as string, bridgeRouterAddress)
+    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
     await bridgeRouter.write.registerAdapter([layerZeroAdapterAddress])
     console.log(kleur.green(`LayerZero adapter registered with bridge router`))
   } catch (error) {
@@ -309,21 +312,19 @@ export async function deployBridgeAdapters(
 
   const deployedAdapters: DeployedBridgeAdapters = {}
 
-  // Deploy LayerZero adapter if configured
-  if (config.layerZero) {
-    try {
-      const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-        bridgeRouterAddress,
-        config,
-        networkConfig,
-      )
-      deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
+  // Deploy LayerZero adapter
+  try {
+    const layerZeroAdapterAddress = await deployLayerZeroAdapter(
+      bridgeRouterAddress,
+      config,
+      networkConfig,
+    )
+    deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
 
-      // Configure the adapter post-deployment
-      await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, config)
-    } catch (error) {
-      console.error(kleur.red('Error deploying LayerZero adapter:'), error)
-    }
+    // Configure the adapter post-deployment
+    await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
+  } catch (error) {
+    console.error(kleur.red('Error deploying LayerZero adapter:'), error)
   }
 
   // Deploy Stargate adapter if configured

@@ -1,0 +1,44 @@
+{
+  "endpoints": {
+    "1": "0x1a44076050125825900e736c501f859c50fE728c",
+    "8453": "0x1a44076050125825900e736c501f859c50fE728c",
+    "42161": "0x1a44076050125825900e736c501f859c50fE728c",
+    "146": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B"
+  },
+  "chainMapping": [
+    { "chainId": 1, "lzEid": 30101 },
+    { "chainId": 8453, "lzEid": 30184 },
+    { "chainId": 42161, "lzEid": 30110 },
+    { "chainId": 146, "lzEid": 30332 }
+  ],
+  "chainConfig": {
+    "1": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295
+    },
+    "8453": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295
+    },
+    "42161": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295
+    },
+    "146": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295
+    }
+  }
+}

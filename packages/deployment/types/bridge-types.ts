@@ -39,14 +39,13 @@ export interface BridgeAdaptersConfig {
 export interface DeployedBridge {
   bridgeRouter: { address: Address }
   bridgeQueue: { address: Address }
+  adapters?: {
+    layerZero?: { address: Address }
+    stargate?: { address: Address }
+  }
 }
 
 export interface DeployedBridgeAdapters {
   layerZero?: { address: Address }
   stargate?: { address: Address }
-}
-
-// Full bridge configuration type that extends BridgeAdaptersConfig
-export interface BridgeConfig extends BridgeAdaptersConfig {
-  // Additional bridge configuration properties can be added here if needed
 }

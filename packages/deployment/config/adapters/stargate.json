@@ -1,0 +1,23 @@
+{
+  "router": {
+    "1": "0x8731d54E9D02c286767d56ac03e8037C07e01e98",
+    "8453": "0x45f1A95A4D3f3836523F5c83673c797f4d4d263B",
+    "42161": "0x53Bf833A5d6c4ddA888F69c22C88C9f356a41614"
+  },
+  "chainMapping": [
+    { "chainId": 1, "stargateChainId": 1 },
+    { "chainId": 8453, "stargateChainId": 184 },
+    { "chainId": 42161, "stargateChainId": 110 }
+  ],
+  "pools": {
+    "1": {
+      "name": "USDC",
+      "assets": {
+        "1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "8453": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "42161": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+      }
+    }
+  },
+  "minDstGasForCall": 300000
+}

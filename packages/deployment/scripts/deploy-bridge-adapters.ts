@@ -1,10 +1,8 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 import { Address } from 'viem'
 import { BaseConfig } from '../types/config-types'
 import { deployBridgeAdapters } from './bridge/bridge-adapters'
-import { getBridgeAdapterConfigs } from './bridge/bridge-config-helpers'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
@@ -40,33 +38,15 @@ async function deployAdapters() {
     throw new Error('BridgeRouter address is missing in configuration')
   }
 
-  // Load bridge configuration
-  let bridgeConfig = getBridgeAdapterConfigs(config)
-  console.log('bridgeConfig [debug]', bridgeConfig)
-  if (!bridgeConfig) {
-    const continueWithoutConfig = await promptForContinueWithoutConfig()
-    if (!continueWithoutConfig) {
-      throw new Error('Bridge adapter configuration is missing in network config')
-    } else {
-      console.log(
-        kleur.yellow(
-          'Proceeding without bridge adapter configuration. You will need to manually configure adapters later.',
-        ),
-      )
-      // Create empty config
-      bridgeConfig = {}
-    }
-  }
-
   const bridgeRouterAddress = config.deployedContracts.bridge.bridgeRouter.address
 
   console.log(kleur.green().bold('Starting bridge adapters deployment...'))
 
   try {
-    // Use the original bridge-adapters.ts function for deployment
+    // Use the updated bridge-adapters.ts function for deployment (no longer needs bridgeConfig)
     const deployedAdapters = await deployBridgeAdapters(
       bridgeRouterAddress as Address,
-      bridgeConfig,
+      {}, // Empty config object as adapters now use specialized configs
       config,
     )
 
@@ -104,21 +84,6 @@ async function deployAdapters() {
     console.error(error instanceof Error ? error.message : String(error))
     throw error
   }
-}
-
-/**
- * Prompt the user to continue deployment without bridge adapter configuration
- */
-async function promptForContinueWithoutConfig(): Promise<boolean> {
-  const response = await prompts({
-    type: 'confirm',
-    name: 'continue',
-    message:
-      'No bridge adapter configuration found. Continue without it? (Adapters will need manual configuration later)',
-    initial: false,
-  })
-
-  return response.continue
 }
 
 // Execute the deployAdapters function and handle any errors
