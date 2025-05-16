@@ -94,5 +94,6 @@
   "LazyVault_HigherRisk_USDC_MorphoVault_usdc_MEV_Capital_USDC_1#MorphoVaultArk": "0x40087B15127791FF55746c4E87e4e4AFb88a8AEb",
   "LazyVault_HigherRisk_USDC_SkyRewards_usdc_1#SkyRewardsArk": "0x3d8C278F05F655F26dcbf828C084E5182FD8d409",
   "LazyVault_HigherRisk_USDC_Syrup_usdc_1_gov#SyrupArk": "0x1bf7ef7eD5AC8285DFE6e538b92364Ad095dd1A3",
-  "LazyVault_HigherRisk_WETH_Origin_weth_1_gov#OriginETHArk": "0xF285361059b2c17e4F3c562BD8A1868ce22Ae826"
+  "LazyVault_HigherRisk_WETH_Origin_weth_1_gov#OriginETHArk": "0xF285361059b2c17e4F3c562BD8A1868ce22Ae826",
+  "BummerLazyVault_WETH_ERC4626_Term_re7_weth_weth_1#ERC4626Ark": "0x74812Cf07e232aC69FEbdf62082775e3D5BbdfB5"
 }
