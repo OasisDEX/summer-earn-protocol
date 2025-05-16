@@ -78,6 +78,9 @@
       }
     },
     "protocolSpecific": {
+      "originETH": {
+        "originETH": "0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3"
+      },
       "syrup": {
         "pools": {}
       },
