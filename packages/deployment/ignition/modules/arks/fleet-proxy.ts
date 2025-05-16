@@ -18,6 +18,7 @@ export function createFleetProxyModule(moduleName: string) {
     // Get parameters
     const accessManager = m.getParameter('accessManager')
     const bridgeRouter = m.getParameter('bridgeRouter')
+    const bridgeQueue = m.getParameter('bridgeQueue')
     const fleetContract = m.getParameter('fleetContract')
     const bridgeOptions = m.getParameter('bridgeOptions')
     const sourceChainArk = m.getParameter('sourceChainArk')
@@ -26,6 +27,7 @@ export function createFleetProxyModule(moduleName: string) {
     const fleetProxy = m.contract('CrossChainFleetProxy', [
       accessManager,
       bridgeRouter,
+      bridgeQueue,
       fleetContract,
       bridgeOptions,
       sourceChainArk,

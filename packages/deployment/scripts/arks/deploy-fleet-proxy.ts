@@ -18,6 +18,7 @@ import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 interface FleetProxyParams {
   accessManager: Address
   bridgeRouter: Address
+  bridgeQueue: Address
   fleetContract: Address
   sourceChainId: number
   protocol: string
@@ -61,7 +62,7 @@ export async function deployFleetProxy() {
   ) as BaseConfig
 
   // Get user input for deployment parameters
-  const userInput = await getUserInput(config)
+  const userInput = await getUserInput(config, useBummerConfig)
 
   // Ask user to confirm parameters before deploying
   if (await confirmDeployment(userInput)) {
@@ -81,10 +82,16 @@ export async function deployFleetProxy() {
 /**
  * Prompt the user for deployment parameters
  */
-async function getUserInput(config: BaseConfig): Promise<FleetProxyParams> {
-  // Use config values when available
+async function getUserInput(
+  config: BaseConfig,
+  useBummerConfig: boolean,
+): Promise<FleetProxyParams> {
+  // Add bridgeQueue to the parameters
   const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
+  const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address as Address
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
+  const currentNetwork = hre.network.name
+  const currentChainId = getChainIdByNetwork(currentNetwork)
 
   // List available fleet deployments
   const deploymentsDir = path.resolve(__dirname, '../../deployments/fleets')
@@ -96,12 +103,38 @@ async function getUserInput(config: BaseConfig): Promise<FleetProxyParams> {
     throw new Error('No fleet deployments found. Deploy a fleet on the source chain first.')
   }
 
+  // Filter deployments based on current chain and bummer config
+  const filteredDeploymentFiles = []
+  for (const file of deploymentFiles) {
+    const deploymentPath = path.join(deploymentsDir, file)
+    const deploymentContent = fs.readFileSync(deploymentPath, 'utf8')
+    const fleetDeployment = JSON.parse(deploymentContent)
+
+    // Check if deployment is for current chain
+    const sourceNetwork = fleetDeployment.network
+    const sourceChainId = getChainIdByNetwork(sourceNetwork)
+
+    // Check if fleet name contains "bummer"
+    const isBummerFleet = fleetDeployment.fleetName.toLowerCase().includes('bummer')
+
+    // Only add if chain matches and bummer status matches
+    if (sourceChainId === currentChainId && isBummerFleet === useBummerConfig) {
+      filteredDeploymentFiles.push(file)
+    }
+  }
+
+  if (filteredDeploymentFiles.length === 0) {
+    throw new Error(
+      `No compatible fleet deployments found for ${currentNetwork}${useBummerConfig ? ' with bummer config' : ''}.`,
+    )
+  }
+
   // Allow user to select a deployment file
   const { selectedDeployment } = await prompts({
     type: 'select',
     name: 'selectedDeployment',
     message: 'Select a deployed fleet:',
-    choices: deploymentFiles.map((file) => ({ title: file, value: file })),
+    choices: filteredDeploymentFiles.map((file) => ({ title: file, value: file })),
   })
 
   // Load the selected deployment file
@@ -113,15 +146,6 @@ async function getUserInput(config: BaseConfig): Promise<FleetProxyParams> {
   const fleetName = fleetDeployment.fleetName
   const fleetAddress = fleetDeployment.fleetAddress as Address
   const sourceNetwork = fleetDeployment.network
-
-  const sourceChainId = getChainIdByNetwork(sourceNetwork)
-  const currentChainId = getChainIdByNetwork(hre.network.name)
-
-  if (sourceChainId !== currentChainId) {
-    throw new Error(
-      `Invalid deployment: Current chain must be the same as same as the fleet's source chain.`,
-    )
-  }
 
   // Get gas limit for cross-chain operations
   const { gasLimit } = await prompts({
@@ -137,8 +161,9 @@ async function getUserInput(config: BaseConfig): Promise<FleetProxyParams> {
   return {
     accessManager: accessManagerAddress,
     bridgeRouter: bridgeRouterAddress,
+    bridgeQueue: bridgeQueueAddress,
     fleetContract: fleetAddress,
-    sourceChainId,
+    sourceChainId: currentChainId,
     fleetName,
     protocol: fleetProxyProtocol,
     bridgeOptions: {
@@ -195,6 +220,7 @@ async function deployFleetProxyContract(
         [moduleName]: {
           accessManager: params.accessManager,
           bridgeRouter: params.bridgeRouter,
+          bridgeQueue: params.bridgeQueue,
           fleetContract: params.fleetContract,
           bridgeOptions: {
             specifiedAdapter: params.bridgeOptions.specifiedAdapter,
