@@ -18,16 +18,28 @@ export async function updateIndexJson<T extends Record<string, any>>(
     indexJson[network] = { deployedContracts: {} }
   }
 
-  // Update the addresses in the index.json
-  indexJson[network].deployedContracts[moduleType] = Object.entries(deployedContracts).reduce(
-    (acc, [key, value]) => {
-      if (typeof value === 'object' && value.address) {
-        acc[key] = { address: value.address }
+  if (!indexJson[network].deployedContracts[moduleType]) {
+    indexJson[network].deployedContracts[moduleType] = {}
+  }
+
+  // Update addresses while preserving existing fields
+  const existingConfig = indexJson[network].deployedContracts[moduleType] || {}
+
+  // Create updated config by merging with existing config
+  const updatedConfig = { ...existingConfig }
+
+  // Update only the fields that were deployed
+  Object.entries(deployedContracts).forEach(([key, value]) => {
+    if (typeof value === 'object' && value.address) {
+      updatedConfig[key] = {
+        ...updatedConfig[key], // Preserve any existing fields
+        address: value.address,
       }
-      return acc
-    },
-    {} as Record<string, { address: string }>,
-  )
+    }
+  })
+
+  // Apply the merged config
+  indexJson[network].deployedContracts[moduleType] = updatedConfig
 
   fs.writeFileSync(indexPath, JSON.stringify(indexJson, null, 2))
   console.log(kleur.green().bold(`${configFile} updated successfully!`))
