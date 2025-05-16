@@ -297,13 +297,11 @@ export async function configureLayerZeroAdapter(
 /**
  * Deploy and configure bridge adapters
  * @param bridgeRouterAddress Address of the deployed BridgeRouter
- * @param config Bridge adapter configuration
  * @param networkConfig Network configuration
  * @returns Deployed bridge adapters
  */
 export async function deployBridgeAdapters(
   bridgeRouterAddress: Address,
-  config: BridgeAdaptersConfig,
   networkConfig: any,
 ): Promise<DeployedBridgeAdapters> {
   console.log(kleur.cyan().bold('Starting bridge adapters deployment...'))
@@ -321,17 +319,17 @@ export async function deployBridgeAdapters(
     console.error(kleur.red('Error deploying LayerZero adapter:'), error)
   }
 
-  // Deploy Stargate adapter if configured
-  if (config.stargate) {
-    try {
-      const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
-      deployedAdapters.stargate = { address: stargateAdapterAddress }
+  // Deploy Stargate adapter unconditionally (no longer checking config.stargate)
+  try {
+    const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
+    deployedAdapters.stargate = { address: stargateAdapterAddress }
 
-      // Configure the adapter post-deployment
-      await configureStargateAdapter(stargateAdapterAddress, config)
-    } catch (error) {
-      console.error(kleur.red('Error deploying Stargate adapter:'), error)
-    }
+    // Configure the adapter post-deployment
+    // Create basic config object with just the bridgeRouterAddress
+    const stargateConfig = { bridgeRouterAddress }
+    await configureStargateAdapter(stargateAdapterAddress, stargateConfig)
+  } catch (error) {
+    console.error(kleur.red('Error deploying Stargate adapter:'), error)
   }
 
   console.log(kleur.green().bold('Bridge adapters deployment completed!'))
