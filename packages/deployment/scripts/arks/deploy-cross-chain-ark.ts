@@ -475,7 +475,7 @@ async function deployCrossChainArkContract(
 ): Promise<CrossChainArkContracts> {
   const chainId = await getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const moduleName = `CrossChainArk_${deploymentId.replace(/-/g, '_')}`
+  const moduleName = `CrossChainArk-${deploymentId}`
 
   // Log important parameters to help with debugging
   console.log(kleur.yellow('\nDeployment parameters:'))

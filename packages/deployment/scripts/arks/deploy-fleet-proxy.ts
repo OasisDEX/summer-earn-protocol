@@ -222,8 +222,8 @@ async function deployFleetProxyContract(
 ): Promise<Address> {
   // params.
   const chainId = getChainIdByNetwork(hre.network.name)
-  const deploymentId = (await handleDeploymentId(chainId)).replace(/-/g, '_')
-  const moduleName = `FleetProxy_${deploymentId}`
+  const deploymentId = await handleDeploymentId(chainId)
+  const moduleName = `FleetProxy-${deploymentId}`
 
   // Create and deploy the module
   try {
