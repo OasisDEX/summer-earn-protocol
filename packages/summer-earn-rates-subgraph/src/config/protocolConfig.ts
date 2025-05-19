@@ -11,6 +11,7 @@ import { OriginEthProduct } from '../products/OriginEthProduct'
 import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
 import { SiloProduct } from '../products/Silo'
+import { SiloVaultProduct } from '../products/SiloVault'
 import { SkyRewardsProduct } from '../products/SkyRewardsProduct'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { SparkProduct } from '../products/SparkProduct'
@@ -778,6 +779,24 @@ class ProtocolConfig {
           getOrCreateToken(addresses.USDCE),
           Address.fromString('0x322e1d5384aa4ED66AeCa770B95686271de61dc3'),
           BigInt.fromI32(12744800),
+          'Silo',
+        ),
+        new SiloVaultProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0xF6F87073cF8929C206A77b0694619DC776F89885'),
+          BigInt.fromI32(27007101),
+          'Silo',
+        ),
+        new SiloVaultProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0xF75AE954D30217B4EE70DbFB33f04162aa3Cf260'),
+          BigInt.fromI32(27007101),
+          'Silo',
+        ),
+        new SiloVaultProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0xcca902f2d3d265151f123d8ce8FdAc38ba9745ed'),
+          BigInt.fromI32(27007101),
           'Silo',
         ),
       ]),

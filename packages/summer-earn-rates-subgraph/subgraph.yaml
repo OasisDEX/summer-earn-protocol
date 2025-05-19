@@ -5,16 +5,16 @@ schema:
 features:
   - grafting
 graft:
-  base: QmZeBkfYq1eJA7SRK3in7cgY6xCw6XbGBTJHLKvCLHp2tu
-  block: 22477747
+  base: QmVQkuEjAAvAFBeoTfPjCsgXGRYVkrYZKiCh8Gb2xZ4eDD
+  block: 27007100
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: Comet
-      startBlock: 21575816
-      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
+      startBlock: 12744800
+      address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -55,8 +55,8 @@ dataSources:
           file: ./abis/silo/ISiloConfig.json
         - name: ISilo
           file: ./abis/silo/ISilo.json
-        - name: IGauge
-          file: ./abis/silo/IGauge.json
+        - name: ISiloIncentivesController
+          file: ./abis/silo/ISiloIncentivesController.json
         - name: IRewardDistributor
           file: ./abis/moonwell/IRewardDistributor.json
         - name: IComptroller
@@ -79,9 +79,13 @@ dataSources:
           file: ./abis/oracles/aave-v2-price-oracle.json  
         - name: IStakingRewards
           file: ./abis/IStakingRewards.json
+        - name: ISiloVault
+          file: ./abis/silo/ISiloVault.json
+        - name: ISiloVaultIncentivesModule
+          file: ./abis/silo/ISiloVaultIncentivesModule.json
       blockHandlers:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 50    
+            every: 20    
       file: ./src/mapping.ts

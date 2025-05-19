@@ -57,8 +57,8 @@ dataSources:
           file: ./abis/silo/ISiloConfig.json
         - name: ISilo
           file: ./abis/silo/ISilo.json
-        - name: IGauge
-          file: ./abis/silo/IGauge.json
+        - name: ISiloIncentivesController
+          file: ./abis/silo/ISiloIncentivesController.json
         - name: IRewardDistributor
           file: ./abis/moonwell/IRewardDistributor.json
         - name: IComptroller
@@ -81,6 +81,10 @@ dataSources:
           file: ./abis/oracles/aave-v2-price-oracle.json  
         - name: IStakingRewards
           file: ./abis/IStakingRewards.json
+        - name: ISiloVault
+          file: ./abis/silo/ISiloVault.json
+        - name: ISiloVaultIncentivesModule
+          file: ./abis/silo/ISiloVaultIncentivesModule.json
       blockHandlers:
         - handler: handleBlock
           filter:
