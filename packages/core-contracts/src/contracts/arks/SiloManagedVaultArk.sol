@@ -23,8 +23,6 @@ contract SiloManagedVaultArk is Ark {
     using StorageSlot for *;
 
     // Storage slots for transient storage
-    bytes32 private constant UNIQUE_TOKENS_LENGTH_SLOT =
-        keccak256("SiloManagedVaultArk.uniqueTokens.length");
     bytes32 private constant UNIQUE_TOKENS_ARRAY_SLOT =
         keccak256("SiloManagedVaultArk.uniqueTokens.array");
     bytes32 private constant TOKEN_AMOUNTS_SLOT =
@@ -143,8 +141,8 @@ contract SiloManagedVaultArk is Ark {
             revert InvalidGaugeAddress();
         }
 
-        // Reset transient storage
-        UNIQUE_TOKENS_LENGTH_SLOT.asUint256().tstore(0);
+        // Initialize unique tokens length
+        uint256 uniqueTokensLength;
 
         // Collect all rewards in a single pass
         for (uint256 i = 0; i < incentivesControllerAddresses.length; i++) {
@@ -157,91 +155,47 @@ contract SiloManagedVaultArk is Ark {
                 uint256 amount = accruedRewards[j].amount;
 
                 if (amount > 0) {
-                    // Get current length of unique tokens
-                    uint256 uniqueTokensLength = UNIQUE_TOKENS_LENGTH_SLOT
-                        .asUint256()
-                        .tload();
+                    bytes32 amountSlot = _getStorageSlot(
+                        TOKEN_AMOUNTS_SLOT,
+                        uint256(uint160(rewardToken))
+                    );
+                    uint256 currentAmount = amountSlot.asUint256().tload();
 
-                    // Check if token already exists
-                    bool tokenExists = false;
-                    for (uint256 k = 0; k < uniqueTokensLength; k++) {
-                        address storedToken = _getStorageSlot(
-                            UNIQUE_TOKENS_ARRAY_SLOT,
-                            k
-                        ).asAddress().tload();
-                        if (storedToken == rewardToken) {
-                            // Add to existing amount
-                            bytes32 amountSlot = _getStorageSlot(
-                                TOKEN_AMOUNTS_SLOT,
-                                uint256(uint160(rewardToken))
-                            );
-                            amountSlot.asUint256().tstore(
-                                amountSlot.asUint256().tload() + amount
-                            );
-                            tokenExists = true;
-                            break;
-                        }
-                    }
-
-                    // If token doesn't exist, add it
-                    if (!tokenExists) {
+                    // Check if token is newly encountered
+                    if (currentAmount == 0) {
                         _getStorageSlot(
                             UNIQUE_TOKENS_ARRAY_SLOT,
                             uniqueTokensLength
                         ).asAddress().tstore(rewardToken);
-                        _getStorageSlot(
-                            TOKEN_AMOUNTS_SLOT,
-                            uint256(uint160(rewardToken))
-                        ).asUint256().tstore(amount);
-                        UNIQUE_TOKENS_LENGTH_SLOT.asUint256().tstore(
-                            uniqueTokensLength + 1
-                        );
+                        uniqueTokensLength++;
                     }
 
-                    // Transfer the reward to raft
-                    IERC20(rewardToken).safeTransfer(raft(), amount);
+                    // Accumulate rewards
+                    amountSlot.asUint256().tstore(currentAmount + amount);
                 }
             }
         }
 
-        // Create final arrays with non-zero rewards
-        uint256 uniqueTokensLength = UNIQUE_TOKENS_LENGTH_SLOT
-            .asUint256()
-            .tload();
-        uint256 nonZeroCount = 0;
+        rewardTokens = new address[](uniqueTokensLength);
+        rewardAmounts = new uint256[](uniqueTokensLength);
 
-        // Count non-zero rewards
-        for (uint256 i = 0; i < uniqueTokensLength; i++) {
-            address token = _getStorageSlot(UNIQUE_TOKENS_ARRAY_SLOT, i)
-                .asAddress()
-                .tload();
-            if (
-                _getStorageSlot(TOKEN_AMOUNTS_SLOT, uint256(uint160(token)))
-                    .asUint256()
-                    .tload() > 0
-            ) {
-                nonZeroCount++;
-            }
-        }
-
-        rewardTokens = new address[](nonZeroCount);
-        rewardAmounts = new uint256[](nonZeroCount);
-
-        uint256 index = 0;
-        for (uint256 i = 0; i < uniqueTokensLength; i++) {
-            address token = _getStorageSlot(UNIQUE_TOKENS_ARRAY_SLOT, i)
+        for (uint256 k = 0; k < uniqueTokensLength; k++) {
+            address token = _getStorageSlot(UNIQUE_TOKENS_ARRAY_SLOT, k)
                 .asAddress()
                 .tload();
             uint256 amount = _getStorageSlot(
                 TOKEN_AMOUNTS_SLOT,
                 uint256(uint160(token))
             ).asUint256().tload();
-            if (amount > 0) {
-                rewardTokens[index] = token;
-                rewardAmounts[index] = amount;
-                index++;
-            }
+
+            rewardTokens[k] = token;
+            rewardAmounts[k] = amount;
+
+            // Transfer accumulated amount
+            IERC20(token).safeTransfer(raft(), amount);
         }
+
+        return (rewardTokens, rewardAmounts);
     }
 
     /**

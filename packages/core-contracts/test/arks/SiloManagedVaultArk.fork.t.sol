@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 import "../../src/contracts/arks/SiloManagedVaultArk.sol";
 import "../../src/events/IArkEvents.sol";
@@ -10,7 +11,8 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-
+import {ISiloVaultIncentivesModule} from "../../src/interfaces/silo/ISiloVaultIncentivesModule.sol";
+import {ISiloIncentivesController} from "../../src/interfaces/silo/ISiloIncentivesController.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -235,6 +237,177 @@ contract SiloManagedVaultArkTestFork is Test, IArkEvents, ArkTestBase {
             sonicBalance,
             0,
             "Harvested Sonic balance should be greater than 0"
+        );
+    }
+
+    function test_Harvest_MultipleControllers() public {
+        // Create mock reward tokens
+        MockERC20 rewardToken1 = new MockERC20();
+        MockERC20 rewardToken2 = new MockERC20();
+        MockERC20 rewardToken3 = new MockERC20();
+
+        uint256 amount1 = 100e18;
+        uint256 amount2 = 200e18;
+        uint256 amount3 = 300e18;
+
+        {
+            // Create mock incentive controllers
+            address controller1 = makeAddr("controller1");
+            address controller2 = makeAddr("controller2");
+            address controller3 = makeAddr("controller3");
+
+            // Mock the incentives module to return our controllers
+            address[] memory controllers = new address[](3);
+            controllers[0] = controller1;
+            controllers[1] = controller2;
+            controllers[2] = controller3;
+
+            // Mock claimRewards for each controller
+            AccruedRewards[] memory rewards1 = new AccruedRewards[](2);
+            rewards1[0] = AccruedRewards({
+                rewardToken: address(rewardToken1),
+                programId: bytes32("programId1"),
+                amount: amount1
+            });
+            rewards1[1] = AccruedRewards({
+                rewardToken: address(rewardToken2),
+                programId: bytes32("programId2"),
+                amount: amount2
+            });
+
+            AccruedRewards[] memory rewards2 = new AccruedRewards[](1);
+            rewards2[0] = AccruedRewards({
+                rewardToken: address(rewardToken2),
+                programId: bytes32("programId2"),
+                amount: amount2
+            });
+
+            AccruedRewards[] memory rewards3 = new AccruedRewards[](3);
+            rewards3[0] = AccruedRewards({
+                rewardToken: address(rewardToken3),
+                programId: bytes32("programId3"),
+                amount: amount3
+            });
+            rewards3[1] = AccruedRewards({
+                rewardToken: address(rewardToken1),
+                programId: bytes32("programId1"),
+                amount: amount1
+            });
+            rewards3[2] = AccruedRewards({
+                rewardToken: address(rewardToken2),
+                programId: bytes32("programId2"),
+                amount: amount2
+            });
+
+            vm.mockCall(
+                controller1,
+                abi.encodeWithSelector(
+                    ISiloIncentivesController.claimRewards.selector,
+                    address(ark)
+                ),
+                abi.encode(rewards1)
+            );
+
+            vm.mockCall(
+                controller2,
+                abi.encodeWithSelector(
+                    ISiloIncentivesController.claimRewards.selector,
+                    address(ark)
+                ),
+                abi.encode(rewards2)
+            );
+
+            vm.mockCall(
+                controller3,
+                abi.encodeWithSelector(
+                    ISiloIncentivesController.claimRewards.selector,
+                    address(ark)
+                ),
+                abi.encode(rewards3)
+            );
+
+            // Mock the INCENTIVES_MODULE() call to return a mock address
+            address mockIncentivesModule = makeAddr("incentivesModule");
+            vm.mockCall(
+                VAULT_ADDRESS,
+                abi.encodeWithSelector(ISiloVault.INCENTIVES_MODULE.selector),
+                abi.encode(mockIncentivesModule)
+            );
+
+            // Mock getNotificationReceivers to return our controllers
+            vm.mockCall(
+                mockIncentivesModule,
+                abi.encodeWithSelector(
+                    ISiloVaultIncentivesModule.getNotificationReceivers.selector
+                ),
+                abi.encode(controllers)
+            );
+        }
+
+        deal(address(rewardToken1), address(ark), 2 * amount1);
+        deal(address(rewardToken2), address(ark), 3 * amount2);
+        deal(address(rewardToken3), address(ark), amount3);
+
+        uint256 gas = gasleft();
+        // Call harvest
+        vm.prank(raft);
+        (address[] memory rewardTokens, uint256[] memory rewardAmounts) = ark
+            .harvest(bytes(""));
+        console.log("Gas used:", gas - gasleft());
+
+        // Verify results
+        assertEq(rewardTokens.length, 3, "Should have 3 reward tokens");
+        assertEq(rewardAmounts.length, 3, "Should have 3 reward amounts");
+        {
+            // Verify each token and amount
+            bool foundToken1 = false;
+            bool foundToken2 = false;
+            bool foundToken3 = false;
+
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                if (rewardTokens[i] == address(rewardToken1)) {
+                    assertEq(
+                        rewardAmounts[i],
+                        2 * amount1,
+                        "Token1 amount should be 100e18"
+                    );
+                    foundToken1 = true;
+                } else if (rewardTokens[i] == address(rewardToken2)) {
+                    assertEq(
+                        rewardAmounts[i],
+                        3 * amount2,
+                        "Token2 amount should be 200e18"
+                    );
+                    foundToken2 = true;
+                } else if (rewardTokens[i] == address(rewardToken3)) {
+                    assertEq(
+                        rewardAmounts[i],
+                        amount3,
+                        "Token3 amount should be 300e18"
+                    );
+                    foundToken3 = true;
+                }
+            }
+
+            assertTrue(foundToken1, "Should have found token1");
+            assertTrue(foundToken2, "Should have found token2");
+            assertTrue(foundToken3, "Should have found token3");
+        }
+        // Verify tokens were transferred to raft
+        assertEq(
+            rewardToken1.balanceOf(raft),
+            2 * amount1,
+            "Token1 should be transferred to raft"
+        );
+        assertEq(
+            rewardToken2.balanceOf(raft),
+            3 * amount2,
+            "Token2 should be transferred to raft"
+        );
+        assertEq(
+            rewardToken3.balanceOf(raft),
+            amount3,
+            "Token3 should be transferred to raft"
         );
     }
 }
