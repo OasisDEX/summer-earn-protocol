@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { FleetConfig } from '../types/config-types'
+import { ArkType, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
 import {
@@ -101,6 +101,41 @@ async function deployFleet() {
   // Load fleet configuration
   const fleetDefinition = await getFleetConfig(useBummerConfig)
   validateToken(config, fleetDefinition.assetSymbol)
+
+  // Validate and collect CrossChainArk parameters if needed
+  for (const ark of fleetDefinition.arks) {
+    if (ark.type === ArkType.CrossChainArk) {
+      if (!ark.params.targetChainId || !ark.params.protocol) {
+        console.log(kleur.yellow('Missing required parameters for CrossChainArk deployment'))
+
+        // Collect target chain ID
+        if (!ark.params.targetChainId) {
+          const { targetChainId } = await prompts({
+            type: 'text',
+            name: 'targetChainId',
+            message: 'Enter the target chain ID for CrossChainArk:',
+            validate: (value) => (!isNaN(Number(value)) ? true : 'Must be a valid number'),
+          })
+          ark.params.targetChainId = targetChainId
+        }
+
+        // Collect protocol
+        if (!ark.params.protocol) {
+          const { protocol } = await prompts({
+            type: 'text',
+            name: 'protocol',
+            message: 'Enter the protocol name for CrossChainArk:',
+            validate: (value) => (value.length > 0 ? true : 'Protocol name is required'),
+          })
+          ark.params.protocol = protocol
+        }
+
+        console.log(kleur.green('CrossChainArk parameters collected:'))
+        console.log(kleur.blue('Target Chain ID:'), kleur.cyan(ark.params.targetChainId))
+        console.log(kleur.blue('Protocol:'), kleur.cyan(ark.params.protocol))
+      }
+    }
+  }
 
   // Handle the deployment based on the chosen mode
   switch (deploymentMode) {
