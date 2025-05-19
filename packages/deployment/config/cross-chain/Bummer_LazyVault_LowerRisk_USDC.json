@@ -9,7 +9,7 @@
         {
           "protocol": "summerfi",
           "fleetProxyAddress": "0x64CFd4837b7Fd0876Cf11C116e787420B8D0374F",
-          "crossChainArkAddress": "0xc1fe8061B61288FfeAFC26A86e971E9797266322",
+          "crossChainArkAddress": null,
           "asset": {
             "symbol": "usdc"
           },
@@ -26,4 +26,8 @@
       ]
     }
   ]
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 22d6c962 (feat: add new cross-chain configuration and deployment artifacts for Bummer_LazyVault_LowerRisk_USDC)
