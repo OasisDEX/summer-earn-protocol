@@ -396,18 +396,25 @@ async function getUserInput(
   ])
 
   // Get the asset from the cross-chain config
-  const asset = protocolConfig.asset
-  if (!asset) {
-    throw new Error(
-      'Asset information not found in cross-chain config. Please deploy FleetProxy first.',
-    )
+  const assetSymbol = protocolConfig.asset.symbol
+  if (!assetSymbol) {
+    throw new Error('Asset symbol not found in cross-chain config. Please deploy FleetProxy first.')
   }
 
-  console.log(kleur.green(`Using asset from config: ${asset.symbol}`))
+  // Get the asset address from the current chain's config
+  const assetAddress = config.tokens[assetSymbol.toLowerCase() as keyof typeof config.tokens]
+  if (!assetAddress) {
+    throw new Error(`Asset address not found for symbol ${assetSymbol} on current chain`)
+  }
+
+  console.log(kleur.green(`Using asset from config: ${assetSymbol}`))
 
   return {
     ...responses,
-    token: asset, // Use the asset directly from the cross-chain config
+    token: {
+      symbol: assetSymbol,
+      address: assetAddress,
+    },
     configName,
     bridgeQueue: bridgeQueueAddress,
     bridgeRouter: bridgeRouterAddress,

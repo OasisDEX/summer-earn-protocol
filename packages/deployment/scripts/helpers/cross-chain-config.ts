@@ -7,7 +7,6 @@ export interface CrossChainProtocolConfig {
   fleetProxyAddress: string | null
   crossChainArkAddress: string | null
   asset?: {
-    address: string
     symbol: string
   }
   bridgeOptions: {
@@ -60,7 +59,6 @@ export function saveCrossChainConfig(
     crossChainArkAddress?: string
     sourceChainId?: number
     asset?: {
-      address: string
       symbol: string
     }
   },
@@ -139,7 +137,9 @@ export function saveCrossChainConfig(
 
     // Update asset information
     if (updateData.asset) {
-      protocolConfig.asset = updateData.asset
+      protocolConfig.asset = {
+        symbol: updateData.asset.symbol,
+      }
     }
   }
 
