@@ -343,27 +343,11 @@ async function getUserInput(
   targetProtocol: string,
   protocolConfig: any,
 ) {
-  const tokens = []
-  for (const tokenSymbol in config.tokens) {
-    const tokenAddress = config.tokens[tokenSymbol as keyof typeof config.tokens]
-    if (tokenAddress) {
-      tokens.push({
-        title: tokenSymbol,
-        value: { address: tokenAddress, symbol: tokenSymbol },
-      })
-    }
-  }
-
-  // Use config values for these fields
+  // Use bridgeQueue from config
   const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue?.address
   if (!bridgeQueueAddress) {
     console.error(kleur.red('Bridge Queue address not found in config.'))
     console.error(kleur.yellow('Make sure you have the bridge module deployed on this chain.'))
-    console.error(
-      kleur.yellow(
-        'You can deploy it with: npx hardhat run scripts/bridge/deploy-bridge.ts --network <network>',
-      ),
-    )
     throw new Error('Bridge Queue address is required')
   }
 
@@ -371,11 +355,6 @@ async function getUserInput(
   if (!bridgeRouterAddress) {
     console.error(kleur.red('Bridge Router address not found in config.'))
     console.error(kleur.yellow('Make sure you have the bridge module deployed on this chain.'))
-    console.error(
-      kleur.yellow(
-        'You can deploy it with: npx hardhat run scripts/bridge/deploy-bridge.ts --network <network>',
-      ),
-    )
     throw new Error('Bridge Router address is required')
   }
 
@@ -386,7 +365,7 @@ async function getUserInput(
   // Default gas limit or get from existing config
   const initialGasLimit = bridgeOptions?.adapterParams?.gasLimit || 500000
 
-  // Prompt only for these fields
+  // Get gas limit from user
   const { gasLimit } = await prompts({
     type: 'number',
     name: 'gasLimit',
@@ -394,23 +373,7 @@ async function getUserInput(
     initial: initialGasLimit,
   })
 
-  let token
-
-  // Check if asset is already in the cross-chain config
-  if (protocolConfig.asset) {
-    console.log(kleur.green(`Using asset from config: ${protocolConfig.asset.symbol}`))
-    token = protocolConfig.asset
-  } else {
-    // Only prompt if asset not in config
-    const { selectedToken } = await prompts({
-      type: 'select',
-      name: 'selectedToken',
-      message: 'Select token:',
-      choices: tokens,
-    })
-    token = selectedToken
-  }
-
+  // Get other parameters from user
   const responses = await prompts([
     {
       type: 'text',
@@ -432,9 +395,19 @@ async function getUserInput(
     },
   ])
 
+  // Get the asset from the cross-chain config
+  const asset = protocolConfig.asset
+  if (!asset) {
+    throw new Error(
+      'Asset information not found in cross-chain config. Please deploy FleetProxy first.',
+    )
+  }
+
+  console.log(kleur.green(`Using asset from config: ${asset.symbol}`))
+
   return {
     ...responses,
-    token, // Use the asset from config or user selection
+    token: asset, // Use the asset directly from the cross-chain config
     configName,
     bridgeQueue: bridgeQueueAddress,
     bridgeRouter: bridgeRouterAddress,
@@ -444,8 +417,7 @@ async function getUserInput(
     accessManager: accessManagerAddress,
     bridgeOptions: {
       specifiedAdapter:
-        bridgeOptions?.specifiedAdapter ||
-        ('0x0000000000000000000000000000000000000000' as Address),
+        bridgeOptions?.specifiedAdapter || '0x0000000000000000000000000000000000000000',
       adapterParams: {
         gasLimit,
         calldataSize: bridgeOptions?.adapterParams?.calldataSize || 0,

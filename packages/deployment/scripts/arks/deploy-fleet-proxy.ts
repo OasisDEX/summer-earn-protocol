@@ -150,7 +150,7 @@ async function getUserInput(
   const fleetName = fleetDeployment.fleetName
   const fleetAddress = fleetDeployment.fleetAddress as Address
   const sourceNetwork = fleetDeployment.network
-  const assetSymbol = fleetDeployment.assetSymbol
+  const assetSymbol = fleetDeployment.assetSymbol.toLowerCase()
 
   // Get the asset address from the config using the symbol
   const assetAddress = config.tokens[assetSymbol as keyof typeof config.tokens] as Address
