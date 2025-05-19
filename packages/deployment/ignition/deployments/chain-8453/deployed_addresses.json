@@ -56,5 +56,6 @@
   "AdmiralsQuartersModule_20250506T105651491#AdmiralsQuarters": "0x16160Cd5C54dE1CaBa7C567C6D232c1A9D514515",
   "BridgeModule#BridgeRouter": "0x83914EB3BD89683a1687457085bDf7caF28aCd40",
   "BridgeModule#BridgeQueue": "0x03cC516eeb388857AD0D75000496f354251F217A",
-  "LayerZeroAdapterModule#LayerZeroAdapter": "0x8E3FFce6A3A0126BCD570c33b3D11e3cd472dda7"
+  "LayerZeroAdapterModule#LayerZeroAdapter": "0x8E3FFce6A3A0126BCD570c33b3D11e3cd472dda7",
+  "StargateAdapterModule#StargateAdapter": "0xBA640fA74F5afCE626317c3294E4EE8Ff6Ed39Ac"
 }
