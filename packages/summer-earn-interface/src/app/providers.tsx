@@ -6,14 +6,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 import { WagmiProvider } from 'wagmi'
 import { arbitrum, base, mainnet, sonic } from 'wagmi/chains'
+import { http } from 'wagmi'
+import { CHAIN_RPC_URLS } from '@/config/chains'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
 
   const config = getDefaultConfig({
     appName: 'Summer Earn Protocol Interface',
-    projectId: 'YOUR_PROJECT_ID', // Replace with a real WalletConnect project ID
+    projectId: '1', // Replace with a real WalletConnect project ID
     chains: [mainnet, arbitrum, base, sonic],
+    transports: {
+      [mainnet.id]: http(CHAIN_RPC_URLS[mainnet.id]),
+      [arbitrum.id]: http(CHAIN_RPC_URLS[arbitrum.id]),
+      [base.id]: http(CHAIN_RPC_URLS[base.id]),
+      [sonic.id]: http(CHAIN_RPC_URLS[sonic.id]),
+    },
     ssr: true,
   })
 
