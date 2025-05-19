@@ -59,7 +59,6 @@ contract SummerToken is
 
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
-    mapping(address account => bool isWhitelisted) public whitelistedAddresses;
 
     uint256 private constant SECONDS_PER_YEAR = 365.25 days;
     uint40 private constant MIN_DECAY_FREE_WINDOW = 30 days;
@@ -164,9 +163,7 @@ contract SummerToken is
         // 1. Transfers are enabled globally, or
         // 2. The target address is whitelisted, or
         // 3. The sender is sending to themselves
-        if (
-            !transfersEnabled && !whitelistedAddresses[to] && to != msg.sender
-        ) {
+        if (!transfersEnabled && to != msg.sender) {
             revert TransferNotAllowed();
         }
 
@@ -285,18 +282,6 @@ contract SummerToken is
         }
         transfersEnabled = true;
         emit TransfersEnabled();
-    }
-
-    /// @inheritdoc ISummerToken
-    function addToWhitelist(address account) external onlyGovernor {
-        whitelistedAddresses[account] = true;
-        emit AddressWhitelisted(account);
-    }
-
-    /// @inheritdoc ISummerToken
-    function removeFromWhitelist(address account) external onlyGovernor {
-        whitelistedAddresses[account] = false;
-        emit AddressRemovedFromWhitelist(account);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -441,9 +426,6 @@ contract SummerToken is
 
         // Allow transfers if globally enabled
         if (transfersEnabled) return true;
-
-        // Allow transfers involving whitelisted addresses
-        if (whitelistedAddresses[from] || whitelistedAddresses[to]) return true;
 
         return false;
     }

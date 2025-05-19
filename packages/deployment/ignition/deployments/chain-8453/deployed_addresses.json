@@ -58,5 +58,6 @@
   "BridgeModule#BridgeQueue": "0x03cC516eeb388857AD0D75000496f354251F217A",
   "LayerZeroAdapterModule#LayerZeroAdapter": "0x8E3FFce6A3A0126BCD570c33b3D11e3cd472dda7",
   "StargateAdapterModule#StargateAdapter": "0xBA640fA74F5afCE626317c3294E4EE8Ff6Ed39Ac",
-  "CrossChainArk_chain_8453#CrossChainArk": "0xc1fe8061B61288FfeAFC26A86e971E9797266322"
+  "CrossChainArk_chain_8453#CrossChainArk": "0xc1fe8061B61288FfeAFC26A86e971E9797266322",
+  "FleetModule_Bummer_SuperLazyVault_LowerRisk_USDC#FleetCommander": "0x574B839a0cA3d62eC158c86E4d83bc7A37c624C4"
 }
