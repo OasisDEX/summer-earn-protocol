@@ -208,8 +208,6 @@ export async function deployCrossChainArk(
     throw new Error('FleetProxy must be deployed before CrossChainArk')
   }
 
-  console.log('config [debug]', config)
-
   const userInput =
     arkParams ||
     (await getUserInput(
@@ -396,13 +394,24 @@ async function getUserInput(
     initial: initialGasLimit,
   })
 
-  const responses = await prompts([
-    {
+  let token
+
+  // Check if asset is already in the cross-chain config
+  if (protocolConfig.asset) {
+    console.log(kleur.green(`Using asset from config: ${protocolConfig.asset.symbol}`))
+    token = protocolConfig.asset
+  } else {
+    // Only prompt if asset not in config
+    const { selectedToken } = await prompts({
       type: 'select',
-      name: 'token',
+      name: 'selectedToken',
       message: 'Select token:',
       choices: tokens,
-    },
+    })
+    token = selectedToken
+  }
+
+  const responses = await prompts([
     {
       type: 'text',
       name: 'depositCap',
@@ -425,6 +434,7 @@ async function getUserInput(
 
   return {
     ...responses,
+    token, // Use the asset from config or user selection
     configName,
     bridgeQueue: bridgeQueueAddress,
     bridgeRouter: bridgeRouterAddress,

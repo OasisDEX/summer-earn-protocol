@@ -32,6 +32,10 @@ interface FleetProxyParams {
       options: string
     }
   }
+  asset: {
+    address: string
+    symbol: string
+  }
 }
 
 /**
@@ -146,6 +150,13 @@ async function getUserInput(
   const fleetName = fleetDeployment.fleetName
   const fleetAddress = fleetDeployment.fleetAddress as Address
   const sourceNetwork = fleetDeployment.network
+  const assetSymbol = fleetDeployment.assetSymbol
+
+  // Get the asset address from the config using the symbol
+  const assetAddress = config.tokens[assetSymbol as keyof typeof config.tokens] as Address
+  if (!assetAddress) {
+    throw new Error(`Asset address not found for symbol ${assetSymbol}`)
+  }
 
   // Get gas limit for cross-chain operations
   const { gasLimit } = await prompts({
@@ -166,6 +177,10 @@ async function getUserInput(
     sourceChainId: currentChainId,
     fleetName,
     protocol: fleetProxyProtocol,
+    asset: {
+      address: assetAddress,
+      symbol: assetSymbol,
+    },
     bridgeOptions: {
       specifiedAdapter: '0x0000000000000000000000000000000000000000' as Address,
       adapterParams: {
@@ -241,6 +256,7 @@ async function deployFleetProxyContract(
       chainId: chainId,
       protocol: params.protocol,
       fleetProxyAddress: fleetProxyAddress,
+      asset: params.asset,
     })
 
     // Make sure the source chain ID is updated in the config
