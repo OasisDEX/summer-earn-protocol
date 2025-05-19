@@ -119,7 +119,7 @@ export function saveCrossChainConfig(
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
-            options: '',
+            options: '0x',
           },
         },
       }
