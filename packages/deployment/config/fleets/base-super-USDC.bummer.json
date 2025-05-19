@@ -8,5 +8,13 @@
   "initialTipRate": "1000000000000000000",
   "network": "base",
   "details": "Cross-chain USDC fleet on Bummer",
-  "arks": []
+  "arks": [
+    {
+      "type": "CrossChainArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "summerfi"
+      }
+    }
+  ]
 }
