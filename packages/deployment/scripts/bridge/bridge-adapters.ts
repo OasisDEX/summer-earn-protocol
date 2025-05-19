@@ -295,6 +295,25 @@ export async function configureLayerZeroAdapter(
 }
 
 /**
+ * Check if an adapter is already registered with the bridge router
+ * @param bridgeRouterAddress Address of the bridge router
+ * @param adapterAddress Address of the adapter to check
+ * @returns True if the adapter is already registered
+ */
+async function isAdapterRegistered(
+  bridgeRouterAddress: Address,
+  adapterAddress: Address,
+): Promise<boolean> {
+  try {
+    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
+    return await bridgeRouter.read.isValidAdapter([adapterAddress])
+  } catch (error) {
+    console.error(kleur.red('Error checking if adapter is registered:'), error)
+    return false
+  }
+}
+
+/**
  * Deploy and configure bridge adapters
  * @param bridgeRouterAddress Address of the deployed BridgeRouter
  * @param networkConfig Network configuration
@@ -308,28 +327,87 @@ export async function deployBridgeAdapters(
 
   const deployedAdapters: DeployedBridgeAdapters = {}
 
-  // Deploy LayerZero adapter
-  try {
-    const layerZeroAdapterAddress = await deployLayerZeroAdapter(bridgeRouterAddress, networkConfig)
-    deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
+  // Check if LayerZero adapter is already registered
+  const existingLayerZeroAddress =
+    networkConfig.deployedContracts.bridge?.adapters?.layerZero?.address
+  if (existingLayerZeroAddress) {
+    const isRegistered = await isAdapterRegistered(
+      bridgeRouterAddress,
+      existingLayerZeroAddress as Address,
+    )
+    if (isRegistered) {
+      console.log(kleur.yellow('LayerZero adapter already registered, skipping deployment'))
+      deployedAdapters.layerZero = { address: existingLayerZeroAddress as Address }
+    } else {
+      // Deploy LayerZero adapter if not registered
+      try {
+        const layerZeroAdapterAddress = await deployLayerZeroAdapter(
+          bridgeRouterAddress,
+          networkConfig,
+        )
+        deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
 
-    // Configure the adapter post-deployment
-    await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
-  } catch (error) {
-    console.error(kleur.red('Error deploying LayerZero adapter:'), error)
+        // Configure the adapter post-deployment
+        await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
+      } catch (error) {
+        console.error(kleur.red('Error deploying LayerZero adapter:'), error)
+      }
+    }
+  } else {
+    // Deploy LayerZero adapter if not in config
+    try {
+      const layerZeroAdapterAddress = await deployLayerZeroAdapter(
+        bridgeRouterAddress,
+        networkConfig,
+      )
+      deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
+
+      // Configure the adapter post-deployment
+      await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
+    } catch (error) {
+      console.error(kleur.red('Error deploying LayerZero adapter:'), error)
+    }
   }
 
-  // Deploy Stargate adapter unconditionally (no longer checking config.stargate)
-  try {
-    const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
-    deployedAdapters.stargate = { address: stargateAdapterAddress }
+  // Check if Stargate adapter is already registered
+  const existingStargateAddress =
+    networkConfig.deployedContracts.bridge?.adapters?.stargate?.address
+  if (existingStargateAddress) {
+    const isRegistered = await isAdapterRegistered(
+      bridgeRouterAddress,
+      existingStargateAddress as Address,
+    )
+    if (isRegistered) {
+      console.log(kleur.yellow('Stargate adapter already registered, skipping deployment'))
+      deployedAdapters.stargate = { address: existingStargateAddress as Address }
+    } else {
+      // Deploy Stargate adapter if not registered
+      try {
+        const stargateAdapterAddress = await deployStargateAdapter(
+          bridgeRouterAddress,
+          networkConfig,
+        )
+        deployedAdapters.stargate = { address: stargateAdapterAddress }
 
-    // Configure the adapter post-deployment
-    // Create basic config object with just the bridgeRouterAddress
-    const stargateConfig = { bridgeRouterAddress }
-    await configureStargateAdapter(stargateAdapterAddress, stargateConfig)
-  } catch (error) {
-    console.error(kleur.red('Error deploying Stargate adapter:'), error)
+        // Configure the adapter post-deployment
+        const stargateConfig = { bridgeRouterAddress }
+        await configureStargateAdapter(stargateAdapterAddress, stargateConfig)
+      } catch (error) {
+        console.error(kleur.red('Error deploying Stargate adapter:'), error)
+      }
+    }
+  } else {
+    // Deploy Stargate adapter if not in config
+    try {
+      const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
+      deployedAdapters.stargate = { address: stargateAdapterAddress }
+
+      // Configure the adapter post-deployment
+      const stargateConfig = { bridgeRouterAddress }
+      await configureStargateAdapter(stargateAdapterAddress, stargateConfig)
+    } catch (error) {
+      console.error(kleur.red('Error deploying Stargate adapter:'), error)
+    }
   }
 
   console.log(kleur.green().bold('Bridge adapters deployment completed!'))
