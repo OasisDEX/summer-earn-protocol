@@ -6,16 +6,7 @@
   "initialRebalanceCooldown": "3600",
   "depositCap": "100000000",
   "initialTipRate": "1000000000000000000",
-  "network": "arbitrum",
-  "details": "Cross-chain USDC fleet with lower risk profile",
-  "arks": [
-    {
-      "type": "CrossChainArk",
-      "params": {
-        "asset": "USDC",
-        "protocol": "summerfi",
-        "crossChainArkAddress": "0xc1fe8061B61288FfeAFC26A86e971E9797266322"
-      }
-    }
-  ]
+  "network": "base",
+  "details": "Cross-chain USDC fleet on Bummer",
+  "arks": []
 }
