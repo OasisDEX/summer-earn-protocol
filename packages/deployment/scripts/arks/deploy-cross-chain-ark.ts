@@ -47,6 +47,7 @@ export async function deployCrossChainArk(
     fleetProxyAddress?: Address
     accessManager?: Address
     bridgeOptions?: BridgeOptions
+    fleetName?: string
   },
 ) {
   console.log(kleur.green().bold('Starting CrossChainArk deployment process...'))
@@ -62,6 +63,18 @@ export async function deployCrossChainArk(
   console.log(kleur.cyan('3. Deploy CrossChainArk on the source chain (this step)'))
   console.log(kleur.cyan('4. Update FleetProxy with CrossChainArk address (final step)'))
   console.log()
+
+  // If fleetName is not provided in arkParams, prompt for it
+  let fleetName = arkParams?.fleetName
+  if (!fleetName) {
+    const { fleetNameInput } = await prompts({
+      type: 'text',
+      name: 'fleetNameInput',
+      message: 'Enter the fleet name:',
+      validate: (value) => (value.length > 0 ? true : 'Fleet name is required'),
+    })
+    fleetName = fleetNameInput
+  }
 
   // Check for existing cross-chain config
   console.log(kleur.blue('Looking for cross-chain config files...'))
@@ -238,7 +251,7 @@ export async function deployCrossChainArk(
     const deployedContracts = await deployCrossChainArkContract(
       config,
       userInput,
-      selectedConfigFile.replace('.json', ''), // Use config file name without extension
+      fleetName, // Use the fleet name we got either from params or prompt
     )
 
     // Update cross-chain config with CrossChainArk address
@@ -465,27 +478,26 @@ async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated
  * Deploys the CrossChainArk contract
  * @param {BaseConfig} config - The configuration object for the current network
  * @param {object} userInput - The user's input for deployment parameters
- * @param {string} configName - The name of the config file (without extension)
+ * @param {string} fleetName - The name of the fleet
  * @returns {Promise<CrossChainArkContracts>} The deployed contracts
  */
 async function deployCrossChainArkContract(
   config: BaseConfig,
   userInput: any,
-  configName: string,
+  fleetName: string,
 ): Promise<CrossChainArkContracts> {
   const chainId = await getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const moduleName = `CrossChainArk_${deploymentId.replace(/-/g, '_')}`
+  const moduleName = `CrossChainArk_${fleetName}_${deploymentId.replace(/-/g, '_')}`
 
   // Log important parameters to help with debugging
-  console.log(kleur.yellow('\nDeployment parameters:'))
+  console.log(kleur.yellow('\nDeployment parameters (cross-chain ark):'))
   console.log(kleur.blue('Module Name:'), kleur.cyan(moduleName))
   console.log(kleur.blue('Bridge Queue:'), kleur.cyan(userInput.bridgeQueue))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(userInput.bridgeRouter))
   console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))
   console.log(kleur.blue('Fleet Proxy:'), kleur.cyan(userInput.fleetProxyAddress))
 
-  const module = createCrossChainArkModule(moduleName)
   console.log('parameters [debug]', {
     [moduleName]: {
       bridgeQueue: userInput.bridgeQueue,
@@ -515,6 +527,8 @@ async function deployCrossChainArkContract(
       },
     },
   })
+  const module = createCrossChainArkModule(moduleName)
+
   console.log('adapter params [debug]', userInput.bridgeOptions.adapterParams)
   const result = await hre.ignition.deploy(module, {
     parameters: {

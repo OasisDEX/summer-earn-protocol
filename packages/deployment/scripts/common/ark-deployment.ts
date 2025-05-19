@@ -285,7 +285,7 @@ export async function deployArk(
         targetProtocol,
         bridgeQueue,
         bridgeRouter,
-        fleetProxyAddress: protocol.fleetProxyAddress,
+        ...protocol,
       })
       break
     }
