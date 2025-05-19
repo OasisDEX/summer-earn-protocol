@@ -730,6 +730,9 @@ importers:
       '@graphprotocol/graph-ts':
         specifier: 0.35.1
         version: 0.35.1
+      matchstick-as:
+        specifier: 0.5.0
+        version: 0.5.0
       mustache:
         specifier: 4.2.0
         version: 4.2.0
@@ -2546,6 +2549,12 @@ packages:
       - typescript
       - utf-8-validate
       - zod
+    dev: true
+
+  /@graphprotocol/graph-ts@0.27.0:
+    resolution: {integrity: sha512-r1SPDIZVQiGMxcY8rhFSM0y7d/xAbQf5vHMWUf59js1KgoyWpM6P3tczZqmQd7JTmeyNsDGIPzd9FeaxllsU4w==}
+    dependencies:
+      assemblyscript: 0.19.10
     dev: true
 
   /@graphprotocol/graph-ts@0.35.1:
@@ -12494,6 +12503,14 @@ packages:
   /match-all@1.2.7:
     resolution: {integrity: sha512-qSpsBKarh55r9KyXzFC3xBLRf2GlGasba2em9kbpRsSlGvdTAqjx3QD0r3FKSARiW+OE4iMHYsolM3aX9n5djw==}
 
+  /matchstick-as@0.5.0:
+    resolution: {integrity: sha512-4K619YDH+so129qt4RB4JCNxaFwJJYLXPc7drpG+/mIj86Cfzg6FKs/bA91cnajmS1CLHdhHl9vt6Kd6Oqvfkg==}
+    dependencies:
+      '@graphprotocol/graph-ts': 0.27.0
+      assemblyscript: 0.19.23
+      wabt: 1.0.24
+    dev: true
+
   /math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
@@ -16358,6 +16375,11 @@ packages:
       - bufferutil
       - utf-8-validate
       - zod
+
+  /wabt@1.0.24:
+    resolution: {integrity: sha512-8l7sIOd3i5GWfTWciPL0+ff/FK/deVK2Q6FN+MPz4vfUcD78i2M/49XJTwF6aml91uIiuXJEsLKWMB2cw/mtKg==}
+    hasBin: true
+    dev: true
 
   /wagmi@2.14.16(@tanstack/react-query@5.74.7)(@types/react@18.3.18)(react@18.2.0)(typescript@5.4.5)(viem@2.27.0)(zod@3.22.4):
     resolution: {integrity: sha512-njOPvB8L0+jt3m1FTJiVF44T1u+kcjLtVWKvwI0mZnIesZTQZ/xDF0M/NHj3Uljyn3qJw3pyHjJe31NC+VVHMA==}
