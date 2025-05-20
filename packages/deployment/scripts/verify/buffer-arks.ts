@@ -58,7 +58,7 @@ async function verifyBufferArks(hre: HardhatRuntimeEnvironment) {
       // Extract fields with proper null/undefined checking
       const bufferArkAddress = fleetDeployment.bufferArkAddress
       const fleetAddress = fleetDeployment.fleetAddress
-      const asset = config.tokens[fleetDeployment.assetSymbol]
+      const asset = config.tokens[fleetDeployment.assetSymbol.toLowerCase()]
       const fleetName = fleetDeployment.fleetName || 'Buffer Ark'
       const fleetDetails = fleetDeployment.fleetDetails || 'Buffer Ark for Fleet'
 
