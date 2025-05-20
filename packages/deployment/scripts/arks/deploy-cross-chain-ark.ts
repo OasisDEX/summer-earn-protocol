@@ -65,7 +65,7 @@ export async function deployCrossChainArk(
   console.log()
 
   // If fleetName is not provided in arkParams, prompt for it
-  let fleetName = arkParams?.fleetName
+  let fleetName: string | undefined = arkParams?.fleetName
   if (!fleetName) {
     const { fleetNameInput } = await prompts({
       type: 'text',
@@ -248,55 +248,12 @@ export async function deployCrossChainArk(
   }
 
   if (await confirmDeployment(userInput, config, arkParams != undefined)) {
-    const deployedContracts = await deployCrossChainArkContract(
-      config,
-      userInput,
-      fleetName, // Use the fleet name we got either from params or prompt
-    )
-
-    // Update cross-chain config with CrossChainArk address
-    const configFileName = selectedConfigFile.replace('.json', '')
-    const configPath = path.join(configDir, selectedConfigFile)
-    const crossChainConfigData = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-
-    // Update the config
-    const destination = crossChainConfigData.destinations.find(
-      (d: any) => d.chainId === targetChainId,
-    )
-    if (!destination) {
-      console.error(kleur.red(`Destination with chain ID ${targetChainId} not found in config`))
-      return deployedContracts
-    }
-
-    const protocol = destination.protocols.find((p: any) => p.protocol === targetProtocol)
-    if (!protocol) {
-      console.error(
-        kleur.red(`Protocol ${targetProtocol} not found in destination ${targetChainId}`),
-      )
-      return deployedContracts
-    }
-
-    protocol.crossChainArkAddress = deployedContracts.crossChainArk.address
-
-    // Write the updated config back to file
-    fs.writeFileSync(configPath, JSON.stringify(crossChainConfigData, null, 2))
-    console.log(kleur.green(`Updated cross-chain config file ${selectedConfigFile}`))
-
-    console.log(
-      kleur.green().bold('CrossChainArk successfully deployed at:'),
-      deployedContracts.crossChainArk.address,
-    )
-    console.log(
-      kleur.yellow(
-        'IMPORTANT: You need to run the update-fleet-proxy.ts script on the satellite chain',
-      ),
-    )
-    console.log(kleur.yellow('to update the FleetProxy with the CrossChainArk address.'))
-
-    return deployedContracts
+    const deployedContracts = await deployCrossChainArkContract(config, userInput, fleetName!)
+    // Return in the same format as other arks
+    return { ark: deployedContracts.crossChainArk }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
-    return null as any
+    return null
   }
 }
 
@@ -498,38 +455,8 @@ async function deployCrossChainArkContract(
   console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))
   console.log(kleur.blue('Fleet Proxy:'), kleur.cyan(userInput.fleetProxyAddress))
 
-  console.log('parameters [debug]', {
-    [moduleName]: {
-      bridgeQueue: userInput.bridgeQueue,
-      bridgeRouter: userInput.bridgeRouter,
-      targetChainId: userInput.targetChainId,
-      fleetProxy: userInput.fleetProxyAddress,
-      bridgeOptions: {
-        specifiedAdapter: userInput.bridgeOptions.specifiedAdapter,
-        adapterParams: {
-          gasLimit: userInput.bridgeOptions.adapterParams.gasLimit,
-          calldataSize: userInput.bridgeOptions.adapterParams.calldataSize,
-          msgValue: userInput.bridgeOptions.adapterParams.msgValue,
-          options: userInput.bridgeOptions.adapterParams.options,
-        },
-      },
-      arkParams: {
-        name: `CrossChainArk-${userInput.token.symbol}-${userInput.targetProtocol}`,
-        details: `CrossChainArk for ${userInput.token.symbol} using ${userInput.targetProtocol} on chain ${userInput.targetChainId}`,
-        accessManager: config.deployedContracts.core.configurationManager.address,
-        configurationManager: config.deployedContracts.core.configurationManager.address,
-        asset: userInput.token.address,
-        depositCap: userInput.depositCap,
-        maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-        maxRebalanceInflow: userInput.maxRebalanceInflow,
-        requiresKeeperData: false,
-        maxDepositPercentageOfTVL: HUNDRED_PERCENT,
-      },
-    },
-  })
   const module = createCrossChainArkModule(moduleName)
 
-  console.log('adapter params [debug]', userInput.bridgeOptions.adapterParams)
   const result = await hre.ignition.deploy(module, {
     parameters: {
       [moduleName]: {
@@ -563,7 +490,8 @@ async function deployCrossChainArkContract(
     deploymentId,
   })
 
-  return result as CrossChainArkContracts
+  // Return in the same format as other arks
+  return { crossChainArk: result.crossChainArk }
 }
 
 // Direct invocation

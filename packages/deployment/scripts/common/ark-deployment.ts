@@ -5,7 +5,7 @@ import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
-import { CrossChainArkContracts, deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
+import { deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
@@ -237,7 +237,6 @@ export async function deployArk(
     }
 
     case ArkType.CrossChainArk: {
-      console.log('Deploying CrossChainArk arkconfig [Debug]', arkConfig.params)
       const targetChainId = Number(arkConfig.params.targetChainId)
       const targetProtocol = arkConfig.params.protocol
 
@@ -299,24 +298,11 @@ export async function deployArk(
       throw new Error(`Unknown Ark type: ${type}`)
   }
 
-  if (!deployedArk?.ark?.address && arkConfig.type !== ArkType.CrossChainArk) {
-    throw new Error(`Failed to deploy ${arkConfig.type}`)
-  }
-
   if (!deployedArk?.ark?.address) {
     throw new Error(`Failed to deploy ${type}`)
   }
 
-  // Handle special case for CrossChainArk
-  if (arkConfig.type === ArkType.CrossChainArk) {
-    const crossChainArkResult = deployedArk as CrossChainArkContracts
-    if (!crossChainArkResult?.crossChainArk?.address) {
-      throw new Error(`Failed to deploy ${arkConfig.type}`)
-    }
-    return crossChainArkResult.crossChainArk.address as Address
-  } else {
-    return deployedArk.ark.address as Address
-  }
+  return deployedArk.ark.address as Address
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
@@ -395,18 +381,9 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       throw new Error(`Unknown Ark type: ${arkType}`)
   }
 
-  if (!deployedArk?.ark?.address && arkType !== ArkType.CrossChainArk) {
+  if (!deployedArk?.ark?.address) {
     throw new Error(`Failed to deploy ${arkType}`)
   }
 
-  // Handle special case for CrossChainArk which has a different return structure
-  if (arkType === ArkType.CrossChainArk) {
-    const crossChainArkResult = deployedArk as CrossChainArkContracts
-    if (!crossChainArkResult?.crossChainArk?.address) {
-      throw new Error(`Failed to deploy CrossChainArk`)
-    }
-    return crossChainArkResult.crossChainArk.address as Address
-  } else {
-    return deployedArk.ark.address as Address
-  }
+  return deployedArk.ark.address as Address
 }
