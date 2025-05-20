@@ -1,7 +1,7 @@
 {
   "name": "@summerfi/summer-earn-rates-subgraph",
   "license": "UNLICENSED",
-  "version": "1.10.0-silo-vault-product",
+  "version": "1.10.12-silo-vault-product",
   "scripts": {
     "codegen": "graph codegen",
     "build:mainnet": "pnpm run prepare:mainnet && graph codegen && graph build",
@@ -26,6 +26,10 @@
     "@graphprotocol/graph-cli": "0.82.0",
     "@graphprotocol/graph-ts": "0.35.1",
     "matchstick-as": "0.5.0",
-    "mustache": "4.2.0"
+    "mustache": "4.2.0",
+    "ts-node": "10.9.2"
+  },
+  "dependencies": {
+    "ethers": "^6.14.1"
   }
 }

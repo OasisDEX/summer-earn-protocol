@@ -16,6 +16,7 @@ import { SkyRewardsProduct } from '../products/SkyRewardsProduct'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { SparkProduct } from '../products/SparkProduct'
 import { getOrCreateToken } from '../utils/initializers'
+import { ERC4626ManualAssetsProduct } from '../products/ERC4626ManualAssetsProduct'
 
 /**
  * ProtocolConfig class
@@ -473,6 +474,20 @@ class ProtocolConfig {
           'Origin',
         ),
       ]),
+      new Protocol('Term', [
+        new ERC4626ManualAssetsProduct(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x26fcb50eec367ddab060ccf5e7394cecd95f7db2'),
+          BigInt.fromI32(22480094),
+          'Term',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x330732581d30076137a1159b3ae8780158d902be'),
+          BigInt.fromI32(22480094),
+          'Term',
+        ),
+      ]),
     ]
   }
 
@@ -793,7 +808,7 @@ class ProtocolConfig {
           BigInt.fromI32(27007101),
           'Silo',
         ),
-        new SiloVaultProduct(
+        new ERC4626Product(
           getOrCreateToken(addresses.USDCE),
           Address.fromString('0xcca902f2d3d265151f123d8ce8FdAc38ba9745ed'),
           BigInt.fromI32(27007101),
