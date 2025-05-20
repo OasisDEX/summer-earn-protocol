@@ -9,7 +9,7 @@
   "network": "base",
   "details": "",
   "discourseURL": "https://forum.summer.fi/t/sip1-4-onbaord-lower-risk-eth-vault-on-base/171",
-  "sipNumber": "4",
+  "sipNumber": "10",
   "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
   "rewardAmounts": ["458476000000000000000000"],
   "rewardsDuration": [1468800],
@@ -67,6 +67,13 @@
         "asset": "WETH",
         "vaultName": "Gauntlet_WETH_Core",
         "protocol": "morpho"
+      }
+    },
+    {
+      "type": "OriginETHArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "origin"
       }
     }
   ]

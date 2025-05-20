@@ -98,6 +98,13 @@ interface IArkWithWithdrawalRequest is IArk {
      */
     function whitelistRouter(address router, bool isWhitelisted) external;
 
+    /**
+     * @notice Returns whether a withdrawal claim is required for this Ark
+     * @dev It's a keeper helper method to check if a claim is required
+     * @return Whether a withdrawal claim is required
+     */
+    function isWithdrawalClaimRequired() external view returns (bool);
+
     event WithdrawalRequested(uint256 amount, uint256 withdrawalId);
     event RouterWhitelisted(address router, bool isWhitelisted);
     event SlippageSet(uint256 slippage);

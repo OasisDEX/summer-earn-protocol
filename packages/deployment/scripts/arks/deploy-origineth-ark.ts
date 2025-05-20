@@ -2,10 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
+import { createOriginSuperOETHArkModule } from '../../ignition/modules/arks/origin-super-eth-ark'
 import {
   createOriginETHArkModule,
   OriginETHArkContracts,
 } from '../../ignition/modules/arks/origineth-ark'
+import { ArkParams } from '../../types/ark-params'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
@@ -107,13 +109,10 @@ async function deployOriginETHArkContract(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   const arkName = `Origin-${userInput.token.symbol}-${chainId}`
-  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'staging'
+  const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_') + '_' + 'gov'
 
   const originETHAddress = validateAddress(config.protocolSpecific.originETH.originETH, 'OriginETH')
-  const armAddress = validateAddress(config.protocolSpecific.originETH.arm, 'OriginETH ARM')
 
-  console.log('originETHAddress', originETHAddress)
-  console.log('armAddress', armAddress)
   const arkParams = {
     name: arkName,
     details: JSON.stringify({
@@ -133,12 +132,45 @@ async function deployOriginETHArkContract(
     requiresKeeperData: false,
     maxDepositPercentageOfTVL: HUNDRED_PERCENT,
   }
+
   console.log('arkParams', arkParams)
+  if (chainId === 1) {
+    const armAddress = validateAddress(config.protocolSpecific.originETH.arm, 'OriginETH ARM')
+    return await _deployMainnet(moduleName, originETHAddress, armAddress, arkParams, deploymentId)
+  } else {
+    return await _deployBase(moduleName, originETHAddress, arkParams, deploymentId)
+  }
+}
+
+async function _deployMainnet(
+  moduleName: string,
+  originETHAddress: Address,
+  armAddress: Address,
+  arkParams: ArkParams,
+  deploymentId: string,
+) {
   return (await hre.ignition.deploy(createOriginETHArkModule(moduleName), {
     parameters: {
       [moduleName]: {
         originETH: originETHAddress,
         arm: armAddress,
+        arkParams,
+      },
+    },
+    deploymentId,
+  })) as OriginETHArkContracts
+}
+
+async function _deployBase(
+  moduleName: string,
+  originETHAddress: Address,
+  arkParams: ArkParams,
+  deploymentId: string,
+) {
+  return (await hre.ignition.deploy(createOriginSuperOETHArkModule(moduleName), {
+    parameters: {
+      [moduleName]: {
+        originETH: originETHAddress,
         arkParams,
       },
     },

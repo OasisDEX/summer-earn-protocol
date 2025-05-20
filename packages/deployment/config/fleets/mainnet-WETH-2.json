@@ -63,6 +63,13 @@
         "vaultName": "Re7_WETH",
         "protocol": "morpho"
       }
+    },
+    {
+      "type": "OriginETHArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "origin"
+      }
     }
   ]
 }

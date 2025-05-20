@@ -28,7 +28,7 @@ const addresses: Record<
       eurc: '0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42',
       seam: '0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85',
       ws: '0x0000000000000000000000000000000000000000',
-      well: '0x0000000000000000000000000000000000000000',
+      well: '0xA88594D404727625A9437C3f886C7643872296AE',
       gear: '0x0000000000000000000000000000000000000000',
       usdt: '0x6047828dc181963ba44974801FF68e538dA5eaF9',
       usde: '0x0000000000000000000000000000000000000000',
@@ -372,6 +372,8 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'reul':
     case 'ws':
     case 'seam':
+    case 'syrup':
+    case 'well':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -436,12 +438,13 @@ function calculateAuctionMultipliers(
 const rewardsConfig: Record<string, Record<string, Token[]>> = {
   mainnet: {
     morpho: [Token.MORPHO, Token.SYRUP],
-    euler: [],
+    euler: [Token.REUL],
     gearbox: [Token.GEAR],
   },
   base: {
-    morpho: [Token.MORPHO, Token.SEAM],
-    euler: [],
+    morpho: [Token.MORPHO],
+    euler: [Token.REUL],
+    moonwell: [Token.WELL],
   },
   sonic: {
     aave_v3: [Token.WS],

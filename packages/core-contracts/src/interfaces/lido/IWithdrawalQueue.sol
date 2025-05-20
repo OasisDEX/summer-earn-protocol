@@ -32,4 +32,9 @@ interface IWithdrawalQueue {
     function getWithdrawalStatus(
         uint256[] memory _requestIds
     ) external view returns (WithdrawalRequestStatus[] memory _status);
+
+    function finalize(
+        uint256 _lastRequestIdToBeFinalized,
+        uint256 _timestamp
+    ) external;
 }

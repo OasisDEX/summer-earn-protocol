@@ -124,6 +124,13 @@
         "vaultName": "Smokehouse_USDC",
         "protocol": "morpho"
       }
+    },
+    {
+      "type": "SyrupArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Maple"
+      }
     }
   ]
 }

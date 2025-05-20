@@ -42,6 +42,8 @@ contract ArkTestBase is TestHelpers {
     address public curator = address(7);
     address constant ODOS_ROUTER_MAINNET =
         0xCf5540fFFCdC3d510B18bFcA6d2b9987b0772559;
+    address constant KYBER_ROUTER_MAINNET =
+        0x6131B5fae19EA4f9D964eAc0408E4408b66337b5;
     address constant ODOS_ROUTER_BASE =
         0x19cEeAd7105607Cd444F5ad10dd51356436095a1;
     ERC20Mock public mockToken;

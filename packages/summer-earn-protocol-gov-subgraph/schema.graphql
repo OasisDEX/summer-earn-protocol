@@ -1,0 +1,10 @@
+type Proposal @entity {
+id: ID!
+targets: [String!]!
+values: [BigInt!]!
+calldatas: [Bytes!]!
+description: String!
+descriptionHash: Bytes!
+status: String!
+chains: [String!]!
+}

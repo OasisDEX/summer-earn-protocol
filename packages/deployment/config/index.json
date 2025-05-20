@@ -78,6 +78,9 @@
       }
     },
     "protocolSpecific": {
+      "originETH": {
+        "originETH": "0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3"
+      },
       "syrup": {
         "pools": {}
       },
@@ -414,6 +417,15 @@
             "syrupAdmin": "0xd6d4Bcde6c816F17889f1Dd3000aF0261B03a196",
             "withdrawalManager": "0x1bc47a0Dd0FdaB96E9eF982fdf1F34DC6207cfE3",
             "syrupRedeemer": "0x074a98D830eD61f39732FFa258e407f5cA7a8AaF"
+          },
+          "usdt": {
+            "syrup": "0x356B8d89c1e1239Cbbb9dE4815c39A1474d5BA7D",
+            "router": "0xF007476Bb27430795138C511F18F821e8D1e5Ee2",
+            "poolManager": "0x0cdA32E08B48bFDDbc7eE96B44b09cf286F9E21a",
+            "poolPermissionManager": "0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3",
+            "syrupAdmin": "0x0000000000000000000000000000000000000000",
+            "withdrawalManager": "0x86eBDf902d800F2a82038290B6DBb2A5eE29eB8C",
+            "syrupRedeemer": "0x0000000000000000000000000000000000000000"
           }
         }
       },
@@ -423,7 +435,10 @@
           "Fluid": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
           "Euler_Prime": "0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9",
           "Euler_Yield": "0xe0a80d35bB6618CBA260120b279d357978c42BCE",
-          "Euler_Stablecoin_Maxi": "0xce45EF0414dE3516cAF1BCf937bF7F2Cf67873De"
+          "Euler_Stablecoin_Maxi": "0xce45EF0414dE3516cAF1BCf937bF7F2Cf67873De",
+          "Euler_Swaap_Lend": "0xf2f826c190D020A6D1EC422bF2269E63b8b315E0",
+          "Euler_Resolv": "0xcBC9B61177444A793B85442D3a953B90f6170b7D",
+          "Sky_sUSDC": "0xBc65ad17c5C0a2A4D159fa5a503f4992c7B545FE"
         },
         "dai": {},
         "usde": {},
@@ -485,7 +500,10 @@
             "Steakhouse": "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
             "Gauntlet_USDC_Prime": "0xdd0f28e19C1780eb6396170735D45153D261490d",
             "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78",
-            "Smokehouse_USDC": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC"
+            "Smokehouse_USDC": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC",
+            "Gauntlet_Frontier_USDC": "0xc582F04d8a82795aa2Ff9c8bb4c1c889fe7b754e",
+            "Relend_USDC": "0x0F359FD18BDa75e9c49bC027E7da59a4b01BF32a",
+            "MEV_Capital_USDC": "0xd63070114470f685b75B74D60EEc7c1113d33a3D"
           },
           "dai": {},
           "usde": {},

@@ -56,6 +56,7 @@ interface ValidationResult {
 interface DecodedFunction {
   functionName: string
   args: any[]
+  paramNames: string[]
 }
 
 export interface CrossChainData {
@@ -67,6 +68,12 @@ export interface CrossChainData {
   dstDescriptionHash: string
   options: any
   decodedCalldatas?: DecodedFunction[]
+  formattedProposals?: Array<{
+    target: string
+    targetName: string
+    value: string
+    decodedCall?: DecodedFunction
+  }>
 }
 
 // Map of known function ABIs
@@ -74,7 +81,36 @@ const KNOWN_ABIS = {
   // Cross-chain execution
   sendProposalToTargetChain:
     'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
-
+  send: {
+    inputs: [
+      {
+        components: [
+          { name: 'dstEid', type: 'uint32' },
+          { name: 'to', type: 'bytes32' },
+          { name: 'amountLD', type: 'uint256' },
+          { name: 'minAmountLD', type: 'uint256' },
+          { name: 'extraOptions', type: 'bytes' },
+          { name: 'composeMsg', type: 'bytes' },
+          { name: 'oftCmd', type: 'bytes' },
+        ],
+        name: 'sendParams',
+        type: 'tuple',
+      },
+      {
+        components: [
+          { name: 'nativeFee', type: 'uint256' },
+          { name: 'lzTokenFee', type: 'uint256' },
+        ],
+        name: 'feeParams',
+        type: 'tuple',
+      },
+      { name: '_refundAddress', type: 'address' },
+    ],
+    name: 'send',
+    outputs: [],
+    stateMutability: 'external',
+    type: 'function',
+  },
   // Harbor Command functions
   grantCuratorRole: 'function grantCuratorRole(address fleetAddress, address account) external',
   grantAdmiralsQuartersRole: 'function grantAdmiralsQuartersRole(address account) external',
@@ -91,6 +127,18 @@ const KNOWN_ABIS = {
 
   // ERC20 functions
   approve: 'function approve(address spender, uint256 amount) external returns (bool)',
+
+  // gov
+  setVotingDelay: 'function setVotingDelay(uint48 newVotingDelay) external',
+  setVotingPeriod: 'function setVotingPeriod(uint32 newVotingPeriod) external',
+  setQuorumNumerator: 'function setQuorumNumerator(uint256 newQuorumNumerator) external',
+  setProposalThreshold: 'function setProposalThreshold(uint256 newProposalThreshold) external',
+  setProposalMaxOperations:
+    'function setProposalMaxOperations(uint256 newProposalMaxOperations) external',
+  setProposalMaxDuration:
+    'function setProposalMaxDuration(uint256 newProposalMaxDuration) external',
+  updateDelay: 'function updateDelay(uint256 newDelay) external',
+  addToWhitelist: 'function addToWhitelist(address account) external',
 }
 
 // Create interfaces for each ABI
@@ -102,15 +150,85 @@ const interfaces = Object.entries(KNOWN_ABIS).reduce(
   {} as Record<string, ethers.Interface>,
 )
 
+// Helper function to decode an address to its contract name
+function decodeAddress(address: string): string {
+  // Try to find the contract name in each network
+  for (const network of Object.values(SupportedNetworks)) {
+    const contractName = addresToContractName(address, network)
+    if (contractName !== 'Unknown') {
+      return `${network}:${contractName}(${address})`
+    }
+  }
+  return address
+}
+
 // Function to decode any calldata using known ABIs
 export const decodeCalldata = (calldata: string): DecodedFunction | null => {
   for (const [name, iface] of Object.entries(interfaces)) {
     try {
       const decoded = iface.parseTransaction({ data: calldata })
       if (decoded) {
+        // Recursively get parameter names from the ABI
+        const getParamNames = (
+          inputs: readonly ethers.ParamType[],
+        ): (string | { name: string; components: any[] })[] => {
+          return inputs.map((input) => {
+            if (input.type === 'tuple') {
+              // For tuples, create an object with nested parameter names
+              const nestedNames = getParamNames(input.components || [])
+              return {
+                name: input.name,
+                components: nestedNames,
+              }
+            }
+            return input.name
+          })
+        }
+
+        // Get parameter names from the ABI
+        const fragment = iface.fragments[0]
+        const paramNames = fragment.inputs ? getParamNames(fragment.inputs) : []
+
+        // Recursively process arguments to handle tuples
+        const processArg = (arg: any, paramName: any): any => {
+          if (Array.isArray(arg)) {
+            // If we have component names, use them as keys
+            if (paramName?.components) {
+              const result: any = {}
+              arg.forEach((value, index) => {
+                const componentName = paramName.components[index]
+                if (typeof componentName === 'string') {
+                  result[componentName] = processArg(value, paramName.components[index])
+                } else {
+                  result[componentName.name] = processArg(value, componentName)
+                }
+              })
+              return result
+            }
+            // Otherwise, just process each array element
+            return arg.map((item, index) => processArg(item, paramName?.[index]))
+          }
+          if (typeof arg === 'object' && arg !== null) {
+            // Handle tuple types
+            const processedObj: any = {}
+            for (const [key, value] of Object.entries(arg)) {
+              const nestedParamName = paramName?.components?.[key] || key
+              processedObj[nestedParamName] = processArg(value, paramName?.components?.[key])
+            }
+            return processedObj
+          }
+          if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
+            return decodeAddress(arg)
+          }
+          return arg
+        }
+
+        const decodedArgs = decoded.args.map((arg, index) => processArg(arg, paramNames[index]))
+
         return {
           functionName: name,
-          args: decoded.args,
+          args: decodedArgs,
+          paramNames: paramNames.map((p) => (typeof p === 'string' ? p : p.name)),
         }
       }
     } catch (error) {
@@ -144,6 +262,14 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
       addresToContractName(target, network),
     )
 
+    // Format proposals for better readability
+    const formattedProposals = dstTargets.map((target: string, index: number) => ({
+      target: target.toLowerCase(),
+      targetName: targetContractNames[index],
+      value: dstValues[index].toString(),
+      decodedCall: decodedCalldatas[index],
+    }))
+
     return {
       dstEid: network,
       dstTargets: dstTargets.map((addr: string) => addr.toLowerCase()),
@@ -153,6 +279,7 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
       dstDescriptionHash: dstDescriptionHash,
       options,
       decodedCalldatas,
+      formattedProposals,
     }
   } catch (error) {
     console.error('Error decoding cross-chain calldata:', error)
@@ -160,10 +287,11 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
   }
 }
 
-function addresToContractName(address: string, network: SupportedNetworks): string {
+export function addresToContractName(address: string, network: SupportedNetworks): string {
   const networkConfig = typedConfig[network]
   const normalizedAddress = address.toLowerCase()
 
+  // First check the main config
   // Iterate through top-level contract categories (core, gov, buyAndBurn)
   for (const category in networkConfig.deployedContracts) {
     const contracts = networkConfig.deployedContracts[category]
@@ -185,6 +313,27 @@ function addresToContractName(address: string, network: SupportedNetworks): stri
     if (tokenAddress && tokenAddress.toLowerCase() === normalizedAddress) {
       return `token.${tokenName}`
     }
+  }
+
+  // Check network-specific deployed addresses
+  try {
+    const deployedAddresses = require(`../config/deployed/${network}.json`) as Record<
+      string,
+      string
+    >
+
+    // Iterate through all contracts in the deployed addresses
+    for (const [contractName, contractAddress] of Object.entries(deployedAddresses)) {
+      if (
+        typeof contractAddress === 'string' &&
+        contractAddress.toLowerCase() === normalizedAddress
+      ) {
+        return `${contractName}`
+      }
+    }
+  } catch (error) {
+    // If file doesn't exist or can't be loaded, just continue
+    console.warn(`No deployed addresses found for network ${network}`)
   }
 
   return 'Unknown'
@@ -230,14 +379,14 @@ export const validateTargets = (targets: string[]): ValidationResult => {
     for (const network of Object.values(SupportedNetworks)) {
       const contractName = addresToContractName(normalizedTarget, network)
       if (contractName !== 'Unknown') {
-        contractNames[index] = `${network}:${contractName}`
+        contractNames[index] = `${network}:${contractName}(${normalizedTarget})`
         found = true
         break
       }
     }
 
     if (!found) {
-      contractNames[index] = 'Unknown'
+      contractNames[index] = `Unknown(${normalizedTarget})`
       if (!validAddresses.has(normalizedTarget)) {
         errors.push(
           `Target at index ${index} (${normalizedTarget}) is not a known contract address`,
