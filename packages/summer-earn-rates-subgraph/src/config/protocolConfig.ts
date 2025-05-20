@@ -3,6 +3,7 @@ import { addresses } from '../constants/addresses'
 import { Protocol } from '../models/Protocol'
 import { AaveV3Product } from '../products/AaveV3Product'
 import { CompoundProduct } from '../products/CompoundProduct'
+import { ERC4626ManualAssetsProduct } from '../products/ERC4626ManualAssetsProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
 import { GearboxProduct } from '../products/GearboxProduct'
 import { GenericVaultProduct } from '../products/GenericVault'
@@ -16,7 +17,6 @@ import { SkyRewardsProduct } from '../products/SkyRewardsProduct'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { SparkProduct } from '../products/SparkProduct'
 import { getOrCreateToken } from '../utils/initializers'
-import { ERC4626ManualAssetsProduct } from '../products/ERC4626ManualAssetsProduct'
 
 /**
  * ProtocolConfig class

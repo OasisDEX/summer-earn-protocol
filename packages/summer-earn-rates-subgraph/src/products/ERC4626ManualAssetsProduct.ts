@@ -1,9 +1,7 @@
 import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { ERC4626 } from '../../generated/EntryPoint/ERC4626'
-import { BaseVaultProduct } from './BaseVaultProduct'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
-
-
+import { BaseVaultProduct } from './BaseVaultProduct'
 
 export class ERC4626ManualAssetsProduct extends BaseVaultProduct {
   getSharePrice(): BigDecimal {
