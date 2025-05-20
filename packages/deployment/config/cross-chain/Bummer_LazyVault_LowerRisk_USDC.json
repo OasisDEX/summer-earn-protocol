@@ -1,0 +1,29 @@
+{
+  "fleetName": "Bummer_LazyVault_LowerRisk_USDC",
+  "sourceChainId": 42161,
+  "destinations": [
+    {
+      "chainId": 42161,
+      "name": "chain-42161",
+      "protocols": [
+        {
+          "protocol": "summerfi",
+          "fleetProxyAddress": "0x64CFd4837b7Fd0876Cf11C116e787420B8D0374F",
+          "crossChainArkAddress": "0xc1fe8061B61288FfeAFC26A86e971E9797266322",
+          "asset": {
+            "symbol": "usdc"
+          },
+          "bridgeOptions": {
+            "specifiedAdapter": "0x0000000000000000000000000000000000000000",
+            "adapterParams": {
+              "gasLimit": 500000,
+              "calldataSize": 0,
+              "msgValue": 0,
+              "options": "0x"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
