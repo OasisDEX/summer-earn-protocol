@@ -22,6 +22,13 @@ export const CHAIN_BLOCK_EXPLORERS: Record<ChainId, string> = {
   [sonic.id]: 'https://explorer.sonic.network',
 }
 
+export const CHAIN_SUBGRAPH_URLS: Record<ChainId, string> = {
+  [mainnet.id]: 'https://subgraph.staging.oasisapp.dev/summer-earn-protocol-rates',
+  [arbitrum.id]: 'https://subgraph.staging.oasisapp.dev/summer-earn-protocol-rates-arbitrum',
+  [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-earn-protocol-rates-base',
+  [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-earn-protocol-rates-sonic',
+}
+
 export const VIEM_CHAIN_ENTITIES: Record<ChainId, Chain> = {
   [mainnet.id]: mainnet,
   [arbitrum.id]: arbitrum,
