@@ -16,7 +16,7 @@ async function verifyBridgeRouter(hre: HardhatRuntimeEnvironment) {
   }
 
   // Contract details
-  const bridgeRouterAddress = '0x1021D49B0BdacA6b2b250e7eA42be91650D1bc19'
+  const bridgeRouterAddress = '0x077b0716337069e92B1067EeFaC593C46b72894C'
   const accessManager = '0x2e208e55075b1cF15A767C15Ee9bA14205CB8371'
   const bridgeQueue = '0x0000000000000000000000000000000000000000'
   const chainIds = [8453]
@@ -26,6 +26,7 @@ async function verifyBridgeRouter(hre: HardhatRuntimeEnvironment) {
 
   console.log('Verifying BridgeRouter contract on Arbitrum...')
 
+  // According to docs, keep the verification call simple
   try {
     await hre.run('verify:verify', {
       address: bridgeRouterAddress,
