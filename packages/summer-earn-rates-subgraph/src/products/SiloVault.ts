@@ -62,7 +62,7 @@ export class SiloVaultProduct extends ERC4626Product {
     const uniqueRewards = new Map<string, RewardRate>()
     for (let i = 0; i < rewardsRates.length; i++) {
       const rewardRate = rewardsRates[i]
-      const key = `${rewardRate.rewardToken.id.toHexString()}}`
+      const key = `${rewardRate.rewardToken.id.toHexString()}`
       if (!uniqueRewards.has(key)) {
         uniqueRewards.set(key, rewardRate)
       } else {
