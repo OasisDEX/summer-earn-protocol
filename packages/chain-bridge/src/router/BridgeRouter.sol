@@ -627,46 +627,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeRouter
-    function getBestAdapter(
-        uint16 chainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.OperationType operationType
-    ) public view returns (address) {
-        return
-            _getBestAdapterForOperation(chainId, asset, amount, operationType);
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function getBestAdapter(
-        uint16 chainId,
-        address asset,
-        uint256 amount
-    ) public view returns (address) {
-        // Default to MESSAGE operation
-        return
-            getBestAdapter(
-                chainId,
-                asset,
-                amount,
-                BridgeTypes.OperationType.MESSAGE
-            );
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function getBestAdapterForStateRead(
-        uint16 chainId
-    ) public view returns (address) {
-        return
-            getBestAdapter(
-                chainId,
-                address(0),
-                0,
-                BridgeTypes.OperationType.READ_STATE
-            );
-    }
-
-    /// @inheritdoc IBridgeRouter
     function getAdapters() public view returns (address[] memory) {
         return adapters.values();
     }
