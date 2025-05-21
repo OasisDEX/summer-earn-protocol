@@ -51,7 +51,6 @@ import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { BigIntConstants, RewardTokenType } from './constants'
 import * as utils from './utils'
-import { formatAmount } from './utils'
 
 export function getOrCreateAccount(id: string): Account {
   let account = Account.load(id)
@@ -311,6 +310,10 @@ export function getOrCreateVaultsDailySnapshots(
       vault.inputTokenBalance,
       BigInt.fromI32(inputToken.decimals),
     )
+    vaultSnapshots.inputTokenBalanceWithdrawableNormalized = utils.formatAmount(
+      vault.withdrawableTotalAssets!,
+      BigInt.fromI32(inputToken.decimals),
+    )
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
@@ -369,6 +372,10 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.inputTokenBalanceNormalized = utils.formatAmount(
       vault.inputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
+    vaultSnapshots.inputTokenBalanceWithdrawableNormalized = utils.formatAmount(
+      vault.withdrawableTotalAssets!,
       BigInt.fromI32(inputToken.decimals),
     )
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
@@ -775,36 +782,6 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
 
-    for (let i = 0; i < vault.rewardTokens.length; i++) {
-      if (position.stakedInputTokenBalanceNormalized.gt(constants.BigDecimalConstants.ZERO)) {
-        const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(
-          Address.fromBytes(vault.stakingRewardsManager),
-        )
-        const rewardTokenAddress = Address.fromString(vault.rewardTokens[i])
-        const rewardToken = getOrCreateToken(rewardTokenAddress)
-        const claimable = utils.readValue<BigInt>(
-          rewardsManagerContract.try_earned(
-            Address.fromString(position.account),
-            rewardTokenAddress,
-          ),
-          constants.BigIntConstants.ZERO,
-        )
-        const claimableNormalized = formatAmount(claimable, BigInt.fromI32(rewardToken.decimals))
-        const positionRewards = getOrCreatePositionRewards(positionId, rewardToken, block)
-
-        positionRewards.claimable = claimable
-        positionRewards.claimableNormalized = claimableNormalized
-        positionRewards.save()
-
-        // ------------------------------------------------------------
-        // will be deprecated in the future
-        if (rewardTokenAddress.equals(addresses.SUMMER_TOKEN)) {
-          position.claimableSummerToken = positionRewards.claimable
-          position.claimableSummerTokenNormalized = positionRewards.claimableNormalized
-        }
-        // ------------------------------------------------------------}
-      }
-    }
     position.save()
   }
   position = null
@@ -938,6 +915,10 @@ export function getOrCreateVaultWeeklySnapshots(vault: Vault, block: ethereum.Bl
   snapshot.inputTokenBalance = vault.inputTokenBalance
   snapshot.inputTokenBalanceNormalized = utils.formatAmount(
     snapshot.inputTokenBalance,
+    BigInt.fromI32(inputToken.decimals),
+  )
+  snapshot.inputTokenBalanceWithdrawableNormalized = utils.formatAmount(
+    vault.withdrawableTotalAssets!,
     BigInt.fromI32(inputToken.decimals),
   )
   snapshot.outputTokenSupply = vault.outputTokenSupply

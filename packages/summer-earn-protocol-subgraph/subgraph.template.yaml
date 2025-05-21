@@ -1,6 +1,6 @@
 specVersion: 0.0.8
 schema:
-  file: ./schema.graphql   
+  file: ./schema.graphql    
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
@@ -47,7 +47,9 @@ dataSources:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json          
+          file: ./abis/GovernanceRewardsManager.abi.json    
+        - name: Multicall
+          file: ./abis/common/Multicall.json
       eventHandlers:
         - event: FleetCommanderEnlisted(indexed address)
           handler: handleFleetCommanderEnlisted

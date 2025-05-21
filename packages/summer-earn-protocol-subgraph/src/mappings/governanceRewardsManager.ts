@@ -1,10 +1,10 @@
-import { Address, BigInt } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import {
   GovernanceRewardsManager,
   RewardPaid,
   RewardsDurationUpdated,
 } from '../../generated/GovernanceRewardsManager/GovernanceRewardsManager'
-import { Account, AccountRewards, GovernanceStaking, Token } from '../../generated/schema'
+import { AccountRewards, GovernanceStaking, Token } from '../../generated/schema'
 import {
   RewardAdded,
   RewardTokenRemoved,
@@ -18,41 +18,61 @@ import {
   getOrCreateRewardToken,
   getOrCreateToken,
 } from '../common/initializers'
-import * as utils from '../common/utils'
+import {
+  decodeValues,
+  encodeFunctionCalldata,
+  makeMulticall,
+  prepareMulicallCall,
+} from '../common/multicall'
 import { formatAmount } from '../common/utils'
 
-export function updateAccountStakingRewards(account: Account, block: BigInt): void {
-  if (account.lastUpdateBlock.equals(block)) {
-    return
-  }
-  const governanceStaking = getOrCreateGovernanceStaking()
-  const rewarTokens = governanceStaking.rewardTokens
-  if (account.stakedSummerToken.gt(BigIntConstants.ZERO)) {
-    if (rewarTokens.length > 0) {
-      const govRewardsManagerContract = GovernanceRewardsManager.bind(addresses.GOVERNANCE_STAKING)
+export function updateAccountStakingRewards(block: BigInt): void {
+  const gov = getOrCreateGovernanceStaking()
 
-      for (let i = 0; i < rewarTokens.length; i++) {
-        const rewardToken = getOrCreateToken(Address.fromString(rewarTokens[i]))
-        const accountRewards = getOrCreateAccountRewards(account, rewardToken)
-        const claimable = utils.readValue<BigInt>(
-          govRewardsManagerContract.try_earned(
-            Address.fromString(account.id),
-            Address.fromString(rewarTokens[i]),
-          ),
-          BigIntConstants.ZERO,
-        )
-        accountRewards.claimable = claimable
-        accountRewards.claimableNormalized = formatAmount(
-          claimable,
-          BigInt.fromI32(rewardToken.decimals),
-        )
-
-        accountRewards.save()
-      }
+  const accountsToUpdate: string[] = []
+  for (let i = 0; i < gov.accounts.length; i++) {
+    const account = getOrCreateAccount(gov.accounts[i])
+    if (
+      account.stakedSummerToken.gt(BigIntConstants.ZERO) &&
+      account.lastUpdateBlock.notEqual(block)
+    ) {
+      accountsToUpdate.push(account.id)
+      account.lastUpdateBlock = block
+      account.save()
     }
   }
-  account.lastUpdateBlock = block
-  account.save()
+
+  if (gov.rewardTokens.length > 0 && accountsToUpdate.length > 0) {
+    const rewardTokenAddress = Address.fromString(gov.rewardTokens[0])
+    const rewardToken = getOrCreateToken(rewardTokenAddress)
+
+    let calls = new Array<ethereum.Tuple>(accountsToUpdate.length)
+    for (let i = 0; i < accountsToUpdate.length; i++) {
+      calls[i] = prepareMulicallCall(
+        addresses.GOVERNANCE_STAKING,
+        encodeFunctionCalldata(
+          'earned(address,address)',
+          ['address', 'address'],
+          [accountsToUpdate[i], rewardTokenAddress.toHexString()],
+        ),
+      )
+    }
+    const multicallResult = makeMulticall(calls)
+    const multiCallResponseData = multicallResult.value.value1
+    for (let i = 0; i < multiCallResponseData.length; i++) {
+      const results = decodeValues('uint256', multiCallResponseData[i])
+      const claimableNormalized = formatAmount(
+        BigInt.fromString(results[0]),
+        BigInt.fromI32(rewardToken.decimals),
+      )
+      const accountRewards = getOrCreateAccountRewards(accountsToUpdate[i], rewardToken)
+
+      accountRewards.claimable = BigInt.fromString(results[0])
+      accountRewards.claimableNormalized = claimableNormalized
+
+      accountRewards.save()
+    }
+  }
 }
 
 export function getOrCreateGovernanceStaking(): GovernanceStaking {
@@ -71,12 +91,12 @@ export function getOrCreateGovernanceStaking(): GovernanceStaking {
   }
   return governanceStaking
 }
-export function getOrCreateAccountRewards(account: Account, rewardToken: Token): AccountRewards {
-  const id = `${account.id}-${rewardToken.id}`
+export function getOrCreateAccountRewards(accountId: string, rewardToken: Token): AccountRewards {
+  const id = `${accountId}-${rewardToken.id}`
   let accountRewards = AccountRewards.load(id)
   if (!accountRewards) {
     accountRewards = new AccountRewards(id)
-    accountRewards.account = account.id
+    accountRewards.account = accountId
     accountRewards.rewardToken = rewardToken.id
     accountRewards.claimable = BigIntConstants.ZERO
     accountRewards.claimableNormalized = BigDecimalConstants.ZERO
@@ -158,7 +178,7 @@ export function handleRewardPaid(event: RewardPaid): void {
     const account = getOrCreateAccount(event.params.user.toHexString())
 
     const accountRewards = getOrCreateAccountRewards(
-      account,
+      account.id,
       getOrCreateToken(event.params.rewardToken),
     )
     accountRewards.claimed = accountRewards.claimed.plus(event.params.reward)

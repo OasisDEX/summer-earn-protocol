@@ -63,6 +63,7 @@ export function updateVault(
   vault.rewardTokenEmissionsAmountsPerOutputToken =
     vaultDetails.rewardTokenEmissionsAmountsPerOutputToken
   vault.save()
+
   // Update buffer ark - as it's integral part of the vault
   updateBufferArk(vault, vaultDetails, block)
   updateProtocolTotalValueLockedUSD()
