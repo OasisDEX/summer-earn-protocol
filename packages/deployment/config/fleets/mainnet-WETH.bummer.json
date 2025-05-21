@@ -57,6 +57,14 @@
         "asset": "WETH",
         "protocol": "fluid"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Term_re7_weth",
+        "protocol": "erc4626"
+      }
     }
   ]
 }
