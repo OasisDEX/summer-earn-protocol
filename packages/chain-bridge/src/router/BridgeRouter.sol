@@ -445,23 +445,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
     {
-        // Select adapter - either user specified or find best
         selectedAdapter = options.specifiedAdapter;
 
-        if (selectedAdapter != address(0)) {
-            if (!this.isValidAdapter(selectedAdapter)) revert UnknownAdapter();
-            _validateAdapterSupportsOperation(selectedAdapter, operationType);
-        } else {
-            // Finding the best adapter based on base fees
-            selectedAdapter = _getBestAdapterForOperation(
-                destinationChainId,
-                asset,
-                amount,
-                operationType
-            );
-        }
-
-        if (selectedAdapter == address(0)) revert NoSuitableAdapter();
+        if (
+            selectedAdapter == address(0) ||
+            !this.isValidAdapter(selectedAdapter)
+        ) revert UnknownAdapter();
+        _validateAdapterSupportsOperation(selectedAdapter, operationType);
 
         // Get base fee from the selected adapter
         (nativeFee, tokenFee) = IBridgeAdapter(selectedAdapter).estimateFee(
@@ -635,68 +625,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Finds the best adapter for an operation based on compatibility and estimated base fee.
-     * @param chainId Destination or source chain ID.
-     * @param asset Asset to send (address(0) for non-asset operations).
-     * @param amount Amount to transfer (0 for non-asset operations).
-     * @param operationType Type of operation to perform.
-     * @return The address of the lowest-cost suitable adapter based on base fee.
-     * @dev Considers chain support, operation support, asset support (if applicable), and estimated base fees.
-     */
-    function _getBestAdapterForOperation(
-        uint16 chainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.OperationType operationType
-    ) internal view returns (address) {
-        address bestAdapter = address(0);
-        uint256 lowestFee = type(uint256).max;
-
-        uint256 adapterCount = adapters.length();
-        for (uint256 i = 0; i < adapterCount; i++) {
-            address adapter = adapters.at(i);
-
-            // Check if adapter supports this chain
-            if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
-
-            // Check capability support using the new operation type method
-            if (!IBridgeAdapter(adapter).supportsOperation(operationType))
-                continue;
-
-            // If we get here, the adapter is suitable, so check its fee
-            uint256 estimatedFee = 0;
-
-            try
-                IBridgeAdapter(adapter).estimateFee(
-                    chainId,
-                    asset,
-                    amount,
-                    BridgeTypes.AdapterParams({
-                        gasLimit: DEFAULT_GAS_LIMIT, // Use constant default
-                        calldataSize: DEFAULT_CALLDATA_SIZE, // Use constant default
-                        msgValue: 0,
-                        options: ""
-                    }),
-                    operationType // Pass the operation type directly
-                )
-            returns (uint256 fee, uint256) {
-                estimatedFee = fee;
-            } catch {
-                // If estimation fails, consider this adapter infinitely expensive
-                estimatedFee = type(uint256).max;
-            }
-
-            // Compare based on the estimated fee
-            if (estimatedFee < lowestFee) {
-                lowestFee = estimatedFee;
-                bestAdapter = adapter;
-            }
-        }
-
-        return bestAdapter;
-    }
 
     /// @inheritdoc IBridgeRouter
     function getBestAdapter(
