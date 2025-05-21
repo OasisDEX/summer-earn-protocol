@@ -268,43 +268,6 @@ interface IBridgeRouter is IERC165 {
     ) external view returns (BridgeTypes.OperationStatus);
 
     /**
-     * @notice Get the best adapter for a specific transfer (deprecated, use typed version)
-     * @param chainId ID of the destination/source chain
-     * @param asset Address of the asset (address(0) for native/reads/messages)
-     * @param amount Amount to transfer (0 for reads/messages)
-     * @return bestAdapter Address of the best adapter based on lowest base fee
-     */
-    function getBestAdapter(
-        uint16 chainId,
-        address asset,
-        uint256 amount
-    ) external view returns (address bestAdapter);
-
-    /**
-     * @notice Get the best adapter with explicit operation type
-     * @param chainId ID of the destination/source chain
-     * @param asset Address of the asset (address(0) for non-asset ops)
-     * @param amount Amount to transfer (0 for non-asset ops)
-     * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET)
-     * @return bestAdapter Address of the best adapter based on lowest base fee
-     */
-    function getBestAdapter(
-        uint16 chainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.OperationType operationType
-    ) external view returns (address bestAdapter);
-
-    /**
-     * @notice Get the best adapter specifically for state read operations
-     * @param chainId Destination chain ID to read from
-     * @return The address of the best adapter for state reading based on lowest base fee
-     */
-    function getBestAdapterForStateRead(
-        uint16 chainId
-    ) external view returns (address);
-
-    /**
      * @notice Get all registered adapters
      * @return Array of registered adapter addresses
      */
