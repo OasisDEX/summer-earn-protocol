@@ -227,10 +227,10 @@
       },
       "bridge": {
         "bridgeRouter": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xa8ee1A644049FC59eBdCd9a5c5617C8d91e1e33C"
         },
         "bridgeQueue": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x181b07FeC5d0a852f32D774c2B0C194057707Bf4"
         },
         "adapters": {
           "layerZero": {
