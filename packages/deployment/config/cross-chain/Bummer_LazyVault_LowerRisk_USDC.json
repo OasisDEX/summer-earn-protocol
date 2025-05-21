@@ -9,7 +9,7 @@
         {
           "protocol": "summerfi",
           "fleetProxyAddress": "0x64CFd4837b7Fd0876Cf11C116e787420B8D0374F",
-          "crossChainArkAddress": "0xc1fe8061B61288FfeAFC26A86e971E9797266322",
+          "crossChainArkAddress": "0x9f54Fb97aBF434dF4b262685e7DBdDD4115C572F",
           "asset": {
             "symbol": "usdc"
           },
