@@ -22,7 +22,7 @@ export const subgraphNetworkToChainIdMap = new Map<string, string>()
 subgraphNetworkToChainIdMap.set('mainnet', '1')
 subgraphNetworkToChainIdMap.set('arbitrum-one', '42161')
 subgraphNetworkToChainIdMap.set('base', '8453')
-subgraphNetworkToChainIdMap.set('sonic', '146')
+subgraphNetworkToChainIdMap.set('sonic-mainnet', '146')
 
 export function handleTimelockChange(event: TimelockChange): void {
   TimelockControllerTemplate.create(event.params.newTimelock)
