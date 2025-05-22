@@ -15,22 +15,18 @@ export type FleetProxyContract = {
  */
 export function createFleetProxyModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
-    // Get parameters
+    // Get parameters - only essential contracts
     const accessManager = m.getParameter('accessManager')
     const bridgeRouter = m.getParameter('bridgeRouter')
     const bridgeQueue = m.getParameter('bridgeQueue')
     const fleetContract = m.getParameter('fleetContract')
-    const bridgeOptions = m.getParameter('bridgeOptions')
-    const sourceChainArk = m.getParameter('sourceChainArk')
 
-    // Deploy FleetProxy
+    // Deploy FleetProxy with only essential parameters
     const fleetProxy = m.contract('CrossChainFleetProxy', [
       accessManager,
       bridgeRouter,
       bridgeQueue,
       fleetContract,
-      bridgeOptions,
-      sourceChainArk,
     ])
 
     return { fleetProxy }

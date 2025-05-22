@@ -220,16 +220,15 @@ async function deployFleetProxyContract(
   config: BaseConfig,
   fleetName: string,
 ): Promise<Address> {
-  // params.
   const chainId = getChainIdByNetwork(hre.network.name)
   const deploymentId = await handleDeploymentId(chainId)
   const moduleName = `FleetProxy_${fleetName}_${deploymentId}`.replace(/-/g, '_')
 
-  // Create and deploy the module
   try {
     // Create the FleetProxy module
     const module = createFleetProxyModule(moduleName)
 
+    // Deploy with only essential parameters
     const result = await hre.ignition.deploy(module, {
       parameters: {
         [moduleName]: {
@@ -237,12 +236,6 @@ async function deployFleetProxyContract(
           bridgeRouter: params.bridgeRouter,
           bridgeQueue: params.bridgeQueue,
           fleetContract: params.fleetContract,
-          bridgeOptions: {
-            specifiedAdapter: params.bridgeOptions.specifiedAdapter,
-            adapterParams: params.bridgeOptions.adapterParams,
-          },
-          // The CrossChainArk address will be updated later
-          sourceChainArk: '0x0000000000000000000000000000000000000000' as Address,
         },
       },
       deploymentId,
@@ -259,6 +252,16 @@ async function deployFleetProxyContract(
       asset: params.asset,
     })
 
+    // Set bridge options after deployment
+    console.log(kleur.yellow('Setting bridge options...'))
+    const fleetProxy = await hre.ethers.getContractAt('CrossChainFleetProxy', fleetProxyAddress)
+    const tx = await fleetProxy.setBridgeOptions({
+      specifiedAdapter: params.bridgeOptions.specifiedAdapter,
+      adapterParams: params.bridgeOptions.adapterParams,
+    })
+    await tx.wait()
+    console.log(kleur.green('Bridge options set successfully'))
+
     // Make sure the source chain ID is updated in the config
     const crossChainConfig = loadCrossChainConfig(fleetName)
     if (crossChainConfig && crossChainConfig.sourceChainId === 0) {
@@ -266,6 +269,10 @@ async function deployFleetProxyContract(
         sourceChainId: params.sourceChainId,
       })
     }
+
+    console.log(
+      kleur.yellow('Note: Remember to set the source chain ark address using the governor account'),
+    )
 
     return fleetProxyAddress
   } catch (error) {

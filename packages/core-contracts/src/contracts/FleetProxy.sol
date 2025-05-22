@@ -77,16 +77,12 @@ contract CrossChainFleetProxy is
      * @param _bridgeRouter Address of the bridge router
      * @param _bridgeQueue Address of the bridge queue
      * @param _fleetContract Address of the Fleet contract this proxy covers
-     * @param _bridgeOptions The bridge options for cross-chain transfers
-     * @param _sourceChainArk Address of the source chain's CrossChainArk
      */
     constructor(
         address _accessManager,
         address _bridgeRouter,
         address _bridgeQueue,
-        address _fleetContract,
-        BridgeTypes.BridgeOptions memory _bridgeOptions,
-        address _sourceChainArk
+        address _fleetContract
     ) ProtocolAccessManaged(_accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
@@ -95,8 +91,18 @@ contract CrossChainFleetProxy is
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         bridgeQueue = IBridgeQueue(_bridgeQueue);
         fleetContract = _fleetContract;
-        bridgeOptions = _bridgeOptions;
-        sourceChainArk = _sourceChainArk;
+
+        // Initialize with default values
+        bridgeOptions = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0),
+            adapterParams: BridgeTypes.AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: "0x"
+            })
+        });
+        sourceChainArk = address(0);
     }
 
     /*//////////////////////////////////////////////////////////////
