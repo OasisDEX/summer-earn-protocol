@@ -1,10 +1,23 @@
 type Proposal @entity {
-id: ID!
-targets: [String!]!
-values: [BigInt!]!
-calldatas: [Bytes!]!
-description: String!
-descriptionHash: Bytes!
-status: String!
-chains: [String!]!
+    id: ID!
+    targets: [String!]!
+    values: [BigInt!]!
+    calldatas: [Bytes!]!
+    description: String!
+    descriptionHash: Bytes!
+    status: String!
+    chains: [String!]!
+    dstIds: [String!]!
+    eta: BigInt!
+}
+
+type CrossChainProposal @entity {
+  id: ID!
+  proposalId: String!
+  chainId: String!
+  status: String!
+  salt: Bytes!
+  targets: [String!]!
+  values: [BigInt!]!
+  calldatas: [Bytes!]!
 }

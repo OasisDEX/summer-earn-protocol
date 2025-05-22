@@ -34,4 +34,33 @@ dataSources:
         - event:  ProposalSentCrossChain(indexed uint256,indexed uint32)
           handler: handleProposalSentCrossChain
           receipt: true
+        - event: TimelockChange(address,address)
+          handler: handleTimelockChange
+          receipt: true
       file: ./src/mappings/governance.ts
+templates:
+  - kind: ethereum/contract
+    name: TimelockControllerTemplate
+    network: base
+    source:
+      abi: SummerTimelockController
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: SummerTimelockController
+          file: ./abis/SummerTimelockController.json 
+      eventHandlers:
+        - event: CallExecuted(indexed bytes32,indexed uint256,address,uint256,bytes)
+          handler: handleCallExecuted
+          receipt: true
+        - event: CallSalt(indexed bytes32,bytes32)  
+          handler: handleCallSalt
+          receipt: true
+        - event: CallScheduled(indexed bytes32,indexed uint256,address,uint256,bytes,bytes32,uint256)
+          handler: handleCallScheduled
+          receipt: true
+      file: ./src/mappings/timelock.ts
