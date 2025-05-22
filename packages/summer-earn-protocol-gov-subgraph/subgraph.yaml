@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor
-    network: base
+    network: mainnet
     source:
       abi: SummerGovernor
       address: "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
-      startBlock: 25642501
+      startBlock: 21723650
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -37,11 +37,14 @@ dataSources:
         - event: TimelockChange(address,address)
           handler: handleTimelockChange
           receipt: true
+        - event: ProposalReceivedCrossChain(indexed uint256,indexed uint32)
+          handler: handleProposalReceivedCrossChain
+          receipt: true
       file: ./src/mappings/governance.ts
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate
-    network: base
+    network: mainnet
     source:
       abi: SummerTimelockController
     mapping:

@@ -4,12 +4,13 @@ import {
   ProposalCreated,
   ProposalExecuted,
   ProposalQueued,
+  ProposalReceivedCrossChain,
   ProposalSentCrossChain,
   TimelockChange,
 } from '../../generated/SummerGovernor/SummerGovernor'
-import { Proposal } from '../../generated/schema'
+import { CrossChainProposalByCallId, Proposal } from '../../generated/schema'
 import { TimelockControllerTemplate } from '../../generated/templates'
-import { isBase } from './timelock'
+import { EventSignature, getEventLogs, getOrCreateCrossChainProposal, isBase } from './timelock'
 
 // Create a map of dstEid to chainId
 const dstEidToChainIdMap = new Map<string, string>()
@@ -115,4 +116,20 @@ export function getOrCreateProposal(proposalId: string): Proposal {
     proposal.descriptionHash = Bytes.fromHexString('')
   }
   return proposal
+}
+
+export function handleProposalReceivedCrossChain(event: ProposalReceivedCrossChain): void {
+  if (!isBase(dataSource.network())) {
+    return
+  }
+  const proposal = getOrCreateCrossChainProposal(event.params.proposalId.toString())
+  const logs = getEventLogs(event, EventSignature.CallSalt)
+  if (logs.length > 0) {
+    const log = logs[0]
+    const callId = log.topics[1].toHexString()
+    const proposalByCallId = new CrossChainProposalByCallId(callId)
+    proposalByCallId.proposal = proposal.id
+    proposalByCallId.callId = callId
+    proposalByCallId.save()
+  }
 }

@@ -37,6 +37,9 @@ dataSources:
         - event: TimelockChange(address,address)
           handler: handleTimelockChange
           receipt: true
+        - event: ProposalReceivedCrossChain(indexed uint256,indexed uint32)
+          handler: handleProposalReceivedCrossChain
+          receipt: true
       file: ./src/mappings/governance.ts
 templates:
   - kind: ethereum/contract
