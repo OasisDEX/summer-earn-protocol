@@ -5,6 +5,7 @@ import { Token } from '../../generated/schema'
 import { addresses } from '../constants/addresses'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { TvlData } from '../models/TvlData'
 import { RewardRate } from './BaseVaultProduct'
 
 export class PendlePtProduct extends Product {
@@ -56,5 +57,9 @@ export class PendlePtProduct extends Product {
   }
   getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
     return []
+  }
+
+  getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
+    return new TvlData(BigIntConstants.ZERO, BigDecimalConstants.ZERO, BigDecimalConstants.ZERO)
   }
 }

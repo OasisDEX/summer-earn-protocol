@@ -12,6 +12,7 @@ import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
+import { deploySiloManagedVaultArk } from '../arks/deploy-silo-managed-vault-ark'
 import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
@@ -235,6 +236,20 @@ export async function deployArk(
       deployedArk = ark
       break
     }
+    case ArkType.SiloManagedVaultArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.vaults[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloManagedVaultParams = {
+        ...baseArkParams,
+        vaultId: vaultId,
+        vaultName: vaultName,
+      }
+      deployedArk = await deploySiloManagedVaultArk(config, siloManagedVaultParams)
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -309,6 +324,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SiloArk: {
       deployedArk = await deploySiloArk(config)
+      break
+    }
+
+    case ArkType.SiloManagedVaultArk: {
+      deployedArk = await deploySiloManagedVaultArk(config)
       break
     }
 

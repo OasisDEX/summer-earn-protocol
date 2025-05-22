@@ -3,6 +3,7 @@ import { addresses } from '../constants/addresses'
 import { Protocol } from '../models/Protocol'
 import { AaveV3Product } from '../products/AaveV3Product'
 import { CompoundProduct } from '../products/CompoundProduct'
+import { ERC4626ManualAssetsProduct } from '../products/ERC4626ManualAssetsProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
 import { GearboxProduct } from '../products/GearboxProduct'
 import { GenericVaultProduct } from '../products/GenericVault'
@@ -11,6 +12,7 @@ import { OriginEthProduct } from '../products/OriginEthProduct'
 import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
 import { SiloProduct } from '../products/Silo'
+import { SiloVaultProduct } from '../products/SiloVault'
 import { SkyRewardsProduct } from '../products/SkyRewardsProduct'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { SparkProduct } from '../products/SparkProduct'
@@ -472,6 +474,20 @@ class ProtocolConfig {
           'Origin',
         ),
       ]),
+      new Protocol('Term', [
+        new ERC4626ManualAssetsProduct(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x26fcb50eec367ddab060ccf5e7394cecd95f7db2'),
+          BigInt.fromI32(22480094),
+          'Term',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x330732581d30076137a1159b3ae8780158d902be'),
+          BigInt.fromI32(22480094),
+          'Term',
+        ),
+      ]),
     ]
   }
 
@@ -778,6 +794,24 @@ class ProtocolConfig {
           getOrCreateToken(addresses.USDCE),
           Address.fromString('0x322e1d5384aa4ED66AeCa770B95686271de61dc3'),
           BigInt.fromI32(12744800),
+          'Silo',
+        ),
+        new SiloVaultProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0xF6F87073cF8929C206A77b0694619DC776F89885'),
+          BigInt.fromI32(27007101),
+          'Silo',
+        ),
+        new SiloVaultProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0xF75AE954D30217B4EE70DbFB33f04162aa3Cf260'),
+          BigInt.fromI32(27007101),
+          'Silo',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0xcca902f2d3d265151f123d8ce8FdAc38ba9745ed'),
+          BigInt.fromI32(27007101),
           'Silo',
         ),
       ]),

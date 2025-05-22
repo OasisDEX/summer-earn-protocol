@@ -16,16 +16,4 @@ interface ISiloIncentivesController {
     function claimRewards(
         address _to
     ) external returns (AccruedRewards[] memory accruedRewards);
-
-    /**
-     * @dev Claims reward for an user to the desired address, on all the assets of the lending pool,
-     * accumulating the pending rewards
-     * @param _to Address that will be receiving the rewards
-     * @param _programNames The incentives program names
-     * @return accruedRewards
-     */
-    function claimRewards(
-        address _to,
-        string[] calldata _programNames
-    ) external returns (AccruedRewards[] memory accruedRewards);
 }

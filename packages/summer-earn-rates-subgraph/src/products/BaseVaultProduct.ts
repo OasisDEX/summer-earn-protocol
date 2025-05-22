@@ -55,7 +55,7 @@ export abstract class BaseVaultProduct extends Product {
     }
     const priceChange = sharePrice.minus(previousSharePrice).div(previousSharePrice)
     const timeDiff = this.getTimeDifference(currentTimestamp, vaultState)
-    if (timeDiff.equals(BigInt.zero())) {
+    if (timeDiff.equals(BigIntConstants.ZERO)) {
       return previousRate
     }
     const annualizedRate = priceChange
@@ -76,7 +76,10 @@ export abstract class BaseVaultProduct extends Product {
     // If the rate change is minimal (within our threshold), we maintain the previous rate
     // This filters out small fluctuations from routine vault operations like deposits/withdrawals
     // We skip updating vault state to ensure the next calculation uses the original timestamp
-    if (annualizedRateWithinThreshold) {
+    if (
+      annualizedRateWithinThreshold &&
+      vaultState.lastUpdateTimestamp.notEqual(BigInt.fromI32(0))
+    ) {
       return previousRate
     }
 

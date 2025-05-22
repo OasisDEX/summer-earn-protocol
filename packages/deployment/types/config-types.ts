@@ -26,6 +26,7 @@ export enum ArkType {
   SyrupArk = 'SyrupArk',
   SkyRewardsArk = 'SkyRewardsArk',
   SiloArk = 'SiloArk',
+  SiloManagedVaultArk = 'SiloManagedVaultArk',
   OriginETHArk = 'OriginETHArk',
   FluidLiteArk = 'FluidLiteArk',
 }
@@ -46,6 +47,7 @@ export const arkTypes = [
   { title: 'SyrupArk', value: ArkType.SyrupArk },
   { title: 'SkyRewardsArk', value: ArkType.SkyRewardsArk },
   { title: 'SiloArk', value: ArkType.SiloArk },
+  { title: 'SiloManagedVaultArk', value: ArkType.SiloManagedVaultArk },
   { title: 'OriginETHArk', value: ArkType.OriginETHArk },
   { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
 ]
@@ -182,6 +184,11 @@ export interface BaseConfig {
     }
     silo: {
       pools: {
+        [key in Token]: {
+          [key: string]: Address
+        }
+      }
+      vaults: {
         [key in Token]: {
           [key: string]: Address
         }
