@@ -77,7 +77,7 @@ contract CrossChainArk is
     /// @notice The target chain ID for cross-chain operations
     uint16 public immutable targetChainId;
     /// @notice The target proxy address on the satellite chain
-    address public immutable targetProxy;
+    address public targetProxy;
 
     /// @notice Configurable bridge options for cross-chain actions
     BridgeTypes.BridgeOptions public bridgeOptions;
@@ -103,6 +103,12 @@ contract CrossChainArk is
     /// @notice Emitted when inflight assets amount is updated
     event InflightAssetsUpdated(uint256 amount);
 
+    /// @notice Emitted when the target proxy is updated
+    event TargetProxyUpdated(
+        address indexed oldProxy,
+        address indexed newProxy
+    );
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -112,32 +118,40 @@ contract CrossChainArk is
      * @param _bridgeQueue Address of the BridgeQueue contract
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _targetChainId ID of the target chain
-     * @param _targetProxy Address of the target proxy on the satellite chain
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
         address _bridgeQueue,
         address _bridgeRouter,
         uint16 _targetChainId,
-        address _targetProxy,
         ArkParams memory _params
     ) Ark(_params) {
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_targetChainId == 0) revert InvalidTargetChain();
-        if (_targetProxy == address(0)) revert InvalidTargetProxy();
 
         bridgeQueue = IBridgeQueue(_bridgeQueue);
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         targetChainId = _targetChainId;
-        targetProxy = _targetProxy;
 
-        // bridgeOptions will default to zero initialization
+        // targetProxy is initialized to address(0) by default and must be set later
     }
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL GOVERNOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Set new target proxy address
+    /// @param _targetProxy The new target proxy address
+    function setTargetProxy(
+        address _targetProxy
+    ) external onlyGovernorOrKeeper {
+        if (_targetProxy == address(0)) revert InvalidTargetProxy();
+
+        address oldProxy = targetProxy;
+        targetProxy = _targetProxy;
+        emit TargetProxyUpdated(oldProxy, _targetProxy);
+    }
 
     /// @notice Set new bridge options
     function setBridgeOptions(
@@ -200,6 +214,9 @@ contract CrossChainArk is
      * @dev This function queues a cross-chain transfer to the target proxy
      */
     function _board(uint256 amount, bytes calldata) internal override {
+        // Ensure targetProxy is set
+        if (targetProxy == address(0)) revert InvalidTargetProxy();
+
         // Approve BridgeQueue to spend tokens
         config.asset.approve(address(bridgeQueue), amount);
 

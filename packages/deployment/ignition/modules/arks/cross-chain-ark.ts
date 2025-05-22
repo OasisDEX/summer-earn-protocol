@@ -15,6 +15,7 @@ export type CrossChainArkContracts = {
  * - CrossChainArk on the source chain that points to an existing FleetProxy on the satellite chain
  *
  * Note: FleetProxy must be deployed first using the deploy-fleet-proxy.ts script
+ * Now the targetProxy can be set to zero address during deployment and configured later
  *
  * @param {string} moduleName - Name of the module
  * @returns {Function} A function that builds the module
@@ -27,15 +28,11 @@ export function createCrossChainArkModule(moduleName: string) {
     const targetChainId = m.getParameter('targetChainId')
     const arkParams = m.getParameter('arkParams')
 
-    // Use the existing FleetProxy address
-    const fleetProxy = m.getParameter('fleetProxy')
-
-    // Deploy CrossChainArk without bridgeOptions parameter
+    // Deploy CrossChainArk without targetProxy parameter
     const crossChainArk = m.contract('CrossChainArk', [
       bridgeQueue,
       bridgeRouter,
       targetChainId,
-      fleetProxy,
       arkParams,
     ])
 

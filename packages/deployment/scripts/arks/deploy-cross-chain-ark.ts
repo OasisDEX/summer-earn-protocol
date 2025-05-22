@@ -455,7 +455,6 @@ async function deployCrossChainArkContract(
         bridgeQueue: userInput.bridgeQueue,
         bridgeRouter: userInput.bridgeRouter,
         targetChainId: userInput.targetChainId,
-        fleetProxy: userInput.fleetProxyAddress,
         arkParams: {
           name: `CrossChainArk-${userInput.token.symbol}-${userInput.targetProtocol}`,
           details: `CrossChainArk for ${userInput.token.symbol} using ${userInput.targetProtocol} on chain ${userInput.targetChainId}`,
@@ -491,6 +490,22 @@ async function deployCrossChainArkContract(
   const publicClient = await hre.viem.getPublicClient()
   await publicClient.waitForTransactionReceipt({ hash })
   console.log(kleur.green('Bridge options set successfully'))
+
+  // Set target proxy if provided
+  if (
+    userInput.fleetProxyAddress &&
+    userInput.fleetProxyAddress !== '0x0000000000000000000000000000000000000000'
+  ) {
+    console.log(kleur.yellow('Setting target proxy...'))
+    const proxyHash = await crossChainArkContract.write.setTargetProxy([
+      userInput.fleetProxyAddress,
+    ])
+    console.log(kleur.yellow('Waiting for target proxy transaction to confirm...'))
+    await publicClient.waitForTransactionReceipt({ hash: proxyHash })
+    console.log(kleur.green('Target proxy set successfully'))
+  } else {
+    console.log(kleur.yellow('No target proxy provided. You will need to set it later.'))
+  }
 
   return { crossChainArk: result.crossChainArk }
 }
