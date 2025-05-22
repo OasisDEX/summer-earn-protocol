@@ -116,10 +116,12 @@ export async function deployStargateAdapter(
  * Configure supported chains and assets for Stargate adapter
  * @param stargateAdapterAddress Address of the deployed Stargate adapter
  * @param config Bridge adapter configuration
+ * @param networkConfig Network configuration
  */
 export async function configureStargateAdapter(
   stargateAdapterAddress: Address,
   config: BridgeAdaptersConfig,
+  networkConfig?: any,
 ): Promise<void> {
   console.log(kleur.blue('Configuring Stargate adapter'))
 
@@ -153,48 +155,86 @@ export async function configureStargateAdapter(
   }
 
   // Get current chain ID
-  const currentChainId = Number(config.common.chainId).toString()
+  let currentChainId: string
 
-  // SECOND: Add supported assets from pool-based specialized config
-  for (const [poolId, poolInfo] of Object.entries(stargateConfig.pools)) {
-    // Only add assets that exist on the current chain
-    const localAssetAddress = poolInfo.assets[currentChainId]
+  try {
+    // Get the chain ID from the network directly if not provided
+    if (networkConfig?.common?.chainId) {
+      currentChainId = Number(networkConfig.common.chainId).toString()
+    } else {
+      const network = await hre.viem.getPublicClient()
+      const chainId = await network.getChainId()
+      currentChainId = chainId.toString()
+    }
+    console.log(kleur.blue(`Current chain ID: ${currentChainId}`))
 
-    if (localAssetAddress) {
-      // For each destination chain
-      for (const chainId of Object.keys(poolInfo.assets)) {
-        // Skip if it's the current chain
-        if (chainId === currentChainId) continue
-
-        console.log(
-          `Adding supported asset ${localAssetAddress} for bridging to chain ${chainId} with pool ID ${poolId}`,
-        )
-
-        try {
-          const isSupported = await stargateAdapter.read.isAssetSupported([
-            Number(chainId),
-            localAssetAddress,
-          ])
-
-          if (!isSupported) {
-            const hash = await stargateAdapter.write.addSupportedAsset([
-              Number(chainId),
-              localAssetAddress,
-              Number(poolId),
-            ])
-            console.log(
-              kleur.green(
-                `Asset mapping for ${localAssetAddress} to chain ${chainId} added successfully, tx: ${hash}`,
-              ),
-            )
-          } else {
-            console.log(kleur.yellow(`Asset mapping already supported, skipping`))
-          }
-        } catch (error) {
-          console.error(kleur.red(`Error adding asset mapping:`, error))
-        }
+    // Check if the current chain ID is in the supported chains list
+    let found = false
+    for (const chainInfo of stargateConfig.chainMapping) {
+      if (chainInfo.chainId.toString() === currentChainId) {
+        found = true
+        break
       }
     }
+
+    if (!found) {
+      console.log(
+        kleur.yellow(
+          `Current chain ID ${currentChainId} not found in Stargate configuration, skipping asset configuration`,
+        ),
+      )
+      return
+    }
+
+    // SECOND: Add supported assets from pool-based specialized config
+    for (const [poolId, poolInfo] of Object.entries(stargateConfig.pools)) {
+      // Only add assets that exist on the current chain
+      const localAssetAddress = poolInfo.assets[currentChainId]
+
+      if (localAssetAddress) {
+        // For each destination chain
+        for (const chainId of Object.keys(poolInfo.assets)) {
+          // Skip if it's the current chain
+          if (chainId === currentChainId) continue
+
+          console.log(
+            `Adding supported asset ${localAssetAddress} for bridging to chain ${chainId} with pool ID ${poolId}`,
+          )
+
+          try {
+            const isSupported = await stargateAdapter.read.isAssetSupported([
+              Number(chainId),
+              localAssetAddress,
+            ])
+
+            if (!isSupported) {
+              const hash = await stargateAdapter.write.addSupportedAsset([
+                Number(chainId),
+                localAssetAddress,
+                Number(poolId),
+              ])
+              console.log(
+                kleur.green(
+                  `Asset mapping for ${localAssetAddress} to chain ${chainId} added successfully, tx: ${hash}`,
+                ),
+              )
+            } else {
+              console.log(kleur.yellow(`Asset mapping already supported, skipping`))
+            }
+          } catch (error) {
+            console.error(kleur.red(`Error adding asset mapping:`, error))
+          }
+        }
+      } else {
+        console.log(
+          kleur.yellow(
+            `No asset found for current chain ${currentChainId} in pool ${poolId}, skipping`,
+          ),
+        )
+      }
+    }
+  } catch (error) {
+    console.error(kleur.red('Error configuring assets:'), error)
   }
 
   // Set minimum gas limit if configured
@@ -216,9 +256,23 @@ export async function configureStargateAdapter(
 
   // Register adapter with bridge router
   try {
-    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', config.bridgeRouterAddress)
-    await bridgeRouter.write.registerAdapter([stargateAdapterAddress])
-    console.log(kleur.green(`Stargate adapter registered with bridge router`))
+    const bridgeRouter = await hre.viem.getContractAt(
+      'BridgeRouter' as string,
+      config.bridgeRouterAddress,
+    )
+    // First check if the adapter is already registered
+    const alreadyRegistered = await bridgeRouter.read.isValidAdapter([stargateAdapterAddress])
+
+    if (!alreadyRegistered) {
+      await bridgeRouter.write.registerAdapter([stargateAdapterAddress])
+      console.log(kleur.green(`Stargate adapter registered with bridge router`))
+    } else {
+      console.log(
+        kleur.yellow(
+          `Stargate adapter already registered with bridge router, skipping registration`,
+        ),
+      )
+    }
   } catch (error) {
     console.error(kleur.red('Error registering adapter with bridge router:'), error)
   }
@@ -400,7 +454,7 @@ export async function deployBridgeAdapters(
 
         // Configure the adapter post-deployment
         const stargateConfig = { bridgeRouterAddress }
-        await configureStargateAdapter(stargateAdapterAddress, stargateConfig)
+        await configureStargateAdapter(stargateAdapterAddress, stargateConfig, networkConfig)
       } catch (error) {
         console.error(kleur.red('Error deploying Stargate adapter:'), error)
       }
@@ -413,7 +467,7 @@ export async function deployBridgeAdapters(
 
       // Configure the adapter post-deployment
       const stargateConfig = { bridgeRouterAddress }
-      await configureStargateAdapter(stargateAdapterAddress, stargateConfig)
+      await configureStargateAdapter(stargateAdapterAddress, stargateConfig, networkConfig)
     } catch (error) {
       console.error(kleur.red('Error deploying Stargate adapter:'), error)
     }

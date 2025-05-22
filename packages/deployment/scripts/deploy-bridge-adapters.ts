@@ -152,9 +152,11 @@ async function deployAdapters() {
 
       if (deployedAdapters.stargate) {
         console.log(kleur.blue('Reconfiguring Stargate adapter...'))
-        await configureStargateAdapter(deployedAdapters.stargate.address as Address, {
-          bridgeRouterAddress: bridgeRouterAddress as Address,
-        })
+        await configureStargateAdapter(
+          deployedAdapters.stargate.address as Address,
+          { bridgeRouterAddress: bridgeRouterAddress as Address },
+          config,
+        )
       }
 
       console.log(kleur.green().bold('Bridge adapters reconfiguration completed successfully!'))
