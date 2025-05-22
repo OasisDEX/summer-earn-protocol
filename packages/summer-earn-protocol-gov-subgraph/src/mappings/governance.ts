@@ -77,6 +77,7 @@ export function handleProposalSentCrossChain(event: ProposalSentCrossChain): voi
   if (!isBase(dataSource.network())) {
     return
   }
+  const proposalId = event.params.proposalId.toString()
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
   const dstEid = event.params.dstEid.toString()
   const chainId = dstEidToChainIdMap.get(dstEid)
@@ -89,7 +90,7 @@ export function handleProposalSentCrossChain(event: ProposalSentCrossChain): voi
     if (!dstIds) {
       dstIds = []
     }
-    dstIds.push(dstEid)
+    dstIds.push(proposalId)
     chains.push(chainId)
 
     proposal.chains = chains

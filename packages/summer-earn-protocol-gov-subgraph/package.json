@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-gov-subgraph",
-  "version": "0.2.3-cross-chain-proposals-fix-sonic",
+  "version": "0.2.4-cross-chain-proposals-fix-sonic",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
@@ -16,7 +16,7 @@
     "deploy:sonic": "bash -c 'source ../../.env && pnpm prepare:sonic && graph deploy summer-protocol-gov-sonic --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
     "deploy:mainnet:local": "bash -c 'source ../../.env && pnpm prepare:mainnet && graph create summer-protocol-gov-mainnet --node http://44.212.44.0:8020 && graph deploy summer-protocol-gov-mainnet --node http://44.212.44.0:8020 --ipfs http://44.212.44.0:5001 --version-label $npm_package_version'",
     "deploy:arbitrum:local": "bash -c 'source ../../.env && pnpm prepare:arbitrum && graph create summer-protocol-gov-arbitrum --node http://44.212.44.0:8020 && graph deploy summer-protocol-gov-arbitrum --node http://44.212.44.0:8020 --ipfs http://44.212.44.0:5001 --version-label $npm_package_version'",
-    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet && pnpm run deploy:sonic"
+    "deploy:all": " pnpm run deploy:arbitrum && pnpm run deploy:mainnet && pnpm run deploy:sonic"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "0.35.1",
