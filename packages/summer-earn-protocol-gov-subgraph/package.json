@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-gov-subgraph",
-  "version": "0.2.1-cross-chain-proposals",
+  "version": "0.2.2-cross-chain-proposals",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",

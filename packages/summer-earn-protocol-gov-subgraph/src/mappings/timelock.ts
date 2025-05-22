@@ -8,7 +8,7 @@ import {
 import { subgraphNetworkToChainIdMap } from './governance'
 
 export function isBase(netowrk: string): boolean {
-  return netowrk === 'base'
+  return netowrk == 'base'
 }
 
 export function handleCallSalt(event: CallSalt): void {
