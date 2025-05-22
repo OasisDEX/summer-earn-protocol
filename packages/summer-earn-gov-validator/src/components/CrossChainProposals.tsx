@@ -34,12 +34,7 @@ export const CrossChainProposals: React.FC = () => {
     return (
       <div className="text-red-500 p-6 border border-red-200 rounded-lg bg-red-50">
         <div className="flex items-center space-x-2">
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -58,9 +53,7 @@ export const CrossChainProposals: React.FC = () => {
         <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Cross-Chain Proposals
         </h2>
-        <div className="text-sm text-gray-500">
-          Total Proposals: {proposals.length}
-        </div>
+        <div className="text-sm text-gray-500">Total Proposals: {proposals.length}</div>
       </div>
       <div className="grid gap-6">
         {proposals.map(({ baseProposal, crossChainProposals }) => (
@@ -75,8 +68,7 @@ export const CrossChainProposals: React.FC = () => {
                     Proposal #{baseProposal.id}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Created on{' '}
-                    {new Date(Number(baseProposal.eta) * 1000).toLocaleDateString()}
+                    Created on {new Date(Number(baseProposal.eta) * 1000).toLocaleDateString()}
                   </p>
                 </div>
                 <span
@@ -140,9 +132,7 @@ export const CrossChainProposals: React.FC = () => {
 
             <div className="space-y-3 pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between">
-                <h4 className="text-lg font-medium text-gray-700">
-                  Cross-Chain Proposals
-                </h4>
+                <h4 className="text-lg font-medium text-gray-700">Cross-Chain Proposals</h4>
                 <span className="text-sm text-gray-500">
                   {crossChainProposals.length} proposals
                 </span>
@@ -189,9 +179,7 @@ export const CrossChainProposals: React.FC = () => {
                           {ccp.status}
                         </span>
                       </div>
-                      <p className="text-sm text-blue-700 mt-2 font-mono">
-                        ID: {ccp.id}
-                      </p>
+                      <p className="text-sm text-blue-700 mt-2 font-mono">ID: {ccp.id}</p>
                     </div>
                   ))}
                 </div>
