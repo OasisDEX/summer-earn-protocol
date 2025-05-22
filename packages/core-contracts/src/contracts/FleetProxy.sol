@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
-import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -44,9 +43,6 @@ contract CrossChainFleetProxy is
     /// @notice The address of the Fleet contract that this proxy covers
     address public immutable fleetContract;
 
-    /// @notice The bridge options for cross-chain transfers
-    BridgeTypes.BridgeOptions public bridgeOptions;
-
     /// @notice The address of the source chain's CrossChainArk
     address public sourceChainArk;
 
@@ -60,9 +56,6 @@ contract CrossChainFleetProxy is
         address asset,
         uint16 sourceChainId
     );
-
-    /// @notice Emitted when bridge options are updated
-    event BridgeOptionsUpdated(BridgeTypes.BridgeOptions bridgeOptions);
 
     /// @notice Emitted when the source chain ark address is updated
     event SourceChainArkUpdated(address indexed newSourceChainArk);
@@ -120,15 +113,6 @@ contract CrossChainFleetProxy is
         _unpause();
     }
 
-    /// @notice Updates the bridge options
-    /// @param _bridgeOptions The new bridge options
-    function setBridgeOptions(
-        BridgeTypes.BridgeOptions memory _bridgeOptions
-    ) external onlyGovernorOrKeeper {
-        bridgeOptions = _bridgeOptions;
-        emit BridgeOptionsUpdated(_bridgeOptions);
-    }
-
     /// @notice Updates the source chain ark address
     /// @param _sourceChainArk The new source chain ark address
     function setSourceChainArk(address _sourceChainArk) external onlyGovernor {
@@ -168,8 +152,7 @@ contract CrossChainFleetProxy is
             sourceChainId,
             asset,
             amount,
-            sourceChainArk,
-            bridgeOptions
+            sourceChainArk
         );
 
         emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);

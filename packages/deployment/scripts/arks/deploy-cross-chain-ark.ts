@@ -15,16 +15,6 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface BridgeOptions {
-  specifiedAdapter: Address
-  adapterParams: {
-    gasLimit: number
-    calldataSize: number
-    msgValue: number
-    options: string
-  }
-}
-
 // Export the type
 export { CrossChainArkContracts } from '../../ignition/modules/arks/cross-chain-ark'
 
@@ -46,7 +36,6 @@ export async function deployCrossChainArk(
     targetProtocol?: string
     fleetProxyAddress?: Address
     accessManager?: Address
-    bridgeOptions?: BridgeOptions
     fleetName?: string
   },
 ) {
@@ -330,18 +319,6 @@ async function getUserInput(
 
   const fleetProxyAddress = protocolConfig.fleetProxyAddress as Address
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
-  const { bridgeOptions } = protocolConfig
-
-  // Default gas limit or get from existing config
-  const initialGasLimit = bridgeOptions?.adapterParams?.gasLimit || 500000
-
-  // Get gas limit from user
-  const { gasLimit } = await prompts({
-    type: 'number',
-    name: 'gasLimit',
-    message: 'Enter the gas limit for cross-chain operations:',
-    initial: initialGasLimit,
-  })
 
   // Get other parameters from user
   const responses = await prompts([
@@ -392,16 +369,6 @@ async function getUserInput(
     targetProtocol,
     fleetProxyAddress,
     accessManager: accessManagerAddress,
-    bridgeOptions: {
-      specifiedAdapter:
-        bridgeOptions?.specifiedAdapter || '0x0000000000000000000000000000000000000000',
-      adapterParams: {
-        gasLimit,
-        calldataSize: bridgeOptions?.adapterParams?.calldataSize || 0,
-        msgValue: bridgeOptions?.adapterParams?.msgValue || 0,
-        options: bridgeOptions?.adapterParams?.options || '0x',
-      },
-    },
   }
 }
 
@@ -426,7 +393,6 @@ async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated
   console.log(kleur.blue('Target Protocol:'), kleur.cyan(userInput.targetProtocol))
   console.log(kleur.blue('Fleet Proxy:'), kleur.cyan(userInput.fleetProxyAddress))
   console.log(kleur.blue('Access Manager:'), kleur.cyan(userInput.accessManager))
-  console.log(kleur.blue('Gas Limit:'), kleur.cyan(userInput.bridgeOptions.adapterParams.gasLimit))
 
   return await continueDeploymentCheck()
 }
@@ -472,31 +438,18 @@ async function deployCrossChainArkContract(
     deploymentId,
   })
 
-  // Set bridge options after deployment using viem
-  console.log(kleur.yellow('Setting bridge options...'))
-  const crossChainArkContract = await hre.viem.getContractAt(
-    'CrossChainArk' as string,
-    result.crossChainArk.address,
-  )
-
-  const hash = await crossChainArkContract.write.setBridgeOptions([
-    {
-      specifiedAdapter: userInput.bridgeOptions.specifiedAdapter,
-      adapterParams: userInput.bridgeOptions.adapterParams,
-    },
-  ])
-
-  console.log(kleur.yellow('Waiting for bridge options transaction to confirm...'))
-  const publicClient = await hre.viem.getPublicClient()
-  await publicClient.waitForTransactionReceipt({ hash })
-  console.log(kleur.green('Bridge options set successfully'))
-
   // Set target proxy if provided
   if (
     userInput.fleetProxyAddress &&
     userInput.fleetProxyAddress !== '0x0000000000000000000000000000000000000000'
   ) {
     console.log(kleur.yellow('Setting target proxy...'))
+    const crossChainArkContract = await hre.viem.getContractAt(
+      'CrossChainArk' as string,
+      result.crossChainArk.address,
+    )
+    const publicClient = await hre.viem.getPublicClient()
+
     const proxyHash = await crossChainArkContract.write.setTargetProxy([
       userInput.fleetProxyAddress,
     ])

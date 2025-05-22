@@ -143,7 +143,6 @@ interface IBridgeQueue {
      * @return asset Address of the ERC20 token being transferred.
      * @return amount Amount of the token being transferred.
      * @return recipient Address receiving the asset on the destination chain.
-     * @return options Bridge options used for this transfer.
      * @return originator Address that requested the transfer via the queue manager. Must pre-approve this contract for 'amount' of 'asset'.
      * @return operationId ID returned by the bridge adapter upon execution, or zero if not executed.
      */
@@ -157,7 +156,6 @@ interface IBridgeQueue {
             address asset,
             uint256 amount,
             address recipient,
-            BridgeTypes.BridgeOptions memory options,
             address originator,
             bytes32 operationId
         );
@@ -169,7 +167,6 @@ interface IBridgeQueue {
      * @return dstContract Address of the contract to call on the destination chain.
      * @return selector Function selector to call on the destination contract.
      * @return readParams Encoded parameters for the destination call.
-     * @return options Bridge options used for this read.
      * @return originator Address that requested the read via the queue manager.
      * @return operationId ID returned by the bridge adapter upon execution, or zero if not executed.
      */
@@ -183,7 +180,6 @@ interface IBridgeQueue {
             address dstContract,
             bytes4 selector,
             bytes memory readParams,
-            BridgeTypes.BridgeOptions memory options,
             address originator,
             bytes32 operationId
         );
@@ -194,7 +190,6 @@ interface IBridgeQueue {
      * @return destinationChainId Destination chain ID.
      * @return recipient Address receiving the message on the destination chain.
      * @return message The arbitrary message data to be sent.
-     * @return options Bridge options used for this message.
      * @return originator Address that requested the message via the queue manager.
      * @return operationId ID returned by the bridge adapter upon execution, or zero if not executed.
      */
@@ -207,7 +202,6 @@ interface IBridgeQueue {
             uint16 destinationChainId,
             address recipient,
             bytes memory message,
-            BridgeTypes.BridgeOptions memory options,
             address originator,
             bytes32 operationId
         );
@@ -253,15 +247,13 @@ interface IBridgeQueue {
      * @param asset The ERC20 token address to transfer.
      * @param amount The amount of the token to transfer.
      * @param recipient The address to receive the tokens on the destination chain.
-     * @param options Bridging options (adapter, gas limits, etc.).
      * @return queueId The unique ID assigned to this queued operation.
      */
     function queueTransferAssets(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient,
-        BridgeTypes.BridgeOptions calldata options
+        address recipient
     ) external returns (bytes32 queueId);
 
     /**
@@ -271,15 +263,13 @@ interface IBridgeQueue {
      * @param dstContract The contract address to call on the destination chain.
      * @param selector The function selector to call.
      * @param readParams The encoded parameters for the function call.
-     * @param options Bridging options (adapter, gas limits, etc.).
      * @return queueId The unique ID assigned to this queued operation.
      */
     function queueReadState(
         uint16 dstChainId,
         address dstContract,
         bytes4 selector,
-        bytes calldata readParams,
-        BridgeTypes.BridgeOptions calldata options
+        bytes calldata readParams
     ) external returns (bytes32 queueId);
 
     /**
@@ -288,25 +278,26 @@ interface IBridgeQueue {
      * @param destinationChainId The target chain ID.
      * @param recipient The address to receive the message on the destination chain.
      * @param message The arbitrary message data to send.
-     * @param options Bridging options (adapter, gas limits, etc.).
      * @return queueId The unique ID assigned to this queued operation.
      */
     function queueSendMessage(
         uint16 destinationChainId,
         address recipient,
-        bytes calldata message,
-        BridgeTypes.BridgeOptions calldata options
+        bytes calldata message
     ) external returns (bytes32 queueId);
 
     /**
      * @notice Executes a pending queued operation by calling the associated BridgeRouter.
      * @dev Can be called by anyone (typically a keeper). Requires the operation to be in 'QUEUED' status.
      *      Requires `msg.value` to cover the bridging fee quoted by the router. Handles asset transfers/approvals.
+     *      Keeper must supply the bridge options at execution time.
      * @param queueId The ID of the operation to execute.
+     * @param options Bridging options (adapter, gas limits, etc.) supplied by the keeper.
      * @return operationId The ID returned by the BridgeRouter upon successful submission, or bytes32(0) if submission fails.
      */
     function executeQueuedOperation(
-        bytes32 queueId
+        bytes32 queueId,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable returns (bytes32 operationId);
 
     /**

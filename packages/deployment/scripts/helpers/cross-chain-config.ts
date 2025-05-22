@@ -9,15 +9,6 @@ export interface CrossChainProtocolConfig {
   asset?: {
     symbol: string
   }
-  bridgeOptions: {
-    specifiedAdapter: string
-    adapterParams: {
-      gasLimit: number
-      calldataSize: number
-      msgValue: number
-      options: string
-    }
-  }
 }
 
 export interface CrossChainDestination {
@@ -113,15 +104,6 @@ export function saveCrossChainConfig(
         fleetProxyAddress: null,
         crossChainArkAddress: null,
         asset: undefined,
-        bridgeOptions: {
-          specifiedAdapter: '0x0000000000000000000000000000000000000000',
-          adapterParams: {
-            gasLimit: 500000,
-            calldataSize: 0,
-            msgValue: 0,
-            options: '0x',
-          },
-        },
       }
       destination.protocols.push(protocolConfig)
     }

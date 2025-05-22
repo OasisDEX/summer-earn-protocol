@@ -23,15 +23,6 @@ interface FleetProxyParams {
   sourceChainId: number
   protocol: string
   fleetName: string
-  bridgeOptions: {
-    specifiedAdapter: Address
-    adapterParams: {
-      gasLimit: number
-      calldataSize: number
-      msgValue: number
-      options: string
-    }
-  }
   asset: {
     address: string
     symbol: string
@@ -172,15 +163,6 @@ async function getUserInput(
       address: assetAddress,
       symbol: assetSymbol,
     },
-    bridgeOptions: {
-      specifiedAdapter: '0x0000000000000000000000000000000000000000' as Address,
-      adapterParams: {
-        gasLimit: 500000,
-        calldataSize: 0,
-        msgValue: 0,
-        options: '0x',
-      },
-    },
   }
 }
 
@@ -238,24 +220,6 @@ async function deployFleetProxyContract(
       fleetProxyAddress: fleetProxyAddress,
       asset: params.asset,
     })
-
-    // Set bridge options after deployment using viem
-    console.log(kleur.yellow('Setting bridge options...'))
-    const fleetProxy = await hre.viem.getContractAt(
-      'CrossChainFleetProxy' as string,
-      fleetProxyAddress,
-    )
-
-    const hash = await fleetProxy.write.setBridgeOptions([
-      {
-        specifiedAdapter: params.bridgeOptions.specifiedAdapter,
-        adapterParams: params.bridgeOptions.adapterParams,
-      },
-    ])
-    console.log(kleur.yellow('Waiting for bridge options transaction to confirm...'))
-    const publicClient = await hre.viem.getPublicClient()
-    await publicClient.waitForTransactionReceipt({ hash })
-    console.log(kleur.green('Bridge options set successfully'))
 
     // Make sure the source chain ID is updated in the config
     const crossChainConfig = loadCrossChainConfig(fleetName)

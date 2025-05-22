@@ -41,7 +41,6 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         address asset;
         uint256 amount;
         address recipient;
-        BridgeTypes.BridgeOptions options;
         address originator; // Address that must pre-approve this contract for 'amount' of 'asset'
         bytes32 operationId; // ID returned by adapter upon execution
     }
@@ -52,7 +51,6 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         address dstContract;
         bytes4 selector;
         bytes readParams;
-        BridgeTypes.BridgeOptions options;
         address originator;
         bytes32 operationId; // ID returned by adapter upon execution
     }
@@ -62,7 +60,6 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         uint16 destinationChainId;
         address recipient;
         bytes message;
-        BridgeTypes.BridgeOptions options;
         address originator;
         bytes32 operationId; // ID returned by adapter upon execution
     }
@@ -134,8 +131,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient,
-        BridgeTypes.BridgeOptions calldata options
+        address recipient
     ) external onlyQueueManagerAuth returns (bytes32 queueId) {
         if (asset == address(0) || amount == 0 || recipient == address(0))
             revert InvalidParams();
@@ -149,7 +145,6 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             asset: asset,
             amount: amount,
             recipient: recipient,
-            options: options,
             originator: msg.sender, // The queue manager is responsible for ensuring approvals
             operationId: bytes32(0)
         });
@@ -176,8 +171,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         uint16 dstChainId,
         address dstContract,
         bytes4 selector,
-        bytes calldata readParams,
-        BridgeTypes.BridgeOptions calldata options
+        bytes calldata readParams
     ) external onlyQueueManagerAuth returns (bytes32 queueId) {
         if (dstContract == address(0)) revert InvalidParams();
 
@@ -190,7 +184,6 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             dstContract: dstContract,
             selector: selector,
             readParams: readParams,
-            options: options,
             originator: msg.sender,
             operationId: bytes32(0)
         });
@@ -214,8 +207,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
     function queueSendMessage(
         uint16 destinationChainId,
         address recipient,
-        bytes calldata message,
-        BridgeTypes.BridgeOptions calldata options
+        bytes calldata message
     ) external onlyQueueManagerAuth returns (bytes32 queueId) {
         if (recipient == address(0)) revert InvalidParams();
 
@@ -227,7 +219,6 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             destinationChainId: destinationChainId,
             recipient: recipient,
             message: message,
-            options: options,
             originator: msg.sender,
             operationId: bytes32(0)
         });
@@ -251,9 +242,10 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeQueue
-    /// @notice Keeper pays required fees via msg.value.
+    /// @notice Keeper pays required fees via msg.value and supplies adapter options.
     function executeQueuedOperation(
-        bytes32 queueId
+        bytes32 queueId,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable nonReentrant returns (bytes32 operationId) {
         uint256 index = _pendingQueueIdIndex[queueId];
         if (index == 0) revert QueueIdNotFound();
@@ -277,7 +269,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                 transferData.destinationChainId,
                 transferData.asset,
                 transferData.amount,
-                transferData.options,
+                options,
                 opType
             );
             if (msg.value < totalNativeFee) revert InsufficientFee();
@@ -299,7 +291,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     amount: transferData.amount,
                     recipient: transferData.recipient,
                     originator: transferData.originator,
-                    options: transferData.options
+                    options: options
                 });
 
             // Execute with keeper's payment
@@ -317,7 +309,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                 readData.dstChainId,
                 address(0),
                 0,
-                readData.options,
+                options,
                 opType
             );
             if (msg.value < totalNativeFee) revert InsufficientFee();
@@ -329,7 +321,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     selector: readData.selector,
                     readParams: readData.readParams,
                     originator: readData.originator,
-                    options: readData.options
+                    options: options
                 });
 
             // Execute with keeper's payment
@@ -344,7 +336,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                 messageData.destinationChainId,
                 address(0),
                 0,
-                messageData.options,
+                options,
                 opType
             );
             if (msg.value < totalNativeFee) revert InsufficientFee();
@@ -355,7 +347,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     recipient: messageData.recipient,
                     message: messageData.message,
                     originator: messageData.originator,
-                    options: messageData.options
+                    options: options
                 });
 
             // Execute with keeper's payment

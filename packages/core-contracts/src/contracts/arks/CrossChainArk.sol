@@ -5,7 +5,6 @@ import "../Ark.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
-import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ProtocolAccessManagedExt} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedExt.sol";
 
 /**
@@ -79,16 +78,11 @@ contract CrossChainArk is
     /// @notice The target proxy address on the satellite chain
     address public targetProxy;
 
-    /// @notice Configurable bridge options for cross-chain actions
-    BridgeTypes.BridgeOptions public bridgeOptions;
-
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
-
-    event BridgeOptionsUpdated(BridgeTypes.BridgeOptions newOptions);
 
     /// @notice Emitted when the remote asset balance is updated via state read
     event RemoteAssetBalanceUpdated(uint256 newBalance, bytes32 requestId);
@@ -151,14 +145,6 @@ contract CrossChainArk is
         address oldProxy = targetProxy;
         targetProxy = _targetProxy;
         emit TargetProxyUpdated(oldProxy, _targetProxy);
-    }
-
-    /// @notice Set new bridge options
-    function setBridgeOptions(
-        BridgeTypes.BridgeOptions calldata newOptions
-    ) external onlyGovernorOrKeeper {
-        bridgeOptions = newOptions;
-        emit BridgeOptionsUpdated(newOptions);
     }
 
     /// @notice Updates the inflight assets amount when a bridge operation is executed
@@ -228,8 +214,7 @@ contract CrossChainArk is
             targetChainId,
             address(config.asset),
             amount,
-            targetProxy,
-            bridgeOptions
+            targetProxy
         );
     }
 
