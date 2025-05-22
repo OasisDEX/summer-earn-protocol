@@ -21,3 +21,9 @@ type CrossChainProposal @entity {
   values: [BigInt!]!
   calldatas: [Bytes!]!
 }
+
+type CrossChainProposalByCallId @entity {
+  id: ID!
+  callId: String!
+  proposal: CrossChainProposal!
+}
