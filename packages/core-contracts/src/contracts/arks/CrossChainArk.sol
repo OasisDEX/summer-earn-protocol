@@ -206,10 +206,6 @@ contract CrossChainArk is
         // Approve BridgeQueue to spend tokens
         config.asset.approve(address(bridgeQueue), amount);
 
-        // Update inflight assets before sending
-        inflightAssets += amount;
-        emit InflightAssetsUpdated(inflightAssets);
-
         bridgeQueue.queueTransferAssets(
             targetChainId,
             address(config.asset),
