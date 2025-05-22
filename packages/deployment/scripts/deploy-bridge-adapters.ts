@@ -1,11 +1,31 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import readline from 'readline'
 import { Address } from 'viem'
 import { BaseConfig } from '../types/config-types'
-import { deployBridgeAdapters } from './bridge/bridge-adapters'
+import {
+  configureLayerZeroAdapter,
+  configureStargateAdapter,
+  deployBridgeAdapters,
+} from './bridge/bridge-adapters'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
+
+// Helper function for yes/no prompts
+async function promptYesNo(question: string): Promise<boolean> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
+
+  return new Promise<boolean>((resolve) => {
+    rl.question(`${question} (y/n): `, (answer) => {
+      rl.close()
+      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes')
+    })
+  })
+}
 
 /**
  * Wait for pending transactions to be confirmed
@@ -85,16 +105,64 @@ async function deployAdapters() {
 
   const bridgeRouterAddress = config.deployedContracts.bridge.bridgeRouter.address
 
-  console.log(kleur.green().bold('Starting bridge adapters deployment...'))
+  // Check if we want to reconfigure existing adapters
+  const hasExistingAdapters =
+    config.deployedContracts.bridge?.adapters?.layerZero?.address ||
+    config.deployedContracts.bridge?.adapters?.stargate?.address
+
+  let reconfigureOnly = false
+  if (hasExistingAdapters) {
+    reconfigureOnly = await promptYesNo(
+      'Existing adapters found. Do you want to reconfigure them without redeploying?',
+    )
+  }
+
+  console.log(
+    kleur
+      .green()
+      .bold(
+        reconfigureOnly
+          ? 'Starting bridge adapters reconfiguration...'
+          : 'Starting bridge adapters deployment...',
+      ),
+  )
 
   try {
     // Wait for any pending transactions to be confirmed before starting deployment
     await waitForPendingTransactions()
 
-    // Use the updated bridge-adapters.ts function for deployment
-    const deployedAdapters = await deployBridgeAdapters(bridgeRouterAddress as Address, config)
+    let deployedAdapters: { layerZero?: { address: Address }; stargate?: { address: Address } } = {}
 
-    console.log(kleur.green().bold('Bridge adapters deployment completed successfully!'))
+    if (reconfigureOnly) {
+      // Use existing adapter addresses from config
+      deployedAdapters = {
+        layerZero: config.deployedContracts.bridge?.adapters?.layerZero,
+        stargate: config.deployedContracts.bridge?.adapters?.stargate,
+      }
+
+      // Reconfigure existing adapters
+      if (deployedAdapters.layerZero) {
+        console.log(kleur.blue('Reconfiguring LayerZero adapter...'))
+        await configureLayerZeroAdapter(
+          deployedAdapters.layerZero.address as Address,
+          bridgeRouterAddress as Address,
+          config,
+        )
+      }
+
+      if (deployedAdapters.stargate) {
+        console.log(kleur.blue('Reconfiguring Stargate adapter...'))
+        await configureStargateAdapter(deployedAdapters.stargate.address as Address, {
+          bridgeRouterAddress: bridgeRouterAddress as Address,
+        })
+      }
+
+      console.log(kleur.green().bold('Bridge adapters reconfiguration completed successfully!'))
+    } else {
+      // Deploy and configure adapters
+      deployedAdapters = await deployBridgeAdapters(bridgeRouterAddress as Address, config)
+      console.log(kleur.green().bold('Bridge adapters deployment completed successfully!'))
+    }
 
     if (deployedAdapters.layerZero) {
       console.log('- LayerZeroAdapter:', deployedAdapters.layerZero.address)
