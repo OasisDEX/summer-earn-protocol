@@ -2,7 +2,8 @@ import { Address, BigInt } from '@graphprotocol/graph-ts'
 import { ISiloIncentivesController } from '../../generated/EntryPoint/ISiloIncentivesController'
 import { ISiloVault } from '../../generated/EntryPoint/ISiloVault'
 import { ISiloVaultIncentivesModule } from '../../generated/EntryPoint/ISiloVaultIncentivesModule'
-import { BigDecimalConstants } from '../constants/common'
+import { BigDecimalConstants, BigIntConstants } from '../constants/common'
+import { TvlData } from '../models/TvlData'
 import { formatAmount } from '../utils/formatters'
 import { getOrCreateToken } from '../utils/initializers'
 import { aprToApy } from '../utils/math'
@@ -72,5 +73,21 @@ export class SiloVaultProduct extends ERC4626Product {
       }
     }
     return uniqueRewards.values()
+  }
+
+  getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
+    const vault = ISiloVault.bind(this.poolAddress)
+    const tryTotalAssets = vault.try_totalAssets()
+
+    if (tryTotalAssets.reverted) {
+      return new TvlData(BigIntConstants.ZERO, BigDecimalConstants.ZERO, BigDecimalConstants.ZERO)
+    }
+
+    const tokenAmountRaw = tryTotalAssets.value
+    const tokenAmountNormalized = formatAmount(tokenAmountRaw, this.token.decimals)
+    const tokenPriceInUsd = getTokenPriceInUSD(Address.fromBytes(this.token.address), currentBlock)
+    const usdAmountNormalized = tokenAmountNormalized.times(tokenPriceInUsd.price)
+
+    return new TvlData(tokenAmountRaw, tokenAmountNormalized, usdAmountNormalized)
   }
 }
