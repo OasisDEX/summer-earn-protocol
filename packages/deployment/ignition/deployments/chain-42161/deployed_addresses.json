@@ -31,5 +31,6 @@
   "BridgeModule#BridgeRouter": "0xa8ee1A644049FC59eBdCd9a5c5617C8d91e1e33C",
   "BridgeModule#BridgeQueue": "0x181b07FeC5d0a852f32D774c2B0C194057707Bf4",
   "LayerZeroAdapterModule#LayerZeroAdapter": "0xB958C9f1d505372462724A6BC2Fa8e1C69EEeE5E",
-  "StargateAdapterModule#StargateAdapter": "0x4fbA3108789E5d154161931918fd535E80B46C2d"
+  "StargateAdapterModule#StargateAdapter": "0x4fbA3108789E5d154161931918fd535E80B46C2d",
+  "FleetProxy_Bummer_LazyVault_LowerRisk_USDC_chain_42161#CrossChainFleetProxy": "0xB020f78078bd91d1fA52d73FC6F383fF12cAdCf9"
 }
