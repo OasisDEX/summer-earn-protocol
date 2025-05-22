@@ -119,7 +119,7 @@ export function getOrCreateProposal(proposalId: string): Proposal {
 }
 
 export function handleProposalReceivedCrossChain(event: ProposalReceivedCrossChain): void {
-  if (!isBase(dataSource.network())) {
+  if (isBase(dataSource.network())) {
     return
   }
   const proposal = getOrCreateCrossChainProposal(event.params.proposalId.toString())
