@@ -65,7 +65,11 @@ export async function deployFleetProxy() {
 
     console.log(kleur.green().bold('FleetProxy successfully deployed at:'), fleetProxyAddress)
     console.log(kleur.green('Deployment recorded in cross-chain configuration.'))
-    console.log(kleur.green('Next step: Deploy CrossChainArk on the source chain.'))
+    console.log(
+      kleur.green('Note: Deploy CrossChainArk on the source chain if not already deployed.'),
+    )
+    console.log(kleur.green('Cross-chain connectivity can be configured at any time.'))
+    console.log(kleur.green('Bridge options will be provided by keepers at execution time.'))
 
     return fleetProxyAddress
   } else {
