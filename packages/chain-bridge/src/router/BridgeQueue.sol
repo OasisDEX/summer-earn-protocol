@@ -22,8 +22,8 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Address of the associated BridgeRouter contract. Accessed via bridgeRouter().
-    IBridgeRouter internal _bridgeRouter;
+    /// @notice Address of the associated BridgeRouter contract
+    address public bridgeRouter;
 
     /// @inheritdoc IBridgeQueue
     mapping(address => bool) public isQueueManager;
@@ -100,9 +100,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
      * The bridge router needs auth for potential confirmation transactions.
      */
     modifier onlyQueueManagerAuth() {
-        if (
-            !isQueueManager[msg.sender] && msg.sender != address(_bridgeRouter)
-        ) {
+        if (!isQueueManager[msg.sender] && msg.sender != bridgeRouter) {
             revert CallerNotQueueManager();
         }
         _;
@@ -119,7 +117,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
     ) ProtocolAccessManaged(_accessManager) {
         if (_initialQueueManager == address(0)) revert InvalidQueueManager(); // Use error for initial manager too
 
-        _bridgeRouter = IBridgeRouter(_initialBridgeRouter);
+        bridgeRouter = _initialBridgeRouter;
         emit BridgeRouterUpdated(_initialBridgeRouter);
 
         isQueueManager[_initialQueueManager] = true;
@@ -264,8 +262,8 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
 
         BridgeTypes.OperationType opType = queueIdToOperationType[queueId];
         address executor = msg.sender;
-        IBridgeRouter router = _bridgeRouter;
-        if (address(router) == address(0)) revert InvalidBridgeRouter();
+        address router = bridgeRouter;
+        if (router == address(0)) revert InvalidBridgeRouter();
 
         // Get quote from the router based on stored data
         uint256 totalNativeFee;
@@ -275,7 +273,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             QueuedTransfer storage transferData = queuedTransfers[queueId];
 
             // Get quote, ignore token fee
-            (totalNativeFee, , ) = router.quote(
+            (totalNativeFee, , ) = IBridgeRouter(router).quote(
                 transferData.destinationChainId,
                 transferData.asset,
                 transferData.amount,
@@ -292,10 +290,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             );
 
             // Approve router
-            IERC20(transferData.asset).approve(
-                address(router),
-                transferData.amount
-            );
+            IERC20(transferData.asset).approve(router, transferData.amount);
 
             BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
                 .ExecuteTransferParams({
@@ -308,17 +303,17 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                 });
 
             // Execute with keeper's payment
-            operationId = router.executeTransferAssets{value: totalNativeFee}(
-                params
-            );
+            operationId = IBridgeRouter(router).executeTransferAssets{
+                value: totalNativeFee
+            }(params);
 
             // Clean up approval
-            IERC20(transferData.asset).approve(address(router), 0);
+            IERC20(transferData.asset).approve(router, 0);
         } else if (opType == BridgeTypes.OperationType.READ_STATE) {
             QueuedReadState storage readData = queuedReadStates[queueId];
 
             // Get quote, ignore token fee
-            (totalNativeFee, , ) = router.quote(
+            (totalNativeFee, , ) = IBridgeRouter(router).quote(
                 readData.dstChainId,
                 address(0),
                 0,
@@ -338,14 +333,14 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                 });
 
             // Execute with keeper's payment
-            operationId = router.executeReadState{value: totalNativeFee}(
-                params
-            );
+            operationId = IBridgeRouter(router).executeReadState{
+                value: totalNativeFee
+            }(params);
         } else if (opType == BridgeTypes.OperationType.MESSAGE) {
             QueuedMessage storage messageData = queuedMessages[queueId];
 
             // Get quote, ignore token fee
-            (totalNativeFee, , ) = router.quote(
+            (totalNativeFee, , ) = IBridgeRouter(router).quote(
                 messageData.destinationChainId,
                 address(0),
                 0,
@@ -364,9 +359,9 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                 });
 
             // Execute with keeper's payment
-            operationId = router.executeSendMessage{value: totalNativeFee}(
-                params
-            );
+            operationId = IBridgeRouter(router).executeSendMessage{
+                value: totalNativeFee
+            }(params);
         } else {
             revert UnknownOperationType();
         }
@@ -420,11 +415,6 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeQueue
-    function bridgeRouter() external view returns (address) {
-        return address(_bridgeRouter);
-    }
-
-    /// @inheritdoc IBridgeQueue
     function getPendingQueueCount() external view returns (uint256) {
         return _pendingQueueIds.length;
     }
@@ -469,9 +459,9 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         }
 
         if (operationId != bytes32(0)) {
-            try _bridgeRouter.getOperationStatus(operationId) returns (
-                BridgeTypes.OperationStatus status
-            ) {
+            try
+                IBridgeRouter(bridgeRouter).getOperationStatus(operationId)
+            returns (BridgeTypes.OperationStatus status) {
                 return status;
             } catch {
                 return BridgeTypes.OperationStatus.FAILED;
@@ -499,7 +489,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             revert InvalidBridgeRouter();
         }
 
-        _bridgeRouter = IBridgeRouter(_newBridgeRouter);
+        bridgeRouter = _newBridgeRouter;
         emit BridgeRouterUpdated(_newBridgeRouter);
     }
 
