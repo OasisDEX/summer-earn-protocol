@@ -62,7 +62,16 @@ export function handleRebalance(event: Rebalanced): void {
 
 export function handleArkAdded(event: ArkAdded): void {
   const vault = getOrCreateVault(event.address, event.block)
-  getOrCreateArk(vault, event.params.ark, event.block)
+  const ark = getOrCreateArk(event.params.ark, event.block)
+  ark.vault = vault.id
+  ark.save()
+
+  const arksArray = vault.arksArray
+  if (!arksArray.includes(ark.id)) {
+    arksArray.push(ark.id)
+    vault.arksArray = arksArray
+    vault.save()
+  }
 }
 
 let _arkAddress: string
@@ -73,7 +82,7 @@ export function handleArkRemoved(event: ArkRemoved): void {
   vault.arksArray = previousArrayOfArks.filter((ark) => ark !== _arkAddress)
   vault.save()
   // remove relation to vault
-  const ark = getOrCreateArk(vault, Address.fromString(_arkAddress), event.block)
+  const ark = getOrCreateArk(Address.fromString(_arkAddress), event.block)
   ark.vault = ADDRESS_ZERO.toHexString()
   ark.save()
 }

@@ -139,7 +139,6 @@ function processHourlyVaultUpdate(
         }
       }
     }
-
     const positionsToUpdate: string[] = []
     const ownersOfPositions: string[] = []
     for (let i = 0; i < positions.length; i++) {
@@ -149,7 +148,9 @@ function processHourlyVaultUpdate(
         ownersOfPositions.push(position.account)
       }
     }
-
+    log.error('[harborCommand] - block {} time taken for positionsToUpdate:', [
+      block.number.toString(),
+    ])
     if (positionsToUpdate.length > 0 && vault.rewardTokens.length > 0) {
       const rewardTokenAddress = Address.fromString(vault.rewardTokens[0])
       const rewardToken = getOrCreateToken(rewardTokenAddress)
@@ -166,6 +167,7 @@ function processHourlyVaultUpdate(
         )
       }
       const multicallResult = makeMulticall(calls)
+      log.error('[harborCommand] - block {} time taken for multicall', [block.number.toString()])
       const multiCallResponseData = multicallResult.value.value1
       for (let i = 0; i < multiCallResponseData.length; i++) {
         const position = getOrCreatePosition(positionsToUpdate[i], block)
@@ -190,6 +192,7 @@ function processHourlyVaultUpdate(
         // ------------------------------------------------------------}
       }
     }
+    log.error('[harborCommand] - time taken for positionsToUpdate:', [block.number.toString()])
   }
 }
 

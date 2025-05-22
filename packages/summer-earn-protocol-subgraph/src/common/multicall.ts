@@ -5,7 +5,7 @@ import {
   Multicall__aggregateResult,
 } from '../../generated/HarborCommand/Multicall'
 
-const MAINNET_MULTICALL = Address.fromString('0xcA11bde05977b3631167028862bE2a173976CA11')
+const MULTICALL_ADDRESS = Address.fromString('0xcA11bde05977b3631167028862bE2a173976CA11')
 
 /**
  * Prepares a multicall call with the given target address and calldata.
@@ -71,7 +71,7 @@ export function getSelector(functionSignature: string): Bytes {
 export function makeMulticall(
   calls: ethereum.Tuple[],
 ): ethereum.CallResult<Multicall__aggregateResult> {
-  const multicall = Multicall.bind(MAINNET_MULTICALL)
+  const multicall = Multicall.bind(MULTICALL_ADDRESS)
   const multicallResponse = try_aggregate(calls, multicall)
 
   return multicallResponse
@@ -150,7 +150,7 @@ export function convertDecodedDataToString(data: ethereum.Value): string {
  */
 function try_aggregate(
   calls: Array<ethereum.Tuple>,
-  multicall: Multicall = Multicall.bind(MAINNET_MULTICALL),
+  multicall: Multicall = Multicall.bind(MULTICALL_ADDRESS),
 ): ethereum.CallResult<Multicall__aggregateResult> {
   let result = multicall.tryCall('aggregate', 'aggregate((address,bytes)[]):(uint256,bytes[])', [
     ethereum.Value.fromTupleArray(calls),

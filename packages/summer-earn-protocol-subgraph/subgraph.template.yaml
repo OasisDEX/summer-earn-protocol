@@ -1,6 +1,13 @@
 specVersion: 0.0.8
 schema:
-  file: ./schema.graphql    
+  file: ./schema.graphql 
+{{#enable-grafting}}
+features:
+  - grafting
+graft:
+  base: {{grafting-base}}
+  block: {{grafting-block}}
+{{/enable-grafting}}      
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand

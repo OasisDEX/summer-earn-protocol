@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import {
   GovernanceRewardsManager,
   RewardPaid,
@@ -41,7 +41,7 @@ export function updateAccountStakingRewards(block: BigInt): void {
       account.save()
     }
   }
-
+  log.error('[staking] - block {} time taken for accountsToUpdate', [block.toString()])
   if (gov.rewardTokens.length > 0 && accountsToUpdate.length > 0) {
     const rewardTokenAddress = Address.fromString(gov.rewardTokens[0])
     const rewardToken = getOrCreateToken(rewardTokenAddress)
@@ -58,6 +58,7 @@ export function updateAccountStakingRewards(block: BigInt): void {
       )
     }
     const multicallResult = makeMulticall(calls)
+    log.error('[staking] - block {} time taken for multicall', [block.toString()])
     const multiCallResponseData = multicallResult.value.value1
     for (let i = 0; i < multiCallResponseData.length; i++) {
       const results = decodeValues('uint256', multiCallResponseData[i])
@@ -73,6 +74,7 @@ export function updateAccountStakingRewards(block: BigInt): void {
       accountRewards.save()
     }
   }
+  log.error('[staking] - block {} time taken', [block.toString()])
 }
 
 export function getOrCreateGovernanceStaking(): GovernanceStaking {
