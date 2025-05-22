@@ -71,25 +71,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
      * @notice Initializes the BridgeRouter contract
      * @param accessManager Address of the ProtocolAccessManager contract
      * @param _bridgeQueue Address of the BridgeQueue contract
-     * @param chainIds Array of chain IDs to configure
-     * @param routerAddresses Array of corresponding router addresses
      */
     constructor(
         address accessManager,
-        address _bridgeQueue,
-        uint16[] memory chainIds,
-        address[] memory routerAddresses
+        address _bridgeQueue
     ) ProtocolAccessManaged(accessManager) {
         bridgeQueue = _bridgeQueue;
         emit BridgeQueueUpdated(_bridgeQueue);
-
-        // Set up initial chain-to-router mappings
-        for (uint256 i = 0; i < chainIds.length; i++) {
-            if (routerAddresses[i] != address(0)) {
-                chainToRouterAddress[chainIds[i]] = routerAddresses[i];
-                emit ChainRouterAddressUpdated(chainIds[i], routerAddresses[i]);
-            }
-        }
     }
 
     /*//////////////////////////////////////////////////////////////

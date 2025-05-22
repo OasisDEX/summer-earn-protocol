@@ -6,16 +6,10 @@ export default buildModule('BridgeModule', (m) => {
   // Get the ProtocolAccessManager address from the config
   const protocolAccessManager = m.getParameter<Address>('protocolAccessManager')
 
-  // Get chain configuration
-  const chainIds = m.getParameter<number[]>('chainIds')
-  const routerAddresses = m.getParameter<Address[]>('routerAddresses')
-
   // Deploy BridgeRouter first
   const bridgeRouter = m.contract('BridgeRouter', [
     protocolAccessManager,
     '0x0000000000000000000000000000000000000000', // BridgeQueue address will be set after deployment
-    chainIds,
-    routerAddresses,
   ])
 
   // Deploy BridgeQueue with BridgeRouter as initial queue manager
