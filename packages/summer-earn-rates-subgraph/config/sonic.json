@@ -1,6 +1,6 @@
 {
   "network": "sonic-mainnet",
-  "enable-grafting": true,
+  "enable-grafting": false,
   "grafting-base": "QmVQkuEjAAvAFBeoTfPjCsgXGRYVkrYZKiCh8Gb2xZ4eDD",
   "grafting-block": "27007100",
   "entry_point_address": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",

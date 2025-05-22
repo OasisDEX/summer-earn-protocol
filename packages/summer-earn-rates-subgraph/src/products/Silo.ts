@@ -3,7 +3,8 @@ import { IGaugeHookReceiver } from '../../generated/EntryPoint/IGaugeHookReceive
 import { ISilo } from '../../generated/EntryPoint/ISilo'
 import { ISiloConfig } from '../../generated/EntryPoint/ISiloConfig'
 import { ISiloIncentivesController } from '../../generated/EntryPoint/ISiloIncentivesController'
-import { BigDecimalConstants } from '../constants/common'
+import { BigDecimalConstants, BigIntConstants } from '../constants/common'
+import { TvlData } from '../models/TvlData'
 import { formatAmount } from '../utils/formatters'
 import { getOrCreateToken } from '../utils/initializers'
 import { aprToApy } from '../utils/math'
@@ -53,5 +54,21 @@ export class SiloProduct extends ERC4626Product {
       }
     }
     return rewardsRates
+  }
+
+  getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
+    const vault = ISilo.bind(this.poolAddress)
+    const tryTotalAssets = vault.try_totalAssets()
+
+    if (tryTotalAssets.reverted) {
+      return new TvlData(BigIntConstants.ZERO, BigDecimalConstants.ZERO, BigDecimalConstants.ZERO)
+    }
+
+    const tokenAmountRaw = tryTotalAssets.value
+    const tokenAmountNormalized = formatAmount(tokenAmountRaw, this.token.decimals)
+    const tokenPriceInUsd = getTokenPriceInUSD(Address.fromBytes(this.token.address), currentBlock)
+    const usdAmountNormalized = tokenAmountNormalized.times(tokenPriceInUsd.price)
+
+    return new TvlData(tokenAmountRaw, tokenAmountNormalized, usdAmountNormalized)
   }
 }

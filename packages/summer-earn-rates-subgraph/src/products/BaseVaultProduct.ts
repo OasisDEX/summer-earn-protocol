@@ -55,7 +55,7 @@ export abstract class BaseVaultProduct extends Product {
     }
     const priceChange = sharePrice.minus(previousSharePrice).div(previousSharePrice)
     const timeDiff = this.getTimeDifference(currentTimestamp, vaultState)
-    if (timeDiff.equals(BigInt.zero())) {
+    if (timeDiff.equals(BigIntConstants.ZERO)) {
       return previousRate
     }
     const annualizedRate = priceChange
