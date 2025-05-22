@@ -12,15 +12,6 @@
           "crossChainArkAddress": "0xc1fe8061B61288FfeAFC26A86e971E9797266322",
           "asset": {
             "symbol": "usdc"
-          },
-          "bridgeOptions": {
-            "specifiedAdapter": "0x0000000000000000000000000000000000000000",
-            "adapterParams": {
-              "gasLimit": 500000,
-              "calldataSize": 0,
-              "msgValue": 0,
-              "options": "0x"
-            }
           }
         }
       ]

@@ -8,6 +8,7 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
+import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 
 /**
  * @title BridgeQueue
@@ -528,6 +529,16 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         if (index == 0) revert QueueIdNotFound();
         if (queueIdToStatus[queueId] != BridgeTypes.OperationStatus.QUEUED)
             revert OperationNotQueued();
+
+        // If this is a transfer operation, notify the originator to reset inflight assets
+        if (
+            queueIdToOperationType[queueId] ==
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        ) {
+            address originator = queuedTransfers[queueId].originator;
+            // Try to call updateInflightAssets on the originator
+            try ICrossChainArk(originator).updateInflightAssets(0) {} catch {}
+        }
 
         _removePendingId(queueId, index - 1);
         queueIdToStatus[queueId] = BridgeTypes.OperationStatus.FAILED; // Mark as failed since dequeued
