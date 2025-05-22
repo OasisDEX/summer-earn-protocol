@@ -92,17 +92,8 @@ contract CrossChainFleetProxy is
         bridgeQueue = IBridgeQueue(_bridgeQueue);
         fleetContract = _fleetContract;
 
-        // Initialize with default values
-        bridgeOptions = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: "0x"
-            })
-        });
-        sourceChainArk = address(0);
+        // Default zero initialization will happen automatically
+        // bridgeOptions and sourceChainArk will be initialized to zeros
     }
 
     /*//////////////////////////////////////////////////////////////
