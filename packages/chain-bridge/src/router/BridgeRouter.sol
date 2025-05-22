@@ -243,21 +243,30 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             )
         {} catch {}
 
-        // Call the adapter to perform the transfer
+        // Set up operation to adapter mapping BEFORE the adapter call
+        // Generate a predictable operationId
+        operationId = keccak256(
+            abi.encode(
+                block.chainid,
+                params.destinationChainId,
+                params.asset,
+                params.amount,
+                params.recipient,
+                block.timestamp
+            )
+        );
+        operationToAdapter[operationId] = selectedAdapter;
+
         operationId = IBridgeAdapter(selectedAdapter).transferAsset{
             value: baseFeeToSend
-        }( // Send the exact base fee
+        }(
             params.destinationChainId,
             params.asset,
             params.recipient,
             params.amount,
-            params.originator, // Pass originator to the adapter
+            params.originator,
             params.options.adapterParams
         );
-
-        // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
-        operationToAdapter[operationId] = selectedAdapter;
 
         emit TransferInitiated(
             operationId,
@@ -309,25 +318,35 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Call the adapter with the base fee
-        operationId = IBridgeAdapter(selectedAdapter).readState{
-            value: baseFeeToSend
-        }(
-            uint16(block.chainid), // Source chain ID
-            params.dstChainId,
-            params.dstContract,
-            params.selector,
-            params.readParams,
-            params.originator, // Pass originator to adapter
-            params.options.adapterParams
+        // Generate a predictable operationId
+        operationId = keccak256(
+            abi.encode(
+                block.chainid,
+                params.dstChainId,
+                params.dstContract,
+                params.selector,
+                params.readParams,
+                block.timestamp
+            )
         );
+
+        // Set operation to adapter mapping BEFORE the adapter call
+        operationToAdapter[operationId] = selectedAdapter;
 
         // Store the originator for response delivery
         readRequestToOriginator[operationId] = params.originator;
 
-        // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
-        operationToAdapter[operationId] = selectedAdapter;
+        operationId = IBridgeAdapter(selectedAdapter).readState{
+            value: baseFeeToSend
+        }(
+            uint16(block.chainid),
+            params.dstChainId,
+            params.dstContract,
+            params.selector,
+            params.readParams,
+            params.originator,
+            params.options.adapterParams
+        );
 
         emit ReadRequestInitiated(
             operationId,
@@ -379,7 +398,19 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.MESSAGE
         );
 
-        // Call the adapter with the base fee
+        // Generate a predictable operationId
+        operationId = keccak256(
+            abi.encode(
+                block.chainid,
+                params.destinationChainId,
+                params.recipient,
+                params.message,
+                block.timestamp
+            )
+        );
+
+        operationToAdapter[operationId] = selectedAdapter;
+
         operationId = ISendAdapter(selectedAdapter).sendMessage{
             value: baseFeeToSend
         }(
@@ -389,10 +420,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             params.originator, // Pass originator to adapter
             params.options.adapterParams
         );
-
-        // Update state
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
-        operationToAdapter[operationId] = selectedAdapter;
 
         emit MessageInitiated(
             operationId,
