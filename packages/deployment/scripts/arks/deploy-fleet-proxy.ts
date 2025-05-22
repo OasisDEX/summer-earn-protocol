@@ -158,15 +158,6 @@ async function getUserInput(
     throw new Error(`Asset address not found for symbol ${assetSymbol}`)
   }
 
-  // Get gas limit for cross-chain operations
-  const { gasLimit } = await prompts({
-    type: 'number',
-    name: 'gasLimit',
-    message: 'Enter the gas limit for cross-chain operations:',
-    initial: 500000,
-    validate: (value) => (value > 0 ? true : 'Gas limit must be greater than 0'),
-  })
-
   const fleetProxyProtocol = 'summerfi'
 
   return {
@@ -184,7 +175,7 @@ async function getUserInput(
     bridgeOptions: {
       specifiedAdapter: '0x0000000000000000000000000000000000000000' as Address,
       adapterParams: {
-        gasLimit,
+        gasLimit: 500000,
         calldataSize: 0,
         msgValue: 0,
         options: '0x',
@@ -204,10 +195,6 @@ async function confirmDeployment(params: FleetProxyParams): Promise<boolean> {
   console.log(kleur.blue('Fleet Contract:'), kleur.cyan(params.fleetContract))
   console.log(kleur.blue('Source Chain ID:'), kleur.cyan(params.sourceChainId.toString()))
   console.log(kleur.blue('Protocol:'), kleur.cyan(params.protocol))
-  console.log(
-    kleur.blue('Gas Limit:'),
-    kleur.cyan(params.bridgeOptions.adapterParams.gasLimit.toString()),
-  )
 
   return await continueDeploymentCheck()
 }
@@ -252,14 +239,22 @@ async function deployFleetProxyContract(
       asset: params.asset,
     })
 
-    // Set bridge options after deployment
+    // Set bridge options after deployment using viem
     console.log(kleur.yellow('Setting bridge options...'))
-    const fleetProxy = await hre.ethers.getContractAt('CrossChainFleetProxy', fleetProxyAddress)
-    const tx = await fleetProxy.setBridgeOptions({
-      specifiedAdapter: params.bridgeOptions.specifiedAdapter,
-      adapterParams: params.bridgeOptions.adapterParams,
-    })
-    await tx.wait()
+    const fleetProxy = await hre.viem.getContractAt(
+      'CrossChainFleetProxy' as string,
+      fleetProxyAddress,
+    )
+
+    const hash = await fleetProxy.write.setBridgeOptions([
+      {
+        specifiedAdapter: params.bridgeOptions.specifiedAdapter,
+        adapterParams: params.bridgeOptions.adapterParams,
+      },
+    ])
+    console.log(kleur.yellow('Waiting for bridge options transaction to confirm...'))
+    const publicClient = await hre.viem.getPublicClient()
+    await publicClient.waitForTransactionReceipt({ hash })
     console.log(kleur.green('Bridge options set successfully'))
 
     // Make sure the source chain ID is updated in the config
