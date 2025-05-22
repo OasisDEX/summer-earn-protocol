@@ -27,6 +27,8 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
     IWETH public weth;
     ArkParams public params;
     IEthVaultWrapperV2 public wrapper;
+    IWithdrawalQueue public withdrawalQueue;
+    address bufferArk;
 
     // Router and vault addresses provided in the requirement
     address public constant ROUTER_ADDRESS =
@@ -41,17 +43,22 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
         0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant WITHDRAWAL_QUEUE_ADDRESS =
         0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1;
+    address public constant LIDO_FINALIZER_ADDRESS =
+        0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
-    uint256 forkBlock = 22444969; // Setting a fairly recent block number on Ethereum mainnet
+    uint256 forkBlock = 22420969; // Setting a fairly recent block number on Ethereum mainnet
     uint256 forkId;
 
     function setUp() public {
         initializeCoreContracts();
+        withdrawalQueue = IWithdrawalQueue(WITHDRAWAL_QUEUE_ADDRESS);
         (
             address _commander,
             address _bufferArk
         ) = setupFleetCommanderWithBufferArk(WETH_ADDRESS, "Test Fleet");
         commander = _commander;
+        bufferArk = _bufferArk;
+
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         weth = IWETH(WETH_ADDRESS);
@@ -260,8 +267,55 @@ contract FluidLiteArkTestFork is Test, IArkEvents, ArkTestBase {
         );
     }
 
-    function test_ClaimWithdrawal() public {
-        console.log("not implemented");
+    function test_ClaimWithdrawalLido() public {
+        assertEq(
+            ark.isWithdrawalClaimRequired(),
+            false,
+            "Withdrawal claim should not be required"
+        );
+        test_RequestWithdrawal();
+        assertEq(
+            ark.isWithdrawalClaimRequired(),
+            true,
+            "Withdrawal claim should be required"
+        );
+        vm.prank(keeper);
+        uint256 arkRequestId = ark.withdrawalRequestId();
+        vm.prank(LIDO_FINALIZER_ADDRESS);
+        withdrawalQueue.finalize(arkRequestId, type(uint256).max);
+
+        vm.prank(keeper);
+        ark.claimWithdrawal();
+
+        uint256 requestedAmount = 1 ether;
+        uint256 requestAmountAfterFluidFee = (9995 * (requestedAmount - 1)) /
+            10000;
+        vm.assertEq(address(ark).balance, 0);
+        vm.assertEq(
+            IERC20(WETH_ADDRESS).balanceOf(address(ark)),
+            requestAmountAfterFluidFee
+        );
+        // lefotever
+        vm.assertEq(IERC20(STETH_ADDRESS).balanceOf(address(ark)), 1);
+
+        uint256 bufferArkWethBalanceBefore = IERC20(WETH_ADDRESS).balanceOf(
+            bufferArk
+        );
+        vm.expectEmit(true, true, true, true);
+        emit Disembarked(
+            address(keeper),
+            WETH_ADDRESS,
+            requestAmountAfterFluidFee
+        );
+
+        vm.prank(keeper);
+        ark.sweep();
+
+        vm.assertEq(IERC20(WETH_ADDRESS).balanceOf(address(ark)), 0 ether);
+        vm.assertEq(
+            IERC20(WETH_ADDRESS).balanceOf(bufferArk),
+            bufferArkWethBalanceBefore + requestAmountAfterFluidFee
+        );
     }
 
     function test_RequestWithdrawal() public {

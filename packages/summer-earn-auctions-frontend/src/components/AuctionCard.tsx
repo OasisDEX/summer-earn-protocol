@@ -1,10 +1,12 @@
 'use client'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { CHAIN_CONFIGS } from '@/lib/config'
 import { useCurrentPrice } from '@/lib/hooks/useCurrentPrice'
 import { Auction } from '@/lib/types'
 import { useMemo } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { TokenAmount } from './TokenAmount'
 
 interface AuctionCardProps {
   auction: Auction
@@ -26,6 +28,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function AuctionCard({ auction, chainId }: AuctionCardProps) {
   const { currentPrice, error } = useCurrentPrice(auction, chainId)
+  const networkName = CHAIN_CONFIGS[chainId]?.name || `Chain ${chainId}`
 
   const chartData = useMemo(() => {
     const startTimestamp = parseInt(auction.startTimestamp)
@@ -80,6 +83,7 @@ export function AuctionCard({ auction, chainId }: AuctionCardProps) {
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-lg font-semibold">{auction.rewardToken.symbol} Auction</h3>
+            <p className="text-sm text-gray-600 flex items-center gap-1">Network: {networkName}</p>
             <p className="text-sm text-gray-600 flex items-center gap-1">
               Ark:{' '}
               <button
@@ -106,7 +110,12 @@ export function AuctionCard({ auction, chainId }: AuctionCardProps) {
               Current Price: {currentPrice} {auction.buyToken.symbol}
             </p>
             <p className="text-xs text-gray-600">
-              Tokens Left: {auction.tokensLeftNormalized.slice(0, 8)} {auction.rewardToken.symbol}
+              Tokens Left:{' '}
+              <TokenAmount
+                amount={auction.tokensLeft}
+                symbol={auction.rewardToken.symbol}
+                decimals={auction.rewardToken.decimals}
+              />
             </p>
           </div>
         </div>

@@ -66,6 +66,13 @@
         "vaultName": "Gauntlet_WETH_Core",
         "protocol": "morpho"
       }
+    },
+    {
+      "type": "OriginETHArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "origin"
+      }
     }
   ]
 }
