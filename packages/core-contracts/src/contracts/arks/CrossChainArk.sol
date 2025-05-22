@@ -113,7 +113,6 @@ contract CrossChainArk is
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _targetChainId ID of the target chain
      * @param _targetProxy Address of the target proxy on the satellite chain
-     * @param _initialBridgeOptions Initial bridge options for cross-chain actions
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
@@ -121,7 +120,6 @@ contract CrossChainArk is
         address _bridgeRouter,
         uint16 _targetChainId,
         address _targetProxy,
-        BridgeTypes.BridgeOptions memory _initialBridgeOptions,
         ArkParams memory _params
     ) Ark(_params) {
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
@@ -133,7 +131,8 @@ contract CrossChainArk is
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         targetChainId = _targetChainId;
         targetProxy = _targetProxy;
-        bridgeOptions = _initialBridgeOptions;
+
+        // bridgeOptions will default to zero initialization
     }
 
     /*//////////////////////////////////////////////////////////////

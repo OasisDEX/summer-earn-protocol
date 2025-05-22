@@ -447,14 +447,6 @@ async function deployCrossChainArkContract(
   const deploymentId = await handleDeploymentId(chainId)
   const moduleName = `CrossChainArk_${fleetName}_${deploymentId.replace(/-/g, '_')}`
 
-  // Log important parameters to help with debugging
-  console.log(kleur.yellow('\nDeployment parameters (cross-chain ark):'))
-  console.log(kleur.blue('Module Name:'), kleur.cyan(moduleName))
-  console.log(kleur.blue('Bridge Queue:'), kleur.cyan(userInput.bridgeQueue))
-  console.log(kleur.blue('Bridge Router:'), kleur.cyan(userInput.bridgeRouter))
-  console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))
-  console.log(kleur.blue('Fleet Proxy:'), kleur.cyan(userInput.fleetProxyAddress))
-
   const module = createCrossChainArkModule(moduleName)
 
   const result = await hre.ignition.deploy(module, {
@@ -464,15 +456,6 @@ async function deployCrossChainArkContract(
         bridgeRouter: userInput.bridgeRouter,
         targetChainId: userInput.targetChainId,
         fleetProxy: userInput.fleetProxyAddress,
-        bridgeOptions: {
-          specifiedAdapter: userInput.bridgeOptions.specifiedAdapter,
-          adapterParams: {
-            gasLimit: userInput.bridgeOptions.adapterParams.gasLimit,
-            calldataSize: userInput.bridgeOptions.adapterParams.calldataSize,
-            msgValue: userInput.bridgeOptions.adapterParams.msgValue,
-            options: userInput.bridgeOptions.adapterParams.options,
-          },
-        },
         arkParams: {
           name: `CrossChainArk-${userInput.token.symbol}-${userInput.targetProtocol}`,
           details: `CrossChainArk for ${userInput.token.symbol} using ${userInput.targetProtocol} on chain ${userInput.targetChainId}`,
@@ -490,15 +473,24 @@ async function deployCrossChainArkContract(
     deploymentId,
   })
 
-  // Return in the same format as other arks
-  return { crossChainArk: result.crossChainArk }
-}
+  // Set bridge options after deployment using viem
+  console.log(kleur.yellow('Setting bridge options...'))
+  const crossChainArkContract = await hre.viem.getContractAt(
+    'CrossChainArk' as string,
+    result.crossChainArk.address,
+  )
 
-// Direct invocation
-if (require.main === module) {
-  deployCrossChainArk(undefined).catch((error) => {
-    console.error(kleur.red('Error during CrossChainArk deployment:'))
-    console.error(error)
-    process.exit(1)
-  })
+  const hash = await crossChainArkContract.write.setBridgeOptions([
+    {
+      specifiedAdapter: userInput.bridgeOptions.specifiedAdapter,
+      adapterParams: userInput.bridgeOptions.adapterParams,
+    },
+  ])
+
+  console.log(kleur.yellow('Waiting for bridge options transaction to confirm...'))
+  const publicClient = await hre.viem.getPublicClient()
+  await publicClient.waitForTransactionReceipt({ hash })
+  console.log(kleur.green('Bridge options set successfully'))
+
+  return { crossChainArk: result.crossChainArk }
 }

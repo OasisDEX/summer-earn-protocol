@@ -25,24 +25,19 @@ export function createCrossChainArkModule(moduleName: string) {
     const bridgeQueue = m.getParameter('bridgeQueue')
     const bridgeRouter = m.getParameter('bridgeRouter')
     const targetChainId = m.getParameter('targetChainId')
-    const bridgeOptions = m.getParameter('bridgeOptions')
     const arkParams = m.getParameter('arkParams')
 
-    // Use the existing FleetProxy address instead of deploying a new one
+    // Use the existing FleetProxy address
     const fleetProxy = m.getParameter('fleetProxy')
 
-    // Deploy CrossChainArk with the FleetProxy address
+    // Deploy CrossChainArk without bridgeOptions parameter
     const crossChainArk = m.contract('CrossChainArk', [
       bridgeQueue,
       bridgeRouter,
       targetChainId,
       fleetProxy,
-      bridgeOptions,
       arkParams,
     ])
-
-    // No longer need to update FleetProxy here as it's now done separately
-    // in the update-fleet-proxy.ts script
 
     return { crossChainArk }
   })
