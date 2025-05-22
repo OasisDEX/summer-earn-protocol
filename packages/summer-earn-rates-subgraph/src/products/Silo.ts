@@ -1,8 +1,8 @@
 import { Address, BigInt } from '@graphprotocol/graph-ts'
-import { IGauge } from '../../generated/EntryPoint/IGauge'
 import { IGaugeHookReceiver } from '../../generated/EntryPoint/IGaugeHookReceiver'
 import { ISilo } from '../../generated/EntryPoint/ISilo'
 import { ISiloConfig } from '../../generated/EntryPoint/ISiloConfig'
+import { ISiloIncentivesController } from '../../generated/EntryPoint/ISiloIncentivesController'
 import { BigDecimalConstants } from '../constants/common'
 import { formatAmount } from '../utils/formatters'
 import { getOrCreateToken } from '../utils/initializers'
@@ -18,8 +18,8 @@ export class SiloProduct extends ERC4626Product {
     const gaugeHookReceiver = ISiloConfig.bind(silo.config()).getConfig(siloAddress).hookReceiver
     const gaugeHook = IGaugeHookReceiver.bind(gaugeHookReceiver)
     const gaugeAddress = gaugeHook.configuredGauges(siloAddress)
-    const gauge = IGauge.bind(gaugeAddress)
-    const programNames = gauge.getAllProgramsNames()
+    const incentivesController = ISiloIncentivesController.bind(gaugeAddress)
+    const programNames = incentivesController.getAllProgramsNames()
     const siloAsset = getOrCreateToken(silo.asset())
     const siloAssetPriceInUSD = getTokenPriceInUSD(
       Address.fromBytes(siloAsset.address),
@@ -32,7 +32,7 @@ export class SiloProduct extends ERC4626Product {
 
     for (let i = 0; i < programNames.length; i++) {
       const programName = programNames[i]
-      const program = gauge.incentivesProgram(programName)
+      const program = incentivesController.incentivesProgram(programName)
       const rewardToken = getOrCreateToken(program.rewardToken)
       const emissionsPerSecond = program.emissionPerSecond
       const emissionsPerSecondNormalized = formatAmount(emissionsPerSecond, rewardToken.decimals)

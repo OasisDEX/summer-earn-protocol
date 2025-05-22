@@ -695,6 +695,13 @@
             "market_20": "0x322e1d5384aa4ED66AeCa770B95686271de61dc3",
             "market_8": "0x4E216C15697C1392fE59e1014B009505E05810Df"
           }
+        },
+        "vaults": {
+          "usdce": {
+            "varlamore": "0xF6F87073cF8929C206A77b0694619DC776F89885",
+            "re7labs": "0xF75AE954D30217B4EE70DbFB33f04162aa3Cf260",
+            "apostro": "0xcca902f2d3d265151f123d8ce8FdAc38ba9745ed"
+          }
         }
       }
     }

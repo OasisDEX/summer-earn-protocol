@@ -21,5 +21,8 @@
   "LazyVault_LowerRisk_USDCe_Silo_market_8_usdce_146#SiloVaultArk": "0x42AAdE02448FdAf56Bbb153B2984E3d53DC531c1",
   "LazyVault_LowerRisk_USDCe_bummer_Silo_market_20_usdce_146#SiloVaultArk": "0xf127d2ab1dfc3A0F383D246300640c4C3F635F43",
   "LazyVault_LowerRisk_USDCe_bummer_Silo_market_8_usdce_146#SiloVaultArk": "0xcBbDF5dd22739988549dACDa57Ab966ecc16faF7",
-  "AdmiralsQuartersModule_20250506T105800249#AdmiralsQuarters": "0xC5B2E6fDbC3EBdc72AA070b8e4573d2c6D125459"
+  "AdmiralsQuartersModule_20250506T105800249#AdmiralsQuarters": "0xC5B2E6fDbC3EBdc72AA070b8e4573d2c6D125459",
+  "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_varlamore_usdce_146#SiloManagedVaultArk": "0x6FCF84Ed928985dB6084Cb993A7D0F764987dCeb",
+  "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_re7labs_usdce_146#SiloManagedVaultArk": "0x43A8363929E2B3Dea05C3C117e9c49Aa7FE28745",
+  "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_apostro_usdce_146#SiloManagedVaultArk": "0x552d109f4a5640E2c9124dDD3205D23859d284de"
 }
