@@ -152,38 +152,47 @@ export async function configureStargateAdapter(
     }
   }
 
-  // Add supported assets from pool-based specialized config
-  for (const [poolId, poolInfo] of Object.entries(stargateConfig.pools)) {
-    // For each pool
-    for (const [chainId, assetAddress] of Object.entries(poolInfo.assets)) {
-      console.log(
-        `Adding supported asset ${assetAddress} on chain ${chainId} with pool ID ${poolId}`,
-      )
+  // Get current chain ID
+  const currentChainId = Number(config.common.chainId).toString()
 
-      // Check if the asset is already supported
-      try {
-        const isSupported = await stargateAdapter.read.isAssetSupported([
-          Number(chainId),
-          assetAddress,
-        ])
-        if (!isSupported) {
-          const hash = await stargateAdapter.write.addSupportedAsset([
+  // SECOND: Add supported assets from pool-based specialized config
+  for (const [poolId, poolInfo] of Object.entries(stargateConfig.pools)) {
+    // Only add assets that exist on the current chain
+    const localAssetAddress = poolInfo.assets[currentChainId]
+
+    if (localAssetAddress) {
+      // For each destination chain
+      for (const chainId of Object.keys(poolInfo.assets)) {
+        // Skip if it's the current chain
+        if (chainId === currentChainId) continue
+
+        console.log(
+          `Adding supported asset ${localAssetAddress} for bridging to chain ${chainId} with pool ID ${poolId}`,
+        )
+
+        try {
+          const isSupported = await stargateAdapter.read.isAssetSupported([
             Number(chainId),
-            assetAddress,
-            Number(poolId),
+            localAssetAddress,
           ])
-          console.log(
-            kleur.green(
-              `Asset ${assetAddress} on chain ${chainId} added successfully, tx: ${hash}`,
-            ),
-          )
-        } else {
-          console.log(
-            kleur.yellow(`Asset ${assetAddress} on chain ${chainId} already supported, skipping`),
-          )
+
+          if (!isSupported) {
+            const hash = await stargateAdapter.write.addSupportedAsset([
+              Number(chainId),
+              localAssetAddress,
+              Number(poolId),
+            ])
+            console.log(
+              kleur.green(
+                `Asset mapping for ${localAssetAddress} to chain ${chainId} added successfully, tx: ${hash}`,
+              ),
+            )
+          } else {
+            console.log(kleur.yellow(`Asset mapping already supported, skipping`))
+          }
+        } catch (error) {
+          console.error(kleur.red(`Error adding asset mapping:`, error))
         }
-      } catch (error) {
-        console.error(kleur.red(`Error adding asset ${assetAddress} on chain ${chainId}:`), error)
       }
     }
   }
