@@ -43,6 +43,7 @@ import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
 import { updatePosition } from './entities/position'
+import { handleReferrals } from './entities/referral'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
 import {
@@ -104,6 +105,8 @@ export function handleDeposit(event: DepositEvent): void {
   updatePosition(positionDetails, event.block)
 
   createDepositEventEntity(event, positionDetails)
+
+  handleReferrals(event, account, positionDetails)
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {

@@ -974,6 +974,7 @@ type Account @entity @regularPolling {
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
 
+  referralData: ReferralData
 }
 
 # Helper entity for calculating daily/hourly active users
@@ -1650,3 +1651,20 @@ type GovernanceStaking @entity {
   summerStakedNormalized: BigDecimal!
   accounts: [Account!]!
 }
+
+
+type ReferralData @entity {
+  id: ID!
+  totalReferredUSD: BigDecimal!
+  referralAmounts: [ReferralAmount!]! @derivedFrom(field: "refferalData")
+  referredAccounts: [Account!]! @derivedFrom(field: "referralData")
+  }
+
+  type ReferralAmount @entity {
+    id: ID!
+    amount: BigInt!
+    amountNormalized: BigDecimal!
+    amountInUSD: BigDecimal!
+    token: Token!
+    refferalData: ReferralData!
+  }
