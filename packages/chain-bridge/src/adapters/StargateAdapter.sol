@@ -193,8 +193,8 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
             recipient
         );
 
-        // Transfer tokens from sender to this contract first
-        IERC20(asset).safeTransferFrom(originator, address(this), amount);
+        // Transfer tokens from BridgeRouter to this contract
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
         // Approve Stargate Router to spend the tokens
         IERC20(asset).approve(stargateRouter, 0);
