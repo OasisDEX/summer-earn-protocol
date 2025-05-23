@@ -95,11 +95,9 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
     const result = await client.request<CrossChainProposalsResponse>(CROSS_CHAIN_PROPOSALS_QUERY)
     allCrossChainProposals.push(...result.crossChainProposals)
   }
-  console.log(allCrossChainProposals.map((p) => p.id))
-  console.log(baseProposals.proposals.map((p) => p.dstIds))
+
   for (const proposal of baseProposals.proposals) {
     const crossChainProposals: CrossChainProposal[] = []
-    // Fetch cross-chain proposals from all chains
 
     // Filter cross-chain proposals that match the dstIds of the base proposal
     const matchingProposals = allCrossChainProposals.filter((ccp: CrossChainProposal) =>
