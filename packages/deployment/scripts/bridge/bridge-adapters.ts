@@ -132,23 +132,19 @@ export async function configureStargateAdapter(
   )
 
   // Add supported chains from specialized config
-  let chainAdditionPromises: Promise<any>[] = []
-  
   for (const chainInfo of stargateConfig.chainMapping) {
     console.log(
       `Adding supported chain ${chainInfo.chainId} with Stargate chain ID ${chainInfo.stargateChainId}`,
     )
 
+    // Check if the chain is already supported to avoid unnecessary transactions
     try {
       const isSupported = await stargateAdapter.read.supportsChain([chainInfo.chainId])
       if (!isSupported) {
-        const promise = stargateAdapter.write.addSupportedChain([
+        const hash = await stargateAdapter.write.addSupportedChain([
           chainInfo.chainId,
           chainInfo.stargateChainId,
         ])
-        chainAdditionPromises.push(promise)
-        
-        const hash = await promise
         console.log(kleur.green(`Chain ${chainInfo.chainId} added successfully, tx: ${hash}`))
       } else {
         console.log(kleur.yellow(`Chain ${chainInfo.chainId} already supported, skipping`))
@@ -156,14 +152,6 @@ export async function configureStargateAdapter(
     } catch (error) {
       console.error(kleur.red(`Error adding chain ${chainInfo.chainId}:`), error)
     }
-  }
-
-  // Wait for all chain additions to be confirmed before adding assets
-  if (chainAdditionPromises.length > 0) {
-    console.log(kleur.blue('Waiting for chain addition transactions to be confirmed...'))
-    await Promise.all(chainAdditionPromises)
-    // Add a small delay to ensure the state is updated
-    await new Promise(resolve => setTimeout(resolve, 2000))
   }
 
   // Get current chain ID
@@ -214,22 +202,12 @@ export async function configureStargateAdapter(
           )
 
           try {
-            // First ensure the destination chain is supported
-            const isChainSupported = await stargateAdapter.read.supportsChain([Number(chainId)])
-            if (!isChainSupported) {
-              console.log(kleur.yellow(`Destination chain ${chainId} not supported yet, will be added first`))
-              continue
-            }
-
             const isSupported = await stargateAdapter.read.isAssetSupported([
               Number(chainId),
               localAssetAddress,
             ])
 
             if (!isSupported) {
-              console.log(
-                kleur.blue(`Adding asset mapping for ${localAssetAddress} to chain ${chainId} with pool ID ${poolId}`)
-              )
               const hash = await stargateAdapter.write.addSupportedAsset([
                 Number(chainId),
                 localAssetAddress,
@@ -244,9 +222,7 @@ export async function configureStargateAdapter(
               console.log(kleur.yellow(`Asset mapping already supported, skipping`))
             }
           } catch (error) {
-            console.error(kleur.red(`Error adding asset mapping for chain ${chainId}, asset ${localAssetAddress}, pool ${poolId}:`))
-            console.error(kleur.red(`Error details: ${error instanceof Error ? error.message : String(error)}`))
-            // Continue with other assets instead of failing completely
+            console.error(kleur.red(`Error adding asset mapping:`, error))
           }
         }
       } else {
@@ -353,4 +329,209 @@ export async function configureLayerZeroAdapter(
       }
 
       console.log(
-        `
+        `Setting minimum gas limit for message type ${strMsgType} (${numMsgType}) to ${gasLimit}`,
+      )
+      try {
+        const hash = await layerZeroAdapter.write.setMinGasLimit([numMsgType, BigInt(gasLimit)])
+        console.log(
+          kleur.green(
+            `Minimum gas limit for message type ${strMsgType} set successfully, tx: ${hash}`,
+          ),
+        )
+      } catch (error) {
+        console.error(
+          kleur.red(`Error setting minimum gas limit for message type ${strMsgType}:`),
+          error,
+        )
+      }
+    }
+  }
+
+  // Register adapter with bridge router
+  try {
+    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
+    await bridgeRouter.write.registerAdapter([layerZeroAdapterAddress])
+    console.log(kleur.green(`LayerZero adapter registered with bridge router`))
+  } catch (error) {
+    console.error(kleur.red('Error registering adapter with bridge router:'), error)
+  }
+}
+
+/**
+ * Check if an adapter is already registered with the bridge router
+ * @param bridgeRouterAddress Address of the bridge router
+ * @param adapterAddress Address of the adapter to check
+ * @returns True if the adapter is already registered
+ */
+async function isAdapterRegistered(
+  bridgeRouterAddress: Address,
+  adapterAddress: Address,
+): Promise<boolean> {
+  try {
+    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter' as string, bridgeRouterAddress)
+
+    return (await bridgeRouter.read.isValidAdapter([adapterAddress])) as boolean
+  } catch (error) {
+    console.error(kleur.red('Error checking if adapter is registered:'), error)
+    return false
+  }
+}
+
+/**
+ * Wait for pending transactions to be confirmed
+ * @param requiredConfirmations Number of confirmations required (default: 5)
+ * @param checkIntervalMs Time in ms between checks (default: 5000)
+ * @param maxAttempts Maximum number of attempts (default: 24, 2 minutes total)
+ */
+async function waitForPendingTransactions(
+  requiredConfirmations = 5,
+  checkIntervalMs = 5000,
+  maxAttempts = 24,
+): Promise<void> {
+  const [deployer] = await hre.viem.getWalletClients()
+  const provider = await hre.viem.getPublicClient()
+  const address = deployer.account.address
+
+  console.log(kleur.yellow(`Checking for pending transactions from ${address}...`))
+
+  let attempts = 0
+  while (attempts < maxAttempts) {
+    try {
+      // Get the current nonce
+      const currentNonce = await provider.getTransactionCount({ address })
+
+      // Get the pending nonce
+      const pendingNonce = await provider.getTransactionCount({
+        address,
+        blockTag: 'pending',
+      })
+
+      if (currentNonce === pendingNonce) {
+        console.log(kleur.green('No pending transactions found, continuing...'))
+        return
+      }
+
+      console.log(
+        kleur.yellow(
+          `Waiting for ${pendingNonce - currentNonce} transactions to be confirmed (${attempts + 1}/${maxAttempts})...`,
+        ),
+      )
+
+      // Wait for the specified interval
+      await new Promise((resolve) => setTimeout(resolve, checkIntervalMs))
+      attempts++
+    } catch (error) {
+      console.error(kleur.red('Error checking pending transactions:'), error)
+      attempts++
+      // Continue anyway, but log the error
+    }
+  }
+
+  console.log(kleur.yellow('Max wait time reached, proceeding anyway...'))
+}
+
+/**
+ * Deploy and configure bridge adapters
+ * @param bridgeRouterAddress Address of the deployed BridgeRouter
+ * @param networkConfig Network configuration
+ * @returns Deployed bridge adapters
+ */
+export async function deployBridgeAdapters(
+  bridgeRouterAddress: Address,
+  networkConfig: any,
+): Promise<DeployedBridgeAdapters> {
+  console.log(kleur.cyan().bold('Starting bridge adapters deployment...'))
+
+  const deployedAdapters: DeployedBridgeAdapters = {}
+
+  // Check if LayerZero adapter is already registered
+  const existingLayerZeroAddress =
+    networkConfig.deployedContracts.bridge?.adapters?.layerZero?.address
+  if (existingLayerZeroAddress) {
+    const isRegistered = await isAdapterRegistered(
+      bridgeRouterAddress,
+      existingLayerZeroAddress as Address,
+    )
+    if (isRegistered) {
+      console.log(kleur.yellow('LayerZero adapter already registered, skipping deployment'))
+      deployedAdapters.layerZero = { address: existingLayerZeroAddress as Address }
+    } else {
+      // Deploy LayerZero adapter if not registered
+      try {
+        const layerZeroAdapterAddress = await deployLayerZeroAdapter(
+          bridgeRouterAddress,
+          networkConfig,
+        )
+        deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
+
+        // Configure the adapter post-deployment
+        await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
+      } catch (error) {
+        console.error(kleur.red('Error deploying LayerZero adapter:'), error)
+      }
+    }
+  } else {
+    // Deploy LayerZero adapter if not in config
+    try {
+      const layerZeroAdapterAddress = await deployLayerZeroAdapter(
+        bridgeRouterAddress,
+        networkConfig,
+      )
+      deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
+
+      // Configure the adapter post-deployment
+      await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
+    } catch (error) {
+      console.error(kleur.red('Error deploying LayerZero adapter:'), error)
+    }
+  }
+
+  // Wait for LayerZero adapter transactions to be confirmed before deploying Stargate adapter
+  console.log(kleur.blue('Waiting for LayerZero adapter transactions to be confirmed...'))
+  await waitForPendingTransactions()
+
+  // Check if Stargate adapter is already registered
+  const existingStargateAddress =
+    networkConfig.deployedContracts.bridge?.adapters?.stargate?.address
+  if (existingStargateAddress) {
+    const isRegistered = await isAdapterRegistered(
+      bridgeRouterAddress,
+      existingStargateAddress as Address,
+    )
+    if (isRegistered) {
+      console.log(kleur.yellow('Stargate adapter already registered, skipping deployment'))
+      deployedAdapters.stargate = { address: existingStargateAddress as Address }
+    } else {
+      // Deploy Stargate adapter if not registered
+      try {
+        const stargateAdapterAddress = await deployStargateAdapter(
+          bridgeRouterAddress,
+          networkConfig,
+        )
+        deployedAdapters.stargate = { address: stargateAdapterAddress }
+
+        // Configure the adapter post-deployment
+        const stargateConfig = { bridgeRouterAddress }
+        await configureStargateAdapter(stargateAdapterAddress, stargateConfig, networkConfig)
+      } catch (error) {
+        console.error(kleur.red('Error deploying Stargate adapter:'), error)
+      }
+    }
+  } else {
+    // Deploy Stargate adapter if not in config
+    try {
+      const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
+      deployedAdapters.stargate = { address: stargateAdapterAddress }
+
+      // Configure the adapter post-deployment
+      const stargateConfig = { bridgeRouterAddress }
+      await configureStargateAdapter(stargateAdapterAddress, stargateConfig, networkConfig)
+    } catch (error) {
+      console.error(kleur.red('Error deploying Stargate adapter:'), error)
+    }
+  }
+
+  console.log(kleur.green().bold('Bridge adapters deployment completed!'))
+
+  return deployedAdapters
+}
