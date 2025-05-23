@@ -111,7 +111,7 @@ async function deployAdapters() {
       !isAddressEqual(
         config.deployedContracts.bridge.adapters.layerZero.address as Address,
         zeroAddress,
-      )) ||
+      )) &&
     (config.deployedContracts.bridge?.adapters?.stargate?.address &&
       !isAddressEqual(
         config.deployedContracts.bridge.adapters.stargate.address as Address,

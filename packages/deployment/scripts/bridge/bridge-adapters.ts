@@ -368,12 +368,66 @@ async function isAdapterRegistered(
   adapterAddress: Address,
 ): Promise<boolean> {
   try {
-    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
-    return await bridgeRouter.read.isValidAdapter([adapterAddress])
+    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter' as string, bridgeRouterAddress)
+
+    return (await bridgeRouter.read.isValidAdapter([adapterAddress])) as boolean
   } catch (error) {
     console.error(kleur.red('Error checking if adapter is registered:'), error)
     return false
   }
+}
+
+/**
+ * Wait for pending transactions to be confirmed
+ * @param requiredConfirmations Number of confirmations required (default: 5)
+ * @param checkIntervalMs Time in ms between checks (default: 5000)
+ * @param maxAttempts Maximum number of attempts (default: 24, 2 minutes total)
+ */
+async function waitForPendingTransactions(
+  requiredConfirmations = 5,
+  checkIntervalMs = 5000,
+  maxAttempts = 24,
+): Promise<void> {
+  const [deployer] = await hre.viem.getWalletClients()
+  const provider = await hre.viem.getPublicClient()
+  const address = deployer.account.address
+
+  console.log(kleur.yellow(`Checking for pending transactions from ${address}...`))
+
+  let attempts = 0
+  while (attempts < maxAttempts) {
+    try {
+      // Get the current nonce
+      const currentNonce = await provider.getTransactionCount({ address })
+
+      // Get the pending nonce
+      const pendingNonce = await provider.getTransactionCount({
+        address,
+        blockTag: 'pending',
+      })
+
+      if (currentNonce === pendingNonce) {
+        console.log(kleur.green('No pending transactions found, continuing...'))
+        return
+      }
+
+      console.log(
+        kleur.yellow(
+          `Waiting for ${pendingNonce - currentNonce} transactions to be confirmed (${attempts + 1}/${maxAttempts})...`,
+        ),
+      )
+
+      // Wait for the specified interval
+      await new Promise((resolve) => setTimeout(resolve, checkIntervalMs))
+      attempts++
+    } catch (error) {
+      console.error(kleur.red('Error checking pending transactions:'), error)
+      attempts++
+      // Continue anyway, but log the error
+    }
+  }
+
+  console.log(kleur.yellow('Max wait time reached, proceeding anyway...'))
 }
 
 /**
@@ -431,6 +485,10 @@ export async function deployBridgeAdapters(
       console.error(kleur.red('Error deploying LayerZero adapter:'), error)
     }
   }
+
+  // Wait for LayerZero adapter transactions to be confirmed before deploying Stargate adapter
+  console.log(kleur.blue('Waiting for LayerZero adapter transactions to be confirmed...'))
+  await waitForPendingTransactions()
 
   // Check if Stargate adapter is already registered
   const existingStargateAddress =
