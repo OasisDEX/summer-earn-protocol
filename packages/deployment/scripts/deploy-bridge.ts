@@ -38,31 +38,10 @@ async function deployBridge() {
     throw new Error('Failed to load all network configurations')
   }
 
-  // Check for existing contracts
-  if (config.deployedContracts.bridge) {
-    const bridgeContracts = config.deployedContracts.bridge
-    if (
-      bridgeContracts.bridgeRouter?.address &&
-      bridgeContracts.bridgeRouter.address !== '0x0000000000000000000000000000000000000000'
-    ) {
-      throw new Error(
-        `BridgeRouter is already deployed at ${bridgeContracts.bridgeRouter.address}. Cannot redeploy.`,
-      )
-    }
-    if (
-      bridgeContracts.bridgeQueue?.address &&
-      bridgeContracts.bridgeQueue.address !== '0x0000000000000000000000000000000000000000'
-    ) {
-      throw new Error(
-        `BridgeQueue is already deployed at ${bridgeContracts.bridgeQueue.address}. Cannot redeploy.`,
-      )
-    }
-  }
-
   console.log(kleur.green().bold('Starting bridge deployment...'))
 
   try {
-    // Deploy core bridge contracts
+    // Deploy core bridge contracts - Ignition will handle partial deployment
     const deployedBridge = await deployBridgeContracts(config, allConfigs)
 
     console.log(kleur.green().bold('Bridge deployment completed successfully!'))
