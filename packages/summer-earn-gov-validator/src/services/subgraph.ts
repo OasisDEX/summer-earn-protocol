@@ -4,8 +4,12 @@ const SUBGRAPH_ENDPOINTS = {
   base:
     process.env.NEXT_PUBLIC_BASE_SUBGRAPH_URL ||
     'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-base',
-  //   arbitrum: process.env.NEXT_PUBLIC_ARBITRUM_SUBGRAPH_URL || 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-arbitrum',
-  //   sonic: process.env.NEXT_PUBLIC_SONIC_SUBGRAPH_URL || 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-sonic',
+  arbitrum:
+    process.env.NEXT_PUBLIC_ARBITRUM_SUBGRAPH_URL ||
+    'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-arbitrum',
+  sonic:
+    process.env.NEXT_PUBLIC_SONIC_SUBGRAPH_URL ||
+    'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-sonic',
   mainnet:
     process.env.NEXT_PUBLIC_MAINNET_SUBGRAPH_URL ||
     'https://subgraph.staging.oasisapp.dev/summer-protocol-gov',
