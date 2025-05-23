@@ -198,18 +198,6 @@ export async function deployCrossChainArk(
   // Find the protocol configuration
   const protocolConfig = findProtocolConfigInData(crossChainConfig, targetChainId, targetProtocol)
 
-  if (!protocolConfig || !protocolConfig.fleetProxyAddress) {
-    console.error(
-      kleur.red(
-        `FleetProxy address not found for chain ${targetChainId} and protocol ${targetProtocol}.`,
-      ),
-    )
-    console.error(
-      kleur.red('Please deploy FleetProxy first using the deploy-fleet-proxy.ts script.'),
-    )
-    throw new Error('FleetProxy must be deployed before CrossChainArk')
-  }
-
   const userInput =
     arkParams ||
     (await getUserInput(
