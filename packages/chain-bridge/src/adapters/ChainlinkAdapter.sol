@@ -104,4 +104,15 @@ contract ChainlinkAdapter is IBridgeAdapter {
     ) external payable returns (bytes32) {
         revert OperationNotSupported();
     }
+
+    // Add setter function (bridgeRouter already exists as mutable)
+    function setBridgeRouter(address newBridgeRouter) external {
+        // Note: ChainlinkAdapter doesn't inherit Ownable, you may need to add access control
+        if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
+
+        address oldRouter = bridgeRouter;
+        bridgeRouter = newBridgeRouter;
+
+        emit BridgeRouterUpdated(oldRouter, newBridgeRouter);
+    }
 }

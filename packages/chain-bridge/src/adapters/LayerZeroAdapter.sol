@@ -32,7 +32,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The BridgeRouter that manages this adapter
-    address public immutable bridgeRouter;
+    address public bridgeRouter;
 
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
@@ -175,6 +175,20 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         delete chainToLzEid[chainId];
         delete lzEidToChain[lzEid];
         _supportedChainIds.remove(chainId);
+    }
+
+    /**
+     * @notice Updates the bridge router address (governance only)
+     * @param newBridgeRouter Address of the new bridge router
+     * @dev Can only be called by contract owner/governance
+     */
+    function setBridgeRouter(address newBridgeRouter) external onlyOwner {
+        if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
+
+        address oldRouter = bridgeRouter;
+        bridgeRouter = newBridgeRouter;
+
+        emit BridgeRouterUpdated(oldRouter, newBridgeRouter);
     }
 
     /*//////////////////////////////////////////////////////////////

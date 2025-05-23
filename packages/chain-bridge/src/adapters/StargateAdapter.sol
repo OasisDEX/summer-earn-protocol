@@ -27,7 +27,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The BridgeRouter that manages this adapter
-    address public immutable bridgeRouter;
+    address public bridgeRouter;
 
     /// @notice Address of the Stargate Router contract
     address public immutable stargateRouter;
@@ -58,6 +58,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
 
     /// @notice Emitted when an asset support is added
     event AssetSupported(uint16 chainId, address asset, uint256 poolId);
+
+    /// @notice Emitted when bridge router is updated
+    event BridgeRouterUpdated(address oldRouter, address newRouter);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -147,6 +150,20 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         }
 
         emit AssetSupported(chainId, asset, poolId);
+    }
+
+    /**
+     * @notice Updates the bridge router address (governance only)
+     * @param newBridgeRouter Address of the new bridge router
+     * @dev Can only be called by contract owner/governance
+     */
+    function setBridgeRouter(address newBridgeRouter) external onlyOwner {
+        if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
+
+        address oldRouter = bridgeRouter;
+        bridgeRouter = newBridgeRouter;
+
+        emit BridgeRouterUpdated(oldRouter, newBridgeRouter);
     }
 
     /*//////////////////////////////////////////////////////////////

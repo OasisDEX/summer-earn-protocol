@@ -37,6 +37,9 @@ interface IBridgeAdapter is ISendAdapter {
     /// @notice Emitted when a relay or messaging operation fails
     event RelayFailed(bytes32 indexed transferId, bytes reason);
 
+    /// @notice Emitted when bridge router is updated
+    event BridgeRouterUpdated(address oldRouter, address newRouter);
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -61,6 +64,9 @@ interface IBridgeAdapter is ISendAdapter {
 
     /// @notice Thrown when a read channel is not configured for a chain
     error ReadChannelNotConfigured();
+
+    /// @notice Thrown when trying to set bridge router to zero address
+    error InvalidBridgeRouter();
 
     /**
      * @notice Estimate fees for a cross-chain operation
@@ -105,4 +111,11 @@ interface IBridgeAdapter is ISendAdapter {
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) external view returns (bool);
+
+    /**
+     * @notice Updates the bridge router address (governance only)
+     * @param newBridgeRouter Address of the new bridge router
+     * @dev Can only be called by contract owner/governance
+     */
+    function setBridgeRouter(address newBridgeRouter) external;
 }
