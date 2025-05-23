@@ -192,9 +192,38 @@ export async function configureStargateAdapter(
       const localAssetAddress = poolInfo.assets[currentChainId]
 
       if (localAssetAddress) {
-        // For each destination chain
+        // FIRST: Configure the asset for the current chain (source pool)
+        console.log(
+          `Adding supported asset ${localAssetAddress} for current chain ${currentChainId} with pool ID ${poolId}`,
+        )
+
+        try {
+          const isSupported = await stargateAdapter.read.isAssetSupported([
+            Number(currentChainId),
+            localAssetAddress,
+          ])
+
+          if (!isSupported) {
+            const hash = await stargateAdapter.write.addSupportedAsset([
+              Number(currentChainId),
+              localAssetAddress,
+              Number(poolId),
+            ])
+            console.log(
+              kleur.green(
+                `Asset mapping for ${localAssetAddress} on current chain ${currentChainId} added successfully, tx: ${hash}`,
+              ),
+            )
+          } else {
+            console.log(kleur.yellow(`Asset mapping for current chain already supported, skipping`))
+          }
+        } catch (error) {
+          console.error(kleur.red(`Error adding asset mapping for current chain:`, error))
+        }
+
+        // SECOND: Configure the asset for destination chains
         for (const chainId of Object.keys(poolInfo.assets)) {
-          // Skip if it's the current chain
+          // Skip if it's the current chain (already configured above)
           if (chainId === currentChainId) continue
 
           console.log(
