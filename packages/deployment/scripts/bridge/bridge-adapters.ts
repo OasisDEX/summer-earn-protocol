@@ -406,16 +406,60 @@ async function waitForPendingTransactions(
         blockTag: 'pending',
       })
 
-      if (currentNonce === pendingNonce) {
-        console.log(kleur.green('No pending transactions found, continuing...'))
-        return
+      // First check if there are any pending transactions
+      if (currentNonce !== pendingNonce) {
+        console.log(
+          kleur.yellow(
+            `Waiting for ${pendingNonce - currentNonce} transactions to be mined (${attempts + 1}/${maxAttempts})...`,
+          ),
+        )
+        await new Promise((resolve) => setTimeout(resolve, checkIntervalMs))
+        attempts++
+        continue
       }
 
-      console.log(
-        kleur.yellow(
-          `Waiting for ${pendingNonce - currentNonce} transactions to be confirmed (${attempts + 1}/${maxAttempts})...`,
-        ),
-      )
+      // Now check if recent transactions have enough confirmations
+      const latestBlock = await provider.getBlockNumber()
+
+      // Check transactions from recent blocks to see if any are from our deployer
+      let hasRecentTransactions = false
+
+      // Look back a few blocks to find recent transactions from this address
+      for (let i = 0; i < Math.min(5, Number(latestBlock)); i++) {
+        const blockNumber = latestBlock - BigInt(i)
+        try {
+          const block = await provider.getBlock({ blockNumber, includeTransactions: true })
+
+          if (block.transactions) {
+            for (const tx of block.transactions) {
+              if (typeof tx === 'object' && tx.from?.toLowerCase() === address.toLowerCase()) {
+                const confirmations = Number(latestBlock - blockNumber) + 1
+                if (confirmations < requiredConfirmations) {
+                  console.log(
+                    kleur.yellow(
+                      `Transaction ${tx.hash} has ${confirmations}/${requiredConfirmations} confirmations (${attempts + 1}/${maxAttempts})...`,
+                    ),
+                  )
+                  hasRecentTransactions = true
+                  break
+                }
+              }
+            }
+          }
+        } catch (error) {
+          // If we can't get a block, just continue
+          continue
+        }
+
+        if (hasRecentTransactions) break
+      }
+
+      if (!hasRecentTransactions) {
+        console.log(
+          kleur.green('All recent transactions have sufficient confirmations, continuing...'),
+        )
+        return
+      }
 
       // Wait for the specified interval
       await new Promise((resolve) => setTimeout(resolve, checkIntervalMs))
