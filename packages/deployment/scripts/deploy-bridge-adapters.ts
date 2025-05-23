@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import readline from 'readline'
-import { Address } from 'viem'
+import { Address, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../types/config-types'
 import {
   configureLayerZeroAdapter,
@@ -107,8 +107,16 @@ async function deployAdapters() {
 
   // Check if we want to reconfigure existing adapters
   const hasExistingAdapters =
-    config.deployedContracts.bridge?.adapters?.layerZero?.address ||
-    config.deployedContracts.bridge?.adapters?.stargate?.address
+    (config.deployedContracts.bridge?.adapters?.layerZero?.address &&
+      !isAddressEqual(
+        config.deployedContracts.bridge.adapters.layerZero.address as Address,
+        zeroAddress,
+      )) ||
+    (config.deployedContracts.bridge?.adapters?.stargate?.address &&
+      !isAddressEqual(
+        config.deployedContracts.bridge.adapters.stargate.address as Address,
+        zeroAddress,
+      ))
 
   let reconfigureOnly = false
   if (hasExistingAdapters) {
