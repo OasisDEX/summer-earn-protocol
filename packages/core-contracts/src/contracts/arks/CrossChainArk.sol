@@ -5,18 +5,15 @@ import "../Ark.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
-import {ProtocolAccessManagedExt} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedExt.sol";
+import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
+import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 
 /**
  * @title CrossChainArk
  * @notice Ark contract for managing cross-chain deposits and withdrawals
  * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages
  */
-contract CrossChainArk is
-    Ark,
-    ICrossChainAssetReceiver,
-    ProtocolAccessManagedExt
-{
+contract CrossChainArk is Ark, ICrossChainAssetReceiver {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -103,6 +100,13 @@ contract CrossChainArk is
         address indexed newProxy
     );
 
+    /// @notice Emitted when a remote asset balance update is requested
+    event RemoteAssetBalanceUpdateRequested(
+        bytes32 indexed queueId,
+        uint16 targetChainId,
+        address targetProxy
+    );
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -137,9 +141,7 @@ contract CrossChainArk is
 
     /// @notice Set new target proxy address
     /// @param _targetProxy The new target proxy address
-    function setTargetProxy(
-        address _targetProxy
-    ) external onlyGovernorOrKeeper {
+    function setTargetProxy(address _targetProxy) external onlyGovernor {
         if (_targetProxy == address(0)) revert InvalidTargetProxy();
 
         address oldProxy = targetProxy;
@@ -160,6 +162,33 @@ contract CrossChainArk is
 
         inflightAssets = amount;
         emit InflightAssetsUpdated(amount);
+    }
+
+    /// @notice Requests a state read to update the remote asset balance
+    /// @dev Can be called by keeper or governor to queue a cross-chain state read.
+    /// The actual execution (with fees and options) will be done separately by a keeper calling
+    /// BridgeQueue.executeQueuedOperation()
+    /// @return queueId The ID of the queued state read operation
+    function requestRemoteAssetBalanceUpdate()
+        external
+        onlyKeeper
+        returns (bytes32 queueId)
+    {
+        if (targetProxy == address(0)) revert InvalidTargetProxy();
+
+        // Queue a state read to get the total assets from the FleetProxy on the target chain
+        queueId = bridgeQueue.queueReadState(
+            targetChainId,
+            targetProxy,
+            IFleetProxy.totalAssets.selector,
+            ""
+        );
+
+        emit RemoteAssetBalanceUpdateRequested(
+            queueId,
+            targetChainId,
+            targetProxy
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

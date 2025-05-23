@@ -7,8 +7,7 @@ import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ProtocolAccessManagedExt, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedExt.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManaged, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
@@ -23,7 +22,7 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
  */
 contract CrossChainFleetProxy is
     IFleetProxy,
-    ProtocolAccessManagedExt,
+    ProtocolAccessManaged,
     ReentrancyGuard,
     Pausable,
     IERC165
