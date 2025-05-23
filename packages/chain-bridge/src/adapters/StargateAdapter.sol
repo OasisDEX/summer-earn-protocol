@@ -59,9 +59,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     /// @notice Emitted when an asset support is added
     event AssetSupported(uint16 chainId, address asset, uint256 poolId);
 
-    /// @notice Emitted when bridge router is updated
-    event BridgeRouterUpdated(address oldRouter, address newRouter);
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
