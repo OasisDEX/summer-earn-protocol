@@ -41,7 +41,7 @@ async function deployBridge() {
   console.log(kleur.green().bold('Starting bridge deployment...'))
 
   try {
-    // Deploy core bridge contracts - Ignition will handle partial deployment
+    // Deploy core bridge contracts - handles partial deployment automatically
     const deployedBridge = await deployBridgeContracts(config, allConfigs)
 
     console.log(kleur.green().bold('Bridge deployment completed successfully!'))
