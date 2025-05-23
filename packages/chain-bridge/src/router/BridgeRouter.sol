@@ -230,9 +230,15 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Assuming the BridgeQueue has already ensured the Router has the necessary tokens.
-        // Approve the adapter to spend the Router's tokens.
-        IERC20(params.asset).approve(selectedAdapter, 0); // Reset approval first
+        // Pull tokens from BridgeQueue to Router first
+        IERC20(params.asset).safeTransferFrom(
+            bridgeQueue, // BridgeQueue approved us
+            address(this), // Transfer to Router
+            params.amount
+        );
+
+        // Now approve the adapter to spend Router's tokens
+        IERC20(params.asset).approve(selectedAdapter, 0);
         IERC20(params.asset).approve(selectedAdapter, params.amount);
 
         // Notify originator that assets are now officially in-flight
