@@ -12,10 +12,10 @@ export type CrossChainArkContracts = {
  * Factory function to create a CrossChainArkModule for deploying CrossChainArk on the source chain
  *
  * This function creates a module that deploys:
- * - CrossChainArk on the source chain that points to an existing FleetProxy on the satellite chain
+ * - CrossChainArk on the source chain with targetProxy initially set to address(0)
  *
- * Note: FleetProxy must be deployed first using the deploy-fleet-proxy.ts script
- * Now the targetProxy can be set to zero address during deployment and configured later
+ * Note: FleetProxy can be deployed before or after the CrossChainArk.
+ * The targetProxy can be configured later using the setTargetProxy() function.
  *
  * @param {string} moduleName - Name of the module
  * @returns {Function} A function that builds the module

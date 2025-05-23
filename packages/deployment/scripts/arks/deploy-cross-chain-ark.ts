@@ -41,11 +41,13 @@ export async function deployCrossChainArk(
 ) {
   console.log(kleur.green().bold('Starting CrossChainArk deployment process...'))
   console.log(kleur.yellow('Note: CrossChainArk should be deployed on the source chain.'))
-  console.log(kleur.yellow('A FleetProxy should be deployed on the satellite chain.'))
+  console.log(kleur.yellow('FleetProxy can be deployed on the satellite chain before or after.'))
   console.log(kleur.yellow('Deployment steps:'))
   console.log(kleur.cyan('1. Deploy bridge components on the source and satellite chains'))
-  console.log(kleur.cyan('2. Deploy FleetProxy on the satellite chain'))
-  console.log(kleur.cyan('3. Deploy CrossChainArk on the source chain (this step)'))
+  console.log(kleur.cyan('2. Deploy CrossChainArk on the source chain (this step)'))
+  console.log(
+    kleur.cyan('3. Deploy FleetProxy on the satellite chain (optional, can be done later)'),
+  )
   console.log(kleur.cyan('4. Configure CrossChainArk and FleetProxy to point to each other'))
   console.log(
     kleur.yellow('Note: These components can be deployed in any order and configured later.'),
@@ -218,10 +220,6 @@ export async function deployCrossChainArk(
       console.error(kleur.red('Bridge Router address is required in arkParams.'))
       throw new Error('Bridge Router address is required')
     }
-    if (!arkParams.fleetProxyAddress) {
-      console.error(kleur.red('Fleet Proxy address is required in arkParams.'))
-      throw new Error('Fleet Proxy address is required')
-    }
   }
 
   if (await confirmDeployment(userInput, config, arkParams != undefined)) {
@@ -305,7 +303,7 @@ async function getUserInput(
     throw new Error('Bridge Router address is required')
   }
 
-  const fleetProxyAddress = protocolConfig.fleetProxyAddress as Address
+  const fleetProxyAddress = protocolConfig?.fleetProxyAddress as Address | undefined
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
 
   // Get other parameters from user
@@ -330,19 +328,45 @@ async function getUserInput(
     },
   ])
 
-  // Get the asset from the cross-chain config
-  const assetSymbol = protocolConfig.asset.symbol
+  // Get the asset from the cross-chain config or prompt user
+  let assetSymbol = protocolConfig?.asset?.symbol
+  let assetAddress: Address
+
   if (!assetSymbol) {
-    throw new Error('Asset symbol not found in cross-chain config. Please deploy FleetProxy first.')
+    console.log(
+      kleur.yellow(
+        'Asset not found in cross-chain config. This is normal if FleetProxy is not deployed yet.',
+      ),
+    )
+
+    // Prompt user for asset selection
+    const tokenChoices = Object.keys(config.tokens).map((token) => ({
+      title: token.toUpperCase(),
+      value: token,
+    }))
+
+    const { selectedAsset } = await prompts({
+      type: 'select',
+      name: 'selectedAsset',
+      message: 'Select the asset for this CrossChainArk:',
+      choices: tokenChoices,
+    })
+
+    if (!selectedAsset) {
+      throw new Error('Asset selection is required')
+    }
+
+    assetSymbol = selectedAsset.toUpperCase()
+    assetAddress = config.tokens[selectedAsset] as Address
+  } else {
+    // Get the asset address from the current chain's config
+    assetAddress = config.tokens[assetSymbol.toLowerCase() as keyof typeof config.tokens] as Address
+    if (!assetAddress) {
+      throw new Error(`Asset address not found for symbol ${assetSymbol} on current chain`)
+    }
   }
 
-  // Get the asset address from the current chain's config
-  const assetAddress = config.tokens[assetSymbol.toLowerCase() as keyof typeof config.tokens]
-  if (!assetAddress) {
-    throw new Error(`Asset address not found for symbol ${assetSymbol} on current chain`)
-  }
-
-  console.log(kleur.green(`Using asset from config: ${assetSymbol}`))
+  console.log(kleur.green(`Using asset: ${assetSymbol}`))
 
   return {
     ...responses,
