@@ -274,9 +274,6 @@ export async function deployArk(
       }
 
       const protocol = destination.protocols.find((p: any) => p.protocol === targetProtocol)
-      if (!protocol?.fleetProxyAddress) {
-        throw new Error(`FleetProxy address not found for protocol ${targetProtocol}`)
-      }
 
       deployedArk = await deployCrossChainArk(config, {
         ...baseArkParams,
