@@ -33,14 +33,18 @@ export function getPositionDetails(
     rewardsManagerContract.try_balanceOf(account),
     constants.BigIntConstants.ZERO,
   )
-  const unstakedInputToken = utils.readValue<BigInt>(
-    vaultContract.try_convertToAssets(unstakedShares),
-    constants.BigIntConstants.ZERO,
-  )
-  const stakedInputToken = utils.readValue<BigInt>(
-    vaultContract.try_convertToAssets(stakedShares),
-    constants.BigIntConstants.ZERO,
-  )
+  const unstakedInputToken = utils.isZeroBigInt(unstakedShares)
+    ? constants.BigIntConstants.ZERO
+    : utils.readValue<BigInt>(
+        vaultContract.try_convertToAssets(unstakedShares),
+        constants.BigIntConstants.ZERO,
+      )
+  const stakedInputToken = utils.isZeroBigInt(stakedShares)
+    ? constants.BigIntConstants.ZERO
+    : utils.readValue<BigInt>(
+        vaultContract.try_convertToAssets(stakedShares),
+        constants.BigIntConstants.ZERO,
+      )
   const unstakedInputTokenNormalized = formatAmount(
     unstakedInputToken,
     BigInt.fromI32(vaultDetails.inputToken.decimals),

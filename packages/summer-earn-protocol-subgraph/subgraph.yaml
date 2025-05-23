@@ -1,19 +1,14 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
-features:
-  - grafting
-graft:
-  base: QmbVtbX3nPRgnQnjX44wBwc9DCwADEUEHjPCHy6uhdoGJy
-  block: 22273480    
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: HarborCommand
-      address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
-      startBlock: 21745351
+      address: "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
+      startBlock: 14240190
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -52,7 +47,9 @@ dataSources:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json          
+          file: ./abis/GovernanceRewardsManager.abi.json    
+        - name: Multicall
+          file: ./abis/common/Multicall.json
       eventHandlers:
         - event: FleetCommanderEnlisted(indexed address)
           handler: handleFleetCommanderEnlisted
@@ -61,15 +58,15 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 30 
+            every: 120 
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: GovernanceRewardsManager
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: GovernanceRewardsManager
-      address: "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92"
-      startBlock: 21745351
+      address: "0xA02205E8E0e2dC64f6093b1eF1B2691866A45B95"
+      startBlock: 14240190
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -132,7 +129,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -215,7 +212,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: Ark
     mapping:
@@ -278,7 +275,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: mainnet
+    network: sonic-mainnet
     source:
       abi: FleetCommanderRewardsManager
     mapping:

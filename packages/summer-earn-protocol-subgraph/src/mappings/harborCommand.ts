@@ -1,20 +1,30 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
 import { Vault, YieldAggregator } from '../../generated/schema'
-import { BigIntConstants } from '../common/constants'
+import { addresses } from '../common/addressProvider'
+import { BigDecimalConstants, BigIntConstants } from '../common/constants'
 import {
-  getOrCreateAccount,
   getOrCreateArksDailySnapshots,
   getOrCreateArksHourlySnapshots,
+  getOrCreatePosition,
   getOrCreatePositionDailySnapshot,
   getOrCreatePositionHourlySnapshot,
+  getOrCreatePositionRewards,
   getOrCreatePositionWeeklySnapshot,
+  getOrCreateToken,
   getOrCreateVault,
   getOrCreateVaultWeeklySnapshots,
   getOrCreateVaultsDailySnapshots,
   getOrCreateVaultsHourlySnapshots,
   getOrCreateYieldAggregator,
 } from '../common/initializers'
+import {
+  decodeValues,
+  encodeFunctionCalldata,
+  makeMulticall,
+  prepareMulicallCall,
+} from '../common/multicall'
+import { formatAmount } from '../common/utils'
 import { getArkDetails } from '../utils/ark'
 import { getVaultDetails } from '../utils/vault'
 import {
@@ -25,10 +35,7 @@ import {
 } from '../utils/vaultRateHandlers'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
-import {
-  getOrCreateGovernanceStaking,
-  updateAccountStakingRewards,
-} from './governanceRewardsManager'
+import { updateAccountStakingRewards } from './governanceRewardsManager'
 
 export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
   getOrCreateVault(event.params.fleetCommander, event.block)
@@ -132,6 +139,60 @@ function processHourlyVaultUpdate(
         }
       }
     }
+    const positionsToUpdate: string[] = []
+    const ownersOfPositions: string[] = []
+    for (let i = 0; i < positions.length; i++) {
+      const position = getOrCreatePosition(positions[i], block)
+      if (position.stakedInputTokenBalanceNormalized.gt(BigDecimalConstants.ZERO)) {
+        positionsToUpdate.push(positions[i])
+        ownersOfPositions.push(position.account)
+      }
+    }
+    log.error('[harborCommand] - block {} time taken for positionsToUpdate:', [
+      block.number.toString(),
+    ])
+    if (positionsToUpdate.length > 0 && vault.rewardTokens.length > 0) {
+      const rewardTokenAddress = Address.fromString(vault.rewardTokens[0])
+      const rewardToken = getOrCreateToken(rewardTokenAddress)
+
+      let calls = new Array<ethereum.Tuple>(positionsToUpdate.length)
+      for (let i = 0; i < positionsToUpdate.length; i++) {
+        calls[i] = prepareMulicallCall(
+          Address.fromBytes(vault.stakingRewardsManager),
+          encodeFunctionCalldata(
+            'earned(address,address)',
+            ['address', 'address'],
+            [ownersOfPositions[i], rewardTokenAddress.toHexString()],
+          ),
+        )
+      }
+      const multicallResult = makeMulticall(calls)
+      log.error('[harborCommand] - block {} time taken for multicall', [block.number.toString()])
+      const multiCallResponseData = multicallResult.value.value1
+      for (let i = 0; i < multiCallResponseData.length; i++) {
+        const position = getOrCreatePosition(positionsToUpdate[i], block)
+        const results = decodeValues('uint256', multiCallResponseData[i])
+        const claimableNormalized = formatAmount(
+          BigInt.fromString(results[0]),
+          BigInt.fromI32(rewardToken.decimals),
+        )
+        const positionRewards = getOrCreatePositionRewards(positionsToUpdate[i], rewardToken, block)
+
+        positionRewards.claimable = BigInt.fromString(results[0])
+        positionRewards.claimableNormalized = claimableNormalized
+        positionRewards.save()
+
+        // ------------------------------------------------------------
+        // will be deprecated in the future
+        if (rewardTokenAddress.equals(addresses.SUMMER_TOKEN)) {
+          position.claimableSummerToken = positionRewards.claimable
+          position.claimableSummerTokenNormalized = positionRewards.claimableNormalized
+          position.save()
+        }
+        // ------------------------------------------------------------}
+      }
+    }
+    log.error('[harborCommand] - time taken for positionsToUpdate:', [block.number.toString()])
   }
 }
 
@@ -148,15 +209,9 @@ export function handleInterval(block: ethereum.Block): void {
     return
   }
 
-  const gov = getOrCreateGovernanceStaking()
   const hourPassed = hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)
   if (hourPassed) {
-    let accounts: string[] | null = gov.accounts
-    for (let i = 0; i < accounts!.length; i++) {
-      const account = getOrCreateAccount(gov.accounts[i])
-      updateAccountStakingRewards(account, block.number)
-    }
-    accounts = null
+    updateAccountStakingRewards(block.number)
   }
 
   const vaults = protocol.vaultsArray

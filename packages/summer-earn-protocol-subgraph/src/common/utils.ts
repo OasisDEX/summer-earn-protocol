@@ -96,3 +96,11 @@ export function getAprForTimePeriod(
     .times(constants.BigDecimalConstants.HUNDRED)
     .times(amountOfPeriodsInYear)
 }
+
+export function isZeroBigInt(bigInt: BigInt): boolean {
+  return bigInt.equals(constants.BigIntConstants.ZERO)
+}
+
+export function isZeroBigDecimal(bigDecimal: BigDecimal): boolean {
+  return bigDecimal.equals(constants.BigDecimalConstants.ZERO)
+}

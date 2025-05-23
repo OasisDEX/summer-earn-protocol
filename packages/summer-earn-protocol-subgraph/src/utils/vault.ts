@@ -8,6 +8,7 @@ import { getTokenPriceInUSD } from '../common/priceHelpers'
 import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 import { VaultDetails } from '../types'
+
 export function getVaultDetails(vault: Vault, block: ethereum.Block): VaultDetails {
   const vaultContract = FleetCommanderContract.bind(Address.fromString(vault.id))
   const totalAssets = utils.readValue<BigInt>(
