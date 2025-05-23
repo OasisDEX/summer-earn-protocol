@@ -3,8 +3,9 @@ import { IComptroller } from '../../generated/EntryPoint/IComptroller'
 import { IMToken } from '../../generated/EntryPoint/IMToken'
 import { IRewardDistributor } from '../../generated/EntryPoint/IRewardDistributor'
 import { MoonwellToken } from '../../generated/EntryPoint/MoonwellToken'
-import { BigDecimalConstants } from '../constants/common'
+import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { TvlData } from '../models/TvlData'
 import { formatAmount } from '../utils/formatters'
 import { getOrCreateToken } from '../utils/initializers'
 import { getTokenPriceInUSD } from '../utils/price-helper'
@@ -15,7 +16,7 @@ export class MoonwellProduct extends Product {
     const trySupplyRatePerTimestamp = vault.try_supplyRatePerTimestamp()
 
     if (trySupplyRatePerTimestamp.reverted) {
-      return BigDecimal.zero()
+      return BigDecimalConstants.ZERO
     }
 
     const apr = trySupplyRatePerTimestamp.value
@@ -65,5 +66,22 @@ export class MoonwellProduct extends Product {
       }
     }
     return rewardsRates
+  }
+
+  getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
+    const mToken = IMToken.bind(this.poolAddress)
+    const tryGetCash = mToken.try_getCash()
+    const tryTotalBorrows = mToken.try_totalBorrows()
+
+    if (tryGetCash.reverted || tryTotalBorrows.reverted) {
+      return new TvlData(BigIntConstants.ZERO, BigDecimalConstants.ZERO, BigDecimalConstants.ZERO)
+    }
+
+    const tokenAmountRaw = tryGetCash.value.plus(tryTotalBorrows.value)
+    const tokenAmountNormalized = formatAmount(tokenAmountRaw, this.token.decimals)
+    const tokenPriceInUsd = getTokenPriceInUSD(Address.fromBytes(this.token.address), currentBlock)
+    const usdAmountNormalized = tokenAmountNormalized.times(tokenPriceInUsd.price)
+
+    return new TvlData(tokenAmountRaw, tokenAmountNormalized, usdAmountNormalized)
   }
 }

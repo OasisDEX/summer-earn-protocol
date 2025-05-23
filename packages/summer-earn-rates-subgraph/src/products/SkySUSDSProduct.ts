@@ -1,10 +1,15 @@
-import { BigDecimal, BigInt, dataSource } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, dataSource } from '@graphprotocol/graph-ts'
+import { ERC4626 } from '../../generated/EntryPoint/ERC4626'
 import { SkyPSM3 } from '../../generated/EntryPoint/SkyPSM3'
 import { SkySSRAuthOracle } from '../../generated/EntryPoint/SkySSRAuthOracle'
 import { SkySUSDS } from '../../generated/EntryPoint/SkySUSDS'
 import { addresses } from '../constants/addresses'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { TvlData } from '../models/TvlData'
+import { formatAmount } from '../utils/formatters'
+import { getOrCreateToken } from '../utils/initializers'
+import { getTokenPriceInUSD } from '../utils/price-helper'
 import { RewardRate } from './BaseVaultProduct'
 
 export class SkySUSDSProduct extends Product {
@@ -47,5 +52,23 @@ export class SkySUSDSProduct extends Product {
 
   getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
     return []
+  }
+
+  getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
+    const vault = ERC4626.bind(addresses.SUSDS)
+    const tryTotalAssets = vault.try_totalAssets()
+    const tryAsset = vault.try_asset()
+
+    if (tryTotalAssets.reverted || tryAsset.reverted) {
+      return new TvlData(BigIntConstants.ZERO, BigDecimalConstants.ZERO, BigDecimalConstants.ZERO)
+    }
+
+    const asset = getOrCreateToken(tryAsset.value)
+    const tokenAmountRaw = tryTotalAssets.value
+    const tokenAmountNormalized = formatAmount(tokenAmountRaw, asset.decimals)
+    const tokenPriceInUsd = getTokenPriceInUSD(Address.fromBytes(asset.address), currentBlock)
+    const usdAmountNormalized = tokenAmountNormalized.times(tokenPriceInUsd.price)
+
+    return new TvlData(tokenAmountRaw, tokenAmountNormalized, usdAmountNormalized)
   }
 }

@@ -1,9 +1,10 @@
-import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { ERC20 } from '../../generated/EntryPoint/ERC20'
 import { IStakingRewards } from '../../generated/EntryPoint/IStakingRewards'
 import { addresses } from '../constants/addresses'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { Product } from '../models/Product'
+import { TvlData } from '../models/TvlData'
 import { formatAmount } from '../utils/formatters'
 import { getOrCreateToken } from '../utils/initializers'
 import { getTokenPriceInUSD } from '../utils/price-helper'
@@ -42,5 +43,25 @@ export class SkyRewardsProduct extends Product {
 
   getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[] {
     return []
+  }
+
+  getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
+    const vault = IStakingRewards.bind(this.poolAddress)
+    const tryTotalAssets = vault.try_totalSupply()
+    const tryStakingToken = vault.try_stakingToken()
+
+    if (tryTotalAssets.reverted || tryStakingToken.reverted) {
+      return new TvlData(BigIntConstants.ZERO, BigDecimalConstants.ZERO, BigDecimalConstants.ZERO)
+    }
+    const stakingToken = getOrCreateToken(tryStakingToken.value)
+    const tokenAmountRaw = tryTotalAssets.value
+    const tokenAmountNormalized = formatAmount(tokenAmountRaw, stakingToken.decimals)
+    const tokenPriceInUsd = getTokenPriceInUSD(
+      Address.fromBytes(stakingToken.address),
+      currentBlock,
+    )
+    const usdAmountNormalized = tokenAmountNormalized.times(tokenPriceInUsd.price)
+
+    return new TvlData(tokenAmountRaw, tokenAmountNormalized, usdAmountNormalized)
   }
 }

@@ -4,6 +4,7 @@ import { BigDecimalConstants } from '../constants/common'
 import { RewardRate } from '../products/BaseVaultProduct'
 import { getChainIdByNetworkName } from '../utils/chainId'
 import { aprToApy } from '../utils/math'
+import { TvlData } from './TvlData'
 
 /**
  * Base Product class
@@ -12,7 +13,7 @@ import { aprToApy } from '../utils/math'
  * 1. Create a new class that extends Product in a new file under the 'products' directory
  * 2. Implement the constructor, passing necessary parameters to super()
  * 3. Override the getRate method to implement product-specific rate calculation logic
- *
+ * 4. Override the getTvl method to implement product-specific tvl calculation logic
  * Example:
  *
  * export class NewProduct extends Product {
@@ -26,7 +27,7 @@ import { aprToApy } from '../utils/math'
  *     super(token, poolAddress, startBlock, groupName, oracle)
  *   }
  *
- *   getRate(currentTimestamp: BigInt): BigDecimal {
+ *   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
  *     // Implement product-specific rate calculation logic here
  *   }
  * }
@@ -79,4 +80,5 @@ export abstract class Product {
 
   abstract getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal
   abstract getRewardsRates(currentTimestamp: BigInt, currentBlock: BigInt): RewardRate[]
+  abstract getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData
 }
