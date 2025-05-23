@@ -78,25 +78,31 @@ export function handleProposalSentCrossChain(event: ProposalSentCrossChain): voi
   if (!isBase(dataSource.network())) {
     return
   }
-  const proposalId = event.params.proposalId.toString()
-  const proposal = getOrCreateProposal(event.params.proposalId.toString())
-  const dstEid = event.params.dstEid.toString()
-  const chainId = dstEidToChainIdMap.get(dstEid)
-  if (chainId) {
-    let chains = proposal.chains
-    if (!chains) {
-      chains = []
-    }
-    let dstIds = proposal.dstIds
-    if (!dstIds) {
-      dstIds = []
-    }
-    dstIds.push(proposalId)
-    chains.push(chainId)
+  const logs = getEventLogs(event, EventSignature.ProposalExecuted)
+  if (logs.length > 0) {
+    const log = logs[0]
+    const proposalId = BigInt.fromSignedBytes(log.data).toString()
+    const proposal = getOrCreateProposal(proposalId)
 
-    proposal.chains = chains
-    proposal.dstIds = dstIds
-    proposal.save()
+    const dstEid = event.params.dstEid.toString()
+    const chainId = dstEidToChainIdMap.get(dstEid)
+
+    if (chainId) {
+      let chains = proposal.chains
+      if (!chains) {
+        chains = []
+      }
+      let dstIds = proposal.dstIds
+      if (!dstIds) {
+        dstIds = []
+      }
+      dstIds.push(event.params.proposalId.toString())
+      chains.push(chainId)
+
+      proposal.chains = chains
+      proposal.dstIds = dstIds
+      proposal.save()
+    }
   }
 }
 
@@ -111,7 +117,6 @@ export function getOrCreateProposal(proposalId: string): Proposal {
     proposal.targets = []
     proposal.values = []
     proposal.calldatas = []
-    proposal.status = 'Pending'
     proposal.description = ''
     proposal.descriptionHash = Bytes.fromHexString('')
   }

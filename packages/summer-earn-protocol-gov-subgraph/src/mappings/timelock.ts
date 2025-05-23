@@ -93,9 +93,11 @@ export class EventSignature {
   // EARN
   static ProposalReceivedCrossChain: string = 'ProposalReceivedCrossChain(uint256,uint32)'
   static CallSalt: string = 'CallSalt(bytes32,bytes32)'
+  static ProposalExecuted: string = 'ProposalExecuted(uint256)'
 }
 
 let topic0: ByteArray
+let _log: ethereum.Log
 /**
  * @dev Retrieves an array of all logs matching a particular event name.
  * @param event The Ethereum event object to retrieve logs from.
@@ -109,5 +111,11 @@ export function getEventLogs(event: ethereum.Event, eventName: string): ethereum
   }
   topic0 = getTopic0(eventName)
 
-  return receipt.logs.filter((log) => log.topics[0].equals(topic0))
+  return receipt.logs.filter((log) => {
+    _log = log;
+    if(_log.topics.length === 0) {
+      return false;
+    }
+    return log.topics[0].equals(topic0);
+  })
 }
