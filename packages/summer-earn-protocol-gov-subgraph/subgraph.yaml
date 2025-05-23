@@ -1,19 +1,14 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
-features:
-  - grafting
-graft:
-  base: QmXxdSHQsCXYqWi9UFZEq8rAEfUsnyNzUhmjwvEhtiWX1c
-  block: 25642400
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor
-    network: base
+    network: sonic-mainnet
     source:
       abi: SummerGovernor
-      address: "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
-      startBlock: 25642501
+      address: "0x59485a5Fbdb0e1AA830765D419f1b4C04c3770Af"
+      startBlock: 14231175
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -49,7 +44,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate
-    network: base
+    network: sonic-mainnet
     source:
       abi: SummerTimelockController
     mapping:

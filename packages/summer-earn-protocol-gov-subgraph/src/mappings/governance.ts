@@ -1,4 +1,4 @@
-import { BigInt, ByteArray, Bytes, crypto, dataSource } from '@graphprotocol/graph-ts'
+import { ByteArray, Bytes, crypto, dataSource } from '@graphprotocol/graph-ts'
 import {
   ProposalCanceled,
   ProposalCreated,
@@ -8,29 +8,20 @@ import {
   ProposalSentCrossChain,
   TimelockChange,
 } from '../../generated/SummerGovernor/SummerGovernor'
-import { CrossChainProposalByCallId, Proposal } from '../../generated/schema'
+import { CrossChainProposalByCallId } from '../../generated/schema'
 import { TimelockControllerTemplate } from '../../generated/templates'
-import { EventSignature, getEventLogs, getOrCreateCrossChainProposal, isBase } from './timelock'
 
-// Create a map of dstEid to chainId
-const dstEidToChainIdMap = new Map<string, string>()
-dstEidToChainIdMap.set('30101', '1') // Ethereum Mainnet
-dstEidToChainIdMap.set('30110', '42161') // Arbitrum
-dstEidToChainIdMap.set('30184', '8453') // Base
-dstEidToChainIdMap.set('30332', '146') // Sonic
-
-export const subgraphNetworkToChainIdMap = new Map<string, string>()
-subgraphNetworkToChainIdMap.set('mainnet', '1')
-subgraphNetworkToChainIdMap.set('arbitrum-one', '42161')
-subgraphNetworkToChainIdMap.set('base', '8453')
-subgraphNetworkToChainIdMap.set('sonic-mainnet', '146')
+import { EventSignature } from '../constants'
+import { getOrCreateCrossChainProposal, getOrCreateProposal } from '../initializers'
+import { dstEidToChainIdMap, isHub } from '../utils/chain'
+import { dataToTuple, getEventLogs } from '../utils/events'
 
 export function handleTimelockChange(event: TimelockChange): void {
   TimelockControllerTemplate.create(event.params.newTimelock)
 }
 
 export function handleProposalCreated(event: ProposalCreated): void {
-  if (!isBase(dataSource.network())) {
+  if (!isHub(dataSource.network())) {
     return
   }
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
@@ -47,7 +38,7 @@ export function handleProposalCreated(event: ProposalCreated): void {
 }
 
 export function handleProposalExecuted(event: ProposalExecuted): void {
-  if (!isBase(dataSource.network())) {
+  if (!isHub(dataSource.network())) {
     return
   }
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
@@ -56,7 +47,7 @@ export function handleProposalExecuted(event: ProposalExecuted): void {
 }
 
 export function handleProposalQueued(event: ProposalQueued): void {
-  if (!isBase(dataSource.network())) {
+  if (!isHub(dataSource.network())) {
     return
   }
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
@@ -66,7 +57,7 @@ export function handleProposalQueued(event: ProposalQueued): void {
 }
 
 export function handleProposalCanceled(event: ProposalCanceled): void {
-  if (!isBase(dataSource.network())) {
+  if (!isHub(dataSource.network())) {
     return
   }
   const proposal = getOrCreateProposal(event.params.proposalId.toString())
@@ -75,13 +66,13 @@ export function handleProposalCanceled(event: ProposalCanceled): void {
 }
 
 export function handleProposalSentCrossChain(event: ProposalSentCrossChain): void {
-  if (!isBase(dataSource.network())) {
+  if (!isHub(dataSource.network())) {
     return
   }
   const logs = getEventLogs(event, EventSignature.ProposalExecuted)
   if (logs.length > 0) {
     const log = logs[0]
-    const proposalId = BigInt.fromSignedBytes(log.data).toString()
+    const proposalId = dataToTuple(log.data, '(uint256)')[0].toBigInt().toString()
     const proposal = getOrCreateProposal(proposalId)
 
     const dstEid = event.params.dstEid.toString()
@@ -106,25 +97,8 @@ export function handleProposalSentCrossChain(event: ProposalSentCrossChain): voi
   }
 }
 
-export function getOrCreateProposal(proposalId: string): Proposal {
-  let proposal = Proposal.load(proposalId)
-  if (!proposal) {
-    proposal = new Proposal(proposalId)
-    proposal.chains = []
-    proposal.eta = BigInt.fromI32(0)
-    proposal.dstIds = []
-    proposal.chains = []
-    proposal.targets = []
-    proposal.values = []
-    proposal.calldatas = []
-    proposal.description = ''
-    proposal.descriptionHash = Bytes.fromHexString('')
-  }
-  return proposal
-}
-
 export function handleProposalReceivedCrossChain(event: ProposalReceivedCrossChain): void {
-  if (isBase(dataSource.network())) {
+  if (isHub(dataSource.network())) {
     return
   }
   const proposal = getOrCreateCrossChainProposal(event.params.proposalId.toString())
