@@ -3,7 +3,11 @@ import { BigIntConstants } from '../../common/constants'
 import { getOrCreatePosition } from '../../common/initializers'
 import { PositionDetails } from '../../types'
 
-export function updatePosition(positionDetails: PositionDetails, block: ethereum.Block): void {
+export function updatePosition(
+  positionDetails: PositionDetails,
+  block: ethereum.Block,
+  referralData: string | null,
+): void {
   const position = getOrCreatePosition(positionDetails.positionId, block)
   if (position) {
     position.inputTokenBalance = positionDetails.inputTokenBalance
@@ -21,6 +25,7 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
       positionDetails.stakedInputTokenBalanceNormalizedUSD
     position.unstakedInputTokenBalanceNormalizedInUSD =
       positionDetails.unstakedInputTokenBalanceNormalizedUSD
+    position.referralData = referralData ? referralData : null
     // ------------------------------------------------------------
     // will be deprecated in the future
     position.claimableSummerToken = positionDetails.claimableSummerToken

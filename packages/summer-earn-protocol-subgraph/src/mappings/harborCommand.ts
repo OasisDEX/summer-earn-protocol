@@ -212,6 +212,7 @@ export function handleInterval(block: ethereum.Block): void {
   const hourPassed = hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)
   if (hourPassed) {
     updateAccountStakingRewards(block.number)
+    updateReferrals(block)
   }
 
   const vaults = protocol.vaultsArray
@@ -288,4 +289,39 @@ function hasWeekPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: Big
   const previousWeekTimestamp = getWeeklyOffsetTimestamp(lastUpdateTimestamp)
 
   return !currentWeekTimestamp.equals(previousWeekTimestamp)
+}
+
+/**
+ * Updates referral data by recalculating total referred USD values.
+ * This function runs hourly to update the current USD value of all referred positions.
+ *
+ * NOTE: This recalculates based on current position balances and current prices,
+ * which is different from the deposit-time tracking in handleReferrals().
+ *
+ * PURPOSE:
+ * - Provides up-to-date USD values for referral analytics and dashboards
+ * - Shows current value of all positions under each referral code
+ * - Runs hourly to minimize performance impact while keeping data fresh
+ *
+ * RELATIONSHIP TO DEPOSIT TRACKING:
+ * - handleReferrals() tracks actual deposit amounts at deposit time
+ * - This function tracks current market value of all referred positions
+ * - Both serve different purposes: deposit tracking for rewards, this for analytics
+ */
+function updateReferrals(block: ethereum.Block): void {
+  const protocol = getOrCreateYieldAggregator(block.timestamp)
+  const referralDatas = protocol.referralDatas.load()
+  for (let i = 0; i < referralDatas.length; i++) {
+    let totalReferredValueUSD = BigDecimalConstants.ZERO
+    const referralData = referralDatas[i]
+    const positions = referralData.referredPositions.load()
+    for (let j = 0; j < positions.length; j++) {
+      const position = positions[j]
+      // Sum current USD value of all positions under this referral
+      totalReferredValueUSD = totalReferredValueUSD.plus(position.inputTokenBalanceNormalizedInUSD)
+    }
+    // Update the total with current market values
+    referralData.totalReferredUSD = totalReferredValueUSD
+    referralData.save()
+  }
 }

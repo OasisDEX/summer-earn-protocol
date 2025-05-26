@@ -253,6 +253,7 @@ type YieldAggregator implements Protocol @entity @regularPolling {
   lastDailyUpdateTimestamp: BigInt
   lastHourlyUpdateTimestamp: BigInt
   lastWeeklyUpdateTimestamp: BigInt
+  referralDatas: [ReferralData!]! @derivedFrom(field: "protocol")
 }
 
 ###############################
@@ -980,9 +981,6 @@ type Account @entity @regularPolling {
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
 
-  " Maximum amount in USD that this account has ever deposited across all positions (for referral tracking) "
-  maxEverDepositedUSD: BigDecimal
-
   referralData: ReferralData
 }
 
@@ -1200,9 +1198,6 @@ type Position @entity {
   " Creation block number "
   createdBlockNumber: BigInt!
 
-  " Maximum amount in USD that this position has ever held (for referral tracking) "
-  maxEverDepositedUSD: BigDecimal
-
   deposits: [Deposit!]! @derivedFrom(field: "position")
   withdrawals: [Withdraw!]! @derivedFrom(field: "position")
   stakedEvents: [Staked!]! @derivedFrom(field: "position")
@@ -1218,6 +1213,7 @@ type Position @entity {
   claimableSummerTokenNormalized: BigDecimal! 
 
   rewards: [PositionRewards!]! @derivedFrom(field: "position")
+  referralData: ReferralData
 }
 
 type PositionHourlySnapshot @entity @hourlySnapshot {
@@ -1672,4 +1668,6 @@ type ReferralData @entity {
   referredDeposits: [Deposit!]! @derivedFrom(field: "referralData")
   referredWithdraws: [Withdraw!]! @derivedFrom(field: "referralData")
   referredAccounts: [Account!]! @derivedFrom(field: "referralData")
+  referredPositions: [Position!]! @derivedFrom(field: "referralData")
+  protocol: YieldAggregator!
   }

@@ -101,9 +101,10 @@ export function handleDeposit(event: DepositEvent): void {
     vaultDetails,
     event.block,
   )
-  updatePosition(positionDetails, event.block)
 
   const referralData = handleReferrals(event, account, positionDetails)
+
+  updatePosition(positionDetails, event.block, referralData)
 
   createDepositEventEntity(event, positionDetails, referralData)
 }
@@ -129,7 +130,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
     vaultDetails,
     event.block,
   )
-  updatePosition(positionDetails, event.block)
+  updatePosition(positionDetails, event.block, account.referralData)
 
   createWithdrawEventEntity(event, positionDetails, account.referralData)
 }
@@ -201,9 +202,9 @@ export function handleStaked(event: Staked): void {
     event.block,
   )
 
-  updatePosition(positionDetails, event.block)
-
   const referralData = handleReferrals(event, account, positionDetails)
+
+  updatePosition(positionDetails, event.block, referralData)
 
   createStakedEventEntity(event, positionDetails)
   createDepositEventEntity(event, positionDetails, referralData)
@@ -223,7 +224,7 @@ export function handleUnstaked(event: Unstaked): void {
     event.block,
   )
 
-  updatePosition(positionDetails, event.block)
+  updatePosition(positionDetails, event.block, account.referralData)
 
   createUnstakedEventEntity(event, positionDetails)
   createWithdrawEventEntity(event, positionDetails, account.referralData)

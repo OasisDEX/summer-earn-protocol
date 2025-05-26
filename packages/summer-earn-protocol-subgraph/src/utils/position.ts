@@ -162,5 +162,6 @@ export function getPositionDetails(
     account.toHexString(), // account
     vaultDetails.inputToken, // inputToken
     vaultDetails.protocol, // protocol
+    vaultDetails.inputTokenPriceUSD, // inputTokenPriceUSD
   )
 }
