@@ -18,7 +18,7 @@
     "deploy:arbitrum:local": "bash -c 'source ../../.env && pnpm prepare:arbitrum && graph create summer-protocol-arbitrum --node http://44.212.44.0:8020 && graph deploy summer-protocol-arbitrum --node http://44.212.44.0:8020 --ipfs http://44.212.44.0:5001 --version-label $npm_package_version'",
     "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet && pnpm run deploy:sonic"
   },
-  "devDependencies": {  
+  "devDependencies": {
     "@graphprotocol/graph-ts": "0.35.1",
     "@graphprotocol/graph-cli": "0.96.0",
     "mustache": "4.2.0"

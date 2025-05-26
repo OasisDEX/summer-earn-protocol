@@ -1,4 +1,4 @@
-import { ByteArray, Bytes, crypto, ethereum } from '@graphprotocol/graph-ts'
+import { Address, ByteArray, Bytes, crypto, ethereum } from '@graphprotocol/graph-ts'
 
 /**
  * @dev Decodes a bytes array into a tuple of values.
@@ -43,4 +43,20 @@ export function getTopic0(eventSig: string): ByteArray {
   const signature = ByteArray.fromUTF8(eventSig)
 
   return crypto.keccak256(signature)
+}
+
+/**
+ * Decodes a bytes topic to an Ethereum address.
+ * @param bytes The bytes topic to decode.
+ * @returns The Ethereum address.
+ * @throws An error if the bytes cannot be decoded to an address.
+ * @dev use for non indexed topics only
+ */
+export function logTopicToAddress(bytes: Bytes): Address {
+  const decoded = ethereum.decode('address', bytes)
+  if (!decoded) {
+    throw new Error('Cannot decode address')
+  }
+
+  return decoded.toAddress()
 }

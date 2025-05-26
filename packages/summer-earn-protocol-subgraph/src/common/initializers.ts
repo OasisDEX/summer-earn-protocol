@@ -62,6 +62,7 @@ export function getOrCreateAccount(id: string): Account {
     account.stakedSummerToken = constants.BigIntConstants.ZERO
     account.stakedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
     account.lastUpdateBlock = constants.BigIntConstants.ZERO
+    account.maxEverDepositedUSD = constants.BigDecimalConstants.ZERO
     account.save()
 
     const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
@@ -128,6 +129,7 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.inputTokenDepositsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenWithdrawalsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    position.maxEverDepositedUSD = constants.BigDecimalConstants.ZERO
     position.save()
 
     const vault = getOrCreateVault(Address.fromString(position.vault), block)

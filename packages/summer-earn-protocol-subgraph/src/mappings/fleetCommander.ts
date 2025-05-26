@@ -101,12 +101,11 @@ export function handleDeposit(event: DepositEvent): void {
     vaultDetails,
     event.block,
   )
-
   updatePosition(positionDetails, event.block)
 
-  createDepositEventEntity(event, positionDetails)
+  const referralData = handleReferrals(event, account, positionDetails)
 
-  handleReferrals(event, account, positionDetails)
+  createDepositEventEntity(event, positionDetails, referralData)
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
@@ -122,7 +121,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
     return
   }
 
-  getOrCreateAccount(event.params.owner.toHexString())
+  const account = getOrCreateAccount(event.params.owner.toHexString())
 
   const positionDetails = getPositionDetails(
     updatedVault,
@@ -132,7 +131,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
   )
   updatePosition(positionDetails, event.block)
 
-  createWithdrawEventEntity(event, positionDetails)
+  createWithdrawEventEntity(event, positionDetails, account.referralData)
 }
 
 // withdaraw already handled in handleWithdraw
@@ -204,8 +203,10 @@ export function handleStaked(event: Staked): void {
 
   updatePosition(positionDetails, event.block)
 
+  const referralData = handleReferrals(event, account, positionDetails)
+
   createStakedEventEntity(event, positionDetails)
-  createDepositEventEntity(event, positionDetails)
+  createDepositEventEntity(event, positionDetails, referralData)
 }
 
 export function handleUnstaked(event: Unstaked): void {
@@ -225,7 +226,7 @@ export function handleUnstaked(event: Unstaked): void {
   updatePosition(positionDetails, event.block)
 
   createUnstakedEventEntity(event, positionDetails)
-  createWithdrawEventEntity(event, positionDetails)
+  createWithdrawEventEntity(event, positionDetails, account.referralData)
 }
 
 export function handleRewardTokenRemoved(event: RewardTokenRemoved): void {
