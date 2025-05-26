@@ -1,6 +1,6 @@
 import { BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Account, ReferralData } from '../../../generated/schema'
-import { BigDecimalConstants, EventSignature } from '../../common/constants'
+import { BigDecimalConstants, BigIntConstants, EventSignature } from '../../common/constants'
 import { getOrCreatePosition } from '../../common/initializers'
 import { PositionDetails } from '../../types'
 import { dataToTuple, getEventLogs, logTopicToAddress } from '../../utils/events'
@@ -50,13 +50,14 @@ export function handleReferrals(
   // across different vaults, and each should be tracked independently
   const position = getOrCreatePosition(positionDetails.positionId, event.block)
 
-  // Calculate total account balance across all positions
+  // Calculate total account balance across all positions ( positions are updated in updatePosition - before this function is called)
   const accountTotalBalance = calculateAccountTotalBalance(maybeReferredAccount)
 
   // Get current values for comparison
   const currentDepositUSD = positionDetails.inputTokenDeltaNormalizedUSD
   const currentPositionBalanceUSD = positionDetails.inputTokenBalanceNormalizedUSD
 
+  // Calculate previous values for comparison
   const previousPositionBalanceUSD = currentPositionBalanceUSD
     .minus(currentDepositUSD)
     .gt(BigDecimalConstants.ZERO)
@@ -68,6 +69,8 @@ export function handleReferrals(
     ? accountTotalBalance.minus(currentDepositUSD)
     : BigDecimalConstants.ZERO
 
+  // if maxEverDepositedUSD is null, use previous values ( to avoid count the entire previous balance towards the referral
+  // - start counting referrals from the first deposit with referral code )
   const maxEverDepositedPerPosition = position.maxEverDepositedUSD
     ? position.maxEverDepositedUSD
     : previousPositionBalanceUSD
@@ -234,8 +237,8 @@ function getOrCreateReferralData(referralCode: string): ReferralData {
   let referralData = ReferralData.load(referralCode)
   if (!referralData) {
     referralData = new ReferralData(referralCode)
-    referralData.amountOfReferred = BigInt.fromI32(0)
-    referralData.totalReferredUSD = BigDecimal.fromString('0')
+    referralData.amountOfReferred = BigIntConstants.ZERO
+    referralData.totalReferredUSD = BigDecimalConstants.ZERO
   }
   return referralData
 }
