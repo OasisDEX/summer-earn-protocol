@@ -9,6 +9,7 @@ type Proposal @entity {
     chains: [String!]!
     dstIds: [String!]!
     eta: BigInt!
+    createdAt: BigInt!
 }
 
 type CrossChainProposal @entity {
@@ -20,6 +21,7 @@ type CrossChainProposal @entity {
   targets: [String!]!
   values: [BigInt!]!
   calldatas: [Bytes!]!
+  eta: BigInt!
 }
 
 type CrossChainProposalByCallId @entity {

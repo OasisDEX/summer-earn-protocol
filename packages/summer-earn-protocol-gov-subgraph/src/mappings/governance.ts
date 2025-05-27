@@ -33,6 +33,7 @@ export function handleProposalCreated(event: ProposalCreated): void {
     crypto.keccak256(ByteArray.fromUTF8(event.params.description)).toHexString(),
   )
   proposal.status = 'Pending'
+  proposal.createdAt = event.block.timestamp
 
   proposal.save()
 }
