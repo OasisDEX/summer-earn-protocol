@@ -169,8 +169,14 @@ async function deployAaveV3CarryTradeArkContract(
 
   const lendingPool = validateAddress(config.protocolSpecific.aaveV3.pool, 'lending pool')
   const yieldVault = validateErc4626Address(userInput.vaultId, 'yield vault')
-  const rewardsController = validateAddress(config.protocolSpecific.aaveV3.rewards, 'rewards controller')
-  const poolAddressesProvider = validateAddress(config.protocolSpecific.aaveV3.poolAddressesProvider, 'pool addresses provider')
+  const rewardsController = validateAddress(
+    config.protocolSpecific.aaveV3.rewards,
+    'rewards controller',
+  )
+  const poolAddressesProvider = validateAddress(
+    config.protocolSpecific.aaveV3.poolAddressesProvider,
+    'pool addresses provider',
+  )
   const targetVault = await hre.viem.getContractAt('ERC4626' as string, yieldVault)
   const borrowedAsset = await targetVault.read.asset()
   const borrowedAssetAddress = validateErc4626Address(borrowedAsset, 'borrowed asset')

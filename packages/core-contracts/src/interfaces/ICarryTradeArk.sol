@@ -5,67 +5,115 @@ import {IArk} from "./IArk.sol";
 import {ArkParams} from "../types/ArkTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/**
+ * @title IERC20WithDecimals
+ * @notice Interface for ERC20 tokens with decimals information
+ * @dev Extends IERC20 to include decimals() function
+ */
 interface IERC20WithDecimals is IERC20 {
+    /**
+     * @notice Returns the number of decimals used to get its user representation
+     * @return The number of decimals
+     */
     function decimals() external view returns (uint8);
 }
 
 /**
  * @title ICarryTradeArk
  * @notice Interface for Arks that implement carry trade strategies
- * @dev Extends IArk with carry trade specific functionality
+ * @dev Extends IArk with carry trade specific functionality. Carry trade strategies involve:
+ *      1. Depositing collateral to a lending protocol
+ *      2. Borrowing assets against the collateral
+ *      3. Depositing borrowed assets to a yield vault
+ *      4. Managing the position through rebalancing and compounding
  */
 interface ICarryTradeArk is IArk {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when the maximum LTV is set to an invalid value
     error InvalidMaxLtv(uint256 maxLtv);
+    /// @notice Thrown when the current LTV exceeds the maximum allowed LTV
     error PositionUnsafe(uint256 currentLtv, uint256 maxLtv);
+    /// @notice Thrown when swap data is invalid or malformed
     error InvalidSwapData();
+    /// @notice Thrown when a swap operation fails
     error SwapFailed();
+    /// @notice Thrown when attempting partial withdrawals, which are not supported
     error PartialWithdrawalsNotAllowed();
+    /// @notice Thrown when there is insufficient profit to perform an operation
     error InsufficientProfit();
+    /// @notice Thrown when attempting to use a non-whitelisted router
     error RouterNotWhitelisted(address router);
+    /// @notice Thrown when the slippage tolerance is too high
     error SlippageTooHigh();
+    /// @notice Thrown when collateral and borrowed assets are the same
     error CollateralAndBorrowedAssetCannotBeTheSame();
+    /// @notice Thrown when an invalid asset is provided
     error InvalidAsset();
+    /// @notice Thrown when collateral asset doesn't match the base asset
     error CollateralAssetDoesNotMatchBaseAsset();
+    /// @notice Thrown when received amount is less than expected
     error ReceivedLessThanExpected();
+    /// @notice Thrown when borrow amount encoding is invalid
     error InvalidBorrowAmountEncoding();
+    /// @notice Thrown when repay amount is invalid
     error InvalidRepayAmount();
+    /// @notice Thrown when an invalid router is used for closing position
     error InvalidRouterForClosePosition();
+    /// @notice Thrown when swap calldata is invalid for closing position
     error InvalidSwapCalldataForClosePosition();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a position is rebalanced
     event PositionRebalanced(uint256 repayAmount, uint256 newLtv);
+    /// @notice Emitted during emergency exit, showing recovered collateral and losses
     event EmergencyExit(uint256 collateralRecovered, uint256 loss);
+    /// @notice Emitted when position is compounded with additional borrowing
     event PositionCompounded(uint256 additionalBorrowed, uint256 newLtv);
+    /// @notice Emitted when a router is whitelisted or removed from whitelist
     event RouterWhitelisted(address router, bool whitelisted);
+    /// @notice Emitted when assets are swapped
     event Swapped(
         address sellToken,
         address router,
         uint256 amountIn,
         bytes swapCalldata
     );
+    /// @notice Emitted when slippage tolerance is updated
     event SlippageSet(uint256 slippage);
 
     /*//////////////////////////////////////////////////////////////
                                 ENUMS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Enum defining possible upkeep actions
+     */
     enum UpkeepAction {
-        REBALANCE,
-        COMPOUND,
-        EMERGENCY_EXIT
+        REBALANCE, /// @dev Rebalance the position to maintain target LTV
+        COMPOUND, /// @dev Compound profits by borrowing more
+        EMERGENCY_EXIT /// @dev Emergency exit from the position
     }
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Parameters required for initializing a carry trade position
+     * @param _lendingPool Address of the lending pool
+     * @param _collateralAsset Address of the collateral asset
+     * @param _borrowedAsset Address of the borrowed asset
+     * @param _yieldVault Address of the yield vault
+     * @param _maxLtv Maximum allowed LTV in basis points
+     * @param _slippage Slippage tolerance in basis points
+     * @param baseParams Base Ark parameters
+     */
     struct CarryTradeParams {
         address _lendingPool;
         address _collateralAsset;
@@ -76,21 +124,38 @@ interface ICarryTradeArk is IArk {
         ArkParams baseParams;
     }
 
+    /**
+     * @notice Data structure for upkeep operations
+     * @param action The type of upkeep action to perform
+     * @param actionData Additional data required for the action
+     */
     struct UpkeepData {
         UpkeepAction action;
         bytes actionData;
     }
 
+    /**
+     * @notice Data structure for swap operations
+     * @param router Address of the router to use for the swap
+     * @param swapCalldata Calldata for the swap operation
+     * @param minAmountOut Minimum amount expected from the swap
+     */
     struct SwapData {
         address router;
         bytes swapCalldata;
         uint256 minAmountOut;
     }
 
+    /**
+     * @notice Data structure for disembark operations
+     * @param closePosition Whether to close the position
+     * @param repayAmount Amount to repay when closing position
+     * @param swapData Swap data for converting remaining assets
+     */
     struct DisembarkData {
         bool closePosition;
         uint256 repayAmount;
-        SwapData swapData; // Use the structured SwapData type
+        SwapData swapData;
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -87,6 +87,14 @@ contract AaveV3CarryTradeArk is CarryTradeArk {
             .variableDebtTokenAddress;
     }
 
+    /**
+     * @notice Calculates the total assets under management by the Ark
+     * @dev This function overrides the base implementation to account for Aave V3 specific calculations
+     * @return The total value of assets in collateral terms, including:
+     *         - Collateral deposited in Aave V3
+     *         - Net value from yield position (yield vault balance - debt)
+     *         - Profits/losses converted to collateral terms
+     */
     function _totalAssets() internal view override returns (uint256) {
         // Get collateral amount
         uint256 collateralAmount = _getTotalCollateral();
@@ -117,11 +125,21 @@ contract AaveV3CarryTradeArk is CarryTradeArk {
         }
     }
 
+    /**
+     * @notice Supplies collateral to Aave V3 lending pool
+     * @dev Approves and supplies the specified amount of collateral to Aave V3
+     * @param amount The amount of collateral to supply
+     */
     function _supplyCollateral(uint256 amount) internal override {
         collateralAsset.forceApprove(address(aaveV3Pool), amount);
         aaveV3Pool.supply(address(collateralAsset), amount, address(this), 0);
     }
 
+    /**
+     * @notice Calculates the current loan-to-value (LTV) ratio for the position
+     * @dev Uses Aave V3's getUserAccountData to get collateral and debt values
+     * @return The current LTV ratio in basis points (e.g., 7500 = 75%)
+     */
     function _getCurrentLtv() internal view override returns (uint256) {
         (
             uint256 totalCollateralBase,
@@ -148,9 +166,10 @@ contract AaveV3CarryTradeArk is CarryTradeArk {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Converts borrowed asset amount to collateral amount
-     * @param borrowedAssetAmount Amount of borrowed asset to convert
-     * @return collateralAmount Amount of collateral in collateral asset terms
+     * @notice Converts an amount from borrowed asset to collateral terms
+     * @dev Uses Aave V3's price oracle to get asset prices and performs precise calculations
+     * @param borrowedAssetAmount The amount in borrowed asset terms
+     * @return The equivalent amount in collateral terms
      */
     function _convertBorrowedToCollateral(
         uint256 borrowedAssetAmount
@@ -189,6 +208,12 @@ contract AaveV3CarryTradeArk is CarryTradeArk {
         return collateralValueInBorrowedAsset;
     }
 
+    /**
+     * @notice Calculates the value of collateral in borrowed asset terms
+     * @dev Uses Aave V3's price oracle to get asset prices and performs precise calculations
+     * @param collateralAmount The amount of collateral to convert
+     * @return The equivalent value in borrowed asset terms
+     */
     function _getCollateralValueInBorrowedAsset(
         uint256 collateralAmount
     ) internal view override returns (uint256) {
@@ -239,14 +264,29 @@ contract AaveV3CarryTradeArk is CarryTradeArk {
         return collateralValueInBorrowedAsset;
     }
 
+    /**
+     * @notice Gets the total debt in borrowed asset
+     * @dev Reads the balance of the variable debt token
+     * @return The total debt amount
+     */
     function _getTotalDebt() internal view override returns (uint256) {
         return IERC20WithDecimals(variableDebtToken).balanceOf(address(this));
     }
 
+    /**
+     * @notice Gets the total collateral deposited in Aave V3
+     * @dev Reads the balance of the aToken
+     * @return The total collateral amount
+     */
     function _getTotalCollateral() internal view override returns (uint256) {
         return IERC20WithDecimals(aToken).balanceOf(address(this));
     }
 
+    /**
+     * @notice Borrows assets from Aave V3 lending pool
+     * @dev Borrows the specified amount at variable rate
+     * @param amount The amount to borrow
+     */
     function _borrowAsset(uint256 amount) internal override {
         aaveV3Pool.borrow(
             address(borrowedAsset),
@@ -257,20 +297,40 @@ contract AaveV3CarryTradeArk is CarryTradeArk {
         );
     }
 
+    /**
+     * @notice Closes the entire position in Aave V3
+     * @dev Repays all debt and withdraws all collateral
+     */
     function _closePosition() internal override {
         _repayBorrow(_getTotalDebt());
         _withdrawCollateral(_getTotalCollateral());
     }
 
+    /**
+     * @notice Repays borrowed assets to Aave V3 lending pool
+     * @dev Approves and repays the specified amount
+     * @param amount The amount to repay
+     */
     function _repayBorrow(uint256 amount) internal override {
         borrowedAsset.forceApprove(address(aaveV3Pool), amount);
         aaveV3Pool.repay(address(borrowedAsset), amount, 2, address(this));
     }
 
+    /**
+     * @notice Withdraws collateral from Aave V3 lending pool
+     * @dev Withdraws the specified amount of collateral
+     * @param amount The amount to withdraw
+     */
     function _withdrawCollateral(uint256 amount) internal override {
         aaveV3Pool.withdraw(address(collateralAsset), amount, address(this));
     }
 
+    /**
+     * @notice Harvests rewards from Aave V3 positions
+     * @dev Claims rewards for both collateral and debt positions
+     * @return rewardTokens Array of reward token addresses
+     * @return rewardAmounts Array of reward amounts corresponding to rewardTokens
+     */
     function _harvest(
         bytes calldata
     )
@@ -278,21 +338,14 @@ contract AaveV3CarryTradeArk is CarryTradeArk {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        address[] memory assets = new address[](2);
-        assets[0] = aToken;
-        assets[1] = variableDebtToken;
+        address[] memory incentivizedAssets = new address[](1);
+        incentivizedAssets[0] = aToken;
 
-        rewardTokens = new address[](0);
-        rewardAmounts = new uint256[](0);
+        (rewardTokens, rewardAmounts) = rewardsController.claimAllRewards(
+            incentivizedAssets,
+            raft()
+        );
 
-        try rewardsController.claimAllRewards(assets, address(this)) returns (
-            address[] memory tokens,
-            uint256[] memory amounts
-        ) {
-            rewardTokens = tokens;
-            rewardAmounts = amounts;
-        } catch {
-            // If claiming rewards fails, return empty arrays
-        }
+        emit ArkHarvested(rewardTokens, rewardAmounts);
     }
 }
