@@ -14,79 +14,7 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-
-// Mock Stargate V2 contract for testing
-contract MockStargateV2 {
-    enum StargateType {
-        Pool,
-        OFT
-    }
-
-    struct Ticket {
-        uint56 ticketId;
-        bytes passenger;
-    }
-
-    address public immutable token;
-    StargateType public immutable stargateType;
-
-    constructor(address _token, StargateType _stargateType) {
-        token = _token;
-        stargateType = _stargateType;
-    }
-
-    function sendToken(
-        SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address
-    )
-        external
-        payable
-        returns (
-            MessagingReceipt memory msgReceipt,
-            OFTReceipt memory oftReceipt,
-            Ticket memory ticket
-        )
-    {
-        // Mock implementation - just return mock structs
-        msgReceipt = MessagingReceipt({
-            guid: bytes32(uint256(1)),
-            nonce: 1,
-            fee: _fee
-        });
-
-        oftReceipt = OFTReceipt({
-            amountSentLD: _sendParam.amountLD,
-            amountReceivedLD: _sendParam.amountLD
-        });
-
-        ticket = Ticket({ticketId: 1, passenger: ""});
-    }
-
-    function quoteSend(
-        SendParam calldata,
-        bool
-    ) external pure returns (MessagingFee memory msgFee) {
-        // Return a mock fee
-        msgFee = MessagingFee({nativeFee: 0.01 ether, lzTokenFee: 0});
-    }
-
-    function quoteOFT(
-        SendParam calldata _sendParam
-    )
-        external
-        pure
-        returns (uint256 limit, uint256 oftLimit, OFTReceipt memory oftReceipt)
-    {
-        // Mock implementation
-        limit = _sendParam.amountLD;
-        oftLimit = _sendParam.amountLD;
-        oftReceipt = OFTReceipt({
-            amountSentLD: _sendParam.amountLD,
-            amountReceivedLD: _sendParam.amountLD
-        });
-    }
-}
+import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
@@ -345,20 +273,59 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.prank(commander);
         usdc.approve(address(ark), amount);
 
+        // Verify initial balances
+        assertEq(
+            usdc.balanceOf(commander),
+            amount,
+            "Commander should have initial USDC"
+        );
+        assertEq(
+            usdc.balanceOf(address(ark)),
+            0,
+            "Ark should start with no USDC"
+        );
+
         // Board the assets - this should queue them
         vm.prank(commander);
         ark.board(amount, bytes(""));
 
-        // Verify assets are queued
+        // Verify assets are queued and transferred to ark
         bytes32 queueId = bridgeQueue.getPendingQueueIdAtIndex(0);
         assertEq(
             uint8(bridgeQueue.queueIdToStatus(queueId)),
             uint8(BridgeTypes.OperationStatus.QUEUED),
             "Operation should be queued"
         );
+        assertEq(
+            usdc.balanceOf(commander),
+            0,
+            "Commander should have no USDC after boarding"
+        );
+        assertEq(
+            usdc.balanceOf(address(ark)),
+            amount,
+            "Ark should hold the USDC"
+        );
 
-        // === STEP 2: Setup for Stargate Adapter ===
-        // No mocking needed - we have a real mock contract deployed
+        // === STEP 2: Verify Queue Details ===
+        (
+            uint16 destinationChainId,
+            address asset,
+            uint256 queuedAmount,
+            address recipient,
+            address originator,
+
+        ) = bridgeQueue.queuedTransfers(queueId);
+
+        assertEq(
+            destinationChainId,
+            DEST_CHAIN_ID,
+            "Incorrect destination chain ID"
+        );
+        assertEq(asset, address(usdc), "Incorrect asset address");
+        assertEq(queuedAmount, amount, "Incorrect queued amount");
+        assertEq(recipient, ARB_PROXY, "Incorrect recipient address");
+        assertEq(originator, address(ark), "Incorrect originator address");
 
         // === STEP 3: Keeper Executes Queued Operation ===
         address keeper = makeAddr("keeper");
@@ -366,7 +333,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Get quote for execution using Stargate adapter
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(stargateAdapter), // Use Stargate adapter
+            specifiedAdapter: address(stargateAdapter),
             adapterParams: BridgeTypes.AdapterParams({
                 gasLimit: 200000,
                 msgValue: 0,
@@ -375,7 +342,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             })
         });
 
-        (uint256 nativeFee, , ) = bridgeRouter.quote(
+        (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter.quote(
             DEST_CHAIN_ID,
             address(usdc),
             amount,
@@ -383,13 +350,31 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
+        assertGt(nativeFee, 0, "Native fee should be greater than 0");
+        assertEq(tokenFee, 0, "Token fee should be 0 for Stargate");
+
+        // Verify the mock Stargate contract is properly configured
+        assertEq(
+            mockStargate.token(),
+            address(usdc),
+            "Mock Stargate should be configured for USDC"
+        );
+        assertEq(
+            uint8(mockStargate.stargateType()),
+            uint8(MockStargateV2.StargateType.Pool),
+            "Mock Stargate should be Pool type"
+        );
+
+        // === STEP 4: Execute and Verify Stargate Interaction ===
+        uint256 preExecutionBalance = usdc.balanceOf(address(ark));
+
         // Keeper executes the queued operation
         vm.prank(keeper);
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{
+        bytes32 executedOperationId = bridgeQueue.executeQueuedOperation{
             value: nativeFee
         }(queueId, options);
 
-        // === STEP 4: Verify Execution Results ===
+        // === STEP 5: Verify Execution Results ===
         // Check that operation status changed to SENT
         assertEq(
             uint8(bridgeQueue.queueIdToStatus(queueId)),
@@ -399,16 +384,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Verify operation ID mapping
         assertEq(
-            bridgeQueue.operationIdToQueueId(operationId),
+            bridgeQueue.operationIdToQueueId(executedOperationId),
             queueId,
             "Operation ID should map back to queue ID"
-        );
-
-        // Verify assets were transferred from commander to router/adapter
-        assertEq(
-            usdc.balanceOf(commander),
-            0,
-            "Commander should have no USDC left"
         );
 
         // Verify pending queue is empty
@@ -418,23 +396,52 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             "Pending queue should be empty after execution"
         );
 
-        // === STEP 5: Verify Cross-Chain Transfer Initiated ===
-        // In a real integration test, you would:
-        // 1. Check that the adapter called the underlying protocol (Stargate)
-        // 2. Verify the cross-chain message was properly formatted
-        // 3. Potentially simulate the message being received on the destination chain
+        // Verify token flow: tokens should have moved from ark to the adapter/stargate
+        assertLt(
+            usdc.balanceOf(address(ark)),
+            preExecutionBalance,
+            "Ark balance should decrease after execution"
+        );
 
-        // For this test, we can verify the operation was processed
+        // === STEP 6: Verify Cross-Chain Transfer State ===
+        // The operation should be tracked and marked as SENT
+        assertEq(
+            uint8(bridgeRouter.getOperationStatus(executedOperationId)),
+            uint8(BridgeTypes.OperationStatus.SENT),
+            "Final operation status should be SENT"
+        );
+
+        // Verify the operation was processed by the correct adapter
         assertTrue(
-            operationId != bytes32(0),
+            executedOperationId != bytes32(0),
             "Operation ID should be non-zero"
         );
 
-        emit log_named_bytes32("Executed Operation ID", operationId);
+        // === STEP 7: Integration Test Success Verification ===
+        emit log_named_bytes32("Executed Operation ID", executedOperationId);
         emit log_named_uint("Native Fee Paid", nativeFee);
         emit log_named_address("Keeper", keeper);
+        emit log_named_uint("Amount Transferred", amount);
+        emit log_named_address("Destination", ARB_PROXY);
         emit log_string(
-            "SUCCESS: Full integration test completed with Stargate adapter"
+            "SUCCESS: Full integration test completed - CrossChain Ark -> Bridge Queue -> Stargate Adapter"
+        );
+
+        // Verify that the transfer was successful by checking the adapter still holds the tokens
+        // (In a real scenario, Stargate would consume them, but our mock doesn't)
+        assertEq(
+            usdc.balanceOf(address(stargateAdapter)),
+            amount,
+            "StargateAdapter should hold the tokens after mock transfer"
         );
     }
+
+    // Event declaration for the event we expect from StargateAdapter
+    event TransferInitiated(
+        bytes32 indexed transferId,
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient
+    );
 }
