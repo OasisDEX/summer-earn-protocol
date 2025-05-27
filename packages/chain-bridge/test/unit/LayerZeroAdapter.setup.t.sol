@@ -97,9 +97,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
         routerA = new BridgeRouterTestHelper(
             address(accessManagerA),
-            address(bridgeQueueA), // Pass queue address
-            new uint16[](0),
-            new address[](0)
+            address(bridgeQueueA) // Pass queue address
         );
         bridgeQueueA.setBridgeRouter(address(routerA));
         tokenA = new ERC20Mock();
@@ -130,9 +128,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
         routerB = new BridgeRouterTestHelper(
             address(accessManagerB),
-            address(bridgeQueueB), // Pass queue address
-            new uint16[](0),
-            new address[](0)
+            address(bridgeQueueB) // Pass queue address
         );
         bridgeQueueB.setBridgeRouter(address(routerB));
         tokenB = new ERC20Mock();

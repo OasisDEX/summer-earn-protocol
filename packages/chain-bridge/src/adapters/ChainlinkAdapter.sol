@@ -29,18 +29,20 @@ contract ChainlinkAdapter is IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function transferAsset(
+        bytes32, // operationId - Accept from router but not implemented
         uint16,
         address,
         address,
         uint256,
         address,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
+    ) external payable {
         revert OperationNotSupported();
     }
 
     /// @inheritdoc ISendAdapter
     function readState(
+        bytes32, // operationId - Accept from router but not implemented
         uint16,
         uint16,
         address,
@@ -48,7 +50,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         bytes calldata,
         address,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
+    ) external payable {
         revert OperationNotSupported();
     }
 
@@ -96,12 +98,13 @@ contract ChainlinkAdapter is IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function sendMessage(
+        bytes32, // operationId - Accept from router but not implemented
         uint16,
         address,
         bytes calldata,
         address,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
+    ) external payable {
         revert OperationNotSupported();
     }
 

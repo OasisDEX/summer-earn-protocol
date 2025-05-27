@@ -101,26 +101,16 @@ contract CrossChainFleetProxyTest is Test {
         accessManager.grantGovernorRole(governor);
         vm.stopPrank();
 
-        // Create bridge options
-        BridgeTypes.BridgeOptions memory bridgeOptions = BridgeTypes
-            .BridgeOptions({
-                specifiedAdapter: address(0),
-                adapterParams: BridgeTypes.AdapterParams({
-                    gasLimit: 100000,
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: ""
-                })
-            });
-
         proxy = new CrossChainFleetProxy(
             address(accessManager),
             address(mockBridgeRouter),
             address(mockBridgeQueue),
-            address(fleetCommanderMock),
-            bridgeOptions,
-            SOURCE_ARK_ADDRESS
+            address(fleetCommanderMock)
         );
+
+        // Set the source chain ark after construction
+        vm.prank(governor);
+        proxy.setSourceChainArk(SOURCE_ARK_ADDRESS);
 
         vm.startPrank(governor);
         accessManager.grantKeeperRole(address(proxy), governor);

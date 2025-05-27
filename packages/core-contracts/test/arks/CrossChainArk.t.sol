@@ -56,10 +56,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(queue),
             address(router),
             chainId,
-            proxy,
-            defaultOptions,
             params
         );
+
+        // Set the target proxy after construction
+        vm.prank(governor);
+        ark.setTargetProxy(proxy);
 
         // Set up FleetCommander with BufferArk
         (address fleetCommanderAddress, ) = setupFleetCommanderWithBufferArk(

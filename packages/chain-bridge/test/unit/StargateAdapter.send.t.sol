@@ -106,8 +106,12 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Approve tokens for the adapter
+        // Transfer tokens to the router and approve the adapter
+        // This simulates the router having received tokens from the user
         vm.prank(user);
+        tokenA.transfer(address(routerA), 1 ether);
+
+        vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
 
         // Pre-calculate the operation ID that will be generated
@@ -118,7 +122,8 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
                 address(tokenA),
                 1 ether,
                 recipient,
-                block.timestamp
+                block.timestamp,
+                block.number
             )
         );
 
@@ -130,7 +135,19 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Mock a transfer request from the router
         vm.prank(address(routerA));
-        bytes32 operationId = adapterA.transferAsset{value: nativeFee}(
+
+        // Expect the TransferInitiated event to be emitted (no return value)
+        vm.expectEmit(true, true, true, true);
+        emit TransferInitiated(
+            expectedOperationId,
+            CHAIN_ID_B,
+            address(tokenA),
+            1 ether,
+            recipient
+        );
+
+        adapterA.transferAsset{value: nativeFee}(
+            expectedOperationId, // Pass operation ID as first parameter
             CHAIN_ID_B,
             address(tokenA),
             recipient,
@@ -139,16 +156,12 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             adapterParams
         );
 
-        // Verify operation ID was generated and returned
-        assertTrue(operationId != bytes32(0));
-
-        // Verify it matches our pre-calculated ID
-        assertEq(operationId, expectedOperationId);
-
         // Verify the operation status is SENT
         assertEq(
             uint256(
-                IBridgeRouter(address(routerA)).getOperationStatus(operationId)
+                IBridgeRouter(address(routerA)).getOperationStatus(
+                    expectedOperationId
+                )
             ),
             uint256(BridgeTypes.OperationStatus.SENT)
         );
@@ -175,6 +188,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.prank(user);
         vm.expectRevert(IBridgeAdapter.Unauthorized.selector);
         adapterA.transferAsset{value: 0.1 ether}(
+            bytes32(0), // Fake operation ID
             CHAIN_ID_B,
             address(tokenA),
             recipient,
@@ -201,6 +215,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.prank(address(routerA));
         vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
         adapterA.transferAsset{value: 0.1 ether}(
+            bytes32(0), // Fake operation ID
             9999, // Unsupported chain
             address(tokenA),
             recipient,
@@ -238,6 +253,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             abi.encodeWithSelector(StargateAdapter.UnsupportedAsset.selector)
         );
         adapterA.transferAsset{value: 0.1 ether}(
+            bytes32(0), // Fake operation ID
             CHAIN_ID_B,
             address(0xdead), // Unsupported asset
             recipient,
@@ -270,8 +286,12 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Add token approval for the adapter - this is needed
+        // Transfer tokens to the router and approve the adapter
+        // This simulates the router having received tokens from the user
         vm.prank(user);
+        tokenA.transfer(address(routerA), 1 ether);
+
+        vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
 
         // Pre-calculate the operation ID that will be generated
@@ -282,7 +302,8 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
                 address(tokenA),
                 1 ether,
                 recipient,
-                block.timestamp
+                block.timestamp,
+                block.number
             )
         );
 
@@ -302,6 +323,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             )
         );
         adapterA.transferAsset{value: requiredFee / 2}(
+            expectedOperationId, // Use the expected operation ID
             CHAIN_ID_B,
             address(tokenA),
             recipient,
@@ -327,6 +349,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.prank(address(routerA));
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
         adapterA.readState(
+            bytes32(0), // Fake operation ID
             CHAIN_ID_A,
             CHAIN_ID_B,
             address(tokenA),
@@ -339,6 +362,22 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         // Test sendMessage (unsupported)
         vm.prank(address(routerA));
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        adapterA.sendMessage(CHAIN_ID_B, recipient, "", user, adapterParams);
+        adapterA.sendMessage(
+            bytes32(0), // Fake operation ID
+            CHAIN_ID_B,
+            recipient,
+            "",
+            user,
+            adapterParams
+        );
     }
+
+    // Add event declaration for the event we expect
+    event TransferInitiated(
+        bytes32 indexed transferId,
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient
+    );
 }

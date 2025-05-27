@@ -357,13 +357,14 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function transferAsset(
+        bytes32, // operationId - not used by LayerZero adapter
         uint16,
         address,
         address,
         uint256,
         address,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
+    ) external payable {
         // This adapter doesn't support asset transfers directly
         // It should never be called for this purpose due to capability flags
         revert OperationNotSupported();
@@ -461,6 +462,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function readState(
+        bytes32 operationId, // Accept from router
         uint16 srcChainId,
         uint16 dstChainId,
         address dstContract,
@@ -468,24 +470,12 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes calldata readParams,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 operationId) {
+    ) external payable {
         // Only BridgeRouter should call this
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
         // Ensure a read channel has been configured
         if (readChannelId == 0) revert ReadChannelNotConfigured();
-
-        // Generate operationId
-        operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                dstChainId,
-                dstContract,
-                selector,
-                readParams,
-                block.timestamp
-            )
-        );
 
         // Get the LayerZero EID for destination chain
         uint32 lzDstEid = _getLayerZeroEid(dstChainId);
@@ -521,6 +511,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             payable(originator)
         );
 
+        // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[receipt.guid] = operationId;
 
         // Emit event for read request initiation
@@ -537,8 +528,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             operationId,
             BridgeTypes.OperationStatus.SENT
         );
-
-        return operationId;
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -550,28 +539,18 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function sendMessage(
+        bytes32 operationId, // Accept from router
         uint16 destinationChainId,
         address recipient,
         bytes calldata message,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 operationId) {
+    ) external payable {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
         // Get the LayerZero EID for destination chain
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
-
-        // Generate a unique message ID
-        operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                destinationChainId,
-                recipient,
-                message,
-                block.timestamp
-            )
-        );
 
         // If msgValue is specified in adapter options, ensure enough value was sent
         if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
@@ -596,6 +575,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             payable(originator)
         );
 
+        // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[receipt.guid] = operationId;
 
         // Emit event for message initiation
@@ -605,8 +585,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             recipient,
             message
         );
-
-        return operationId;
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -45,12 +45,7 @@ contract BridgeRouterAdminTest is Test {
         accessManager.grantGuardianRole(guardian);
 
         // Deploy BridgeRouter, linking it to the queue
-        router = new BridgeRouter(
-            address(accessManager),
-            address(bridgeQueue), // Link to queue
-            new uint16[](0), // Empty chainIds array
-            new address[](0) // Empty routerAddresses array
-        );
+        router = new BridgeRouter(address(accessManager), address(bridgeQueue));
 
         // Set the router address in the queue
         bridgeQueue.setBridgeRouter(address(router));
@@ -149,7 +144,7 @@ contract BridgeRouterAdminTest is Test {
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
+            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
             adapterParams: adapterParams
         });
 
@@ -163,17 +158,16 @@ contract BridgeRouterAdminTest is Test {
         );
         // vm.deal(user, nativeFee); // REMOVED: User no longer pays
 
-        // Ensure selected adapter is used if auto-selecting
-        options.specifiedAdapter = selectedAdapter;
+        // Verify the selected adapter matches what we specified
+        assertEq(selectedAdapter, address(mockAdapter));
 
         // Queue the transfer via BridgeQueue - this should succeed (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueTransferAssets( // REMOVED {value: nativeFee}
-                DEST_CHAIN_ID,
-                address(token),
-                TRANSFER_AMOUNT,
-                user, // recipient
-                options
-            );
+        bytes32 queueId = bridgeQueue.queueTransferAssets(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            user
+        );
 
         vm.stopPrank(); // User stops queueing
 
@@ -218,7 +212,7 @@ contract BridgeRouterAdminTest is Test {
         // So the revert will originate from the router, caught by BridgeQueue (if try/catch exists)
         // or bubble up. Let's assume the Router's Paused error is expected.
         vm.expectRevert(IBridgeRouter.Paused.selector);
-        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId); // ADDED {value: nativeFee}
+        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId, options);
 
         vm.stopPrank();
     }
@@ -240,7 +234,7 @@ contract BridgeRouterAdminTest is Test {
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
+            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
             adapterParams: adapterParams
         });
 
@@ -249,8 +243,7 @@ contract BridgeRouterAdminTest is Test {
             DEST_CHAIN_ID,
             address(mockAdapter), // Use mock adapter as target contract
             bytes4(keccak256("test()")), // Example function selector
-            "", // Empty params
-            options
+            "" // Empty params
         );
 
         vm.stopPrank(); // User stops queueing
@@ -282,7 +275,7 @@ contract BridgeRouterAdminTest is Test {
 
         // The router's execute call should revert because it's paused
         vm.expectRevert(IBridgeRouter.Paused.selector);
-        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId);
+        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId, options);
 
         vm.stopPrank();
     }
@@ -304,7 +297,7 @@ contract BridgeRouterAdminTest is Test {
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
+            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
             adapterParams: adapterParams
         });
 
@@ -312,8 +305,7 @@ contract BridgeRouterAdminTest is Test {
         bytes32 queueId = bridgeQueue.queueSendMessage(
             DEST_CHAIN_ID,
             user, // Send to self for testing
-            "", // Empty message
-            options
+            "" // Empty message
         );
 
         vm.stopPrank(); // User stops queueing
@@ -345,7 +337,7 @@ contract BridgeRouterAdminTest is Test {
 
         // The router's execute call should revert because it's paused
         vm.expectRevert(IBridgeRouter.Paused.selector);
-        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId);
+        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId, options);
 
         vm.stopPrank();
     }

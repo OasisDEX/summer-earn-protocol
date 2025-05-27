@@ -34,35 +34,37 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 options: bytes("")
             });
 
-        // Call readState directly on the adapter
-        vm.mockCall(
-            address(routerA),
-            abi.encodeWithSelector(routerA.setOperationToAdapter.selector),
-            abi.encode()
-        );
-
-        vm.mockCall(
-            address(routerA),
-            abi.encodeWithSelector(routerA.setReadRequestOriginator.selector),
-            abi.encode()
-        );
-
-        bytes32 requestId = keccak256(
+        // Generate a proper operation ID (fake but realistic)
+        bytes32 operationId = keccak256(
             abi.encode(
+                block.chainid,
                 CHAIN_ID_B,
-                address(tokenB),
-                bytes4(keccak256("balanceOf(address)")),
-                abi.encode(recipient),
+                address(0), // No asset for read operations
+                0, // No amount for read operations
+                address(0), // No recipient for read operations
+                abi.encode(
+                    address(tokenB),
+                    bytes4(keccak256("balanceOf(address)")),
+                    abi.encode(recipient),
+                    address(user)
+                ),
                 block.timestamp,
-                address(user)
+                BridgeTypes.OperationType.READ_STATE
             )
         );
 
-        routerA.setOperationToAdapter(requestId, address(adapterA));
+        routerA.setOperationToAdapter(operationId, address(adapterA));
 
         vm.startPrank(governor);
         adapterA.activateReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1);
         vm.stopPrank();
+
+        // Mock the router's updateOperationStatus function
+        vm.mockCall(
+            address(routerA),
+            abi.encodeWithSelector(routerA.updateOperationStatus.selector),
+            abi.encode()
+        );
 
         // We expect this call to revert with LZ_DefaultSendLibUnavailable
         // This is because the LayerZeroOptionsHelper.createLzReadOptions is creating
@@ -73,6 +75,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         vm.deal(address(routerA), 1 ether);
         vm.prank(address(routerA));
         adapterA.readState{value: 0.1 ether}(
+            operationId, // Use proper operation ID
             CHAIN_ID_A,
             CHAIN_ID_B,
             address(tokenB),
@@ -101,30 +104,37 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 options: bytes("")
             });
 
-        bytes32 requestId = keccak256(
+        // Generate a proper operation ID that matches BridgeRouter's logic
+        bytes32 operationId = keccak256(
             abi.encode(
-                CHAIN_ID_A,
+                block.chainid,
                 CHAIN_ID_B,
+                address(0), // No asset for messages
+                0, // No amount for messages
                 recipient,
-                message,
-                block.timestamp
+                abi.encode(message, address(user)), // Additional data
+                block.timestamp,
+                BridgeTypes.OperationType.MESSAGE
             )
         );
 
-        routerA.setOperationToAdapter(requestId, address(adapterA));
+        routerA.setOperationToAdapter(operationId, address(adapterA));
 
         vm.deal(address(routerA), 1 ether);
-        // Call sendMessage directly on the adapter
-        bytes32 messageId = adapterA.sendMessage{value: 0.1 ether}(
+
+        // Expect the MessageInitiated event to be emitted
+        vm.expectEmit(true, true, true, true);
+        emit MessageInitiated(operationId, CHAIN_ID_B, recipient, message);
+
+        // Call sendMessage directly on the adapter - no return value expected
+        adapterA.sendMessage{value: 0.1 ether}(
+            operationId, // Use proper operation ID
             CHAIN_ID_B,
             recipient,
             message,
             address(user),
             adapterParams
         );
-
-        // Verify messageId is not empty
-        assertTrue(messageId != bytes32(0), "Message ID should not be empty");
 
         vm.stopPrank();
     }
@@ -211,12 +221,16 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 options: bytes("")
             });
 
+        // Generate a fake operation ID
+        bytes32 operationId = keccak256(abi.encode("fake-operation"));
+
         // Should revert with Unauthorized since only the router can call sendMessage
         vm.expectRevert(
             abi.encodeWithSelector(IBridgeAdapter.Unauthorized.selector)
         );
 
         adapterA.sendMessage{value: 0.1 ether}(
+            operationId, // Use proper operation ID
             CHAIN_ID_B,
             recipient,
             abi.encode("This should fail"),
@@ -242,6 +256,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
                 options: bytes("")
             });
 
+        // Generate a fake operation ID
+        bytes32 operationId = keccak256(abi.encode("fake-operation"));
+
         // Should revert with InsufficientMsgValue since we only provide 0.1 ether
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -252,6 +269,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         );
 
         adapterA.sendMessage{value: 0.1 ether}(
+            operationId, // Use proper operation ID
             CHAIN_ID_B,
             recipient,
             abi.encode("This should fail due to insufficient value"),
@@ -261,4 +279,87 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         vm.stopPrank();
     }
+
+    function testReadStateWithProperOperationId() public {
+        useNetworkA();
+
+        // Create adapter params with empty options
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: bytes("")
+            });
+
+        // Generate a proper operation ID that matches BridgeRouter's logic
+        bytes32 operationId = keccak256(
+            abi.encode(
+                block.chainid,
+                CHAIN_ID_B,
+                address(0), // No asset for read operations
+                0, // No amount for read operations
+                address(0), // No recipient for read operations
+                abi.encode(
+                    address(tokenB),
+                    bytes4(keccak256("balanceOf(address)")),
+                    abi.encode(recipient),
+                    address(user)
+                ),
+                block.timestamp,
+                BridgeTypes.OperationType.READ_STATE
+            )
+        );
+
+        routerA.setOperationToAdapter(operationId, address(adapterA));
+
+        vm.startPrank(governor);
+        adapterA.activateReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1);
+        vm.stopPrank();
+
+        // Mock the router's updateOperationStatus function
+        vm.mockCall(
+            address(routerA),
+            abi.encodeWithSelector(routerA.updateOperationStatus.selector),
+            abi.encode()
+        );
+
+        // We expect this call to revert with LZ_DefaultSendLibUnavailable
+        // This is because the LayerZeroOptionsHelper.createLzReadOptions is creating
+        // options of type 5, which is not supported by the mock executor when !_isRead
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.LZ_DefaultSendLibUnavailable.selector)
+        );
+
+        vm.deal(address(routerA), 1 ether);
+        vm.prank(address(routerA));
+
+        // This should revert due to the mock LayerZero setup
+        adapterA.readState{value: 0.1 ether}(
+            operationId, // Use proper operation ID
+            CHAIN_ID_A,
+            CHAIN_ID_B,
+            address(tokenB),
+            bytes4(keccak256("balanceOf(address)")),
+            abi.encode(recipient),
+            address(user),
+            adapterParams
+        );
+    }
+
+    // Add event declarations for the events we expect
+    event MessageInitiated(
+        bytes32 indexed messageId,
+        uint16 destinationChainId,
+        address recipient,
+        bytes message
+    );
+
+    event ReadRequestInitiated(
+        bytes32 indexed requestId,
+        uint16 srcChainId,
+        uint16 dstChainId,
+        address dstContract,
+        bytes4 selector
+    );
 }

@@ -48,26 +48,28 @@ interface ISendAdapter {
 
     /**
      * @notice Transfer an asset to a destination chain
+     * @param operationId Router-provided operation ID for tracking
      * @param destinationChainId ID of the destination chain
      * @param asset Address of the asset to transfer
      * @param recipient Address of the recipient on the destination chain
      * @param amount Amount of the asset to transfer
      * @param originator Address that initiated the transfer (for refunds)
      * @param adapterParams Additional adapter-specific parameters
-     * @return transferId Unique ID to track this transfer
      * @dev Initiates a cross-chain asset transfer
      */
     function transferAsset(
+        bytes32 operationId,
         uint16 destinationChainId,
         address asset,
         address recipient,
         uint256 amount,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 transferId);
+    ) external payable;
 
     /**
      * @notice Read state from a contract on a source chain
+     * @param operationId Router-provided operation ID for tracking
      * @param srcChainId ID of the source chain
      * @param dstChainId ID of the destination chain
      * @param dstContract Address of the contract on the destination chain
@@ -75,10 +77,10 @@ interface ISendAdapter {
      * @param readParams Parameters for the function call
      * @param originator Address that initiated the read (for refunds)
      * @param adapterParams Additional adapter-specific parameters
-     * @return requestId Unique ID to track this read request
      * @dev Initiates a cross-chain state read operation
      */
     function readState(
+        bytes32 operationId,
         uint16 srcChainId,
         uint16 dstChainId,
         address dstContract,
@@ -86,23 +88,24 @@ interface ISendAdapter {
         bytes calldata readParams,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 requestId);
+    ) external payable;
 
     /**
      * @notice Send a general message to a destination chain
+     * @param operationId Router-provided operation ID for tracking
      * @param destinationChainId ID of the destination chain
      * @param recipient Address of the recipient on the destination chain
      * @param message The message data to send
      * @param originator Address that initiated the message (for refunds)
      * @param adapterParams Additional adapter-specific parameters
-     * @return messageId Unique ID to track this message
      * @dev Initiates a cross-chain messaging operation
      */
     function sendMessage(
+        bytes32 operationId,
         uint16 destinationChainId,
         address recipient,
         bytes calldata message,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable returns (bytes32 messageId);
+    ) external payable;
 }

@@ -5,8 +5,13 @@ import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {console} from "forge-std/console.sol";
 
 contract MockAdapter is IBridgeAdapter {
+    using SafeERC20 for IERC20;
+
     address public bridgeRouter;
 
     // Add a fee multiplier state variable with a default value of 100 (100%)
@@ -90,33 +95,30 @@ contract MockAdapter is IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function transferAsset(
+        bytes32 operationId, // Accept from router
         uint16 destinationChainId,
         address asset,
         address recipient,
         uint256 amount,
         address originator,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32 transferId) {
+    ) external payable {
         // Check caller is bridge router
-        if (msg.sender != bridgeRouter) revert Unauthorized();
+        if (msg.sender != bridgeRouter) {
+            revert Unauthorized();
+        }
 
         // Verify chain and asset are supported
-        if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
+        if (!this.supportsChain(destinationChainId)) {
+            revert UnsupportedChain();
+        }
 
-        // Generate deterministic transfer ID for testing
-        transferId = keccak256(
-            abi.encodePacked(
-                block.chainid,
-                destinationChainId,
-                asset,
-                recipient,
-                amount
-            )
-        );
+        // Transfer tokens from BridgeRouter to this contract (like real adapters do)
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
-        // Mock transfer successful - emit event for testing
+        // Use the provided operation ID (don't generate our own)
         emit MockTransferInitiated(
-            transferId,
+            operationId, // Use router's ID
             destinationChainId,
             asset,
             recipient,
@@ -124,11 +126,12 @@ contract MockAdapter is IBridgeAdapter {
             originator
         );
 
-        return transferId;
+        // No return value needed
     }
 
     /// @inheritdoc ISendAdapter
     function readState(
+        bytes32 operationId, // Accept from router
         uint16 srcChainId,
         uint16 dstChainId,
         address dstContract,
@@ -136,28 +139,16 @@ contract MockAdapter is IBridgeAdapter {
         bytes calldata readParams,
         address originator,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32 requestId) {
+    ) external payable {
         // Check caller is bridge router
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
         // Verify chain is supported
         if (!this.supportsChain(dstChainId)) revert UnsupportedChain();
 
-        // Generate deterministic request ID for testing
-        requestId = keccak256(
-            abi.encodePacked(
-                block.chainid,
-                srcChainId,
-                dstChainId,
-                dstContract,
-                selector,
-                readParams
-            )
-        );
-
-        // Mock read successful - emit event for testing
+        // Use the provided operation ID (don't generate our own)
         emit MockReadInitiated(
-            requestId,
+            operationId, // Use router's ID
             srcChainId,
             dstChainId,
             dstContract,
@@ -166,19 +157,24 @@ contract MockAdapter is IBridgeAdapter {
             originator
         );
 
-        return requestId;
+        // No return value needed
     }
 
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
-        uint16,
+        uint16 destinationChainId,
         address,
         uint256,
         BridgeTypes.AdapterParams calldata,
         BridgeTypes.OperationType
-    ) external pure returns (uint256 nativeFee, uint256 tokenFee) {
-        // Return base fee of 0.1 ETH to match the router's base fee
-        nativeFee = 0.1 ether;
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        // Check if chain is supported
+        if (!supportedChains[destinationChainId]) {
+            revert UnsupportedChain();
+        }
+
+        // Return base fee of 0.1 ETH multiplied by the fee multiplier
+        nativeFee = (0.1 ether * feeMultiplier) / 100;
         tokenFee = 0;
     }
 
@@ -241,13 +237,45 @@ contract MockAdapter is IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function sendMessage(
-        uint16,
-        address,
-        bytes calldata,
-        address,
+        bytes32 operationId, // Accept from router
+        uint16 destinationChainId,
+        address recipient,
+        bytes calldata message,
+        address originator,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
-        revert("Not implemented");
+    ) external payable {
+        // Check caller is bridge router
+        if (msg.sender != bridgeRouter) revert Unauthorized();
+
+        // Verify chain is supported
+        if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
+
+        // Use the provided operation ID (don't generate our own)
+        emit MockMessageInitiated(
+            operationId, // Use router's ID
+            destinationChainId,
+            recipient,
+            message,
+            originator
+        );
+
+        // No return value needed
+    }
+
+    event MockMessageInitiated(
+        bytes32 messageId,
+        uint16 destinationChainId,
+        address recipient,
+        bytes message,
+        address originator
+    );
+
+    /// @inheritdoc IBridgeAdapter
+    function setBridgeRouter(address newBridgeRouter) external {
+        if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
+        address oldRouter = bridgeRouter;
+        bridgeRouter = newBridgeRouter;
+        emit BridgeRouterUpdated(oldRouter, newBridgeRouter);
     }
 
     // Add simulateMessageReceived function from core-contracts version
@@ -277,5 +305,25 @@ contract MockAdapter is IBridgeAdapter {
         );
 
         emit MessageRelayed(messageId, sender, sourceChainId);
+    }
+
+    // Simple test function to check if function calls work
+    function testFunction() external pure returns (bool) {
+        console.log("testFunction called successfully");
+        return true;
+    }
+
+    // Minimal version of transferAsset for debugging
+    function transferAssetMinimal(
+        bytes32 operationId,
+        uint16 destinationChainId,
+        address /* asset */,
+        address /* recipient */,
+        uint256 /* amount */,
+        address /* originator */
+    ) external payable {
+        console.log("transferAssetMinimal called successfully");
+        console.log("operationId:", uint256(operationId));
+        console.log("destinationChainId:", destinationChainId);
     }
 }

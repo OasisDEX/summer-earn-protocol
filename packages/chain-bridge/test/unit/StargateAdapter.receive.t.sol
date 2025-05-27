@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
@@ -12,62 +11,9 @@ import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
     bytes32 testTransferId = bytes32(uint256(12345));
 
-    function testSgReceive() public {
-        useNetworkA();
-
-        // Set up a transfer to receive
-        uint16 sourceChainId = CHAIN_ID_B;
-        bytes memory srcAddress = abi.encode(recipient); // Sender address encoded as bytes
-        uint256 amount = 1 ether;
-
-        // Mint tokens to the adapter (simulating that Stargate has transferred tokens)
-        tokenA.mint(address(adapterA), amount);
-
-        // Create payload with operation ID
-        bytes memory payload = abi.encode(testTransferId);
-
-        // Call sgReceive as if it's coming from the Stargate Router
-        vm.prank(address(stargateRouterA));
-        adapterA.sgReceive(
-            sourceChainId,
-            srcAddress,
-            1, // nonce
-            address(tokenA),
-            amount,
-            payload
-        );
-
-        // Verify token transfer to recipient
-        assertEq(tokenA.balanceOf(recipient), amount);
-
-        // Verify router was notified
-        // This would need a mock to fully test, but we can at least verify the call doesn't revert
-    }
-
-    function testSgReceiveUnauthorized() public {
-        useNetworkA();
-
-        // Set up a transfer to receive
-        uint16 sourceChainId = CHAIN_ID_B;
-        bytes memory srcAddress = abi.encode(recipient);
-        uint256 amount = 1 ether;
-        bytes memory payload = abi.encode(testTransferId);
-
-        // Mint tokens to the adapter
-        tokenA.mint(address(adapterA), amount);
-
-        // Call sgReceive from unauthorized address (not Stargate Router)
-        vm.prank(user);
-        vm.expectRevert(IBridgeAdapter.Unauthorized.selector);
-        adapterA.sgReceive(
-            sourceChainId,
-            srcAddress,
-            1, // nonce
-            address(tokenA),
-            amount,
-            payload
-        );
-    }
+    /*//////////////////////////////////////////////////////////////
+                          OPERATION STATUS TESTS
+    //////////////////////////////////////////////////////////////*/
 
     function testGetOperationStatus() public {
         useNetworkA();
@@ -91,5 +37,124 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
 
         // Verify status matches what was set
         assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.SENT));
+    }
+
+    function testGetOperationStatusQueued() public {
+        useNetworkA();
+
+        // Setup the mapping in the router
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            testTransferId,
+            address(adapterA)
+        );
+
+        // Set operation status to queued
+        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
+            testTransferId,
+            BridgeTypes.OperationStatus.QUEUED
+        );
+
+        // Get operation status through adapter
+        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(
+            testTransferId
+        );
+
+        // Verify status matches what was set
+        assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.QUEUED));
+    }
+
+    function testGetOperationStatusFailed() public {
+        useNetworkA();
+
+        // Setup the mapping in the router
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            testTransferId,
+            address(adapterA)
+        );
+
+        // Set operation status to failed
+        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
+            testTransferId,
+            BridgeTypes.OperationStatus.FAILED
+        );
+
+        // Get operation status through adapter
+        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(
+            testTransferId
+        );
+
+        // Verify status matches what was set
+        assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.FAILED));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          BRIDGE ROUTER TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testSetBridgeRouter() public {
+        useNetworkA();
+
+        address newRouter = address(0x999);
+
+        // Update bridge router as owner
+        vm.prank(governor);
+        adapterA.setBridgeRouter(newRouter);
+
+        // Verify the router was updated
+        assertEq(adapterA.bridgeRouter(), newRouter);
+    }
+
+    function testSetBridgeRouterUnauthorized() public {
+        useNetworkA();
+
+        address newRouter = address(0x999);
+
+        // Try to update bridge router as unauthorized user
+        vm.prank(user);
+        vm.expectRevert();
+        adapterA.setBridgeRouter(newRouter);
+    }
+
+    function testSetBridgeRouterZeroAddress() public {
+        useNetworkA();
+
+        // Try to set bridge router to zero address
+        vm.prank(governor);
+        vm.expectRevert(IBridgeAdapter.InvalidBridgeRouter.selector);
+        adapterA.setBridgeRouter(address(0));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          TRANSPORT MODE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testSetDefaultTransportMode() public {
+        useNetworkA();
+
+        // Check initial value (should be false - bus mode)
+        assertEq(adapterA.defaultUseTaxi(), false);
+
+        // Update to taxi mode
+        vm.prank(governor);
+        adapterA.setDefaultTransportMode(true);
+
+        // Verify the value was updated
+        assertEq(adapterA.defaultUseTaxi(), true);
+
+        // Update back to bus mode
+        vm.prank(governor);
+        adapterA.setDefaultTransportMode(false);
+
+        // Verify the value was updated
+        assertEq(adapterA.defaultUseTaxi(), false);
+    }
+
+    function testSetDefaultTransportModeUnauthorized() public {
+        useNetworkA();
+
+        // Try to update transport mode as unauthorized user
+        vm.prank(user);
+        vm.expectRevert();
+        adapterA.setDefaultTransportMode(true);
     }
 }

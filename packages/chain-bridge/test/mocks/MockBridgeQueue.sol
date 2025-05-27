@@ -10,167 +10,144 @@ contract MockBridgeQueue is IBridgeQueue {
     address public lastAsset;
     uint256 public lastAmount;
     address public lastRecipient;
-    BridgeTypes.BridgeOptions public lastOptions;
     bytes public lastMessage;
 
+    /// @inheritdoc IBridgeQueue
     function queueTransferAssets(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient,
-        BridgeTypes.BridgeOptions calldata options
-    ) external override returns (bytes32) {
+        address recipient
+    ) external returns (bytes32) {
         lastDestinationChainId = destinationChainId;
         lastAsset = asset;
         lastAmount = amount;
         lastRecipient = recipient;
-        lastOptions = options;
         return keccak256("transfer");
     }
 
+    /// @inheritdoc IBridgeQueue
     function queueSendMessage(
         uint16 destinationChainId,
         address recipient,
-        bytes calldata message,
-        BridgeTypes.BridgeOptions calldata options
-    ) external override returns (bytes32) {
+        bytes calldata message
+    ) external returns (bytes32) {
         lastDestinationChainId = destinationChainId;
         lastRecipient = recipient;
         lastMessage = message;
-        lastOptions = options;
         return keccak256("message");
     }
 
+    /// @inheritdoc IBridgeQueue
     function queueReadState(
         uint16 dstChainId,
         address dstContract,
         bytes4,
-        bytes calldata readParams,
-        BridgeTypes.BridgeOptions calldata options
-    ) external override returns (bytes32) {
+        bytes calldata readParams
+    ) external returns (bytes32) {
         lastDestinationChainId = dstChainId;
         lastAsset = dstContract;
         lastMessage = readParams;
-        lastOptions = options;
         return keccak256("read");
     }
 
+    /// @inheritdoc IBridgeQueue
     function executeQueuedOperation(
-        bytes32
-    ) external payable override returns (bytes32) {
+        bytes32,
+        BridgeTypes.BridgeOptions calldata
+    ) external payable returns (bytes32) {
         return keccak256("executed");
     }
 
     // Implement stubs for other interface functions if needed for compilation
-    // (You can leave them empty or revert)
     function bridgeRouter() external pure returns (address) {
         return address(0);
     }
-    function isQueueManager(address) external pure override returns (bool) {
+
+    function isQueueManager(address) external pure returns (bool) {
         return false;
     }
+
+    /// @inheritdoc IBridgeQueue
     function queuedTransfers(
         bytes32
     )
         external
         pure
-        override
-        returns (
-            uint16,
-            address,
-            uint256,
-            address,
-            BridgeTypes.BridgeOptions memory,
-            address,
-            bytes32
-        )
+        returns (uint16, address, uint256, address, address, bytes32)
     {
         revert("not implemented");
     }
+
+    /// @inheritdoc IBridgeQueue
     function queuedReadStates(
         bytes32
     )
         external
         pure
-        override
-        returns (
-            uint16,
-            address,
-            bytes4,
-            bytes memory,
-            BridgeTypes.BridgeOptions memory,
-            address,
-            bytes32
-        )
+        returns (uint16, address, bytes4, bytes memory, address, bytes32)
     {
         revert("not implemented");
     }
+
+    /// @inheritdoc IBridgeQueue
     function queuedMessages(
         bytes32
-    )
-        external
-        pure
-        override
-        returns (
-            uint16,
-            address,
-            bytes memory,
-            BridgeTypes.BridgeOptions memory,
-            address,
-            bytes32
-        )
-    {
+    ) external pure returns (uint16, address, bytes memory, address, bytes32) {
         revert("not implemented");
     }
+
     function queueIdToOperationType(
         bytes32
-    ) external pure override returns (BridgeTypes.OperationType) {
+    ) external pure returns (BridgeTypes.OperationType) {
         revert("not implemented");
     }
+
     function queueIdToStatus(
         bytes32
-    ) external pure override returns (BridgeTypes.OperationStatus) {
+    ) external pure returns (BridgeTypes.OperationStatus) {
         revert("not implemented");
     }
-    function operationIdToQueueId(
-        bytes32
-    ) external pure override returns (bytes32) {
+
+    function operationIdToQueueId(bytes32) external pure returns (bytes32) {
         revert("not implemented");
     }
-    function pendingQueueIds()
-        external
-        pure
-        override
-        returns (bytes32[] memory)
-    {
+
+    function pendingQueueIds() external pure returns (bytes32[] memory) {
         revert("not implemented");
     }
-    function getPendingQueueCount() external pure override returns (uint256) {
+
+    function getPendingQueueCount() external pure returns (uint256) {
         return 0;
     }
-    function getPendingQueueIdAtIndex(
-        uint256
-    ) external pure override returns (bytes32) {
+
+    function getPendingQueueIdAtIndex(uint256) external pure returns (bytes32) {
         revert("not implemented");
     }
+
     function getOperationStatus(
         bytes32
-    ) external pure override returns (BridgeTypes.OperationStatus) {
+    ) external pure returns (BridgeTypes.OperationStatus) {
         revert("not implemented");
     }
-    function setBridgeRouter(address) external pure override {
+
+    function setBridgeRouter(address) external pure {
         revert("not implemented");
     }
-    function addQueueManager(address) external pure override {
+
+    function addQueueManager(address) external pure {
         revert("not implemented");
     }
-    function removeQueueManager(address) external pure override {
+
+    function removeQueueManager(address) external pure {
         revert("not implemented");
     }
-    function dequeueOperation(bytes32) external pure override {
+
+    function dequeueOperation(bytes32) external pure {
         revert("not implemented");
     }
-    function recoverFunds(address, address, uint256) external pure override {
+
+    function recoverFunds(address, address, uint256) external pure {
         revert("not implemented");
     }
 }

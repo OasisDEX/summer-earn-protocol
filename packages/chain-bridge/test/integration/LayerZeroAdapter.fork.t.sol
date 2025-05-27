@@ -61,12 +61,7 @@ contract LayerZeroIntegrationTest is Test {
         );
 
         // Create router, passing the deployed BridgeQueue address
-        router = new BridgeRouter(
-            address(accessManager),
-            address(bridgeQueue), // Pass queue address
-            chainIds,
-            routerAddresses
-        );
+        router = new BridgeRouter(address(accessManager), address(bridgeQueue));
 
         // Now set the bridge router address in the queue
         vm.startPrank(governor);
@@ -172,8 +167,7 @@ contract LayerZeroIntegrationTest is Test {
         bytes32 queueId = bridgeQueue.queueSendMessage(
             DEST_CHAIN_ID,
             recipient,
-            message,
-            options // Use defined options
+            message
         );
         vm.stopPrank();
 
@@ -227,7 +221,7 @@ contract LayerZeroIntegrationTest is Test {
 
         bytes32 operationId = bridgeQueue.executeQueuedOperation{
             value: nativeFee
-        }(queueId); // ADDED {value: nativeFee}
+        }(queueId, options);
         vm.stopPrank();
 
         // --- Assertions ---
@@ -259,7 +253,7 @@ contract LayerZeroIntegrationTest is Test {
                 options: ""
             });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Let router choose adapter
+            specifiedAdapter: address(adapter), // Explicitly specify adapter
             adapterParams: adapterParams
         });
 
@@ -276,20 +270,17 @@ contract LayerZeroIntegrationTest is Test {
                 options, // Use defined options
                 BridgeTypes.OperationType.READ_STATE
             );
-        // Ensure an adapter was selected
-        assertTrue(selectedAdapter != address(0));
-        // Update options if router selected one
-        options.specifiedAdapter = selectedAdapter;
+        // Verify the selected adapter matches what we specified
+        assertEq(selectedAdapter, address(adapter));
 
         // 1. Queue the operation (as user/queueManager) (NO VALUE)
         vm.startPrank(user);
-        bytes32 queueId = bridgeQueue.queueReadState( // REMOVED {value: nativeFee}
-                DEST_CHAIN_ID,
-                targetContract, // dstContract should be the target contract address on dst chain
-                selector,
-                callData,
-                options // Use defined options
-            );
+        bytes32 queueId = bridgeQueue.queueReadState(
+            DEST_CHAIN_ID,
+            targetContract,
+            selector,
+            callData
+        );
         vm.stopPrank();
 
         // Verify queue status
@@ -341,7 +332,7 @@ contract LayerZeroIntegrationTest is Test {
 
         bytes32 operationId = bridgeQueue.executeQueuedOperation{
             value: nativeFee
-        }(queueId); // ADDED {value: nativeFee}
+        }(queueId, options);
         vm.stopPrank();
 
         // --- Assertions ---

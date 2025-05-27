@@ -13,6 +13,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title BridgeRouter
@@ -191,6 +192,43 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         }
     }
 
+    /**
+     * @dev Internal function to generate a unique operation ID and set initial status
+     * @param operationType Type of operation being performed
+     * @param destinationChainId Target chain ID
+     * @param asset Asset address (address(0) for non-asset operations)
+     * @param amount Amount (0 for non-asset operations)
+     * @param recipient Recipient address
+     * @param additionalData Additional data for ID generation (contract address, selector, etc.)
+     * @return operationId The generated operation ID
+     */
+    function _generateOperationId(
+        BridgeTypes.OperationType operationType,
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        bytes memory additionalData
+    ) internal returns (bytes32 operationId) {
+        operationId = keccak256(
+            abi.encode(
+                block.chainid,
+                destinationChainId,
+                asset,
+                amount,
+                recipient,
+                additionalData,
+                block.timestamp,
+                operationType
+            )
+        );
+
+        // Set initial status to QUEUED
+        operationStatuses[operationId] = BridgeTypes.OperationStatus.QUEUED;
+
+        return operationId;
+    }
+
     /*//////////////////////////////////////////////////////////////
                            BRIDGE QUEUE OPERATIONS
     //////////////////////////////////////////////////////////////*/
@@ -243,29 +281,44 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         // Notify originator that assets are now officially in-flight
         // Attempt to call updateInflightAssets if the originator supports it
-        try
-            ICrossChainArk(params.originator).updateInflightAssets(
-                params.amount
-            )
-        {} catch {}
+        console.log("Updating inflight assets");
+        if (params.originator.code.length > 0) {
+            try
+                IERC165(params.originator).supportsInterface(
+                    type(ICrossChainArk).interfaceId
+                )
+            returns (bool supported) {
+                if (supported) {
+                    try
+                        ICrossChainArk(params.originator).updateInflightAssets(
+                            params.amount
+                        )
+                    {} catch {
+                        // Ignore failures in updateInflightAssets
+                    }
+                }
+            } catch {
+                // Originator doesn't support ERC165 or ICrossChainArk, ignore
+            }
+        }
+
+        // Generate the operation ID ONCE - Router is the source of truth
+        console.log("generating operation id");
+        operationId = _generateOperationId(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.recipient,
+            abi.encode(params.originator) // Additional data for uniqueness
+        );
 
         // Set up operation to adapter mapping BEFORE the adapter call
-        // Generate a predictable operationId
-        operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                params.destinationChainId,
-                params.asset,
-                params.amount,
-                params.recipient,
-                block.timestamp
-            )
-        );
         operationToAdapter[operationId] = selectedAdapter;
 
-        operationId = IBridgeAdapter(selectedAdapter).transferAsset{
-            value: baseFeeToSend
-        }(
+        // Call adapter with the router-generated operation ID (no return value)
+        ISendAdapter(selectedAdapter).transferAsset{value: baseFeeToSend}(
+            operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.asset,
             params.recipient,
@@ -324,15 +377,18 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Generate a predictable operationId
-        operationId = keccak256(
+        // Generate the operation ID ONCE - Router is the source of truth
+        operationId = _generateOperationId(
+            BridgeTypes.OperationType.READ_STATE,
+            params.dstChainId,
+            address(0), // No asset
+            0, // No amount
+            address(0), // No recipient for read operations
             abi.encode(
-                block.chainid,
-                params.dstChainId,
                 params.dstContract,
                 params.selector,
                 params.readParams,
-                block.timestamp
+                params.originator
             )
         );
 
@@ -342,9 +398,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Store the originator for response delivery
         readRequestToOriginator[operationId] = params.originator;
 
-        operationId = IBridgeAdapter(selectedAdapter).readState{
-            value: baseFeeToSend
-        }(
+        // Call adapter with the router-generated operation ID (no return value)
+        ISendAdapter(selectedAdapter).readState{value: baseFeeToSend}(
+            operationId, // Pass the router-generated ID
             uint16(block.chainid),
             params.dstChainId,
             params.dstContract,
@@ -404,22 +460,21 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.MESSAGE
         );
 
-        // Generate a predictable operationId
-        operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                params.destinationChainId,
-                params.recipient,
-                params.message,
-                block.timestamp
-            )
+        // Generate the operation ID ONCE - Router is the source of truth
+        operationId = _generateOperationId(
+            BridgeTypes.OperationType.MESSAGE,
+            params.destinationChainId,
+            address(0), // No asset
+            0, // No amount
+            params.recipient,
+            abi.encode(params.message, params.originator)
         );
 
         operationToAdapter[operationId] = selectedAdapter;
 
-        operationId = ISendAdapter(selectedAdapter).sendMessage{
-            value: baseFeeToSend
-        }(
+        // Call adapter with the router-generated operation ID (no return value)
+        ISendAdapter(selectedAdapter).sendMessage{value: baseFeeToSend}(
+            operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.recipient,
             params.message,
@@ -468,10 +523,16 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     {
         selectedAdapter = options.specifiedAdapter;
 
-        if (
-            selectedAdapter == address(0) ||
-            !this.isValidAdapter(selectedAdapter)
-        ) revert UnknownAdapter();
+        // If no adapter specified, revert
+        if (selectedAdapter == address(0)) {
+            revert NoSuitableAdapter();
+        } else {
+            // Validate specified adapter
+            if (!this.isValidAdapter(selectedAdapter)) {
+                revert UnknownAdapter();
+            }
+        }
+
         _validateAdapterSupportsOperation(selectedAdapter, operationType);
 
         // Get base fee from the selected adapter

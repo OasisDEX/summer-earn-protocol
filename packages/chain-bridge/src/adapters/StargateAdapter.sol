@@ -11,6 +11,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 // Stargate V2 interfaces - based on LayerZero V2 OFT standard
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 
 /**
  * @title IStargate interface for V2
@@ -84,6 +85,7 @@ library OftCmdHelper {
  */
 contract StargateAdapter is Ownable, IBridgeAdapter {
     using SafeERC20 for IERC20;
+    using AddressCast for address;
 
     /// @notice Error for unsupported asset
     error UnsupportedAsset();
@@ -251,13 +253,14 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function transferAsset(
+        bytes32 operationId,
         uint16 destinationChainId,
         address asset,
         address recipient,
         uint256 amount,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable override returns (bytes32 operationId) {
+    ) external payable override {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
@@ -271,14 +274,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
             asset
         ];
         if (stargateContract == address(0)) revert UnsupportedAsset();
-
-        // Generate a unique transfer ID
-        operationId = _generateTransferId(
-            destinationChainId,
-            asset,
-            amount,
-            recipient
-        );
 
         // Transfer tokens from BridgeRouter to this contract
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
@@ -299,36 +294,10 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
             adapterParams
         );
 
-        return operationId;
-    }
-
-    /**
-     * @dev Internal function to generate a transfer ID
-     */
-    function _generateTransferId(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient
-    ) internal returns (bytes32 operationId) {
-        operationId = keccak256(
-            abi.encode(
-                block.chainid,
-                destinationChainId,
-                asset,
-                amount,
-                recipient,
-                block.timestamp,
-                block.number
-            )
-        );
-
         IBridgeRouter(bridgeRouter).updateOperationStatus(
             operationId,
             BridgeTypes.OperationStatus.SENT
         );
-
-        return operationId;
     }
 
     /**
@@ -349,7 +318,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         // Prepare SendParam
         SendParam memory sendParam = SendParam({
             dstEid: chainToEndpointId[destinationChainId],
-            to: _addressToBytes32(recipient),
+            to: recipient.toBytes32(),
             amountLD: amount,
             minAmountLD: amount, // Will be updated after quote
             extraOptions: new bytes(0), // Can be customized for specific use cases
@@ -457,7 +426,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
             dstEid: chainToEndpointId[destinationChainId],
-            to: _addressToBytes32(address(0xdead)), // Dummy recipient for estimation
+            to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
             extraOptions: new bytes(0),
@@ -523,6 +492,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function readState(
+        bytes32,
         uint16,
         uint16,
         address,
@@ -530,18 +500,19 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         bytes calldata,
         address,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
+    ) external payable {
         revert OperationNotSupported();
     }
 
     /// @inheritdoc ISendAdapter
     function sendMessage(
+        bytes32,
         uint16,
         address,
         bytes calldata,
         address,
         BridgeTypes.AdapterParams calldata
-    ) external payable returns (bytes32) {
+    ) external payable {
         revert OperationNotSupported();
     }
 
@@ -557,13 +528,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         address asset
     ) public view returns (bool) {
         return chainAssetToStargate[chainId][asset] != address(0);
-    }
-
-    /**
-     * @dev Helper function to convert address to bytes32
-     */
-    function _addressToBytes32(address _addr) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(_addr)));
     }
 
     /**

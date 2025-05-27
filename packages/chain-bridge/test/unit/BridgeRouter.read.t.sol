@@ -52,9 +52,7 @@ contract BridgeRouterReadStateTest is Test {
         // Deploy BridgeRouterTestHelper, linking it to the queue
         router = new BridgeRouterTestHelper(
             address(accessManager),
-            address(bridgeQueue), // Link to queue
-            new uint16[](0),
-            new address[](0)
+            address(bridgeQueue) // Link to queue
         );
 
         // Set the router address in the queue
@@ -99,7 +97,7 @@ contract BridgeRouterReadStateTest is Test {
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
+            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
             adapterParams: adapterParams
         });
 
@@ -112,17 +110,19 @@ contract BridgeRouterReadStateTest is Test {
             BridgeTypes.OperationType.READ_STATE
         );
 
+        // Verify the selected adapter matches what we specified
+        assertEq(selectedAdapter, address(mockAdapter));
+
         // Use selected adapter in options for queueing
         options.specifiedAdapter = selectedAdapter;
 
         // Queue read state (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueReadState( // REMOVED {value: fee}
-                DEST_CHAIN_ID,
-                targetContract, // Target contract on dest chain
-                targetSelector,
-                targetCalldata, // Calldata for target contract
-                options
-            );
+        bytes32 queueId = bridgeQueue.queueReadState(
+            DEST_CHAIN_ID,
+            targetContract, // Target contract on dest chain
+            targetSelector,
+            targetCalldata // Calldata for target contract
+        );
 
         // Verify queue status
         assertEq(
@@ -175,8 +175,9 @@ contract BridgeRouterReadStateTest is Test {
         );
 
         bytes32 operationId = bridgeQueue.executeQueuedOperation{value: fee}(
-            queueId
-        ); // ADDED {value: fee}
+            queueId,
+            options
+        );
         vm.stopPrank();
 
         // Verify queue status updated post-execution
@@ -237,8 +238,7 @@ contract BridgeRouterReadStateTest is Test {
             DEST_CHAIN_ID,
             targetContract,
             targetSelector,
-            targetCalldata,
-            options
+            targetCalldata
         );
         vm.stopPrank(); // mockReceiver stops queueing
 
@@ -283,7 +283,10 @@ contract BridgeRouterReadStateTest is Test {
             abi.encode(expectedOperationId)
         );
 
-        operationId = bridgeQueue.executeQueuedOperation{value: fee}(queueId); // ADDED {value: fee}
+        operationId = bridgeQueue.executeQueuedOperation{value: fee}(
+            queueId,
+            options
+        );
         vm.stopPrank();
 
         assertEq(operationId, expectedOperationId, "Operation ID mismatch");
@@ -355,13 +358,12 @@ contract BridgeRouterReadStateTest is Test {
             BridgeTypes.OperationType.READ_STATE
         );
         // Queue read state (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueReadState( // REMOVED {value: fee}
-                DEST_CHAIN_ID,
-                targetContract,
-                targetSelector,
-                targetCalldata,
-                options // Use options
-            );
+        bytes32 queueId = bridgeQueue.queueReadState(
+            DEST_CHAIN_ID,
+            targetContract,
+            targetSelector,
+            targetCalldata
+        );
         vm.stopPrank(); // mockReceiver stops queueing
 
         // Keeper executes (PAYS FEE)
@@ -404,7 +406,10 @@ contract BridgeRouterReadStateTest is Test {
             abi.encodeWithSelector(IBridgeRouter.executeReadState.selector),
             abi.encode(expectedOperationId)
         );
-        operationId = bridgeQueue.executeQueuedOperation{value: fee}(queueId); // ADDED {value: fee}
+        operationId = bridgeQueue.executeQueuedOperation{value: fee}(
+            queueId,
+            options
+        );
         vm.stopPrank();
 
         // Test case 1: Non-adapter trying to deliver response
@@ -464,13 +469,12 @@ contract BridgeRouterReadStateTest is Test {
             BridgeTypes.OperationType.READ_STATE
         );
         // Queue read state (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueReadState( // REMOVED {value: fee}
-                DEST_CHAIN_ID,
-                targetContract,
-                targetSelector,
-                targetCalldata,
-                options // Use options
-            );
+        bytes32 queueId = bridgeQueue.queueReadState(
+            DEST_CHAIN_ID,
+            targetContract,
+            targetSelector,
+            targetCalldata
+        );
         vm.stopPrank(); // mockReceiver stops queueing
 
         // Keeper executes (PAYS FEE)
@@ -513,7 +517,10 @@ contract BridgeRouterReadStateTest is Test {
             abi.encodeWithSelector(IBridgeRouter.executeReadState.selector),
             abi.encode(expectedOperationId)
         );
-        operationId = bridgeQueue.executeQueuedOperation{value: fee}(queueId); // ADDED {value: fee}
+        operationId = bridgeQueue.executeQueuedOperation{value: fee}(
+            queueId,
+            options
+        );
         vm.stopPrank();
 
         // Set up the operation mappings using the test helper

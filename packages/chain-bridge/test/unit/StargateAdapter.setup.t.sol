@@ -3,13 +3,12 @@ pragma solidity ^0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {MockStargateRouter} from "../mocks/MockStargateRouter.sol";
+import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 
 // Base test contract with common setup used by all Stargate adapter tests
 contract StargateAdapterSetupTest is Test {
@@ -19,7 +18,7 @@ contract StargateAdapterSetupTest is Test {
     BridgeQueue public bridgeQueueA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
-    MockStargateRouter public stargateRouterA;
+    MockStargateV2 public stargateA;
 
     // Chain B contracts
     StargateAdapter public adapterB;
@@ -27,7 +26,7 @@ contract StargateAdapterSetupTest is Test {
     BridgeQueue public bridgeQueueB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
-    MockStargateRouter public stargateRouterB;
+    MockStargateV2 public stargateB;
 
     // Test wallets
     address public governor = address(0x1);
@@ -43,9 +42,9 @@ contract StargateAdapterSetupTest is Test {
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
 
-    // Stargate pool IDs
-    uint256 public constant POOL_ID_A = 1;
-    uint256 public constant POOL_ID_B = 2;
+    // LayerZero endpoint IDs
+    uint32 public constant ENDPOINT_ID_A = 30101;
+    uint32 public constant ENDPOINT_ID_B = 30102;
 
     function setUp() public virtual {
         // Deploy contracts on chain A
@@ -60,25 +59,32 @@ contract StargateAdapterSetupTest is Test {
         );
         routerA = new BridgeRouterTestHelper(
             address(accessManagerA),
-            address(bridgeQueueA), // Pass queue address
-            new uint16[](0),
-            new address[](0)
+            address(bridgeQueueA)
         );
         bridgeQueueA.setBridgeRouter(address(routerA));
         tokenA = new ERC20Mock();
-        stargateRouterA = new MockStargateRouter();
 
-        adapterA = new StargateAdapter(
-            address(stargateRouterA),
-            address(routerA),
-            governor
+        // Deploy mock Stargate V2 contract for chain A
+        stargateA = new MockStargateV2(
+            address(tokenA),
+            MockStargateV2.StargateType.Pool
         );
 
-        adapterA.addSupportedChain(CHAIN_ID_A, CHAIN_ID_A); // Map local chain ID to Stargate chain ID
-        adapterA.addSupportedChain(CHAIN_ID_B, CHAIN_ID_B); // Map remote chain ID to Stargate chain ID
+        adapterA = new StargateAdapter(address(routerA), governor);
 
-        adapterA.addSupportedAsset(CHAIN_ID_A, address(tokenA), POOL_ID_A);
-        adapterA.addSupportedAsset(CHAIN_ID_B, address(tokenA), POOL_ID_B); // Same token but different pool ID on remote chain
+        adapterA.addSupportedChain(CHAIN_ID_A, ENDPOINT_ID_A); // Map local chain ID to LayerZero endpoint ID
+        adapterA.addSupportedChain(CHAIN_ID_B, ENDPOINT_ID_B); // Map remote chain ID to LayerZero endpoint ID
+
+        adapterA.addSupportedAsset(
+            CHAIN_ID_A,
+            address(tokenA),
+            address(stargateA)
+        );
+        adapterA.addSupportedAsset(
+            CHAIN_ID_B,
+            address(tokenA),
+            address(stargateA) // Use same mock for simplicity in tests
+        );
 
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
@@ -98,25 +104,32 @@ contract StargateAdapterSetupTest is Test {
         );
         routerB = new BridgeRouterTestHelper(
             address(accessManagerB),
-            address(bridgeQueueB), // Pass queue address
-            new uint16[](0),
-            new address[](0)
+            address(bridgeQueueB)
         );
         bridgeQueueB.setBridgeRouter(address(routerB));
         tokenB = new ERC20Mock();
-        stargateRouterB = new MockStargateRouter();
 
-        adapterB = new StargateAdapter(
-            address(stargateRouterB),
-            address(routerB),
-            governor
+        // Deploy mock Stargate V2 contract for chain B
+        stargateB = new MockStargateV2(
+            address(tokenB),
+            MockStargateV2.StargateType.Pool
         );
 
-        adapterB.addSupportedChain(CHAIN_ID_B, CHAIN_ID_B); // Map local chain ID to Stargate chain ID
-        adapterB.addSupportedChain(CHAIN_ID_A, CHAIN_ID_A); // Map remote chain ID to Stargate chain ID
+        adapterB = new StargateAdapter(address(routerB), governor);
 
-        adapterB.addSupportedAsset(CHAIN_ID_B, address(tokenB), POOL_ID_B);
-        adapterB.addSupportedAsset(CHAIN_ID_A, address(tokenB), POOL_ID_A); // Same token but different pool ID on remote chain
+        adapterB.addSupportedChain(CHAIN_ID_B, ENDPOINT_ID_B); // Map local chain ID to LayerZero endpoint ID
+        adapterB.addSupportedChain(CHAIN_ID_A, ENDPOINT_ID_A); // Map remote chain ID to LayerZero endpoint ID
+
+        adapterB.addSupportedAsset(
+            CHAIN_ID_B,
+            address(tokenB),
+            address(stargateB)
+        );
+        adapterB.addSupportedAsset(
+            CHAIN_ID_A,
+            address(tokenB),
+            address(stargateB) // Use same mock for simplicity in tests
+        );
 
         routerB.registerAdapter(address(adapterB));
         tokenB.mint(user, 10000e18);

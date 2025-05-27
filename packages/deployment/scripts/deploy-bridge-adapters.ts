@@ -107,16 +107,16 @@ async function deployAdapters() {
 
   // Check if we want to reconfigure existing adapters
   const hasExistingAdapters =
-    (config.deployedContracts.bridge?.adapters?.layerZero?.address &&
-      !isAddressEqual(
-        config.deployedContracts.bridge.adapters.layerZero.address as Address,
-        zeroAddress,
-      )) &&
-    (config.deployedContracts.bridge?.adapters?.stargate?.address &&
-      !isAddressEqual(
-        config.deployedContracts.bridge.adapters.stargate.address as Address,
-        zeroAddress,
-      ))
+    config.deployedContracts.bridge?.adapters?.layerZero?.address &&
+    !isAddressEqual(
+      config.deployedContracts.bridge.adapters.layerZero.address as Address,
+      zeroAddress,
+    ) &&
+    config.deployedContracts.bridge?.adapters?.stargate?.address &&
+    !isAddressEqual(
+      config.deployedContracts.bridge.adapters.stargate.address as Address,
+      zeroAddress,
+    )
 
   let reconfigureOnly = false
   if (hasExistingAdapters) {

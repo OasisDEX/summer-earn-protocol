@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
@@ -518,8 +519,24 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.TRANSFER_ASSET
         ) {
             address originator = queuedTransfers[queueId].originator;
-            // Try to call updateInflightAssets on the originator
-            try ICrossChainArk(originator).updateInflightAssets(0) {} catch {}
+            // Check if originator supports ICrossChainArk interface before calling updateInflightAssets
+            if (originator.code.length > 0) {
+                try
+                    IERC165(originator).supportsInterface(
+                        type(ICrossChainArk).interfaceId
+                    )
+                returns (bool supported) {
+                    if (supported) {
+                        try
+                            ICrossChainArk(originator).updateInflightAssets(0)
+                        {} catch {
+                            // Ignore failures in updateInflightAssets
+                        }
+                    }
+                } catch {
+                    // Originator doesn't support ERC165 or ICrossChainArk, ignore
+                }
+            }
         }
 
         _removePendingId(queueId, index - 1);

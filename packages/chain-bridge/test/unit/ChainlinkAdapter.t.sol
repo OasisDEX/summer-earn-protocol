@@ -28,6 +28,7 @@ contract ChainlinkAdapterTest is Test {
         // Test that transferAsset reverts with OperationNotSupported
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
         adapter.transferAsset(
+            bytes32(0), // operationId
             1, // destinationChainId
             address(token), // asset
             user, // recipient

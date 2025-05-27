@@ -7,6 +7,7 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -76,17 +77,14 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Add a new supported chain
         uint16 newChainId = 42161; // Arbitrum
-        uint16 newStargateChainId = 110; // Stargate's chain ID for Arbitrum
+        uint32 newEndpointId = 30110; // LayerZero endpoint ID for Arbitrum
 
         vm.prank(governor);
-        adapterA.addSupportedChain(newChainId, newStargateChainId);
+        adapterA.addSupportedChain(newChainId, newEndpointId);
 
         // Verify the chain was added
         assertTrue(adapterA.supportsChain(newChainId));
-        assertEq(
-            adapterA.chainToStargateChainId(newChainId),
-            newStargateChainId
-        );
+        assertEq(adapterA.getEndpointId(newChainId), newEndpointId);
 
         // Verify it's in the list of supported chains
         uint16[] memory supportedChains = adapterA.getSupportedChains();
@@ -106,7 +104,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Try to add an already supported chain
         vm.prank(governor);
         vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
-        adapterA.addSupportedChain(CHAIN_ID_A, CHAIN_ID_A);
+        adapterA.addSupportedChain(CHAIN_ID_A, uint32(CHAIN_ID_A));
     }
 
     function testAddSupportedAsset() public {
@@ -115,12 +113,25 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Create a new token
         ERC20Mock newToken = new ERC20Mock();
 
+        // Create a proper mock Stargate contract
+        MockStargateV2 mockStargateContract = new MockStargateV2(
+            address(newToken),
+            MockStargateV2.StargateType.Pool
+        );
+
         // Add the new token as supported asset
         vm.prank(governor);
-        adapterA.addSupportedAsset(CHAIN_ID_A, address(newToken), 3);
+        adapterA.addSupportedAsset(
+            CHAIN_ID_A,
+            address(newToken),
+            address(mockStargateContract)
+        );
 
         // Verify the asset was added
-        assertEq(adapterA.chainAssetToPoolId(CHAIN_ID_A, address(newToken)), 3);
+        assertEq(
+            adapterA.getStargateContract(CHAIN_ID_A, address(newToken)),
+            address(mockStargateContract)
+        );
 
         // Get the supported assets using getSupportedAssets method
         address[] memory supportedAssets = adapterA.getSupportedAssets(
@@ -139,12 +150,25 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     function testAddDuplicateAsset() public {
         useNetworkA();
 
-        // Add the same asset again (should update pool ID but not add duplicate)
-        vm.prank(governor);
-        adapterA.addSupportedAsset(CHAIN_ID_A, address(tokenA), 5);
+        // Create a proper mock Stargate contract
+        MockStargateV2 newStargateContract = new MockStargateV2(
+            address(tokenA),
+            MockStargateV2.StargateType.OFT
+        );
 
-        // Verify the pool ID was updated
-        assertEq(adapterA.chainAssetToPoolId(CHAIN_ID_A, address(tokenA)), 5);
+        // Add the same asset again (should update Stargate contract but not add duplicate)
+        vm.prank(governor);
+        adapterA.addSupportedAsset(
+            CHAIN_ID_A,
+            address(tokenA),
+            address(newStargateContract)
+        );
+
+        // Verify the Stargate contract was updated
+        assertEq(
+            adapterA.getStargateContract(CHAIN_ID_A, address(tokenA)),
+            address(newStargateContract)
+        );
 
         // Get the supported assets using getSupportedAssets method
         address[] memory supportedAssets = adapterA.getSupportedAssets(
@@ -157,18 +181,38 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     function testAddAssetToUnsupportedChain() public {
         useNetworkA();
 
+        // Create a proper mock Stargate contract for this test
+        MockStargateV2 mockStargateContract = new MockStargateV2(
+            address(tokenA),
+            MockStargateV2.StargateType.Pool
+        );
+
         // Try to add an asset to an unsupported chain
         vm.prank(governor);
         vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
-        adapterA.addSupportedAsset(9999, address(tokenA), 1);
+        adapterA.addSupportedAsset(
+            9999,
+            address(tokenA),
+            address(mockStargateContract)
+        );
     }
 
     function testAddInvalidAsset() public {
         useNetworkA();
 
+        // Create a proper mock Stargate contract for this test
+        MockStargateV2 mockStargateContract = new MockStargateV2(
+            address(tokenA),
+            MockStargateV2.StargateType.Pool
+        );
+
         // Try to add address(0) as an asset
         vm.prank(governor);
         vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
-        adapterA.addSupportedAsset(CHAIN_ID_A, address(0), 1);
+        adapterA.addSupportedAsset(
+            CHAIN_ID_A,
+            address(0),
+            address(mockStargateContract)
+        );
     }
 }

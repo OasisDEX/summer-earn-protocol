@@ -3,17 +3,19 @@ pragma solidity 0.8.28;
 
 import "../Ark.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
  * @title CrossChainArk
  * @notice Ark contract for managing cross-chain deposits and withdrawals
  * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages
  */
-contract CrossChainArk is Ark, ICrossChainAssetReceiver {
+contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -91,9 +93,6 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver {
         uint16 sourceChainId
     );
 
-    /// @notice Emitted when inflight assets amount is updated
-    event InflightAssetsUpdated(uint256 amount);
-
     /// @notice Emitted when the target proxy is updated
     event TargetProxyUpdated(
         address indexed oldProxy,
@@ -161,7 +160,6 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver {
         }
 
         inflightAssets = amount;
-        emit InflightAssetsUpdated(amount);
     }
 
     /// @notice Requests a state read to update the remote asset balance
@@ -215,8 +213,11 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver {
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure returns (bool) {
-        return interfaceId == type(ICrossChainAssetReceiver).interfaceId;
+    ) external pure override(ICrossChainAssetReceiver, IERC165) returns (bool) {
+        return
+            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
+            interfaceId == type(ICrossChainArk).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -285,7 +286,6 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver {
 
         // Reset inflight assets as the state read now reflects the current remote balance
         inflightAssets = 0;
-        emit InflightAssetsUpdated(0);
 
         emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
     }
@@ -307,13 +307,13 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver {
      * @notice Receives assets from another chain along with a message
      * @param tokenAddress The address of the received token
      * @param amount The amount of tokens received
-     * @param message The associated message data
+     * @param // message The associated message data
      * @param sourceChainId The chain ID where the message originated from
      */
     function receiveMessageWithAssets(
         address tokenAddress,
         uint256 amount,
-        bytes calldata message, // TODO: Use this to send latest true balance after withdrawal
+        bytes calldata, // TODO: Use this to send latest true balance after withdrawal
         uint16 sourceChainId
     ) external {
         if (msg.sender != address(bridgeRouter)) revert Unauthorized();

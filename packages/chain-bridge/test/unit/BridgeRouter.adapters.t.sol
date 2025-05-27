@@ -42,12 +42,7 @@ contract BridgeRouterAdaptersTest is Test {
         vm.startPrank(governor);
 
         // Deploy router, linking it to the queue
-        router = new BridgeRouter(
-            address(accessManager),
-            address(bridgeQueue), // Link to queue
-            new uint16[](0), // Empty chainIds array
-            new address[](0) // Empty routerAddresses array
-        );
+        router = new BridgeRouter(address(accessManager), address(bridgeQueue));
 
         // Set the router address in the queue
         bridgeQueue.setBridgeRouter(address(router));
@@ -163,40 +158,6 @@ contract BridgeRouterAdaptersTest is Test {
 
     // ---- ADAPTER SELECTION TESTS ----
 
-    function testGetBestAdapter() public {
-        // Setup second adapter with different fee
-        vm.startPrank(governor);
-        mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
-        mockAdapter2.setFeeMultiplier(150); // 50% more expensive
-        router.registerAdapter(address(mockAdapter2));
-        vm.stopPrank();
-
-        // Create dummy options just for quote
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 0, // Not relevant for mock adapter fee calc
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
-            adapterParams: adapterParams
-        });
-
-        // Get best adapter for lowest cost via quote
-        (, , address bestAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options, // Pass options
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-
-        // Should select the cheaper adapter
-        assertEq(bestAdapter, address(mockAdapter));
-    }
-
     function testSpecifiedAdapter() public {
         vm.startPrank(governor);
         // Configure mockAdapter2 to support the destination chain and asset
@@ -239,8 +200,7 @@ contract BridgeRouterAdaptersTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            user, // recipient
-            options
+            user
         );
 
         vm.stopPrank(); // User stops queueing
@@ -296,7 +256,7 @@ contract BridgeRouterAdaptersTest is Test {
 
         bytes32 operationId = bridgeQueue.executeQueuedOperation{
             value: nativeFee
-        }(queueId); // ADDED {value: nativeFee}
+        }(queueId, options);
         vm.stopPrank();
 
         // Verify queue status updated post-execution
@@ -355,7 +315,7 @@ contract BridgeRouterAdaptersTest is Test {
         vm.stopPrank();
     }
 
-    function testAdapterSelectionLimits() public {
+    function testAdapterValidation() public {
         // Register multiple adapters with different support combinations
         vm.startPrank(governor);
 
@@ -363,87 +323,112 @@ contract BridgeRouterAdaptersTest is Test {
         mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
         router.registerAdapter(address(mockAdapter2));
 
-        // Register adapters with different support combinations
-        MockAdapter[] memory otherAdapters = new MockAdapter[](3);
-
-        // Adapter that doesn't support the chain
-        otherAdapters[0] = new MockAdapter(address(router));
-        otherAdapters[0].setSupportedChain(DEST_CHAIN_ID, false);
-        router.registerAdapter(address(otherAdapters[0]));
-
-        // Adapter that doesn't support the asset
-        otherAdapters[1] = new MockAdapter(address(router));
-        otherAdapters[1].setSupportedChain(DEST_CHAIN_ID, true);
-        router.registerAdapter(address(otherAdapters[1]));
-
-        // Adapter that supports everything
-        otherAdapters[2] = new MockAdapter(address(router));
-        otherAdapters[2].setSupportedChain(DEST_CHAIN_ID, true);
-        router.registerAdapter(address(otherAdapters[2]));
+        // Create an adapter that doesn't support the chain
+        MockAdapter unsupportedChainAdapter = new MockAdapter(address(router));
+        unsupportedChainAdapter.setSupportedChain(DEST_CHAIN_ID, false);
+        router.registerAdapter(address(unsupportedChainAdapter));
 
         vm.stopPrank();
 
-        // Create dummy options just for quote
+        // Create adapter params for testing
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
-                gasLimit: 0, // Not relevant for mock adapter fee calc
+                gasLimit: 0,
                 calldataSize: 0,
                 msgValue: 0,
                 options: ""
             });
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
-            adapterParams: adapterParams
-        });
 
-        // Get best adapter via quote
-        (, , address bestAdapter) = router.quote(
+        // Test 1: Valid adapter that supports everything
+        BridgeTypes.BridgeOptions memory validOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                adapterParams: adapterParams
+            });
+
+        (, , address selectedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            options,
+            validOptions,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Since all adapters return the same base fee (0.1 ETH), the router will select the first one it finds
-        // that supports everything. In this case, it should be mockAdapter since it was registered first.
         assertEq(
-            bestAdapter,
+            selectedAdapter,
             address(mockAdapter),
-            "Should select first adapter that supports everything"
+            "Should return the specified valid adapter"
         );
 
-        // Test with unsupported chain
-        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
+        // Test 2: Adapter that doesn't support the chain - should fail at estimateFee level
+        BridgeTypes.BridgeOptions memory invalidChainOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(unsupportedChainAdapter),
+                adapterParams: adapterParams
+            });
+
+        vm.expectRevert(); // Will revert with UnsupportedChain from estimateFee
         router.quote(
-            999, // Unsupported chain
+            DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            options,
+            invalidChainOptions,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Test with a new token (Mock adapters accept any token)
+        // Test 3: Unregistered adapter
+        BridgeTypes.BridgeOptions memory unregisteredOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(0x999),
+                adapterParams: adapterParams
+            });
+
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
+        router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            unregisteredOptions,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        // Test 4: No adapter specified
+        BridgeTypes.BridgeOptions memory noAdapterOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(0),
+                adapterParams: adapterParams
+            });
+
+        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
+        router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            noAdapterOptions,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        // Test 5: Valid adapter with different token (MockAdapter supports any token)
         ERC20Mock newToken = new ERC20Mock();
         (, , address selectedAdapterForNewToken) = router.quote(
             DEST_CHAIN_ID,
             address(newToken),
             TRANSFER_AMOUNT,
-            options,
+            validOptions,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
-        // Should still find an adapter since MockAdapter supports any token
+
         assertEq(
             selectedAdapterForNewToken,
             address(mockAdapter),
-            "Should select adapter for new token"
+            "Should return specified adapter for any supported token"
         );
     }
 
     // ---- FEE ESTIMATION TESTS ----
 
     function testQuote() public view {
-        // Create bridge options
+        // Create bridge options with explicit adapter
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
                 gasLimit: 500000,
@@ -453,7 +438,7 @@ contract BridgeRouterAdaptersTest is Test {
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
+            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
             adapterParams: adapterParams
         });
 
@@ -472,7 +457,7 @@ contract BridgeRouterAdaptersTest is Test {
     }
 
     function testQuoteNoSuitableAdapter() public {
-        // Create bridge options
+        // Create bridge options with no adapter specified
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
                 gasLimit: 500000,
@@ -482,14 +467,14 @@ contract BridgeRouterAdaptersTest is Test {
             });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(0), // Auto-select
+            specifiedAdapter: address(0), // No adapter specified
             adapterParams: adapterParams
         });
 
-        // Should revert for unsupported chain
+        // Should revert when no adapter is specified
         vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
         router.quote(
-            999, // Unsupported chain ID
+            DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
             options,

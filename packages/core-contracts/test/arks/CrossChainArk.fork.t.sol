@@ -64,9 +64,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create router, passing the deployed BridgeQueue address
         bridgeRouter = new BridgeRouter(
             address(accessManager),
-            address(bridgeQueue),
-            chainIds,
-            routerAddresses
+            address(bridgeQueue)
         );
 
         // Set the bridge router address in the queue
@@ -118,25 +116,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        BridgeTypes.BridgeOptions memory bridgeOptions = BridgeTypes
-            .BridgeOptions({
-                specifiedAdapter: address(layerZeroAdapter),
-                adapterParams: BridgeTypes.AdapterParams({
-                    gasLimit: 500000,
-                    calldataSize: 0,
-                    msgValue: 0,
-                    options: ""
-                })
-            });
-
         ark = new CrossChainArk(
             address(bridgeQueue),
             address(bridgeRouter),
             DEST_CHAIN_ID,
-            ARB_PROXY,
-            bridgeOptions,
             params
         );
+
+        // Set the target proxy
+        vm.prank(governor);
+        ark.setTargetProxy(ARB_PROXY);
 
         // Add ark as queue manager
         vm.startPrank(governor);
@@ -175,9 +164,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address asset,
             uint256 queuedAmount,
             address recipient,
-            BridgeTypes.BridgeOptions memory options,
             address originator,
-
+            bytes32 operationId
         ) = bridgeQueue.queuedTransfers(queueId);
 
         // Verify all the queued transfer parameters
@@ -191,9 +179,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertEq(recipient, ARB_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
         assertEq(
-            options.specifiedAdapter,
-            address(layerZeroAdapter),
-            "Incorrect adapter specified"
+            operationId,
+            bytes32(0),
+            "Operation ID should be zero initially"
         );
     }
 
