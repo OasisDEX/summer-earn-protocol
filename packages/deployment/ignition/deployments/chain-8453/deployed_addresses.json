@@ -55,5 +55,6 @@
   "LazyVault_LowerRisk_WETH_bummer_MorphoVault_weth_Gauntlet_WETH_Core_8453#MorphoVaultArk": "0xA5d396589bE17f91311B747D75fe74deaE0aCe73",
   "AdmiralsQuartersModule_20250506T105651491#AdmiralsQuarters": "0x16160Cd5C54dE1CaBa7C567C6D232c1A9D514515",
   "BummerLazyVault_WETH_Origin_weth_8453_gov#OriginSuperOETHArk": "0x1Fd588A01a04307AaF486cDe7568c057048a03EE",
-  "LazyVault_LowerRisk_WETH_Origin_weth_8453_gov#OriginSuperOETHArk": "0xD9755f1541103333132E2C90C67f7e513060dc0e"
+  "LazyVault_LowerRisk_WETH_Origin_weth_8453_gov#OriginSuperOETHArk": "0xD9755f1541103333132E2C90C67f7e513060dc0e",
+  "BummerLazyVault_WETH_AaveV3CarryTrade_weth_8453#AaveV3CarryTradeArk": "0xbCD6FefC826d43A08595f8040008674f2aAFb8a6"
 }
