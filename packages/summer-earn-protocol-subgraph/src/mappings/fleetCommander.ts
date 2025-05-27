@@ -102,7 +102,7 @@ export function handleDeposit(event: DepositEvent): void {
     event.block,
   )
 
-  const referralData = handleReferrals(event, account, positionDetails)
+  const referralData = handleReferrals(event, account, positionDetails, 'handleDeposit')
 
   updatePosition(positionDetails, event.block, referralData)
 
@@ -202,7 +202,7 @@ export function handleStaked(event: Staked): void {
     event.block,
   )
 
-  const referralData = handleReferrals(event, account, positionDetails)
+  const referralData = handleReferrals(event, account, positionDetails, 'handleStaked')
 
   updatePosition(positionDetails, event.block, referralData)
 

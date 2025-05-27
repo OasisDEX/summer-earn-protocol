@@ -1,5 +1,5 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
-import { PositionRewards, Vault } from '../../generated/schema'
+import { Position, PositionRewards, Vault } from '../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { addresses } from '../common/addressProvider'
@@ -59,13 +59,10 @@ export function getPositionDetails(
   const unstakedInputTokenNormalizedUSD = unstakedInputTokenNormalized.times(priceInUSD)
   const stakedInputTokenNormalizedUSD = stakedInputTokenNormalized.times(priceInUSD)
   const totalInputTokenNormalizedUSD = totalInputTokenNormalized.times(priceInUSD)
-  const position = getOrCreatePosition(
-    utils.formatPositionId(account.toHexString(), vaultDetails.vaultId),
-    block,
-  )
+  const position = Position.load(utils.formatPositionId(account.toHexString(), vaultDetails.vaultId))
 
-  const stakedInputTokenBalanceBeforeUpdate = position.stakedInputTokenBalance
-  const unstakedInputTokenBalanceBeforeUpdate = position.unstakedInputTokenBalance
+  const stakedInputTokenBalanceBeforeUpdate = position ? position.stakedInputTokenBalance : constants.BigIntConstants.ZERO
+  const unstakedInputTokenBalanceBeforeUpdate = position ? position.unstakedInputTokenBalance : constants.BigIntConstants.ZERO
   const totalInputTokenBeforeUpdate = stakedInputTokenBalanceBeforeUpdate.plus(
     unstakedInputTokenBalanceBeforeUpdate,
   )

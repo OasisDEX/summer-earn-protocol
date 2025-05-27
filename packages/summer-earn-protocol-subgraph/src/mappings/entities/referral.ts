@@ -1,4 +1,4 @@
-import { BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { Account, ReferralData } from '../../../generated/schema'
 import * as constants from '../../common/constants'
 import { BigDecimalConstants, BigIntConstants, EventSignature } from '../../common/constants'
@@ -39,14 +39,21 @@ export function handleReferrals(
   event: ethereum.Event,
   maybeReferredAccount: Account,
   positionDetails: PositionDetails,
+  context: string,
 ): string | null {
+  log.error('[handleReferrals] maybeReferredAccount: {} positions: {} hasReferralData: {} context: {}', [
+    maybeReferredAccount.id,
+    maybeReferredAccount.positions.load().length.toString(),
+    maybeReferredAccount.referralData ? 'true' : 'false',
+    context,
+  ])
   // Skip referral tracking for existing users who don't already have referral data
   // This means: only new users (no positions) OR existing users with referral data can be processed
   // Prevents existing users from being referred for the first time (only new users can get first referrals)
   if (maybeReferredAccount.positions.load().length != 0 && !maybeReferredAccount.referralData) {
     return null
   }
-
+  log.error('handleReferrals: {}', [maybeReferredAccount.id])
   // Early exit for withdrawals, unstakes, and zero amounts
   // These are tracked separately in fleetCommander.ts using account.referralData
   if (positionDetails.inputTokenDeltaNormalizedUSD.le(BigDecimalConstants.ZERO)) {
@@ -78,13 +85,20 @@ export function handleReferrals(
  */
 function extractReferralCodeFromEvent(event: ethereum.Event, accountId: string): string | null {
   const admiralsQuartersReferralLogs = getEventLogs(event, EventSignature.FleetEnteredWithReferral)
-
+  log.error('extractReferralCodeFromEvent: {}', [
+    admiralsQuartersReferralLogs.length.toString(),
+  ])
   if (admiralsQuartersReferralLogs.length == 0) {
+    log.error('extractReferralCodeFromEvent: no logs found',[])
     return null
   }
-
+  log.error('extractReferralCodeFromEvent: admiralQuartersReferralLogs: {}', [
+    admiralsQuartersReferralLogs[0].data.toHexString(),
+  ])
   const admiralQuartersReferralLog = admiralsQuartersReferralLogs[0]
-
+  log.error('extractReferralCodeFromEvent: admiralQuartersReferralLog: {}', [
+    admiralQuartersReferralLog.data.toHexString(),
+  ])
   // Extract referral code from event data (5th element in tuple)
   const referralCode = dataToTuple(
     admiralQuartersReferralLog.data,
@@ -93,7 +107,14 @@ function extractReferralCodeFromEvent(event: ethereum.Event, accountId: string):
     .toBytes()
     .toHexString()
 
+  log.error('extractReferralCodeFromEvent: referralCode: {}', [referralCode])
+
   const eventAddress = logTopicToAddress(admiralQuartersReferralLog.topics[1])
+
+  log.error('extractReferralCodeFromEvent: eventAddress: {} accountId: {}', [
+    eventAddress.toHexString(),
+    accountId,
+  ])
 
   // Validate that the event address matches the account
   if (eventAddress.toHexString() != accountId) {
