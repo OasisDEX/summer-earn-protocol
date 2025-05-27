@@ -373,7 +373,7 @@ export async function configureStargateAdapter(
         if (destChain.chainId === currentChainId) continue
 
         console.log(
-          `Adding supported asset ${checksummedLocalAddress} for bridging to chain ${destChain.chainId} using local Stargate contract ${checksummedStargateContract}`,
+          `Adding supported asset ${checksummedLocalAddress} for bridging to chain ${destChain.chainId} using destination Stargate contract ${checksummedStargateContract}`,
         )
 
         try {
@@ -836,24 +836,4 @@ export async function deployBridgeAdapters(
 
   console.log(kleur.green().bold('Bridge adapters deployment completed!'))
   return deployedAdapters
-}
-
-// Add testnet detection function
-function isTestnetChain(chainId: number): boolean {
-  const testnetChainIds = [
-    5, // Goerli
-    11155111, // Sepolia
-    80001, // Mumbai
-    421613, // Arbitrum Goerli
-    421614, // Arbitrum Sepolia
-    84531, // Base Goerli
-    84532, // Base Sepolia
-    97, // BSC Testnet
-    43113, // Avalanche Fuji
-    4002, // Fantom Testnet
-    2522, // Fraxtal Testnet
-    80084, // Berachain bArtio Testnet
-  ]
-
-  return testnetChainIds.includes(chainId)
 }
