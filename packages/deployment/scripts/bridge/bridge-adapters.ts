@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address } from 'viem'
+import { Address, getAddress } from 'viem'
 import layerZeroConfig from '../../config/adapters/layerzero.json'
 import stargateConfig from '../../config/adapters/stargate.json'
 import LayerZeroAdapterModule from '../../ignition/modules/adapters/layerzero'
@@ -197,8 +197,12 @@ export async function configureStargateAdapter(
     const localAssetAddress = networkConfig.tokens[assetSymbol]
 
     if (localAssetAddress && stargateContract) {
+      // Ensure addresses are properly checksummed
+      const checksummedLocalAddress = getAddress(localAssetAddress)
+      const checksummedStargateContract = getAddress(stargateContract as string)
+
       console.log(
-        `Configuring asset ${assetSymbol} (${localAssetAddress}) with Stargate contract ${stargateContract}`,
+        `Configuring asset ${assetSymbol} (${checksummedLocalAddress}) with Stargate contract ${checksummedStargateContract}`,
       )
 
       // Configure asset for each destination chain
@@ -206,24 +210,24 @@ export async function configureStargateAdapter(
         if (destChain.chainId === currentChainId) continue
 
         console.log(
-          `Adding supported asset ${localAssetAddress} for bridging to chain ${destChain.chainId}`,
+          `Adding supported asset ${checksummedLocalAddress} for bridging to chain ${destChain.chainId}`,
         )
 
         try {
           const isSupported = await stargateAdapter.read.isAssetSupported([
             destChain.chainId,
-            localAssetAddress,
+            checksummedLocalAddress, // Use checksummed address
           ])
 
           if (!isSupported) {
             const hash = await stargateAdapter.write.addSupportedAsset([
               destChain.chainId,
-              localAssetAddress,
-              stargateContract,
+              checksummedLocalAddress, // Use checksummed address
+              checksummedStargateContract, // Use checksummed address
             ])
             console.log(
               kleur.green(
-                `Asset mapping for ${localAssetAddress} to chain ${destChain.chainId} added successfully, tx: ${hash}`,
+                `Asset mapping for ${checksummedLocalAddress} to chain ${destChain.chainId} added successfully, tx: ${hash}`,
               ),
             )
           } else {
