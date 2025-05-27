@@ -5,22 +5,90 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
-import {IStargateRouter} from "../interfaces/IStargateRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IStargateReceiver} from "../interfaces/IStargateReceiver.sol";
+
+// Stargate V2 interfaces - based on LayerZero V2 OFT standard
+import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
+/**
+ * @title IStargate interface for V2
+ * @notice Based on LayerZero V2 OFT standard with Stargate extensions
+ */
+interface IStargate {
+    enum StargateType {
+        Pool,
+        OFT
+    }
+
+    struct Ticket {
+        uint56 ticketId;
+        bytes passenger;
+    }
+
+    function sendToken(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    )
+        external
+        payable
+        returns (
+            MessagingReceipt memory msgReceipt,
+            OFTReceipt memory oftReceipt,
+            Ticket memory ticket
+        );
+
+    function quoteSend(
+        SendParam calldata _sendParam,
+        bool _payInLzToken
+    ) external view returns (MessagingFee memory msgFee);
+
+    function quoteOFT(
+        SendParam calldata _sendParam
+    )
+        external
+        view
+        returns (uint256 limit, uint256 oftLimit, OFTReceipt memory oftReceipt);
+
+    function stargateType() external pure returns (StargateType);
+
+    function token() external view returns (address);
+}
+
+/**
+ * @title OftCmdHelper
+ * @notice Helper for creating OFT commands for taxi/bus modes
+ */
+library OftCmdHelper {
+    function taxi() internal pure returns (bytes memory) {
+        return "";
+    }
+
+    function bus() internal pure returns (bytes memory) {
+        return new bytes(1);
+    }
+
+    function drive(
+        bytes memory _passengers
+    ) internal pure returns (bytes memory) {
+        return _passengers;
+    }
+}
 
 /**
  * @title StargateAdapter
- * @notice Adapter for Stargate Protocol to facilitate cross-chain asset transfers
- * @dev Implements IBridgeAdapter interface and connects to Stargate Router for efficient liquidity bridging
+ * @notice Adapter for Stargate V2 Protocol supporting both Pool and Hydra (OFT) assets
+ * @dev Implements IBridgeAdapter interface and connects to Stargate V2 for efficient cross-chain transfers
  */
-contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
+contract StargateAdapter is Ownable, IBridgeAdapter {
     using SafeERC20 for IERC20;
 
     /// @notice Error for unsupported asset
     error UnsupportedAsset();
+    /// @notice Error for unsupported stargate type
+    error UnsupportedStargateType();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -29,16 +97,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     /// @notice The BridgeRouter that manages this adapter
     address public bridgeRouter;
 
-    /// @notice Address of the Stargate Router contract
-    address public immutable stargateRouter;
+    /// @notice Mapping of supported chains to their LayerZero Endpoint IDs
+    mapping(uint16 chainId => uint32 endpointId) public chainToEndpointId;
 
-    /// @notice Mapping of supported chains to their Stargate chain IDs
-    mapping(uint16 chainId => uint16 stargateChainId)
-        public chainToStargateChainId;
-
-    /// @notice Mapping of chains to supported assets and their pool IDs
-    mapping(uint16 chainId => mapping(address asset => uint256 poolId))
-        public chainAssetToPoolId;
+    /// @notice Mapping of chains and assets to their Stargate V2 contract addresses
+    mapping(uint16 chainId => mapping(address asset => address stargateContract))
+        public chainAssetToStargate;
 
     /// @notice List of supported chains
     uint16[] public supportedChains;
@@ -49,35 +113,38 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     /// @notice Minimum gas limit for destination transaction execution
     uint256 public minDstGasForCall = 300000;
 
+    /// @notice Default transport mode (true = taxi, false = bus)
+    bool public defaultUseTaxi = false;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when a chain support is added
-    event ChainSupported(uint16 chainId, uint16 stargateChainId);
+    event ChainSupported(uint16 chainId, uint32 endpointId);
 
     /// @notice Emitted when an asset support is added
-    event AssetSupported(uint16 chainId, address asset, uint256 poolId);
+    event AssetSupported(
+        uint16 chainId,
+        address asset,
+        address stargateContract
+    );
+
+    /// @notice Emitted when default transport mode is changed
+    event DefaultTransportModeChanged(bool useTaxi);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the StargateAdapter
-     * @param _stargateRouter Address of the Stargate Router contract
+     * @notice Initializes the StargateV2Adapter
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _owner Address of the contract owner
      */
-    constructor(
-        address _stargateRouter,
-        address _bridgeRouter,
-        address _owner
-    ) Ownable(_owner) {
-        if (_stargateRouter == address(0) || _bridgeRouter == address(0))
-            revert InvalidParams();
+    constructor(address _bridgeRouter, address _owner) Ownable(_owner) {
+        if (_bridgeRouter == address(0)) revert InvalidParams();
 
-        stargateRouter = _stargateRouter;
         bridgeRouter = _bridgeRouter;
     }
 
@@ -88,47 +155,63 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     /**
      * @notice Sets the minimum destination gas for calls
      * @param _minDstGasForCall New minimum gas value
-     * @dev Can only be called by the contract owner
      */
     function setMinDstGasForCall(uint256 _minDstGasForCall) external onlyOwner {
         minDstGasForCall = _minDstGasForCall;
     }
 
     /**
+     * @notice Sets the default transport mode
+     * @param _useTaxi True for taxi mode (immediate), false for bus mode (batched)
+     */
+    function setDefaultTransportMode(bool _useTaxi) external onlyOwner {
+        defaultUseTaxi = _useTaxi;
+        emit DefaultTransportModeChanged(_useTaxi);
+    }
+
+    /**
      * @notice Adds support for a new chain
      * @param chainId Chain ID in our system
-     * @param stargateChainId Corresponding Stargate chain ID
-     * @dev Can only be called by the contract owner
+     * @param endpointId Corresponding LayerZero Endpoint ID
      */
     function addSupportedChain(
         uint16 chainId,
-        uint16 stargateChainId
+        uint32 endpointId
     ) external onlyOwner {
-        if (chainToStargateChainId[chainId] != 0) revert InvalidParams();
+        if (chainToEndpointId[chainId] != 0) revert InvalidParams();
 
-        chainToStargateChainId[chainId] = stargateChainId;
+        chainToEndpointId[chainId] = endpointId;
         supportedChains.push(chainId);
 
-        emit ChainSupported(chainId, stargateChainId);
+        emit ChainSupported(chainId, endpointId);
     }
 
     /**
      * @notice Adds support for an asset on a specific chain
      * @param chainId Chain ID in our system
      * @param asset Address of the asset to support
-     * @param poolId Stargate pool ID for the asset
-     * @dev Can only be called by the contract owner
+     * @param stargateContract Address of the Stargate V2 contract for this asset
      */
     function addSupportedAsset(
         uint16 chainId,
         address asset,
-        uint256 poolId
+        address stargateContract
     ) external onlyOwner {
-        if (chainToStargateChainId[chainId] == 0) revert UnsupportedChain();
-        if (asset == address(0)) revert InvalidParams();
+        if (chainToEndpointId[chainId] == 0) revert UnsupportedChain();
+        if (asset == address(0) || stargateContract == address(0))
+            revert InvalidParams();
 
-        // Add pool ID mapping
-        chainAssetToPoolId[chainId][asset] = poolId;
+        // Verify this is a valid Stargate contract
+        try IStargate(stargateContract).stargateType() returns (
+            IStargate.StargateType
+        ) {
+            // Valid Stargate contract
+        } catch {
+            revert InvalidParams();
+        }
+
+        // Add Stargate contract mapping
+        chainAssetToStargate[chainId][asset] = stargateContract;
 
         // Add to the list of supported assets for this chain
         address[] storage assets = chainToSupportedAssets[chainId];
@@ -146,13 +229,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
             assets.push(asset);
         }
 
-        emit AssetSupported(chainId, asset, poolId);
+        emit AssetSupported(chainId, asset, stargateContract);
     }
 
     /**
-     * @notice Updates the bridge router address (governance only)
+     * @notice Updates the bridge router address
      * @param newBridgeRouter Address of the new bridge router
-     * @dev Can only be called by contract owner/governance
      */
     function setBridgeRouter(address newBridgeRouter) external onlyOwner {
         if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
@@ -175,18 +257,23 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         uint256 amount,
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable override returns (bytes32 transferId) {
+    ) external payable override returns (bytes32 operationId) {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
         // Check if chain and asset are supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
-
         if (!isAssetSupported(destinationChainId, asset))
             revert UnsupportedAsset();
 
-        // Generate a unique transfer ID and mark as pending
-        transferId = _generateTransferId(
+        // Get the source chain Stargate contract
+        address stargateContract = chainAssetToStargate[uint16(block.chainid)][
+            asset
+        ];
+        if (stargateContract == address(0)) revert UnsupportedAsset();
+
+        // Generate a unique transfer ID
+        operationId = _generateTransferId(
             destinationChainId,
             asset,
             amount,
@@ -196,34 +283,23 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         // Transfer tokens from BridgeRouter to this contract
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
-        // Approve Stargate Router to spend the tokens
-        IERC20(asset).approve(stargateRouter, 0);
-        IERC20(asset).approve(stargateRouter, amount);
+        // Approve Stargate contract to spend the tokens
+        IERC20(asset).approve(stargateContract, 0);
+        IERC20(asset).approve(stargateContract, amount);
 
-        // Estimate the fee
-        (uint256 fee, ) = estimateFee(
-            destinationChainId,
-            asset,
-            amount,
-            adapterParams,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-
-        // Verify sufficient fee was provided
-        if (msg.value < fee) revert InsufficientFee(fee, msg.value);
-
-        // Execute the Stargate swap
-        _executeStargateSwap(
+        // Execute the Stargate V2 transfer
+        _executeStargateV2Transfer(
+            stargateContract,
             destinationChainId,
             asset,
             recipient,
             amount,
             originator,
-            transferId,
+            operationId,
             adapterParams
         );
 
-        return transferId;
+        return operationId;
     }
 
     /**
@@ -235,7 +311,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         uint256 amount,
         address recipient
     ) internal returns (bytes32 operationId) {
-        // Generate a unique transfer ID
         operationId = keccak256(
             abi.encode(
                 block.chainid,
@@ -243,11 +318,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
                 asset,
                 amount,
                 recipient,
-                block.timestamp
+                block.timestamp,
+                block.number
             )
         );
 
-        // Set initial status as SENT
         IBridgeRouter(bridgeRouter).updateOperationStatus(
             operationId,
             BridgeTypes.OperationStatus.SENT
@@ -257,28 +332,10 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     }
 
     /**
-     * @dev Struct to bundle all Stargate swap parameters to reduce stack depth
+     * @dev Internal function to execute Stargate V2 transfer
      */
-    struct StargateSwapParams {
-        uint16 dstChainId;
-        uint256 srcPoolId;
-        uint256 dstPoolId;
-        bytes toAddress;
-        bytes payload;
-        uint256 amount;
-        address refundAddress;
-        // Adding these to reduce parameters in _executeSwap
-        address asset;
-        bytes32 operationId;
-        uint16 originalChainId;
-        address recipient;
-        IStargateRouter.lzTxObj lzTxParams;
-    }
-
-    /**
-     * @dev Internal function to execute the Stargate swap
-     */
-    function _executeStargateSwap(
+    function _executeStargateV2Transfer(
+        address stargateContract,
         uint16 destinationChainId,
         address asset,
         address recipient,
@@ -287,75 +344,69 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         bytes32 operationId,
         BridgeTypes.AdapterParams calldata adapterParams
     ) internal {
-        // Prepare all swap parameters in a struct to reduce stack variables
-        StargateSwapParams memory params;
+        IStargate stargate = IStargate(stargateContract);
 
-        // Populate basic swap parameters
-        params.dstChainId = chainToStargateChainId[destinationChainId];
-        params.srcPoolId = chainAssetToPoolId[uint16(block.chainid)][asset];
-        params.dstPoolId = chainAssetToPoolId[destinationChainId][asset];
-        params.toAddress = abi.encodePacked(recipient);
-        params.payload = abi.encode(operationId);
-        params.amount = amount;
-        params.refundAddress = originator;
-
-        // Include additional parameters needed for events and error handling
-        params.asset = asset;
-        params.operationId = operationId;
-        params.originalChainId = destinationChainId;
-        params.recipient = recipient;
-
-        // Prepare Stargate lzTxObj
-        params.lzTxParams = IStargateRouter.lzTxObj({
-            dstGasForCall: adapterParams.gasLimit > 0
-                ? adapterParams.gasLimit
-                : minDstGasForCall,
-            dstNativeAmount: adapterParams.msgValue,
-            dstNativeAddr: adapterParams.options
+        // Prepare SendParam
+        SendParam memory sendParam = SendParam({
+            dstEid: chainToEndpointId[destinationChainId],
+            to: _addressToBytes32(recipient),
+            amountLD: amount,
+            minAmountLD: amount, // Will be updated after quote
+            extraOptions: new bytes(0), // Can be customized for specific use cases
+            composeMsg: new bytes(0), // No composability for basic transfers
+            oftCmd: _getTransportMode(adapterParams) // Taxi or Bus mode
         });
 
-        // Execute the swap through Stargate Router
-        _executeSwap(params);
-    }
+        // Get quote to determine actual received amount
+        try stargate.quoteOFT(sendParam) returns (
+            uint256,
+            uint256,
+            OFTReceipt memory oftReceipt
+        ) {
+            sendParam.minAmountLD = oftReceipt.amountReceivedLD;
+        } catch {
+            // Fallback to original amount if quote fails
+            sendParam.minAmountLD = (amount * 9950) / 10000; // 0.5% slippage
+        }
 
-    /**
-     * @dev Executes the Stargate swap with prepared parameters
-     */
-    function _executeSwap(StargateSwapParams memory params) internal {
+        // Get messaging fee
+        MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
+
+        // Verify sufficient fee was provided
+        if (msg.value < messagingFee.nativeFee) {
+            revert InsufficientFee(messagingFee.nativeFee, msg.value);
+        }
+
+        // Execute the transfer
         try
-            IStargateRouter(stargateRouter).swap{value: msg.value}(
-                params.dstChainId,
-                params.srcPoolId,
-                params.dstPoolId,
-                payable(params.refundAddress),
-                params.amount,
-                0, // min amount - could use slippage from adapterParams
-                params.lzTxParams,
-                params.toAddress,
-                params.payload
+            stargate.sendToken{value: msg.value}(
+                sendParam,
+                messagingFee,
+                originator // refund address
             )
-        {
-            // Emit TransferInitiated event
+        returns (
+            MessagingReceipt memory,
+            OFTReceipt memory,
+            IStargate.Ticket memory
+        ) {
+            // Emit success event
             emit TransferInitiated(
-                params.operationId,
-                params.originalChainId,
-                params.asset,
-                params.amount,
-                params.recipient
+                operationId,
+                destinationChainId,
+                asset,
+                amount,
+                recipient
             );
         } catch {
             // Reset approval
-            IERC20(params.asset).approve(stargateRouter, 0);
+            IERC20(asset).approve(stargateContract, 0);
 
             // Refund tokens to originator
-            IERC20(params.asset).safeTransfer(
-                params.refundAddress,
-                params.amount
-            );
+            IERC20(asset).safeTransfer(originator, amount);
 
             // Update transfer status to failed
             IBridgeRouter(bridgeRouter).updateOperationStatus(
-                params.operationId,
+                operationId,
                 BridgeTypes.OperationStatus.FAILED
             );
 
@@ -363,53 +414,66 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         }
     }
 
+    /**
+     * @dev Determines transport mode based on adapter params
+     */
+    function _getTransportMode(
+        BridgeTypes.AdapterParams calldata adapterParams
+    ) internal view returns (bytes memory) {
+        // Check if specific mode is requested in options
+        if (adapterParams.options.length > 0) {
+            // Parse options to determine if taxi mode is requested
+            // For now, default to adapter setting
+        }
+
+        return defaultUseTaxi ? OftCmdHelper.taxi() : OftCmdHelper.bus();
+    }
+
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
         uint16 destinationChainId,
         address asset,
-        uint256,
+        uint256 amount,
         BridgeTypes.AdapterParams calldata adapterParams,
         BridgeTypes.OperationType operationType
     ) public view returns (uint256 nativeFee, uint256 tokenFee) {
         // Check if chain is supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
 
-        // Check if asset is supported (for asset transfers)
+        // Check if asset is supported
         if (
             operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-            chainAssetToPoolId[destinationChainId][asset] == 0
+            !isAssetSupported(destinationChainId, asset)
         ) {
             revert UnsupportedAsset();
         }
 
-        // Get Stargate chain ID
-        uint16 dstChainId = chainToStargateChainId[destinationChainId];
+        // Get the source chain Stargate contract
+        address stargateContract = chainAssetToStargate[uint16(block.chainid)][
+            asset
+        ];
+        if (stargateContract == address(0)) revert UnsupportedAsset();
 
-        // Prepare the recipient address as bytes - using a dummy address for estimation
-        bytes memory toAddress = abi.encodePacked(address(0xdead));
-
-        // Dummy payload for fee estimation
-        bytes memory payload = abi.encode(bytes32(0));
-
-        // Prepare Stargate lzTxObj
-        IStargateRouter.lzTxObj memory lzTxParams = IStargateRouter.lzTxObj({
-            dstGasForCall: adapterParams.gasLimit > 0
-                ? adapterParams.gasLimit
-                : minDstGasForCall,
-            dstNativeAmount: adapterParams.msgValue,
-            dstNativeAddr: adapterParams.options
+        // Prepare SendParam for quote
+        SendParam memory sendParam = SendParam({
+            dstEid: chainToEndpointId[destinationChainId],
+            to: _addressToBytes32(address(0xdead)), // Dummy recipient for estimation
+            amountLD: amount,
+            minAmountLD: amount,
+            extraOptions: new bytes(0),
+            composeMsg: new bytes(0),
+            oftCmd: _getTransportMode(adapterParams)
         });
 
-        // Quote the fee from Stargate Router
-        (uint256 fee, ) = IStargateRouter(stargateRouter).quoteLayerZeroFee(
-            dstChainId,
-            1, // swap function type
-            toAddress,
-            payload,
-            lzTxParams
-        );
-
-        return (fee, 0); // Stargate uses only native fees
+        // Get messaging fee quote
+        try IStargate(stargateContract).quoteSend(sendParam, false) returns (
+            MessagingFee memory msgFee
+        ) {
+            return (msgFee.nativeFee, 0); // Stargate V2 uses only native fees
+        } catch {
+            // Fallback estimation
+            return (0.01 ether, 0); // Conservative estimate
+        }
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -431,7 +495,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
 
     /// @inheritdoc IBridgeAdapter
     function supportsChain(uint16 chainId) public view override returns (bool) {
-        return chainToStargateChainId[chainId] != 0;
+        return chainToEndpointId[chainId] != 0;
     }
 
     /**
@@ -449,57 +513,8 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) external pure override returns (bool) {
-        // Stargate only supports asset transfers
+        // Stargate V2 only supports asset transfers
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                      RECEIVE ADAPTER IMPLEMENTATION
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Stargate callback function - called on the destination chain
-     * @dev Implements the Stargate receiver interface to handle incoming cross-chain transfers
-     * @param _chainId Source chain ID in Stargate format
-     * @param _srcAddress Source address as bytes
-     * @param // _nonce Stargate nonce
-     * @param _token Address of the token being transferred
-     * @param _amount Amount of tokens received
-     * @param _payload ABI encoded payload sent from source chain (contains transferId)
-     */
-    function sgReceive(
-        uint16 _chainId,
-        bytes memory _srcAddress,
-        uint256,
-        address _token,
-        uint256 _amount,
-        bytes memory _payload
-    ) external override {
-        // Verify that the sender is the Stargate Router
-        if (msg.sender != stargateRouter) revert Unauthorized();
-
-        // Decode the transfer ID from the payload
-        bytes32 transferId = abi.decode(_payload, (bytes32));
-
-        // Convert _srcAddress to an address
-        address recipient = _srcAddress.length == 20
-            ? address(bytes20(_srcAddress))
-            : abi.decode(_srcAddress, (address));
-
-        // Forward the tokens to the recipient
-        IERC20(_token).safeTransfer(recipient, _amount);
-
-        // Notify the BridgeRouter about the received transfer
-        IBridgeRouter(bridgeRouter).notifyMessageReceived(
-            transferId,
-            _token,
-            _amount,
-            recipient,
-            _chainId
-        );
-
-        // Emit event for the received transfer
-        emit TransferReceived(transferId, _token, _amount, recipient);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -530,11 +545,41 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IStargateReceiver {
         revert OperationNotSupported();
     }
 
-    // Helper function to check if an asset is supported on a specific chain
+    /*//////////////////////////////////////////////////////////////
+                          HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Helper function to check if an asset is supported on a specific chain
+     */
     function isAssetSupported(
         uint16 chainId,
         address asset
     ) public view returns (bool) {
-        return chainAssetToPoolId[chainId][asset] != 0;
+        return chainAssetToStargate[chainId][asset] != address(0);
+    }
+
+    /**
+     * @dev Helper function to convert address to bytes32
+     */
+    function _addressToBytes32(address _addr) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(_addr)));
+    }
+
+    /**
+     * @notice Get the Stargate contract address for a given chain and asset
+     */
+    function getStargateContract(
+        uint16 chainId,
+        address asset
+    ) external view returns (address) {
+        return chainAssetToStargate[chainId][asset];
+    }
+
+    /**
+     * @notice Get the LayerZero endpoint ID for a given chain
+     */
+    function getEndpointId(uint16 chainId) external view returns (uint32) {
+        return chainToEndpointId[chainId];
     }
 }

@@ -1,23 +1,20 @@
 {
-  "router": {
-    "1": "0x8731d54E9D02c286767d56ac03e8037C07e01e98",
-    "8453": "0x45f1A95A4D3f3836523F5c83673c797f4d4d263B",
-    "42161": "0x53Bf833A5d6c4ddA888F69c22C88C9f356a41614"
-  },
-  "chainMapping": [
-    { "chainId": 1, "stargateChainId": 1 },
-    { "chainId": 8453, "stargateChainId": 184 },
-    { "chainId": 42161, "stargateChainId": 110 }
-  ],
-  "pools": {
+  "contracts": {
     "1": {
-      "name": "USDC",
-      "assets": {
-        "1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        "8453": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        "42161": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
-      }
+      "usdc": "0xc026395860Db2d07ee33e05fE50ed7bD583189C7",
+      "usdt": "0x933597a323Eb81cAe705C5bC29985172fd5A3973",
+      "eth": "0x77b2043768d28E9C9aB44E1aBfC95944bcE57931"
+    },
+    "8453": {
+      "usdc": "0x27a16dc786820B16E5d3400dB6e8f4C2493a2612",
+      "eth": "0xdc181Bd607330aeeBEF6ea62e03e5e1Fb4B6F7C7"
+    },
+    "42161": {
+      "usdc": "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0",
+      "usdt": "0x12dC9256Acc9895B076f6638D628382881e62CeE",
+      "eth": "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3"
     }
   },
-  "minDstGasForCall": 300000
+  "minDstGasForCall": 300000,
+  "defaultUseTaxi": false
 }
