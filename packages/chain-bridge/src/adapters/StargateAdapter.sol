@@ -59,6 +59,15 @@ interface IStargate {
 }
 
 /**
+ * @title IStargatePool interface for V2 Pool assets
+ * @notice Pool-style assets don't have stargateType() function
+ */
+interface IStargatePool {
+    function token() external view returns (address);
+    // Add other pool-specific functions as needed
+}
+
+/**
  * @title OftCmdHelper
  * @notice Helper for creating OFT commands for taxi/bus modes
  */
@@ -203,12 +212,25 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         if (asset == address(0) || stargateContract == address(0))
             revert InvalidParams();
 
-        // Verify this is a valid Stargate contract
+        // Verify this is a valid Stargate contract (either Pool or OFT)
+        bool isValidStargate = false;
+
+        // Try OFT-style contract first
         try IStargate(stargateContract).stargateType() returns (
             IStargate.StargateType
         ) {
-            // Valid Stargate contract
+            isValidStargate = true;
         } catch {
+            // Try Pool-style contract
+            try IStargatePool(stargateContract).token() returns (address) {
+                isValidStargate = true;
+            } catch {
+                // Neither interface worked
+                revert InvalidParams();
+            }
+        }
+
+        if (!isValidStargate) {
             revert InvalidParams();
         }
 
@@ -302,8 +324,52 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
 
     /**
      * @dev Internal function to execute Stargate V2 transfer
+     * @dev Handles both Pool and OFT style contracts
      */
     function _executeStargateV2Transfer(
+        address stargateContract,
+        uint16 destinationChainId,
+        address asset,
+        address recipient,
+        uint256 amount,
+        address originator,
+        bytes32 operationId,
+        BridgeTypes.AdapterParams calldata adapterParams
+    ) internal {
+        // First try OFT-style interface
+        try IStargate(stargateContract).stargateType() returns (
+            IStargate.StargateType /* stargateType */
+        ) {
+            // This is an OFT-style contract, use existing OFT logic
+            _executeOFTTransfer(
+                stargateContract,
+                destinationChainId,
+                asset,
+                recipient,
+                amount,
+                originator,
+                operationId,
+                adapterParams
+            );
+        } catch {
+            // This is likely a Pool-style contract, use pool logic
+            _executePoolTransfer(
+                stargateContract,
+                destinationChainId,
+                asset,
+                recipient,
+                amount,
+                originator,
+                operationId,
+                adapterParams
+            );
+        }
+    }
+
+    /**
+     * @dev Execute transfer using OFT-style contract (existing logic)
+     */
+    function _executeOFTTransfer(
         address stargateContract,
         uint16 destinationChainId,
         address asset,
@@ -321,9 +387,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
             to: recipient.toBytes32(),
             amountLD: amount,
             minAmountLD: amount, // Will be updated after quote
-            extraOptions: new bytes(0), // Can be customized for specific use cases
-            composeMsg: new bytes(0), // No composability for basic transfers
-            oftCmd: _getTransportMode(adapterParams) // Taxi or Bus mode
+            extraOptions: new bytes(0),
+            composeMsg: new bytes(0),
+            oftCmd: _getTransportMode(adapterParams)
         });
 
         // Get quote to determine actual received amount
@@ -334,7 +400,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         ) {
             sendParam.minAmountLD = oftReceipt.amountReceivedLD;
         } catch {
-            // Fallback to original amount if quote fails
             sendParam.minAmountLD = (amount * 9950) / 10000; // 0.5% slippage
         }
 
@@ -351,14 +416,13 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
             stargate.sendToken{value: msg.value}(
                 sendParam,
                 messagingFee,
-                originator // refund address
+                originator
             )
         returns (
             MessagingReceipt memory,
             OFTReceipt memory,
             IStargate.Ticket memory
         ) {
-            // Emit success event
             emit TransferInitiated(
                 operationId,
                 destinationChainId,
@@ -367,20 +431,59 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
                 recipient
             );
         } catch {
-            // Reset approval
-            IERC20(asset).approve(stargateContract, 0);
-
-            // Refund tokens to originator
-            IERC20(asset).safeTransfer(originator, amount);
-
-            // Update transfer status to failed
-            IBridgeRouter(bridgeRouter).updateOperationStatus(
-                operationId,
-                BridgeTypes.OperationStatus.FAILED
+            _handleTransferFailure(
+                stargateContract,
+                asset,
+                amount,
+                originator,
+                operationId
             );
-
-            revert TransferFailed();
         }
+    }
+
+    /**
+     * @dev Execute transfer using Pool-style contract
+     * @dev This needs to be implemented based on Pool contract interface
+     */
+    function _executePoolTransfer(
+        address /* stargateContract */,
+        uint16 /* destinationChainId */,
+        address /* asset */,
+        address /* recipient */,
+        uint256 /* amount */,
+        address /* originator */,
+        bytes32 /* operationId */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */
+    ) internal pure {
+        // TODO: Implement Pool-style transfer logic
+        // You'll need to research the Pool contract interface and implement accordingly
+        // For now, revert with a descriptive error
+        revert("Pool-style transfers not yet implemented");
+    }
+
+    /**
+     * @dev Handle transfer failure cleanup
+     */
+    function _handleTransferFailure(
+        address stargateContract,
+        address asset,
+        uint256 amount,
+        address originator,
+        bytes32 operationId
+    ) internal {
+        // Reset approval
+        IERC20(asset).approve(stargateContract, 0);
+
+        // Refund tokens to originator
+        IERC20(asset).safeTransfer(originator, amount);
+
+        // Update transfer status to failed
+        IBridgeRouter(bridgeRouter).updateOperationStatus(
+            operationId,
+            BridgeTypes.OperationStatus.FAILED
+        );
+
+        revert TransferFailed();
     }
 
     /**

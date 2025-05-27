@@ -5,7 +5,47 @@ import layerZeroConfig from '../../config/adapters/layerzero.json'
 import stargateConfig from '../../config/adapters/stargate.json'
 import LayerZeroAdapterModule from '../../ignition/modules/adapters/layerzero'
 import StargateAdapterModule from '../../ignition/modules/adapters/stargate'
-import { BridgeAdaptersConfig } from '../../types/bridge-types'
+import { isTenderlyVirtualTestnet } from '../helpers/tenderly-helpers'
+
+// Simple ABI for IStargatePool interface validation
+const IStargatePoolABI = [
+  {
+    inputs: [],
+    name: 'token',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
+// Simple ABI for IStargate OFT interface validation
+const IStargateOFTABI = [
+  {
+    inputs: [],
+    name: 'stargateType',
+    outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
+// Additional ABI for other potential Stargate contract types
+const IStargateCommonABI = [
+  {
+    inputs: [],
+    name: 'localDecimals',
+    outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'sharedDecimals',
+    outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
 
 /**
  * Interface for deployed bridge adapters
@@ -138,13 +178,13 @@ export async function deployStargateAdapter(
 /**
  * Configure supported chains and assets for Stargate V2 adapter
  * @param stargateAdapterAddress Address of the deployed Stargate adapter
- * @param config Bridge adapter configuration
+ * @param bridgeRouterAddress Address of the deployed BridgeRouter
  * @param networkConfig Network configuration from general config
  * @param allNetworkConfigs All network configurations for cross-chain setup
  */
 export async function configureStargateAdapter(
   stargateAdapterAddress: Address,
-  config: BridgeAdaptersConfig,
+  bridgeRouterAddress: Address,
   networkConfig: any,
   allNetworkConfigs?: Record<string, any>,
 ): Promise<void> {
@@ -152,7 +192,7 @@ export async function configureStargateAdapter(
 
   const stargateAdapter = await hre.viem.getContractAt(
     'StargateAdapter' as string,
-    stargateAdapterAddress,
+    getAddress(stargateAdapterAddress as `0x${string}`),
   )
 
   const currentChainId = Number(networkConfig.common.chainId)
@@ -172,16 +212,26 @@ export async function configureStargateAdapter(
           chainInfo.endpointId,
         ])
         console.log(kleur.green(`Chain ${chainInfo.chainId} added successfully, tx: ${hash}`))
+
+        // Wait for transaction confirmation
+        const publicClient = await hre.viem.getPublicClient()
+        await publicClient.waitForTransactionReceipt({ hash })
+        console.log(kleur.green(`Chain ${chainInfo.chainId} transaction confirmed`))
       } else {
         console.log(kleur.yellow(`Chain ${chainInfo.chainId} already supported, skipping`))
       }
     } catch (error) {
       console.error(kleur.red(`Error adding chain ${chainInfo.chainId}:`), error)
+      // Don't continue if chain addition fails
+      throw error
     }
   }
 
+  // Add a small delay to ensure all transactions are processed
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
   // Get Stargate contracts for current chain
-  const currentChainContracts = stargateConfig.contracts[currentChainId.toString()]
+  const currentChainContracts = (stargateConfig.contracts as any)[currentChainId.toString()]
   if (!currentChainContracts) {
     console.log(
       kleur.yellow(
@@ -205,6 +255,119 @@ export async function configureStargateAdapter(
         `Configuring asset ${assetSymbol} (${checksummedLocalAddress}) with Stargate contract ${checksummedStargateContract}`,
       )
 
+      // Validate Stargate contract before adding asset
+      try {
+        // Test if the contract implements the expected interface
+        // Try multiple different contract types to be more flexible
+        let isValidStargate = false
+        let contractType = 'unknown'
+
+        console.log(`Validating Stargate contract ${checksummedStargateContract}...`)
+
+        // First try OFT-style contract (has stargateType function)
+        try {
+          const publicClient = await hre.viem.getPublicClient()
+          await publicClient.readContract({
+            address: checksummedStargateContract,
+            abi: IStargateOFTABI,
+            functionName: 'stargateType',
+          })
+          isValidStargate = true
+          contractType = 'OFT'
+          console.log(
+            kleur.green(`✓ Stargate OFT contract ${checksummedStargateContract} is valid`),
+          )
+        } catch (oftError) {
+          console.log(`OFT validation failed: ${(oftError as Error).message}`)
+
+          // If stargateType() fails, try Pool-style contract (has token function)
+          try {
+            const publicClient = await hre.viem.getPublicClient()
+            await publicClient.readContract({
+              address: checksummedStargateContract,
+              abi: IStargatePoolABI,
+              functionName: 'token',
+            })
+            isValidStargate = true
+            contractType = 'Pool'
+            console.log(
+              kleur.green(`✓ Stargate Pool contract ${checksummedStargateContract} is valid`),
+            )
+          } catch (poolError) {
+            console.log(`Pool validation failed: ${(poolError as Error).message}`)
+
+            // Try common Stargate functions as a fallback
+            try {
+              const publicClient = await hre.viem.getPublicClient()
+              await publicClient.readContract({
+                address: checksummedStargateContract,
+                abi: IStargateCommonABI,
+                functionName: 'localDecimals',
+              })
+              isValidStargate = true
+              contractType = 'Common'
+              console.log(
+                kleur.green(
+                  `✓ Stargate contract ${checksummedStargateContract} has common interface`,
+                ),
+              )
+            } catch (commonError) {
+              console.log(`Common interface validation failed: ${(commonError as Error).message}`)
+
+              // Final attempt: just check if it's a contract
+              try {
+                const publicClient = await hre.viem.getPublicClient()
+                const code = await publicClient.getBytecode({
+                  address: checksummedStargateContract,
+                })
+                if (code && code !== '0x') {
+                  isValidStargate = true
+                  contractType = 'Contract (unverified interface)'
+                  console.log(
+                    kleur.yellow(
+                      `⚠ Contract ${checksummedStargateContract} exists but interface unverified - proceeding anyway`,
+                    ),
+                  )
+                } else {
+                  console.error(
+                    kleur.red(
+                      `Contract ${checksummedStargateContract} has no bytecode - not a valid contract`,
+                    ),
+                  )
+                }
+              } catch (bytecodeError) {
+                console.error(
+                  kleur.red(
+                    `Failed to check bytecode for ${checksummedStargateContract}: ${(bytecodeError as Error).message}`,
+                  ),
+                )
+              }
+            }
+          }
+        }
+
+        if (!isValidStargate) {
+          console.error(
+            kleur.red(
+              `Invalid Stargate contract ${checksummedStargateContract}: Failed all validation attempts`,
+            ),
+          )
+          continue // Skip this asset
+        }
+
+        console.log(
+          kleur.blue(
+            `Using Stargate contract ${checksummedStargateContract} as ${contractType} type`,
+          ),
+        )
+      } catch (error) {
+        console.error(
+          kleur.red(`Error validating Stargate contract ${checksummedStargateContract}:`),
+          error,
+        )
+        continue // Skip this asset
+      }
+
       // Configure asset for each destination chain
       for (const destChain of supportedChains) {
         if (destChain.chainId === currentChainId) continue
@@ -223,7 +386,7 @@ export async function configureStargateAdapter(
             const hash = await stargateAdapter.write.addSupportedAsset([
               destChain.chainId,
               checksummedLocalAddress,
-              checksummedStargateContract, // Use LOCAL chain's Stargate contract
+              checksummedStargateContract,
             ])
             console.log(
               kleur.green(
@@ -235,6 +398,17 @@ export async function configureStargateAdapter(
           }
         } catch (error) {
           console.error(kleur.red(`Error adding asset mapping:`), error)
+
+          // Add more specific error checking
+          const isChainSupported = await stargateAdapter.read.supportsChain([destChain.chainId])
+          console.log(`Chain ${destChain.chainId} supported: ${isChainSupported}`)
+
+          // Check if it's already supported
+          const isAssetSupported = await stargateAdapter.read.isAssetSupported([
+            destChain.chainId,
+            checksummedLocalAddress,
+          ])
+          console.log(`Asset already supported: ${isAssetSupported}`)
         }
       }
     } else {
@@ -274,14 +448,28 @@ export async function configureStargateAdapter(
 
   // Register adapter with bridge router
   try {
+    // Handle case where bridgeRouterAddress might be an object
+    let actualAddress: string
+    if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
+      const addressObj = bridgeRouterAddress as any
+      actualAddress = addressObj.bridgeRouterAddress || String(bridgeRouterAddress)
+    } else {
+      actualAddress = String(bridgeRouterAddress)
+    }
+
     const bridgeRouter = await hre.viem.getContractAt(
       'BridgeRouter' as string,
-      config.bridgeRouterAddress,
+      getAddress(actualAddress as `0x${string}`),
     )
-    const alreadyRegistered = await bridgeRouter.read.isValidAdapter([stargateAdapterAddress])
+
+    const alreadyRegistered = await bridgeRouter.read.isValidAdapter([
+      getAddress(stargateAdapterAddress as `0x${string}`),
+    ])
 
     if (!alreadyRegistered) {
-      await bridgeRouter.write.registerAdapter([stargateAdapterAddress])
+      await bridgeRouter.write.registerAdapter([
+        getAddress(stargateAdapterAddress as `0x${string}`),
+      ])
       console.log(kleur.green(`Stargate V2 adapter registered with bridge router`))
     } else {
       console.log(
@@ -309,7 +497,7 @@ export async function configureLayerZeroAdapter(
   console.log(kleur.blue('Configuring LayerZero adapter'))
 
   const chainId = Number(networkConfig.common.chainId)
-  const chainConfig = layerZeroConfig.chainConfig[chainId.toString()]
+  const chainConfig = (layerZeroConfig.chainConfig as any)[chainId.toString()]
 
   if (!chainConfig) {
     console.log(kleur.yellow(`No LayerZero configuration found for chain ${chainId}, skipping`))
@@ -317,7 +505,10 @@ export async function configureLayerZeroAdapter(
   }
 
   // Get adapter contract
-  const layerZeroAdapter = await hre.viem.getContractAt('LayerZeroAdapter', layerZeroAdapterAddress)
+  const layerZeroAdapter = await hre.viem.getContractAt(
+    'LayerZeroAdapter' as any,
+    getAddress(layerZeroAdapterAddress as `0x${string}`),
+  )
 
   // Activate read channel if configured
   if (chainConfig.readChannelId) {
@@ -348,7 +539,10 @@ export async function configureLayerZeroAdapter(
         `Setting minimum gas limit for message type ${strMsgType} (${numMsgType}) to ${gasLimit}`,
       )
       try {
-        const hash = await layerZeroAdapter.write.setMinGasLimit([numMsgType, BigInt(gasLimit)])
+        const hash = await layerZeroAdapter.write.setMinGasLimit([
+          numMsgType,
+          BigInt(gasLimit as number),
+        ])
         console.log(
           kleur.green(
             `Minimum gas limit for message type ${strMsgType} set successfully, tx: ${hash}`,
@@ -365,9 +559,36 @@ export async function configureLayerZeroAdapter(
 
   // Register adapter with bridge router
   try {
-    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter', bridgeRouterAddress)
-    await bridgeRouter.write.registerAdapter([layerZeroAdapterAddress])
-    console.log(kleur.green(`LayerZero adapter registered with bridge router`))
+    // Handle case where bridgeRouterAddress might be an object
+    let actualAddress: string
+    if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
+      const addressObj = bridgeRouterAddress as any
+      actualAddress = addressObj.bridgeRouterAddress || String(bridgeRouterAddress)
+    } else {
+      actualAddress = String(bridgeRouterAddress)
+    }
+
+    const bridgeRouter = await hre.viem.getContractAt(
+      'BridgeRouter' as any,
+      getAddress(actualAddress as `0x${string}`),
+    )
+
+    const alreadyRegistered = await bridgeRouter.read.isValidAdapter([
+      getAddress(layerZeroAdapterAddress as `0x${string}`),
+    ])
+
+    if (!alreadyRegistered) {
+      await bridgeRouter.write.registerAdapter([
+        getAddress(layerZeroAdapterAddress as `0x${string}`),
+      ])
+      console.log(kleur.green(`LayerZero adapter registered with bridge router`))
+    } else {
+      console.log(
+        kleur.yellow(
+          `LayerZero adapter already registered with bridge router, skipping registration`,
+        ),
+      )
+    }
   } catch (error) {
     console.error(kleur.red('Error registering adapter with bridge router:'), error)
   }
@@ -384,9 +605,23 @@ async function isAdapterRegistered(
   adapterAddress: Address,
 ): Promise<boolean> {
   try {
-    const bridgeRouter = await hre.viem.getContractAt('BridgeRouter' as string, bridgeRouterAddress)
+    // Handle case where bridgeRouterAddress might be an object
+    let actualAddress: string
+    if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
+      const addressObj = bridgeRouterAddress as any
+      actualAddress = addressObj.bridgeRouterAddress || String(bridgeRouterAddress)
+    } else {
+      actualAddress = String(bridgeRouterAddress)
+    }
 
-    return (await bridgeRouter.read.isValidAdapter([adapterAddress])) as boolean
+    const bridgeRouter = await hre.viem.getContractAt(
+      'BridgeRouter' as string,
+      getAddress(actualAddress as `0x${string}`),
+    )
+
+    return (await bridgeRouter.read.isValidAdapter([
+      getAddress(adapterAddress as `0x${string}`),
+    ])) as boolean
   } catch (error) {
     console.error(kleur.red('Error checking if adapter is registered:'), error)
     return false
@@ -404,6 +639,14 @@ async function waitForPendingTransactions(
   checkIntervalMs = 5000,
   maxAttempts = 24,
 ): Promise<void> {
+  // Check if we're on Tenderly virtual testnet
+  const isTenderly = isTenderlyVirtualTestnet()
+
+  if (isTenderly) {
+    console.log(kleur.yellow('Detected Tenderly virtual testnet, skipping confirmation wait'))
+    return
+  }
+
   const [deployer] = await hre.viem.getWalletClients()
   const provider = await hre.viem.getPublicClient()
   const address = deployer.account.address
@@ -566,10 +809,9 @@ export async function deployBridgeAdapters(
           networkConfig,
         )
         deployedAdapters.stargate = { address: stargateAdapterAddress }
-        const stargateConfigObj = { bridgeRouterAddress }
         await configureStargateAdapter(
           stargateAdapterAddress,
-          stargateConfigObj,
+          bridgeRouterAddress,
           networkConfig,
           allNetworkConfigs,
         )
@@ -581,10 +823,9 @@ export async function deployBridgeAdapters(
     try {
       const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
       deployedAdapters.stargate = { address: stargateAdapterAddress }
-      const stargateConfigObj = { bridgeRouterAddress }
       await configureStargateAdapter(
         stargateAdapterAddress,
-        stargateConfigObj,
+        bridgeRouterAddress,
         networkConfig,
         allNetworkConfigs,
       )
@@ -595,4 +836,24 @@ export async function deployBridgeAdapters(
 
   console.log(kleur.green().bold('Bridge adapters deployment completed!'))
   return deployedAdapters
+}
+
+// Add testnet detection function
+function isTestnetChain(chainId: number): boolean {
+  const testnetChainIds = [
+    5, // Goerli
+    11155111, // Sepolia
+    80001, // Mumbai
+    421613, // Arbitrum Goerli
+    421614, // Arbitrum Sepolia
+    84531, // Base Goerli
+    84532, // Base Sepolia
+    97, // BSC Testnet
+    43113, // Avalanche Fuji
+    4002, // Fantom Testnet
+    2522, // Fraxtal Testnet
+    80084, // Berachain bArtio Testnet
+  ]
+
+  return testnetChainIds.includes(chainId)
 }
