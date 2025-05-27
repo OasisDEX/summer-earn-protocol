@@ -130,6 +130,7 @@ export interface BaseConfig {
     aaveV3: {
       pool: Address
       rewards: Address
+      poolAddressesProvider: Address
     }
     spark: {
       pool: Address

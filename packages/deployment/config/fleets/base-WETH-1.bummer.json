@@ -73,6 +73,17 @@
         "asset": "WETH",
         "protocol": "origin"
       }
+    },
+    {
+      "type": "AaveV3CarryTrade",
+      "params": {
+        "asset": "WETH",
+        "protocol": "aaveV3CarryTrade",
+        "borrowedAsset": "USDC",
+        "vaultName": "Moonwell_Flagship_USDC",
+        "maxLtv": "5000",
+        "slippage": "100"
+      }
     }
   ]
 }

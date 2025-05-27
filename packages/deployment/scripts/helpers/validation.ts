@@ -39,7 +39,10 @@ export function validateString(value: unknown, context: string, minLength = 1): 
   return value
 }
 
-export function validateToken(config: BaseConfig, token: string): Token {
+export function validateToken(config: BaseConfig, token: string | undefined): Token {
+  if (!token) {
+    throw new ValidationError(`Invalid token: ${token}`)
+  }
   const normalizedToken = token.toLowerCase()
   // This ensures the token exists in Token
   if (!Object.values(Token).includes(normalizedToken as Token)) {

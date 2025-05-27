@@ -37,6 +37,9 @@ export type ArkConfig = {
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
+    borrowedAsset?: string // For AaveV3CarryTradeArk
+    maxLtv?: string // For AaveV3CarryTradeArk
+    slippage?: string // For AaveV3CarryTradeArk
   }
 }
 
@@ -252,15 +255,18 @@ export async function deployArk(
       break
     }
     case ArkType.AaveV3CarryTrade: {
+      const borrowedAsset = validateToken(config, arkConfig.params.borrowedAsset)
       const validatedVaultName = validateString(vaultName, 'vault name')
       const vaultAddress = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][validatedVaultName],
+        config.protocolSpecific.erc4626[borrowedAsset][validatedVaultName],
         'ERC4626 vault',
       )
       const ark = await deployAaveV3CarryTradeArk(config, {
         ...baseArkParams,
         vaultId: vaultAddress,
         vaultName: validatedVaultName,
+        maxLtv: arkConfig.params.maxLtv || '5000',
+        slippage: arkConfig.params.slippage || '100',
       })
       deployedArk = ark
       break

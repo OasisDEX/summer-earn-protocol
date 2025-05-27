@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "../../src/contracts/arks/AaveV3BorrowArk.sol";
+import "../../src/contracts/arks/AaveV3CarryTradeArk.sol";
 import {ICarryTradeArk} from "../../src/interfaces/ICarryTradeArk.sol";
 
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
@@ -11,26 +11,26 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract TestAaveV3BorrowArk is AaveV3BorrowArk {
+contract TestAaveV3BorrowArk is AaveV3CarryTradeArk {
     constructor(
         address _aaveV3Pool,
         address _rewardsController,
         address _poolAddressesProvider,
         address _borrowedAsset,
         address _fleet,
-        ArkParams memory _params,
         uint256 _maxLtv,
-        uint256 _slippage
+        uint256 _slippage,
+        ArkParams memory _params
     )
-        AaveV3BorrowArk(
+        AaveV3CarryTradeArk(
             _aaveV3Pool,
             _rewardsController,
             _poolAddressesProvider,
             _borrowedAsset,
             _fleet,
-            _params,
             _maxLtv,
-            _slippage
+            _slippage,
+            _params
         )
     {}
 }
@@ -110,9 +110,9 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
             POOL_ADDRESSES_PROVIDER,
             USDC,
             address(usdcFleet),
-            params,
             7000,
-            100
+            100,
+            params
         );
 
         // Setup permissions

@@ -18,6 +18,8 @@ import { validateAddress, validateErc4626Address } from '../helpers/validation'
 interface AaveV3CarryTradeArkParams extends BaseArkParams {
   vaultId: string
   vaultName: string
+  maxLtv: string
+  slippage: string
 }
 
 /**
@@ -91,6 +93,18 @@ async function getUserInput(config: BaseConfig): Promise<AaveV3CarryTradeArkPara
     },
     {
       type: 'text',
+      name: 'maxLtv',
+      initial: '5000',
+      message: 'Enter the max LTV:',
+    },
+    {
+      type: 'text',
+      name: 'slippage',
+      initial: '100',
+      message: 'Enter the slippage:',
+    },
+    {
+      type: 'text',
       name: 'depositCap',
       initial: MAX_UINT256_STRING,
       message: 'Enter the deposit cap:',
@@ -155,6 +169,8 @@ async function deployAaveV3CarryTradeArkContract(
 
   const lendingPool = validateAddress(config.protocolSpecific.aaveV3.pool, 'lending pool')
   const yieldVault = validateErc4626Address(userInput.vaultId, 'yield vault')
+  const rewardsController = validateAddress(config.protocolSpecific.aaveV3.rewards, 'rewards controller')
+  const poolAddressesProvider = validateAddress(config.protocolSpecific.aaveV3.poolAddressesProvider, 'pool addresses provider')
   const targetVault = await hre.viem.getContractAt('ERC4626' as string, yieldVault)
   const borrowedAsset = await targetVault.read.asset()
   const borrowedAssetAddress = validateErc4626Address(borrowedAsset, 'borrowed asset')
@@ -165,6 +181,10 @@ async function deployAaveV3CarryTradeArkContract(
         lendingPool: lendingPool,
         borrowedAsset: borrowedAssetAddress,
         yieldVault: yieldVault,
+        maxLtv: userInput.maxLtv,
+        slippage: userInput.slippage,
+        rewardsController: rewardsController,
+        poolAddressesProvider: poolAddressesProvider,
         arkParams: {
           name: `AaveV3CarryTrade-${userInput.token.symbol}-${chainId}`,
           details: JSON.stringify({

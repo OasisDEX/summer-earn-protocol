@@ -86,7 +86,8 @@
       },
       "aaveV3": {
         "pool": "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
-        "rewards": "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44"
+        "rewards": "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44",
+        "poolAddressesProvider": "0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D"
       },
       "morpho": {
         "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
@@ -140,7 +141,8 @@
       },
       "erc4626": {
         "usdc": {
-          "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+          "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
+          "Moonwell_Flagship_USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca"
         },
         "eurc": {
           "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"

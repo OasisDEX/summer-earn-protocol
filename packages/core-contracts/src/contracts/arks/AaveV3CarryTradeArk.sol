@@ -17,11 +17,11 @@ import {console} from "forge-std/console.sol";
 
 error InvalidOraclePrice(string asset);
 /**
- * @title AaveV3BorrowArk
+ * @title AaveV3CarryTradeArk
  * @notice Ark for depositing collateral to Aave V3, borrowing assets, and depositing to yield fleet
  */
 
-abstract contract AaveV3BorrowArk is CarryTradeArk {
+contract AaveV3CarryTradeArk is CarryTradeArk {
     using SafeERC20 for IERC20WithDecimals;
     using FixedPointMathLib for uint256;
 
@@ -41,9 +41,9 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         address _poolAddressesProvider,
         address _borrowedAsset,
         address _fleet,
-        ArkParams memory _params,
         uint256 _maxLtv,
-        uint256 _slippage
+        uint256 _slippage,
+        ArkParams memory _params
     )
         CarryTradeArk(
             CarryTradeParams({

@@ -12,12 +12,20 @@ export function createAaveV3CarryTradeArkModule(moduleName: string) {
     const lendingPool = m.getParameter('lendingPool')
     const borrowedAsset = m.getParameter('borrowedAsset')
     const yieldVault = m.getParameter('yieldVault')
+    const rewardsController = m.getParameter('rewardsController')
+    const poolAddressesProvider = m.getParameter('poolAddressesProvider')
     const arkParams = m.getParameter('arkParams')
+    const maxLtv = m.getParameter('maxLtv')
+    const slippage = m.getParameter('slippage')
 
     const aaveV3CarryTradeArk = m.contract('AaveV3CarryTradeArk', [
       lendingPool,
+      rewardsController,
+      poolAddressesProvider,
       borrowedAsset,
       yieldVault,
+      maxLtv,
+      slippage,
       arkParams,
     ])
 
