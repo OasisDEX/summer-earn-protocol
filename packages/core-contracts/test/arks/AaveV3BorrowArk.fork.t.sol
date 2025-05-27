@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/AaveV3BorrowArk.sol";
+import {ICarryTradeArk} from "../../src/interfaces/ICarryTradeArk.sol";
 
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
@@ -217,18 +218,19 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
 
         uint256 repayAmount = 1000 * 1e6;
         bool closePosition = false;
-        bytes memory swapData = "";
-        address router = address(0);
 
         // Act
         ark.disembark(
             collateralAmount,
             abi.encode(
-                CarryTradeArk.DisembarkData({
+                ICarryTradeArk.DisembarkData({
                     closePosition: closePosition,
                     repayAmount: repayAmount,
-                    swapData: swapData,
-                    router: router
+                    swapData: ICarryTradeArk.SwapData({
+                        router: address(0),
+                        swapCalldata: "",
+                        minAmountOut: 0
+                    })
                 })
             )
         );
@@ -259,7 +261,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
 
         bool closePosition = true;
         bytes
-            memory swapData = hex"e3ead59e000000000000000000000000000010036c0190e009a000d0fc3541100a07380a000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000000000000000000000000000000000000004a732430000000000000000000000000000000000000000000000000068f1033789f34f00000000000000000000000000000000000000000000000000690be78b63e8063e76c365c2ba42e0a35a63ae8f142f86000000000000000000000000015872e6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000002809995855c00494d039ab6792f18e368e530dff9310000014000840000ff00000700000000000000000000000000000000000000000000000000000000f196187f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000020c49ba5e353f7000003e800000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000004a732430000000000000000000000000000000000000000ffff9a5889f795069a41a8a300000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010036c0190e009a000d0fc3541100a07380ac02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000004000000004ff00000500000000000000000000000000000000000000000000000000000000d0e30db0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000006000240000ff00000300000000000000000000000000000000000000000000000000000000a9059cbb0000000000000000000000006a000f20005980200259b80c510200304000106800000000000000000000000000000000000000000000000000690be78b63e806";
+            memory swapCalldata = hex"e3ead59e000000000000000000000000000010036c0190e009a000d0fc3541100a07380a000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000000000000000000000000000000000000004a732430000000000000000000000000000000000000000000000000068f1033789f34f00000000000000000000000000000000000000000000000000690be78b63e8063e76c365c2ba42e0a35a63ae8f142f86000000000000000000000000015872e6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000002809995855c00494d039ab6792f18e368e530dff9310000014000840000ff00000700000000000000000000000000000000000000000000000000000000f196187f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000020c49ba5e353f7000003e800000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000004a732430000000000000000000000000000000000000000ffff9a5889f795069a41a8a300000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010036c0190e009a000d0fc3541100a07380ac02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000004000000004ff00000500000000000000000000000000000000000000000000000000000000d0e30db0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000006000240000ff00000300000000000000000000000000000000000000000000000000000000a9059cbb0000000000000000000000006a000f20005980200259b80c510200304000106800000000000000000000000000000000000000000000000000690be78b63e806";
         address router = 0x6A000F20005980200259B80c5102003040001068;
         vm.warp(block.timestamp + 180 days);
         // debt == 1046766215
@@ -273,11 +275,14 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         ark.disembark(
             collateralAmount,
             abi.encode(
-                CarryTradeArk.DisembarkData({
+                ICarryTradeArk.DisembarkData({
                     closePosition: closePosition,
                     repayAmount: 1,
-                    swapData: swapData,
-                    router: router
+                    swapData: ICarryTradeArk.SwapData({
+                        router: router,
+                        swapCalldata: swapCalldata,
+                        minAmountOut: 0  // In production, this should be calculated
+                    })
                 })
             )
         );
@@ -312,37 +317,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
             "borrowed asset balance should be 0"
         );
     }
-    //     function test_X() public {
-    //         // Arrange
-    //         uint256 collateralAmount = 1 ether;
-    //         uint256 borrowAmount = 1000 * 1e6; // 1000 USDC
 
-    //         deal(WETH, commander, collateralAmount);
-
-    //         vm.startPrank(commander);
-    //         weth.approve(address(ark), collateralAmount);
-    //         ark.board(collateralAmount, abi.encode(borrowAmount));
-    // vm.stopPrank();
-
-    // vm.prank(keeper);
-    // ark.rebalancePosition();
-
-    // vm.startPrank(commander);
-    //         bool closePosition = true;
-    //         bytes memory swapData = "asdsadasasdasddsada";
-    //         address router = address(1);
-    //         vm.warp(block.timestamp + 10 days);
-    //         // Act
-    //         ark.disembark(collateralAmount, abi.encode(CarryTradeArk.DisembarkData({
-    //             closePosition: closePosition,
-    //             repayAmount: 1,
-    //             swapData: swapData,
-    //             router: router
-    //         })));
-
-    //         // Assert
-    //         assertEq(ark.totalAssets(), 0);
-    //     }
     function test_RebalancePosition_WhenSafe() public {
         // Setup initial position
         uint256 collateralAmount = 1 ether;
@@ -360,7 +335,10 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         );
         vm.stopPrank();
         vm.prank(keeper);
-        ark.rebalancePosition();
+        ark.upkeep(abi.encode(ICarryTradeArk.UpkeepData({
+            action: ICarryTradeArk.UpkeepAction.REBALANCE,
+            actionData: ""
+        })));
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
         );
@@ -389,17 +367,15 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
         );
-        uint256 ltvBefore = ark.currentLtv();
-        uint256 collateralBefore = weth.balanceOf(address(ark));
-        uint256 aTokenBefore = IERC20(ark.aToken()).balanceOf(address(ark));
-        uint256 variableDebtTokenBefore = IERC20(ark.variableDebtToken())
-            .balanceOf(address(ark));
         deal(address(usdc), address(wethFleet), (borrowAmount * 105) / 100);
         uint256 totalAssetsBeforeRebalance = ark.totalAssets();
         vm.stopPrank();
         // Rebalance position
         vm.prank(keeper);
-        ark.rebalancePosition();
+        ark.upkeep(abi.encode(ICarryTradeArk.UpkeepData({
+            action: ICarryTradeArk.UpkeepAction.REBALANCE,
+            actionData: ""
+        })));
         uint256 totalAssetsAfterRebalance = ark.totalAssets();
         assertEq(
             totalAssetsBeforeRebalance,
@@ -410,21 +386,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
         );
-        uint256 collateralAfter = weth.balanceOf(address(ark));
-        uint256 aTokenAfter = IERC20(ark.aToken()).balanceOf(address(ark));
-        uint256 variableDebtTokenAfter = IERC20(ark.variableDebtToken())
-            .balanceOf(address(ark));
         uint256 ltvAfter = ark.currentLtv();
-        // console.log("debtAfter ", debtAfter);
-        // console.log("debtBefore", debtBefore);
-        // console.log("ltvAfter ", ltvAfter);
-        // console.log("ltvBefore", ltvBefore);
-        // console.log("collateralAfter ", collateralAfter);
-        // console.log("collateralBefore", collateralBefore);
-        // console.log("aTokenAfter ", aTokenAfter);
-        // console.log("aTokenBefore", aTokenBefore);
-        // console.log("variableDebtTokenAfter ", variableDebtTokenAfter);
-        // console.log("variableDebtTokenBefore", variableDebtTokenBefore);
         assertLt(debtAfter, debtBefore, "Debt should be reduced");
         assertLe(
             ltvAfter,
@@ -451,7 +413,10 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
             address(ark)
         );
         vm.prank(keeper);
-        ark.rebalancePosition();
+        ark.upkeep(abi.encode(ICarryTradeArk.UpkeepData({
+            action: ICarryTradeArk.UpkeepAction.REBALANCE,
+            actionData: ""
+        })));
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
         );

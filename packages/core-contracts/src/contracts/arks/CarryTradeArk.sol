@@ -2,6 +2,8 @@
 pragma solidity 0.8.28;
 
 import "../Ark.sol";
+import {ICarryTradeArk} from "../../interfaces/ICarryTradeArk.sol";
+import {IFleetCommander} from "../../interfaces/IFleetCommander.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -9,16 +11,14 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {FixedPointMathLib} from "@summerfi/dependencies/solmate/src/utils/FixedPointMathLib.sol";
 import {console} from "forge-std/console.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-interface IERC20WithDecimals is IERC20 {
-    function decimals() external view returns (uint8);
-}
+import {IERC20WithDecimals} from "../../interfaces/ICarryTradeArk.sol";
 
 /**
  * @title CarryTradeArk
  * @notice Base contract for implementing carry trade strategies using lending protocols
  * @dev This abstract contract provides the foundation for carry trade implementations
  */
-abstract contract CarryTradeArk is Ark {
+abstract contract CarryTradeArk is Ark, ICarryTradeArk {
     using SafeERC20 for IERC20WithDecimals;
     using FixedPointMathLib for uint256;
 
@@ -38,25 +38,6 @@ abstract contract CarryTradeArk is Ark {
     uint256 public constant MAX_SLIPPAGE = 1000; // 10%
     /// @notice whitelisted routers
     mapping(address router => bool isWhitelisted) public whitelistedRouters;
-
-    struct DisembarkData {
-        bool closePosition;
-        uint256 repayAmount;
-        bytes swapData;
-        address router;
-    }
-
-    struct CarryTradeParams {
-        address _lendingPool;
-        address _collateralAsset;
-        address _borrowedAsset;
-        address _yieldVault;
-        uint256 _maxLtv; // Add maxLtv parameter
-        uint256 _slippage;
-        ArkParams baseParams;
-    }
-
-    error InvalidMaxLtv(uint256 maxLtv);
 
     constructor(CarryTradeParams memory params) Ark(params.baseParams) {
         lendingPool = params._lendingPool;
@@ -86,7 +67,7 @@ abstract contract CarryTradeArk is Ark {
     /**
      * @notice Returns total assets (collateral) deposited in the lending protocol
      */
-    function totalAssets() public view virtual override returns (uint256) {
+    function totalAssets() public view virtual override(Ark, IArk) returns (uint256) {
         return _totalAssets();
     }
 
@@ -98,8 +79,21 @@ abstract contract CarryTradeArk is Ark {
         return _getCurrentLtv() <= maxLtv;
     }
 
-    function currentLtv() public view returns (uint256) {
+    function currentLtv() public view override returns (uint256) {
         return _getCurrentLtv();
+    }
+    
+    function totalDebt() public view override returns (uint256) {
+        return _getTotalDebt();
+    }
+    
+    function totalCollateral() public view override returns (uint256) {
+        return _getTotalCollateral();
+    }
+    
+    function yieldVaultBalance() public view override returns (uint256) {
+        uint256 shares = IERC4626(yieldVault).balanceOf(address(this));
+        return IERC4626(yieldVault).convertToAssets(shares);
     }
 
     function whitelistRouter(
@@ -125,13 +119,13 @@ abstract contract CarryTradeArk is Ark {
      * @dev Withdraws from yield vault and repays debt if necessary
      */
     function _rebalancePosition() internal {
-        uint256 currentLtv = _getCurrentLtv();
+        uint256 currentLtvValue = _getCurrentLtv();
         // uint256 assetBalance = collateralAsset.balanceOf(address(this));
         // if (assetBalance > 0) {
         //     _supplyCollateral(assetBalance);
         // }
-        if (currentLtv <= maxLtv - SAFETY_MARGIN) return; // Position is safe enough
-        uint256 totalDebt = _getTotalDebt();
+        if (currentLtvValue <= maxLtv - SAFETY_MARGIN) return; // Position is safe enough
+        uint256 totalDebtAmount = _getTotalDebt();
         uint256 collateralValue = _getCollateralValueInBorrowedAsset(
             _getTotalCollateral()
         );
@@ -142,7 +136,7 @@ abstract contract CarryTradeArk is Ark {
             targetLtv,
             BASIS_POINTS
         );
-        uint256 repayAmount = totalDebt - targetDebt;
+        uint256 repayAmount = totalDebtAmount - targetDebt;
         // Withdraw from yield vault and repay
         _withdrawFromYieldVault(repayAmount);
         _repayBorrow(repayAmount);
@@ -150,8 +144,26 @@ abstract contract CarryTradeArk is Ark {
         emit PositionRebalanced(repayAmount, _getCurrentLtv());
     }
 
-    function rebalancePosition() external onlyKeeper {
-        _rebalancePosition();
+    function upkeep(bytes calldata upkeepData) external override onlyKeeper {
+        UpkeepData memory params = abi.decode(upkeepData, (UpkeepData));
+        
+        if (params.action == UpkeepAction.REBALANCE) {
+            _rebalancePosition();
+        } else if (params.action == UpkeepAction.COMPOUND) {
+            _compound();
+        } else if (params.action == UpkeepAction.EMERGENCY_EXIT) {
+            SwapData memory swapData = abi.decode(params.actionData, (SwapData));
+            _emergencyExit(swapData);
+        }
+    }
+    
+    function emergencyExit(bytes calldata swapData) external override onlyKeeper {
+        SwapData memory swap = abi.decode(swapData, (SwapData));
+        _emergencyExit(swap);
+    }
+    
+    function compound() external override onlyKeeper {
+        _compound();
     }
 
     /**
@@ -210,7 +222,7 @@ abstract contract CarryTradeArk is Ark {
             _closePosition();
 
             // Step 3: Sweep borrowed dust
-            _sweepBorrowedDust(disembarkData.router, disembarkData.swapData);
+            _sweepBorrowedDust(disembarkData.swapData);
 
             // Step 4: Sweep collateral dust
             _sweepCollateralDust(amount);
@@ -227,21 +239,19 @@ abstract contract CarryTradeArk is Ark {
     function _getCurrentLtv() internal view virtual returns (uint256);
     function _closePosition() internal virtual;
 
-    function _sweepBorrowedDust(
-        address router,
-        bytes memory swapData
-    ) internal {
+    function _sweepBorrowedDust(SwapData memory swapData) internal {
         uint256 borrowedAssetBalance = borrowedAsset.balanceOf(address(this));
-        uint256 borrowedAssetInCollateral = _getCollateralValueInBorrowedAsset(
-            _getTotalCollateral()
-        );
+        if (borrowedAssetBalance == 0 || swapData.router == address(0)) {
+            return; // Nothing to swap
+        }
+        
         _swap(
             address(borrowedAsset),
             address(collateralAsset),
-            router,
+            swapData.router,
             borrowedAssetBalance,
-            _applySlippage(borrowedAssetInCollateral),
-            swapData
+            swapData.minAmountOut,
+            swapData.swapCalldata
         );
     }
     function _sweepCollateralDust(uint256 disembarkAmount) internal {
@@ -260,7 +270,7 @@ abstract contract CarryTradeArk is Ark {
      */
     function _validateBoardData(bytes calldata data) internal pure override {
         if (data.length != 32) {
-            revert("Invalid borrow amount encoding");
+            revert InvalidBorrowAmountEncoding();
         }
     }
 
@@ -268,14 +278,14 @@ abstract contract CarryTradeArk is Ark {
         bytes calldata data
     ) internal pure override {
         DisembarkData memory disembarkData = abi.decode(data, (DisembarkData));
-        if (disembarkData.repayAmount == 0) {
-            revert("Invalid repay amount");
+        if (!disembarkData.closePosition && disembarkData.repayAmount == 0) {
+            revert InvalidRepayAmount();
         }
-        if (disembarkData.closePosition && disembarkData.swapData.length == 0) {
-            revert("Invalid swap data");
+        if (disembarkData.closePosition && disembarkData.swapData.router == address(0)) {
+            revert InvalidRouterForClosePosition();
         }
-        if (disembarkData.closePosition && disembarkData.router == address(0)) {
-            revert("Invalid router");
+        if (disembarkData.closePosition && disembarkData.swapData.swapCalldata.length == 0) {
+            revert InvalidSwapCalldataForClosePosition();
         }
     }
 
@@ -338,7 +348,7 @@ abstract contract CarryTradeArk is Ark {
         bytes memory swapCalldata
     ) internal returns (uint256 amountOut) {
         if (!whitelistedRouters[router]) {
-            revert RouterNotWhitelisted();
+            revert RouterNotWhitelisted(router);
         }
         IERC20(sellToken).approve(router, amountIn);
         uint256 buyTokenBalanceBefore = IERC20(buyToken).balanceOf(
@@ -367,22 +377,69 @@ abstract contract CarryTradeArk is Ark {
             (amount * (BASIS_POINTS - slippage)) /
             BASIS_POINTS;
     }
-
-    // Add event for position rebalancing
-    event PositionRebalanced(uint256 repayAmount, uint256 newLtv);
-    event Swapped(
-        address sellToken,
-        address router,
-        uint256 amountIn,
-        bytes swapCalldata
-    );
-
-    error SlippageTooHigh();
-    error RouterNotWhitelisted();
-    error ReceivedLessThanExpected();
-    error CollateralAndBorrowedAssetCannotBeTheSame();
-    error InvalidAsset();
-    error CollateralAssetDoesNotMatchBaseAsset();
-    event SlippageSet(uint256 slippage);
-    event RouterWhitelisted(address router, bool isWhitelisted);
+    
+    function _compound() internal {
+        // Check if we have room to borrow more
+        uint256 currentLtvValue = _getCurrentLtv();
+        if (currentLtvValue >= maxLtv - SAFETY_MARGIN) {
+            revert PositionUnsafe(currentLtvValue, maxLtv);
+        }
+        
+        // Calculate how much more we can borrow
+        uint256 collateralValue = _getCollateralValueInBorrowedAsset(_getTotalCollateral());
+        uint256 currentDebt = _getTotalDebt();
+        uint256 maxDebt = collateralValue.mulDivDown(maxLtv - SAFETY_MARGIN, BASIS_POINTS);
+        uint256 additionalBorrow = maxDebt - currentDebt;
+        
+        if (additionalBorrow > 0) {
+            _borrowAsset(additionalBorrow);
+            _depositToYieldVault(additionalBorrow);
+            emit PositionCompounded(additionalBorrow, _getCurrentLtv());
+        }
+    }
+    
+    function _emergencyExit(SwapData memory swapData) internal {
+        // 1. Withdraw everything from yield vault
+        uint256 totalInVault = yieldVaultBalance();
+        if (totalInVault > 0) {
+            _withdrawAllFromYieldVault();
+        }
+        
+        // 2. Repay as much debt as possible
+        uint256 debt = _getTotalDebt();
+        uint256 borrowedBalance = borrowedAsset.balanceOf(address(this));
+        uint256 repayAmount = borrowedBalance > debt ? debt : borrowedBalance;
+        
+        if (repayAmount > 0) {
+            _repayBorrow(repayAmount);
+        }
+        
+        // 3. Swap remaining borrowed asset to collateral if needed
+        uint256 remainingBorrowed = borrowedAsset.balanceOf(address(this));
+        if (remainingBorrowed > 0 && swapData.router != address(0)) {
+            _swap(
+                address(borrowedAsset),
+                address(collateralAsset),
+                swapData.router,
+                remainingBorrowed,
+                swapData.minAmountOut,
+                swapData.swapCalldata
+            );
+        }
+        
+        // 4. Withdraw all collateral
+        uint256 collateralAmount = _getTotalCollateral();
+        if (collateralAmount > 0) {
+            _withdrawCollateral(collateralAmount);
+        }
+        
+        // 5. Send all assets to buffer
+        uint256 finalBalance = collateralAsset.balanceOf(address(this));
+        if (finalBalance > 0) {
+            address bufferArk = IFleetCommander(config.commander).bufferArk();
+            collateralAsset.safeTransfer(bufferArk, finalBalance);
+        }
+        
+        emit EmergencyExit(finalBalance, debt > borrowedBalance ? debt - borrowedBalance : 0);
+    }
 }
