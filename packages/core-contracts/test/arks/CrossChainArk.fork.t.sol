@@ -8,17 +8,94 @@ import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {BridgeRouter} from "@summerfi/chain-bridge/router/BridgeRouter.sol";
 import {BridgeQueue} from "@summerfi/chain-bridge/router/BridgeQueue.sol";
 import {LayerZeroAdapter} from "@summerfi/chain-bridge/adapters/LayerZeroAdapter.sol";
+import {StargateAdapter} from "@summerfi/chain-bridge/adapters/StargateAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
+// Mock Stargate V2 contract for testing
+contract MockStargateV2 {
+    enum StargateType {
+        Pool,
+        OFT
+    }
+
+    struct Ticket {
+        uint56 ticketId;
+        bytes passenger;
+    }
+
+    address public immutable token;
+    StargateType public immutable stargateType;
+
+    constructor(address _token, StargateType _stargateType) {
+        token = _token;
+        stargateType = _stargateType;
+    }
+
+    function sendToken(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address
+    )
+        external
+        payable
+        returns (
+            MessagingReceipt memory msgReceipt,
+            OFTReceipt memory oftReceipt,
+            Ticket memory ticket
+        )
+    {
+        // Mock implementation - just return mock structs
+        msgReceipt = MessagingReceipt({
+            guid: bytes32(uint256(1)),
+            nonce: 1,
+            fee: _fee
+        });
+
+        oftReceipt = OFTReceipt({
+            amountSentLD: _sendParam.amountLD,
+            amountReceivedLD: _sendParam.amountLD
+        });
+
+        ticket = Ticket({ticketId: 1, passenger: ""});
+    }
+
+    function quoteSend(
+        SendParam calldata,
+        bool
+    ) external pure returns (MessagingFee memory msgFee) {
+        // Return a mock fee
+        msgFee = MessagingFee({nativeFee: 0.01 ether, lzTokenFee: 0});
+    }
+
+    function quoteOFT(
+        SendParam calldata _sendParam
+    )
+        external
+        pure
+        returns (uint256 limit, uint256 oftLimit, OFTReceipt memory oftReceipt)
+    {
+        // Mock implementation
+        limit = _sendParam.amountLD;
+        oftLimit = _sendParam.amountLD;
+        oftReceipt = OFTReceipt({
+            amountSentLD: _sendParam.amountLD,
+            amountReceivedLD: _sendParam.amountLD
+        });
+    }
+}
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
     BridgeQueue public bridgeQueue;
     LayerZeroAdapter public layerZeroAdapter;
+    StargateAdapter public stargateAdapter;
     IERC20 public usdc;
+    MockStargateV2 public mockStargate;
 
     // LayerZero specific constants
     address public constant LZ_ENDPOINT_MAINNET =
@@ -86,11 +163,43 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             governor
         );
 
-        // Register adapter with router
+        // Setup Stargate adapter
+        stargateAdapter = new StargateAdapter(address(bridgeRouter), governor);
+
+        // Register adapters with router
         vm.startPrank(governor);
         bridgeRouter.registerAdapter(address(layerZeroAdapter));
+        bridgeRouter.registerAdapter(address(stargateAdapter));
 
-        // Set up peer for Arbitrum chain
+        // Configure Stargate adapter
+        stargateAdapter.addSupportedChain(DEST_CHAIN_ID, ARB_LZ_EID);
+        stargateAdapter.addSupportedChain(uint16(block.chainid), ARB_LZ_EID); // Add current chain (mainnet)
+
+        // Initialize USDC
+        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+
+        // Deploy mock Stargate contract
+        mockStargate = new MockStargateV2(
+            address(usdc),
+            MockStargateV2.StargateType.Pool
+        );
+
+        // Add USDC as supported asset for Stargate adapter on both chains
+        // Current chain (mainnet) - needed for the adapter to find the Stargate contract
+        stargateAdapter.addSupportedAsset(
+            uint16(block.chainid), // Current chain
+            address(usdc),
+            address(mockStargate)
+        );
+
+        // Destination chain (Arbitrum)
+        stargateAdapter.addSupportedAsset(
+            DEST_CHAIN_ID,
+            address(usdc),
+            address(mockStargate)
+        );
+
+        // Set up peer for Arbitrum chain (LayerZero)
         bytes32 peerAddressBytes32 = bytes32(uint256(uint160(ARB_PROXY)));
         layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
@@ -98,9 +207,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint32 READ_CHANNEL_ID = 4294967295;
         layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
         vm.stopPrank();
-
-        // Initialize USDC
-        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
         // Create Ark with bridge configuration
         ArkParams memory params = ArkParams({
@@ -229,6 +335,106 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ark.totalAssets(),
             amount + remoteBalance,
             "Total assets should include both local and remote balances"
+        );
+    }
+
+    function test_FullIntegration_DepositToStargateSwap() public {
+        // === STEP 1: Deposit to CrossChain (Board) ===
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+        deal(address(usdc), commander, amount);
+        vm.prank(commander);
+        usdc.approve(address(ark), amount);
+
+        // Board the assets - this should queue them
+        vm.prank(commander);
+        ark.board(amount, bytes(""));
+
+        // Verify assets are queued
+        bytes32 queueId = bridgeQueue.getPendingQueueIdAtIndex(0);
+        assertEq(
+            uint8(bridgeQueue.queueIdToStatus(queueId)),
+            uint8(BridgeTypes.OperationStatus.QUEUED),
+            "Operation should be queued"
+        );
+
+        // === STEP 2: Setup for Stargate Adapter ===
+        // No mocking needed - we have a real mock contract deployed
+
+        // === STEP 3: Keeper Executes Queued Operation ===
+        address keeper = makeAddr("keeper");
+        vm.deal(keeper, 10 ether); // Give keeper ETH for fees
+
+        // Get quote for execution using Stargate adapter
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(stargateAdapter), // Use Stargate adapter
+            adapterParams: BridgeTypes.AdapterParams({
+                gasLimit: 200000,
+                msgValue: 0,
+                calldataSize: 0,
+                options: ""
+            })
+        });
+
+        (uint256 nativeFee, , ) = bridgeRouter.quote(
+            DEST_CHAIN_ID,
+            address(usdc),
+            amount,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        // Keeper executes the queued operation
+        vm.prank(keeper);
+        bytes32 operationId = bridgeQueue.executeQueuedOperation{
+            value: nativeFee
+        }(queueId, options);
+
+        // === STEP 4: Verify Execution Results ===
+        // Check that operation status changed to SENT
+        assertEq(
+            uint8(bridgeQueue.queueIdToStatus(queueId)),
+            uint8(BridgeTypes.OperationStatus.SENT),
+            "Operation should be marked as SENT"
+        );
+
+        // Verify operation ID mapping
+        assertEq(
+            bridgeQueue.operationIdToQueueId(operationId),
+            queueId,
+            "Operation ID should map back to queue ID"
+        );
+
+        // Verify assets were transferred from commander to router/adapter
+        assertEq(
+            usdc.balanceOf(commander),
+            0,
+            "Commander should have no USDC left"
+        );
+
+        // Verify pending queue is empty
+        assertEq(
+            bridgeQueue.getPendingQueueCount(),
+            0,
+            "Pending queue should be empty after execution"
+        );
+
+        // === STEP 5: Verify Cross-Chain Transfer Initiated ===
+        // In a real integration test, you would:
+        // 1. Check that the adapter called the underlying protocol (Stargate)
+        // 2. Verify the cross-chain message was properly formatted
+        // 3. Potentially simulate the message being received on the destination chain
+
+        // For this test, we can verify the operation was processed
+        assertTrue(
+            operationId != bytes32(0),
+            "Operation ID should be non-zero"
+        );
+
+        emit log_named_bytes32("Executed Operation ID", operationId);
+        emit log_named_uint("Native Fee Paid", nativeFee);
+        emit log_named_address("Keeper", keeper);
+        emit log_string(
+            "SUCCESS: Full integration test completed with Stargate adapter"
         );
     }
 }
