@@ -281,7 +281,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
                     swapData: ICarryTradeArk.SwapData({
                         router: router,
                         swapCalldata: swapCalldata,
-                        minAmountOut: 0  // In production, this should be calculated
+                        minAmountOut: 0 // In production, this should be calculated
                     })
                 })
             )
@@ -335,10 +335,14 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         );
         vm.stopPrank();
         vm.prank(keeper);
-        ark.upkeep(abi.encode(ICarryTradeArk.UpkeepData({
-            action: ICarryTradeArk.UpkeepAction.REBALANCE,
-            actionData: ""
-        })));
+        ark.upkeep(
+            abi.encode(
+                ICarryTradeArk.UpkeepData({
+                    action: ICarryTradeArk.UpkeepAction.REBALANCE,
+                    actionData: ""
+                })
+            )
+        );
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
         );
@@ -372,10 +376,14 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         vm.stopPrank();
         // Rebalance position
         vm.prank(keeper);
-        ark.upkeep(abi.encode(ICarryTradeArk.UpkeepData({
-            action: ICarryTradeArk.UpkeepAction.REBALANCE,
-            actionData: ""
-        })));
+        ark.upkeep(
+            abi.encode(
+                ICarryTradeArk.UpkeepData({
+                    action: ICarryTradeArk.UpkeepAction.REBALANCE,
+                    actionData: ""
+                })
+            )
+        );
         uint256 totalAssetsAfterRebalance = ark.totalAssets();
         assertEq(
             totalAssetsBeforeRebalance,
@@ -413,10 +421,14 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
             address(ark)
         );
         vm.prank(keeper);
-        ark.upkeep(abi.encode(ICarryTradeArk.UpkeepData({
-            action: ICarryTradeArk.UpkeepAction.REBALANCE,
-            actionData: ""
-        })));
+        ark.upkeep(
+            abi.encode(
+                ICarryTradeArk.UpkeepData({
+                    action: ICarryTradeArk.UpkeepAction.REBALANCE,
+                    actionData: ""
+                })
+            )
+        );
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
         );

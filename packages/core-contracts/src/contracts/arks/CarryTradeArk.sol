@@ -67,7 +67,13 @@ abstract contract CarryTradeArk is Ark, ICarryTradeArk {
     /**
      * @notice Returns total assets (collateral) deposited in the lending protocol
      */
-    function totalAssets() public view virtual override(Ark, IArk) returns (uint256) {
+    function totalAssets()
+        public
+        view
+        virtual
+        override(Ark, IArk)
+        returns (uint256)
+    {
         return _totalAssets();
     }
 
@@ -82,15 +88,15 @@ abstract contract CarryTradeArk is Ark, ICarryTradeArk {
     function currentLtv() public view override returns (uint256) {
         return _getCurrentLtv();
     }
-    
+
     function totalDebt() public view override returns (uint256) {
         return _getTotalDebt();
     }
-    
+
     function totalCollateral() public view override returns (uint256) {
         return _getTotalCollateral();
     }
-    
+
     function yieldVaultBalance() public view override returns (uint256) {
         uint256 shares = IERC4626(yieldVault).balanceOf(address(this));
         return IERC4626(yieldVault).convertToAssets(shares);
@@ -146,22 +152,27 @@ abstract contract CarryTradeArk is Ark, ICarryTradeArk {
 
     function upkeep(bytes calldata upkeepData) external override onlyKeeper {
         UpkeepData memory params = abi.decode(upkeepData, (UpkeepData));
-        
+
         if (params.action == UpkeepAction.REBALANCE) {
             _rebalancePosition();
         } else if (params.action == UpkeepAction.COMPOUND) {
             _compound();
         } else if (params.action == UpkeepAction.EMERGENCY_EXIT) {
-            SwapData memory swapData = abi.decode(params.actionData, (SwapData));
+            SwapData memory swapData = abi.decode(
+                params.actionData,
+                (SwapData)
+            );
             _emergencyExit(swapData);
         }
     }
-    
-    function emergencyExit(bytes calldata swapData) external override onlyKeeper {
+
+    function emergencyExit(
+        bytes calldata swapData
+    ) external override onlyKeeper {
         SwapData memory swap = abi.decode(swapData, (SwapData));
         _emergencyExit(swap);
     }
-    
+
     function compound() external override onlyKeeper {
         _compound();
     }
@@ -244,7 +255,7 @@ abstract contract CarryTradeArk is Ark, ICarryTradeArk {
         if (borrowedAssetBalance == 0 || swapData.router == address(0)) {
             return; // Nothing to swap
         }
-        
+
         _swap(
             address(borrowedAsset),
             address(collateralAsset),
@@ -281,10 +292,16 @@ abstract contract CarryTradeArk is Ark, ICarryTradeArk {
         if (!disembarkData.closePosition && disembarkData.repayAmount == 0) {
             revert InvalidRepayAmount();
         }
-        if (disembarkData.closePosition && disembarkData.swapData.router == address(0)) {
+        if (
+            disembarkData.closePosition &&
+            disembarkData.swapData.router == address(0)
+        ) {
             revert InvalidRouterForClosePosition();
         }
-        if (disembarkData.closePosition && disembarkData.swapData.swapCalldata.length == 0) {
+        if (
+            disembarkData.closePosition &&
+            disembarkData.swapData.swapCalldata.length == 0
+        ) {
             revert InvalidSwapCalldataForClosePosition();
         }
     }
@@ -377,43 +394,48 @@ abstract contract CarryTradeArk is Ark, ICarryTradeArk {
             (amount * (BASIS_POINTS - slippage)) /
             BASIS_POINTS;
     }
-    
+
     function _compound() internal {
         // Check if we have room to borrow more
         uint256 currentLtvValue = _getCurrentLtv();
         if (currentLtvValue >= maxLtv - SAFETY_MARGIN) {
             revert PositionUnsafe(currentLtvValue, maxLtv);
         }
-        
+
         // Calculate how much more we can borrow
-        uint256 collateralValue = _getCollateralValueInBorrowedAsset(_getTotalCollateral());
+        uint256 collateralValue = _getCollateralValueInBorrowedAsset(
+            _getTotalCollateral()
+        );
         uint256 currentDebt = _getTotalDebt();
-        uint256 maxDebt = collateralValue.mulDivDown(maxLtv - SAFETY_MARGIN, BASIS_POINTS);
+        uint256 maxDebt = collateralValue.mulDivDown(
+            maxLtv - SAFETY_MARGIN,
+            BASIS_POINTS
+        );
         uint256 additionalBorrow = maxDebt - currentDebt;
-        
+
         if (additionalBorrow > 0) {
             _borrowAsset(additionalBorrow);
             _depositToYieldVault(additionalBorrow);
             emit PositionCompounded(additionalBorrow, _getCurrentLtv());
         }
     }
-    
+
     function _emergencyExit(SwapData memory swapData) internal {
         // 1. Withdraw everything from yield vault
         uint256 totalInVault = yieldVaultBalance();
         if (totalInVault > 0) {
             _withdrawAllFromYieldVault();
         }
-        
+
         // 2. Repay as much debt as possible
         uint256 debt = _getTotalDebt();
         uint256 borrowedBalance = borrowedAsset.balanceOf(address(this));
         uint256 repayAmount = borrowedBalance > debt ? debt : borrowedBalance;
-        
+
         if (repayAmount > 0) {
             _repayBorrow(repayAmount);
         }
-        
+
         // 3. Swap remaining borrowed asset to collateral if needed
         uint256 remainingBorrowed = borrowedAsset.balanceOf(address(this));
         if (remainingBorrowed > 0 && swapData.router != address(0)) {
@@ -426,20 +448,23 @@ abstract contract CarryTradeArk is Ark, ICarryTradeArk {
                 swapData.swapCalldata
             );
         }
-        
+
         // 4. Withdraw all collateral
         uint256 collateralAmount = _getTotalCollateral();
         if (collateralAmount > 0) {
             _withdrawCollateral(collateralAmount);
         }
-        
+
         // 5. Send all assets to buffer
         uint256 finalBalance = collateralAsset.balanceOf(address(this));
         if (finalBalance > 0) {
             address bufferArk = IFleetCommander(config.commander).bufferArk();
             collateralAsset.safeTransfer(bufferArk, finalBalance);
         }
-        
-        emit EmergencyExit(finalBalance, debt > borrowedBalance ? debt - borrowedBalance : 0);
+
+        emit EmergencyExit(
+            finalBalance,
+            debt > borrowedBalance ? debt - borrowedBalance : 0
+        );
     }
 }

@@ -1,6 +1,7 @@
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
+import { deployAaveV3CarryTradeArk } from '../arks/deploy-aavev3-carry-trade-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
@@ -250,6 +251,20 @@ export async function deployArk(
       deployedArk = await deploySiloManagedVaultArk(config, siloManagedVaultParams)
       break
     }
+    case ArkType.AaveV3CarryTrade: {
+      const validatedVaultName = validateString(vaultName, 'vault name')
+      const vaultAddress = validateErc4626Address(
+        config.protocolSpecific.erc4626[token][validatedVaultName],
+        'ERC4626 vault',
+      )
+      const ark = await deployAaveV3CarryTradeArk(config, {
+        ...baseArkParams,
+        vaultId: vaultAddress,
+        vaultName: validatedVaultName,
+      })
+      deployedArk = ark
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -329,6 +344,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SiloManagedVaultArk: {
       deployedArk = await deploySiloManagedVaultArk(config)
+      break
+    }
+
+    case ArkType.AaveV3CarryTrade: {
+      deployedArk = await deployAaveV3CarryTradeArk(config)
       break
     }
 

@@ -29,6 +29,7 @@ export enum ArkType {
   SiloManagedVaultArk = 'SiloManagedVaultArk',
   OriginETHArk = 'OriginETHArk',
   FluidLiteArk = 'FluidLiteArk',
+  AaveV3CarryTrade = 'AaveV3CarryTrade',
 }
 
 export const arkTypes = [
@@ -50,6 +51,7 @@ export const arkTypes = [
   { title: 'SiloManagedVaultArk', value: ArkType.SiloManagedVaultArk },
   { title: 'OriginETHArk', value: ArkType.OriginETHArk },
   { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
+  { title: 'AaveV3CarryTrade', value: ArkType.AaveV3CarryTrade },
 ]
 
 export interface Config {
