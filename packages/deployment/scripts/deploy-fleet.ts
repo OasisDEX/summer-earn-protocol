@@ -1,5 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import fs from 'node:fs'
+import path from 'node:path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { FleetConfig } from '../types/config-types'
@@ -7,6 +9,9 @@ import { addArkToFleet } from './common/add-ark-to-fleet'
 import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
 import {
   getFleetConfig,
+  getFleetDeploymentDir,
+  getFleetDeploymentFileName,
+  loadFleetDeployment,
   loadFleetDeploymentJson,
   saveFleetDeploymentJson,
 } from './common/fleet-deployment-files-helpers'
@@ -94,7 +99,7 @@ async function deployFleet() {
   console.log(kleur.green().bold(`Starting ${deploymentMode} process...`))
 
   // Load fleet configuration
-  const fleetDefinition = await getFleetConfig()
+  const fleetDefinition = await getFleetConfig(useBummerConfig)
   validateToken(config, fleetDefinition.assetSymbol)
 
   // Handle the deployment based on the chosen mode
@@ -151,13 +156,15 @@ async function handleNewFleetDeployment(
 
     const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
 
-    const deployedArkAddresses = await deployArks(fleetDefinition, config)
+    const deployedArks = await deployArks(fleetDefinition, config)
+    console.log(kleur.green(`Successfully deployed ${deployedArks.length} arks.`))
 
+    // Save deployment info
     saveFleetDeploymentJson(
       fleetDefinition,
       deployedFleet,
       bufferArkAddress,
-      deployedArkAddresses,
+      deployedArks,
       useBummerConfig,
     )
 
@@ -177,7 +184,7 @@ async function handleNewFleetDeployment(
       console.log(kleur.green('Deployer has governor role. Executing actions directly...'))
 
       // Add each Ark to the Fleet
-      for (const arkAddress of deployedArkAddresses) {
+      for (const arkAddress of deployedArks) {
         await addArkToFleet(arkAddress, config, hre, fleetDefinition)
       }
 
@@ -198,7 +205,7 @@ async function handleNewFleetDeployment(
       if (curatorAddress) {
         await grantCuratorRole(
           config.deployedContracts.gov.protocolAccessManager.address as Address,
-          deployedFleet.fleetCommander.address,
+          deployedFleet.fleetCommander.address as Address,
           curatorAddress,
           hre,
         )
@@ -213,7 +220,7 @@ async function handleNewFleetDeployment(
         try {
           console.log('About to get rewards manager address')
           const rewardsManagerAddress = await getRewardsManagerAddress(
-            deployedFleet.fleetCommander.address,
+            deployedFleet.fleetCommander.address as Address,
           )
 
           console.log('rewardsManagerAddress', rewardsManagerAddress)
@@ -242,7 +249,7 @@ async function handleNewFleetDeployment(
         await createHubGovernanceProposal(
           deployedFleet,
           bufferArkAddress,
-          deployedArkAddresses,
+          deployedArks,
           config,
           fleetDefinition,
           useBummerConfig,
@@ -252,7 +259,7 @@ async function handleNewFleetDeployment(
         await createSatelliteGovernanceProposal(
           deployedFleet,
           bufferArkAddress,
-          deployedArkAddresses,
+          deployedArks,
           config,
           fleetDefinition,
           useBummerConfig,
@@ -309,9 +316,9 @@ async function handleArkAddition(
     console.log(kleur.blue('Buffer Ark:'), kleur.cyan(bufferArkAddress))
     console.log(kleur.blue('Fleet Commander:'), kleur.cyan(fleetCommanderAddress))
 
-    // Get existing ark addresses from deployment data
-    const existingArkAddresses = deploymentData.arkAddresses || []
-    console.log(kleur.blue('Existing Arks:'), kleur.cyan(existingArkAddresses.length.toString()))
+    // Get existing arks from deployment data
+    const existingArks = deploymentData.arks || []
+    console.log(kleur.blue('Existing Arks:'), kleur.cyan(existingArks.length.toString()))
 
     // Check if there are new arks in the config that aren't already deployed
     const configArkTypes = fleetDefinition.arks.map((ark) => ark.type)
@@ -331,12 +338,9 @@ async function handleArkAddition(
       return
     }
 
-    // Deploy only new Arks
-    console.log(kleur.green().bold('Deploying new Arks...'))
-
     // Create a new fleet definition that only includes the arks we haven't deployed yet
-    const remainingArksToAdd = existingArkAddresses.length
-      ? fleetDefinition.arks.slice(existingArkAddresses.length)
+    const remainingArksToAdd = existingArks.length
+      ? fleetDefinition.arks.slice(existingArks.length)
       : fleetDefinition.arks
 
     if (remainingArksToAdd.length === 0) {
@@ -357,14 +361,14 @@ async function handleArkAddition(
     }
 
     // Deploy only the new arks
-    const deployedArkAddresses = await deployArks(newArkFleetDefinition, config)
+    const deployedArks = await deployArks(newArkFleetDefinition, config)
 
-    if (deployedArkAddresses.length === 0) {
+    if (deployedArks.length === 0) {
       console.log(kleur.yellow('No new arks were deployed.'))
       return
     }
 
-    console.log(kleur.green(`Successfully deployed ${deployedArkAddresses.length} new arks.`))
+    console.log(kleur.green(`Successfully deployed ${deployedArks.length} new arks.`))
 
     // Check if deployer has governor role
     const protocolAccessManager = await hre.viem.getContractAt(
@@ -382,7 +386,7 @@ async function handleArkAddition(
       console.log(kleur.green('Deployer has governor role. Adding Arks directly...'))
 
       // Add each Ark to the Fleet
-      for (const arkAddress of deployedArkAddresses) {
+      for (const arkAddress of deployedArks) {
         await addArkToFleet(arkAddress, config, hre, fleetDefinition)
       }
 
@@ -393,45 +397,83 @@ async function handleArkAddition(
         kleur.yellow('Deployer does not have governor role. Creating governance proposal...'),
       )
 
+      // Ask for the specific Discourse URL for this ark addition
+      const discourseResponse = await prompts({
+        type: 'text',
+        name: 'url',
+        message: `Enter the Discourse URL for this specific Ark addition proposal (e.g., SIP2.X):`,
+        validate: (value) => (value.startsWith('http') ? true : 'Invalid URL format'),
+      })
+
+      if (!discourseResponse.url) {
+        console.log(kleur.red('Discourse URL is required. Proposal creation cancelled.'))
+        return
+      }
+
+      // Create a modified fleet definition for the proposal containing the specific URL
+      const proposalFleetDefinition = {
+        ...fleetDefinition,
+        discourseURL: discourseResponse.url,
+      }
+
       if (isHubChain) {
         // Create proposal for just adding arks on the hub chain
         await createArkAdditionProposal(
           fleetCommanderAddress,
-          deployedArkAddresses, // Only the newly deployed arks
+          deployedArks,
           config,
-          fleetDefinition,
+          proposalFleetDefinition, // Use the definition with the specific URL
           useBummerConfig,
         )
       } else {
         // Create cross-chain proposal for adding arks on a satellite chain
         await createArkAdditionCrossChainProposal(
           fleetCommanderAddress,
-          deployedArkAddresses,
+          deployedArks,
           config,
-          fleetDefinition,
+          proposalFleetDefinition, // Use the definition with the specific URL
           useBummerConfig,
         )
       }
     }
 
-    // Update deployment JSON with new Ark addresses
-    const updatedArkAddresses = [...existingArkAddresses, ...deployedArkAddresses]
+    // Update the deployment file with the new arks
+    const deploymentsDir = getFleetDeploymentDir()
+    const fleetFileName = getFleetDeploymentFileName(fleetDefinition)
+    const fleetFilePath = path.join(deploymentsDir, fleetFileName)
 
-    // Save updated deployment data
-    saveFleetDeploymentJson(
-      fleetDefinition,
-      { fleetCommander: deploymentData.fleetCommander },
-      deploymentData.bufferArk,
-      updatedArkAddresses,
-      useBummerConfig,
-    )
+    // Check if the file exists before reading
+    if (fs.existsSync(fleetFilePath)) {
+      const currentDeploymentData = loadFleetDeployment(fleetFilePath)
 
-    console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))
-    console.log(
-      kleur.green(
-        `Added ${deployedArkAddresses.length} new arks to a total of ${updatedArkAddresses.length} arks.`,
-      ),
-    )
+      // Ensure arks array exists
+      if (!currentDeploymentData.arks) {
+        currentDeploymentData.arks = []
+      }
+
+      // Filter out any arks that are already in the array
+      const newArks = deployedArks.filter((ark) => !currentDeploymentData.arks.includes(ark))
+
+      if (newArks.length > 0) {
+        currentDeploymentData.arks.push(...newArks)
+        fs.writeFileSync(fleetFilePath, JSON.stringify(currentDeploymentData, null, 2))
+
+        console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))
+        console.log(
+          kleur.green(
+            `Added ${newArks.length} new arks to a total of ${currentDeploymentData.arks.length} arks.`,
+          ),
+        )
+      } else {
+        console.log(kleur.yellow('No new arks to add to the deployment file.'))
+      }
+    } else {
+      console.log(kleur.red(`Error: Fleet deployment file not found at ${fleetFilePath}`))
+      // Optionally create a new file if desired, or just report error
+      // For now, just log the error. If creating is needed, add logic here.
+      // deploymentData.arks = deployedArks; // Assuming deploymentData holds initial info
+      // fs.writeFileSync(fleetFilePath, JSON.stringify(deploymentData, null, 2));
+    }
   } catch (error: unknown) {
     console.error(
       kleur.red(

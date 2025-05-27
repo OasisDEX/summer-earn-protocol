@@ -1,7 +1,8 @@
-import { BigDecimal } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { PendleOracle } from '../../generated/EntryPoint/PendleOracle'
 import { addresses } from '../constants/addresses'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
+import { TvlData } from '../models/TvlData'
 import { BaseVaultProduct } from './BaseVaultProduct'
 
 export class PendleLpProduct extends BaseVaultProduct {
@@ -16,5 +17,9 @@ export class PendleLpProduct extends BaseVaultProduct {
     } else {
       return BigDecimalConstants.ZERO
     }
+  }
+
+  getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
+    return new TvlData(BigIntConstants.ZERO, BigDecimalConstants.ZERO, BigDecimalConstants.ZERO)
   }
 }

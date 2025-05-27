@@ -84,20 +84,21 @@ export function logValueComparison(
   newValue: bigint | number,
   unit: string = '',
 ): void {
-  const hasChanged = currentValue !== newValue
+  const hasChanged = currentValue != newValue
   const color = hasChanged ? chalk.red : chalk.green
   const arrow = hasChanged ? '→' : '='
 
   const formattedCurrent = formatValue(currentValue, unit)
   const formattedNew = formatValue(newValue, unit)
-
-  console.log(
-    color(
-      `${label.padEnd(30)} ${formattedCurrent}${unit} ${arrow} ${formattedNew}${unit}${
-        hasChanged ? ' (updating)' : ' (unchanged)'
-      }`,
-    ),
-  )
+  if (hasChanged) {
+    console.log(
+      color(
+        `${label.padEnd(30)} ${formattedCurrent}${unit} ${arrow} ${formattedNew}${unit}${
+          hasChanged ? ' (updating)' : ' (unchanged)'
+        }`,
+      ),
+    )
+  }
 }
 
 export function logPercentageComparison(
@@ -111,11 +112,13 @@ export function logPercentageComparison(
   const arrow = hasChanged ? '→' : '='
   const currentPercent = Number(currentValue) / Number(WAD)
   const newPercent = Number(newValue) / Number(WAD)
-  console.log(
-    color(
-      `${label.padEnd(30)} ${currentPercent}% ${arrow} ${newPercent}%${
-        hasChanged ? ' (updating)' : ' (unchanged)'
-      }`,
-    ),
-  )
+  if (hasChanged) {
+    console.log(
+      color(
+        `${label.padEnd(30)} ${currentPercent}% ${arrow} ${newPercent}%${
+          hasChanged ? ' (updating)' : ' (unchanged)'
+        }`,
+      ),
+    )
+  }
 }

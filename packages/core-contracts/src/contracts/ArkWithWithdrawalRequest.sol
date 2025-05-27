@@ -1,0 +1,141 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.28;
+
+import {IArk} from "../interfaces/IArk.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+
+import {IArkWithWithdrawalRequest} from "../interfaces/IArkWithWithdrawalRequest.sol";
+import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
+import {Ark} from "./Ark.sol";
+
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+/**
+ * @title Ark
+ * @author SummerFi
+ * @notice This contract implements the core functionality for the Ark system,
+ *         handling asset boarding, disembarking, and harvesting operations.
+ * @dev This is an abstract contract that should be inherited by specific Ark implementations.
+ *      Inheriting contracts must implement the abstract functions defined here.
+ */
+abstract contract ArkWithWithdrawalRequest is IArkWithWithdrawalRequest, Ark {
+    using SafeERC20 for IERC20;
+
+    /// @notice The slippage for the swap
+    uint256 public slippage;
+    /// @notice base fee to apply to the amount
+    uint256 public constant SLIPPAGE_BASE = 10000;
+    uint256 public constant MAX_SLIPPAGE = 1000; // 10%
+    /// @notice whitelisted routers
+    mapping(address router => bool isWhitelisted) public whitelistedRouters;
+
+    /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(ArkParams memory _params, uint256 _slippage) Ark(_params) {
+        if (_slippage > MAX_SLIPPAGE) {
+            revert SlippageTooHigh();
+        }
+        slippage = _slippage;
+    }
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IArkWithWithdrawalRequest
+    function sweep()
+        external
+        onlyKeeper
+        nonReentrant
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        IERC20 asset = config.asset;
+        sweptTokens = new address[](1);
+        sweptAmounts = new uint256[](1);
+
+        sweptTokens[0] = address(asset);
+        sweptAmounts[0] = asset.balanceOf(address(this));
+
+        address bufferArk = address(
+            IFleetCommander(config.commander).bufferArk()
+        );
+        // to keep compatibility with the subgraph
+        emit Disembarked(msg.sender, address(asset), sweptAmounts[0]);
+
+        if (sweptAmounts[0] > 0 && address(this) != bufferArk) {
+            asset.forceApprove(bufferArk, sweptAmounts[0]);
+            IArk(bufferArk).board(sweptAmounts[0], bytes(""));
+        }
+
+        emit ArkSwept(sweptTokens, sweptAmounts);
+    }
+
+    /// @inheritdoc IArkWithWithdrawalRequest
+    function whitelistRouter(
+        address router,
+        bool isWhitelisted
+    ) external onlyCurator(config.commander) {
+        whitelistedRouters[router] = isWhitelisted;
+        emit RouterWhitelisted(router, isWhitelisted);
+    }
+
+    /**
+     * @notice Applies slippage to the amount
+     * @param amount The amount to apply slippage to
+     * @return amountWithSlippage The amount after applying slippage
+     */
+    function _applySlippage(
+        uint256 amount
+    ) internal view returns (uint256 amountWithSlippage) {
+        amountWithSlippage =
+            (amount * (SLIPPAGE_BASE - slippage)) /
+            SLIPPAGE_BASE;
+    }
+
+    /// @inheritdoc IArkWithWithdrawalRequest
+    function setSlippage(
+        uint256 _slippage
+    ) external onlyCurator(config.commander) {
+        if (_slippage > MAX_SLIPPAGE) {
+            revert SlippageTooHigh();
+        }
+        slippage = _slippage;
+        emit SlippageSet(_slippage);
+    }
+
+    function _swap(
+        address sellToken,
+        address buyToken,
+        address router,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        bytes memory swapCalldata
+    ) internal returns (uint256 amountOut) {
+        if (!whitelistedRouters[router]) {
+            revert RouterNotWhitelisted();
+        }
+        IERC20(sellToken).approve(router, amountIn);
+        uint256 buyTokenBalanceBefore = IERC20(buyToken).balanceOf(
+            address(this)
+        );
+        Address.functionCall(router, swapCalldata);
+        uint256 buyTokenBalanceAfter = IERC20(buyToken).balanceOf(
+            address(this)
+        );
+        amountOut = buyTokenBalanceAfter - buyTokenBalanceBefore;
+        if (amountOut < amountOutMin) {
+            revert ReceivedLessThanExpected();
+        }
+        emit Swapped(sellToken, router, amountIn, swapCalldata);
+    }
+
+    function _boardToBufferArk(uint256 amount) internal {
+        address bufferArk = IFleetCommander(config.commander).bufferArk();
+        IERC20(address(config.asset)).approve(bufferArk, amount);
+        IArk(bufferArk).board(amount, "");
+    }
+}

@@ -32,6 +32,7 @@ type TokensPurchased @entity {
   timestamp: BigInt!
 
   marketPriceInUSDNormalized: BigDecimal!
+  buyPriceInUSDNormalized: BigDecimal!
 }
 
 type Token @entity @regularPolling {

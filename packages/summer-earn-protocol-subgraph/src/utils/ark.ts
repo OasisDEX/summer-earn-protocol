@@ -12,7 +12,7 @@ export function getArkDetails(
   arkAddress: Address,
   block: ethereum.Block,
 ): ArkDetails {
-  const ark = getOrCreateArk(vault, arkAddress, block)
+  const ark = getOrCreateArk(arkAddress, block)
   const arkContract = ArkContract.bind(arkAddress)
   const totalAssets = utils.readValue<BigInt>(
     arkContract.try_totalAssets(),

@@ -1,17 +1,23 @@
 import { Address } from 'viem'
-import { ArkType, BaseConfig } from '../../types/config-types'
+import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
+import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
-import { MorphoArkUserInput, deployMorphoArk } from '../arks/deploy-morpho-ark'
-import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
+import { deployMorphoArk } from '../arks/deploy-morpho-ark'
+import { deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
+import { deployOriginETHArk } from '../arks/deploy-origineth-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deploySiloArk } from '../arks/deploy-silo-ark'
+import { deploySiloManagedVaultArk } from '../arks/deploy-silo-managed-vault-ark'
+import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
+import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import {
   validateAddress,
   validateErc4626Address,
@@ -19,91 +25,120 @@ import {
   validateString,
   validateToken,
 } from '../helpers/validation'
-import { MAX_UINT256_STRING } from './constants'
+import { ZERO_STRING } from './constants'
 
 export type ArkConfig = {
-  type: string
+  type: ArkType
   params: {
     asset: string
-    vaultName?: string
+    protocol: string
+    vaultName?: string // For ERC4626Ark
+    depositCap?: string // For FluidLiteArk
+    maxRebalanceOutflow?: string // For FluidLiteArk
+    maxRebalanceInflow?: string // For FluidLiteArk
   }
+}
+
+export type BaseArkParams = {
+  token: {
+    address: Address
+    symbol: Token
+  }
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  fleetName: string
 }
 
 export async function deployArk(
   arkConfig: ArkConfig,
   config: BaseConfig,
-  depositCap: string = MAX_UINT256_STRING,
+  fleetConfig: FleetConfig,
 ): Promise<Address> {
-  const token = validateToken(config, arkConfig.params.asset)
-  const baseArkParams = {
+  const { type, params } = arkConfig
+  const { asset, protocol, vaultName } = params
+
+  console.log('Asset [Debug]:', asset)
+  console.log('Protocol [Debug]:', protocol)
+  const token = validateToken(config, asset)
+
+  console.log('Deploying Ark [Debug]')
+  const baseArkParams: BaseArkParams = {
     token: {
-      address: config.tokens[token],
+      address: config.tokens[token] as Address,
       symbol: token,
     },
-    depositCap,
-    maxRebalanceOutflow: MAX_UINT256_STRING,
-    maxRebalanceInflow: MAX_UINT256_STRING,
+    depositCap: params.depositCap || ZERO_STRING,
+    maxRebalanceOutflow: params.maxRebalanceOutflow || ZERO_STRING,
+    maxRebalanceInflow: params.maxRebalanceInflow || ZERO_STRING,
+    fleetName: fleetConfig.fleetName,
   }
 
   let deployedArk
 
-  switch (arkConfig.type) {
-    case ArkType.AaveV3Ark:
-      deployedArk = await deployAaveV3Ark(config, baseArkParams)
+  switch (type) {
+    case ArkType.FluidLiteArk: {
+      const ark = await deployFluidLiteArk(config, baseArkParams)
+      deployedArk = ark
       break
-    case ArkType.SparkArk:
-      deployedArk = await deploySparkArk(config, baseArkParams)
+    }
+    case ArkType.AaveV3Ark: {
+      const ark = await deployAaveV3Ark(config, baseArkParams)
+      deployedArk = ark
       break
-    case ArkType.MoonwellArk:
-      deployedArk = await deployMoonwellArk(config, baseArkParams)
+    }
+    case ArkType.SparkArk: {
+      const ark = await deploySparkArk(config, baseArkParams)
+      deployedArk = ark
       break
-    case ArkType.CompoundV3Ark:
-      deployedArk = await deployCompoundV3Ark(config, baseArkParams)
+    }
+    case ArkType.CompoundV3Ark: {
+      const ark = await deployCompoundV3Ark(config, baseArkParams)
+      deployedArk = ark
       break
-
-    case ArkType.ERC4626Ark:
-      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const vaultId = validateErc4626Address(
-        config.protocolSpecific.erc4626[token][vaultName],
-        `ERC4626-${vaultName}`,
+    }
+    case ArkType.ERC4626Ark: {
+      const validatedVaultName = validateString(vaultName, 'vault name')
+      const vaultAddress = validateErc4626Address(
+        config.protocolSpecific.erc4626[token][validatedVaultName],
+        'ERC4626 vault',
       )
-      deployedArk = await deployERC4626Ark(config, {
+      const ark = await deployERC4626Ark(config, {
         ...baseArkParams,
-        vaultId,
-        vaultName: vaultName,
+        vaultId: vaultAddress,
+        vaultName: validatedVaultName,
       })
+      deployedArk = ark
       break
-
+    }
     case ArkType.MorphoArk: {
-      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const marketName = validateString(arkConfig.params.vaultName, 'vaultName')
       const marketId = validateMarketId(
-        config.protocolSpecific.morpho.markets[token][vaultName],
-        `Morpho-${vaultName}`,
+        config.protocolSpecific.morpho.markets[token][marketName],
+        'Morpho market ID',
       )
-      const morphoParams: MorphoArkUserInput = {
+      const ark = await deployMorphoArk(config, {
         ...baseArkParams,
         marketId,
-        marketName: vaultName,
-      }
-      deployedArk = await deployMorphoArk(config, morphoParams)
+        marketName,
+      })
+      deployedArk = ark
       break
     }
-
     case ArkType.MorphoVaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
-      const vaultId = validateErc4626Address(
+      const marketId = validateMarketId(
         config.protocolSpecific.morpho.vaults[token][vaultName],
-        `Morpho-${vaultName}`,
+        'Morpho vault market ID',
       )
-      const morphoVaultParams: MorphoVaultArkUserInput = {
+      const ark = await deployMorphoVaultArk(config, {
         ...baseArkParams,
-        vaultId,
+        vaultId: marketId as `0x${string}`,
         vaultName: vaultName,
-      }
-      deployedArk = await deployMorphoVaultArk(config, morphoVaultParams)
+      })
+      deployedArk = ark
       break
     }
-
     case ArkType.PendleLPArk: {
       const marketName = validateString(arkConfig.params.vaultName, 'marketName')
       const pendleMarket = validateAddress(
@@ -153,23 +188,74 @@ export async function deployArk(
       deployedArk = await deployPendlePTOracleArk(config, pendlePTOracleParams)
       break
     }
-
     case ArkType.SkyUsdsArk: {
-      deployedArk = await deploySkyUsdsArk(config, baseArkParams)
+      const ark = await deploySkyUsdsArk(config, baseArkParams)
+      deployedArk = ark
       break
     }
-
     case ArkType.SkyUsdsPsm3Ark: {
-      deployedArk = await deploySkyUsdsPsm3Ark(config, baseArkParams)
+      const ark = await deploySkyUsdsPsm3Ark(config, baseArkParams)
+      deployedArk = ark
       break
     }
-
+    case ArkType.MoonwellArk: {
+      const ark = await deployMoonwellArk(config, {
+        ...baseArkParams,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.SyrupArk: {
+      const ark = await deploySyrupArk(config, {
+        ...baseArkParams,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.SkyRewardsArk: {
+      const ark = await deploySkyRewardsArk(config, baseArkParams)
+      deployedArk = ark
+      break
+    }
+    case ArkType.SiloArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.pools[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloParams = {
+        ...baseArkParams,
+        siloId: vaultId,
+        siloName: vaultName,
+      }
+      deployedArk = await deploySiloArk(config, siloParams)
+      break
+    }
+    case ArkType.OriginETHArk: {
+      const ark = await deployOriginETHArk(config, baseArkParams)
+      deployedArk = ark
+      break
+    }
+    case ArkType.SiloManagedVaultArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.vaults[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloManagedVaultParams = {
+        ...baseArkParams,
+        vaultId: vaultId,
+        vaultName: vaultName,
+      }
+      deployedArk = await deploySiloManagedVaultArk(config, siloManagedVaultParams)
+      break
+    }
     default:
-      throw new Error(`Unknown Ark type: ${arkConfig.type}`)
+      throw new Error(`Unknown Ark type: ${type}`)
   }
 
   if (!deployedArk?.ark?.address) {
-    throw new Error(`Failed to deploy ${arkConfig.type}`)
+    throw new Error(`Failed to deploy ${type}`)
   }
 
   return deployedArk.ark.address as Address
@@ -178,6 +264,12 @@ export async function deployArk(
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
   let deployedArk
   switch (arkType) {
+    case ArkType.SyrupArk:
+      deployedArk = await deploySyrupArk(config)
+      break
+    case ArkType.SkyRewardsArk:
+      deployedArk = await deploySkyRewardsArk(config)
+      break
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config)
       break
@@ -227,6 +319,16 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SkyUsdsPsm3Ark: {
       deployedArk = await deploySkyUsdsPsm3Ark(config)
+      break
+    }
+
+    case ArkType.SiloArk: {
+      deployedArk = await deploySiloArk(config)
+      break
+    }
+
+    case ArkType.SiloManagedVaultArk: {
+      deployedArk = await deploySiloManagedVaultArk(config)
       break
     }
 

@@ -23,12 +23,40 @@ export enum ArkType {
   SkyUsdsArk = 'SkyUsdsArk',
   SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
   MoonwellArk = 'MoonwellArk',
+  SyrupArk = 'SyrupArk',
+  SkyRewardsArk = 'SkyRewardsArk',
+  SiloArk = 'SiloArk',
+  SiloManagedVaultArk = 'SiloManagedVaultArk',
+  OriginETHArk = 'OriginETHArk',
+  FluidLiteArk = 'FluidLiteArk',
 }
+
+export const arkTypes = [
+  { title: 'AaveV3Ark', value: ArkType.AaveV3Ark },
+  { title: 'SparkArk', value: ArkType.SparkArk },
+  { title: 'MorphoArk', value: ArkType.MorphoArk },
+  { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
+  { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },
+  { title: 'ERC4626Ark', value: ArkType.ERC4626Ark },
+  { title: 'SkyUsdsArk', value: ArkType.SkyUsdsArk },
+  { title: 'SkyUsdsPsm3Ark', value: ArkType.SkyUsdsPsm3Ark },
+  { title: 'PendleLPArk', value: ArkType.PendleLPArk },
+  { title: 'PendlePTArk', value: ArkType.PendlePTArk },
+  { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
+  { title: 'MoonwellArk', value: ArkType.MoonwellArk },
+  { title: 'SyrupArk', value: ArkType.SyrupArk },
+  { title: 'SkyRewardsArk', value: ArkType.SkyRewardsArk },
+  { title: 'SiloArk', value: ArkType.SiloArk },
+  { title: 'SiloManagedVaultArk', value: ArkType.SiloManagedVaultArk },
+  { title: 'OriginETHArk', value: ArkType.OriginETHArk },
+  { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
+]
 
 export interface Config {
   [SupportedNetworks.MAINNET]: BaseConfig
   [SupportedNetworks.BASE]: BaseConfig
   [SupportedNetworks.ARBITRUM]: BaseConfig
+  [SupportedNetworks.SONIC]: BaseConfig
 }
 
 export enum Token {
@@ -40,11 +68,15 @@ export enum Token {
   USDS = 'usds',
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
+  STETH = 'steth',
   EURC = 'eurc',
   SEAM = 'seam',
   REUL = 'reul',
   WELL = 'well',
   WS = 'ws',
+  GEAR = 'gear',
+  MORPHO = 'morpho',
+  SYRUP = 'syrup',
 }
 
 export interface BaseConfig {
@@ -130,6 +162,9 @@ export interface BaseConfig {
       psm3: {
         [key in Token]: Address
       }
+      staking: {
+        sky: Address
+      }
     }
     moonwell: {
       pools: {
@@ -138,6 +173,39 @@ export interface BaseConfig {
         }
       }
       comptroller: Address
+    }
+    syrup: {
+      pools: {
+        [key in Token]: {
+          syrup: Address
+          router: Address
+        }
+      }
+    }
+    silo: {
+      pools: {
+        [key in Token]: {
+          [key: string]: Address
+        }
+      }
+      vaults: {
+        [key in Token]: {
+          [key: string]: Address
+        }
+      }
+    }
+    fluid: {
+      lite: {
+        [key in Token]: {
+          wrapper: Address
+          vault: Address
+          withdrawalQueue: Address
+        }
+      }
+    }
+    originETH: {
+      originETH: Address
+      arm: Address
     }
   }
 }
@@ -148,6 +216,9 @@ export interface ArkConfig {
     asset: string
     protocol: string
     vaultName?: string // For ERC4626Ark
+    depositCap?: string // For FluidLiteArk
+    maxRebalanceOutflow?: string // For FluidLiteArk
+    maxRebalanceInflow?: string // For FluidLiteArk
   }
 }
 

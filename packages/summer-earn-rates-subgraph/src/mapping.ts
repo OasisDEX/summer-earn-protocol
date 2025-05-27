@@ -3,6 +3,7 @@ import { TimeHelper } from '../generated/schema'
 import { protocolConfig } from './config/protocolConfig'
 import { BigIntConstants } from './constants/common'
 import { handleInterestRate } from './utils/interestRateHandlers'
+import { handleTvl } from './utils/tvlHandlers'
 
 export function handleBlock(block: ethereum.Block): void {
   let timeHelper = TimeHelper.load(Bytes.fromI32(0))
@@ -23,6 +24,7 @@ export function handleBlock(block: ethereum.Block): void {
         const product = protocol.products[j]
         if (block.number.ge(product.startBlock)) {
           handleInterestRate(block, protocol.name, product, tenMinuteEpochStart)
+          handleTvl(block, protocol.name, product, tenMinuteEpochStart)
         }
       }
     }

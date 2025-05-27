@@ -25,7 +25,7 @@ import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWrite
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract ArkTestBase is TestHelpers {
@@ -39,6 +39,13 @@ contract ArkTestBase is TestHelpers {
     address public tipJar = address(3);
     address public treasury = address(5);
     address public keeper = address(6);
+    address public curator = address(7);
+    address constant ODOS_ROUTER_MAINNET =
+        0xCf5540fFFCdC3d510B18bFcA6d2b9987b0772559;
+    address constant KYBER_ROUTER_MAINNET =
+        0x6131B5fae19EA4f9D964eAc0408E4408b66337b5;
+    address constant ODOS_ROUTER_BASE =
+        0x19cEeAd7105607Cd444F5ad10dd51356436095a1;
     ERC20Mock public mockToken;
 
     ProtocolAccessManager public accessManager;
@@ -80,6 +87,33 @@ contract ArkTestBase is TestHelpers {
                 })
             );
         }
+    }
+
+    function setupFleetCommanderWithBufferArk(
+        address underlyingToken,
+        string memory fleetName
+    )
+        internal
+        returns (address fleetCommanderAddress, address bufferArkAddress)
+    {
+        FleetCommanderParams
+            memory fleetCommanderParams = FleetCommanderParams({
+                accessManager: address(accessManager),
+                configurationManager: address(configurationManager),
+                initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
+                initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
+                asset: underlyingToken,
+                name: fleetName,
+                details: "TestArk details",
+                symbol: "TEST-SUM",
+                initialTipRate: toPercentage(0),
+                depositCap: type(uint256).max
+            });
+        FleetCommander fleetCommander = new FleetCommander(
+            fleetCommanderParams
+        );
+        address _bufferArkAddress = fleetCommander.bufferArk();
+        return (address(fleetCommander), _bufferArkAddress);
     }
 
     function setupFleetCommanderWithBufferArk(

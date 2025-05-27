@@ -13,23 +13,27 @@
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
-    "decayType": "linear"
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.2
   },
   {
     "rewardTokenSymbol": "reul",
     "rewardTokenDecimals": 18,
     "prices": {
-      "weth": 0.002515,
-      "usdt": 5.05,
-      "usdc": 5.05,
-      "dai": 5.05,
-      "usde": 5.05,
-      "usdce": 5.05,
-      "eurc": 4.5
+      "weth": 0.00196,
+      "usdt": 6.1,
+      "usdc": 6.1,
+      "dai": 6.1,
+      "usde": 6.1,
+      "usdce": 6.1,
+      "eurc": 5.5
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
-    "decayType": "linear"
+    "decayType": "linear",
+    "maxMultiplier": 1,
+    "minMultiplier": 0.99
   },
   {
     "rewardTokenSymbol": "seam",
@@ -45,7 +49,9 @@
     },
     "duration": "4d",
     "kickerRewardPercentage": 0,
-    "decayType": "linear"
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.2
   },
   {
     "rewardTokenSymbol": "ws",
@@ -59,8 +65,64 @@
       "usdce": 0.5,
       "eurc": 0.45
     },
-    "duration": "4d",
+    "duration": "1d",
     "kickerRewardPercentage": 0,
-    "decayType": "linear"
+    "decayType": "linear",
+    "maxMultiplier": 3,
+    "minMultiplier": 0.2
+  },
+  {
+    "rewardTokenSymbol": "gear",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.00000185,
+      "usdt": 0.003267,
+      "usdc": 0.003267,
+      "dai": 0.003267,
+      "usde": 0.003267,
+      "usdce": 0.003267,
+      "eurc": 0.003267
+    },
+    "duration": "3d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.2
+  },
+  {
+    "rewardTokenSymbol": "syrup",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.000081,
+      "usdt": 0.15,
+      "usdc": 0.15,
+      "dai": 0.15,
+      "usde": 0.15,
+      "usdce": 0.15,
+      "eurc": 0.15
+    },
+    "duration": "3d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.2
+  },
+  {
+    "rewardTokenSymbol": "well",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.000013,
+      "usdt": 0.03,
+      "usdc": 0.03,
+      "dai": 0.03,
+      "usde": 0.03,
+      "usdce": 0.03,
+      "eurc": 0.03
+    },
+    "duration": "2d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
   }
 ]

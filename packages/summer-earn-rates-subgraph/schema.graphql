@@ -13,6 +13,19 @@ type InterestRate @entity(immutable: true) {
   weeklyRateId: WeeklyInterestRate!
 }
 
+type TotalValueLocked @entity {
+  id: String!
+  protocol: String!
+  token: Token!
+  productId: String!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  product: Product!
+  totalValueLockedInAssets: BigInt!
+  totalValueLockedInAssetsNormalized: BigDecimal!
+  totalValueLockedInUSD: BigDecimal!
+}
+
 type RewardsInterestRate @entity {
   id: String!
   type: String!
@@ -37,6 +50,7 @@ type VaultState @entity {
   id: Bytes!
   lastUpdateTimestamp: BigInt!
   lastSharePrice: BigDecimal!
+  lastRate: BigDecimal
 }
 
 type Token @entity(immutable: true) {
@@ -98,6 +112,7 @@ type Product @entity {
   dailyInterestRates: [DailyInterestRate!]! @derivedFrom(field: "product")
   hourlyInterestRates: [HourlyInterestRate!]! @derivedFrom(field: "product")
   weeklyInterestRates: [WeeklyInterestRate!]! @derivedFrom(field: "product")
+  totalValueLocked: [TotalValueLocked!]! @derivedFrom(field: "product")
 }
 
 type TokenPrice @entity {

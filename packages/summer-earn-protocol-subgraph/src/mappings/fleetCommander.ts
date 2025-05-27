@@ -24,12 +24,14 @@ import {
   TipRateUpdated,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
 import { ADDRESS_ZERO, BigIntConstants, VaultFeeType } from '../common/constants'
 import {
   getOrCreateAccount,
   getOrCreateArk,
   getOrCreatePosition,
+  getOrCreatePositionRewards,
   getOrCreateRewardsManager,
   getOrCreateToken,
   getOrCreateVault,
@@ -60,7 +62,16 @@ export function handleRebalance(event: Rebalanced): void {
 
 export function handleArkAdded(event: ArkAdded): void {
   const vault = getOrCreateVault(event.address, event.block)
-  getOrCreateArk(vault, event.params.ark, event.block)
+  const ark = getOrCreateArk(event.params.ark, event.block)
+  ark.vault = vault.id
+  ark.save()
+
+  const arksArray = vault.arksArray
+  if (!arksArray.includes(ark.id)) {
+    arksArray.push(ark.id)
+    vault.arksArray = arksArray
+    vault.save()
+  }
 }
 
 let _arkAddress: string
@@ -71,7 +82,7 @@ export function handleArkRemoved(event: ArkRemoved): void {
   vault.arksArray = previousArrayOfArks.filter((ark) => ark !== _arkAddress)
   vault.save()
   // remove relation to vault
-  const ark = getOrCreateArk(vault, Address.fromString(_arkAddress), event.block)
+  const ark = getOrCreateArk(Address.fromString(_arkAddress), event.block)
   ark.vault = ADDRESS_ZERO.toHexString()
   ark.save()
 }
@@ -282,17 +293,38 @@ export function handleRewardPaid(event: RewardPaid): void {
 
   if (vault.rewardTokens.includes(event.params.rewardToken.toHexString())) {
     const account = getOrCreateAccount(event.params.user.toHexString())
-    account.claimedSummerToken = account.claimedSummerToken.plus(event.params.reward)
-    account.claimedSummerTokenNormalized = account.claimedSummerTokenNormalized.plus(
-      formatAmount(event.params.reward, BigInt.fromI32(18)),
-    )
-    account.save()
-
     const position = getOrCreatePosition(utils.formatPositionId(account.id, vault.id), event.block)
-    position.claimedSummerToken = position.claimedSummerToken.plus(event.params.reward)
-    position.claimedSummerTokenNormalized = position.claimedSummerTokenNormalized.plus(
-      formatAmount(event.params.reward, BigInt.fromI32(18)),
+
+    const positionRewards = getOrCreatePositionRewards(
+      utils.formatPositionId(account.id, vault.id),
+      getOrCreateToken(event.params.rewardToken),
+      event.block,
     )
-    position.save()
+    positionRewards.claimed = positionRewards.claimed.plus(event.params.reward)
+    positionRewards.claimedNormalized = positionRewards.claimedNormalized.plus(
+      formatAmount(
+        event.params.reward,
+        BigInt.fromI32(getOrCreateToken(Address.fromString(positionRewards.rewardToken)).decimals),
+      ),
+    )
+    positionRewards.save()
+
+    // will be deprecated in the future
+    if (event.params.rewardToken.toHexString() == addresses.SUMMER_TOKEN.toHexString()) {
+      position.claimedSummerToken = position.claimedSummerToken.plus(event.params.reward)
+      position.claimedSummerTokenNormalized = position.claimedSummerTokenNormalized.plus(
+        formatAmount(event.params.reward, BigInt.fromI32(18)),
+      )
+
+      account.claimedSummerToken = account.claimedSummerToken.plus(event.params.reward)
+      account.claimedSummerTokenNormalized = account.claimedSummerTokenNormalized.plus(
+        formatAmount(event.params.reward, BigInt.fromI32(18)),
+      )
+      account.save()
+
+      position.claimableSummerToken = constants.BigIntConstants.ZERO
+      position.claimableSummerTokenNormalized = constants.BigDecimalConstants.ZERO
+      position.save()
+    }
   }
 }

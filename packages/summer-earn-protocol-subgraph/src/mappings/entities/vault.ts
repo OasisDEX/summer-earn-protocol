@@ -39,7 +39,7 @@ export function updateVault(
       if (
         deltaTime.gt(BigDecimalConstants.ZERO) &&
         !pricePerShareDiff.equals(BigDecimalConstants.ZERO) &&
-        pricePerShareDiff.lt(BigDecimalConstants.TEN_BPS) &&
+        pricePerShareDiff.lt(BigDecimalConstants.THIRTY_BPS) &&
         vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare)
       ) {
         const baseApr = getAprForTimePeriod(
@@ -63,6 +63,7 @@ export function updateVault(
   vault.rewardTokenEmissionsAmountsPerOutputToken =
     vaultDetails.rewardTokenEmissionsAmountsPerOutputToken
   vault.save()
+
   // Update buffer ark - as it's integral part of the vault
   updateBufferArk(vault, vaultDetails, block)
   updateProtocolTotalValueLockedUSD()
@@ -74,7 +75,7 @@ export function updateBufferArk(
   vaultDetails: VaultDetails,
   block: ethereum.Block,
 ): void {
-  const bufferArk = getOrCreateArk(vault, Address.fromString(vault.bufferArk!), block)
+  const bufferArk = getOrCreateArk(Address.fromString(vault.bufferArk!), block)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   bufferArk.inputTokenBalance = vaultDetails.bufferBalance
   const normalizedBalance = formatAmount(

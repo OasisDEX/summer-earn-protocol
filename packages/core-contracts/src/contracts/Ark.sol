@@ -7,6 +7,7 @@ import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IDistributor} from "../interfaces/merkl/IDistributor.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
 
@@ -20,6 +21,8 @@ import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next
  */
 abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
+    IDistributor constant MERKL_DISTRIBUTOR =
+        IDistributor(0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -118,6 +121,10 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
             }
         }
         emit ArkSwept(sweptTokens, sweptAmounts);
+    }
+
+    function whitelistMerklOperator(address operator) external onlyKeeper {
+        MERKL_DISTRIBUTOR.toggleOperator(address(this), operator);
     }
 
     /// @inheritdoc IArk

@@ -438,10 +438,10 @@ type Vault @entity @regularPolling {
   inputTokenPriceUSD: BigDecimal
 
   " Total withdrawable assets "
-  withdrawableTotalAssets: BigInt
+  withdrawableTotalAssets: BigInt!
 
   " Total withdrawable assets in USD "
-  withdrawableTotalAssetsUSD: BigDecimal
+  withdrawableTotalAssetsUSD: BigDecimal!
 
   " Amount of input token per full share of output token. Usually corresponds to the value of `pricePerShare` or `pricePerFullShare` in the vault contract. "
   pricePerShare: BigDecimal
@@ -554,8 +554,12 @@ type VaultDailySnapshot @entity @dailySnapshot {
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
 
+
   " Amount of input token in the pool normalized "
   inputTokenBalanceNormalized: BigDecimal!
+
+  " Amount of input token in the pool withdrawable normalized "
+  inputTokenBalanceWithdrawableNormalized: BigDecimal!
 
   " Total supply of output token "
   outputTokenSupply: BigInt!
@@ -625,6 +629,7 @@ type VaultHourlySnapshot @entity @hourlySnapshot {
 
       " Amount of input token in the position normalized "
   inputTokenBalanceNormalized: BigDecimal!
+  inputTokenBalanceWithdrawableNormalized: BigDecimal!
 
 
   " Total supply of output token "
@@ -695,6 +700,9 @@ type VaultWeeklySnapshot @entity @weeklySnapshot {
 
   " Amount of input token in the pool normalized "
   inputTokenBalanceNormalized: BigDecimal!
+
+  " Amount of input token in the pool withdrawable normalized "
+  inputTokenBalanceWithdrawableNormalized: BigDecimal!
 
   " Total supply of output token "
   outputTokenSupply: BigInt!
@@ -953,12 +961,19 @@ type Unstaked implements Event @entity @transaction {
 }
 # An account is a unique Ethereum address
 # Helps to accumulate total unique users
+
 type Account @entity @regularPolling {
   " Address of the account "
   id: ID!
   positions: [Position!]! @derivedFrom(field: "account")
+  stakedSummerToken: BigInt!
+  stakedSummerTokenNormalized: BigDecimal!
+    rewards: [AccountRewards!]! @derivedFrom(field: "account")
+ lastUpdateBlock: BigInt!
+ " deprecated "
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
+
 }
 
 # Helper entity for calculating daily/hourly active users
@@ -1186,6 +1201,10 @@ type Position @entity {
 
   claimedSummerToken: BigInt!
   claimedSummerTokenNormalized: BigDecimal!
+  claimableSummerToken: BigInt!
+  claimableSummerTokenNormalized: BigDecimal! 
+
+  rewards: [PositionRewards!]! @derivedFrom(field: "position")
 }
 
 type PositionHourlySnapshot @entity @hourlySnapshot {
@@ -1559,6 +1578,10 @@ type RewardsManager @entity {
   id: ID!
   vault: Vault!
 }
+type GovernanceRewardsManager @entity {
+  id: ID!
+  address: String!
+}
 
 type DailyInterestRate @entity {
   id: ID!
@@ -1585,4 +1608,45 @@ type WeeklyInterestRate @entity {
   updateCount: BigInt!
   averageRate: BigDecimal!
   vault: Vault!
+}
+
+type PositionRewards @entity {
+  id: ID!
+  position: Position!
+  claimable: BigInt!
+  claimableNormalized: BigDecimal!
+  claimed: BigInt!
+  claimedNormalized: BigDecimal!
+  rewardToken: Token!
+}
+
+type AccountRewards @entity {
+  id: ID!
+  account: Account!
+  claimable: BigInt!
+  claimableNormalized: BigDecimal!
+  claimed: BigInt!
+  claimedNormalized: BigDecimal!
+  rewardToken: Token!
+}
+
+type GovernanceStaking @entity {
+  id: ID!
+  " Per-block reward token emission as of the current block normalized to a day, in token's native amount. This should be ideally calculated as the theoretical rate instead of the realized amount. "
+  rewardTokenEmissionsAmount: [BigInt!]!
+
+  " Per-block reward token emission as of the current block normalized to a day, in token's native amount. This should be ideally calculated as the theoretical rate instead of the realized amount. "
+  rewardTokenEmissionsAmountsPerOutputToken: [BigInt!]!
+
+  " Duration of the reward token emission in seconds "
+  rewardTokenEmissionsFinish: [BigInt!]!
+
+  " Per-block reward token emission as of the current block normalized to a day, in USD value. This should be ideally calculated as the theoretical rate instead of the realized amount. "
+  rewardTokenEmissionsUSD: [BigDecimal!]
+
+  rewardTokens: [Token!]!
+
+  summerStaked: BigInt!
+  summerStakedNormalized: BigDecimal!
+  accounts: [Account!]!
 }
