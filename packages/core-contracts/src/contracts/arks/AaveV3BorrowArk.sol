@@ -42,7 +42,8 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         address _borrowedAsset,
         address _fleet,
         ArkParams memory _params,
-        uint256 _maxLtv
+        uint256 _maxLtv,
+        uint256 _slippage
     )
         CarryTradeArk(
             CarryTradeParams({
@@ -51,6 +52,7 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
                 _borrowedAsset: _borrowedAsset,
                 _yieldVault: _fleet,
                 _maxLtv: _maxLtv,
+                _slippage: _slippage,
                 baseParams: _params
             })
         )
@@ -187,13 +189,9 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         return collateralValueInBorrowedAsset;
     }
 
-    function _getCollateralValueInBorrowedAsset()
-        internal
-        view
-        override
-        returns (uint256)
-    {
-        uint256 collateralAmount = _getTotalCollateral(); // Amount of aTokens (same decimals as underlying collateral)
+    function _getCollateralValueInBorrowedAsset(
+        uint256 collateralAmount
+    ) internal view override returns (uint256) {
         if (collateralAmount == 0) {
             return 0;
         }

@@ -8,7 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {FixedPointMathLib} from "@summerfi/dependencies/solmate/src/utils/FixedPointMathLib.sol";
 import {console} from "forge-std/console.sol";
-
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 interface IERC20WithDecimals is IERC20 {
     function decimals() external view returns (uint8);
 }
@@ -32,8 +32,12 @@ abstract contract CarryTradeArk is Ark {
 
     // Add new state variables for LTV management
     uint256 public immutable maxLtv; // Maximum LTV in basis points (e.g., 7500 = 75%)
+    uint256 public slippage;
     uint256 public constant BASIS_POINTS = 10000;
     uint256 public constant SAFETY_MARGIN = 100; // 1% safety margin below maxLtv
+    uint256 public constant MAX_SLIPPAGE = 1000; // 10%
+    /// @notice whitelisted routers
+    mapping(address router => bool isWhitelisted) public whitelistedRouters;
 
     struct DisembarkData {
         bool closePosition;
@@ -48,6 +52,7 @@ abstract contract CarryTradeArk is Ark {
         address _borrowedAsset;
         address _yieldVault;
         uint256 _maxLtv; // Add maxLtv parameter
+        uint256 _slippage;
         ArkParams baseParams;
     }
 
@@ -55,6 +60,19 @@ abstract contract CarryTradeArk is Ark {
 
     constructor(CarryTradeParams memory params) Ark(params.baseParams) {
         lendingPool = params._lendingPool;
+        if (params._collateralAsset == params._borrowedAsset) {
+            revert CollateralAndBorrowedAssetCannotBeTheSame();
+        }
+        if (
+            params._collateralAsset == address(0) ||
+            params._borrowedAsset == address(0)
+        ) {
+            revert InvalidAsset();
+        }
+        if (params._collateralAsset != params.baseParams.asset) {
+            revert CollateralAssetDoesNotMatchBaseAsset();
+        }
+
         collateralAsset = IERC20WithDecimals(params._collateralAsset);
         borrowedAsset = IERC20WithDecimals(params._borrowedAsset);
         yieldVault = params._yieldVault;
@@ -62,6 +80,7 @@ abstract contract CarryTradeArk is Ark {
             revert InvalidMaxLtv(params._maxLtv);
         }
         maxLtv = params._maxLtv;
+        slippage = params._slippage;
     }
 
     /**
@@ -82,16 +101,40 @@ abstract contract CarryTradeArk is Ark {
     function currentLtv() public view returns (uint256) {
         return _getCurrentLtv();
     }
+
+    function whitelistRouter(
+        address router,
+        bool isWhitelisted
+    ) external onlyCurator(config.commander) {
+        whitelistedRouters[router] = isWhitelisted;
+        emit RouterWhitelisted(router, isWhitelisted);
+    }
+
+    function setSlippage(
+        uint256 _slippage
+    ) external onlyCurator(config.commander) {
+        if (_slippage > MAX_SLIPPAGE) {
+            revert SlippageTooHigh();
+        }
+        slippage = _slippage;
+        emit SlippageSet(_slippage);
+    }
+
     /**
      * @notice Rebalances the position to maintain safe LTV
      * @dev Withdraws from yield vault and repays debt if necessary
      */
-
     function _rebalancePosition() internal {
         uint256 currentLtv = _getCurrentLtv();
+        // uint256 assetBalance = collateralAsset.balanceOf(address(this));
+        // if (assetBalance > 0) {
+        //     _supplyCollateral(assetBalance);
+        // }
         if (currentLtv <= maxLtv - SAFETY_MARGIN) return; // Position is safe enough
         uint256 totalDebt = _getTotalDebt();
-        uint256 collateralValue = _getCollateralValueInBorrowedAsset();
+        uint256 collateralValue = _getCollateralValueInBorrowedAsset(
+            _getTotalCollateral()
+        );
 
         // Calculate how much debt to repay to reach target LTV using FixedPointMathLib
         uint256 targetLtv = maxLtv - SAFETY_MARGIN;
@@ -165,6 +208,12 @@ abstract contract CarryTradeArk is Ark {
 
             // Step 2: Close position
             _closePosition();
+
+            // Step 3: Sweep borrowed dust
+            _sweepBorrowedDust(disembarkData.router, disembarkData.swapData);
+
+            // Step 4: Sweep collateral dust
+            _sweepCollateralDust(amount);
         }
     }
 
@@ -178,6 +227,34 @@ abstract contract CarryTradeArk is Ark {
     function _getCurrentLtv() internal view virtual returns (uint256);
     function _closePosition() internal virtual;
 
+    function _sweepBorrowedDust(
+        address router,
+        bytes memory swapData
+    ) internal {
+        uint256 borrowedAssetBalance = borrowedAsset.balanceOf(address(this));
+        uint256 borrowedAssetInCollateral = _getCollateralValueInBorrowedAsset(
+            _getTotalCollateral()
+        );
+        _swap(
+            address(borrowedAsset),
+            address(collateralAsset),
+            router,
+            borrowedAssetBalance,
+            _applySlippage(borrowedAssetInCollateral),
+            swapData
+        );
+    }
+    function _sweepCollateralDust(uint256 disembarkAmount) internal {
+        uint256 assetBalance = collateralAsset.balanceOf(address(this));
+        if (assetBalance > disembarkAmount) {
+            address bufferArk = IFleetCommander(config.commander).bufferArk();
+            collateralAsset.forceApprove(
+                bufferArk,
+                assetBalance - disembarkAmount
+            );
+            IArk(bufferArk).board(assetBalance - disembarkAmount, "");
+        }
+    }
     /**
      * @notice Basic validation for carry trade parameters
      */
@@ -194,7 +271,7 @@ abstract contract CarryTradeArk is Ark {
         if (disembarkData.repayAmount == 0) {
             revert("Invalid repay amount");
         }
-        if (disembarkData.closePosition && disembarkData.swapData.length > 0) {
+        if (disembarkData.closePosition && disembarkData.swapData.length == 0) {
             revert("Invalid swap data");
         }
         if (disembarkData.closePosition && disembarkData.router == address(0)) {
@@ -228,13 +305,12 @@ abstract contract CarryTradeArk is Ark {
 
     /**
      * @notice Calculates the value of collateral in terms of borrowed asset
+     * @param collateralAmount The amount of collateral to calculate the value of
      * @return Value of collateral in borrowed asset terms
      */
-    function _getCollateralValueInBorrowedAsset()
-        internal
-        view
-        virtual
-        returns (uint256);
+    function _getCollateralValueInBorrowedAsset(
+        uint256 collateralAmount
+    ) internal view virtual returns (uint256);
 
     function _depositToYieldVault(uint256 amount) internal {
         borrowedAsset.forceApprove(yieldVault, amount);
@@ -253,6 +329,60 @@ abstract contract CarryTradeArk is Ark {
         );
     }
 
+    function _swap(
+        address sellToken,
+        address buyToken,
+        address router,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        bytes memory swapCalldata
+    ) internal returns (uint256 amountOut) {
+        if (!whitelistedRouters[router]) {
+            revert RouterNotWhitelisted();
+        }
+        IERC20(sellToken).approve(router, amountIn);
+        uint256 buyTokenBalanceBefore = IERC20(buyToken).balanceOf(
+            address(this)
+        );
+        Address.functionCall(router, swapCalldata);
+        uint256 buyTokenBalanceAfter = IERC20(buyToken).balanceOf(
+            address(this)
+        );
+        amountOut = buyTokenBalanceAfter - buyTokenBalanceBefore;
+        if (amountOut < amountOutMin) {
+            revert ReceivedLessThanExpected();
+        }
+        emit Swapped(sellToken, router, amountIn, swapCalldata);
+    }
+
+    /**
+     * @notice Applies slippage to the amount
+     * @param amount The amount to apply slippage to
+     * @return amountWithSlippage The amount after applying slippage
+     */
+    function _applySlippage(
+        uint256 amount
+    ) internal view returns (uint256 amountWithSlippage) {
+        amountWithSlippage =
+            (amount * (BASIS_POINTS - slippage)) /
+            BASIS_POINTS;
+    }
+
     // Add event for position rebalancing
     event PositionRebalanced(uint256 repayAmount, uint256 newLtv);
+    event Swapped(
+        address sellToken,
+        address router,
+        uint256 amountIn,
+        bytes swapCalldata
+    );
+
+    error SlippageTooHigh();
+    error RouterNotWhitelisted();
+    error ReceivedLessThanExpected();
+    error CollateralAndBorrowedAssetCannotBeTheSame();
+    error InvalidAsset();
+    error CollateralAssetDoesNotMatchBaseAsset();
+    event SlippageSet(uint256 slippage);
+    event RouterWhitelisted(address router, bool isWhitelisted);
 }
