@@ -86,14 +86,33 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
     }
 
     function _totalAssets() internal view override returns (uint256) {
-        // total assets is the worth of collateral in the borrowed asset
-        // minus the debt in the borrowed asset
-        // plus the amount deposited to the fleet
-        uint256 collateralValue = _getCollateralValueInBorrowedAsset();
+        // Get collateral amount
+        uint256 collateralAmount = _getTotalCollateral();
+
+        // Get net value from yield position (yield vault balance - debt) in borrowed asset terms
+        uint256 yieldVaultBalance = IERC4626(yieldVault).convertToAssets(
+            IERC4626(yieldVault).balanceOf(address(this))
+        );
         uint256 debt = _getTotalDebt();
-        uint256 shares = IERC4626(yieldVault).balanceOf(address(this));
-        uint256 yieldVaultValue = IERC4626(yieldVault).convertToAssets(shares);
-        return collateralValue + yieldVaultValue - debt;
+
+        if (yieldVaultBalance >= debt) {
+            // Profitable position - convert profit to collateral terms
+            uint256 profitInBorrowedAsset = yieldVaultBalance - debt;
+            uint256 profitInCollateral = _convertBorrowedToCollateral(
+                profitInBorrowedAsset
+            );
+            return collateralAmount + profitInCollateral;
+        } else {
+            // Loss position - reduce collateral value
+            uint256 lossInBorrowedAsset = debt - yieldVaultBalance;
+            uint256 lossInCollateral = _convertBorrowedToCollateral(
+                lossInBorrowedAsset
+            );
+            return
+                collateralAmount > lossInCollateral
+                    ? collateralAmount - lossInCollateral
+                    : 0;
+        }
     }
 
     function _supplyCollateral(uint256 amount) internal override {
@@ -120,6 +139,52 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         uint256 ltv = totalDebtBase.mulDivUp(BASIS_POINTS, totalCollateralBase);
 
         return ltv;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Converts borrowed asset amount to collateral amount
+     * @param borrowedAssetAmount Amount of borrowed asset to convert
+     * @return collateralAmount Amount of collateral in collateral asset terms
+     */
+    function _convertBorrowedToCollateral(
+        uint256 borrowedAssetAmount
+    ) internal view returns (uint256) {
+        // Get asset prices in the oracle's base currency (e.g., USD with 8 decimals)
+        uint256 collateralPrice = priceOracle.getAssetPrice(
+            address(collateralAsset)
+        );
+        uint256 borrowedPrice = priceOracle.getAssetPrice(
+            address(borrowedAsset)
+        );
+
+        // Calculate required decimal scaling factors
+        uint256 collateralUnit = 10 ** collateralAsset.decimals();
+        uint256 borrowedUnit = 10 ** borrowedAsset.decimals();
+
+        // Perform calculation using FixedPointMathLib for precision and safety.
+        // Formula: (borrowedAssetAmount * borrowedPrice / collateralPrice) * (collateralUnit / borrowedUnit)
+        // We use chained mulDiv to prevent intermediate overflows/underflows.
+
+        // Step 1: Calculate value ratio adjusted for collateral amount
+        // intermediate = (borrowedAssetAmount * borrowedPrice) / collateralPrice
+        uint256 intermediateValue = borrowedAssetAmount.mulDivDown(
+            borrowedPrice,
+            collateralPrice
+        );
+
+        // Step 2: Adjust decimals from collateralDecimals to borrowedDecimals
+        // finalValue = intermediateValue * (10**collateralDecimals) / (10**borrowedDecimals)
+        // Use standard rounding mulDiv.
+        uint256 collateralValueInBorrowedAsset = intermediateValue.mulDivDown(
+            collateralUnit,
+            borrowedUnit
+        );
+
+        return collateralValueInBorrowedAsset;
     }
 
     function _getCollateralValueInBorrowedAsset()
@@ -194,13 +259,9 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         );
     }
 
-    function _depositToYieldVault(uint256 amount) internal override {
-        borrowedAsset.forceApprove(yieldVault, amount);
-        IERC4626(yieldVault).deposit(amount, address(this));
-    }
-
-    function _withdrawFromYieldVault(uint256 amount) internal override {
-        IERC4626(yieldVault).withdraw(amount, address(this), address(this));
+    function _closePosition() internal override {
+        _repayBorrow(_getTotalDebt());
+        _withdrawCollateral(_getTotalCollateral());
     }
 
     function _repayBorrow(uint256 amount) internal override {

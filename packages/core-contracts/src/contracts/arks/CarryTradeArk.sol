@@ -35,6 +35,13 @@ abstract contract CarryTradeArk is Ark {
     uint256 public constant BASIS_POINTS = 10000;
     uint256 public constant SAFETY_MARGIN = 100; // 1% safety margin below maxLtv
 
+    struct DisembarkData {
+        bool closePosition;
+        uint256 repayAmount;
+        bytes swapData;
+        address router;
+    }
+
     struct CarryTradeParams {
         address _lendingPool;
         address _collateralAsset;
@@ -80,7 +87,7 @@ abstract contract CarryTradeArk is Ark {
      * @dev Withdraws from yield vault and repays debt if necessary
      */
 
-    function rebalancePosition() external {
+    function _rebalancePosition() internal {
         uint256 currentLtv = _getCurrentLtv();
         if (currentLtv <= maxLtv - SAFETY_MARGIN) return; // Position is safe enough
         uint256 totalDebt = _getTotalDebt();
@@ -98,6 +105,10 @@ abstract contract CarryTradeArk is Ark {
         _repayBorrow(repayAmount);
 
         emit PositionRebalanced(repayAmount, _getCurrentLtv());
+    }
+
+    function rebalancePosition() external onlyKeeper {
+        _rebalancePosition();
     }
 
     /**
@@ -119,6 +130,9 @@ abstract contract CarryTradeArk is Ark {
 
         // Step 3: Deposit borrowed assets into yield-generating vault
         _depositToYieldVault(borrowAmount);
+
+        // Step 4: Rebalance position
+        _rebalancePosition();
     }
 
     /**
@@ -130,28 +144,39 @@ abstract contract CarryTradeArk is Ark {
         uint256 amount,
         bytes calldata data
     ) internal virtual override {
-        uint256 repayAmount = abi.decode(data, (uint256));
+        DisembarkData memory disembarkData = abi.decode(data, (DisembarkData));
+        uint256 repayAmount = disembarkData.repayAmount;
 
-        // Step 1: Withdraw from yield vault
-        _withdrawFromYieldVault(repayAmount);
+        if (!disembarkData.closePosition) {
+            // Step 1: Withdraw from yield vault
+            _withdrawFromYieldVault(repayAmount);
 
-        // Step 2: Repay borrowed assets
-        _repayBorrow(repayAmount);
+            // Step 2: Repay borrowed assets
+            _repayBorrow(repayAmount);
 
-        // Step 3: Withdraw collateral
-        _withdrawCollateral(amount);
+            // Step 3: Withdraw collateral
+            _withdrawCollateral(amount);
+
+            // Step 4: Rebalance position
+            _rebalancePosition();
+        } else {
+            // Step 1: Withdraw all from yield vault
+            _withdrawAllFromYieldVault();
+
+            // Step 2: Close position
+            _closePosition();
+        }
     }
 
     // Abstract internal functions that must be implemented by specific protocol integrations
     function _supplyCollateral(uint256 amount) internal virtual;
     function _borrowAsset(uint256 amount) internal virtual;
-    function _depositToYieldVault(uint256 amount) internal virtual;
-    function _withdrawFromYieldVault(uint256 amount) internal virtual;
     function _repayBorrow(uint256 amount) internal virtual;
     function _withdrawCollateral(uint256 amount) internal virtual;
     function _getTotalDebt() internal view virtual returns (uint256);
     function _getTotalCollateral() internal view virtual returns (uint256);
     function _getCurrentLtv() internal view virtual returns (uint256);
+    function _closePosition() internal virtual;
 
     /**
      * @notice Basic validation for carry trade parameters
@@ -165,8 +190,15 @@ abstract contract CarryTradeArk is Ark {
     function _validateDisembarkData(
         bytes calldata data
     ) internal pure override {
-        if (data.length != 32) {
-            revert("Invalid repay amount encoding");
+        DisembarkData memory disembarkData = abi.decode(data, (DisembarkData));
+        if (disembarkData.repayAmount == 0) {
+            revert("Invalid repay amount");
+        }
+        if (disembarkData.closePosition && disembarkData.swapData.length > 0) {
+            revert("Invalid swap data");
+        }
+        if (disembarkData.closePosition && disembarkData.router == address(0)) {
+            revert("Invalid router");
         }
     }
 
@@ -177,7 +209,7 @@ abstract contract CarryTradeArk is Ark {
         override
         returns (uint256)
     {
-        return totalAssets();
+        return 0;
     }
 
     function _totalAssets() internal view virtual returns (uint256);
@@ -203,6 +235,23 @@ abstract contract CarryTradeArk is Ark {
         view
         virtual
         returns (uint256);
+
+    function _depositToYieldVault(uint256 amount) internal {
+        borrowedAsset.forceApprove(yieldVault, amount);
+        IERC4626(yieldVault).deposit(amount, address(this));
+    }
+
+    function _withdrawFromYieldVault(uint256 amount) internal {
+        IERC4626(yieldVault).withdraw(amount, address(this), address(this));
+    }
+
+    function _withdrawAllFromYieldVault() internal {
+        IERC4626(yieldVault).redeem(
+            IERC4626(yieldVault).balanceOf(address(this)),
+            address(this),
+            address(this)
+        );
+    }
 
     // Add event for position rebalancing
     event PositionRebalanced(uint256 repayAmount, uint256 newLtv);

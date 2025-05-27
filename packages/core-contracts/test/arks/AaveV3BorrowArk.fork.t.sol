@@ -89,6 +89,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         // Setup permissions
         vm.startPrank(governor);
         accessManager.grantCommanderRole(address(ark), address(commander));
+        accessManager.grantKeeperRole(address(ark), address(keeper));
         vm.stopPrank();
 
         vm.prank(commander);
@@ -112,6 +113,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         vm.makePersistent(AAVE_V3_POOL);
         vm.makePersistent(REWARDS_CONTROLLER);
         vm.makePersistent(POOL_ADDRESSES_PROVIDER);
+        vm.makePersistent(address(accessManager));
         vm.makePersistent(address(variableDebtToken));
         vm.makePersistent(address(aToken));
         vm.makePersistent(address(priceOracle));
@@ -156,9 +158,22 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         ark.board(collateralAmount, abi.encode(borrowAmount));
 
         uint256 repayAmount = 1000 * 1e6;
+        bool closePosition = false;
+        bytes memory swapData = "";
+        address router = address(0);
 
         // Act
-        ark.disembark(collateralAmount, abi.encode(repayAmount));
+        ark.disembark(
+            collateralAmount,
+            abi.encode(
+                CarryTradeArk.DisembarkData({
+                    closePosition: closePosition,
+                    repayAmount: repayAmount,
+                    swapData: swapData,
+                    router: router
+                })
+            )
+        );
         vm.stopPrank();
 
         // Assert
@@ -181,6 +196,8 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
         );
+        vm.stopPrank();
+        vm.prank(keeper);
         ark.rebalancePosition();
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
@@ -192,7 +209,6 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
             debtAfter,
             "Should not rebalance when position is safe"
         );
-        vm.stopPrank();
     }
 
     function test_RebalancePosition_WhenPriceDropsSignificantly() public {
@@ -218,10 +234,16 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
             .balanceOf(address(ark));
         deal(address(usdc), address(mockFleet), (borrowAmount * 105) / 100);
         uint256 totalAssetsBeforeRebalance = ark.totalAssets();
+        vm.stopPrank();
         // Rebalance position
+        vm.prank(keeper);
         ark.rebalancePosition();
         uint256 totalAssetsAfterRebalance = ark.totalAssets();
-        assertEq(totalAssetsBeforeRebalance, totalAssetsAfterRebalance, "Total assets should not change");
+        assertEq(
+            totalAssetsBeforeRebalance,
+            totalAssetsAfterRebalance,
+            "Total assets should not change"
+        );
         // Verify position is safe and properly rebalanced
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
@@ -247,7 +269,6 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
             ark.maxLtv(),
             "Position should be safe after rebalance"
         );
-        vm.stopPrank();
     }
 
     function test_RebalancePosition_NoActionWhenSlightlyUnsafe() public {
@@ -259,7 +280,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         vm.startPrank(commander);
         weth.approve(address(ark), collateralAmount);
         ark.board(collateralAmount, abi.encode(borrowAmount));
-
+        vm.stopPrank();
         // Simulate small price movement
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 1 hours);
@@ -267,6 +288,7 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
         uint256 debtBefore = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
         );
+        vm.prank(keeper);
         ark.rebalancePosition();
         uint256 debtAfter = IERC20(ark.variableDebtToken()).balanceOf(
             address(ark)
@@ -278,7 +300,6 @@ contract AaveV3BorrowArkTest is Test, ArkTestBase {
             debtAfter,
             "Should not rebalance for small LTV deviation"
         );
-        vm.stopPrank();
     }
 
     function deployMockFleet(address _asset) internal returns (address) {
