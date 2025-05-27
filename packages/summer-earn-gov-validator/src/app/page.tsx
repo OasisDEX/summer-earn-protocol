@@ -1,5 +1,6 @@
 'use client'
 
+import { Header } from '@/components/Header'
 import { ProposalList } from '@/components/ProposalList'
 import {
   CrossChainData,
@@ -275,108 +276,111 @@ export default function Home() {
   }
 
   return (
-    <main className={styles.main}>
-      <h1>Governance Proposal Validator</h1>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.section}>
-          <h2>Select Existing Proposal</h2>
-          <ProposalList onSelectProposal={handleProposalSelect} />
-        </div>
+    <>
+      <Header />
+      <main className={styles.main}>
+        <h1>Governance Proposal Validator</h1>
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.section}>
+            <h2>Select Existing Proposal</h2>
+            <ProposalList onSelectProposal={handleProposalSelect} />
+          </div>
 
-        <div className={styles.section}>
-          <h2>Target / Value / Calldata</h2>
-          {formData.targets.map((target, index) => (
-            <div key={`target-${index}`} className={styles.arrayField}>
-              <div className={styles.inputWithLabel}>
+          <div className={styles.section}>
+            <h2>Target / Value / Calldata</h2>
+            {formData.targets.map((target, index) => (
+              <div key={`target-${index}`} className={styles.arrayField}>
+                <div className={styles.inputWithLabel}>
+                  <input
+                    type="text"
+                    value={target}
+                    onChange={(e) => handleArrayInputChange(index, 'targets', e.target.value)}
+                    placeholder="0x..."
+                    required
+                    className={errors.targets[index] ? styles.error : ''}
+                  />
+                  {contractNames[index] && (
+                    <span className={styles.contractLabel}>{contractNames[index]}</span>
+                  )}
+                </div>
                 <input
                   type="text"
-                  value={target}
-                  onChange={(e) => handleArrayInputChange(index, 'targets', e.target.value)}
-                  placeholder="0x..."
+                  value={formData.values[index]}
+                  onChange={(e) => handleArrayInputChange(index, 'values', e.target.value)}
+                  placeholder="Value in wei"
                   required
-                  className={errors.targets[index] ? styles.error : ''}
+                  className={errors.values[index] ? styles.error : ''}
                 />
-                {contractNames[index] && (
-                  <span className={styles.contractLabel}>{contractNames[index]}</span>
+                <input
+                  type="text"
+                  value={formData.calldatas[index]}
+                  onChange={(e) => handleArrayInputChange(index, 'calldatas', e.target.value)}
+                  placeholder="Calldata"
+                  required
+                  className={errors.calldatas[index] ? styles.error : ''}
+                />
+                {index > 0 && (
+                  <button
+                    type="button"
+                    className={styles.removeButton}
+                    onClick={() => removeArrayField('targets', index)}
+                  >
+                    Remove
+                  </button>
                 )}
               </div>
-              <input
-                type="text"
-                value={formData.values[index]}
-                onChange={(e) => handleArrayInputChange(index, 'values', e.target.value)}
-                placeholder="Value in wei"
-                required
-                className={errors.values[index] ? styles.error : ''}
-              />
-              <input
-                type="text"
-                value={formData.calldatas[index]}
-                onChange={(e) => handleArrayInputChange(index, 'calldatas', e.target.value)}
-                placeholder="Calldata"
-                required
-                className={errors.calldatas[index] ? styles.error : ''}
-              />
-              {index > 0 && (
-                <button
-                  type="button"
-                  className={styles.removeButton}
-                  onClick={() => removeArrayField('targets', index)}
-                >
-                  Remove
-                </button>
+            ))}
+            <button
+              type="button"
+              className={styles.addButton}
+              onClick={() => addArrayField('targets')}
+            >
+              Add calldata
+            </button>
+          </div>
+
+          {decodedData.some((data) => data !== null) && (
+            <div className={styles.section}>
+              <h2>Decoded Data</h2>
+              {decodedData.map((data, index) => (
+                <div key={`decoded-${index}`}>{renderDecodedData(index)}</div>
+              ))}
+            </div>
+          )}
+
+          <div className={styles.section}>
+            <h2>Description</h2>
+            <textarea
+              className={styles.textarea}
+              value={formData.description}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              placeholder="Enter proposal description"
+              required
+            />
+          </div>
+
+          {Object.values(errors).some((errorArray) => errorArray.length > 0) && (
+            <div className={styles.errorList}>
+              {Object.entries(errors).map(([field, errorArray]) =>
+                errorArray.map((error: string, index: number) => (
+                  <p key={`${field}-${index}`} className={styles.error}>
+                    {error}
+                  </p>
+                )),
               )}
             </div>
-          ))}
-          <button
-            type="button"
-            className={styles.addButton}
-            onClick={() => addArrayField('targets')}
-          >
-            Add calldata
+          )}
+
+          <button type="submit" className={styles.addButton}>
+            Validate Proposal
           </button>
-        </div>
-
-        {decodedData.some((data) => data !== null) && (
-          <div className={styles.section}>
-            <h2>Decoded Data</h2>
-            {decodedData.map((data, index) => (
-              <div key={`decoded-${index}`}>{renderDecodedData(index)}</div>
-            ))}
-          </div>
-        )}
-
-        <div className={styles.section}>
-          <h2>Description</h2>
-          <textarea
-            className={styles.textarea}
-            value={formData.description}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                description: e.target.value,
-              }))
-            }
-            placeholder="Enter proposal description"
-            required
-          />
-        </div>
-
-        {Object.values(errors).some((errorArray) => errorArray.length > 0) && (
-          <div className={styles.errorList}>
-            {Object.entries(errors).map(([field, errorArray]) =>
-              errorArray.map((error: string, index: number) => (
-                <p key={`${field}-${index}`} className={styles.error}>
-                  {error}
-                </p>
-              )),
-            )}
-          </div>
-        )}
-
-        <button type="submit" className={styles.addButton}>
-          Validate Proposal
-        </button>
-      </form>
-    </main>
+        </form>
+      </main>
+    </>
   )
 }

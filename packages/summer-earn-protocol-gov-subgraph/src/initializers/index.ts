@@ -13,6 +13,7 @@ export function getOrCreateCrossChainProposal(proposalId: string): CrossChainPro
     proposal.targets = []
     proposal.values = []
     proposal.calldatas = []
+    proposal.eta = BigInt.fromI32(0)
     proposal.save()
   }
   return proposal

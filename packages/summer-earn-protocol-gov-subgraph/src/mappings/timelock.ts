@@ -55,6 +55,8 @@ export function handleCallScheduled(event: CallScheduled): void {
     values.push(event.params.value)
     proposal.values = values
 
+    proposal.eta = event.block.timestamp.plus(event.params.delay)
+
     proposal.save()
   }
 }
