@@ -1,4 +1,4 @@
-import { BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Account, ReferralData } from '../../../generated/schema'
 import * as constants from '../../common/constants'
 import { BigDecimalConstants, BigIntConstants, EventSignature } from '../../common/constants'
@@ -11,7 +11,7 @@ import { dataToTuple, getEventLogs, logTopicToAddress } from '../../utils/events
  * REFERRAL TRACKING LOGIC:
  * 1. Only processes deposits/stakes (positive inputTokenDeltaNormalizedUSD)
  * 2. Only tracks users who don't already have referral data (prevents double-referrals)
- * 3. Credits the full deposit amount in USD to the referral
+ * 3. Tracks unique users referred through amountOfReferred counter
  * 4. Links accounts to referral codes on first referral deposit
  *
  * REFERRAL ELIGIBILITY:
@@ -22,9 +22,9 @@ import { dataToTuple, getEventLogs, logTopicToAddress } from '../../utils/events
  * - But allows previously referred users to continue earning credits on new deposits
  *
  * SIMPLIFIED TRACKING:
- * - No complex max tracking or cross-vault gaming protection needed
- * - Full deposit amount is credited to referral (no partial crediting)
- * - Referral data is updated hourly, minimizing gaming risks
+ * - Tracks unique users referred through amountOfReferred counter
+ * - Each new referral increments the counter by 1
+ * - Referral data is updated on each new referral
  *
  * WITHDRAWAL/UNSTAKE TRACKING:
  * - Withdrawals/unstakes are tracked separately in fleetCommander.ts
@@ -53,15 +53,9 @@ export function handleReferrals(
     return null
   }
 
-  // Credit the full deposit amount to referral (no complex max tracking needed)
-  // Since only first deposits count, there's no risk of gaming
-  // they are updated hourly - minimizing the risk of gaming
-  const amountToAddToReferral = positionDetails.inputTokenDeltaNormalizedUSD
-
-  // If account already has referral data, update it
-  // This handles subsequent deposits from users who were previously referred
+  // If account already has referral data, return it
   if (maybeReferredAccount.referralData) {
-    return updateExistingReferralData(maybeReferredAccount.referralData!, amountToAddToReferral)
+    return maybeReferredAccount.referralData
   }
 
   // Try to extract referral code from event logs for new referrals
@@ -69,7 +63,7 @@ export function handleReferrals(
   const referralCode = extractReferralCodeFromEvent(event, maybeReferredAccount.id)
   if (referralCode) {
     // Create new referral data and link to account
-    return createNewReferralData(referralCode, maybeReferredAccount, amountToAddToReferral)
+    return createNewReferralData(referralCode, maybeReferredAccount, event)
   }
 
   return null
@@ -110,52 +104,28 @@ function extractReferralCodeFromEvent(event: ethereum.Event, accountId: string):
 }
 
 /**
- * Updates existing referral data with new deposit amount.
- *
- * @param referralDataId - ID of existing referral data
- * @param amountToAdd - Amount to add to referral total (can be zero)
- * @returns Referral data ID for event tracking
- */
-function updateExistingReferralData(referralDataId: string, amountToAdd: BigDecimal): string {
-  const referralData = getOrCreateReferralData(referralDataId)
-
-  // Only add to total if there's an incremental amount
-  // Always return ID for event tracking (even if amount is zero)
-  if (amountToAdd.gt(BigDecimalConstants.ZERO)) {
-    referralData.totalReferredUSD = referralData.totalReferredUSD.plus(amountToAdd)
-    referralData.save()
-  }
-  return referralData.id
-}
-
-/**
  * Creates new referral data for first-time referred user.
  *
  * @param referralCode - Referral code from event
  * @param referredAccount - Account being referred
- * @param amountToAdd - Initial amount to add to referral total
  * @returns Referral data ID for event tracking
  */
 function createNewReferralData(
   referralCode: string,
   referredAccount: Account,
-  amountToAdd: BigDecimal,
+  event: ethereum.Event,
 ): string {
   const referralData = getOrCreateReferralData(referralCode)
 
   // Always increment the referred count when creating new referral data
   // This tracks unique users referred, regardless of deposit amount
   referralData.amountOfReferred = referralData.amountOfReferred.plus(BigInt.fromI32(1))
-
-  // Only add to total if there's an incremental amount
-  if (amountToAdd.gt(BigDecimalConstants.ZERO)) {
-    referralData.totalReferredUSD = referralData.totalReferredUSD.plus(amountToAdd)
-  }
   referralData.save()
 
   // Link the account to referral data for future tracking
   // This enables withdrawal/unstake events to be tracked under the same referral
   referredAccount.referralData = referralData.id
+  referredAccount.referralTimestamp = event.block.timestamp
   referredAccount.save()
 
   return referralData.id
@@ -173,7 +143,6 @@ function getOrCreateReferralData(referralCode: string): ReferralData {
     referralData = new ReferralData(referralCode)
     referralData.protocol = constants.Protocol.NAME
     referralData.amountOfReferred = BigIntConstants.ZERO
-    referralData.totalReferredUSD = BigDecimalConstants.ZERO
   }
   return referralData
 }
