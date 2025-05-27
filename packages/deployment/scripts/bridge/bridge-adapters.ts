@@ -209,21 +209,8 @@ export async function configureStargateAdapter(
       for (const destChain of supportedChains) {
         if (destChain.chainId === currentChainId) continue
 
-        // Get the destination chain's Stargate contract for this asset
-        const destChainContracts = stargateConfig.contracts[destChain.chainId.toString()]
-        if (!destChainContracts || !destChainContracts[assetSymbol]) {
-          console.log(
-            kleur.yellow(
-              `Asset ${assetSymbol} not available on destination chain ${destChain.chainId}, skipping`,
-            ),
-          )
-          continue
-        }
-
-        const destStargateContract = getAddress(destChainContracts[assetSymbol] as string)
-
         console.log(
-          `Adding supported asset ${checksummedLocalAddress} for bridging to chain ${destChain.chainId} using Stargate contract ${destStargateContract}`,
+          `Adding supported asset ${checksummedLocalAddress} for bridging to chain ${destChain.chainId} using local Stargate contract ${checksummedStargateContract}`,
         )
 
         try {
@@ -236,7 +223,7 @@ export async function configureStargateAdapter(
             const hash = await stargateAdapter.write.addSupportedAsset([
               destChain.chainId,
               checksummedLocalAddress,
-              destStargateContract, // Use destination chain's Stargate contract
+              checksummedStargateContract, // Use LOCAL chain's Stargate contract
             ])
             console.log(
               kleur.green(
