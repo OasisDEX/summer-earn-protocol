@@ -94,6 +94,9 @@ async function deployAdapters() {
     useBummerConfig,
   ) as BaseConfig
 
+  // Get all network configs for cross-chain configuration
+  const allNetworkConfigs = getConfigByNetwork('all', { common: true }, useBummerConfig) as Config
+
   // Validate required configuration
   if (!config) {
     throw new Error(`No configuration found for network ${network}`)
@@ -172,6 +175,7 @@ async function deployAdapters() {
           deployedAdapters.stargate.address as Address,
           bridgeRouterAddress as Address,
           config,
+          allNetworkConfigs,
         )
       }
 
