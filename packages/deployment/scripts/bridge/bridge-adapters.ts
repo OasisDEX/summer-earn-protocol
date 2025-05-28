@@ -214,8 +214,11 @@ export async function configureStargateAdapter(
   let chainsAdded = 0
   for (const chainInfo of supportedChains) {
     try {
-      const isSupported = await stargateAdapter.read.supportsChain([chainInfo.chainId])
-      if (!isSupported) {
+      // Check if chain is already supported by checking the endpoint ID mapping
+      // instead of using supportsChain() which checks adapter addresses
+      const existingEndpointId = await stargateAdapter.read.chainToEndpointId([chainInfo.chainId])
+
+      if (existingEndpointId === 0) {
         console.log(
           `Adding supported chain ${chainInfo.chainId} with LayerZero endpoint ID ${chainInfo.endpointId}`,
         )
@@ -261,7 +264,11 @@ export async function configureStargateAdapter(
         console.log(kleur.green(`Chain ${chainInfo.chainId} transaction confirmed`))
         chainsAdded++
       } else {
-        console.log(kleur.yellow(`Chain ${chainInfo.chainId} already supported, skipping`))
+        console.log(
+          kleur.yellow(
+            `Chain ${chainInfo.chainId} already supported (endpoint ID: ${existingEndpointId}), skipping`,
+          ),
+        )
       }
     } catch (error) {
       console.error(kleur.red(`Error adding chain ${chainInfo.chainId}:`), error)
