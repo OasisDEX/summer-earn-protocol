@@ -368,12 +368,56 @@ export async function configureStargateAdapter(
         continue // Skip this asset
       }
 
-      // Configure asset for each destination chain
+      // First, add asset mapping for current chain (source chain)
+      console.log(
+        `Adding supported asset ${checksummedLocalAddress} for current chain ${currentChainId} using Stargate contract ${checksummedStargateContract}`,
+      )
+
+      try {
+        const isCurrentChainSupported = await stargateAdapter.read.isAssetSupported([
+          currentChainId,
+          checksummedLocalAddress,
+        ])
+
+        if (!isCurrentChainSupported) {
+          const hash = await stargateAdapter.write.addSupportedAsset([
+            currentChainId, // Current chain ID
+            checksummedLocalAddress, // Asset address on current chain
+            checksummedStargateContract, // Stargate contract on current chain
+          ])
+          console.log(
+            kleur.green(
+              `Asset mapping for ${checksummedLocalAddress} on current chain ${currentChainId} added successfully, tx: ${hash}`,
+            ),
+          )
+        } else {
+          console.log(kleur.yellow(`Asset mapping for current chain already supported, skipping`))
+        }
+      } catch (error) {
+        console.error(kleur.red(`Error adding asset mapping for current chain:`), error)
+      }
+
+      // Then configure asset for each destination chain
       for (const destChain of supportedChains) {
         if (destChain.chainId === currentChainId) continue
 
+        // Get the Stargate contract for this asset on the DESTINATION chain
+        const destChainContracts = (stargateConfig.contracts as any)[destChain.chainId.toString()]
+        const destStargateContract = destChainContracts?.[assetSymbol]
+
+        if (!destStargateContract) {
+          console.log(
+            kleur.yellow(
+              `No Stargate contract found for asset ${assetSymbol} on destination chain ${destChain.chainId}, skipping`,
+            ),
+          )
+          continue
+        }
+
+        const checksummedDestStargateContract = getAddress(destStargateContract as string)
+
         console.log(
-          `Adding supported asset ${checksummedLocalAddress} for bridging to chain ${destChain.chainId} using destination Stargate contract ${checksummedStargateContract}`,
+          `Adding supported asset ${checksummedLocalAddress} for bridging to chain ${destChain.chainId} using destination Stargate contract ${checksummedDestStargateContract}`,
         )
 
         try {
@@ -386,7 +430,7 @@ export async function configureStargateAdapter(
             const hash = await stargateAdapter.write.addSupportedAsset([
               destChain.chainId,
               checksummedLocalAddress,
-              checksummedStargateContract,
+              checksummedDestStargateContract, // Use destination chain's Stargate contract
             ])
             console.log(
               kleur.green(
@@ -398,17 +442,6 @@ export async function configureStargateAdapter(
           }
         } catch (error) {
           console.error(kleur.red(`Error adding asset mapping:`), error)
-
-          // Add more specific error checking
-          const isChainSupported = await stargateAdapter.read.supportsChain([destChain.chainId])
-          console.log(`Chain ${destChain.chainId} supported: ${isChainSupported}`)
-
-          // Check if it's already supported
-          const isAssetSupported = await stargateAdapter.read.isAssetSupported([
-            destChain.chainId,
-            checksummedLocalAddress,
-          ])
-          console.log(`Asset already supported: ${isAssetSupported}`)
         }
       }
     } else {
