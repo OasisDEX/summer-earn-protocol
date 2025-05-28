@@ -2,12 +2,16 @@
 pragma solidity ^0.8.28;
 
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title MockStargateV2
  * @notice Mock implementation of Stargate V2 interface for testing
  */
 contract MockStargateV2 {
+    using SafeERC20 for IERC20;
+
     enum StargateType {
         Pool,
         OFT
@@ -48,6 +52,13 @@ contract MockStargateV2 {
             Ticket memory ticket
         )
     {
+        // Transfer tokens from sender to this contract (simulating real Stargate behavior)
+        IERC20(token).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _sendParam.amountLD
+        );
+
         // Store the compose message for verification
         if (_sendParam.composeMsg.length > 0) {
             lastComposeMsg = _sendParam.composeMsg;

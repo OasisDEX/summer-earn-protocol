@@ -18,7 +18,7 @@ import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Addr
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title IStargate interface for V2
  * @notice Based on LayerZero V2 OFT standard with Stargate extensions
@@ -342,6 +342,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         address originator,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable override {
+        // Store msg.value early
+        uint256 providedFee = msg.value;
+
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
@@ -377,7 +380,21 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             operationId: operationId
         });
 
-        _executeSendToken(params, destinationAdapter, adapterParams);
+        _executeSendToken(
+            params,
+            destinationAdapter,
+            adapterParams,
+            providedFee
+        );
+
+        // Emit the TransferInitiated event
+        emit TransferInitiated(
+            operationId,
+            destinationChainId,
+            asset,
+            amount,
+            recipient
+        );
 
         IBridgeRouter(bridgeRouter).updateOperationStatus(
             operationId,
@@ -386,43 +403,32 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     }
 
     /**
-     * @dev Execute Stargate V2 transfer - all V2 contracts use the same OFT interface
-     */
-    function _executeStargateTransfer(
-        TransferParams memory params,
-        BridgeTypes.AdapterParams calldata adapterParams
-    ) internal {
-        // Create and execute the transfer
-        _executeSendToken(params, params.stargateContract, adapterParams);
-    }
-
-    /**
      * @dev Execute the actual sendToken call
      */
     function _executeSendToken(
         TransferParams memory params,
         address destinationAdapter,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.AdapterParams calldata adapterParams,
+        uint256 providedFee
     ) internal {
         IStargate stargate = IStargate(params.stargateContract);
 
-        // Create compose message
+        // Create compose message - just the custom message, no wrapper
         bytes memory composeMsg = abi.encode(
-            params.recipient,
-            params.asset,
-            params.amount,
-            uint16(block.chainid),
-            params.operationId,
-            params.originator
+            params.recipient, // FleetProxy address
+            params.asset, // Asset being transferred
+            params.amount, // Amount being transferred
+            uint256(block.chainid), // Source chain ID
+            params.operationId, // Operation ID
+            params.originator // Original sender
         );
 
-        // Build SendParam - tokens should be sent to the destination adapter
-        // which will then handle the compose message and forward to FleetProxy
+        // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
         SendParam memory sendParam = _buildSendParam(
             params.destinationChainId,
             destinationAdapter,
             params.amount,
-            composeMsg,
+            composeMsg, // Just the custom message
             adapterParams
         );
 
@@ -430,7 +436,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         _updateMinAmount(stargate, sendParam, params.amount);
 
         // Execute transfer
-        _performTransfer(stargate, sendParam, params);
+        _performTransfer(stargate, sendParam, params, providedFee);
     }
 
     /**
@@ -441,17 +447,13 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         address destinationAdapter,
         uint256 amount,
         bytes memory composeMsg,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.AdapterParams calldata
     ) internal view returns (SendParam memory) {
-        // Determine transport mode - force taxi if compose message is present
-        bytes memory oftCmd = _getTransportMode(
-            adapterParams,
-            composeMsg.length > 0
-        );
+        // Always use taxi mode for compose functionality and reliability
+        bytes memory oftCmd = OftCmdHelper.taxi(); // Always use taxi mode like in the example
 
-        // Only add compose options for taxi mode with compose message
-        bytes memory extraOptions = (composeMsg.length > 0 &&
-            _isTaxiMode(oftCmd))
+        // Add compose options when compose message is present
+        bytes memory extraOptions = composeMsg.length > 0
             ? OptionsBuilder.newOptions().addExecutorLzComposeOption(
                 0,
                 uint128(composeGasLimit),
@@ -467,7 +469,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 minAmountLD: amount,
                 extraOptions: extraOptions,
                 composeMsg: composeMsg,
-                oftCmd: oftCmd
+                oftCmd: oftCmd // Always "" for taxi mode
             });
     }
 
@@ -496,83 +498,33 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     function _performTransfer(
         IStargate stargate,
         SendParam memory sendParam,
-        TransferParams memory params
+        TransferParams memory params,
+        uint256 providedFee
     ) internal {
         MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
 
-        if (msg.value < messagingFee.nativeFee) {
-            revert InsufficientFee(messagingFee.nativeFee, msg.value);
+        if (providedFee < messagingFee.nativeFee) {
+            revert InsufficientFee(messagingFee.nativeFee, providedFee);
         }
 
-        try
-            stargate.sendToken{value: msg.value}(
-                sendParam,
-                messagingFee,
-                params.originator
-            )
-        {
-            emit TransferInitiated(
-                params.operationId,
-                params.destinationChainId,
-                params.asset,
-                params.amount,
-                params.recipient
-            );
-        } catch {
-            _handleTransferFailure(
-                params.stargateContract,
-                params.asset,
-                params.amount,
-                params.originator,
-                params.operationId
-            );
-        }
-    }
-
-    /**
-     * @dev Handle transfer failure cleanup
-     */
-    function _handleTransferFailure(
-        address stargateContract,
-        address asset,
-        uint256 amount,
-        address originator,
-        bytes32 operationId
-    ) internal {
-        // Reset approval
-        IERC20(asset).approve(stargateContract, 0);
-
-        // Refund tokens to originator
-        IERC20(asset).safeTransfer(originator, amount);
-
-        // Update transfer status to failed
-        IBridgeRouter(bridgeRouter).updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.FAILED
+        stargate.sendToken{value: providedFee}(
+            sendParam,
+            messagingFee,
+            params.originator
         );
-
-        revert TransferFailed();
     }
 
     /**
      * @dev Determines transport mode based on adapter params
      */
     function _getTransportMode(
-        BridgeTypes.AdapterParams calldata adapterParams,
-        bool forceCompose
-    ) internal view returns (bytes memory) {
-        // Force taxi mode if compose message is present (bus mode doesn't support compose)
-        if (forceCompose) {
-            return OftCmdHelper.taxi();
-        }
-
-        // Check if specific mode is requested in options
-        if (adapterParams.options.length > 0) {
-            // Parse options to determine if taxi mode is requested
-            // For now, default to adapter setting
-        }
-
-        return defaultUseTaxi ? OftCmdHelper.taxi() : OftCmdHelper.bus();
+        BridgeTypes.AdapterParams calldata,
+        bool
+    ) internal pure returns (bytes memory) {
+        // Always use taxi mode for cross-chain asset transfers
+        // This aligns with the pattern shown in Stargate V2 examples
+        // Taxi mode is more reliable and required for compose functionality
+        return OftCmdHelper.taxi(); // Returns ""
     }
 
     /**
@@ -587,7 +539,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        BridgeTypes.AdapterParams calldata adapterParams,
+        BridgeTypes.AdapterParams calldata,
         BridgeTypes.OperationType operationType
     ) public view returns (uint256 nativeFee, uint256 tokenFee) {
         // Check if chain is supported
@@ -621,7 +573,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 bytes32(0),
                 address(0)
             ), // Dummy compose message
-            oftCmd: _getTransportMode(adapterParams, false)
+            oftCmd: OftCmdHelper.taxi() // Always use taxi mode
         });
 
         // Get messaging fee quote
@@ -736,33 +688,37 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             revert Unauthorized();
         }
 
-        // Extract the amount and custom compose message from OFT encoding
+        // Extract the amount and compose message from OFT encoding
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
-        bytes memory customComposeMsg = OFTComposeMsgCodec.composeMsg(_message);
+        bytes memory composeMsg = OFTComposeMsgCodec.composeMsg(_message);
 
-        require(customComposeMsg.length >= 160, "Compose msg too short");
-
-        // Decode our custom compose message
-        // The compose message contains: (recipient, asset, amount, sourceChainId, operationId, originator)
+        // Now decode the actual compose message
         (
-            address fleetProxy, // This is the recipient (FleetProxy address)
+            address fleetProxy,
             address asset,
             uint256 expectedAmount,
-            uint16 sourceChainId,
+            uint256 sourceChainId,
             bytes32 operationId,
             address originator
         ) = abi.decode(
-                customComposeMsg,
-                (address, address, uint256, uint16, bytes32, address)
+                composeMsg,
+                (address, address, uint256, uint256, bytes32, address)
             );
 
-        // Validate decoded parameters
-        if (asset == address(0) || amountLD == 0 || fleetProxy == address(0)) {
+        console.log("amountLD", amountLD);
+        console.log("fleetProxy", fleetProxy);
+        console.log("asset", asset);
+        console.log("expectedAmount", expectedAmount);
+        console.log("sourceChainId", sourceChainId);
+        console.logBytes32(operationId);
+        console.log("originator", originator);
+        // Verify the amount matches what we expected
+        if (amountLD != expectedAmount) {
             revert InvalidParams();
         }
 
-        // Verify the amount matches what we expected
-        if (amountLD != expectedAmount) {
+        // Validate decoded parameters
+        if (asset == address(0) || amountLD == 0 || fleetProxy == address(0)) {
             revert InvalidParams();
         }
 
@@ -781,7 +737,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 asset,
                 amountLD,
                 abi.encode(operationId, originator), // Pass operation details as message
-                sourceChainId
+                uint16(sourceChainId) // Source chain ID from compose message
             )
         {
             emit ComposedAssetHandled(
@@ -789,7 +745,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 fleetProxy,
                 asset,
                 amountLD,
-                sourceChainId
+                uint16(sourceChainId)
             );
         } catch (bytes memory reason) {
             // If FleetProxy call fails, emit error but don't revert

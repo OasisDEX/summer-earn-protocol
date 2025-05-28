@@ -372,6 +372,164 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
     }
 
+    function testTransferAssetMsgValueConsistency() public {
+        useNetworkA();
+        vm.deal(address(routerA), 10 ether); // Provide enough ETH
+
+        // Setup adapter params
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
+
+        // Estimate the required fee
+        (uint256 requiredFee, ) = adapterA.estimateFee(
+            CHAIN_ID_B,
+            address(tokenA),
+            1 ether,
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        // Transfer tokens to the router and approve the adapter
+        vm.prank(user);
+        tokenA.transfer(address(routerA), 1 ether);
+        vm.prank(address(routerA));
+        tokenA.approve(address(adapterA), 1 ether);
+
+        // Pre-calculate the operation ID
+        bytes32 expectedOperationId = keccak256(
+            abi.encode(
+                CHAIN_ID_A,
+                CHAIN_ID_B,
+                address(tokenA),
+                1 ether,
+                recipient,
+                block.timestamp,
+                block.number
+            )
+        );
+
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            expectedOperationId,
+            address(adapterA)
+        );
+
+        // Test with EXACTLY the required fee - should work
+        vm.prank(address(routerA));
+        adapterA.transferAsset{value: requiredFee}(
+            expectedOperationId,
+            CHAIN_ID_B,
+            address(tokenA),
+            recipient,
+            1 ether,
+            user,
+            adapterParams
+        );
+
+        // Setup for second transfer - need new tokens, allowance, and operation ID
+        vm.prank(user);
+        tokenA.transfer(address(routerA), 1 ether);
+        vm.prank(address(routerA));
+        tokenA.approve(address(adapterA), 1 ether);
+
+        // Pre-calculate a different operation ID for the second transfer
+        bytes32 expectedOperationId2 = keccak256(
+            abi.encode(
+                CHAIN_ID_A,
+                CHAIN_ID_B,
+                address(tokenA),
+                1 ether,
+                recipient,
+                block.timestamp + 1, // Different timestamp to get different operation ID
+                block.number
+            )
+        );
+
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            expectedOperationId2,
+            address(adapterA)
+        );
+
+        // Test with significantly MORE than required fee - should also work
+        vm.prank(address(routerA));
+        adapterA.transferAsset{value: requiredFee * 100}(
+            expectedOperationId2,
+            CHAIN_ID_B,
+            address(tokenA),
+            recipient,
+            1 ether,
+            user,
+            adapterParams
+        );
+    }
+
+    function testTransferAssetMsgValueConsistencyEdgeCases() public {
+        useNetworkA();
+        vm.deal(address(routerA), 10 ether);
+
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
+
+        // Test with 1 wei less than required - should fail
+        (uint256 requiredFee, ) = adapterA.estimateFee(
+            CHAIN_ID_B,
+            address(tokenA),
+            1 ether,
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        vm.prank(user);
+        tokenA.transfer(address(routerA), 1 ether);
+        vm.prank(address(routerA));
+        tokenA.approve(address(adapterA), 1 ether);
+
+        bytes32 expectedOperationId = keccak256(
+            abi.encode(
+                CHAIN_ID_A,
+                CHAIN_ID_B,
+                address(tokenA),
+                1 ether,
+                recipient,
+                block.timestamp,
+                block.number
+            )
+        );
+
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            expectedOperationId,
+            address(adapterA)
+        );
+
+        // Test with 1 wei less - should fail
+        vm.prank(address(routerA));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBridgeAdapter.InsufficientFee.selector,
+                requiredFee,
+                requiredFee - 1
+            )
+        );
+        adapterA.transferAsset{value: requiredFee - 1}(
+            expectedOperationId,
+            CHAIN_ID_B,
+            address(tokenA),
+            recipient,
+            1 ether,
+            user,
+            adapterParams
+        );
+    }
+
     // Add event declaration for the event we expect
     event TransferInitiated(
         bytes32 indexed transferId,

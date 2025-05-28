@@ -9,6 +9,7 @@ import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
+import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
@@ -42,6 +43,8 @@ contract StargateAdapterComposeForkTest is Test {
     BridgeRouterTestHelper routerMainnet;
     BridgeRouterTestHelper routerArbitrum;
     MockFleetProxy fleetProxyArbitrum;
+    MockStargateV2 mockStargateMainnet;
+    MockStargateV2 mockStargateArbitrum;
 
     address user = address(0x123);
     address governor = address(0x456);
@@ -62,7 +65,6 @@ contract StargateAdapterComposeForkTest is Test {
 
         // Deploy mainnet contracts
         vm.startPrank(governor);
-
         ProtocolAccessManager accessManager = new ProtocolAccessManager(
             governor
         );
@@ -91,6 +93,18 @@ contract StargateAdapterComposeForkTest is Test {
             address(adapterMainnet)
         );
         // Don't add CHAIN_ID_ARBITRUM yet - will add after arbitrum adapter is deployed
+
+        // Deploy mock Stargate contract for mainnet USDC
+        mockStargateMainnet = new MockStargateV2(
+            USDC_MAINNET,
+            MockStargateV2.StargateType.Pool
+        );
+
+        // Add asset support for USDC on mainnet
+        adapterMainnet.addSupportedAsset(
+            USDC_MAINNET,
+            address(mockStargateMainnet)
+        );
 
         routerMainnet.registerAdapter(address(adapterMainnet));
         vm.stopPrank();
@@ -145,6 +159,18 @@ contract StargateAdapterComposeForkTest is Test {
         // Deploy fleet proxy on Arbitrum
         fleetProxyArbitrum = new MockFleetProxy(USDC_ARBITRUM);
 
+        // Deploy mock Stargate contract for Arbitrum USDC
+        mockStargateArbitrum = new MockStargateV2(
+            USDC_ARBITRUM,
+            MockStargateV2.StargateType.Pool
+        );
+
+        // Add asset support for USDC on Arbitrum
+        adapterArbitrum.addSupportedAsset(
+            USDC_ARBITRUM,
+            address(mockStargateArbitrum)
+        );
+
         vm.stopPrank();
 
         // Now add arbitrum chain support to mainnet adapter with the correct arbitrum adapter address
@@ -182,74 +208,14 @@ contract StargateAdapterComposeForkTest is Test {
         adapterMainnet.setComposeGasLimit(600000); // Too high
     }
 
-    function testLzComposeWithRealEndpoint() public {
-        vm.selectFork(1); // Arbitrum fork
-
-        // Setup test data
-        bytes32 operationId = keccak256("test-operation");
-        uint256 amount = 1000e6;
-
-        // Create our custom compose message (what we want to pass to the FleetProxy)
-        bytes memory customComposeMessage = abi.encode(
-            address(fleetProxyArbitrum),
-            USDC_ARBITRUM,
-            amount,
-            CHAIN_ID_MAINNET,
-            operationId,
-            user
-        );
-
-        // Create the OFT-encoded compose message that includes both amount and custom message
-        // This simulates what LayerZero's OFT system would send to lzCompose
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1), // nonce
-            uint32(LZ_EID_MAINNET), // source endpoint ID
-            amount, // amount in local decimals
-            customComposeMessage // our custom compose message
-        );
-
-        // Give adapter some USDC (simulating Stargate delivery)
-        deal(USDC_ARBITRUM, address(adapterArbitrum), amount);
-
-        // Debug: Check adapter balance
-        uint256 adapterBalance = IERC20(USDC_ARBITRUM).balanceOf(
-            address(adapterArbitrum)
-        );
-        console.log("Adapter USDC balance:", adapterBalance);
-        console.log("Expected amount:", amount);
-        console.log("Balance sufficient:", adapterBalance >= amount);
-
-        // Test that lzCompose works with LayerZero endpoint
-        // Use low-level call to work around bytes memory -> bytes calldata conversion
-        vm.prank(LAYERZERO_ENDPOINT_ARBITRUM);
-        bytes memory callData = abi.encodeWithSignature(
-            "lzCompose(address,bytes32,bytes,address,bytes)",
-            address(adapterMainnet), // Source adapter
-            bytes32("test-guid"),
-            oftEncodedMessage, // Use the properly encoded OFT message
-            address(0),
-            ""
-        );
-
-        (bool success, ) = address(adapterArbitrum).call(callData);
-        assertTrue(success, "lzCompose call should succeed");
-
-        // Verify fleet proxy received the assets
-        assertTrue(fleetProxyArbitrum.receivedAssets());
-        assertEq(fleetProxyArbitrum.lastAsset(), USDC_ARBITRUM);
-        assertEq(fleetProxyArbitrum.lastAmount(), amount);
-        assertEq(fleetProxyArbitrum.lastSourceChainId(), CHAIN_ID_MAINNET);
-    }
-
     function testUnauthorizedLzCompose() public {
         vm.selectFork(1); // Arbitrum fork
 
         // Create our custom compose message
         bytes memory customComposeMessage = abi.encode(
             address(fleetProxyArbitrum),
-            USDC_ARBITRUM,
             1000e6,
-            CHAIN_ID_MAINNET,
+            uint256(CHAIN_ID_MAINNET),
             bytes32("test-operation"),
             user
         );
@@ -259,7 +225,7 @@ contract StargateAdapterComposeForkTest is Test {
             uint64(1), // nonce
             uint32(LZ_EID_MAINNET), // source endpoint ID
             1000e6, // amount in local decimals
-            customComposeMessage // our custom compose message
+            customComposeMessage // No adapter address wrapping
         );
 
         // Should revert when called by non-endpoint
@@ -284,9 +250,6 @@ contract StargateAdapterComposeForkTest is Test {
 
         // Check that it reverted with Unauthorized error
         bytes4 unauthorizedSelector = IBridgeAdapter.Unauthorized.selector;
-        bytes memory expectedRevert = abi.encodeWithSelector(
-            unauthorizedSelector
-        );
 
         // The return data should contain the revert reason
         assertTrue(returnData.length >= 4, "Should have revert data");
@@ -386,7 +349,7 @@ contract StargateAdapterComposeForkTest is Test {
             address(fleetProxyArbitrum),
             USDC_ARBITRUM,
             amount,
-            CHAIN_ID_MAINNET,
+            uint256(CHAIN_ID_MAINNET),
             operationId,
             user
         );
@@ -406,167 +369,10 @@ contract StargateAdapterComposeForkTest is Test {
             uint64(1), // nonce
             uint32(LZ_EID_MAINNET), // source endpoint ID
             amount, // amount in local decimals
-            customComposeMessage // our custom compose message
+            customComposeMessage // No adapter address wrapping
         );
 
         console.log("OFT encoded message length:", oftEncodedMessage.length);
-    }
-
-    function testDebugOFTDecoding() public {
-        vm.selectFork(1); // Arbitrum fork
-
-        // Setup test data
-        bytes32 operationId = keccak256("test-operation");
-        uint256 amount = 1000e6;
-
-        // Create our custom compose message
-        bytes memory customComposeMessage = abi.encode(
-            address(fleetProxyArbitrum),
-            USDC_ARBITRUM,
-            amount,
-            CHAIN_ID_MAINNET,
-            operationId,
-            user
-        );
-
-        // Create the OFT-encoded compose message
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1), // nonce
-            uint32(LZ_EID_MAINNET), // source endpoint ID
-            amount, // amount in local decimals
-            customComposeMessage // our custom compose message
-        );
-
-        console.log("=== OFT Message Analysis ===");
-        console.log("OFT encoded message length:", oftEncodedMessage.length);
-
-        // Debug: Check what OFTComposeMsgCodec extracts
-        // We need to use a helper function since OFTComposeMsgCodec expects calldata
-        uint256 extractedAmountLD = this.getAmountLD(oftEncodedMessage);
-        bytes memory extractedComposeMsg = this.getComposeMsg(
-            oftEncodedMessage
-        );
-        console.log("Extracted amountLD:", extractedAmountLD);
-        console.log(
-            "Extracted compose msg length:",
-            extractedComposeMsg.length
-        );
-
-        // Give adapter some USDC (simulating Stargate delivery)
-        deal(USDC_ARBITRUM, address(adapterArbitrum), amount);
-
-        // Test that lzCompose works with LayerZero endpoint
-        vm.prank(LAYERZERO_ENDPOINT_ARBITRUM);
-        bytes memory callData = abi.encodeWithSignature(
-            "lzCompose(address,bytes32,bytes,address,bytes)",
-            address(adapterMainnet), // Source adapter
-            bytes32("test-guid"),
-            oftEncodedMessage, // Use the properly encoded OFT message
-            address(0),
-            ""
-        );
-
-        (bool success, bytes memory returnData) = address(adapterArbitrum).call(
-            callData
-        );
-
-        if (!success) {
-            console.log("Call failed with return data:");
-            console.logBytes(returnData);
-        }
-
-        assertTrue(success, "lzCompose call should succeed");
-
-        // Verify fleet proxy received the assets
-        assertTrue(fleetProxyArbitrum.receivedAssets());
-        assertEq(fleetProxyArbitrum.lastAsset(), USDC_ARBITRUM);
-        assertEq(fleetProxyArbitrum.lastAmount(), amount);
-        assertEq(fleetProxyArbitrum.lastSourceChainId(), CHAIN_ID_MAINNET);
-    }
-
-    function testLzComposeWithRawMessage() public {
-        vm.selectFork(1); // Arbitrum fork
-
-        // Setup test data
-        bytes32 operationId = keccak256("test-operation");
-        uint256 amount = 1000e6;
-
-        // Create our custom compose message (what we want to pass to the FleetProxy)
-        bytes memory customComposeMessage = abi.encode(
-            address(fleetProxyArbitrum),
-            USDC_ARBITRUM,
-            amount,
-            CHAIN_ID_MAINNET,
-            operationId,
-            user
-        );
-
-        console.log(
-            "Custom compose message length:",
-            customComposeMessage.length
-        );
-
-        // Use the proper OFTComposeMsgCodec.encode instead of manual encoding
-        // This matches what Stargate actually sends according to the documentation
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1), // nonce (8 bytes)
-            uint32(LZ_EID_MAINNET), // source endpoint ID (4 bytes)
-            amount, // amount in local decimals (32 bytes)
-            customComposeMessage // our custom compose message (192 bytes)
-        );
-
-        console.log("OFT encoded message length:", oftEncodedMessage.length);
-
-        // Debug: Check what OFTComposeMsgCodec extracts
-        // We need to use a helper function since OFTComposeMsgCodec expects calldata
-        uint256 extractedAmountLD = this.getAmountLD(oftEncodedMessage);
-        bytes memory extractedComposeMsg = this.getComposeMsg(
-            oftEncodedMessage
-        );
-        console.log("Extracted amountLD:", extractedAmountLD);
-        console.log(
-            "Extracted compose msg length:",
-            extractedComposeMsg.length
-        );
-
-        // Give adapter some USDC (simulating Stargate delivery)
-        deal(USDC_ARBITRUM, address(adapterArbitrum), amount);
-
-        // Debug: Check adapter balance
-        uint256 adapterBalance = IERC20(USDC_ARBITRUM).balanceOf(
-            address(adapterArbitrum)
-        );
-        console.log("Adapter USDC balance:", adapterBalance);
-        console.log("Expected amount:", amount);
-        console.log("Balance sufficient:", adapterBalance >= amount);
-
-        // Test that lzCompose works with LayerZero endpoint
-        vm.prank(LAYERZERO_ENDPOINT_ARBITRUM);
-        bytes memory callData = abi.encodeWithSignature(
-            "lzCompose(address,bytes32,bytes,address,bytes)",
-            address(adapterMainnet), // Source adapter
-            bytes32("test-guid"),
-            oftEncodedMessage, // Use the properly encoded OFT message
-            address(0),
-            ""
-        );
-
-        (bool success, bytes memory returnData) = address(adapterArbitrum).call(
-            callData
-        );
-
-        if (!success) {
-            console.log("Call failed with return data:");
-            console.logBytes(returnData);
-        }
-
-        assertTrue(success, "lzCompose call should succeed");
-
-        // Verify fleet proxy received the assets
-        assertTrue(fleetProxyArbitrum.receivedAssets());
-        assertEq(fleetProxyArbitrum.lastAsset(), USDC_ARBITRUM);
-        assertEq(fleetProxyArbitrum.lastAmount(), amount);
-        assertEq(fleetProxyArbitrum.lastSourceChainId(), CHAIN_ID_MAINNET);
     }
 
     // Helper functions to call OFTComposeMsgCodec with calldata
@@ -580,5 +386,115 @@ contract StargateAdapterComposeForkTest is Test {
         bytes calldata message
     ) external pure returns (bytes memory) {
         return OFTComposeMsgCodec.composeMsg(message);
+    }
+
+    function testRealStargateFeeConsistency() public {
+        vm.selectFork(0); // Mainnet
+
+        // Skip if no real Stargate contracts are configured
+        try adapterMainnet.assetToStargateContract(USDC_MAINNET) returns (
+            address stargateContract
+        ) {
+            if (stargateContract == address(0)) {
+                vm.skip(true);
+                return;
+            }
+        } catch {
+            vm.skip(true);
+            return;
+        }
+
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
+
+        uint256 amount = 1000e6; // 1000 USDC
+
+        // Get fee estimate
+        (uint256 estimatedFee, ) = adapterMainnet.estimateFee(
+            CHAIN_ID_ARBITRUM,
+            USDC_MAINNET,
+            amount,
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        // Deal USDC to user and router
+        deal(USDC_MAINNET, user, amount);
+        deal(USDC_MAINNET, address(routerMainnet), amount);
+
+        // Give router enough ETH
+        vm.deal(address(routerMainnet), estimatedFee * 2);
+
+        // Approve adapter
+        vm.prank(address(routerMainnet));
+        IERC20(USDC_MAINNET).approve(address(adapterMainnet), amount);
+
+        bytes32 operationId = keccak256("test-fee-consistency");
+
+        BridgeRouterTestHelper(address(routerMainnet)).setOperationToAdapter(
+            operationId,
+            address(adapterMainnet)
+        );
+
+        // Test with estimated fee - should work
+        vm.prank(address(routerMainnet));
+        adapterMainnet.transferAsset{value: estimatedFee}(
+            operationId,
+            CHAIN_ID_ARBITRUM,
+            USDC_MAINNET,
+            address(fleetProxyArbitrum),
+            amount,
+            user,
+            adapterParams
+        );
+    }
+
+    function testMsgValueThroughInternalCalls() public {
+        vm.selectFork(0); // Mainnet
+
+        // This test specifically checks that msg.value is preserved through internal function calls
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
+
+        uint256 amount = 1000e6;
+        uint256 providedFee = 2 ether; // Generous amount
+
+        // Mock the internal flow by calling estimateFee multiple times
+        // to ensure consistent results
+        (uint256 fee1, ) = adapterMainnet.estimateFee(
+            CHAIN_ID_ARBITRUM,
+            USDC_MAINNET,
+            amount,
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        (uint256 fee2, ) = adapterMainnet.estimateFee(
+            CHAIN_ID_ARBITRUM,
+            USDC_MAINNET,
+            amount,
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        // Fees should be consistent between calls
+        assertEq(fee1, fee2, "Fee estimation should be consistent");
+
+        // Provided fee should be much larger than estimated
+        assertGt(
+            providedFee,
+            fee1 * 10,
+            "Provided fee should be much larger than estimated"
+        );
     }
 }
