@@ -5,8 +5,7 @@ describe('Type Definitions', () => {
     it('should have the correct shape', () => {
       const referralData: ReferralData = {
         id: '0x123',
-        amountOfReferred: BigInt(5),
-        protocol: 'summer-earn'
+        amountOfReferred: BigInt(5)
       }
 
       expect(referralData).toHaveProperty('id')
@@ -14,7 +13,7 @@ describe('Type Definitions', () => {
       expect(referralData).toHaveProperty('protocol')
       expect(typeof referralData.id).toBe('string')
       expect(typeof referralData.amountOfReferred).toBe('bigint')
-      expect(typeof referralData.protocol).toBe('string')
+
     })
   })
 
@@ -22,8 +21,8 @@ describe('Type Definitions', () => {
     it('should have the correct shape', () => {
       const position: Position = {
         id: '0x456',
-        account: '0x789',
-        vault: '0xabc',
+        account:{id: '0x789'},
+        vault: {id: '0xabc'},
         inputTokenDeposits: BigInt(1000),
         inputTokenDepositsNormalized: 1000,
         inputTokenWithdrawalsNormalized: 0,
@@ -48,7 +47,9 @@ describe('Type Definitions', () => {
         claimedSummerTokenNormalized: 100,
         claimableSummerToken: BigInt(50),
         claimableSummerTokenNormalized: 50,
-        referralData: null
+        referralData: null,
+        depositAmountUsd: BigInt(1),
+        createdAt: BigInt(1234567880)
       }
 
       // Check required string properties
@@ -126,8 +127,7 @@ describe('Type Definitions', () => {
     it('should allow optional properties to be set', () => {
       const referralData: ReferralData = {
         id: '0x123',
-        amountOfReferred: BigInt(5),
-        protocol: 'summer-earn'
+        amountOfReferred: BigInt(5)
       }
 
       const account: Account = {

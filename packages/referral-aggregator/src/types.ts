@@ -43,12 +43,12 @@ export type Position = {
   claimableSummerTokenNormalized: number
   depositAmountUsd: bigint
   createdAt: bigint
+  referralData: ReferralData | null
 }
 
 export type ReferralData = {
   id: string
   amountOfReferred: bigint
-  timestamp: bigint
 }
 
 export type Chain = 'Ethereum' | 'Polygon' | 'Arbitrum' | 'Base'
@@ -99,8 +99,9 @@ export function convertPosition(position: GeneratedPosition | null | undefined):
     claimedSummerTokenNormalized: Number(position.claimedSummerTokenNormalized),
     claimableSummerToken: BigInt(position.claimableSummerToken),
     claimableSummerTokenNormalized: Number(position.claimableSummerTokenNormalized),
-    depositAmountUsd: BigInt(position.depositAmountUsd),
-    createdAt: BigInt(position.createdAt)
+    depositAmountUsd: BigInt(position.inputTokenBalanceNormalizedInUSD),
+    createdAt: BigInt(position.createdTimestamp),
+    referralData: position.referralData ? convertReferralData(position.referralData) : null
   }
 }
 
@@ -108,7 +109,6 @@ export function convertReferralData(data: GeneratedReferralData | null | undefin
   if (!data) return null
   return {
     id: data.id,
-    amountOfReferred: BigInt(data.amountOfReferred),
-    timestamp: BigInt(data.timestamp)
+    amountOfReferred: BigInt(data.amountOfReferred)
   }
 } 

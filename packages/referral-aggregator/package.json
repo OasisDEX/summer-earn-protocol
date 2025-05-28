@@ -14,13 +14,13 @@
     "calculate-points": "ts-node src/scripts/calculate-points.ts"
   },
   "dependencies": {
-    "@graphql-mesh/cli": "^0.82.35",
-    "@graphql-mesh/graphql": "^0.33.0",
-    "@graphql-mesh/runtime": "^0.44.0",
-    "@graphql-mesh/transform-prefix": "^0.16.0",
-    "@graphql-tools/utils": "^9.2.1",
+    "@graphql-mesh/cli": "0.100.4",
+    "@graphql-mesh/graphql": "0.104.3",
+    "@graphql-mesh/runtime": "0.106.3",
+    "@graphql-mesh/transform-prefix": "0.105.4",
+    "@graphql-tools/utils": "10.8.6",
     "graphql": "^16.8.1",
-    "graphql-request": "^6.1.0",
+    "graphql-request": "^7.2.0",
     "graphql-tag": "^2.12.6",
     "pg": "^8.11.3"
   },
