@@ -131,8 +131,8 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
     function testSetDefaultTransportMode() public {
         useNetworkA();
 
-        // Check initial value (should be false - bus mode)
-        assertEq(adapterA.defaultUseTaxi(), false);
+        // Check initial value (should be true - taxi mode)
+        assertEq(adapterA.defaultUseTaxi(), true);
 
         // Update to taxi mode
         vm.prank(governor);
