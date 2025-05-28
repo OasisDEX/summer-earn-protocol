@@ -67,10 +67,26 @@ contract SummerTokenTest is SummerTokenTestBase {
         aSummerToken.transfer(user1, amount);
     }
 
-    function testFail_TransferInsufficientBalance() public {
+    function test_RevertWhen_TransferInsufficientBalance() public {
         enableTransfers();
         uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                owner,
+                INITIAL_SUPPLY * 10 ** 18,
+                amount
+            )
+        );
         aSummerToken.transfer(user1, amount);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                owner,
+                0,
+                amount
+            )
+        );
         bSummerToken.transfer(user2, amount);
     }
 
@@ -97,17 +113,33 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(bSummerToken.allowance(owner, user1), 0);
     }
 
-    function testFail_TransferFromInsufficientAllowance() public {
+    function test_RevertWhen_TransferFromInsufficientAllowance() public {
         enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.approve(user1, amount - 1);
 
         vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                user1,
+                amount - 1,
+                amount
+            )
+        );
         aSummerToken.transferFrom(owner, user2, amount);
 
         bSummerToken.approve(user1, amount - 1);
 
         vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                user1,
+                amount - 1,
+                amount
+            )
+        );
         bSummerToken.transferFrom(owner, user2, amount);
     }
 
@@ -128,10 +160,26 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(bSummerToken.totalSupply(), initialSupplyB - amount);
     }
 
-    function testFail_BurnInsufficientBalance() public {
+    function test_RevertWhen_BurnInsufficientBalance() public {
         enableTransfers();
         uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                owner,
+                INITIAL_SUPPLY * 10 ** 18,
+                amount
+            )
+        );
         aSummerToken.burn(amount);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                owner,
+                0,
+                amount
+            )
+        );
         bSummerToken.burn(amount);
     }
 
@@ -164,17 +212,33 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(bSummerToken.allowance(owner, user1), 0);
     }
 
-    function testFail_BurnFromInsufficientAllowance() public {
+    function test_RevertWhen_BurnFromInsufficientAllowance() public {
         enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.approve(user1, amount - 1);
 
         vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                user1,
+                amount - 1,
+                amount
+            )
+        );
         aSummerToken.burnFrom(owner, amount);
 
         bSummerToken.approve(user1, amount - 1);
 
         vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                user1,
+                amount - 1,
+                amount
+            )
+        );
         bSummerToken.burnFrom(owner, amount);
     }
 

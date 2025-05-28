@@ -1,0 +1,32 @@
+{
+  "chainConfig": {
+    "1": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295
+    },
+    "8453": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295
+    },
+    "42161": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295
+    },
+    "146": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295
+    }
+  }
+}

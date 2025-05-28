@@ -43,8 +43,9 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
         assertEq(bSummerToken.totalSupply(), initialSupply - burnAmount);
     }
 
-    function testFail_burnMoreThanBalance() public {
+    function test_RevertWhen_burnMoreThanBalance() public {
         uint256 burnAmount = aSummerToken.balanceOf(owner) + 1;
+        vm.expectRevert();
         aSummerToken.burn(burnAmount);
     }
 
@@ -94,12 +95,13 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
         assertEq(bSummerToken.allowance(user1, owner), 0);
     }
 
-    function testFail_burnFromWithoutAllowance() public {
+    function test_RevertWhen_burnFromWithoutAllowance() public {
         aSummerToken.transfer(user1, 100 ether);
+        vm.expectRevert();
         aSummerToken.burnFrom(user1, 100 ether);
     }
 
-    function testFail_burnFromMoreThanAllowance() public {
+    function test_RevertWhen_burnFromMoreThanAllowance() public {
         uint256 burnAmount = 100 ether;
         aSummerToken.transfer(user1, burnAmount);
 
@@ -107,10 +109,11 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
         aSummerToken.approve(owner, burnAmount / 2);
         vm.stopPrank();
 
+        vm.expectRevert();
         aSummerToken.burnFrom(user1, burnAmount);
     }
 
-    function testFail_burnFromMoreThanBalance() public {
+    function test_RevertWhen_burnFromMoreThanBalance() public {
         uint256 burnAmount = 100 ether;
         aSummerToken.transfer(user1, burnAmount);
 
@@ -118,6 +121,7 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
         aSummerToken.approve(owner, burnAmount * 2);
         vm.stopPrank();
 
+        vm.expectRevert();
         aSummerToken.burnFrom(user1, burnAmount * 2);
     }
 
@@ -207,7 +211,8 @@ contract SummerTokenBurnableTest is SummerTokenTestBase {
         );
     }
 
-    function testFail_burnFromZeroAddress() public {
+    function test_RevertWhen_burnFromZeroAddress() public {
+        vm.expectRevert();
         aSummerToken.burnFrom(address(0), 100 ether);
     }
 }

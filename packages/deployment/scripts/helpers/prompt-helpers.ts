@@ -61,7 +61,7 @@ export async function promptForConfigType(): Promise<boolean> {
     message: 'Select the configuration to use:',
     choices: [
       { title: 'Production Config', value: false },
-      { title: 'Bummer/Test Config', value: true },
+      { title: 'Bummer (Test) Config', value: true },
     ],
   })
 
