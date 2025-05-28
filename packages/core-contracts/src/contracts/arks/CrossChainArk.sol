@@ -106,9 +106,6 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
         address targetProxy
     );
 
-    /// @notice Emitted when the inflight assets amount is updated
-    event InflightAssetsUpdated(uint256 newInflightAssets);
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/

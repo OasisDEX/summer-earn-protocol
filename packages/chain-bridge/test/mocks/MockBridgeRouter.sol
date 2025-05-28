@@ -378,12 +378,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockPaused = false;
     }
 
-    // Renamed function
-    function setDefaultGasLimit(uint256 _limit) external override {
-        DEFAULT_GAS_LIMIT = uint64(_limit); // Update mock state
-        emit DefaultGasLimitUpdated(_limit);
-    }
-
     function setChainRouterAddress(
         uint16 _chainId,
         address _routerAddress

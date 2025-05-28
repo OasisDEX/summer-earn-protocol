@@ -290,12 +290,6 @@ interface IBridgeRouter is IERC165 {
     ) external view returns (address routerAddress);
 
     /**
-     * @notice Get the configured default gas limit for adapter interactions
-     * @return The gas limit value
-     */
-    function DEFAULT_GAS_LIMIT() external view returns (uint64);
-
-    /**
      * @notice Get the configured address of the BridgeQueue contract
      * @return The address of the BridgeQueue
      */
@@ -348,13 +342,6 @@ interface IBridgeRouter is IERC165 {
         bytes32 operationId,
         BridgeTypes.OperationStatus newStatus // Renamed param
     ) external;
-
-    /**
-     * @notice Update the default gas limit for adapter interactions (e.g., estimations, confirmations).
-     * @param newDefaultGasLimit New gas limit value.
-     * @dev Governor role required.
-     */
-    function setDefaultGasLimit(uint256 newDefaultGasLimit) external;
 
     /**
      * @notice Set the known BridgeRouter address for another chain (used for confirmations)

@@ -50,12 +50,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     /// @notice Pause state of the router
     bool public paused;
 
-    /// @notice Default gas limit to use when estimating adapter fees
-    uint64 public DEFAULT_GAS_LIMIT = 200000;
-
-    /// @notice Default calldata size to use when estimating adapter fees
-    uint32 internal constant DEFAULT_CALLDATA_SIZE = 100;
-
     /// @notice Mapping of chain IDs to their BridgeRouter addresses
     mapping(uint16 chainId => address routerAddress)
         public chainToRouterAddress;
@@ -301,7 +295,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         }
 
         // Generate the operation ID ONCE - Router is the source of truth
-        console.log("generating operation id");
         operationId = _generateOperationId(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             params.destinationChainId,
@@ -765,12 +758,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         if (!success) revert TransferFailed();
 
         emit RouterFundsRecovered(recipient, amount);
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function setDefaultGasLimit(uint256 newGasLimit) external onlyGovernor {
-        DEFAULT_GAS_LIMIT = uint64(newGasLimit);
-        emit DefaultGasLimitUpdated(newGasLimit);
     }
 
     /// @inheritdoc IBridgeRouter

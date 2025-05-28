@@ -92,7 +92,11 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Setup Stargate adapter
-        stargateAdapter = new StargateAdapter(address(bridgeRouter), governor);
+        stargateAdapter = new StargateAdapter(
+            address(bridgeRouter),
+            governor,
+            LZ_ENDPOINT_MAINNET
+        );
 
         // Register adapters with router
         vm.startPrank(governor);
