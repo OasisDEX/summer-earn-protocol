@@ -120,18 +120,15 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
     /// @notice LayerZero endpoint for compose functionality
     address public immutable lzEndpoint;
 
-    /// @notice Mapping of supported chains to their LayerZero Endpoint IDs
-    mapping(uint16 chainId => uint32 endpointId) public chainToEndpointId;
+    /// @notice Mapping of assets to their Stargate contracts on THIS chain only
+    mapping(address asset => address stargateContract)
+        public assetToStargateContract;
 
-    /// @notice Mapping of chains and assets to their Stargate V2 contract addresses
-    mapping(uint16 chainId => mapping(address asset => address stargateContract))
-        public chainAssetToStargate;
+    /// @notice Mapping of destination chains to their StargateAdapter addresses
+    mapping(uint16 chainId => address adapterAddress) public chainToAdapter;
 
     /// @notice List of supported chains
     uint16[] public supportedChains;
-
-    /// @notice Mapping of chains to supported asset addresses
-    mapping(uint16 chainId => address[] assets) public chainToSupportedAssets;
 
     /// @notice Minimum gas limit for destination transaction execution
     uint256 public minDstGasForCall = 300000;
@@ -239,14 +236,16 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
      * @notice Adds support for a new chain
      * @param chainId Chain ID in our system
      * @param endpointId Corresponding LayerZero Endpoint ID
+     * @param adapterAddress Address of the StargateAdapter for this chain
      */
     function addSupportedChain(
         uint16 chainId,
-        uint32 endpointId
+        uint32 endpointId,
+        address adapterAddress
     ) external onlyOwner {
-        if (chainToEndpointId[chainId] != 0) revert InvalidParams();
+        if (chainToAdapter[chainId] != address(0)) revert InvalidParams();
 
-        chainToEndpointId[chainId] = endpointId;
+        chainToAdapter[chainId] = adapterAddress;
         supportedChains.push(chainId);
 
         emit ChainSupported(chainId, endpointId);
@@ -254,52 +253,19 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
 
     /**
      * @notice Adds support for an asset on a specific chain
-     * @param chainId Chain ID in our system
      * @param asset Address of the asset to support
      * @param stargateContract Address of the Stargate V2 contract for this asset
      */
     function addSupportedAsset(
-        uint16 chainId,
         address asset,
         address stargateContract
     ) external onlyOwner {
-        if (chainToEndpointId[chainId] == 0) revert UnsupportedChain();
-        if (asset == address(0) || stargateContract == address(0))
-            revert InvalidParams();
-
-        // Only verify contract if it's on the current chain
-        if (chainId == uint16(block.chainid)) {
-            // Verify this is a valid Stargate V2 contract (all V2 contracts have stargateType)
-            try IStargate(stargateContract).stargateType() returns (
-                IStargate.StargateType
-            ) {
-                // Valid Stargate V2 contract
-            } catch {
-                revert InvalidParams();
-            }
-        }
-        // For cross-chain configurations, we trust the provided contract address
-
-        // Add Stargate contract mapping
-        chainAssetToStargate[chainId][asset] = stargateContract;
-
-        // Add to the list of supported assets for this chain
-        address[] storage assets = chainToSupportedAssets[chainId];
-
-        // Check if asset is already added
-        bool exists = false;
-        for (uint i = 0; i < assets.length; i++) {
-            if (assets[i] == asset) {
-                exists = true;
-                break;
-            }
-        }
-
-        if (!exists) {
-            assets.push(asset);
-        }
-
-        emit AssetSupported(chainId, asset, stargateContract);
+        assetToStargateContract[asset] = stargateContract;
+        emit AssetSupported(
+            supportedChains[supportedChains.length - 1],
+            asset,
+            stargateContract
+        );
     }
 
     /**
@@ -338,10 +304,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
             revert UnsupportedAsset();
 
         // Get the source chain Stargate contract
-        address stargateContract = chainAssetToStargate[uint16(block.chainid)][
-            asset
-        ];
+        address stargateContract = assetToStargateContract[asset];
         if (stargateContract == address(0)) revert UnsupportedAsset();
+
+        // Get destination adapter (same for all assets on that chain)
+        address destinationAdapter = chainToAdapter[destinationChainId];
+        if (destinationAdapter == address(0)) revert UnsupportedChain();
 
         // Transfer tokens from BridgeRouter to this contract
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
@@ -376,14 +344,8 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
         TransferParams memory params,
         BridgeTypes.AdapterParams calldata adapterParams
     ) internal {
-        // Get destination adapter address for compose
-        address destinationAdapter = chainAssetToStargate[
-            params.destinationChainId
-        ][params.asset];
-        if (destinationAdapter == address(0)) revert UnsupportedAsset();
-
         // Create and execute the transfer
-        _executeSendToken(params, destinationAdapter, adapterParams);
+        _executeSendToken(params, params.stargateContract, adapterParams);
     }
 
     /**
@@ -438,7 +400,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
 
         return
             SendParam({
-                dstEid: chainToEndpointId[destinationChainId],
+                dstEid: chainToAdapter[destinationChainId],
                 to: destinationAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount,
@@ -566,9 +528,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
         }
 
         // Get the source chain Stargate contract
-        address stargateContract = chainAssetToStargate[uint16(block.chainid)][
-            asset
-        ];
+        address stargateContract = assetToStargateContract[asset];
         if (stargateContract == address(0)) revert UnsupportedAsset();
 
         // Always include compose options in fee estimation
@@ -578,7 +538,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
-            dstEid: chainToEndpointId[destinationChainId],
+            dstEid: chainToAdapter[destinationChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
@@ -621,18 +581,17 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
 
     /// @inheritdoc IBridgeAdapter
     function supportsChain(uint16 chainId) public view override returns (bool) {
-        return chainToEndpointId[chainId] != 0;
+        return chainToAdapter[chainId] != address(0);
     }
 
     /**
-     * @notice Get the list of supported assets for a specific chain
-     * @param chainId Chain ID to get supported assets for
-     * @return Array of addresses representing supported assets
+     * @dev Helper function to check if an asset is supported on a specific chain
      */
-    function getSupportedAssets(
-        uint16 chainId
-    ) external view returns (address[] memory) {
-        return chainToSupportedAssets[chainId];
+    function isAssetSupported(
+        uint16 chainId,
+        address asset
+    ) public view returns (bool) {
+        return assetToStargateContract[asset] != address(0);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -678,30 +637,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Helper function to check if an asset is supported on a specific chain
-     */
-    function isAssetSupported(
-        uint16 chainId,
-        address asset
-    ) public view returns (bool) {
-        return chainAssetToStargate[chainId][asset] != address(0);
-    }
-
-    /**
-     * @notice Get the Stargate contract address for a given chain and asset
+     * @notice Get the Stargate contract address for a given asset
      */
     function getStargateContract(
-        uint16 chainId,
         address asset
     ) external view returns (address) {
-        return chainAssetToStargate[chainId][asset];
-    }
-
-    /**
-     * @notice Get the LayerZero endpoint ID for a given chain
-     */
-    function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainToEndpointId[chainId];
+        return assetToStargateContract[asset];
     }
 
     /**
