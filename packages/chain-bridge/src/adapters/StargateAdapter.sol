@@ -743,10 +743,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         require(customComposeMsg.length >= 160, "Compose msg too short");
 
         // Decode our custom compose message
-        // The OFTComposeMsgCodec.composeMsg() only extracts 5 parameters (160 bytes):
-        // (asset, amount, sourceChainId, operationId, originator)
-        // The fleet proxy address is not included in the compose message
+        // The compose message contains: (recipient, asset, amount, sourceChainId, operationId, originator)
         (
+            address fleetProxy, // This is the recipient (FleetProxy address)
             address asset,
             uint256 expectedAmount,
             uint16 sourceChainId,
@@ -754,21 +753,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             address originator
         ) = abi.decode(
                 customComposeMsg,
-                (address, uint256, uint16, bytes32, address)
+                (address, address, uint256, uint16, bytes32, address)
             );
 
-        // For now, we need to determine the fleet proxy address based on the chain
-        // In a production system, this would be configured or passed differently
-        address fleetProxy;
-        if (block.chainid == 42161) {
-            // Arbitrum
-            fleetProxy = 0x687E4e5a4471c259a8f56F1f06b0E5c5FEa808c8; // Hardcoded for testing
-        } else {
-            revert("Unsupported chain for compose");
-        }
-
         // Validate decoded parameters
-        if (asset == address(0) || amountLD == 0) {
+        if (asset == address(0) || amountLD == 0 || fleetProxy == address(0)) {
             revert InvalidParams();
         }
 
