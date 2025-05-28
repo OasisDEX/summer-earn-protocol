@@ -55,6 +55,9 @@ export interface DeployedBridgeAdapters {
   stargate?: { address: Address }
 }
 
+// Add a cache for validated contracts to avoid re-validation
+const validatedContracts = new Set<string>()
+
 /**
  * Helper function to get all supported chains from general config
  * @param allNetworkConfigs All network configurations
@@ -208,14 +211,14 @@ export async function configureStargateAdapter(
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
   // Add supported chains (using general config)
+  let chainsAdded = 0
   for (const chainInfo of supportedChains) {
-    console.log(
-      `Adding supported chain ${chainInfo.chainId} with LayerZero endpoint ID ${chainInfo.endpointId}`,
-    )
-
     try {
       const isSupported = await stargateAdapter.read.supportsChain([chainInfo.chainId])
       if (!isSupported) {
+        console.log(
+          `Adding supported chain ${chainInfo.chainId} with LayerZero endpoint ID ${chainInfo.endpointId}`,
+        )
         const hash = await stargateAdapter.write.addSupportedChain([
           chainInfo.chainId,
           chainInfo.endpointId,
@@ -226,6 +229,7 @@ export async function configureStargateAdapter(
         const publicClient = await hre.viem.getPublicClient()
         await publicClient.waitForTransactionReceipt({ hash })
         console.log(kleur.green(`Chain ${chainInfo.chainId} transaction confirmed`))
+        chainsAdded++
       } else {
         console.log(kleur.yellow(`Chain ${chainInfo.chainId} already supported, skipping`))
       }
@@ -236,8 +240,11 @@ export async function configureStargateAdapter(
     }
   }
 
-  // Add a small delay to ensure all transactions are processed
-  await new Promise((resolve) => setTimeout(resolve, 2000))
+  // Only add delay if we actually added chains
+  if (chainsAdded > 0) {
+    console.log(kleur.blue(`Added ${chainsAdded} new chains, waiting for settlement...`))
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+  }
 
   // Get Stargate contracts for current chain
   const currentChainContracts = (stargateConfig.contracts as any)[currentChainId.toString()]
@@ -250,10 +257,11 @@ export async function configureStargateAdapter(
     return
   }
 
-  // Configure supported assets (using general config for token addresses + stargate config for contracts)
+  // Configure supported assets
+  let assetsConfigured = 0
   for (const [assetSymbol, stargateContract] of Object.entries(currentChainContracts)) {
     // Get token address from general config
-    const localAssetAddress = networkConfig.tokens[assetSymbol]
+    const localAssetAddress = networkConfig.tokens[assetSymbol === 'eth' ? 'weth' : assetSymbol]
 
     if (localAssetAddress && stargateContract) {
       // Ensure addresses are properly checksummed
@@ -264,124 +272,35 @@ export async function configureStargateAdapter(
         `Configuring asset ${assetSymbol} (${checksummedLocalAddress}) with Stargate contract ${checksummedStargateContract}`,
       )
 
-      // Validate Stargate contract before adding asset
-      try {
-        // Test if the contract implements the expected interface
-        // Try multiple different contract types to be more flexible
-        let isValidStargate = false
-        let contractType = 'unknown'
-
-        console.log(`Validating Stargate contract ${checksummedStargateContract}...`)
-
-        // First try OFT-style contract (has stargateType function)
+      // Validate Stargate contract before adding asset (with caching)
+      const contractKey = `${currentChainId}-${checksummedStargateContract}`
+      if (!validatedContracts.has(contractKey)) {
         try {
-          const publicClient = await hre.viem.getPublicClient()
-          await publicClient.readContract({
-            address: checksummedStargateContract,
-            abi: IStargateOFTABI,
-            functionName: 'stargateType',
-          })
-          isValidStargate = true
-          contractType = 'OFT'
-          console.log(
-            kleur.green(`✓ Stargate OFT contract ${checksummedStargateContract} is valid`),
-          )
-        } catch (oftError) {
-          console.log(`OFT validation failed: ${(oftError as Error).message}`)
-
-          // If stargateType() fails, try Pool-style contract (has token function)
-          try {
-            const publicClient = await hre.viem.getPublicClient()
-            await publicClient.readContract({
-              address: checksummedStargateContract,
-              abi: IStargatePoolABI,
-              functionName: 'token',
-            })
-            isValidStargate = true
-            contractType = 'Pool'
-            console.log(
-              kleur.green(`✓ Stargate Pool contract ${checksummedStargateContract} is valid`),
+          const isValid = await validateStargateContract(checksummedStargateContract)
+          if (!isValid) {
+            console.error(
+              kleur.red(
+                `Invalid Stargate contract ${checksummedStargateContract}: Failed validation`,
+              ),
             )
-          } catch (poolError) {
-            console.log(`Pool validation failed: ${(poolError as Error).message}`)
-
-            // Try common Stargate functions as a fallback
-            try {
-              const publicClient = await hre.viem.getPublicClient()
-              await publicClient.readContract({
-                address: checksummedStargateContract,
-                abi: IStargateCommonABI,
-                functionName: 'localDecimals',
-              })
-              isValidStargate = true
-              contractType = 'Common'
-              console.log(
-                kleur.green(
-                  `✓ Stargate contract ${checksummedStargateContract} has common interface`,
-                ),
-              )
-            } catch (commonError) {
-              console.log(`Common interface validation failed: ${(commonError as Error).message}`)
-
-              // Final attempt: just check if it's a contract
-              try {
-                const publicClient = await hre.viem.getPublicClient()
-                const code = await publicClient.getBytecode({
-                  address: checksummedStargateContract,
-                })
-                if (code && code !== '0x') {
-                  isValidStargate = true
-                  contractType = 'Contract (unverified interface)'
-                  console.log(
-                    kleur.yellow(
-                      `⚠ Contract ${checksummedStargateContract} exists but interface unverified - proceeding anyway`,
-                    ),
-                  )
-                } else {
-                  console.error(
-                    kleur.red(
-                      `Contract ${checksummedStargateContract} has no bytecode - not a valid contract`,
-                    ),
-                  )
-                }
-              } catch (bytecodeError) {
-                console.error(
-                  kleur.red(
-                    `Failed to check bytecode for ${checksummedStargateContract}: ${(bytecodeError as Error).message}`,
-                  ),
-                )
-              }
-            }
+            continue // Skip this asset
           }
-        }
-
-        if (!isValidStargate) {
+          validatedContracts.add(contractKey)
+          console.log(kleur.green(`✓ Stargate contract ${checksummedStargateContract} validated`))
+        } catch (error) {
           console.error(
-            kleur.red(
-              `Invalid Stargate contract ${checksummedStargateContract}: Failed all validation attempts`,
-            ),
+            kleur.red(`Error validating Stargate contract ${checksummedStargateContract}:`),
+            error,
           )
           continue // Skip this asset
         }
-
+      } else {
         console.log(
-          kleur.blue(
-            `Using Stargate contract ${checksummedStargateContract} as ${contractType} type`,
-          ),
+          kleur.blue(`✓ Stargate contract ${checksummedStargateContract} already validated`),
         )
-      } catch (error) {
-        console.error(
-          kleur.red(`Error validating Stargate contract ${checksummedStargateContract}:`),
-          error,
-        )
-        continue // Skip this asset
       }
 
-      // First, add asset mapping for current chain (source chain)
-      console.log(
-        `Adding supported asset ${checksummedLocalAddress} for current chain ${currentChainId} using Stargate contract ${checksummedStargateContract}`,
-      )
-
+      // Check current chain asset mapping
       try {
         const isCurrentChainSupported = await stargateAdapter.read.isAssetSupported([
           currentChainId,
@@ -389,30 +308,96 @@ export async function configureStargateAdapter(
         ])
 
         if (!isCurrentChainSupported) {
+          console.log(
+            `Adding supported asset ${checksummedLocalAddress} for current chain ${currentChainId}`,
+          )
           const hash = await stargateAdapter.write.addSupportedAsset([
-            currentChainId, // Current chain ID
-            checksummedLocalAddress, // Asset address on current chain
-            checksummedStargateContract, // Stargate contract on current chain
+            currentChainId,
+            checksummedLocalAddress,
+            checksummedStargateContract,
           ])
           console.log(
             kleur.green(
-              `Asset mapping for ${checksummedLocalAddress} on current chain ${currentChainId} added successfully, tx: ${hash}`,
+              `Asset mapping for ${checksummedLocalAddress} on current chain added, tx: ${hash}`,
             ),
           )
+          assetsConfigured++
         } else {
-          console.log(kleur.yellow(`Asset mapping for current chain already supported, skipping`))
+          // Verify the mapping is correct
+          const currentMapping = await stargateAdapter.read.getStargateContract([
+            currentChainId,
+            checksummedLocalAddress,
+          ])
+          if (currentMapping.toLowerCase() !== checksummedStargateContract.toLowerCase()) {
+            console.log(
+              kleur.yellow(
+                `Asset mapping exists but points to different contract (${currentMapping} vs ${checksummedStargateContract}), updating...`,
+              ),
+            )
+            const hash = await stargateAdapter.write.addSupportedAsset([
+              currentChainId,
+              checksummedLocalAddress,
+              checksummedStargateContract,
+            ])
+            console.log(kleur.green(`Asset mapping updated, tx: ${hash}`))
+            assetsConfigured++
+          } else {
+            console.log(kleur.yellow(`Asset mapping for current chain already correct, skipping`))
+          }
         }
       } catch (error) {
-        console.error(kleur.red(`Error adding asset mapping for current chain:`), error)
+        console.error(kleur.red(`Error configuring asset mapping for current chain:`), error)
       }
 
-      // Then configure asset for each destination chain
+      // Configure destination chain mappings
       for (const destChain of supportedChains) {
         if (destChain.chainId === currentChainId) continue
 
-        // Get the Stargate contract for this asset on the DESTINATION chain
-        const destChainContracts = (stargateConfig.contracts as any)[destChain.chainId.toString()]
-        const destStargateContract = destChainContracts?.[assetSymbol]
+        const destChainConfig = allNetworkConfigs?.[getNetworkNameFromChainId(destChain.chainId)]
+        if (!destChainConfig) {
+          console.log(
+            kleur.yellow(
+              `No network config found for destination chain ${destChain.chainId}, skipping`,
+            ),
+          )
+          continue
+        }
+
+        const destStargateAdapterAddress =
+          destChainConfig.deployedContracts?.bridge?.adapters?.stargate?.address
+
+        if (
+          !destStargateAdapterAddress ||
+          destStargateAdapterAddress === '0x0000000000000000000000000000000000000000'
+        ) {
+          console.log(
+            kleur.yellow(
+              `No deployed StargateAdapter found for destination chain ${destChain.chainId}, skipping`,
+            ),
+          )
+          continue
+        }
+
+        // Check if the asset exists on the destination chain
+        const destAssetAddress =
+          destChainConfig.tokens?.[assetSymbol === 'eth' ? 'weth' : assetSymbol]
+        if (
+          !destAssetAddress ||
+          destAssetAddress === '0x0000000000000000000000000000000000000000'
+        ) {
+          console.log(
+            kleur.yellow(
+              `Asset ${assetSymbol} not available on destination chain ${destChain.chainId}, skipping`,
+            ),
+          )
+          continue
+        }
+
+        // Check if Stargate supports this asset on the destination chain
+        const destChainStargateContracts = (stargateConfig.contracts as any)[
+          destChain.chainId.toString()
+        ]
+        const destStargateContract = destChainStargateContracts?.[assetSymbol]
 
         if (!destStargateContract) {
           console.log(
@@ -423,10 +408,8 @@ export async function configureStargateAdapter(
           continue
         }
 
-        const checksummedDestStargateContract = getAddress(destStargateContract as string)
-
-        console.log(
-          `Adding supported asset ${checksummedLocalAddress} for bridging to chain ${destChain.chainId} using destination Stargate contract ${checksummedDestStargateContract}`,
+        const checksummedDestStargateAdapterAddress = getAddress(
+          destStargateAdapterAddress as string,
         )
 
         try {
@@ -436,21 +419,54 @@ export async function configureStargateAdapter(
           ])
 
           if (!isSupported) {
+            console.log(
+              `Adding asset mapping for ${checksummedLocalAddress} to chain ${destChain.chainId}`,
+            )
             const hash = await stargateAdapter.write.addSupportedAsset([
               destChain.chainId,
               checksummedLocalAddress,
-              checksummedDestStargateContract, // Use destination chain's Stargate contract
+              checksummedDestStargateAdapterAddress,
             ])
             console.log(
               kleur.green(
-                `Asset mapping for ${checksummedLocalAddress} to chain ${destChain.chainId} added successfully, tx: ${hash}`,
+                `Asset mapping to chain ${destChain.chainId} added successfully, tx: ${hash}`,
               ),
             )
+            assetsConfigured++
           } else {
-            console.log(kleur.yellow(`Asset mapping already supported, skipping`))
+            // Verify the mapping is correct
+            const currentMapping = await stargateAdapter.read.getStargateContract([
+              destChain.chainId,
+              checksummedLocalAddress,
+            ])
+            if (
+              currentMapping.toLowerCase() !== checksummedDestStargateAdapterAddress.toLowerCase()
+            ) {
+              console.log(
+                kleur.yellow(
+                  `Asset mapping exists but points to different adapter (${currentMapping} vs ${checksummedDestStargateAdapterAddress}), updating...`,
+                ),
+              )
+              const hash = await stargateAdapter.write.addSupportedAsset([
+                destChain.chainId,
+                checksummedLocalAddress,
+                checksummedDestStargateAdapterAddress,
+              ])
+              console.log(kleur.green(`Asset mapping updated, tx: ${hash}`))
+              assetsConfigured++
+            } else {
+              console.log(
+                kleur.yellow(
+                  `Asset mapping to chain ${destChain.chainId} already correct, skipping`,
+                ),
+              )
+            }
           }
         } catch (error) {
-          console.error(kleur.red(`Error adding asset mapping:`), error)
+          console.error(
+            kleur.red(`Error adding asset mapping to chain ${destChain.chainId}:`),
+            error,
+          )
         }
       }
     } else {
@@ -462,14 +478,16 @@ export async function configureStargateAdapter(
     }
   }
 
-  // Set minimum gas limit from Stargate config
+  console.log(kleur.blue(`Configured ${assetsConfigured} asset mappings`))
+
+  // Set minimum gas limit from Stargate config (with check)
   try {
     const currentGasLimit = await stargateAdapter.read.minDstGasForCall()
     const configuredGasLimit = BigInt(stargateConfig.minDstGasForCall)
 
     if (currentGasLimit !== configuredGasLimit) {
       await stargateAdapter.write.setMinDstGasForCall([configuredGasLimit])
-      console.log(kleur.green(`Minimum destination gas set to ${configuredGasLimit}`))
+      console.log(kleur.green(`Minimum destination gas updated to ${configuredGasLimit}`))
     } else {
       console.log(
         kleur.yellow(`Minimum destination gas already set to ${currentGasLimit}, skipping`),
@@ -479,18 +497,29 @@ export async function configureStargateAdapter(
     console.error(kleur.red('Error setting minimum destination gas:'), error)
   }
 
-  // Set default transport mode from Stargate config
+  // Set default transport mode from Stargate config (with check)
   try {
     const defaultUseTaxi = stargateConfig.defaultUseTaxi || false
-    await stargateAdapter.write.setDefaultTransportMode([defaultUseTaxi])
-    console.log(kleur.green(`Default transport mode set to ${defaultUseTaxi ? 'taxi' : 'bus'}`))
+    const currentUseTaxi = await stargateAdapter.read.defaultUseTaxi()
+
+    if (currentUseTaxi !== defaultUseTaxi) {
+      await stargateAdapter.write.setDefaultTransportMode([defaultUseTaxi])
+      console.log(
+        kleur.green(`Default transport mode updated to ${defaultUseTaxi ? 'taxi' : 'bus'}`),
+      )
+    } else {
+      console.log(
+        kleur.yellow(
+          `Default transport mode already set to ${defaultUseTaxi ? 'taxi' : 'bus'}, skipping`,
+        ),
+      )
+    }
   } catch (error) {
     console.error(kleur.red('Error setting default transport mode:'), error)
   }
 
-  // Register adapter with bridge router
+  // Register adapter with bridge router (existing check is good)
   try {
-    // Handle case where bridgeRouterAddress might be an object
     let actualAddress: string
     if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
       const addressObj = bridgeRouterAddress as any
@@ -526,10 +555,54 @@ export async function configureStargateAdapter(
 }
 
 /**
- * Configure LayerZero adapter using general config and adapter-specific config
- * @param layerZeroAdapterAddress Address of the deployed LayerZero adapter
- * @param bridgeRouterAddress Address of the deployed BridgeRouter
- * @param networkConfig Network configuration from general config
+ * Optimized Stargate contract validation with caching
+ */
+async function validateStargateContract(contractAddress: string): Promise<boolean> {
+  try {
+    const publicClient = await hre.viem.getPublicClient()
+
+    // First try OFT-style contract (has stargateType function)
+    try {
+      await publicClient.readContract({
+        address: contractAddress as `0x${string}`,
+        abi: IStargateOFTABI,
+        functionName: 'stargateType',
+      })
+      return true
+    } catch {
+      // Try Pool-style contract (has token function)
+      try {
+        await publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: IStargatePoolABI,
+          functionName: 'token',
+        })
+        return true
+      } catch {
+        // Try common Stargate functions
+        try {
+          await publicClient.readContract({
+            address: contractAddress as `0x${string}`,
+            abi: IStargateCommonABI,
+            functionName: 'localDecimals',
+          })
+          return true
+        } catch {
+          // Final check: just verify it's a contract
+          const code = await publicClient.getBytecode({
+            address: contractAddress as `0x${string}`,
+          })
+          return code !== undefined && code !== '0x'
+        }
+      }
+    }
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Configure LayerZero adapter with improved checks
  */
 export async function configureLayerZeroAdapter(
   layerZeroAdapterAddress: Address,
@@ -546,24 +619,32 @@ export async function configureLayerZeroAdapter(
     return
   }
 
-  // Get adapter contract
   const layerZeroAdapter = await hre.viem.getContractAt(
     'LayerZeroAdapter' as any,
     getAddress(layerZeroAdapterAddress as `0x${string}`),
   )
 
-  // Activate read channel if configured
+  // Activate read channel if configured (with check)
   if (chainConfig.readChannelId) {
-    console.log(`Activating read channel with ID ${chainConfig.readChannelId}`)
     try {
-      const hash = await layerZeroAdapter.write.activateReadChannel([chainConfig.readChannelId])
-      console.log(kleur.green(`Read channel activated successfully, tx: ${hash}`))
+      // Check if channel is already active by checking if readChannelId is set
+      const currentReadChannelId = await layerZeroAdapter.read.readChannelId()
+
+      if (currentReadChannelId !== BigInt(chainConfig.readChannelId)) {
+        console.log(`Activating read channel with ID ${chainConfig.readChannelId}`)
+        const hash = await layerZeroAdapter.write.activateReadChannel([chainConfig.readChannelId])
+        console.log(kleur.green(`Read channel activated successfully, tx: ${hash}`))
+      } else {
+        console.log(
+          kleur.yellow(`Read channel ${chainConfig.readChannelId} already active, skipping`),
+        )
+      }
     } catch (error) {
       console.error(kleur.red('Error activating read channel:'), error)
     }
   }
 
-  // Set minimum gas limits if configured
+  // Set minimum gas limits if configured (with checks)
   if (chainConfig.minGasLimits) {
     const messageTypeMap: Record<string, number> = {
       stateRead: 2,
@@ -577,19 +658,28 @@ export async function configureLayerZeroAdapter(
         continue
       }
 
-      console.log(
-        `Setting minimum gas limit for message type ${strMsgType} (${numMsgType}) to ${gasLimit}`,
-      )
       try {
-        const hash = await layerZeroAdapter.write.setMinGasLimit([
-          numMsgType,
-          BigInt(gasLimit as number),
-        ])
-        console.log(
-          kleur.green(
-            `Minimum gas limit for message type ${strMsgType} set successfully, tx: ${hash}`,
-          ),
-        )
+        // Check current gas limit using the minGasLimits mapping
+        const currentGasLimit = await layerZeroAdapter.read.minGasLimits([numMsgType])
+        const configuredGasLimit = BigInt(gasLimit as number)
+
+        if (currentGasLimit !== configuredGasLimit) {
+          console.log(
+            `Setting minimum gas limit for message type ${strMsgType} (${numMsgType}) to ${gasLimit}`,
+          )
+          const hash = await layerZeroAdapter.write.setMinGasLimit([numMsgType, configuredGasLimit])
+          console.log(
+            kleur.green(
+              `Minimum gas limit for message type ${strMsgType} updated successfully, tx: ${hash}`,
+            ),
+          )
+        } else {
+          console.log(
+            kleur.yellow(
+              `Minimum gas limit for message type ${strMsgType} already set to ${currentGasLimit}, skipping`,
+            ),
+          )
+        }
       } catch (error) {
         console.error(
           kleur.red(`Error setting minimum gas limit for message type ${strMsgType}:`),
@@ -599,9 +689,8 @@ export async function configureLayerZeroAdapter(
     }
   }
 
-  // Register adapter with bridge router
+  // Register adapter with bridge router (existing check is good)
   try {
-    // Handle case where bridgeRouterAddress might be an object
     let actualAddress: string
     if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
       const addressObj = bridgeRouterAddress as any
@@ -878,4 +967,20 @@ export async function deployBridgeAdapters(
 
   console.log(kleur.green().bold('Bridge adapters deployment completed!'))
   return deployedAdapters
+}
+
+/**
+ * Helper function to get network name from chain ID
+ * @param chainId Chain ID
+ * @returns Network name used in config
+ */
+function getNetworkNameFromChainId(chainId: number): string {
+  const chainIdToNetworkName: Record<number, string> = {
+    1: 'mainnet',
+    8453: 'base',
+    42161: 'arbitrum',
+    146: 'sonic',
+  }
+
+  return chainIdToNetworkName[chainId] || `chain-${chainId}`
 }
