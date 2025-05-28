@@ -144,8 +144,16 @@ async function deployAdapters() {
     if (reconfigureOnly) {
       // Use existing adapter addresses from config
       deployedAdapters = {
-        layerZero: config.deployedContracts.bridge?.adapters?.layerZero,
-        stargate: config.deployedContracts.bridge?.adapters?.stargate,
+        layerZero: config.deployedContracts.bridge?.adapters?.layerZero
+          ? {
+              address: config.deployedContracts.bridge.adapters.layerZero.address as Address,
+            }
+          : undefined,
+        stargate: config.deployedContracts.bridge?.adapters?.stargate
+          ? {
+              address: config.deployedContracts.bridge.adapters.stargate.address as Address,
+            }
+          : undefined,
       }
 
       // Reconfigure existing adapters

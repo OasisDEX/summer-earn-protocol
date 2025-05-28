@@ -219,9 +219,39 @@ export async function configureStargateAdapter(
         console.log(
           `Adding supported chain ${chainInfo.chainId} with LayerZero endpoint ID ${chainInfo.endpointId}`,
         )
+
+        // Determine adapter address for this chain
+        let adapterAddress: Address
+
+        if (chainInfo.chainId === currentChainId) {
+          // For current chain, use the current adapter address
+          adapterAddress = stargateAdapterAddress
+        } else {
+          // For other chains, check if we have the adapter address in config
+          const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
+          const targetNetworkConfig = allNetworkConfigs?.[targetNetworkName]
+          const existingAdapterAddress =
+            targetNetworkConfig?.deployedContracts?.bridge?.adapters?.stargate?.address
+
+          if (
+            existingAdapterAddress &&
+            existingAdapterAddress !== '0x0000000000000000000000000000000000000000'
+          ) {
+            adapterAddress = existingAdapterAddress as Address
+            console.log(
+              `Using existing adapter address for chain ${chainInfo.chainId}: ${adapterAddress}`,
+            )
+          } else {
+            // Skip this chain for now - will be added when that chain's adapter is deployed
+            console.log(`No adapter address found for chain ${chainInfo.chainId}, skipping for now`)
+            continue
+          }
+        }
+
         const hash = await stargateAdapter.write.addSupportedChain([
           chainInfo.chainId,
           chainInfo.endpointId,
+          adapterAddress,
         ])
         console.log(kleur.green(`Chain ${chainInfo.chainId} added successfully, tx: ${hash}`))
 
@@ -859,4 +889,71 @@ function getNetworkNameFromChainId(chainId: number): string {
   }
 
   return chainIdToNetworkName[chainId] || `chain-${chainId}`
+}
+
+/**
+ * Update adapter addresses for cross-chain support after all adapters are deployed
+ * @param stargateAdapterAddress Address of the Stargate adapter to update
+ * @param allNetworkConfigs All network configurations with deployed adapter addresses
+ */
+export async function updateStargateAdapterAddresses(
+  stargateAdapterAddress: Address,
+  allNetworkConfigs: Record<string, any>,
+): Promise<void> {
+  console.log(kleur.blue('Updating Stargate adapter cross-chain addresses'))
+
+  const stargateAdapter = await hre.viem.getContractAt(
+    'StargateAdapter' as string,
+    getAddress(stargateAdapterAddress as `0x${string}`),
+  )
+
+  const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
+
+  for (const chainInfo of supportedChains) {
+    try {
+      const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
+      const targetNetworkConfig = allNetworkConfigs[targetNetworkName]
+      const targetAdapterAddress =
+        targetNetworkConfig?.deployedContracts?.bridge?.adapters?.stargate?.address
+
+      if (targetAdapterAddress) {
+        // Check if the current adapter address is correct
+        const currentAdapterAddress = (await stargateAdapter.read.chainToAdapter([
+          chainInfo.chainId,
+        ])) as string
+
+        if (currentAdapterAddress.toLowerCase() !== targetAdapterAddress.toLowerCase()) {
+          console.log(
+            `Updating adapter address for chain ${chainInfo.chainId} from ${currentAdapterAddress} to ${targetAdapterAddress}`,
+          )
+
+          const hash = await stargateAdapter.write.updateChainAdapter([
+            chainInfo.chainId,
+            targetAdapterAddress as Address,
+          ])
+
+          console.log(
+            kleur.green(`Chain ${chainInfo.chainId} adapter address updated, tx: ${hash}`),
+          )
+
+          // Wait for transaction confirmation
+          const publicClient = await hre.viem.getPublicClient()
+          await publicClient.waitForTransactionReceipt({ hash })
+        } else {
+          console.log(
+            kleur.yellow(`Chain ${chainInfo.chainId} adapter address already correct, skipping`),
+          )
+        }
+      } else {
+        console.log(
+          kleur.yellow(`No adapter address found for chain ${chainInfo.chainId}, skipping`),
+        )
+      }
+    } catch (error) {
+      console.error(
+        kleur.red(`Error updating adapter address for chain ${chainInfo.chainId}:`),
+        error,
+      )
+    }
+  }
 }
