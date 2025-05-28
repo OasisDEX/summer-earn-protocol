@@ -207,6 +207,9 @@ export async function configureStargateAdapter(
     getAddress(stargateAdapterAddress as `0x${string}`),
   )
 
+  // Get wallet client for transactions
+  const [walletClient] = await hre.viem.getWalletClients()
+
   const currentChainId = Number(networkConfig.common.chainId)
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
@@ -251,11 +254,25 @@ export async function configureStargateAdapter(
           }
         }
 
-        const hash = await stargateAdapter.write.addSupportedChain([
-          chainInfo.chainId,
-          chainInfo.endpointId,
-          adapterAddress,
-        ])
+        // Use wallet client directly instead of .write
+        const hash = await walletClient.writeContract({
+          address: getAddress(stargateAdapterAddress as `0x${string}`),
+          abi: [
+            {
+              inputs: [
+                { internalType: 'uint16', name: 'chainId', type: 'uint16' },
+                { internalType: 'uint32', name: 'endpointId', type: 'uint32' },
+                { internalType: 'address', name: 'adapterAddress', type: 'address' },
+              ],
+              name: 'addSupportedChain',
+              outputs: [],
+              stateMutability: 'nonpayable',
+              type: 'function',
+            },
+          ] as const,
+          functionName: 'addSupportedChain',
+          args: [chainInfo.chainId, chainInfo.endpointId, adapterAddress],
+        })
         console.log(kleur.green(`Chain ${chainInfo.chainId} added successfully, tx: ${hash}`))
 
         // Wait for transaction confirmation
@@ -348,10 +365,24 @@ export async function configureStargateAdapter(
           console.log(
             `Adding supported asset ${checksummedLocalAddress} for current chain ${currentChainId}`,
           )
-          const hash = await stargateAdapter.write.addSupportedAsset([
-            checksummedLocalAddress,
-            checksummedStargateContract,
-          ])
+          // Use wallet client directly instead of .write
+          const hash = await walletClient.writeContract({
+            address: getAddress(stargateAdapterAddress as `0x${string}`),
+            abi: [
+              {
+                inputs: [
+                  { internalType: 'address', name: 'asset', type: 'address' },
+                  { internalType: 'address', name: 'stargateContract', type: 'address' },
+                ],
+                name: 'addSupportedAsset',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function',
+              },
+            ] as const,
+            functionName: 'addSupportedAsset',
+            args: [checksummedLocalAddress, checksummedStargateContract],
+          })
           console.log(
             kleur.green(
               `Asset mapping for ${checksummedLocalAddress} on current chain added, tx: ${hash}`,
@@ -369,10 +400,24 @@ export async function configureStargateAdapter(
                 `Asset mapping exists but points to different contract (${currentMapping} vs ${checksummedStargateContract}), updating...`,
               ),
             )
-            const hash = await stargateAdapter.write.addSupportedAsset([
-              checksummedLocalAddress,
-              checksummedStargateContract,
-            ])
+            // Use wallet client directly instead of .write
+            const hash = await walletClient.writeContract({
+              address: getAddress(stargateAdapterAddress as `0x${string}`),
+              abi: [
+                {
+                  inputs: [
+                    { internalType: 'address', name: 'asset', type: 'address' },
+                    { internalType: 'address', name: 'stargateContract', type: 'address' },
+                  ],
+                  name: 'addSupportedAsset',
+                  outputs: [],
+                  stateMutability: 'nonpayable',
+                  type: 'function',
+                },
+              ] as const,
+              functionName: 'addSupportedAsset',
+              args: [checksummedLocalAddress, checksummedStargateContract],
+            })
             console.log(kleur.green(`Asset mapping updated, tx: ${hash}`))
             assetsConfigured++
           } else {
@@ -399,8 +444,24 @@ export async function configureStargateAdapter(
     const configuredGasLimit = BigInt(stargateConfig.minDstGasForCall)
 
     if (currentGasLimit !== configuredGasLimit) {
-      await stargateAdapter.write.setMinDstGasForCall([configuredGasLimit])
-      console.log(kleur.green(`Minimum destination gas updated to ${configuredGasLimit}`))
+      // Use wallet client directly instead of .write
+      const hash = await walletClient.writeContract({
+        address: getAddress(stargateAdapterAddress as `0x${string}`),
+        abi: [
+          {
+            inputs: [{ internalType: 'uint256', name: 'gasLimit', type: 'uint256' }],
+            name: 'setMinDstGasForCall',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ] as const,
+        functionName: 'setMinDstGasForCall',
+        args: [configuredGasLimit],
+      })
+      console.log(
+        kleur.green(`Minimum destination gas updated to ${configuredGasLimit}, tx: ${hash}`),
+      )
     } else {
       console.log(
         kleur.yellow(`Minimum destination gas already set to ${currentGasLimit}, skipping`),
@@ -416,9 +477,25 @@ export async function configureStargateAdapter(
     const currentUseTaxi = await stargateAdapter.read.defaultUseTaxi()
 
     if (currentUseTaxi !== defaultUseTaxi) {
-      await stargateAdapter.write.setDefaultTransportMode([defaultUseTaxi])
+      // Use wallet client directly instead of .write
+      const hash = await walletClient.writeContract({
+        address: getAddress(stargateAdapterAddress as `0x${string}`),
+        abi: [
+          {
+            inputs: [{ internalType: 'bool', name: 'useTaxi', type: 'bool' }],
+            name: 'setDefaultTransportMode',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ] as const,
+        functionName: 'setDefaultTransportMode',
+        args: [defaultUseTaxi],
+      })
       console.log(
-        kleur.green(`Default transport mode updated to ${defaultUseTaxi ? 'taxi' : 'bus'}`),
+        kleur.green(
+          `Default transport mode updated to ${defaultUseTaxi ? 'taxi' : 'bus'}, tx: ${hash}`,
+        ),
       )
     } else {
       console.log(
@@ -451,10 +528,22 @@ export async function configureStargateAdapter(
     ])
 
     if (!alreadyRegistered) {
-      await bridgeRouter.write.registerAdapter([
-        getAddress(stargateAdapterAddress as `0x${string}`),
-      ])
-      console.log(kleur.green(`Stargate V2 adapter registered with bridge router`))
+      // Use wallet client directly instead of .write
+      const hash = await walletClient.writeContract({
+        address: getAddress(actualAddress as `0x${string}`),
+        abi: [
+          {
+            inputs: [{ internalType: 'address', name: 'adapter', type: 'address' }],
+            name: 'registerAdapter',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ] as const,
+        functionName: 'registerAdapter',
+        args: [getAddress(stargateAdapterAddress as `0x${string}`)],
+      })
+      console.log(kleur.green(`Stargate V2 adapter registered with bridge router, tx: ${hash}`))
     } else {
       console.log(
         kleur.yellow(
@@ -537,6 +626,9 @@ export async function configureLayerZeroAdapter(
     getAddress(layerZeroAdapterAddress as `0x${string}`),
   )
 
+  // Get wallet client for transactions
+  const [walletClient] = await hre.viem.getWalletClients()
+
   // Activate read channel if configured (with check)
   if (chainConfig.readChannelId) {
     try {
@@ -545,7 +637,21 @@ export async function configureLayerZeroAdapter(
 
       if (currentReadChannelId !== BigInt(chainConfig.readChannelId)) {
         console.log(`Activating read channel with ID ${chainConfig.readChannelId}`)
-        const hash = await layerZeroAdapter.write.activateReadChannel([chainConfig.readChannelId])
+        // Use wallet client directly instead of .write
+        const hash = await walletClient.writeContract({
+          address: getAddress(layerZeroAdapterAddress as `0x${string}`),
+          abi: [
+            {
+              inputs: [{ internalType: 'uint32', name: 'channelId', type: 'uint32' }],
+              name: 'activateReadChannel',
+              outputs: [],
+              stateMutability: 'nonpayable',
+              type: 'function',
+            },
+          ] as const,
+          functionName: 'activateReadChannel',
+          args: [chainConfig.readChannelId],
+        })
         console.log(kleur.green(`Read channel activated successfully, tx: ${hash}`))
       } else {
         console.log(
@@ -580,7 +686,24 @@ export async function configureLayerZeroAdapter(
           console.log(
             `Setting minimum gas limit for message type ${strMsgType} (${numMsgType}) to ${gasLimit}`,
           )
-          const hash = await layerZeroAdapter.write.setMinGasLimit([numMsgType, configuredGasLimit])
+          // Use wallet client directly instead of .write
+          const hash = await walletClient.writeContract({
+            address: getAddress(layerZeroAdapterAddress as `0x${string}`),
+            abi: [
+              {
+                inputs: [
+                  { internalType: 'uint8', name: 'messageType', type: 'uint8' },
+                  { internalType: 'uint256', name: 'gasLimit', type: 'uint256' },
+                ],
+                name: 'setMinGasLimit',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function',
+              },
+            ] as const,
+            functionName: 'setMinGasLimit',
+            args: [numMsgType, configuredGasLimit],
+          })
           console.log(
             kleur.green(
               `Minimum gas limit for message type ${strMsgType} updated successfully, tx: ${hash}`,
@@ -622,10 +745,22 @@ export async function configureLayerZeroAdapter(
     ])
 
     if (!alreadyRegistered) {
-      await bridgeRouter.write.registerAdapter([
-        getAddress(layerZeroAdapterAddress as `0x${string}`),
-      ])
-      console.log(kleur.green(`LayerZero adapter registered with bridge router`))
+      // Use wallet client directly instead of .write
+      const hash = await walletClient.writeContract({
+        address: getAddress(actualAddress as `0x${string}`),
+        abi: [
+          {
+            inputs: [{ internalType: 'address', name: 'adapter', type: 'address' }],
+            name: 'registerAdapter',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ] as const,
+        functionName: 'registerAdapter',
+        args: [getAddress(layerZeroAdapterAddress as `0x${string}`)],
+      })
+      console.log(kleur.green(`LayerZero adapter registered with bridge router, tx: ${hash}`))
     } else {
       console.log(
         kleur.yellow(
@@ -914,6 +1049,9 @@ export async function updateStargateAdapterAddresses(
     getAddress(stargateAdapterAddress as `0x${string}`),
   )
 
+  // Get wallet client for transactions
+  const [walletClient] = await hre.viem.getWalletClients()
+
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
   for (const chainInfo of supportedChains) {
@@ -934,10 +1072,24 @@ export async function updateStargateAdapterAddresses(
             `Updating adapter address for chain ${chainInfo.chainId} from ${currentAdapterAddress} to ${targetAdapterAddress}`,
           )
 
-          const hash = await stargateAdapter.write.updateChainAdapter([
-            chainInfo.chainId,
-            targetAdapterAddress as Address,
-          ])
+          // Use wallet client directly instead of .write
+          const hash = await walletClient.writeContract({
+            address: getAddress(stargateAdapterAddress as `0x${string}`),
+            abi: [
+              {
+                inputs: [
+                  { internalType: 'uint16', name: 'chainId', type: 'uint16' },
+                  { internalType: 'address', name: 'adapterAddress', type: 'address' },
+                ],
+                name: 'updateChainAdapter',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function',
+              },
+            ] as const,
+            functionName: 'updateChainAdapter',
+            args: [chainInfo.chainId, targetAdapterAddress as Address],
+          })
 
           console.log(
             kleur.green(`Chain ${chainInfo.chainId} adapter address updated, tx: ${hash}`),
