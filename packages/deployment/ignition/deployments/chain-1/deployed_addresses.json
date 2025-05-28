@@ -96,5 +96,9 @@
   "LazyVault_HigherRisk_USDC_Syrup_usdc_1_gov#SyrupArk": "0x1bf7ef7eD5AC8285DFE6e538b92364Ad095dd1A3",
   "LazyVault_HigherRisk_WETH_Origin_weth_1_gov#OriginETHArk": "0xF285361059b2c17e4F3c562BD8A1868ce22Ae826",
   "BummerLazyVault_WETH_ERC4626_Term_re7_weth_weth_1#ERC4626Ark": "0x74812Cf07e232aC69FEbdf62082775e3D5BbdfB5",
-  "LazyVault_LowerRisk_USDT_Syrup_usdt_1_gov#SyrupArk": "0x0f9DA4B515FdAB1AeC67cFa6a66c24625543f495"
+  "LazyVault_LowerRisk_USDT_Syrup_usdt_1_gov#SyrupArk": "0x0f9DA4B515FdAB1AeC67cFa6a66c24625543f495",
+  "LazyVault_HigherRisk_WETH_MorphoVault_weth_Smokehouse_WETH_1#MorphoVaultArk": "0xFC53Cd3Bd3E700ca3154D620C8d8806178dcc166",
+  "LazyVault_HigherRisk_WETH_FluidLite_weth_1_gov#FluidLiteArk": "0x60390d9493008153B32FFfa4765D21d84875d90e",
+  "LazyVault_HigherRisk_USDC_ERC4626_Term_Summer_USDC_usdc_1#ERC4626Ark": "0xfD899321B1FD8d75e255119766D9097C98568519",
+  "LazyVault_HigherRisk_WETH_ERC4626_Term_Summer_WETH_weth_1#ERC4626Ark": "0x235dd2d3cfcD5476Bd0B9217e9a4839e709a00F6"
 }
