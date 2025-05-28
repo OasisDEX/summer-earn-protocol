@@ -5,7 +5,9 @@ import layerZeroConfig from '../../config/adapters/layerzero.json'
 import stargateConfig from '../../config/adapters/stargate.json'
 import LayerZeroAdapterModule from '../../ignition/modules/adapters/layerzero'
 import StargateAdapterModule from '../../ignition/modules/adapters/stargate'
+import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../common/chain-config-map'
 import { isTenderlyVirtualTestnet } from '../helpers/tenderly-helpers'
+import { createClients } from '../helpers/wallet-helper'
 
 // Simple ABI for IStargatePool interface validation
 const IStargatePoolABI = [
@@ -88,6 +90,26 @@ function getSupportedChainsFromConfig(
   }
 
   return chains
+}
+
+/**
+ * Get wallet client for transactions using the proper private key setup
+ */
+async function getWalletClient() {
+  const networkName = hre.network.name
+  const rpcUrl = RPC_URL_MAP[networkName as keyof typeof RPC_URL_MAP] || hre.network.config.url
+  const chainConfig = CHAIN_CONFIG_MAP[networkName as keyof typeof CHAIN_CONFIG_MAP]
+
+  if (!rpcUrl) {
+    throw new Error(`RPC URL not found for network ${networkName}`)
+  }
+
+  if (!chainConfig) {
+    throw new Error(`Chain configuration not found for ${networkName}`)
+  }
+
+  const { walletClient } = createClients(chainConfig, rpcUrl)
+  return walletClient
 }
 
 /**
@@ -207,8 +229,8 @@ export async function configureStargateAdapter(
     getAddress(stargateAdapterAddress as `0x${string}`),
   )
 
-  // Get wallet client for transactions
-  const [walletClient] = await hre.viem.getWalletClients()
+  // Get wallet client for transactions using proper setup
+  const walletClient = await getWalletClient()
 
   const currentChainId = Number(networkConfig.common.chainId)
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
@@ -611,8 +633,8 @@ export async function configureLayerZeroAdapter(
     getAddress(layerZeroAdapterAddress as `0x${string}`),
   )
 
-  // Get wallet client for transactions
-  const [walletClient] = await hre.viem.getWalletClients()
+  // Get wallet client for transactions using proper setup
+  const walletClient = await getWalletClient()
 
   // Activate read channel if configured (with check)
   if (chainConfig.readChannelId) {
@@ -1038,8 +1060,8 @@ export async function updateStargateAdapterAddresses(
     getAddress(stargateAdapterAddress as `0x${string}`),
   )
 
-  // Get wallet client for transactions
-  const [walletClient] = await hre.viem.getWalletClients()
+  // Get wallet client for transactions using proper setup
+  const walletClient = await getWalletClient()
 
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
