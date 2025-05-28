@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title MockStargateV2
@@ -67,14 +67,24 @@ contract MockStargateV2 {
     )
         external
         pure
-        returns (uint256 limit, uint256 oftLimit, OFTReceipt memory oftReceipt)
+        returns (
+            OFTLimit memory limit,
+            OFTFeeDetail[] memory oftFeeDetails,
+            OFTReceipt memory oftReceipt
+        )
     {
-        // Mock implementation
-        limit = _sendParam.amountLD;
-        oftLimit = _sendParam.amountLD;
+        // Mock implementation with correct return types
+        limit = OFTLimit({minAmountLD: 1, maxAmountLD: type(uint256).max});
+
+        oftFeeDetails = new OFTFeeDetail[](1);
+        oftFeeDetails[0] = OFTFeeDetail({
+            feeAmountLD: -501, // Mock protocol fee (negative means fee)
+            description: "protocol fee"
+        });
+
         oftReceipt = OFTReceipt({
             amountSentLD: _sendParam.amountLD,
-            amountReceivedLD: _sendParam.amountLD
+            amountReceivedLD: _sendParam.amountLD // In real scenario, this would be less due to fees
         });
     }
 }

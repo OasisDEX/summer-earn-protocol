@@ -10,7 +10,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Stargate V2 interfaces - based on LayerZero V2 OFT standard
-import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 
 /**
@@ -51,20 +51,15 @@ interface IStargate {
     )
         external
         view
-        returns (uint256 limit, uint256 oftLimit, OFTReceipt memory oftReceipt);
+        returns (
+            OFTLimit memory limit,
+            OFTFeeDetail[] memory oftFeeDetails,
+            OFTReceipt memory oftReceipt
+        );
 
     function stargateType() external pure returns (StargateType);
 
     function token() external view returns (address);
-}
-
-/**
- * @title IStargatePool interface for V2 Pool assets
- * @notice Pool-style assets don't have stargateType() function
- */
-interface IStargatePool {
-    function token() external view returns (address);
-    // Add other pool-specific functions as needed
 }
 
 /**
@@ -89,7 +84,7 @@ library OftCmdHelper {
 
 /**
  * @title StargateAdapter
- * @notice Adapter for Stargate V2 Protocol supporting both Pool and Hydra (OFT) assets
+ * @notice Adapter for Stargate V2 Protocol - all V2 contracts are OFT-enabled
  * @dev Implements IBridgeAdapter interface and connects to Stargate V2 for efficient cross-chain transfers
  */
 contract StargateAdapter is Ownable, IBridgeAdapter {
@@ -98,8 +93,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
 
     /// @notice Error for unsupported asset
     error UnsupportedAsset();
-    /// @notice Error for unsupported stargate type
-    error UnsupportedStargateType();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -149,7 +142,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the StargateV2Adapter
+     * @notice Initializes the StargateAdapter
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _owner Address of the contract owner
      */
@@ -212,25 +205,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         if (asset == address(0) || stargateContract == address(0))
             revert InvalidParams();
 
-        // Verify this is a valid Stargate contract (either Pool or OFT)
-        bool isValidStargate = false;
-
-        // Try OFT-style contract first
+        // Verify this is a valid Stargate V2 contract (all V2 contracts have stargateType)
         try IStargate(stargateContract).stargateType() returns (
             IStargate.StargateType
         ) {
-            isValidStargate = true;
+            // Valid Stargate V2 contract
         } catch {
-            // Try Pool-style contract
-            try IStargatePool(stargateContract).token() returns (address) {
-                isValidStargate = true;
-            } catch {
-                // Neither interface worked
-                revert InvalidParams();
-            }
-        }
-
-        if (!isValidStargate) {
             revert InvalidParams();
         }
 
@@ -304,8 +284,8 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         IERC20(asset).approve(stargateContract, 0);
         IERC20(asset).approve(stargateContract, amount);
 
-        // Execute the Stargate V2 transfer
-        _executeStargateV2Transfer(
+        // Execute the Stargate V2 transfer (all V2 contracts are OFT-enabled)
+        _executeStargateTransfer(
             stargateContract,
             destinationChainId,
             asset,
@@ -323,53 +303,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
     }
 
     /**
-     * @dev Internal function to execute Stargate V2 transfer
-     * @dev Handles both Pool and OFT style contracts
+     * @dev Execute Stargate V2 transfer - all V2 contracts use the same OFT interface
      */
-    function _executeStargateV2Transfer(
-        address stargateContract,
-        uint16 destinationChainId,
-        address asset,
-        address recipient,
-        uint256 amount,
-        address originator,
-        bytes32 operationId,
-        BridgeTypes.AdapterParams calldata adapterParams
-    ) internal {
-        // First try OFT-style interface
-        try IStargate(stargateContract).stargateType() returns (
-            IStargate.StargateType /* stargateType */
-        ) {
-            // This is an OFT-style contract, use existing OFT logic
-            _executeOFTTransfer(
-                stargateContract,
-                destinationChainId,
-                asset,
-                recipient,
-                amount,
-                originator,
-                operationId,
-                adapterParams
-            );
-        } catch {
-            // This is likely a Pool-style contract, use pool logic
-            _executePoolTransfer(
-                stargateContract,
-                destinationChainId,
-                asset,
-                recipient,
-                amount,
-                originator,
-                operationId,
-                adapterParams
-            );
-        }
-    }
-
-    /**
-     * @dev Execute transfer using OFT-style contract (existing logic)
-     */
-    function _executeOFTTransfer(
+    function _executeStargateTransfer(
         address stargateContract,
         uint16 destinationChainId,
         address asset,
@@ -392,15 +328,17 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
             oftCmd: _getTransportMode(adapterParams)
         });
 
-        // Get quote to determine actual received amount
+        // Get quote to determine actual received amount and update minAmountLD
         try stargate.quoteOFT(sendParam) returns (
-            uint256,
-            uint256,
+            OFTLimit memory,
+            OFTFeeDetail[] memory,
             OFTReceipt memory oftReceipt
         ) {
+            // Update minAmountLD to the expected received amount
             sendParam.minAmountLD = oftReceipt.amountReceivedLD;
         } catch {
-            sendParam.minAmountLD = (amount * 9950) / 10000; // 0.5% slippage
+            // Fallback: use 0.5% slippage tolerance
+            sendParam.minAmountLD = (amount * 9950) / 10000;
         }
 
         // Get messaging fee
@@ -439,26 +377,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
                 operationId
             );
         }
-    }
-
-    /**
-     * @dev Execute transfer using Pool-style contract
-     * @dev This needs to be implemented based on Pool contract interface
-     */
-    function _executePoolTransfer(
-        address /* stargateContract */,
-        uint16 /* destinationChainId */,
-        address /* asset */,
-        address /* recipient */,
-        uint256 /* amount */,
-        address /* originator */,
-        bytes32 /* operationId */,
-        BridgeTypes.AdapterParams calldata /* adapterParams */
-    ) internal pure {
-        // TODO: Implement Pool-style transfer logic
-        // You'll need to research the Pool contract interface and implement accordingly
-        // For now, revert with a descriptive error
-        revert("Pool-style transfers not yet implemented");
     }
 
     /**
