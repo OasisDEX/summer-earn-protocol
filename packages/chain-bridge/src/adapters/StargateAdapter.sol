@@ -205,14 +205,18 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         if (asset == address(0) || stargateContract == address(0))
             revert InvalidParams();
 
-        // Verify this is a valid Stargate V2 contract (all V2 contracts have stargateType)
-        try IStargate(stargateContract).stargateType() returns (
-            IStargate.StargateType
-        ) {
-            // Valid Stargate V2 contract
-        } catch {
-            revert InvalidParams();
+        // Only verify contract if it's on the current chain
+        if (chainId == uint16(block.chainid)) {
+            // Verify this is a valid Stargate V2 contract (all V2 contracts have stargateType)
+            try IStargate(stargateContract).stargateType() returns (
+                IStargate.StargateType
+            ) {
+                // Valid Stargate V2 contract
+            } catch {
+                revert InvalidParams();
+            }
         }
+        // For cross-chain configurations, we trust the provided contract address
 
         // Add Stargate contract mapping
         chainAssetToStargate[chainId][asset] = stargateContract;
