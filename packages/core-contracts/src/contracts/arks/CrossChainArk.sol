@@ -106,6 +106,9 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
         address targetProxy
     );
 
+    /// @notice Emitted when the inflight assets amount is updated
+    event InflightAssetsUpdated(uint256 newInflightAssets);
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -148,6 +151,15 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
         emit TargetProxyUpdated(oldProxy, _targetProxy);
     }
 
+    /// @notice Force update the inflight assets amount (emergency governance function)
+    /// @param amount Amount of assets to set as in-flight
+    /// @dev This is an emergency function that allows governance to manually correct inflight asset tracking
+    /// in case of bridge failures or accounting discrepancies
+    function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
+        inflightAssets = amount;
+        emit InflightAssetsUpdated(amount);
+    }
+
     /// @notice Updates the inflight assets amount when a bridge operation is executed
     /// @param amount Amount of assets that are now in-flight
     function updateInflightAssets(uint256 amount) external {
@@ -160,6 +172,7 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
         }
 
         inflightAssets = amount;
+        emit InflightAssetsUpdated(amount);
     }
 
     /// @notice Requests a state read to update the remote asset balance
@@ -286,6 +299,7 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
 
         // Reset inflight assets as the state read now reflects the current remote balance
         inflightAssets = 0;
+        emit InflightAssetsUpdated(0);
 
         emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
     }

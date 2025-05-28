@@ -13,7 +13,6 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @title BridgeRouter
@@ -281,7 +280,6 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         // Notify originator that assets are now officially in-flight
         // Attempt to call updateInflightAssets if the originator supports it
-        console.log("Updating inflight assets");
         if (params.originator.code.length > 0) {
             try
                 IERC165(params.originator).supportsInterface(
