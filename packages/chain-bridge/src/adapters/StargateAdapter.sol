@@ -120,6 +120,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
     /// @notice LayerZero endpoint for compose functionality
     address public immutable lzEndpoint;
 
+    /// @notice Mapping of supported chains to their LayerZero Endpoint IDs
+    mapping(uint16 chainId => uint32 endpointId) public chainToEndpointId;
+
     /// @notice Mapping of assets to their Stargate contracts on THIS chain only
     mapping(address asset => address stargateContract)
         public assetToStargateContract;
@@ -243,12 +246,27 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
         uint32 endpointId,
         address adapterAddress
     ) external onlyOwner {
-        if (chainToAdapter[chainId] != address(0)) revert InvalidParams();
+        if (chainToEndpointId[chainId] != 0) revert InvalidParams();
 
+        chainToEndpointId[chainId] = endpointId;
         chainToAdapter[chainId] = adapterAddress;
         supportedChains.push(chainId);
 
         emit ChainSupported(chainId, endpointId);
+    }
+
+    /**
+     * @notice Updates the adapter address for an existing supported chain
+     * @param chainId Chain ID in our system
+     * @param adapterAddress New address of the StargateAdapter for this chain
+     */
+    function updateChainAdapter(
+        uint16 chainId,
+        address adapterAddress
+    ) external onlyOwner {
+        if (chainToEndpointId[chainId] == 0) revert InvalidParams();
+
+        chainToAdapter[chainId] = adapterAddress;
     }
 
     /**
@@ -260,12 +278,21 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
         address asset,
         address stargateContract
     ) external onlyOwner {
+        if (asset == address(0) || stargateContract == address(0))
+            revert InvalidParams();
+
+        // Verify this is a valid Stargate V2 contract (only for current chain)
+        try IStargate(stargateContract).stargateType() returns (
+            IStargate.StargateType
+        ) {
+            // Valid Stargate V2 contract
+        } catch {
+            revert InvalidParams();
+        }
+
         assetToStargateContract[asset] = stargateContract;
-        emit AssetSupported(
-            supportedChains[supportedChains.length - 1],
-            asset,
-            stargateContract
-        );
+
+        emit AssetSupported(uint16(block.chainid), asset, stargateContract);
     }
 
     /**
@@ -298,16 +325,17 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
-        // Check if chain and asset are supported
+        // Check if destination chain is supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
-        if (!isAssetSupported(destinationChainId, asset))
+
+        // Check if asset is supported on current chain
+        if (assetToStargateContract[asset] == address(0))
             revert UnsupportedAsset();
 
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[asset];
-        if (stargateContract == address(0)) revert UnsupportedAsset();
 
-        // Get destination adapter (same for all assets on that chain)
+        // Get destination adapter address
         address destinationAdapter = chainToAdapter[destinationChainId];
         if (destinationAdapter == address(0)) revert UnsupportedChain();
 
@@ -318,7 +346,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
         IERC20(asset).approve(stargateContract, 0);
         IERC20(asset).approve(stargateContract, amount);
 
-        // Execute the Stargate V2 transfer (all V2 contracts are OFT-enabled)
+        // Execute the Stargate V2 transfer
         TransferParams memory params = TransferParams({
             stargateContract: stargateContract,
             destinationChainId: destinationChainId,
@@ -329,7 +357,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
             operationId: operationId
         });
 
-        _executeStargateTransfer(params, adapterParams);
+        _executeSendToken(params, destinationAdapter, adapterParams);
 
         IBridgeRouter(bridgeRouter).updateOperationStatus(
             operationId,
@@ -400,7 +428,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
 
         return
             SendParam({
-                dstEid: chainToAdapter[destinationChainId],
+                dstEid: chainToEndpointId[destinationChainId],
                 to: destinationAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount,
@@ -519,17 +547,16 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
         // Check if chain is supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
 
-        // Check if asset is supported
+        // Check if asset is supported on current chain
         if (
             operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-            !isAssetSupported(destinationChainId, asset)
+            assetToStargateContract[asset] == address(0)
         ) {
             revert UnsupportedAsset();
         }
 
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[asset];
-        if (stargateContract == address(0)) revert UnsupportedAsset();
 
         // Always include compose options in fee estimation
         bytes memory extraOptions = OptionsBuilder
@@ -538,7 +565,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
-            dstEid: chainToAdapter[destinationChainId],
+            dstEid: chainToEndpointId[destinationChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
@@ -591,7 +618,13 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
         uint16 chainId,
         address asset
     ) public view returns (bool) {
-        return assetToStargateContract[asset] != address(0);
+        if (chainId == uint16(block.chainid)) {
+            // For current chain, check if asset has a Stargate contract
+            return assetToStargateContract[asset] != address(0);
+        } else {
+            // For destination chains, check if we have an adapter address
+            return chainToAdapter[chainId] != address(0);
+        }
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -635,15 +668,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
     /*//////////////////////////////////////////////////////////////
                           HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Get the Stargate contract address for a given asset
-     */
-    function getStargateContract(
-        address asset
-    ) external view returns (address) {
-        return assetToStargateContract[asset];
-    }
 
     /**
      * @notice Handles composed messages from LayerZero after Stargate token delivery
@@ -698,5 +722,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
             amount,
             sourceChainId
         );
+    }
+
+    /**
+     * @notice Get the LayerZero Endpoint ID for a given chain
+     */
+    function getEndpointId(uint16 chainId) external view returns (uint32) {
+        return chainToEndpointId[chainId];
     }
 }

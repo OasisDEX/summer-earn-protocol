@@ -83,8 +83,12 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Configure mainnet adapter with basic chain support only
-        adapterMainnet.addSupportedChain(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
-        adapterMainnet.addSupportedChain(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
+        adapterMainnet.addSupportedChain(
+            CHAIN_ID_MAINNET,
+            LZ_EID_MAINNET,
+            address(adapterMainnet)
+        );
+        // Don't add CHAIN_ID_ARBITRUM yet - will add after arbitrum adapter is deployed
 
         routerMainnet.registerAdapter(address(adapterMainnet));
         vm.stopPrank();
@@ -123,8 +127,16 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Configure Arbitrum adapter with basic chain support only
-        adapterArbitrum.addSupportedChain(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
-        adapterArbitrum.addSupportedChain(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
+        adapterArbitrum.addSupportedChain(
+            CHAIN_ID_MAINNET,
+            LZ_EID_MAINNET,
+            address(adapterMainnet)
+        );
+        adapterArbitrum.addSupportedChain(
+            CHAIN_ID_ARBITRUM,
+            LZ_EID_ARBITRUM,
+            address(adapterArbitrum)
+        );
 
         routerArbitrum.registerAdapter(address(adapterArbitrum));
 
@@ -132,6 +144,15 @@ contract StargateAdapterComposeForkTest is Test {
         fleetProxyArbitrum = new MockFleetProxy(USDC_ARBITRUM);
 
         vm.stopPrank();
+
+        // Now add arbitrum chain support to mainnet adapter with the correct arbitrum adapter address
+        vm.selectFork(0); // Switch back to mainnet
+        vm.prank(governor);
+        adapterMainnet.addSupportedChain(
+            CHAIN_ID_ARBITRUM,
+            LZ_EID_ARBITRUM,
+            address(adapterArbitrum)
+        );
     }
 
     function testComposeGasLimitConfiguration() public {

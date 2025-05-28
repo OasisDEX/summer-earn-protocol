@@ -95,19 +95,14 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             lzEndpointA // Use real LayerZero endpoint
         );
 
-        adapterA.addSupportedChain(CHAIN_ID_A, ENDPOINT_ID_A); // Map local chain ID to LayerZero endpoint ID
-        adapterA.addSupportedChain(CHAIN_ID_B, ENDPOINT_ID_B); // Map remote chain ID to LayerZero endpoint ID
-
-        adapterA.addSupportedAsset(
+        adapterA.addSupportedChain(
             CHAIN_ID_A,
-            address(tokenA),
-            address(stargateA)
+            ENDPOINT_ID_A,
+            address(adapterA)
         );
-        adapterA.addSupportedAsset(
-            CHAIN_ID_B,
-            address(tokenA),
-            address(stargateA) // Use same mock for simplicity in tests
-        );
+        // Don't add CHAIN_ID_B yet - will add after adapterB is deployed
+
+        adapterA.addSupportedAsset(address(tokenA), address(stargateA));
 
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
@@ -144,19 +139,18 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             lzEndpointB // Use real LayerZero endpoint
         );
 
-        adapterB.addSupportedChain(CHAIN_ID_B, ENDPOINT_ID_B); // Map local chain ID to LayerZero endpoint ID
-        adapterB.addSupportedChain(CHAIN_ID_A, ENDPOINT_ID_A); // Map remote chain ID to LayerZero endpoint ID
-
-        adapterB.addSupportedAsset(
+        adapterB.addSupportedChain(
             CHAIN_ID_B,
-            address(tokenB),
-            address(stargateB)
+            ENDPOINT_ID_B,
+            address(adapterB)
         );
-        adapterB.addSupportedAsset(
+        adapterB.addSupportedChain(
             CHAIN_ID_A,
-            address(tokenB),
-            address(stargateB) // Use same mock for simplicity in tests
+            ENDPOINT_ID_A,
+            address(adapterA)
         );
+
+        adapterB.addSupportedAsset(address(tokenB), address(stargateB));
 
         routerB.registerAdapter(address(adapterB));
         tokenB.mint(user, 10000e18);
@@ -164,8 +158,14 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         vm.stopPrank();
 
-        // Return to network A for tests to start
+        // Now add chain B support to adapter A with the correct adapter B address
         useNetworkA();
+        vm.prank(governor);
+        adapterA.addSupportedChain(
+            CHAIN_ID_B,
+            ENDPOINT_ID_B,
+            address(adapterB)
+        );
     }
 
     // Helper functions for switching networks

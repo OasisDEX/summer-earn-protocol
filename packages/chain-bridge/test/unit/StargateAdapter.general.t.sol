@@ -80,7 +80,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         uint32 newEndpointId = 30110; // LayerZero endpoint ID for Arbitrum
 
         vm.prank(governor);
-        adapterA.addSupportedChain(newChainId, newEndpointId);
+        adapterA.addSupportedChain(newChainId, newEndpointId, address(0xdead)); // Use non-zero address
 
         // Verify the chain was added
         assertTrue(adapterA.supportsChain(newChainId));
@@ -104,7 +104,11 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Try to add an already supported chain
         vm.prank(governor);
         vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
-        adapterA.addSupportedChain(CHAIN_ID_A, uint32(CHAIN_ID_A));
+        adapterA.addSupportedChain(
+            CHAIN_ID_A,
+            uint32(CHAIN_ID_A),
+            address(adapterA)
+        );
     }
 
     function testAddSupportedAsset() public {
@@ -122,29 +126,18 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Add the new token as supported asset
         vm.prank(governor);
         adapterA.addSupportedAsset(
-            CHAIN_ID_A,
             address(newToken),
             address(mockStargateContract)
         );
 
         // Verify the asset was added
         assertEq(
-            adapterA.getStargateContract(CHAIN_ID_A, address(newToken)),
+            adapterA.assetToStargateContract(address(newToken)),
             address(mockStargateContract)
         );
 
-        // Get the supported assets using getSupportedAssets method
-        address[] memory supportedAssets = adapterA.getSupportedAssets(
-            CHAIN_ID_A
-        );
-        bool found = false;
-        for (uint i = 0; i < supportedAssets.length; i++) {
-            if (supportedAssets[i] == address(newToken)) {
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found);
+        // Check the asset directly:
+        assertTrue(adapterA.isAssetSupported(CHAIN_ID_A, address(newToken)));
     }
 
     function testAddDuplicateAsset() public {
@@ -159,42 +152,18 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Add the same asset again (should update Stargate contract but not add duplicate)
         vm.prank(governor);
         adapterA.addSupportedAsset(
-            CHAIN_ID_A,
             address(tokenA),
             address(newStargateContract)
         );
 
         // Verify the Stargate contract was updated
         assertEq(
-            adapterA.getStargateContract(CHAIN_ID_A, address(tokenA)),
+            adapterA.assetToStargateContract(address(tokenA)),
             address(newStargateContract)
         );
 
-        // Get the supported assets using getSupportedAssets method
-        address[] memory supportedAssets = adapterA.getSupportedAssets(
-            CHAIN_ID_A
-        );
-        assertEq(supportedAssets.length, 1);
-        assertEq(supportedAssets[0], address(tokenA));
-    }
-
-    function testAddAssetToUnsupportedChain() public {
-        useNetworkA();
-
-        // Create a proper mock Stargate contract for this test
-        MockStargateV2 mockStargateContract = new MockStargateV2(
-            address(tokenA),
-            MockStargateV2.StargateType.Pool
-        );
-
-        // Try to add an asset to an unsupported chain
-        vm.prank(governor);
-        vm.expectRevert(IBridgeAdapter.UnsupportedChain.selector);
-        adapterA.addSupportedAsset(
-            9999,
-            address(tokenA),
-            address(mockStargateContract)
-        );
+        // Check the asset directly:
+        assertTrue(adapterA.isAssetSupported(CHAIN_ID_A, address(tokenA)));
     }
 
     function testAddInvalidAsset() public {
@@ -209,10 +178,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Try to add address(0) as an asset
         vm.prank(governor);
         vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
-        adapterA.addSupportedAsset(
-            CHAIN_ID_A,
-            address(0),
-            address(mockStargateContract)
-        );
+        adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
 }

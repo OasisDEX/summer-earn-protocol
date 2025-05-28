@@ -210,96 +210,151 @@ export async function configureStargateAdapter(
   const currentChainId = Number(networkConfig.common.chainId)
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
-  // 1. Add supported chains with their adapter addresses
+  // Add supported chains (using general config)
+  let chainsAdded = 0
   for (const chainInfo of supportedChains) {
-    if (chainInfo.chainId === currentChainId) continue // Skip current chain
-
     try {
       const isSupported = await stargateAdapter.read.supportsChain([chainInfo.chainId])
-
       if (!isSupported) {
-        // Get destination adapter address from config
-        const destChainConfig = allNetworkConfigs?.[getNetworkNameFromChainId(chainInfo.chainId)]
-        const destAdapterAddress =
-          destChainConfig?.deployedContracts?.bridge?.adapters?.stargate?.address
+        console.log(
+          `Adding supported chain ${chainInfo.chainId} with LayerZero endpoint ID ${chainInfo.endpointId}`,
+        )
+        const hash = await stargateAdapter.write.addSupportedChain([
+          chainInfo.chainId,
+          chainInfo.endpointId,
+        ])
+        console.log(kleur.green(`Chain ${chainInfo.chainId} added successfully, tx: ${hash}`))
 
-        if (
-          destAdapterAddress &&
-          destAdapterAddress !== '0x0000000000000000000000000000000000000000'
-        ) {
-          console.log(
-            `Adding supported chain ${chainInfo.chainId} with adapter ${destAdapterAddress}`,
-          )
-
-          const hash = await stargateAdapter.write.addSupportedChain([
-            chainInfo.chainId,
-            chainInfo.endpointId,
-            getAddress(destAdapterAddress as string),
-          ])
-
-          console.log(kleur.green(`Chain ${chainInfo.chainId} added successfully, tx: ${hash}`))
-        } else {
-          console.log(kleur.yellow(`No adapter deployed on chain ${chainInfo.chainId}, skipping`))
-        }
+        // Wait for transaction confirmation
+        const publicClient = await hre.viem.getPublicClient()
+        await publicClient.waitForTransactionReceipt({ hash })
+        console.log(kleur.green(`Chain ${chainInfo.chainId} transaction confirmed`))
+        chainsAdded++
       } else {
         console.log(kleur.yellow(`Chain ${chainInfo.chainId} already supported, skipping`))
       }
     } catch (error) {
       console.error(kleur.red(`Error adding chain ${chainInfo.chainId}:`), error)
+      // Don't continue if chain addition fails
+      throw error
     }
   }
 
-  // 2. Add supported assets (current chain only)
+  // Only add delay if we actually added chains
+  if (chainsAdded > 0) {
+    console.log(kleur.blue(`Added ${chainsAdded} new chains, waiting for settlement...`))
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+  }
+
+  // Get Stargate contracts for current chain
   const currentChainContracts = (stargateConfig.contracts as any)[currentChainId.toString()]
   if (!currentChainContracts) {
-    console.log(kleur.yellow(`No Stargate contracts found for current chain ${currentChainId}`))
+    console.log(
+      kleur.yellow(
+        `No Stargate V2 contracts found for current chain ${currentChainId}, skipping asset configuration`,
+      ),
+    )
     return
   }
 
+  // Configure supported assets
+  let assetsConfigured = 0
   for (const [assetSymbol, stargateContract] of Object.entries(currentChainContracts)) {
+    // Get token address from general config
     const localAssetAddress = networkConfig.tokens[assetSymbol === 'eth' ? 'weth' : assetSymbol]
 
     if (localAssetAddress && stargateContract) {
-      const checksummedAsset = getAddress(localAssetAddress)
-      const checksummedStargate = getAddress(stargateContract as string)
+      // Ensure addresses are properly checksummed
+      const checksummedLocalAddress = getAddress(localAssetAddress)
+      const checksummedStargateContract = getAddress(stargateContract as string)
 
+      console.log(
+        `Configuring asset ${assetSymbol} (${checksummedLocalAddress}) with Stargate contract ${checksummedStargateContract}`,
+      )
+
+      // Validate Stargate contract before adding asset (with caching)
+      const contractKey = `${currentChainId}-${checksummedStargateContract}`
+      if (!validatedContracts.has(contractKey)) {
+        try {
+          const isValid = await validateStargateContract(checksummedStargateContract)
+          if (!isValid) {
+            console.error(
+              kleur.red(
+                `Invalid Stargate contract ${checksummedStargateContract}: Failed validation`,
+              ),
+            )
+            continue // Skip this asset
+          }
+          validatedContracts.add(contractKey)
+          console.log(kleur.green(`✓ Stargate contract ${checksummedStargateContract} validated`))
+        } catch (error) {
+          console.error(
+            kleur.red(`Error validating Stargate contract ${checksummedStargateContract}:`),
+            error,
+          )
+          continue // Skip this asset
+        }
+      } else {
+        console.log(
+          kleur.blue(`✓ Stargate contract ${checksummedStargateContract} already validated`),
+        )
+      }
+
+      // Check current chain asset mapping
       try {
-        // Check if asset is already supported
-        const currentStargateContract = await stargateAdapter.read.assetToStargateContract([
-          checksummedAsset,
+        const isCurrentChainSupported = await stargateAdapter.read.isAssetSupported([
+          currentChainId,
+          checksummedLocalAddress,
         ])
 
-        if (currentStargateContract === '0x0000000000000000000000000000000000000000') {
+        if (!isCurrentChainSupported) {
           console.log(
-            `Adding asset ${assetSymbol} (${checksummedAsset}) with Stargate ${checksummedStargate}`,
+            `Adding supported asset ${checksummedLocalAddress} for current chain ${currentChainId}`,
           )
-
           const hash = await stargateAdapter.write.addSupportedAsset([
-            checksummedAsset,
-            checksummedStargate,
+            checksummedLocalAddress,
+            checksummedStargateContract,
           ])
-
-          console.log(kleur.green(`Asset ${assetSymbol} added successfully, tx: ${hash}`))
-        } else if (currentStargateContract.toLowerCase() !== checksummedStargate.toLowerCase()) {
-          console.log(kleur.yellow(`Asset ${assetSymbol} mapping updated`))
-
-          const hash = await stargateAdapter.write.addSupportedAsset([
-            checksummedAsset,
-            checksummedStargate,
-          ])
-
-          console.log(kleur.green(`Asset ${assetSymbol} updated, tx: ${hash}`))
+          console.log(
+            kleur.green(
+              `Asset mapping for ${checksummedLocalAddress} on current chain added, tx: ${hash}`,
+            ),
+          )
+          assetsConfigured++
         } else {
-          console.log(kleur.yellow(`Asset ${assetSymbol} already correctly configured, skipping`))
+          // Verify the mapping is correct
+          const currentMapping = (await stargateAdapter.read.assetToStargateContract([
+            checksummedLocalAddress,
+          ])) as string
+          if (currentMapping.toLowerCase() !== checksummedStargateContract.toLowerCase()) {
+            console.log(
+              kleur.yellow(
+                `Asset mapping exists but points to different contract (${currentMapping} vs ${checksummedStargateContract}), updating...`,
+              ),
+            )
+            const hash = await stargateAdapter.write.addSupportedAsset([
+              checksummedLocalAddress,
+              checksummedStargateContract,
+            ])
+            console.log(kleur.green(`Asset mapping updated, tx: ${hash}`))
+            assetsConfigured++
+          } else {
+            console.log(kleur.yellow(`Asset mapping for current chain already correct, skipping`))
+          }
         }
       } catch (error) {
-        console.error(kleur.red(`Error configuring asset ${assetSymbol}:`), error)
+        console.error(kleur.red(`Error configuring asset mapping for current chain:`), error)
       }
+    } else {
+      console.log(
+        kleur.yellow(
+          `Asset ${assetSymbol} not available on current chain ${currentChainId} (address: ${localAssetAddress}), skipping`,
+        ),
+      )
     }
   }
 
-  // 3. Rest of configuration (gas limits, transport mode, router registration) stays the same
-  // ... existing code for minDstGasForCall, defaultTransportMode, router registration
+  console.log(kleur.blue(`Configured ${assetsConfigured} asset mappings`))
 
   // Set minimum gas limit from Stargate config (with check)
   try {
