@@ -213,13 +213,32 @@ export async function configureStargateAdapter(
   const currentChainId = Number(networkConfig.common.chainId)
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
+  // Debug logging
+  console.log(
+    'allNetworkConfigs keys:',
+    allNetworkConfigs ? Object.keys(allNetworkConfigs) : 'undefined',
+  )
+  console.log('supportedChains:', supportedChains)
+
   // Add supported chains (using general config)
   let chainsAdded = 0
   for (const chainInfo of supportedChains) {
+    if (chainInfo.chainId === currentChainId) {
+      continue // Skip current chain
+    }
+
     try {
-      // Check if chain is already supported by checking the endpoint ID mapping
-      // instead of using supportsChain() which checks adapter addresses
-      const existingEndpointId = await stargateAdapter.read.chainToEndpointId([chainInfo.chainId])
+      // Check if chain is already supported
+      let existingEndpointId = 0
+      try {
+        existingEndpointId = Number(
+          await stargateAdapter.read.chainToEndpointId([chainInfo.chainId]),
+        )
+      } catch (error) {
+        // If the call fails, it means the chain is not supported yet (which is expected)
+        console.log(`Chain ${chainInfo.chainId} not yet supported, will add it`)
+        existingEndpointId = 0
+      }
 
       if (existingEndpointId === 0) {
         console.log(
@@ -281,18 +300,14 @@ export async function configureStargateAdapter(
         console.log(kleur.green(`Chain ${chainInfo.chainId} transaction confirmed`))
         chainsAdded++
       } else {
-        console.log(
-          kleur.yellow(
-            `Chain ${chainInfo.chainId} already supported (endpoint ID: ${existingEndpointId}), skipping`,
-          ),
-        )
+        console.log(kleur.yellow(`Chain ${chainInfo.chainId} already supported, skipping`))
       }
     } catch (error) {
       console.error(kleur.red(`Error adding chain ${chainInfo.chainId}:`), error)
-      // Don't continue if chain addition fails
-      throw error
     }
   }
+
+  console.log(kleur.green(`Added ${chainsAdded} new supported chains`))
 
   // Only add delay if we actually added chains
   if (chainsAdded > 0) {
@@ -356,12 +371,14 @@ export async function configureStargateAdapter(
 
       // Check current chain asset mapping
       try {
-        const isCurrentChainSupported = await stargateAdapter.read.isAssetSupported([
-          currentChainId,
-          checksummedLocalAddress,
-        ])
+        const currentStargateContract = String(
+          await stargateAdapter.read.assetToStargateContract([checksummedLocalAddress]),
+        )
 
-        if (!isCurrentChainSupported) {
+        if (
+          currentStargateContract === '0x0000000000000000000000000000000000000000' ||
+          currentStargateContract.toLowerCase() !== checksummedStargateContract.toLowerCase()
+        ) {
           console.log(
             `Adding supported asset ${checksummedLocalAddress} for current chain ${currentChainId}`,
           )
@@ -390,39 +407,7 @@ export async function configureStargateAdapter(
           )
           assetsConfigured++
         } else {
-          // Verify the mapping is correct
-          const currentMapping = (await stargateAdapter.read.assetToStargateContract([
-            checksummedLocalAddress,
-          ])) as string
-          if (currentMapping.toLowerCase() !== checksummedStargateContract.toLowerCase()) {
-            console.log(
-              kleur.yellow(
-                `Asset mapping exists but points to different contract (${currentMapping} vs ${checksummedStargateContract}), updating...`,
-              ),
-            )
-            // Use wallet client directly instead of .write
-            const hash = await walletClient.writeContract({
-              address: getAddress(stargateAdapterAddress as `0x${string}`),
-              abi: [
-                {
-                  inputs: [
-                    { internalType: 'address', name: 'asset', type: 'address' },
-                    { internalType: 'address', name: 'stargateContract', type: 'address' },
-                  ],
-                  name: 'addSupportedAsset',
-                  outputs: [],
-                  stateMutability: 'nonpayable',
-                  type: 'function',
-                },
-              ] as const,
-              functionName: 'addSupportedAsset',
-              args: [checksummedLocalAddress, checksummedStargateContract],
-            })
-            console.log(kleur.green(`Asset mapping updated, tx: ${hash}`))
-            assetsConfigured++
-          } else {
-            console.log(kleur.yellow(`Asset mapping for current chain already correct, skipping`))
-          }
+          console.log(kleur.yellow(`Asset mapping for current chain already correct, skipping`))
         }
       } catch (error) {
         console.error(kleur.red(`Error configuring asset mapping for current chain:`), error)
@@ -440,7 +425,7 @@ export async function configureStargateAdapter(
 
   // Set minimum gas limit from Stargate config (with check)
   try {
-    const currentGasLimit = await stargateAdapter.read.minDstGasForCall()
+    const currentGasLimit = BigInt(String(await stargateAdapter.read.minDstGasForCall()))
     const configuredGasLimit = BigInt(stargateConfig.minDstGasForCall)
 
     if (currentGasLimit !== configuredGasLimit) {
@@ -474,7 +459,7 @@ export async function configureStargateAdapter(
   // Set default transport mode from Stargate config (with check)
   try {
     const defaultUseTaxi = stargateConfig.defaultUseTaxi || false
-    const currentUseTaxi = await stargateAdapter.read.defaultUseTaxi()
+    const currentUseTaxi = Boolean(await stargateAdapter.read.defaultUseTaxi())
 
     if (currentUseTaxi !== defaultUseTaxi) {
       // Use wallet client directly instead of .write
@@ -523,9 +508,9 @@ export async function configureStargateAdapter(
       getAddress(actualAddress as `0x${string}`),
     )
 
-    const alreadyRegistered = await bridgeRouter.read.isValidAdapter([
-      getAddress(stargateAdapterAddress as `0x${string}`),
-    ])
+    const alreadyRegistered = Boolean(
+      await bridgeRouter.read.isValidAdapter([getAddress(stargateAdapterAddress as `0x${string}`)]),
+    )
 
     if (!alreadyRegistered) {
       // Use wallet client directly instead of .write
@@ -633,7 +618,7 @@ export async function configureLayerZeroAdapter(
   if (chainConfig.readChannelId) {
     try {
       // Check if channel is already active by checking if readChannelId is set
-      const currentReadChannelId = await layerZeroAdapter.read.readChannelId()
+      const currentReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
 
       if (currentReadChannelId !== BigInt(chainConfig.readChannelId)) {
         console.log(`Activating read channel with ID ${chainConfig.readChannelId}`)
@@ -679,7 +664,9 @@ export async function configureLayerZeroAdapter(
 
       try {
         // Check current gas limit using the minGasLimits mapping
-        const currentGasLimit = await layerZeroAdapter.read.minGasLimits([numMsgType])
+        const currentGasLimit = BigInt(
+          String(await layerZeroAdapter.read.minGasLimits([numMsgType])),
+        )
         const configuredGasLimit = BigInt(gasLimit as number)
 
         if (currentGasLimit !== configuredGasLimit) {
@@ -740,9 +727,11 @@ export async function configureLayerZeroAdapter(
       getAddress(actualAddress as `0x${string}`),
     )
 
-    const alreadyRegistered = await bridgeRouter.read.isValidAdapter([
-      getAddress(layerZeroAdapterAddress as `0x${string}`),
-    ])
+    const alreadyRegistered = Boolean(
+      await bridgeRouter.read.isValidAdapter([
+        getAddress(layerZeroAdapterAddress as `0x${string}`),
+      ]),
+    )
 
     if (!alreadyRegistered) {
       // Use wallet client directly instead of .write
@@ -798,9 +787,9 @@ async function isAdapterRegistered(
       getAddress(actualAddress as `0x${string}`),
     )
 
-    return (await bridgeRouter.read.isValidAdapter([
-      getAddress(adapterAddress as `0x${string}`),
-    ])) as boolean
+    return Boolean(
+      await bridgeRouter.read.isValidAdapter([getAddress(adapterAddress as `0x${string}`)]),
+    )
   } catch (error) {
     console.error(kleur.red('Error checking if adapter is registered:'), error)
     return false
