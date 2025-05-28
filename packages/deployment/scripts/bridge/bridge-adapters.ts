@@ -159,12 +159,21 @@ export async function deployStargateAdapter(
   const [deployer] = await hre.viem.getWalletClients()
   const signerAddress = deployer.account.address
 
-  // Deploy using Ignition module - V2 has simplified constructor
+  // Get LayerZero endpoint from network config
+  const lzEndpoint = networkConfig.common.layerZero.lzEndpoint
+  if (!lzEndpoint) {
+    throw new Error(
+      `LayerZero endpoint not configured for chain ID ${networkConfig.common.chainId}`,
+    )
+  }
+
+  // Deploy using Ignition module - V2 requires all 3 constructor parameters
   const deploymentResult = await hre.ignition.deploy(StargateAdapterModule, {
     parameters: {
       StargateAdapterModule: {
         bridgeRouter: bridgeRouterAddress,
         owner: signerAddress,
+        lzEndpoint: lzEndpoint,
       },
     },
   })
