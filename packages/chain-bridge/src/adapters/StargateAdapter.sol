@@ -8,10 +8,14 @@ import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
 
 // Stargate V2 interfaces - based on LayerZero V2 OFT standard
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
+// Add LayerZero composability imports
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {IOAppComposer} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 
 /**
  * @title IStargate interface for V2
@@ -87,12 +91,24 @@ library OftCmdHelper {
  * @notice Adapter for Stargate V2 Protocol - all V2 contracts are OFT-enabled
  * @dev Implements IBridgeAdapter interface and connects to Stargate V2 for efficient cross-chain transfers
  */
-contract StargateAdapter is Ownable, IBridgeAdapter {
+contract StargateAdapter is Ownable, IBridgeAdapter, IOAppComposer {
     using SafeERC20 for IERC20;
     using AddressCast for address;
+    using OptionsBuilder for bytes;
 
     /// @notice Error for unsupported asset
     error UnsupportedAsset();
+
+    /// @notice Transfer parameters struct to avoid stack too deep
+    struct TransferParams {
+        address stargateContract;
+        uint16 destinationChainId;
+        address asset;
+        address recipient;
+        uint256 amount;
+        address originator;
+        bytes32 operationId;
+    }
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -100,6 +116,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
 
     /// @notice The BridgeRouter that manages this adapter
     address public bridgeRouter;
+
+    /// @notice LayerZero endpoint for compose functionality
+    address public immutable lzEndpoint;
 
     /// @notice Mapping of supported chains to their LayerZero Endpoint IDs
     mapping(uint16 chainId => uint32 endpointId) public chainToEndpointId;
@@ -120,6 +139,15 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
     /// @notice Default transport mode (true = taxi, false = bus)
     bool public defaultUseTaxi = false;
 
+    /// @notice Gas limit for compose execution on destination
+    uint256 public composeGasLimit = 200000;
+
+    /// @notice Minimum gas limit for compose execution
+    uint256 public constant MIN_COMPOSE_GAS = 100000;
+
+    /// @notice Maximum gas limit for compose execution
+    uint256 public constant MAX_COMPOSE_GAS = 500000;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -137,6 +165,18 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
     /// @notice Emitted when default transport mode is changed
     event DefaultTransportModeChanged(bool useTaxi);
 
+    /// @notice Emitted when compose gas limit is updated
+    event ComposeGasLimitUpdated(uint256 newGasLimit);
+
+    /// @notice Emitted when composed assets are handled
+    event ComposedAssetHandled(
+        bytes32 indexed operationId,
+        address indexed fleetProxy,
+        address indexed asset,
+        uint256 amount,
+        uint16 sourceChainId
+    );
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -145,11 +185,18 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
      * @notice Initializes the StargateAdapter
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _owner Address of the contract owner
+     * @param _lzEndpoint LayerZero endpoint for compose functionality
      */
-    constructor(address _bridgeRouter, address _owner) Ownable(_owner) {
+    constructor(
+        address _bridgeRouter,
+        address _owner,
+        address _lzEndpoint
+    ) Ownable(_owner) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
+        if (_lzEndpoint == address(0)) revert InvalidParams();
 
         bridgeRouter = _bridgeRouter;
+        lzEndpoint = _lzEndpoint;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -171,6 +218,21 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
     function setDefaultTransportMode(bool _useTaxi) external onlyOwner {
         defaultUseTaxi = _useTaxi;
         emit DefaultTransportModeChanged(_useTaxi);
+    }
+
+    /**
+     * @notice Sets the gas limit for compose execution
+     * @param _composeGasLimit New gas limit for compose execution
+     */
+    function setComposeGasLimit(uint256 _composeGasLimit) external onlyOwner {
+        if (
+            _composeGasLimit < MIN_COMPOSE_GAS ||
+            _composeGasLimit > MAX_COMPOSE_GAS
+        ) {
+            revert InvalidParams();
+        }
+        composeGasLimit = _composeGasLimit;
+        emit ComposeGasLimitUpdated(_composeGasLimit);
     }
 
     /**
@@ -289,16 +351,17 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         IERC20(asset).approve(stargateContract, amount);
 
         // Execute the Stargate V2 transfer (all V2 contracts are OFT-enabled)
-        _executeStargateTransfer(
-            stargateContract,
-            destinationChainId,
-            asset,
-            recipient,
-            amount,
-            originator,
-            operationId,
-            adapterParams
-        );
+        TransferParams memory params = TransferParams({
+            stargateContract: stargateContract,
+            destinationChainId: destinationChainId,
+            asset: asset,
+            recipient: recipient,
+            amount: amount,
+            originator: originator,
+            operationId: operationId
+        });
+
+        _executeStargateTransfer(params, adapterParams);
 
         IBridgeRouter(bridgeRouter).updateOperationStatus(
             operationId,
@@ -310,75 +373,135 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
      * @dev Execute Stargate V2 transfer - all V2 contracts use the same OFT interface
      */
     function _executeStargateTransfer(
-        address stargateContract,
-        uint16 destinationChainId,
-        address asset,
-        address recipient,
-        uint256 amount,
-        address originator,
-        bytes32 operationId,
+        TransferParams memory params,
         BridgeTypes.AdapterParams calldata adapterParams
     ) internal {
-        IStargate stargate = IStargate(stargateContract);
+        // Get destination adapter address for compose
+        address destinationAdapter = chainAssetToStargate[
+            params.destinationChainId
+        ][params.asset];
+        if (destinationAdapter == address(0)) revert UnsupportedAsset();
 
-        // Prepare SendParam
-        SendParam memory sendParam = SendParam({
-            dstEid: chainToEndpointId[destinationChainId],
-            to: recipient.toBytes32(),
-            amountLD: amount,
-            minAmountLD: amount, // Will be updated after quote
-            extraOptions: new bytes(0),
-            composeMsg: new bytes(0),
-            oftCmd: _getTransportMode(adapterParams)
-        });
+        // Create and execute the transfer
+        _executeSendToken(params, destinationAdapter, adapterParams);
+    }
 
-        // Get quote to determine actual received amount and update minAmountLD
+    /**
+     * @dev Execute the actual sendToken call
+     */
+    function _executeSendToken(
+        TransferParams memory params,
+        address destinationAdapter,
+        BridgeTypes.AdapterParams calldata adapterParams
+    ) internal {
+        IStargate stargate = IStargate(params.stargateContract);
+
+        // Create compose message
+        bytes memory composeMsg = abi.encode(
+            params.recipient,
+            params.asset,
+            params.amount,
+            uint16(block.chainid),
+            params.operationId,
+            params.originator
+        );
+
+        // Build SendParam
+        SendParam memory sendParam = _buildSendParam(
+            params.destinationChainId,
+            destinationAdapter,
+            params.amount,
+            composeMsg,
+            adapterParams
+        );
+
+        // Update minAmountLD based on quote
+        _updateMinAmount(stargate, sendParam, params.amount);
+
+        // Execute transfer
+        _performTransfer(stargate, sendParam, params);
+    }
+
+    /**
+     * @dev Build SendParam struct
+     */
+    function _buildSendParam(
+        uint16 destinationChainId,
+        address destinationAdapter,
+        uint256 amount,
+        bytes memory composeMsg,
+        BridgeTypes.AdapterParams calldata adapterParams
+    ) internal view returns (SendParam memory) {
+        bytes memory extraOptions = OptionsBuilder
+            .newOptions()
+            .addExecutorLzComposeOption(0, uint128(composeGasLimit), 0);
+
+        return
+            SendParam({
+                dstEid: chainToEndpointId[destinationChainId],
+                to: destinationAdapter.toBytes32(),
+                amountLD: amount,
+                minAmountLD: amount,
+                extraOptions: extraOptions,
+                composeMsg: composeMsg,
+                oftCmd: _getTransportMode(adapterParams)
+            });
+    }
+
+    /**
+     * @dev Update minimum amount based on quote
+     */
+    function _updateMinAmount(
+        IStargate stargate,
+        SendParam memory sendParam,
+        uint256 amount
+    ) internal view {
         try stargate.quoteOFT(sendParam) returns (
             OFTLimit memory,
             OFTFeeDetail[] memory,
             OFTReceipt memory oftReceipt
         ) {
-            // Update minAmountLD to the expected received amount
             sendParam.minAmountLD = oftReceipt.amountReceivedLD;
         } catch {
-            // Fallback: use 0.5% slippage tolerance
             sendParam.minAmountLD = (amount * 9950) / 10000;
         }
+    }
 
-        // Get messaging fee
+    /**
+     * @dev Perform the actual transfer
+     */
+    function _performTransfer(
+        IStargate stargate,
+        SendParam memory sendParam,
+        TransferParams memory params
+    ) internal {
         MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
 
-        // Verify sufficient fee was provided
         if (msg.value < messagingFee.nativeFee) {
             revert InsufficientFee(messagingFee.nativeFee, msg.value);
         }
 
-        // Execute the transfer
         try
             stargate.sendToken{value: msg.value}(
                 sendParam,
                 messagingFee,
-                originator
+                params.originator
             )
-        returns (
-            MessagingReceipt memory,
-            OFTReceipt memory,
-            IStargate.Ticket memory
-        ) {
+        {
             emit TransferInitiated(
-                operationId,
-                destinationChainId,
-                asset,
-                amount,
-                recipient
+                params.operationId,
+                params.destinationChainId,
+                params.asset,
+                params.amount,
+                params.recipient
             );
         } catch {
             _handleTransferFailure(
-                stargateContract,
-                asset,
-                amount,
-                originator,
-                operationId
+                params.stargateContract,
+                params.asset,
+                params.amount,
+                params.originator,
+                params.operationId
             );
         }
     }
@@ -448,14 +571,23 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         ];
         if (stargateContract == address(0)) revert UnsupportedAsset();
 
+        // Always include compose options in fee estimation
+        bytes memory extraOptions = OptionsBuilder
+            .newOptions()
+            .addExecutorLzComposeOption(0, 200000, 0);
+
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
             dstEid: chainToEndpointId[destinationChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
-            extraOptions: new bytes(0),
-            composeMsg: new bytes(0),
+            extraOptions: extraOptions,
+            composeMsg: abi.encode(
+                uint16(block.chainid),
+                bytes32(0),
+                address(0)
+            ), // Dummy compose message
             oftCmd: _getTransportMode(adapterParams)
         });
 
@@ -465,8 +597,8 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
         ) {
             return (msgFee.nativeFee, 0); // Stargate V2 uses only native fees
         } catch {
-            // Fallback estimation
-            return (0.01 ether, 0); // Conservative estimate
+            // Fallback estimation (higher due to compose overhead)
+            return (0.015 ether, 0); // Conservative estimate with compose overhead
         }
     }
 
@@ -570,5 +702,60 @@ contract StargateAdapter is Ownable, IBridgeAdapter {
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
         return chainToEndpointId[chainId];
+    }
+
+    /**
+     * @notice Handles composed messages from LayerZero after Stargate token delivery
+     * @dev Called by LayerZero endpoint after tokens are delivered to FleetProxy
+     * @param // _oApp The originating OApp (should be source StargateAdapter)
+     * @param // _guid Message GUID
+     * @param _message Encoded compose message with operation details
+     * @param // _executor Executor address
+     * @param // _extraData Additional executor data
+     */
+    function lzCompose(
+        address /*_oApp*/,
+        bytes32 /*_guid*/,
+        bytes calldata _message,
+        address /*_executor*/,
+        bytes calldata /*_extraData*/
+    ) external payable override {
+        // Verify caller is LayerZero endpoint
+        if (msg.sender != lzEndpoint) {
+            revert Unauthorized();
+        }
+
+        // Decode the compose message from source adapter
+        (
+            address fleetProxy,
+            address asset,
+            uint256 amount,
+            uint16 sourceChainId,
+            bytes32 operationId,
+            address originator
+        ) = abi.decode(
+                _message,
+                (address, address, uint256, uint16, bytes32, address)
+            );
+
+        // Transfer tokens from adapter to FleetProxy
+        // The tokens were delivered to this adapter by Stargate
+        IERC20(asset).safeTransfer(fleetProxy, amount);
+
+        // Call FleetProxy to handle the received assets
+        ICrossChainAssetReceiver(fleetProxy).receiveMessageWithAssets(
+            asset,
+            amount,
+            abi.encode(operationId, originator), // Pass operation details as message
+            sourceChainId
+        );
+
+        emit ComposedAssetHandled(
+            operationId,
+            fleetProxy,
+            asset,
+            amount,
+            sourceChainId
+        );
     }
 }

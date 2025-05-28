@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
+import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
@@ -11,7 +12,11 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 
 // Base test contract with common setup used by all Stargate adapter tests
-contract StargateAdapterSetupTest is Test {
+contract StargateAdapterSetupTest is TestHelperOz5 {
+    // LayerZero endpoint IDs for TestHelperOz5
+    uint32 public aEid = 1;
+    uint32 public bEid = 2;
+
     // Chain A contracts
     StargateAdapter public adapterA;
     BridgeRouterTestHelper public routerA;
@@ -46,7 +51,21 @@ contract StargateAdapterSetupTest is Test {
     uint32 public constant ENDPOINT_ID_A = 30101;
     uint32 public constant ENDPOINT_ID_B = 30102;
 
-    function setUp() public virtual {
+    // LayerZero endpoints
+    address public lzEndpointA;
+    address public lzEndpointB;
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        // Set up LayerZero endpoints using TestHelperOz5
+        setUpEndpoints(2, LibraryType.UltraLightNode);
+        lzEndpointA = address(endpoints[aEid]);
+        lzEndpointB = address(endpoints[bEid]);
+
+        vm.label(lzEndpointA, "LayerZero Endpoint A");
+        vm.label(lzEndpointB, "LayerZero Endpoint B");
+
         // Deploy contracts on chain A
         useNetworkA();
         vm.startPrank(governor);
@@ -70,7 +89,11 @@ contract StargateAdapterSetupTest is Test {
             MockStargateV2.StargateType.Pool
         );
 
-        adapterA = new StargateAdapter(address(routerA), governor);
+        adapterA = new StargateAdapter(
+            address(routerA),
+            governor,
+            lzEndpointA // Use real LayerZero endpoint
+        );
 
         adapterA.addSupportedChain(CHAIN_ID_A, ENDPOINT_ID_A); // Map local chain ID to LayerZero endpoint ID
         adapterA.addSupportedChain(CHAIN_ID_B, ENDPOINT_ID_B); // Map remote chain ID to LayerZero endpoint ID
@@ -115,7 +138,11 @@ contract StargateAdapterSetupTest is Test {
             MockStargateV2.StargateType.Pool
         );
 
-        adapterB = new StargateAdapter(address(routerB), governor);
+        adapterB = new StargateAdapter(
+            address(routerB),
+            governor,
+            lzEndpointB // Use real LayerZero endpoint
+        );
 
         adapterB.addSupportedChain(CHAIN_ID_B, ENDPOINT_ID_B); // Map local chain ID to LayerZero endpoint ID
         adapterB.addSupportedChain(CHAIN_ID_A, ENDPOINT_ID_A); // Map remote chain ID to LayerZero endpoint ID

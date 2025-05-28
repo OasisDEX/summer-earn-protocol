@@ -21,9 +21,18 @@ contract MockStargateV2 {
     address public immutable token;
     StargateType public immutable stargateType;
 
+    // Compose message tracking
+    bytes public expectedComposeMsg;
+    bool public composeMsgWasSet;
+    bytes public lastComposeMsg;
+
     constructor(address _token, StargateType _stargateType) {
         token = _token;
         stargateType = _stargateType;
+    }
+
+    function setExpectedComposeMsg(bytes memory _composeMsg) external {
+        expectedComposeMsg = _composeMsg;
     }
 
     function sendToken(
@@ -39,6 +48,21 @@ contract MockStargateV2 {
             Ticket memory ticket
         )
     {
+        // Store the compose message for verification
+        if (_sendParam.composeMsg.length > 0) {
+            lastComposeMsg = _sendParam.composeMsg;
+            composeMsgWasSet = true;
+
+            // Check if compose message matches expected (if set)
+            if (expectedComposeMsg.length > 0) {
+                require(
+                    keccak256(_sendParam.composeMsg) ==
+                        keccak256(expectedComposeMsg),
+                    "Compose message mismatch"
+                );
+            }
+        }
+
         // Mock implementation - just return mock structs
         msgReceipt = MessagingReceipt({
             guid: bytes32(uint256(1)),
