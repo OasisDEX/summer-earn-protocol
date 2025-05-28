@@ -5,6 +5,9 @@ import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
+import { useRaftContract } from '../../../../components/../contracts/Raft'
+import { Ark } from '../../../../components/Ark'
+import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
 import { ChainSelector } from '../../../../components/ChainSelector'
 import { ConnectButton } from '../../../../components/ConnectButton'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
@@ -47,6 +50,13 @@ export default function FleetDetail() {
     })
 
   const { rebalance, isRebalanceLoading } = useRebalance({ fleetAddress: address })
+
+  const { harvest, harvestAndStartAuction } = useRaftContract()
+  const [auctionModalArk, setAuctionModalArk] = useState<null | {
+    address: string
+    rewardToken: string
+    name: string
+  }>(null)
 
   const needsApproval =
     userInfo && userInfo.allowance < BigInt(amount || '0') && BigInt(amount || '0') > BigInt(0)
@@ -238,30 +248,23 @@ export default function FleetDetail() {
           ) : (
             <div className="space-y-4">
               {arks.map((ark) => (
-                <div key={ark.address} className="border rounded-md p-4">
-                  <p className="font-medium break-all">{ark.address}</p>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
-                    <div>
-                      <p className="text-sm text-gray-800">Total Assets</p>
-                      <p className="font-medium">
-                        {formatUnits(ark.totalAssets, assetInfo.decimals)} {assetInfo.symbol}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-800">Withdrawable Assets</p>
-                      <p className="font-medium">
-                        {formatUnits(ark.withdrawableTotalAssets, assetInfo.decimals)}{' '}
-                        {assetInfo.symbol}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-800">Name</p>
-                      <p className="font-medium">{ark.name}</p>
-                    </div>
-                  </div>
-                </div>
+                <Ark
+                  key={ark.address}
+                  arkAddress={ark.address as `0x${string}`}
+                  rewardToken={fleetInfo.asset as `0x${string}`}
+                  name={ark.name}
+                />
               ))}
             </div>
+          )}
+
+          {auctionModalArk && (
+            <AuctionConfigModal
+              isOpen={!!auctionModalArk}
+              onClose={() => setAuctionModalArk(null)}
+              arkAddress={auctionModalArk.address as `0x${string}`}
+              rewardToken={auctionModalArk.rewardToken as `0x${string}`}
+            />
           )}
 
           <div className="mt-8 border-t pt-4">

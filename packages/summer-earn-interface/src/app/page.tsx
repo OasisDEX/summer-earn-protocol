@@ -4,18 +4,18 @@ import { useState } from 'react'
 import { ChainSelector } from '../components/ChainSelector'
 import { EnvironmentSelector } from '../components/EnvironmentSelector'
 import { FleetCard } from '../components/FleetCard'
-import type { Environment } from '../config/environments'
 import { HARBOR_COMMAND_ADDRESSES } from '../config/environments'
 import { useActiveFleets } from '../hooks/useActiveFleets'
+import { useEnvironment } from '../hooks/useEnvironment'
 import type { ChainId } from '../types'
 
 export default function Home() {
   const [selectedChain, setSelectedChain] = useState<ChainId>('1')
-  const [selectedEnvironment, setSelectedEnvironment] = useState<Environment>('production')
+  const { environment, setEnvironment } = useEnvironment()
 
   const { fleets, loading, error } = useActiveFleets({
     chainId: selectedChain,
-    harborCommandAddress: HARBOR_COMMAND_ADDRESSES[selectedEnvironment][Number(selectedChain)],
+    harborCommandAddress: HARBOR_COMMAND_ADDRESSES[environment][Number(selectedChain)],
   })
 
   if (loading) {
@@ -44,10 +44,7 @@ export default function Home() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-4">Summer Earn Protocol</h1>
           <div className="flex flex-col gap-4">
-            <EnvironmentSelector
-              selectedEnvironment={selectedEnvironment}
-              onChange={setSelectedEnvironment}
-            />
+            <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
             <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
           </div>
         </div>
