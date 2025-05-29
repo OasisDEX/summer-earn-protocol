@@ -250,11 +250,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Validate fee provided by BridgeQueue
-        _validateFee(msg.value, requiredBaseFee);
+        // Add 10% buffer to account for fee volatility (same as public quote function)
+        uint256 bufferedFee = (requiredBaseFee * 110) / 100;
 
-        // Use the base fee required by the adapter
-        uint256 baseFeeToSend = requiredBaseFee;
+        // Validate fee provided by BridgeQueue against buffered fee
+        _validateFee(msg.value, bufferedFee);
+
+        // Use the buffered fee for the adapter call
+        uint256 feeToSend = bufferedFee;
 
         _validateAdapterSupportsOperation(
             selectedAdapter,
@@ -308,7 +311,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         operationToAdapter[operationId] = selectedAdapter;
 
         // Call adapter with the router-generated operation ID (no return value)
-        ISendAdapter(selectedAdapter).transferAsset{value: baseFeeToSend}(
+        ISendAdapter(selectedAdapter).transferAsset{value: feeToSend}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.asset,
@@ -328,7 +331,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Refund excess fee back to BridgeQueue (which then refunds the keeper)
-        _refund(msg.sender, msg.value - requiredBaseFee);
+        _refund(msg.sender, msg.value - feeToSend);
 
         return operationId;
     }
@@ -357,11 +360,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Validate fee provided by BridgeQueue
-        _validateFee(msg.value, requiredBaseFee);
+        // Add 10% buffer to account for fee volatility (same as public quote function)
+        uint256 bufferedFee = (requiredBaseFee * 110) / 100;
 
-        // Use the base fee required by the adapter
-        uint256 baseFeeToSend = requiredBaseFee;
+        // Validate fee provided by BridgeQueue against buffered fee
+        _validateFee(msg.value, bufferedFee);
+
+        // Use the buffered fee for the adapter call
+        uint256 feeToSend = bufferedFee;
 
         _validateAdapterSupportsOperation(
             selectedAdapter,
@@ -390,7 +396,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         readRequestToOriginator[operationId] = params.originator;
 
         // Call adapter with the router-generated operation ID (no return value)
-        ISendAdapter(selectedAdapter).readState{value: baseFeeToSend}(
+        ISendAdapter(selectedAdapter).readState{value: feeToSend}(
             operationId, // Pass the router-generated ID
             uint16(block.chainid),
             params.dstChainId,
@@ -411,7 +417,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Refund excess fee back to BridgeQueue (which then refunds the keeper)
-        _refund(msg.sender, msg.value - requiredBaseFee);
+        _refund(msg.sender, msg.value - feeToSend);
 
         return operationId;
     }
@@ -440,11 +446,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.MESSAGE
         );
 
-        // Validate fee provided by BridgeQueue
-        _validateFee(msg.value, requiredBaseFee);
+        // Add 10% buffer to account for fee volatility (same as public quote function)
+        uint256 bufferedFee = (requiredBaseFee * 110) / 100;
 
-        // Use the base fee required by the adapter
-        uint256 baseFeeToSend = requiredBaseFee;
+        // Validate fee provided by BridgeQueue against buffered fee
+        _validateFee(msg.value, bufferedFee);
+
+        // Use the buffered fee for the adapter call
+        uint256 feeToSend = bufferedFee;
 
         _validateAdapterSupportsOperation(
             selectedAdapter,
@@ -464,7 +473,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         operationToAdapter[operationId] = selectedAdapter;
 
         // Call adapter with the router-generated operation ID (no return value)
-        ISendAdapter(selectedAdapter).sendMessage{value: baseFeeToSend}(
+        ISendAdapter(selectedAdapter).sendMessage{value: feeToSend}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.recipient,
@@ -481,7 +490,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Refund excess fee back to BridgeQueue (which then refunds the keeper)
-        _refund(msg.sender, msg.value - requiredBaseFee);
+        _refund(msg.sender, msg.value - feeToSend);
 
         return operationId;
     }
