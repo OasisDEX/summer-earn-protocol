@@ -205,7 +205,7 @@ contract StargateAdapterComposeForkTest is Test {
 
         vm.expectRevert();
         vm.prank(governor);
-        adapterMainnet.setComposeGasLimit(600000); // Too high
+        adapterMainnet.setComposeGasLimit(1500000); // Too high (above MAX_COMPOSE_GAS of 1000000)
     }
 
     function testUnauthorizedLzCompose() public {

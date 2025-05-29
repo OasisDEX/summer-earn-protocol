@@ -675,14 +675,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     /**
      * @notice Handles composed messages from LayerZero after Stargate token delivery
      * @dev Called by LayerZero endpoint after tokens are delivered via Stargate V2
-     * @param // _from The originating OApp (should be source Stargate contract)
-     * @param //_guid Message GUID
+     * @param _from The originating OApp (should be destination Stargate contract)
      * @param _message OFT-encoded compose message from Stargate
-     * @param // _executor Executor address
-     * @param // _extraData Additional executor data
      */
     function lzCompose(
-        address,
+        address _from,
         bytes32,
         bytes calldata _message,
         address,
@@ -697,12 +694,24 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
         bytes memory composeMsg = OFTComposeMsgCodec.composeMsg(_message);
 
-        // Decode the actual compose message - ensure types match the encoding
+        // Decode compose message and handle the rest
+        _handleComposedMessage(_from, amountLD, composeMsg);
+    }
+
+    /**
+     * @dev Internal function to handle the composed message logic
+     */
+    function _handleComposedMessage(
+        address _from,
+        uint256 amountLD,
+        bytes memory composeMsg
+    ) internal {
+        // Decode the compose message
         (
             address fleetProxy,
-            address asset,
+            address sourceAsset,
             ,
-            uint256 sourceChainId, // This should match block.chainid type (uint256)
+            uint256 sourceChainId,
             bytes32 operationId,
             address originator
         ) = abi.decode(
@@ -710,23 +719,86 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 (address, address, uint256, uint256, bytes32, address)
             );
 
-        // Validate decoded parameters
-        if (asset == address(0) || amountLD == 0 || fleetProxy == address(0)) {
+        // Get destination asset and validate we have sufficient balance
+        address destinationAsset = _getDestinationAssetAndValidateBalance(
+            _from,
+            amountLD,
+            operationId,
+            fleetProxy
+        );
+
+        // Validate other parameters
+        if (fleetProxy == address(0)) {
+            emit ComposeCallFailed(
+                operationId,
+                fleetProxy,
+                abi.encodeWithSignature("InvalidFleetProxy()")
+            );
+            revert InvalidParams();
+        }
+
+        // Transfer tokens from adapter to FleetProxy
+        IERC20(destinationAsset).safeTransfer(fleetProxy, amountLD);
+
+        // Call FleetProxy to handle the received assets
+        _callFleetProxy(
+            fleetProxy,
+            destinationAsset,
+            amountLD,
+            operationId,
+            originator,
+            sourceAsset,
+            uint16(sourceChainId)
+        );
+    }
+
+    /**
+     * @dev Gets destination asset from Stargate contract and validates sufficient balance
+     * @param _from The Stargate contract that delivered tokens
+     * @param amountLD Amount that should have been delivered
+     * @param operationId Operation ID for error reporting
+     * @param fleetProxy Fleet proxy address for error reporting
+     * @return destinationAsset Address of the destination asset
+     */
+    function _getDestinationAssetAndValidateBalance(
+        address _from,
+        uint256 amountLD,
+        bytes32 operationId,
+        address fleetProxy
+    ) internal returns (address destinationAsset) {
+        // Get the destination asset from the Stargate contract
+        try IStargate(_from).token() returns (address token) {
+            destinationAsset = token;
+        } catch {
             emit ComposeCallFailed(
                 operationId,
                 fleetProxy,
                 abi.encodeWithSignature(
-                    "InvalidDecodedParams(address,uint256,address)",
-                    asset,
-                    amountLD,
-                    fleetProxy
+                    "FailedToGetDestinationAsset(address)",
+                    _from
                 )
             );
             revert InvalidParams();
         }
 
-        // Check that we actually have the tokens (they should have been delivered by Stargate)
-        uint256 adapterBalance = IERC20(asset).balanceOf(address(this));
+        // Validate destination asset
+        if (destinationAsset == address(0) || amountLD == 0) {
+            emit ComposeCallFailed(
+                operationId,
+                fleetProxy,
+                abi.encodeWithSignature(
+                    "InvalidDecodedParams(address,uint256)",
+                    destinationAsset,
+                    amountLD
+                )
+            );
+            revert InvalidParams();
+        }
+
+        // Check that we have sufficient balance
+        uint256 adapterBalance = IERC20(destinationAsset).balanceOf(
+            address(this)
+        );
         if (adapterBalance < amountLD) {
             emit ComposeCallFailed(
                 operationId,
@@ -739,33 +811,37 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             );
             revert InsufficientBalance();
         }
+    }
 
-        // Transfer tokens from adapter to FleetProxy
-        IERC20(asset).safeTransfer(fleetProxy, amountLD);
-
-        // Call FleetProxy to handle the received assets
+    /**
+     * @dev Calls the FleetProxy to handle received assets
+     */
+    function _callFleetProxy(
+        address fleetProxy,
+        address destinationAsset,
+        uint256 amountLD,
+        bytes32 operationId,
+        address originator,
+        address sourceAsset,
+        uint16 sourceChainId
+    ) internal {
         try
             ICrossChainAssetReceiver(fleetProxy).receiveMessageWithAssets(
-                asset,
+                destinationAsset,
                 amountLD,
-                abi.encode(operationId, originator), // Pass operation details as message
-                uint16(sourceChainId) // Source chain ID from compose message
+                abi.encode(operationId, originator, sourceAsset),
+                sourceChainId
             )
         {
             emit ComposedAssetHandled(
                 operationId,
                 fleetProxy,
-                asset,
+                destinationAsset,
                 amountLD,
-                uint16(sourceChainId)
+                sourceChainId
             );
         } catch (bytes memory reason) {
-            // If FleetProxy call fails, emit detailed error but don't revert
-            // This prevents the compose message from being stuck
             emit ComposeCallFailed(operationId, fleetProxy, reason);
-
-            // Try to recover tokens back to a safe address (could be a recovery function)
-            // For now, leave them in the adapter for manual recovery
         }
     }
 
