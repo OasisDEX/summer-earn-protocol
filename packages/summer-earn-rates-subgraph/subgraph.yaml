@@ -2,6 +2,11 @@ specVersion: 0.0.8
 description: Rates
 schema:
   file: ./schema.graphql
+features:
+  - grafting
+graft:
+  base: QmUK8gypTc9deLvgzK7TZvD9j68x1HNVCG74BEVt1Tnzs9
+  block: 22477747
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
