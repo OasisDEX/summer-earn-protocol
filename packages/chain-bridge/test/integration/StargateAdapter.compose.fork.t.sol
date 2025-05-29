@@ -190,8 +190,8 @@ contract StargateAdapterComposeForkTest is Test {
         uint256 minGas = adapterMainnet.MIN_COMPOSE_GAS();
         uint256 maxGas = adapterMainnet.MAX_COMPOSE_GAS();
 
-        assertEq(minGas, 100000, "Min compose gas should be 100k");
-        assertEq(maxGas, 500000, "Max compose gas should be 500k");
+        assertEq(minGas, 200000, "Min compose gas should be 200k");
+        assertEq(maxGas, 1000000, "Max compose gas should be 500k");
 
         // Test setting valid gas limit
         vm.prank(governor);

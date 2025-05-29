@@ -10,6 +10,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 // Stargate V2 interfaces - based on LayerZero V2 OFT standard
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
@@ -147,13 +148,13 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     bool public defaultUseTaxi = true;
 
     /// @notice Gas limit for compose execution on destination
-    uint256 public composeGasLimit = 200000;
+    uint256 public composeGasLimit = 400000;
 
     /// @notice Minimum gas limit for compose execution
-    uint256 public constant MIN_COMPOSE_GAS = 100000;
+    uint256 public constant MIN_COMPOSE_GAS = 200000;
 
     /// @notice Maximum gas limit for compose execution
-    uint256 public constant MAX_COMPOSE_GAS = 500000;
+    uint256 public constant MAX_COMPOSE_GAS = 1000000;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -416,12 +417,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     ) internal {
         IStargate stargate = IStargate(params.stargateContract);
 
-        // Create compose message - just the custom message, no wrapper
+        // Create compose message - ensure consistent encoding with lzCompose decoder
         bytes memory composeMsg = abi.encode(
             params.recipient, // FleetProxy address
             params.asset, // Asset being transferred
             params.amount, // Amount being transferred
-            uint256(block.chainid), // Source chain ID
+            block.chainid, // Source chain ID (use block.chainid directly, not uint256())
             params.operationId, // Operation ID
             params.originator // Original sender
         );
@@ -563,7 +564,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         // Always include compose options in fee estimation
         bytes memory extraOptions = OptionsBuilder
             .newOptions()
-            .addExecutorLzComposeOption(0, 200000, 0);
+            .addExecutorLzComposeOption(0, uint128(composeGasLimit), 0);
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
@@ -675,7 +676,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
      * @notice Handles composed messages from LayerZero after Stargate token delivery
      * @dev Called by LayerZero endpoint after tokens are delivered via Stargate V2
      * @param // _from The originating OApp (should be source Stargate contract)
-     * @param // _guid Message GUID
+     * @param //_guid Message GUID
      * @param _message OFT-encoded compose message from Stargate
      * @param // _executor Executor address
      * @param // _extraData Additional executor data
@@ -696,12 +697,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
         bytes memory composeMsg = OFTComposeMsgCodec.composeMsg(_message);
 
-        // Now decode the actual compose message
+        // Decode the actual compose message - ensure types match the encoding
         (
             address fleetProxy,
             address asset,
-            uint256 expectedAmount,
-            uint256 sourceChainId,
+            ,
+            uint256 sourceChainId, // This should match block.chainid type (uint256)
             bytes32 operationId,
             address originator
         ) = abi.decode(
@@ -711,12 +712,31 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
 
         // Validate decoded parameters
         if (asset == address(0) || amountLD == 0 || fleetProxy == address(0)) {
+            emit ComposeCallFailed(
+                operationId,
+                fleetProxy,
+                abi.encodeWithSignature(
+                    "InvalidDecodedParams(address,uint256,address)",
+                    asset,
+                    amountLD,
+                    fleetProxy
+                )
+            );
             revert InvalidParams();
         }
 
         // Check that we actually have the tokens (they should have been delivered by Stargate)
         uint256 adapterBalance = IERC20(asset).balanceOf(address(this));
         if (adapterBalance < amountLD) {
+            emit ComposeCallFailed(
+                operationId,
+                fleetProxy,
+                abi.encodeWithSignature(
+                    "InsufficientAdapterBalance(uint256,uint256)",
+                    adapterBalance,
+                    amountLD
+                )
+            );
             revert InsufficientBalance();
         }
 
@@ -740,9 +760,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 uint16(sourceChainId)
             );
         } catch (bytes memory reason) {
-            // If FleetProxy call fails, emit error but don't revert
+            // If FleetProxy call fails, emit detailed error but don't revert
             // This prevents the compose message from being stuck
             emit ComposeCallFailed(operationId, fleetProxy, reason);
+
+            // Try to recover tokens back to a safe address (could be a recovery function)
+            // For now, leave them in the adapter for manual recovery
         }
     }
 
@@ -773,5 +796,14 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         IERC20(asset).safeTransfer(recipient, amount);
 
         emit TokensRecovered(asset, amount, recipient);
+    }
+
+    /**
+     * @notice Debug function to check adapter's token balance
+     * @param asset Token address to check
+     * @return Current balance of the asset in this adapter
+     */
+    function getAdapterBalance(address asset) external view returns (uint256) {
+        return IERC20(asset).balanceOf(address(this));
     }
 }
