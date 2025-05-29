@@ -18,7 +18,7 @@ import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Addr
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title IStargate interface for V2
  * @notice Based on LayerZero V2 OFT standard with Stargate extensions
@@ -709,13 +709,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 (address, address, uint256, uint256, bytes32, address)
             );
 
-        console.log("amountLD", amountLD);
-        console.log("fleetProxy", fleetProxy);
-        console.log("asset", asset);
-        console.log("expectedAmount", expectedAmount);
-        console.log("sourceChainId", sourceChainId);
-        console.logBytes32(operationId);
-        console.log("originator", originator);
         // Verify the amount matches what we expected
         if (amountLD != expectedAmount) {
             revert InvalidParams();
