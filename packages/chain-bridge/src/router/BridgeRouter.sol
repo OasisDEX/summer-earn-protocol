@@ -222,6 +222,18 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         return operationId;
     }
 
+    /**
+     * @dev Internal function to apply fee buffer for cross-chain operation volatility
+     * @param baseFee The base fee amount to buffer
+     * @return bufferedFee The fee with 1% buffer applied
+     */
+    function _applyFeeBuffer(
+        uint256 baseFee
+    ) internal pure returns (uint256 bufferedFee) {
+        // Add 1% buffer to account for fee volatility
+        return (baseFee * 101) / 100;
+    }
+
     /*//////////////////////////////////////////////////////////////
                            BRIDGE QUEUE OPERATIONS
     //////////////////////////////////////////////////////////////*/
@@ -250,14 +262,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Add 10% buffer to account for fee volatility (same as public quote function)
-        uint256 bufferedFee = (requiredBaseFee * 110) / 100;
+        // Apply fee buffer to account for fee volatility
+        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
 
         // Validate fee provided by BridgeQueue against buffered fee
         _validateFee(msg.value, bufferedFee);
-
-        // Use the buffered fee for the adapter call
-        uint256 feeToSend = bufferedFee;
 
         _validateAdapterSupportsOperation(
             selectedAdapter,
@@ -310,8 +319,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Set up operation to adapter mapping BEFORE the adapter call
         operationToAdapter[operationId] = selectedAdapter;
 
-        // Call adapter with the router-generated operation ID (no return value)
-        ISendAdapter(selectedAdapter).transferAsset{value: feeToSend}(
+        // Call adapter with the full msg.value
+        ISendAdapter(selectedAdapter).transferAsset{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.asset,
@@ -330,8 +339,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             selectedAdapter
         );
 
-        // Refund excess fee back to BridgeQueue (which then refunds the keeper)
-        _refund(msg.sender, msg.value - feeToSend);
+        // No refund needed - adapter will handle refunding excess back through the chain
 
         return operationId;
     }
@@ -360,14 +368,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Add 10% buffer to account for fee volatility (same as public quote function)
-        uint256 bufferedFee = (requiredBaseFee * 110) / 100;
+        // Apply fee buffer to account for fee volatility
+        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
 
         // Validate fee provided by BridgeQueue against buffered fee
         _validateFee(msg.value, bufferedFee);
-
-        // Use the buffered fee for the adapter call
-        uint256 feeToSend = bufferedFee;
 
         _validateAdapterSupportsOperation(
             selectedAdapter,
@@ -395,8 +400,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         // Store the originator for response delivery
         readRequestToOriginator[operationId] = params.originator;
 
-        // Call adapter with the router-generated operation ID (no return value)
-        ISendAdapter(selectedAdapter).readState{value: feeToSend}(
+        // Call adapter with the full msg.value
+        ISendAdapter(selectedAdapter).readState{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             uint16(block.chainid),
             params.dstChainId,
@@ -416,8 +421,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             selectedAdapter
         );
 
-        // Refund excess fee back to BridgeQueue (which then refunds the keeper)
-        _refund(msg.sender, msg.value - feeToSend);
+        // No refund needed - adapter will handle refunding excess back through the chain
 
         return operationId;
     }
@@ -446,14 +450,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.MESSAGE
         );
 
-        // Add 10% buffer to account for fee volatility (same as public quote function)
-        uint256 bufferedFee = (requiredBaseFee * 110) / 100;
+        // Apply fee buffer to account for fee volatility
+        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
 
         // Validate fee provided by BridgeQueue against buffered fee
         _validateFee(msg.value, bufferedFee);
-
-        // Use the buffered fee for the adapter call
-        uint256 feeToSend = bufferedFee;
 
         _validateAdapterSupportsOperation(
             selectedAdapter,
@@ -472,8 +473,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
         operationToAdapter[operationId] = selectedAdapter;
 
-        // Call adapter with the router-generated operation ID (no return value)
-        ISendAdapter(selectedAdapter).sendMessage{value: feeToSend}(
+        // Call adapter with the full msg.value
+        ISendAdapter(selectedAdapter).sendMessage{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.recipient,
@@ -489,8 +490,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             selectedAdapter
         );
 
-        // Refund excess fee back to BridgeQueue (which then refunds the keeper)
-        _refund(msg.sender, msg.value - feeToSend);
+        // No refund needed - adapter will handle refunding excess back through the chain
 
         return operationId;
     }
@@ -568,8 +568,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             operationType
         );
 
-        // Add 10% buffer to account for fee volatility (LayerZero fees can fluctuate)
-        uint256 bufferedNativeFee = (baseFee * 110) / 100;
+        // Apply fee buffer to account for fee volatility
+        uint256 bufferedNativeFee = _applyFeeBuffer(baseFee);
 
         return (bufferedNativeFee, baseTokenFee, adapter);
     }

@@ -214,6 +214,13 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             BridgeTypes.OperationStatus.SENT
         );
 
+        // Refund any excess native fee to the keeper
+        uint256 baseFee = 0.1 ether; // Base fee from quote
+        if (msg.value > baseFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - baseFee}("");
+            if (!success) revert RefundFailed();
+        }
+
         return operationId;
     }
 
@@ -236,6 +243,13 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             operationId,
             BridgeTypes.OperationStatus.SENT
         );
+
+        // Refund any excess native fee to the keeper
+        uint256 baseFee = 0.1 ether; // Base fee from quote
+        if (msg.value > baseFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - baseFee}("");
+            if (!success) revert RefundFailed();
+        }
 
         return operationId;
     }
