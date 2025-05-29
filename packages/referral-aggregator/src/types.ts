@@ -1,125 +1,125 @@
-import {
-  Account as GeneratedAccount,
-  Position as GeneratedPosition,
-  ReferralData as GeneratedReferralData,
-} from './generated/graphql'
-
-// Remove Maybe<T> and make fields non-nullable where we know they exist
-export type Account = {
-  id: string
-  positions: Position[]
-  referralData: ReferralData | null
-  referralTimestamp: bigint | null
-}
-
-export type Position = {
-  id: string
-  account: { id: string }
-  vault: { id: string }
-  inputTokenDeposits: bigint
-  inputTokenDepositsNormalized: number
-  inputTokenWithdrawalsNormalized: number
-  inputTokenDepositsNormalizedInUSD: number
-  inputTokenWithdrawals: bigint
-  inputTokenWithdrawalsNormalizedInUSD: number
-  inputTokenBalance: bigint
-  outputTokenBalance: bigint
-  stakedInputTokenBalance: bigint
-  stakedOutputTokenBalance: bigint
-  unstakedInputTokenBalance: bigint
-  unstakedOutputTokenBalance: bigint
-  inputTokenBalanceNormalized: number
-  stakedInputTokenBalanceNormalized: number
-  unstakedInputTokenBalanceNormalized: number
-  inputTokenBalanceNormalizedInUSD: number
-  stakedInputTokenBalanceNormalizedInUSD: number
-  unstakedInputTokenBalanceNormalizedInUSD: number
-  createdTimestamp: bigint
-  createdBlockNumber: bigint
-  claimedSummerToken: bigint
-  claimedSummerTokenNormalized: number
-  claimableSummerToken: bigint
-  claimableSummerTokenNormalized: number
-  createdAt: bigint
-  referralData: ReferralData | null
-}
-
-export type AggregatedAccount = {
-  id: string
-  positions: Position[]
-  referralData: ReferralData | null
-  referralTimestamp: bigint | null
-  chainData: {
-    [chain: string]: {
-      referralData: ReferralData | null
-      referralTimestamp: bigint | null
-    }
-  }
-}
-
-export type ReferralData = {
-  id: string
-  amountOfReferred: bigint
-}
-
 export type Chain = 'Ethereum' | 'Sonic' | 'Arbitrum' | 'Base'
 
-// Helper function to convert generated types to our types
-export function convertAccount(account: GeneratedAccount | null | undefined): Account | null {
-  if (!account) return null
+export interface ReferralData {
+  id: string
+  amountOfReferred?: string
+  protocol?: string
+}
+
+export interface HourlySnapshot {
+  id: string
+  timestamp: string
+  inputTokenBalanceNormalizedInUSD: string
+  stakedInputTokenBalanceNormalizedInUSD?: string
+  unstakedInputTokenBalanceNormalizedInUSD?: string
+}
+
+export interface Position {
+  id: string
+  account?: {
+    id: string
+  }
+  vault?: {
+    id: string
+  }
+  inputTokenDeposits?: string
+  inputTokenDepositsNormalized?: string
+  inputTokenWithdrawalsNormalized?: string
+  inputTokenDepositsNormalizedInUSD?: string
+  inputTokenWithdrawals?: string
+  inputTokenWithdrawalsNormalizedInUSD?: string
+  inputTokenBalance?: string
+  outputTokenBalance?: string
+  stakedInputTokenBalance?: string
+  stakedOutputTokenBalance?: string
+  unstakedInputTokenBalance?: string
+  unstakedOutputTokenBalance?: string
+  inputTokenBalanceNormalized?: string
+  stakedInputTokenBalanceNormalized?: string
+  unstakedInputTokenBalanceNormalized?: string
+  inputTokenBalanceNormalizedInUSD?: string
+  stakedInputTokenBalanceNormalizedInUSD?: string
+  unstakedInputTokenBalanceNormalizedInUSD?: string
+  createdTimestamp: string
+  createdBlockNumber?: string
+  claimedSummerToken?: string
+  claimedSummerTokenNormalized?: string
+  claimableSummerToken?: string
+  claimableSummerTokenNormalized?: string
+  referralData?: ReferralData
+  hourlySnapshots?: HourlySnapshot[]
+}
+
+export interface Account {
+  id: string
+  stakedSummerToken?: string
+  stakedSummerTokenNormalized?: string
+  lastUpdateBlock?: string
+  claimedSummerToken?: string
+  claimedSummerTokenNormalized?: string
+  referralData?: ReferralData
+  referralTimestamp?: string
+  positions?: Position[]
+}
+
+export function convertAccount(account: any): Account {
   return {
     id: account.id,
-    positions:
-      account.positions?.map((p) => convertPosition(p)).filter((p): p is Position => p !== null) ||
-      [],
-    referralData: account.referralData ? convertReferralData(account.referralData) : null,
-    referralTimestamp: account.referralTimestamp ? BigInt(account.referralTimestamp) : null,
+    stakedSummerToken: account.stakedSummerToken,
+    stakedSummerTokenNormalized: account.stakedSummerTokenNormalized
+      ? account.stakedSummerTokenNormalized.toString()
+      : undefined,
+    lastUpdateBlock: account.lastUpdateBlock,
+    claimedSummerToken: account.claimedSummerToken,
+    claimedSummerTokenNormalized: account.claimedSummerTokenNormalized
+      ? account.claimedSummerTokenNormalized.toString()
+      : undefined,
+    referralData: account.referralData,
+    referralTimestamp: account.referralTimestamp,
+    positions: account.positions?.map((p: any) => convertPosition(p)),
   }
 }
 
-export function convertPosition(position: GeneratedPosition | null | undefined): Position | null {
-  if (!position) return null
+export function convertPosition(position: any): Position {
   return {
     id: position.id,
-    account: { id: position.account.id },
-    vault: { id: position.vault.id },
-    inputTokenDeposits: BigInt(position.inputTokenDeposits),
-    inputTokenDepositsNormalized: Number(position.inputTokenDepositsNormalized),
-    inputTokenWithdrawalsNormalized: Number(position.inputTokenWithdrawalsNormalized),
-    inputTokenDepositsNormalizedInUSD: Number(position.inputTokenDepositsNormalizedInUSD),
-    inputTokenWithdrawals: BigInt(position.inputTokenWithdrawals),
-    inputTokenWithdrawalsNormalizedInUSD: Number(position.inputTokenWithdrawalsNormalizedInUSD),
-    inputTokenBalance: BigInt(position.inputTokenBalance),
-    outputTokenBalance: BigInt(position.outputTokenBalance),
-    stakedInputTokenBalance: BigInt(position.stakedInputTokenBalance),
-    stakedOutputTokenBalance: BigInt(position.stakedOutputTokenBalance),
-    unstakedInputTokenBalance: BigInt(position.unstakedInputTokenBalance),
-    unstakedOutputTokenBalance: BigInt(position.unstakedOutputTokenBalance),
-    inputTokenBalanceNormalized: Number(position.inputTokenBalanceNormalized),
-    stakedInputTokenBalanceNormalized: Number(position.stakedInputTokenBalanceNormalized),
-    unstakedInputTokenBalanceNormalized: Number(position.unstakedInputTokenBalanceNormalized),
-    inputTokenBalanceNormalizedInUSD: Number(position.inputTokenBalanceNormalizedInUSD),
-    stakedInputTokenBalanceNormalizedInUSD: Number(position.stakedInputTokenBalanceNormalizedInUSD),
-    unstakedInputTokenBalanceNormalizedInUSD: Number(
-      position.unstakedInputTokenBalanceNormalizedInUSD,
-    ),
-    createdTimestamp: BigInt(position.createdTimestamp),
-    createdBlockNumber: BigInt(position.createdBlockNumber),
-    claimedSummerToken: BigInt(position.claimedSummerToken),
-    claimedSummerTokenNormalized: Number(position.claimedSummerTokenNormalized),
-    claimableSummerToken: BigInt(position.claimableSummerToken),
-    claimableSummerTokenNormalized: Number(position.claimableSummerTokenNormalized),
-    createdAt: BigInt(position.createdTimestamp),
-    referralData: position.referralData ? convertReferralData(position.referralData) : null,
+    account: position.account,
+    vault: position.vault,
+    inputTokenDeposits: position.inputTokenDeposits,
+    inputTokenDepositsNormalized: position.inputTokenDepositsNormalized,
+    inputTokenWithdrawalsNormalized: position.inputTokenWithdrawalsNormalized,
+    inputTokenDepositsNormalizedInUSD: position.inputTokenDepositsNormalizedInUSD,
+    inputTokenWithdrawals: position.inputTokenWithdrawals,
+    inputTokenWithdrawalsNormalizedInUSD: position.inputTokenWithdrawalsNormalizedInUSD,
+    inputTokenBalance: position.inputTokenBalance,
+    outputTokenBalance: position.outputTokenBalance,
+    stakedInputTokenBalance: position.stakedInputTokenBalance,
+    stakedOutputTokenBalance: position.stakedOutputTokenBalance,
+    unstakedInputTokenBalance: position.unstakedInputTokenBalance,
+    unstakedOutputTokenBalance: position.unstakedOutputTokenBalance,
+    inputTokenBalanceNormalized: position.inputTokenBalanceNormalized,
+    stakedInputTokenBalanceNormalized: position.stakedInputTokenBalanceNormalized,
+    unstakedInputTokenBalanceNormalized: position.unstakedInputTokenBalanceNormalized,
+    inputTokenBalanceNormalizedInUSD: position.inputTokenBalanceNormalizedInUSD,
+    stakedInputTokenBalanceNormalizedInUSD: position.stakedInputTokenBalanceNormalizedInUSD,
+    unstakedInputTokenBalanceNormalizedInUSD: position.unstakedInputTokenBalanceNormalizedInUSD,
+    createdTimestamp: position.createdTimestamp,
+    createdBlockNumber: position.createdBlockNumber,
+    claimedSummerToken: position.claimedSummerToken,
+    claimedSummerTokenNormalized: position.claimedSummerTokenNormalized,
+    claimableSummerToken: position.claimableSummerToken,
+    claimableSummerTokenNormalized: position.claimableSummerTokenNormalized,
+    referralData: position.referralData,
+    hourlySnapshots: position.hourlySnapshots?.map((s: any) => convertHourlySnapshot(s)),
   }
 }
 
-export function convertReferralData(
-  data: GeneratedReferralData | null | undefined,
-): ReferralData | null {
-  if (!data) return null
+export function convertHourlySnapshot(snapshot: any): HourlySnapshot {
   return {
-    id: data.id,
-    amountOfReferred: BigInt(data.amountOfReferred),
+    id: snapshot.id,
+    timestamp: snapshot.timestamp,
+    inputTokenBalanceNormalizedInUSD: snapshot.inputTokenBalanceNormalizedInUSD,
+    stakedInputTokenBalanceNormalizedInUSD: snapshot.stakedInputTokenBalanceNormalizedInUSD,
+    unstakedInputTokenBalanceNormalizedInUSD: snapshot.unstakedInputTokenBalanceNormalizedInUSD,
   }
 }

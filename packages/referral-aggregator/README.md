@@ -1,277 +1,279 @@
 # Referral Aggregator
 
-This package aggregates referral data across multiple chains and calculates referral points based on user activity.
+A comprehensive referral tracking and points calculation system that processes data from multiple blockchain networks and rewards referrers based on their referred users' activity.
 
 ## Features
 
-- **Hourly Processing**: Automatically processes referred accounts every hour with timestamp bounds
-- **Cross-Chain Aggregation**: Aggregates referral data from multiple chains (Ethereum, Sonic, Arbitrum, Base)
-- **Position Validation**: Validates that positions were created after referral timestamps
-- **Pagination Support**: Handles large datasets with cursor-based pagination
-- **Points Calculation**: Calculates referral points based on referred users' deposits
-- **Historical Tracking**: Stores position snapshots for historical analysis
-- **Database Migrations**: Automatic database schema management
+### Enhanced Points System with Hourly Snapshots
 
-## Architecture
+The system now uses **hourly snapshots** from the subgraph for more accurate balance calculations:
 
-### Hourly Processing Flow
+- **Snapshot-based Processing**: Instead of using current position balances, the system fetches actual hourly snapshots for specific time periods
+- **Historical Accuracy**: Backfill operations use snapshots from the exact time periods being processed
+- **Consistent Data**: Both regular processing and backfill use the same data source for consistency
+- **Time-specific Queries**: Process data for exact hourly windows (e.g., 2PM-3PM) using snapshot timestamps
 
-1. **Account Discovery**: Every hour, fetch all referred accounts with timestamp bounds
-   - First run: Only upper bound timestamp (all historical data)
-   - Subsequent runs: Both lower and upper bounds (last hour's data)
+### Points Calculation Formula
 
-2. **Validation**: Check if accounts have positions created before referral timestamp
-   - Query positions with `createdTimestamp < referralTimestamp` 
-   - Accounts with such positions are considered invalid
+```
+points = total_deposits_usd * (base_rate + log_multiplier * ln(active_users + 1))
+```
 
-3. **Data Aggregation**: For valid accounts, fetch all positions using nested queries
-   - Use `accounts { positions {} }` structure for efficient pagination
-   - Paginate accounts (50 per batch) with guaranteed position retrieval
+**Default Configuration:**
+- `base_rate`: 0.00005 (configurable)
+- `log_multiplier`: 0.0005 (configurable)  
+- `active_user_threshold`: $100 USD (configurable)
+- `processing_interval`: 1 hour (configurable)
 
-4. **Storage**: Store validated data in PostgreSQL database
+### Key Features
 
-### Database Schema
+- **Multi-chain Support**: Ethereum, Sonic, Arbitrum, Base
+- **Hourly Processing**: Automated points calculation every hour using snapshots
+- **Active User Concept**: Users with ≥$100 USD deposits (configurable)
+- **Historical Backfill**: Process historical data using time-specific snapshots
+- **Point Distribution Tracking**: Individual point awards with timestamps
+- **Configuration Management**: Runtime configuration updates
+- **Type-safe Database**: Kysely integration for compile-time query validation
 
-The package uses PostgreSQL to store referral data with the following schema:
+## GraphQL Snapshots Integration
 
-#### Tables
+The system uses the following GraphQL query structure to fetch hourly snapshots:
 
-1. `referral_points`
-   - Stores calculated points for each account
-   - Tracks total deposits and active referred users
-   - Maintains last update timestamp
-
-2. `referral_relationships`
-   - Records referral relationships between users
-   - Stores chain-specific referral timestamps
-   - Ensures unique relationships per chain
-
-3. `position_snapshots`
-   - Stores historical position data
-   - Tracks deposit amounts and timestamps
-   - Links positions to referral relationships
-
-4. `migrations`
-   - Tracks applied database migrations
-   - Ensures migrations are only run once
-
-## GraphQL Queries
-
-### Key Queries
-
-1. **REFERRED_ACCOUNTS_QUERY**: Fetches accounts with referral timestamps in range
-2. **ACCOUNTS_WITH_POSITIONS_QUERY**: Fetches accounts with nested positions (paginated)
-3. **VALIDATE_POSITIONS_QUERY**: Checks for positions created before referral
-
-### Pagination
-
-All queries support cursor-based pagination:
 ```graphql
-accounts(orderBy: id, first: $first, where: { id_gt: $lastId }) {
-  # account fields
+{
+  accounts {
+    positions {
+      hourlySnapshots(where: {timestamp_gt: $timestampGt, timestamp_lt: $timestampLt}) {
+        inputTokenBalanceNormalizedInUSD
+        stakedInputTokenBalanceNormalizedInUSD
+        unstakedInputTokenBalanceNormalizedInUSD
+        timestamp
+      }
+    }
+  }
 }
 ```
 
-## Points Calculation
+This ensures we get balance data for specific time windows, enabling:
+- Accurate historical processing
+- Consistent hourly calculations
+- Time-specific point awards
 
-Referral points are calculated using the following formula:
+## Usage
 
-```
-points = total_deposits * (0.00005 + 0.0005 * ln(active_referred_users + 1))
-```
-
-Where:
-- `total_deposits`: Sum of all valid deposits from referred users
-- `active_referred_users`: Number of referred users with active positions
-- A position is considered valid if it was created after the referral timestamp
-
-## Setup
-
-### 1. Database Setup
-
-Start PostgreSQL using Docker:
+### Enhanced Processor with Snapshots
 
 ```bash
-docker-compose up -d
+# Start with snapshots and backfill
+npm run enhanced-processor-snapshots
+
+# Start without backfill
+npm run enhanced-processor-snapshots --no-backfill
+
+# Show help
+npm run enhanced-processor-snapshots --help
 ```
 
-This will start a PostgreSQL instance with:
-- Database: `referral_points`
-- User: `postgres`
-- Password: `postgres`
-- Port: `5432`
-
-### 2. Environment Variables
-
-Copy the example environment file and configure as needed:
+### Legacy Processor (Current Balance)
 
 ```bash
-cp env.example .env
+# Original processor using current position balances
+npm run enhanced-processor
+
+# Start without backfill
+npm run enhanced-processor --no-backfill
 ```
 
-Edit `.env` with your database configuration:
+### Backfill Operations
+
 ```bash
+# Backfill from earliest referral
+npm run backfill
+
+# Backfill from specific date
+npm run backfill 2024-01-01
+
+# Show backfill help
+npm run backfill --help
+```
+
+### Statistics and Monitoring
+
+```bash
+# Show system statistics
+npm run stats
+
+# Show specific account details
+npm run stats 0x1234567890abcdef...
+
+# Show configuration
+npm run config --show
+```
+
+### Configuration Management
+
+```bash
+# Update processing interval to 2 hours
+npm run config processing_interval_hours 2
+
+# Update active user threshold to $200
+npm run config active_user_threshold_usd 200
+
+# Update points formula parameters
+npm run config points_formula_base 0.0001
+npm run config points_formula_log_multiplier 0.001
+
+# Enable/disable backfill
+npm run config enable_backfill true
+```
+
+## Snapshot vs Current Balance Comparison
+
+| Feature | Snapshot-based | Current Balance |
+|---------|---------------|-----------------|
+| **Accuracy** | ✅ Historical accuracy | ⚠️ Current state only |
+| **Backfill** | ✅ Time-specific data | ⚠️ Approximate |
+| **Consistency** | ✅ Same data source | ⚠️ Different approaches |
+| **Performance** | ⚠️ More queries | ✅ Simpler queries |
+| **Use Case** | Production/Analysis | Development/Testing |
+
+## Database Schema
+
+### Enhanced Tables
+
+- **`point_distributions`**: Individual point awards with timestamps
+- **`user_activity_status`**: Active user tracking with deposit totals
+- **`points_config`**: Runtime configuration management
+- **`position_snapshots`**: Balance snapshots with timestamps
+
+### Key Indexes
+
+```sql
+-- Performance indexes for snapshot processing
+CREATE INDEX idx_position_snapshots_timestamp ON position_snapshots(snapshot_timestamp);
+CREATE INDEX idx_position_snapshots_account_time ON position_snapshots(account_id, snapshot_timestamp);
+CREATE INDEX idx_point_distributions_period ON point_distributions(period_start, period_end);
+```
+
+## Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Subgraph      │    │   GraphQL        │    │   Enhanced      │
+│   (Hourly       │◄───┤   Client         │◄───┤   Processor     │
+│   Snapshots)    │    │                  │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                                         │
+┌─────────────────┐    ┌──────────────────┐             │
+│   Configuration │◄───┤   Database       │◄────────────┘
+│   Service       │    │   (Kysely +      │
+│                 │    │   Raw SQL)       │
+└─────────────────┘    └──────────────────┘
+                                │
+                       ┌──────────────────┐
+                       │   Points         │
+                       │   Calculation    │
+                       │   Service        │
+                       └──────────────────┘
+```
+
+## Environment Variables
+
+```bash
+# Database Configuration
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_NAME=referral_points
 DB_USER=postgres
 DB_PASSWORD=postgres
+
+# Optional: Custom subgraph URLs
+ETHEREUM_SUBGRAPH_URL=https://subgraph.staging.oasisapp.dev/summer-protocol
+SONIC_SUBGRAPH_URL=https://subgraph.staging.oasisapp.dev/summer-protocol-sonic
+ARBITRUM_SUBGRAPH_URL=https://subgraph.staging.oasisapp.dev/summer-protocol-arbitrum
+BASE_SUBGRAPH_URL=https://subgraph.staging.oasisapp.dev/summer-protocol-base
 ```
 
-### 3. Install Dependencies
+## Migration Guide
+
+### From Current Balance to Snapshots
+
+1. **Test Environment**: Start with `enhanced-processor-snapshots` in test environment
+2. **Compare Results**: Run both processors and compare point calculations
+3. **Gradual Migration**: Switch to snapshots for new deployments
+4. **Data Validation**: Verify historical backfill accuracy
+
+### Configuration Updates
 
 ```bash
-pnpm install
+# Recommended production settings
+npm run config processing_interval_hours 1
+npm run config active_user_threshold_usd 100
+npm run config points_formula_base 0.00005
+npm run config points_formula_log_multiplier 0.0005
+npm run config enable_backfill true
 ```
 
-### 4. Run Database Migrations
+## Troubleshooting
 
-Initialize the database schema:
+### Common Issues
+
+1. **No Snapshots Found**: Ensure timestamp ranges are correct and snapshots exist
+2. **Performance Issues**: Check database indexes and query optimization
+3. **Configuration Errors**: Verify database connection and config table setup
+4. **Type Errors**: Ensure Kysely types are up to date
+
+### Debug Commands
 
 ```bash
-pnpm migrate
+# Check snapshot data
+npm run stats
+
+# Verify configuration
+npm run config --show
+
+# Test specific time range
+npm run backfill 2024-01-01 --verbose
 ```
 
-This will create all necessary tables and indexes.
+### Monitoring
 
-### 5. Build the Package
-
-```bash
-pnpm build
-```
-
-## Usage
-
-### Running Database Migrations
-
-To manually run migrations:
-
-```bash
-pnpm migrate
-```
-
-Migrations are also automatically run when starting the hourly processor.
-
-### Running Hourly Processor
-
-To start the hourly processor (runs continuously):
-
-```bash
-pnpm hourly-processor
-```
-
-This will:
-1. Run database migrations automatically
-2. Run immediately on startup
-3. Schedule to run every hour thereafter
-4. Handle first run vs subsequent run logic automatically
-5. Process all chains and store data in database
-
-### Running Points Calculation
-
-To calculate points for all accounts:
-
-```bash
-pnpm calculate-points
-```
-
-This will:
-1. Take snapshots of all positions across chains
-2. Calculate points for each account
-3. Update the database with new point values
-
-### API Usage
-
-```typescript
-import { 
-  DatabaseService, 
-  ReferralClient, 
-  ReferralPointsService,
-  HourlyProcessor 
-} from '@summer-earn/referral-aggregator'
-
-// Initialize services
-const db = new DatabaseService()
-const client = new ReferralClient()
-const pointsService = new ReferralPointsService(db, client)
-const processor = new HourlyProcessor(client, db)
-
-// Run migrations
-await db.migrate()
-
-// Run hourly processing
-await processor.processHourly()
-
-// Calculate points for a specific account
-await pointsService.calculatePoints('0x...')
-
-// Get points for an account
-const points = await db.getReferralPoints('0x...')
-
-// Get referred users for an account
-const referredUsers = await db.getReferredUsers('0x...')
-
-// Process referred accounts with timestamp bounds
-const { validAccounts, allReferredAccounts } = await client.processReferredAccountsHourly(
-  BigInt(startTimestamp),
-  BigInt(endTimestamp),
-  false // isFirstRun
-)
-```
+Monitor these key metrics:
+- Point distributions per hour
+- Active user count trends
+- Processing time per cycle
+- Database query performance
+- Snapshot data availability
 
 ## Development
 
-### Running Tests
+### Building
 
 ```bash
-pnpm test
+npm run build
 ```
 
-### Watching Tests
+### Testing
 
 ```bash
-pnpm test:watch
+npm test
+npm run test:watch
 ```
 
-### Code Generation
+### Type Checking
 
 ```bash
-pnpm codegen
+npx tsc --noEmit
 ```
 
-### Database Management
+## Contributing
 
-#### Reset Database
-To reset the database and re-run all migrations:
+1. Use TypeScript for type safety
+2. Add tests for new features
+3. Update documentation
+4. Follow existing code patterns
+5. Test with both processors (snapshot and current)
 
-```bash
-docker-compose down -v  # Remove volumes
-docker-compose up -d    # Start fresh
-pnpm migrate           # Run migrations
-```
+---
 
-#### Add New Migration
-1. Create a new SQL file in `src/migrations/` with format `XXX_description.sql`
-2. Add your SQL statements
-3. Run `pnpm migrate` to apply
-
-## Monitoring
-
-The hourly processor includes comprehensive logging:
-- Processing start/completion times
-- Account counts (total vs valid)
-- Error handling and recovery
-- Graceful shutdown on SIGINT/SIGTERM
-- Migration status and progress
-
-## Performance Considerations
-
-- **Pagination**: Uses cursor-based pagination to handle large datasets
-- **Batch Processing**: Processes accounts in batches of 50
-- **Validation Optimization**: Early validation prevents unnecessary position fetching
-- **Database Indexing**: Proper indexes on timestamp and ID fields for fast queries
-- **Migration Safety**: Transactional migrations with rollback on failure
-
-## License
-
-MIT 
+**Note**: The snapshot-based approach is recommended for production use due to its improved accuracy and consistency. The current balance approach remains available for development and testing purposes. 

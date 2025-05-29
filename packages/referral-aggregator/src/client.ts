@@ -2,10 +2,11 @@ import { GraphQLClient } from 'graphql-request'
 import { GetAccountsQuery, GetReferredAccountsQuery } from './generated/graphql'
 import {
   ACCOUNTS_QUERY,
+  ACCOUNTS_WITH_HOURLY_SNAPSHOTS_QUERY,
   ACCOUNTS_WITH_POSITIONS_QUERY,
   REFERRED_ACCOUNTS_QUERY,
   VALIDATE_POSITIONS_QUERY,
-} from './queries'
+} from './graphql/operations'
 import { Account, convertAccount } from './types'
 
 const CHAINS = ['Ethereum', 'Sonic', 'Arbitrum', 'Base'] as const
@@ -26,6 +27,11 @@ export interface ReferredAccountsOptions {
 export interface PaginationOptions {
   first: number
   lastId?: string
+}
+
+export interface HourlySnapshotOptions {
+  timestampGt: bigint
+  timestampLt: bigint
 }
 
 export class ReferralClient {
@@ -115,6 +121,38 @@ export class ReferralClient {
     }
   }
 
+  // New method to get accounts with hourly snapshots for specific time range
+  async getAccountsWithHourlySnapshots(
+    chain: Chain,
+    accountIds: string[],
+    pagination: PaginationOptions,
+    snapshotOptions: HourlySnapshotOptions,
+  ): Promise<Account[]> {
+    try {
+      const lowercasedIds = accountIds.map((id) => id.toLowerCase())
+      const variables: any = {
+        accountIds: lowercasedIds,
+        first: pagination.first,
+        timestampGt: snapshotOptions.timestampGt.toString(),
+        timestampLt: snapshotOptions.timestampLt.toString(),
+      }
+      if (pagination.lastId) {
+        variables.lastId = pagination.lastId
+      } else {
+        variables.lastId = ''
+      }
+
+      const data = (await this.clients[chain].request(
+        ACCOUNTS_WITH_HOURLY_SNAPSHOTS_QUERY,
+        variables,
+      )) as any
+      return data.accounts.filter(Boolean).map((a: any) => convertAccount(a)) as Account[]
+    } catch (error) {
+      console.error(`Error fetching accounts with hourly snapshots from ${chain}:`, error)
+      return []
+    }
+  }
+
   async validatePositions(
     chain: Chain,
     accountIds: string[],
@@ -140,7 +178,91 @@ export class ReferralClient {
     }
   }
 
-  // New method for hourly processing
+  // Enhanced method for hourly processing using snapshots
+  async processReferredAccountsHourlyWithSnapshots(
+    timestampGt: bigint,
+    timestampLt: bigint,
+    isFirstRun: boolean = false,
+  ): Promise<{ validAccounts: string[]; allReferredAccounts: Account[] }> {
+    const allReferredAccounts: Account[] = []
+    const accountIds = new Set<string>()
+
+    // Step 1: Get all referred accounts from all chains
+    for (const chain of CHAINS) {
+      const options: ReferredAccountsOptions = {}
+      if (isFirstRun) {
+        if (timestampLt) options.timestampLt = timestampLt
+      } else {
+        if (timestampGt) options.timestampGt = timestampGt
+        if (timestampLt) options.timestampLt = timestampLt
+      }
+
+      const accounts = await this.getReferredAccounts(chain, options)
+      allReferredAccounts.push(...accounts)
+      accounts.forEach((account) => accountIds.add(account.id))
+    }
+
+    // Step 2: Validate accounts across all chains (check if they have positions before referral)
+    const validationResults: { [accountId: string]: boolean } = {}
+    for (const chain of CHAINS) {
+      const chainValidation = await this.validatePositions(chain, Array.from(accountIds))
+      Object.entries(chainValidation).forEach(([accountId, isValid]) => {
+        if (validationResults[accountId] === undefined) {
+          validationResults[accountId] = isValid
+        } else {
+          // Account is valid only if it's valid on ALL chains
+          validationResults[accountId] = validationResults[accountId] && isValid
+        }
+      })
+    }
+
+    const validAccounts = Object.entries(validationResults)
+      .filter(([_, isValid]) => isValid)
+      .map(([accountId]) => accountId)
+
+    return { validAccounts, allReferredAccounts }
+  }
+
+  // Method to get all positions with hourly snapshots for valid accounts
+  async getAllPositionsWithHourlySnapshots(
+    accountIds: string[],
+    snapshotOptions: HourlySnapshotOptions,
+  ): Promise<{ [chain: string]: Account[] }> {
+    const result: { [chain: string]: Account[] } = {}
+
+    for (const chain of CHAINS) {
+      const allAccounts: Account[] = []
+      let lastId: string | undefined
+      const batchSize = 50
+
+      // Paginate through accounts
+      while (true) {
+        const accounts = await this.getAccountsWithHourlySnapshots(
+          chain,
+          accountIds,
+          {
+            first: batchSize,
+            lastId,
+          },
+          snapshotOptions,
+        )
+
+        if (accounts.length === 0) break
+
+        allAccounts.push(...accounts)
+
+        if (accounts.length < batchSize) break
+
+        lastId = accounts[accounts.length - 1].id
+      }
+
+      result[chain] = allAccounts
+    }
+
+    return result
+  }
+
+  // Legacy method for backward compatibility
   async processReferredAccountsHourly(
     timestampGt?: bigint,
     timestampLt?: bigint,
