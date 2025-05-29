@@ -327,8 +327,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             selectedAdapter
         );
 
-        // Refund excess fee after state changes
-        _refund(params.originator, msg.value - requiredBaseFee);
+        // Refund excess fee back to BridgeQueue (which then refunds the keeper)
+        _refund(msg.sender, msg.value - requiredBaseFee);
 
         return operationId;
     }
@@ -410,8 +410,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             selectedAdapter
         );
 
-        // Refund excess fee after state changes
-        _refund(params.originator, msg.value - requiredBaseFee);
+        // Refund excess fee back to BridgeQueue (which then refunds the keeper)
+        _refund(msg.sender, msg.value - requiredBaseFee);
 
         return operationId;
     }
@@ -480,8 +480,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             selectedAdapter
         );
 
-        // Refund excess fee after state changes
-        _refund(params.originator, msg.value - requiredBaseFee);
+        // Refund excess fee back to BridgeQueue (which then refunds the keeper)
+        _refund(msg.sender, msg.value - requiredBaseFee);
 
         return operationId;
     }
@@ -550,8 +550,19 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         view
         returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
     {
-        return
-            _quote(destinationChainId, asset, amount, options, operationType);
+        // Get the base fee from internal quote
+        (uint256 baseFee, uint256 baseTokenFee, address adapter) = _quote(
+            destinationChainId,
+            asset,
+            amount,
+            options,
+            operationType
+        );
+
+        // Add 10% buffer to account for fee volatility (LayerZero fees can fluctuate)
+        uint256 bufferedNativeFee = (baseFee * 110) / 100;
+
+        return (bufferedNativeFee, baseTokenFee, adapter);
     }
 
     /*//////////////////////////////////////////////////////////////

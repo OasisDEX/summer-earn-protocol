@@ -104,8 +104,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.registerAdapter(address(stargateAdapter));
 
         // Configure Stargate adapter
-        stargateAdapter.addSupportedChain(DEST_CHAIN_ID, ARB_LZ_EID);
-        stargateAdapter.addSupportedChain(uint16(block.chainid), ARB_LZ_EID); // Add current chain (mainnet)
+        stargateAdapter.addSupportedChain(DEST_CHAIN_ID, ARB_LZ_EID, ARB_PROXY);
+        stargateAdapter.addSupportedChain(
+            uint16(block.chainid),
+            ARB_LZ_EID,
+            address(stargateAdapter)
+        ); // Add current chain (mainnet)
 
         // Initialize USDC
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -116,20 +120,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             MockStargateV2.StargateType.Pool
         );
 
-        // Add USDC as supported asset for Stargate adapter on both chains
-        // Current chain (mainnet) - needed for the adapter to find the Stargate contract
-        stargateAdapter.addSupportedAsset(
-            uint16(block.chainid), // Current chain
-            address(usdc),
-            address(mockStargate)
-        );
-
-        // Destination chain (Arbitrum)
-        stargateAdapter.addSupportedAsset(
-            DEST_CHAIN_ID,
-            address(usdc),
-            address(mockStargate)
-        );
+        // Add USDC as supported asset for Stargate adapter on current chain only
+        // The StargateAdapter only tracks assets for the current chain
+        stargateAdapter.addSupportedAsset(address(usdc), address(mockStargate));
 
         // Set up peer for Arbitrum chain (LayerZero)
         bytes32 peerAddressBytes32 = bytes32(uint256(uint160(ARB_PROXY)));
@@ -431,12 +424,19 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             "SUCCESS: Full integration test completed - CrossChain Ark -> Bridge Queue -> Stargate Adapter"
         );
 
-        // Verify that the transfer was successful by checking the adapter still holds the tokens
-        // (In a real scenario, Stargate would consume them, but our mock doesn't)
+        // Verify that the transfer was successful by checking the mock Stargate contract received the tokens
+        // The MockStargateV2 contract consumes the tokens when sendToken is called, simulating real Stargate behavior
+        assertEq(
+            usdc.balanceOf(address(mockStargate)),
+            amount,
+            "MockStargateV2 should hold the tokens after mock transfer"
+        );
+
+        // Verify StargateAdapter no longer holds the tokens (they were transferred to Stargate)
         assertEq(
             usdc.balanceOf(address(stargateAdapter)),
-            amount,
-            "StargateAdapter should hold the tokens after mock transfer"
+            0,
+            "StargateAdapter should not hold tokens after transfer to Stargate"
         );
     }
 

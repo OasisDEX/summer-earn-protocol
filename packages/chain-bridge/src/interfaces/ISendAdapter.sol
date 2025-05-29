@@ -53,7 +53,7 @@ interface ISendAdapter {
      * @param asset Address of the asset to transfer
      * @param recipient Address of the recipient on the destination chain
      * @param amount Amount of the asset to transfer
-     * @param originator Address that initiated the transfer (for refunds)
+     * @param originator Address that initiated the transfer (for tracking/callbacks)
      * @param adapterParams Additional adapter-specific parameters
      * @dev Initiates a cross-chain asset transfer
      */
@@ -75,7 +75,7 @@ interface ISendAdapter {
      * @param dstContract Address of the contract on the destination chain
      * @param selector Function selector to call
      * @param readParams Parameters for the function call
-     * @param originator Address that initiated the read (for refunds)
+     * @param originator Address that initiated the read (for tracking/callbacks)
      * @param adapterParams Additional adapter-specific parameters
      * @dev Initiates a cross-chain state read operation
      */
@@ -96,7 +96,7 @@ interface ISendAdapter {
      * @param destinationChainId ID of the destination chain
      * @param recipient Address of the recipient on the destination chain
      * @param message The message data to send
-     * @param originator Address that initiated the message (for refunds)
+     * @param originator Address that initiated the message (for tracking/callbacks)
      * @param adapterParams Additional adapter-specific parameters
      * @dev Initiates a cross-chain messaging operation
      */
