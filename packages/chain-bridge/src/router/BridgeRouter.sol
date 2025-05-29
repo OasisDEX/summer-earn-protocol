@@ -327,6 +327,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             params.recipient,
             params.amount,
             params.originator,
+            params.keeper, // Pass keeper for refunds
             params.options.adapterParams
         );
 

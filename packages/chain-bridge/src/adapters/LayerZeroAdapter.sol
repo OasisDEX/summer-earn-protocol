@@ -363,6 +363,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address,
         uint256,
         address,
+        address, // keeper - not used by LayerZero adapter
         BridgeTypes.AdapterParams calldata
     ) external payable {
         // This adapter doesn't support asset transfers directly

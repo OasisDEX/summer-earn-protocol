@@ -34,6 +34,7 @@ contract ChainlinkAdapterTest is Test {
             user, // recipient
             100, // amount
             user, // originator
+            user, // keeper
             BridgeTypes.AdapterParams({
                 gasLimit: 0,
                 calldataSize: 0,

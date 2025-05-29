@@ -35,6 +35,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address,
         uint256,
         address,
+        address, // keeper - Accept from router but not implemented
         BridgeTypes.AdapterParams calldata
     ) external payable {
         revert OperationNotSupported();

@@ -112,6 +112,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         address recipient;
         uint256 amount;
         address originator;
+        address keeper;
         bytes32 operationId;
     }
 
@@ -340,6 +341,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         address recipient,
         uint256 amount,
         address originator,
+        address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable override {
         // Store msg.value early
@@ -377,6 +379,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             recipient: recipient,
             amount: amount,
             originator: originator,
+            keeper: keeper,
             operationId: operationId
         });
 
@@ -507,10 +510,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             revert InsufficientFee(messagingFee.nativeFee, providedFee);
         }
 
-        stargate.sendToken{value: providedFee}(
+        // Use exact fee amount from quote - Stargate handles refunds to keeper
+        stargate.sendToken{value: messagingFee.nativeFee}(
             sendParam,
             messagingFee,
-            params.originator
+            params.keeper // Always refund to keeper who paid fees
         );
     }
 

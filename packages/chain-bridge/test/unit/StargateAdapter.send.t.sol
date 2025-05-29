@@ -153,6 +153,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
 
@@ -194,6 +195,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
     }
@@ -221,6 +223,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
     }
@@ -259,6 +262,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
         vm.stopPrank();
@@ -329,6 +333,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
     }
@@ -427,6 +432,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
 
@@ -463,6 +469,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
     }
@@ -526,6 +533,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
     }

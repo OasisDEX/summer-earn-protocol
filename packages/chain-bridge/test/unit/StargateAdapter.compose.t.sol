@@ -148,6 +148,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(fleetProxyB), // Send to fleet proxy
             1 ether,
             user,
+            user, // Add keeper parameter
             adapterParams
         );
 

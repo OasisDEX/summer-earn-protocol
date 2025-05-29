@@ -101,6 +101,7 @@ contract MockAdapter is IBridgeAdapter {
         address recipient,
         uint256 amount,
         address originator,
+        address, // Accept keeper parameter from router
         BridgeTypes.AdapterParams calldata
     ) external payable {
         // Check caller is bridge router

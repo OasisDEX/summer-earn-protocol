@@ -472,6 +472,7 @@ contract BridgeRouterTransferTest is Test {
                 user,
                 1,
                 user,
+                user, // Add keeper parameter
                 simpleParams
             )
         {
@@ -495,6 +496,7 @@ contract BridgeRouterTransferTest is Test {
                 user,
                 1,
                 user,
+                user, // Add keeper parameter
                 simpleParams
             )
         {
@@ -626,6 +628,7 @@ contract BridgeRouterTransferTest is Test {
                 amount: TRANSFER_AMOUNT,
                 recipient: user,
                 originator: user,
+                keeper: address(bridgeQueue),
                 options: options
             });
 
@@ -690,6 +693,7 @@ contract BridgeRouterTransferTest is Test {
                 amount: 100,
                 recipient: user,
                 originator: user,
+                keeper: address(bridgeQueue),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({

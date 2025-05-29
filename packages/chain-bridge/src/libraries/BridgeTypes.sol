@@ -49,6 +49,7 @@ library BridgeTypes {
         uint256 amount;
         address recipient;
         address originator;
+        address keeper; // Add keeper field for refunds
         BridgeOptions options;
     }
 

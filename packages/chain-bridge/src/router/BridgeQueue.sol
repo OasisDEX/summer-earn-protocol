@@ -292,6 +292,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     amount: transferData.amount,
                     recipient: transferData.recipient,
                     originator: transferData.originator,
+                    keeper: msg.sender,
                     options: options
                 });
 

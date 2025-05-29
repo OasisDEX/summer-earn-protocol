@@ -1138,6 +1138,7 @@ contract BridgeQueueTest is Test {
                     amount: TRANSFER_AMOUNT,
                     recipient: recipient,
                     originator: queueManager,
+                    keeper: keeper,
                     options: _defaultOptions()
                 })
             ),
