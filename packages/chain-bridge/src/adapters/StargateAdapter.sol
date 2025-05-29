@@ -709,11 +709,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 (address, address, uint256, uint256, bytes32, address)
             );
 
-        // Verify the amount matches what we expected
-        if (amountLD != expectedAmount) {
-            revert InvalidParams();
-        }
-
         // Validate decoded parameters
         if (asset == address(0) || amountLD == 0 || fleetProxy == address(0)) {
             revert InvalidParams();
