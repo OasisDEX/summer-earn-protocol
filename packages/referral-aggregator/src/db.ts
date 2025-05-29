@@ -1,4 +1,5 @@
 import { Pool } from 'pg'
+import { Migrator } from './migrations/migrator'
 import { Chain } from './types'
 
 interface ReferralRelationshipRow {
@@ -21,19 +22,24 @@ export class DatabaseService {
 
   constructor() {
     this.pool = new Pool({
-      host: process.env.DB_HOST || 'localhost',
+      host: process.env.DB_HOST || '127.0.0.1',
       port: parseInt(process.env.DB_PORT || '5432'),
       database: process.env.DB_NAME || 'referral_points',
       user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres'
+      password: process.env.DB_PASSWORD || 'postgres',
     })
+  }
+
+  async migrate(): Promise<void> {
+    const migrator = new Migrator(this.pool)
+    await migrator.runMigrations()
   }
 
   async upsertReferralPoints(
     accountId: string,
     points: number,
     totalDepositsUsd: number,
-    activeReferredUsers: number
+    activeReferredUsers: number,
   ): Promise<void> {
     const query = `
       INSERT INTO referral_points (account_id, points, total_deposits_usd, active_referred_users)
@@ -51,7 +57,7 @@ export class DatabaseService {
     referrerId: string,
     referredId: string,
     chain: Chain,
-    referralTimestamp: Date
+    referralTimestamp: Date,
   ): Promise<void> {
     const query = `
       INSERT INTO referral_relationships (referrer_id, referred_id, chain, referral_timestamp)
@@ -67,7 +73,7 @@ export class DatabaseService {
     positionId: string,
     depositAmountUsd: number,
     createdTimestamp: Date,
-    referralTimestamp?: Date
+    referralTimestamp?: Date,
   ): Promise<void> {
     const query = `
       INSERT INTO position_snapshots (
@@ -75,6 +81,11 @@ export class DatabaseService {
         created_timestamp, referral_timestamp
       )
       VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (account_id, chain, position_id) DO UPDATE
+      SET deposit_amount_usd = $4,
+          created_timestamp = $5,
+          referral_timestamp = $6,
+          snapshot_timestamp = NOW()
     `
     await this.pool.query(query, [
       accountId,
@@ -82,7 +93,7 @@ export class DatabaseService {
       positionId,
       depositAmountUsd,
       createdTimestamp,
-      referralTimestamp
+      referralTimestamp,
     ])
   }
 
@@ -101,11 +112,13 @@ export class DatabaseService {
     return result.rows[0] || null
   }
 
-  async getReferredUsers(accountId: string): Promise<{
-    referredId: string
-    chain: Chain
-    referralTimestamp: Date
-  }[]> {
+  async getReferredUsers(accountId: string): Promise<
+    {
+      referredId: string
+      chain: Chain
+      referralTimestamp: Date
+    }[]
+  > {
     const query = `
       SELECT referred_id, chain, referral_timestamp
       FROM referral_relationships
@@ -115,21 +128,23 @@ export class DatabaseService {
     return result.rows.map((row: ReferralRelationshipRow) => ({
       referredId: row.referred_id,
       chain: row.chain,
-      referralTimestamp: row.referral_timestamp
+      referralTimestamp: row.referral_timestamp,
     }))
   }
 
   async getPositionSnapshots(
     accountId: string,
-    fromTimestamp: Date
-  ): Promise<{
-    chain: Chain
-    positionId: string
-    depositAmountUsd: number
-    createdTimestamp: Date
-    referralTimestamp?: Date
-    snapshotTimestamp: Date
-  }[]> {
+    fromTimestamp: Date,
+  ): Promise<
+    {
+      chain: Chain
+      positionId: string
+      depositAmountUsd: number
+      createdTimestamp: Date
+      referralTimestamp?: Date
+      snapshotTimestamp: Date
+    }[]
+  > {
     const query = `
       SELECT chain, position_id, deposit_amount_usd, created_timestamp,
              referral_timestamp, snapshot_timestamp
@@ -144,11 +159,51 @@ export class DatabaseService {
       depositAmountUsd: row.deposit_amount_usd,
       createdTimestamp: row.created_timestamp,
       referralTimestamp: row.referral_timestamp,
-      snapshotTimestamp: row.snapshot_timestamp
+      snapshotTimestamp: row.snapshot_timestamp,
     }))
   }
 
   async close(): Promise<void> {
     await this.pool.end()
   }
-} 
+
+  async hasAnyData(): Promise<boolean> {
+    try {
+      const query = 'SELECT COUNT(*) as count FROM referral_points LIMIT 1'
+      const result = await this.pool.query(query)
+      return parseInt(result.rows[0].count) > 0
+    } catch (error) {
+      console.error('Error checking if database has data:', error)
+      return false
+    }
+  }
+
+  async getAllReferrerAccounts(): Promise<string[]> {
+    const query = 'SELECT DISTINCT referrer_id FROM referral_relationships'
+    const result = await this.pool.query(query)
+    return result.rows.map(row => row.referrer_id)
+  }
+
+  async getAllAccountsWithPoints(): Promise<Array<{
+    accountId: string
+    points: number
+    totalDepositsUsd: number
+    activeReferredUsers: number
+    lastUpdated: Date
+  }>> {
+    const query = `
+      SELECT account_id, points, total_deposits_usd, active_referred_users, last_updated
+      FROM referral_points
+      ORDER BY points DESC
+    `
+    const result = await this.pool.query(query)
+    
+    return result.rows.map((row: any) => ({
+      accountId: row.account_id,
+      points: Number(row.points),
+      totalDepositsUsd: Number(row.total_deposits_usd),
+      activeReferredUsers: row.active_referred_users,
+      lastUpdated: row.last_updated
+    }))
+  }
+}

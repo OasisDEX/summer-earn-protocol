@@ -5,7 +5,7 @@ describe('Type Definitions', () => {
     it('should have the correct shape', () => {
       const referralData: ReferralData = {
         id: '0x123',
-        amountOfReferred: BigInt(5)
+        amountOfReferred: BigInt(5),
       }
 
       expect(referralData).toHaveProperty('id')
@@ -13,7 +13,6 @@ describe('Type Definitions', () => {
       expect(referralData).toHaveProperty('protocol')
       expect(typeof referralData.id).toBe('string')
       expect(typeof referralData.amountOfReferred).toBe('bigint')
-
     })
   })
 
@@ -21,8 +20,8 @@ describe('Type Definitions', () => {
     it('should have the correct shape', () => {
       const position: Position = {
         id: '0x456',
-        account:{id: '0x789'},
-        vault: {id: '0xabc'},
+        account: { id: '0x789' },
+        vault: { id: '0xabc' },
         inputTokenDeposits: BigInt(1000),
         inputTokenDepositsNormalized: 1000,
         inputTokenWithdrawalsNormalized: 0,
@@ -49,7 +48,7 @@ describe('Type Definitions', () => {
         claimableSummerTokenNormalized: 50,
         referralData: null,
         depositAmountUsd: BigInt(1),
-        createdAt: BigInt(1234567880)
+        createdAt: BigInt(1234567880),
       }
 
       // Check required string properties
@@ -101,7 +100,7 @@ describe('Type Definitions', () => {
         claimedSummerToken: BigInt(100),
         claimedSummerTokenNormalized: 100,
         referralData: null,
-        referralTimestamp: null
+        referralTimestamp: null,
       }
 
       // Check required string properties
@@ -127,7 +126,7 @@ describe('Type Definitions', () => {
     it('should allow optional properties to be set', () => {
       const referralData: ReferralData = {
         id: '0x123',
-        amountOfReferred: BigInt(5)
+        amountOfReferred: BigInt(5),
       }
 
       const account: Account = {
@@ -139,11 +138,11 @@ describe('Type Definitions', () => {
         claimedSummerToken: BigInt(100),
         claimedSummerTokenNormalized: 100,
         referralData,
-        referralTimestamp: BigInt(1234567890)
+        referralTimestamp: BigInt(1234567890),
       }
 
       expect(account.referralData).toEqual(referralData)
       expect(typeof account.referralTimestamp).toBe('bigint')
     })
   })
-}) 
+})

@@ -6,8 +6,8 @@ import { Chain } from '../types'
 jest.mock('pg', () => ({
   Pool: jest.fn().mockImplementation(() => ({
     query: jest.fn(),
-    end: jest.fn()
-  }))
+    end: jest.fn(),
+  })),
 }))
 
 describe('DatabaseService', () => {
@@ -31,7 +31,7 @@ describe('DatabaseService', () => {
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO referral_points'),
-        [accountId, points, totalDepositsUsd, activeReferredUsers]
+        [accountId, points, totalDepositsUsd, activeReferredUsers],
       )
     })
   })
@@ -47,7 +47,7 @@ describe('DatabaseService', () => {
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO referral_relationships'),
-        [referrerId, referredId, chain, referralTimestamp]
+        [referrerId, referredId, chain, referralTimestamp],
       )
     })
   })
@@ -67,12 +67,12 @@ describe('DatabaseService', () => {
         positionId,
         depositAmountUsd,
         createdTimestamp,
-        referralTimestamp
+        referralTimestamp,
       )
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO position_snapshots'),
-        [accountId, chain, positionId, depositAmountUsd, createdTimestamp, referralTimestamp]
+        [accountId, chain, positionId, depositAmountUsd, createdTimestamp, referralTimestamp],
       )
     })
 
@@ -88,12 +88,12 @@ describe('DatabaseService', () => {
         chain,
         positionId,
         depositAmountUsd,
-        createdTimestamp
+        createdTimestamp,
       )
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO position_snapshots'),
-        [accountId, chain, positionId, depositAmountUsd, createdTimestamp, undefined]
+        [accountId, chain, positionId, depositAmountUsd, createdTimestamp, undefined],
       )
     })
   })
@@ -105,7 +105,7 @@ describe('DatabaseService', () => {
         points: 1.5,
         totalDepositsUsd: 3000,
         activeReferredUsers: 2,
-        lastUpdated: new Date('2024-01-01T00:00:00Z')
+        lastUpdated: new Date('2024-01-01T00:00:00Z'),
       }
 
       mockPool.query.mockResolvedValueOnce({ rows: [mockPoints] })
@@ -114,7 +114,7 @@ describe('DatabaseService', () => {
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('SELECT points, total_deposits_usd'),
-        [accountId]
+        [accountId],
       )
       expect(result).toEqual(mockPoints)
     })
@@ -136,8 +136,8 @@ describe('DatabaseService', () => {
         {
           referredId: '0x456',
           chain: 'Ethereum' as Chain,
-          referralTimestamp: new Date('2024-01-01T00:00:00Z')
-        }
+          referralTimestamp: new Date('2024-01-01T00:00:00Z'),
+        },
       ]
 
       mockPool.query.mockResolvedValueOnce({ rows: mockReferredUsers })
@@ -146,7 +146,7 @@ describe('DatabaseService', () => {
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('SELECT referred_id, chain, referral_timestamp'),
-        [accountId]
+        [accountId],
       )
       expect(result).toEqual(mockReferredUsers)
     })
@@ -163,8 +163,8 @@ describe('DatabaseService', () => {
           depositAmountUsd: 1000,
           createdTimestamp: new Date('2024-01-01T00:00:00Z'),
           referralTimestamp: new Date('2024-01-01T00:00:00Z'),
-          snapshotTimestamp: new Date('2024-01-01T00:00:00Z')
-        }
+          snapshotTimestamp: new Date('2024-01-01T00:00:00Z'),
+        },
       ]
 
       mockPool.query.mockResolvedValueOnce({ rows: mockSnapshots })
@@ -173,7 +173,7 @@ describe('DatabaseService', () => {
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('SELECT chain, position_id, deposit_amount_usd'),
-        [accountId, fromTimestamp]
+        [accountId, fromTimestamp],
       )
       expect(result).toEqual(mockSnapshots)
     })
@@ -185,4 +185,4 @@ describe('DatabaseService', () => {
       expect(mockPool.end).toHaveBeenCalled()
     })
   })
-}) 
+})

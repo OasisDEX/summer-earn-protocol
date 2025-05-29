@@ -1,6 +1,6 @@
 import { ReferralAggregator } from '../aggregator'
 import { ReferralClient } from '../client'
-import { Account, Position, ReferralData, Chain } from '../types'
+import { Chain } from '../types'
 
 // Mock the referral client
 jest.mock('../client')
@@ -28,9 +28,9 @@ describe('ReferralAggregator', () => {
       claimedSummerTokenNormalized: 100,
       referralData: {
         id: '0x789',
-        amountOfReferred: BigInt(5)
+        amountOfReferred: BigInt(5),
       },
-      referralTimestamp: BigInt(1704067200)
+      referralTimestamp: BigInt(1704067200),
     }
 
     const mockPosition = {
@@ -63,13 +63,13 @@ describe('ReferralAggregator', () => {
       claimableSummerTokenNormalized: 0,
       depositAmountUsd: BigInt(1000),
       createdAt: BigInt(1704067200),
-      referralData: null
+      referralData: null,
     }
 
     it('should aggregate data from all chains', async () => {
       // Mock responses for each chain
       const chains: Chain[] = ['Ethereum', 'Polygon', 'Arbitrum', 'Base']
-      chains.forEach(chain => {
+      chains.forEach((chain) => {
         client.getAccount.mockResolvedValueOnce(mockAccount)
         client.getPositions.mockResolvedValueOnce([mockPosition])
       })
@@ -93,7 +93,7 @@ describe('ReferralAggregator', () => {
             claimedSummerToken: BigInt(100),
             claimedSummerTokenNormalized: 100,
             referralData: mockAccount.referralData,
-            referralTimestamp: mockAccount.referralTimestamp
+            referralTimestamp: mockAccount.referralTimestamp,
           },
           Polygon: {
             stakedSummerToken: BigInt(1000),
@@ -101,7 +101,7 @@ describe('ReferralAggregator', () => {
             claimedSummerToken: BigInt(100),
             claimedSummerTokenNormalized: 100,
             referralData: mockAccount.referralData,
-            referralTimestamp: mockAccount.referralTimestamp
+            referralTimestamp: mockAccount.referralTimestamp,
           },
           Arbitrum: {
             stakedSummerToken: BigInt(1000),
@@ -109,7 +109,7 @@ describe('ReferralAggregator', () => {
             claimedSummerToken: BigInt(100),
             claimedSummerTokenNormalized: 100,
             referralData: mockAccount.referralData,
-            referralTimestamp: mockAccount.referralTimestamp
+            referralTimestamp: mockAccount.referralTimestamp,
           },
           Base: {
             stakedSummerToken: BigInt(1000),
@@ -117,9 +117,9 @@ describe('ReferralAggregator', () => {
             claimedSummerToken: BigInt(100),
             claimedSummerTokenNormalized: 100,
             referralData: mockAccount.referralData,
-            referralTimestamp: mockAccount.referralTimestamp
-          }
-        }
+            referralTimestamp: mockAccount.referralTimestamp,
+          },
+        },
       })
     })
 
@@ -157,7 +157,7 @@ describe('ReferralAggregator', () => {
             claimedSummerToken: BigInt(100),
             claimedSummerTokenNormalized: 100,
             referralData: mockAccount.referralData,
-            referralTimestamp: mockAccount.referralTimestamp
+            referralTimestamp: mockAccount.referralTimestamp,
           },
           Polygon: {
             stakedSummerToken: BigInt(0),
@@ -165,7 +165,7 @@ describe('ReferralAggregator', () => {
             claimedSummerToken: BigInt(0),
             claimedSummerTokenNormalized: 0,
             referralData: null,
-            referralTimestamp: null
+            referralTimestamp: null,
           },
           Arbitrum: {
             stakedSummerToken: BigInt(1000),
@@ -173,7 +173,7 @@ describe('ReferralAggregator', () => {
             claimedSummerToken: BigInt(100),
             claimedSummerTokenNormalized: 100,
             referralData: mockAccount.referralData,
-            referralTimestamp: mockAccount.referralTimestamp
+            referralTimestamp: mockAccount.referralTimestamp,
           },
           Base: {
             stakedSummerToken: BigInt(0),
@@ -181,9 +181,9 @@ describe('ReferralAggregator', () => {
             claimedSummerToken: BigInt(0),
             claimedSummerTokenNormalized: 0,
             referralData: null,
-            referralTimestamp: null
-          }
-        }
+            referralTimestamp: null,
+          },
+        },
       })
     })
 
@@ -200,4 +200,4 @@ describe('ReferralAggregator', () => {
       expect(result).toBeNull()
     })
   })
-}) 
+})

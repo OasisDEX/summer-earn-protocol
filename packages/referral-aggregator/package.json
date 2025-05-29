@@ -7,11 +7,13 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "codegen": "graphql-mesh generate",
+    "codegen": "graphql-codegen && graphql-mesh generate",
     "start": "node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "calculate-points": "ts-node src/scripts/calculate-points.ts"
+    "migrate": "ts-node src/scripts/migrate.ts",
+    "calculate-points": "ts-node src/scripts/calculate-points.ts",
+    "hourly-processor": "ts-node src/scripts/hourly-processor.ts"
   },
   "dependencies": {
     "@graphql-mesh/cli": "0.100.4",

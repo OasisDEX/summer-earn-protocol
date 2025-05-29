@@ -1,3 +1,3 @@
-export * from './types'
+export * from './aggregator'
 export * from './client'
-export * from './aggregator' 
+export * from './types'

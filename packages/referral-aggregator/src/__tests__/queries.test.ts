@@ -18,22 +18,18 @@ describe('GraphQL Queries', () => {
         'claimedSummerToken',
         'claimedSummerTokenNormalized',
         'referralData',
-        'referralTimestamp'
+        'referralTimestamp',
       ]
 
-      requiredFields.forEach(field => {
+      requiredFields.forEach((field) => {
         expect(ACCOUNT_QUERY).toContain(field)
       })
     })
 
     it('should include nested referral data fields', () => {
-      const referralFields = [
-        'id',
-        'amountOfReferred',
-        'protocol'
-      ]
+      const referralFields = ['id', 'amountOfReferred', 'protocol']
 
-      referralFields.forEach(field => {
+      referralFields.forEach((field) => {
         expect(ACCOUNT_QUERY).toContain(field)
       })
     })
@@ -76,24 +72,20 @@ describe('GraphQL Queries', () => {
         'claimedSummerTokenNormalized',
         'claimableSummerToken',
         'claimableSummerTokenNormalized',
-        'referralData'
+        'referralData',
       ]
 
-      requiredFields.forEach(field => {
+      requiredFields.forEach((field) => {
         expect(POSITIONS_QUERY).toContain(field)
       })
     })
 
     it('should include nested referral data fields', () => {
-      const referralFields = [
-        'id',
-        'amountOfReferred',
-        'protocol'
-      ]
+      const referralFields = ['id', 'amountOfReferred', 'protocol']
 
-      referralFields.forEach(field => {
+      referralFields.forEach((field) => {
         expect(POSITIONS_QUERY).toContain(field)
       })
     })
   })
-}) 
+})

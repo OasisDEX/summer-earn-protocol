@@ -15,7 +15,6 @@ sources:
     handler:
       graphql:
         endpoint: https://subgraph.staging.oasisapp.dev/summer-protocol
-
 serve:
   port: 4000
   playground: true 
