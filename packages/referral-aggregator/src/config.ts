@@ -1,5 +1,5 @@
 import { Kysely } from 'kysely'
-import { Database } from './database/types'
+import { DB } from 'kysely-codegen'
 
 export interface PointsConfig {
   processingIntervalHours: number
@@ -10,7 +10,7 @@ export interface PointsConfig {
 }
 
 export class ConfigService {
-  constructor(private db: Kysely<Database>) {}
+  constructor(private db: Kysely<DB>) {}
 
   async getConfig(): Promise<PointsConfig> {
     const result = await this.db

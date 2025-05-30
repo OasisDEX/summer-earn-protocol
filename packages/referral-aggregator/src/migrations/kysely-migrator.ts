@@ -139,15 +139,49 @@ export class KyselyMigrator {
   private getMigrations(): Migration[] {
     return [
       {
-        name: '001_complete_schema',
+        name: '001_users_schema',
         up: this.migration001Up.bind(this),
         down: this.migration001Down.bind(this),
       },
     ]
   }
 
-  // Consolidated migration combining all three previous migrations
+  // New clean migration with users table
   private async migration001Up(db: Kysely<any>): Promise<void> {
+    // Create users table (replaces referral_relationships)
+    await db.schema
+      .createTable('users')
+      .ifNotExists()
+      .addColumn('id', 'varchar(100)', (col) => col.notNull()) // user address
+      .addColumn('referral_chain', 'varchar(20)', (col) => col.notNull()) // chain where user exists
+      .addColumn('referral_id', 'varchar(100)') // nullable - referral code of this user
+      .addColumn('referrer_id', 'varchar(100)') // nullable - who referred this user
+      .addColumn('referral_timestamp', 'timestamptz') // when they were referred
+      .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
+      .addColumn('updated_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
+      .addPrimaryKeyConstraint('users_pkey', ['id', 'referral_chain']) // one user per chain
+      .execute()
+
+    // Create trigger to update updated_at column
+    await db.executeQuery(
+      sql`
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+          NEW.updated_at = NOW();
+          RETURN NEW;
+      END;
+      $$ language 'plpgsql';
+    `.compile(db),
+    )
+
+    await db.executeQuery(
+      sql`
+      CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    `.compile(db),
+    )
+
     // Create referral_points table
     await db.schema
       .createTable('referral_points')
@@ -160,22 +194,6 @@ export class KyselyMigrator {
       .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
       .addColumn('last_calculation_timestamp', 'timestamptz')
       .addColumn('total_point_distributions', sql`decimal(20,8)`, (col) => col.defaultTo(0))
-      .execute()
-
-    // Create referral_relationships table
-    await db.schema
-      .createTable('referral_relationships')
-      .ifNotExists()
-      .addColumn('referrer_id', 'varchar(100)', (col) => col.notNull())
-      .addColumn('referred_id', 'varchar(100)', (col) => col.notNull())
-      .addColumn('chain', 'varchar(20)', (col) => col.notNull())
-      .addColumn('referral_timestamp', 'timestamptz', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
-      .addPrimaryKeyConstraint('referral_relationships_pkey', [
-        'referrer_id',
-        'referred_id',
-        'chain',
-      ])
       .execute()
 
     // Create position_snapshots table
@@ -233,6 +251,18 @@ export class KyselyMigrator {
       .addColumn('last_updated', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
       .execute()
 
+    // Create custom_referral_codes table
+    await db.schema
+      .createTable('custom_referral_codes')
+      .ifNotExists()
+      .addColumn('id', 'serial', (col) => col.primaryKey())
+      .addColumn('custom_code', 'varchar(100)', (col) => col.notNull().unique())
+      .addColumn('actual_referrer_id', 'varchar(100)', (col) => col.notNull())
+      .addColumn('referrer_address', 'varchar(100)', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
+      .addColumn('is_active', 'boolean', (col) => col.notNull().defaultTo(true))
+      .execute()
+
     // Create all indexes
     await this.createIndexes(db)
 
@@ -271,6 +301,30 @@ export class KyselyMigrator {
   }
 
   private async createIndexes(db: Kysely<any>): Promise<void> {
+    // Users table indexes
+    await db.schema.createIndex('idx_users_id').ifNotExists().on('users').column('id').execute()
+
+    await db.schema
+      .createIndex('idx_users_referrer_id')
+      .ifNotExists()
+      .on('users')
+      .column('referrer_id')
+      .execute()
+
+    await db.schema
+      .createIndex('idx_users_chain')
+      .ifNotExists()
+      .on('users')
+      .column('referral_chain')
+      .execute()
+
+    await db.schema
+      .createIndex('idx_users_referral_timestamp')
+      .ifNotExists()
+      .on('users')
+      .column('referral_timestamp')
+      .execute()
+
     // Referral points indexes
     await db.schema
       .createIndex('idx_referral_points_account_id')
@@ -284,35 +338,6 @@ export class KyselyMigrator {
       .ifNotExists()
       .on('referral_points')
       .column('last_calculation_timestamp')
-      .execute()
-
-    // Referral relationships indexes
-    await db.schema
-      .createIndex('idx_referral_relationships_referrer_id')
-      .ifNotExists()
-      .on('referral_relationships')
-      .column('referrer_id')
-      .execute()
-
-    await db.schema
-      .createIndex('idx_referral_relationships_referred_id')
-      .ifNotExists()
-      .on('referral_relationships')
-      .column('referred_id')
-      .execute()
-
-    await db.schema
-      .createIndex('idx_referral_relationships_chain')
-      .ifNotExists()
-      .on('referral_relationships')
-      .column('chain')
-      .execute()
-
-    await db.schema
-      .createIndex('idx_referral_relationships_timestamp')
-      .ifNotExists()
-      .on('referral_relationships')
-      .column('referral_timestamp')
       .execute()
 
     // Position snapshots indexes
@@ -402,16 +427,75 @@ export class KyselyMigrator {
       .on('user_activity_status')
       .column('total_deposits_usd')
       .execute()
+
+    // Custom referral codes indexes
+    await db.schema
+      .createIndex('idx_custom_referral_codes_custom_code')
+      .ifNotExists()
+      .on('custom_referral_codes')
+      .column('custom_code')
+      .execute()
+
+    await db.schema
+      .createIndex('idx_custom_referral_codes_referrer_id')
+      .ifNotExists()
+      .on('custom_referral_codes')
+      .column('actual_referrer_id')
+      .execute()
+
+    await db.schema
+      .createIndex('idx_custom_referral_codes_is_active')
+      .ifNotExists()
+      .on('custom_referral_codes')
+      .column('is_active')
+      .execute()
   }
 
   private async migration001Down(db: Kysely<any>): Promise<void> {
     // Drop tables in reverse order
     await db.schema.dropTable('user_activity_status').ifExists().execute()
     await db.schema.dropTable('point_distributions').ifExists().execute()
+    await db.schema.dropTable('custom_referral_codes').ifExists().execute()
     await db.schema.dropTable('points_config').ifExists().execute()
     await db.schema.dropTable('position_snapshots').ifExists().execute()
-    await db.schema.dropTable('referral_relationships').ifExists().execute()
     await db.schema.dropTable('referral_points').ifExists().execute()
+    await db.schema.dropTable('users').ifExists().execute()
+  }
+
+  async reset(): Promise<void> {
+    console.log('🧹 Resetting database - dropping all tables...')
+
+    const client = await this.pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      // Drop all tables (order matters due to foreign keys)
+      const tablesToDrop = [
+        'user_activity_status',
+        'point_distributions',
+        'position_snapshots',
+        'custom_referral_codes',
+        'referral_relationships',
+        'users',
+        'referral_points',
+        'points_config',
+        'migrations',
+      ]
+
+      for (const table of tablesToDrop) {
+        await client.query(`DROP TABLE IF EXISTS ${table} CASCADE`)
+        console.log(`Dropped table: ${table}`)
+      }
+
+      await client.query('COMMIT')
+      console.log('✅ Database reset completed')
+    } catch (error) {
+      await client.query('ROLLBACK')
+      console.error('❌ Error resetting database:', error)
+      throw error
+    } finally {
+      client.release()
+    }
   }
 
   async close(): Promise<void> {

@@ -19,8 +19,6 @@ export const ACCOUNTS_QUERY = gql`
       stakedSummerToken
       stakedSummerTokenNormalized
       lastUpdateBlock
-      claimedSummerToken
-      claimedSummerTokenNormalized
       referralData {
         id
         amountOfReferred
@@ -73,10 +71,6 @@ export const POSITIONS_QUERY = `
       unstakedInputTokenBalanceNormalizedInUSD
       createdTimestamp
       createdBlockNumber
-      claimedSummerToken
-      claimedSummerTokenNormalized
-      claimableSummerToken
-      claimableSummerTokenNormalized
       referralData {
         id
         amountOfReferred
@@ -90,11 +84,7 @@ export const ACCOUNTS_WITH_POSITIONS_QUERY = gql`
   query GetAccountsWithPositions($accountIds: [ID!]!, $first: Int!, $lastId: ID) {
     accounts(orderBy: id, first: $first, where: { id_in: $accountIds, id_gt: $lastId }) {
       id
-      stakedSummerToken
-      stakedSummerTokenNormalized
       lastUpdateBlock
-      claimedSummerToken
-      claimedSummerTokenNormalized
       referralData {
         id
         amountOfReferred
@@ -128,10 +118,6 @@ export const ACCOUNTS_WITH_POSITIONS_QUERY = gql`
         unstakedInputTokenBalanceNormalizedInUSD
         createdTimestamp
         createdBlockNumber
-        claimedSummerToken
-        claimedSummerTokenNormalized
-        claimableSummerToken
-        claimableSummerTokenNormalized
         referralData {
           id
           amountOfReferred
@@ -146,7 +132,7 @@ export const ACCOUNTS_WITH_POSITIONS_QUERY = gql`
     }
   }
 `
-
+// todo: add pagination
 export const VALIDATE_POSITIONS_QUERY = gql`
   query ValidatePositions($accountIds: [ID!]!) {
     accounts(where: { id_in: $accountIds }) {

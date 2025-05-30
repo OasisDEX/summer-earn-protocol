@@ -1,14 +1,20 @@
-import { Kysely, PostgresDialect } from 'kysely'
+import { Kysely, PostgresDialect, sql } from 'kysely'
 import { Pool } from 'pg'
 import { ConfigService } from './config'
-import { Database } from './database/types'
 import { KyselyMigrator } from './migrations/kysely-migrator'
 import { Chain } from './types'
+import { DB } from 'kysely-codegen';
 
-interface ReferralRelationshipRow {
-  referred_id: string
+interface UserRow {
+  id: string
   chain: Chain
-  referral_timestamp: Date
+  referrer_id: string | null
+  referral_timestamp: Date | null
+}
+
+interface ReferralUserRow extends UserRow {
+  total_deposits_usd: number
+  is_active: boolean
 }
 
 interface PositionSnapshotRow {
@@ -22,7 +28,7 @@ interface PositionSnapshotRow {
 
 export class DatabaseService {
   protected pool: Pool
-  protected db: Kysely<Database>
+  protected db: Kysely<DB>
   public config: ConfigService
 
   constructor() {
@@ -35,7 +41,7 @@ export class DatabaseService {
     })
 
     // Initialize Kysely with PostgreSQL dialect
-    this.db = new Kysely<Database>({
+    this.db = new Kysely<DB>({
       dialect: new PostgresDialect({
         pool: this.pool,
       }),
@@ -61,63 +67,54 @@ export class DatabaseService {
   ): Promise<void> {
     const calculationTimestamp = new Date()
 
-    const client = await this.pool.connect()
-    try {
-      await client.query('BEGIN')
-
+    await this.db.transaction().execute(async (trx) => {
       // Insert point distribution record
-      await client.query(
-        `
-        INSERT INTO point_distributions (
-          account_id, referrer_id, points_awarded, total_deposits_usd, 
-          active_referred_users, calculation_timestamp, period_start, period_end
+      await trx
+        .insertInto('point_distributions')
+        .values({
+          account_id: accountId,
+          referrer_id: referrerId,
+          points_awarded: pointsAwarded,
+          total_deposits_usd: totalDepositsUsd,
+          active_referred_users: activeReferredUsers,
+          calculation_timestamp: calculationTimestamp,
+          period_start: periodStart,
+          period_end: periodEnd,
+        })
+        .onConflict((oc) =>
+          oc.columns(['account_id', 'calculation_timestamp']).doUpdateSet({
+            points_awarded: pointsAwarded,
+            total_deposits_usd: totalDepositsUsd,
+            active_referred_users: activeReferredUsers,
+            period_start: periodStart,
+            period_end: periodEnd,
+          }),
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT (account_id, calculation_timestamp) DO UPDATE
-        SET points_awarded = $3,
-            total_deposits_usd = $4,
-            active_referred_users = $5,
-            period_start = $7,
-            period_end = $8
-      `,
-        [
-          accountId,
-          referrerId,
-          pointsAwarded,
-          totalDepositsUsd,
-          activeReferredUsers,
-          calculationTimestamp,
-          periodStart,
-          periodEnd,
-        ],
-      )
+        .execute()
 
       // Update referral_points summary
-      await client.query(
-        `
-        INSERT INTO referral_points (
-          account_id, points, total_deposits_usd, active_referred_users,
-          last_calculation_timestamp, total_point_distributions
+      await trx
+        .insertInto('referral_points')
+        .values({
+          account_id: accountId,
+          points: pointsAwarded,
+          total_deposits_usd: totalDepositsUsd,
+          active_referred_users: activeReferredUsers,
+          last_calculation_timestamp: calculationTimestamp,
+          total_point_distributions: pointsAwarded,
+        })
+        .onConflict((oc) =>
+          oc.column('account_id').doUpdateSet({
+            points: sql`referral_points.points + ${pointsAwarded}`,
+            total_deposits_usd: sql`referral_points.total_deposits_usd + ${totalDepositsUsd}`,
+            active_referred_users: sql`referral_points.active_referred_users + ${activeReferredUsers}`,
+            last_calculation_timestamp: calculationTimestamp,
+            total_point_distributions: sql`referral_points.total_point_distributions + ${pointsAwarded}`,
+            last_updated: sql`NOW()`,
+          }),
         )
-        VALUES ($1, $2, $3, $4, $5, $2)
-        ON CONFLICT (account_id) DO UPDATE
-        SET points = referral_points.points + $2,
-            total_deposits_usd = $3,
-            active_referred_users = $4,
-            last_calculation_timestamp = $5,
-            total_point_distributions = referral_points.total_point_distributions + $2,
-            last_updated = NOW()
-      `,
-        [accountId, pointsAwarded, totalDepositsUsd, activeReferredUsers, calculationTimestamp],
-      )
-
-      await client.query('COMMIT')
-    } catch (error) {
-      await client.query('ROLLBACK')
-      throw error
-    } finally {
-      client.release()
-    }
+        .execute()
+    })
   }
 
   // User activity status management using Kysely
@@ -147,17 +144,60 @@ export class DatabaseService {
       .execute()
   }
 
+  // Users table methods (replacing referral_relationships)
+  async upsertUser(
+    userId: string,
+    chain: Chain,
+    referrerId: string | null = null,
+    referralTimestamp: Date | null = null,
+  ): Promise<void> {
+    await this.db
+      .insertInto('users')
+      .values({
+        id: userId,
+        referral_chain: chain,
+        referrer_id: referrerId,
+        referral_timestamp: referralTimestamp,
+      })
+      .onConflict((oc) =>
+        oc.columns(['id', 'referral_chain']).doUpdateSet({
+          referrer_id: referrerId,
+          referral_timestamp: referralTimestamp,
+        }),
+      )
+      .execute()
+  }
+
+  // New method to store referred accounts (accounts that were referred)
+  async storeReferredAccounts(
+    accounts: Array<{
+      referrerId: string | null
+      referredId: string
+      referredChain: Chain
+      referralTimestamp: Date
+    }>,
+  ): Promise<void> {
+    for (const account of accounts) {
+      await this.upsertUser(
+        account.referredId,
+        account.referredChain,
+        account.referrerId,
+        account.referralTimestamp,
+      )
+    }
+  }
+
   async getActiveReferredUsers(referrerId: string): Promise<string[]> {
     const result = await this.db
-      .selectFrom('referral_relationships as rr')
-      .innerJoin('user_activity_status as uas', 'rr.referred_id', 'uas.account_id')
-      .select('rr.referred_id')
-      .where('rr.referrer_id', '=', referrerId)
+      .selectFrom('users as u')
+      .innerJoin('user_activity_status as uas', 'u.id', 'uas.account_id')
+      .select('u.id')
+      .where('u.referrer_id', '=', referrerId)
       .where('uas.is_active', '=', true)
       .distinct()
       .execute()
 
-    return result.map((row) => row.referred_id)
+    return result.map((row) => row.id)
   }
 
   async getUserActivityStatus(accountId: string): Promise<{
@@ -196,8 +236,8 @@ export class DatabaseService {
     return result?.last_calculation ? new Date(result.last_calculation as any) : null
   }
 
-  // Complex queries using raw SQL for better control
-  async getReferralRelationshipsWithActiveUsers(fromTimestamp?: Date): Promise<
+  // Get referral relationships with active users using the new users table
+  async getReferralRelationshipsWithActiveUsers(): Promise<
     Array<{
       referrerId: string
       referredUsers: Array<{
@@ -211,30 +251,27 @@ export class DatabaseService {
   > {
     let query = `
       SELECT 
-        rr.referrer_id,
-        rr.referred_id,
-        rr.chain,
-        rr.referral_timestamp,
+        u.referrer_id,
+        u.id as referred_id,
+        u.referral_chain,
+        u.referral_timestamp,
         COALESCE(uas.total_deposits_usd::decimal, 0) as total_deposits_usd,
         COALESCE(uas.is_active, false) as is_active
-      FROM referral_relationships rr
-      LEFT JOIN user_activity_status uas ON rr.referred_id = uas.account_id
+      FROM users u
+      LEFT JOIN user_activity_status uas ON u.id = uas.account_id
+      WHERE u.referrer_id IS NOT NULL
+      ORDER BY u.referrer_id, u.id
     `
 
-    const params: any[] = []
-    if (fromTimestamp) {
-      query += ` WHERE rr.referral_timestamp >= $1`
-      params.push(fromTimestamp)
-    }
-
-    query += ` ORDER BY rr.referrer_id, rr.referred_id`
-
-    const result = await this.pool.query(query, params)
+    const result = await this.pool.query(query)
 
     // Group by referrer
     const grouped: { [referrerId: string]: any } = {}
 
     for (const row of result.rows) {
+      // Skip rows where referrer_id is null
+      if (!row.referrer_id) continue
+
       if (!grouped[row.referrer_id]) {
         grouped[row.referrer_id] = {
           referrerId: row.referrer_id,
@@ -247,7 +284,7 @@ export class DatabaseService {
         chain: row.chain,
         referralTimestamp: row.referral_timestamp,
         totalDepositsUsd: Number(row.total_deposits_usd || 0),
-        isActive: row.is_active || false,
+        isActive: Number(row.total_deposits_usd > 1),
       })
     }
 
@@ -314,21 +351,49 @@ export class DatabaseService {
     )
   }
 
-  async upsertReferralRelationship(
-    referrerId: string,
-    referredId: string,
-    chain: Chain,
-    referralTimestamp: Date,
+  // Custom referral codes methods
+  async createCustomReferralCode(
+    customCode: string,
+    actualReferrerId: string,
+    referrerAddress: string,
   ): Promise<void> {
     await this.db
-      .insertInto('referral_relationships')
+      .insertInto('custom_referral_codes')
       .values({
-        referrer_id: referrerId,
-        referred_id: referredId,
-        chain,
-        referral_timestamp: referralTimestamp,
+        custom_code: customCode,
+        actual_referrer_id: actualReferrerId,
+        referrer_address: referrerAddress,
+        is_active: true,
       })
-      .onConflict((oc) => oc.columns(['referrer_id', 'referred_id', 'chain']).doNothing())
+      .execute()
+  }
+
+  async getCustomReferralCode(customCode: string): Promise<{
+    actualReferrerId: string
+    referrerAddress: string
+    isActive: boolean
+  } | null> {
+    const result = await this.db
+      .selectFrom('custom_referral_codes')
+      .select(['actual_referrer_id', 'referrer_address', 'is_active'])
+      .where('custom_code', '=', customCode)
+      .where('is_active', '=', true)
+      .executeTakeFirst()
+
+    if (!result) return null
+
+    return {
+      actualReferrerId: result.actual_referrer_id,
+      referrerAddress: result.referrer_address,
+      isActive: result.is_active,
+    }
+  }
+
+  async deactivateCustomReferralCode(customCode: string): Promise<void> {
+    await this.db
+      .updateTable('custom_referral_codes')
+      .set({ is_active: false })
+      .where('custom_code', '=', customCode)
       .execute()
   }
 
@@ -340,24 +405,31 @@ export class DatabaseService {
     createdTimestamp: Date,
     referralTimestamp?: Date,
   ): Promise<void> {
-    await this.pool.query(
-      `
-      INSERT INTO position_snapshots (
-        account_id, chain, position_id, deposit_amount_usd,
-        created_timestamp, referral_timestamp
-      )
-      VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (account_id, chain, position_id) DO UPDATE
-      SET deposit_amount_usd = $4,
-          created_timestamp = $5,
-          referral_timestamp = $6,
-          snapshot_timestamp = NOW()
-    `,
-      [accountId, chain, positionId, depositAmountUsd, createdTimestamp, referralTimestamp],
-    )
+    await this.db.transaction().execute(async (trx) => {
+      await trx
+        .insertInto('position_snapshots')
+        .values({
+          account_id: accountId,
+          chain: chain,
+          position_id: positionId,
+          deposit_amount_usd: depositAmountUsd,
+          created_timestamp: createdTimestamp,
+          referral_timestamp: referralTimestamp,
+          snapshot_timestamp: sql`NOW()`,
+        })
+        .onConflict((oc) =>
+          oc.columns(['account_id', 'chain', 'position_id']).doUpdateSet({
+            deposit_amount_usd: depositAmountUsd,
+            created_timestamp: createdTimestamp,
+            referral_timestamp: referralTimestamp,
+            snapshot_timestamp: sql`NOW()`,
+          }),
+        )
+        .execute()
 
-    // Update user activity status when saving position snapshot
-    await this.updateUserActivityStatus(accountId, depositAmountUsd, createdTimestamp)
+      // Update user activity status when saving position snapshot
+      await this.updateUserActivityStatus(accountId, depositAmountUsd, createdTimestamp)
+    })
   }
 
   async getReferralPoints(accountId: string): Promise<{
@@ -385,19 +457,19 @@ export class DatabaseService {
   async getReferredUsers(accountId: string): Promise<
     {
       referredId: string
-      chain: Chain
+      referral_chain: string
       referralTimestamp: Date
     }[]
   > {
     const result = await this.db
-      .selectFrom('referral_relationships')
-      .select(['referred_id', 'chain', 'referral_timestamp'])
+      .selectFrom('users')
+      .select(['id', 'referral_chain', 'referral_timestamp'])
       .where('referrer_id', '=', accountId)
       .execute()
 
     return result.map((row) => ({
-      referredId: row.referred_id,
-      chain: row.chain,
+      referredId: row.id,
+      referral_chain: row.referral_chain,
       referralTimestamp: new Date(row.referral_timestamp as any),
     }))
   }
@@ -452,12 +524,13 @@ export class DatabaseService {
 
   async getAllReferrerAccounts(): Promise<string[]> {
     const result = await this.db
-      .selectFrom('referral_relationships')
+      .selectFrom('users')
       .select('referrer_id')
+      .where('referrer_id', 'is not', null)
       .distinct()
       .execute()
 
-    return result.map((row) => row.referrer_id)
+    return result.map((row) => row.referrer_id!)
   }
 
   async getAllAccountsWithPoints(): Promise<

@@ -42,38 +42,23 @@ export interface Position {
   unstakedInputTokenBalanceNormalizedInUSD?: string
   createdTimestamp: string
   createdBlockNumber?: string
-  claimedSummerToken?: string
-  claimedSummerTokenNormalized?: string
-  claimableSummerToken?: string
-  claimableSummerTokenNormalized?: string
   referralData?: ReferralData
   hourlySnapshots?: HourlySnapshot[]
 }
 
 export interface Account {
   id: string
-  stakedSummerToken?: string
-  stakedSummerTokenNormalized?: string
   lastUpdateBlock?: string
-  claimedSummerToken?: string
-  claimedSummerTokenNormalized?: string
   referralData?: ReferralData
   referralTimestamp?: string
   positions?: Position[]
+  referralChain?: Chain
 }
 
 export function convertAccount(account: any): Account {
   return {
     id: account.id,
-    stakedSummerToken: account.stakedSummerToken,
-    stakedSummerTokenNormalized: account.stakedSummerTokenNormalized
-      ? account.stakedSummerTokenNormalized.toString()
-      : undefined,
     lastUpdateBlock: account.lastUpdateBlock,
-    claimedSummerToken: account.claimedSummerToken,
-    claimedSummerTokenNormalized: account.claimedSummerTokenNormalized
-      ? account.claimedSummerTokenNormalized.toString()
-      : undefined,
     referralData: account.referralData,
     referralTimestamp: account.referralTimestamp,
     positions: account.positions?.map((p: any) => convertPosition(p)),
@@ -104,11 +89,6 @@ export function convertPosition(position: any): Position {
     stakedInputTokenBalanceNormalizedInUSD: position.stakedInputTokenBalanceNormalizedInUSD,
     unstakedInputTokenBalanceNormalizedInUSD: position.unstakedInputTokenBalanceNormalizedInUSD,
     createdTimestamp: position.createdTimestamp,
-    createdBlockNumber: position.createdBlockNumber,
-    claimedSummerToken: position.claimedSummerToken,
-    claimedSummerTokenNormalized: position.claimedSummerTokenNormalized,
-    claimableSummerToken: position.claimableSummerToken,
-    claimableSummerTokenNormalized: position.claimableSummerTokenNormalized,
     referralData: position.referralData,
     hourlySnapshots: position.hourlySnapshots?.map((s: any) => convertHourlySnapshot(s)),
   }
