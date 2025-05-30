@@ -55,7 +55,7 @@ describe('ReferralProcessor', () => {
         ({
           rawDb: mockRawDb,
           config: mockConfig,
-          getReferralRelationshipsWithActiveUsers: jest.fn(),
+          getAllReferredActiveUsers: jest.fn(),
           updateUserActivityStatus: jest.fn(),
           recordPointDistribution: jest.fn(),
           close: jest.fn(),
@@ -94,7 +94,7 @@ describe('ReferralProcessor', () => {
         .mockResolvedValueOnce({ rows: [] }) // updateLastExecutionTimestamp
 
       // Mock referral data
-      mockDb.getReferralRelationshipsWithActiveUsers.mockResolvedValue([
+      mockDb.getAllReferredActiveUsers.mockResolvedValue([
         {
           referrerId: 'user1',
           referredUsers: [
@@ -159,7 +159,7 @@ describe('ReferralProcessor', () => {
         .mockResolvedValue({ rows: [] }) // All other queries
 
       // Mock referral data
-      mockDb.getReferralRelationshipsWithActiveUsers.mockResolvedValue([
+      mockDb.getAllReferredActiveUsers.mockResolvedValue([
         {
           referrerId: 'user1',
           referredUsers: [
@@ -225,7 +225,7 @@ describe('ReferralProcessor', () => {
       mockDb.rawDb.query.mockResolvedValue({ rows: [] })
 
       // Mock referral data with multiple users
-      mockDb.getReferralRelationshipsWithActiveUsers.mockResolvedValue([
+      mockDb.getAllReferredActiveUsers.mockResolvedValue([
         {
           referrerId: 'referrer1',
           referredUsers: [
@@ -279,7 +279,7 @@ describe('ReferralProcessor', () => {
       mockDb.hasAnyData.mockResolvedValue(true) // Not first run
       mockDb.rawDb.query.mockResolvedValue({ rows: [] })
 
-      mockDb.getReferralRelationshipsWithActiveUsers.mockResolvedValue([
+      mockDb.getAllReferredActiveUsers.mockResolvedValue([
         {
           referrerId: 'referrer1',
           referredUsers: [

@@ -16,6 +16,7 @@
     "test:watch": "jest --watch",
     "migrate": "ts-node src/scripts/migrate.ts",
     "migrate-kysely": "ts-node src/scripts/migrate-kysely.ts",
+    "setup-new-schema": "ts-node src/scripts/setup-new-schema.ts",
     "execute": "ts-node src/entry-point.ts",
     "process": "ts-node src/entry-point.ts process",
     "backfill": "ts-node src/entry-point.ts backfill",

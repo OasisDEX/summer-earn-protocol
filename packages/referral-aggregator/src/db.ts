@@ -1,29 +1,41 @@
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import { Pool } from 'pg'
-import { ConfigService } from './config'
+import { ConfigService } from './config-updated'
 import { KyselyMigrator } from './migrations/kysely-migrator'
 import { Chain } from './types'
-import { DB } from 'kysely-codegen';
+import { DB } from 'kysely-codegen'
 
-interface UserRow {
+export interface SimplifiedReferralCode {
   id: string
-  chain: Chain
-  referrer_id: string | null
-  referral_timestamp: Date | null
+  custom_code: string | null
+  total_points: number
+  total_deposits_usd: number
+  active_users_count: number
+  points_per_day: number
+  deposits_per_day: number
+  last_calculated_at: Date | null
+  created_at: Date
+  updated_at: Date
 }
 
-interface ReferralUserRow extends UserRow {
+export interface SimplifiedUser {
+  id: string
+  referrer_id: string | null
+  referral_chain: string | null
+  referral_timestamp: Date | null
   total_deposits_usd: number
   is_active: boolean
+  last_activity_at: Date | null
+  created_at: Date
+  updated_at: Date
 }
 
-interface PositionSnapshotRow {
-  chain: Chain
-  position_id: string
-  deposit_amount_usd: number
-  created_timestamp: Date
-  referral_timestamp?: Date
-  snapshot_timestamp: Date
+export interface SimplifiedPosition {
+  id: string
+  chain: string
+  user_id: string
+  current_deposit_usd: number
+  last_synced_at: Date | null
 }
 
 export class DatabaseService {
@@ -40,7 +52,6 @@ export class DatabaseService {
       password: process.env.DB_PASSWORD || 'postgres',
     })
 
-    // Initialize Kysely with PostgreSQL dialect
     this.db = new Kysely<DB>({
       dialect: new PostgresDialect({
         pool: this.pool,
@@ -55,456 +66,324 @@ export class DatabaseService {
     await migrator.runMigrations()
   }
 
-  // Enhanced points calculation with point distributions using raw SQL for complex operations
-  async recordPointDistribution(
-    accountId: string,
-    referrerId: string,
-    pointsAwarded: number,
-    totalDepositsUsd: number,
-    activeReferredUsers: number,
-    periodStart: Date,
-    periodEnd: Date,
-  ): Promise<void> {
-    const calculationTimestamp = new Date()
+  /**
+   * Utility Operations
+   */
+  async hasAnyData(): Promise<boolean> {
+    const result = await this.db
+      .selectFrom('users')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .executeTakeFirst()
 
-    await this.db.transaction().execute(async (trx) => {
-      // Insert point distribution record
-      await trx
-        .insertInto('point_distributions')
-        .values({
-          account_id: accountId,
-          referrer_id: referrerId,
-          points_awarded: pointsAwarded,
-          total_deposits_usd: totalDepositsUsd,
-          active_referred_users: activeReferredUsers,
-          calculation_timestamp: calculationTimestamp,
-          period_start: periodStart,
-          period_end: periodEnd,
-        })
-        .onConflict((oc) =>
-          oc.columns(['account_id', 'calculation_timestamp']).doUpdateSet({
-            points_awarded: pointsAwarded,
-            total_deposits_usd: totalDepositsUsd,
-            active_referred_users: activeReferredUsers,
-            period_start: periodStart,
-            period_end: periodEnd,
-          }),
-        )
-        .execute()
-
-      // Update referral_points summary
-      await trx
-        .insertInto('referral_points')
-        .values({
-          account_id: accountId,
-          points: pointsAwarded,
-          total_deposits_usd: totalDepositsUsd,
-          active_referred_users: activeReferredUsers,
-          last_calculation_timestamp: calculationTimestamp,
-          total_point_distributions: pointsAwarded,
-        })
-        .onConflict((oc) =>
-          oc.column('account_id').doUpdateSet({
-            points: sql`referral_points.points + ${pointsAwarded}`,
-            total_deposits_usd: sql`referral_points.total_deposits_usd + ${totalDepositsUsd}`,
-            active_referred_users: sql`referral_points.active_referred_users + ${activeReferredUsers}`,
-            last_calculation_timestamp: calculationTimestamp,
-            total_point_distributions: sql`referral_points.total_point_distributions + ${pointsAwarded}`,
-            last_updated: sql`NOW()`,
-          }),
-        )
-        .execute()
-    })
+    return (result?.count as any) > 0
   }
 
-  // User activity status management using Kysely
-  async updateUserActivityStatus(
-    accountId: string,
-    totalDepositsUsd: number,
-    lastDepositTimestamp?: Date,
-  ): Promise<void> {
-    const config = await this.config.getConfig()
-    const isActive = totalDepositsUsd >= config.activeUserThresholdUsd
-
+  /**
+   * Get or create referral code
+   */
+  async ensureReferralCode(id: string, customCode?: string): Promise<void> {
     await this.db
-      .insertInto('user_activity_status')
+      .insertInto('referral_codes')
       .values({
-        account_id: accountId,
-        total_deposits_usd: totalDepositsUsd.toString(),
-        is_active: isActive,
-        last_deposit_timestamp: lastDepositTimestamp || null,
+        id,
+        custom_code: customCode || null,
+        total_points: '0',
+        total_deposits_usd: '0',
+        active_users_count: 0,
+        points_per_day: '0',
+        deposits_per_day: '0',
       })
-      .onConflict((oc) =>
-        oc.column('account_id').doUpdateSet({
-          total_deposits_usd: totalDepositsUsd.toString(),
-          is_active: isActive,
-          last_deposit_timestamp: lastDepositTimestamp || null,
-        }),
-      )
+      .onConflict((oc) => oc.column('id').doNothing())
       .execute()
   }
 
-  // Users table methods (replacing referral_relationships)
+  /**
+   * Create or update user with referral info
+   */
   async upsertUser(
     userId: string,
-    chain: Chain,
-    referrerId: string | null = null,
-    referralTimestamp: Date | null = null,
+    data: {
+      referrerId?: string
+      referralChain?: Chain
+      referralTimestamp?: Date
+    },
   ): Promise<void> {
+    // Ensure referral code exists for referrer
+    if (data.referrerId) {
+      await this.ensureReferralCode(data.referrerId)
+    }
+
     await this.db
       .insertInto('users')
       .values({
         id: userId,
-        referral_chain: chain,
-        referrer_id: referrerId,
-        referral_timestamp: referralTimestamp,
+        referrer_id: data.referrerId || null,
+        referral_chain: data.referralChain || null,
+        referral_timestamp: data.referralTimestamp || null,
+        total_deposits_usd: '0',
+        is_active: false,
       })
       .onConflict((oc) =>
-        oc.columns(['id', 'referral_chain']).doUpdateSet({
-          referrer_id: referrerId,
-          referral_timestamp: referralTimestamp,
+        oc.column('id').doUpdateSet({
+          referrer_id: data.referrerId || null,
+          referral_chain: data.referralChain || null,
+          referral_timestamp: data.referralTimestamp || null,
         }),
       )
       .execute()
   }
 
-  // New method to store referred accounts (accounts that were referred)
-  async storeReferredAccounts(
-    accounts: Array<{
-      referrerId: string | null
-      referredId: string
-      referredChain: Chain
-      referralTimestamp: Date
-    }>,
+  /**
+   * Update position state (idempotent)
+   */
+  async updatePosition(
+    positionId: string,
+    chain: Chain,
+    userId: string,
+    depositUsd: number,
   ): Promise<void> {
-    for (const account of accounts) {
-      await this.upsertUser(
-        account.referredId,
-        account.referredChain,
-        account.referrerId,
-        account.referralTimestamp,
-      )
-    }
-  }
-
-  async getActiveReferredUsers(referrerId: string): Promise<string[]> {
-    const result = await this.db
-      .selectFrom('users as u')
-      .innerJoin('user_activity_status as uas', 'u.id', 'uas.account_id')
-      .select('u.id')
-      .where('u.referrer_id', '=', referrerId)
-      .where('uas.is_active', '=', true)
-      .distinct()
-      .execute()
-
-    return result.map((row) => row.id)
-  }
-
-  async getUserActivityStatus(accountId: string): Promise<{
-    accountId: string
-    totalDepositsUsd: number
-    isActive: boolean
-    lastDepositTimestamp?: Date
-    lastUpdated: Date
-  } | null> {
-    const result = await this.db
-      .selectFrom('user_activity_status')
-      .selectAll()
-      .where('account_id', '=', accountId)
-      .executeTakeFirst()
-
-    if (!result) return null
-
-    return {
-      accountId: result.account_id,
-      totalDepositsUsd: Number(result.total_deposits_usd),
-      isActive: result.is_active,
-      lastDepositTimestamp: result.last_deposit_timestamp
-        ? new Date(result.last_deposit_timestamp as any)
-        : undefined,
-      lastUpdated: new Date(result.last_updated as any),
-    }
-  }
-
-  async getLastCalculationTimestamp(): Promise<Date | null> {
-    const result = await this.db
-      .selectFrom('referral_points')
-      .select((eb) => eb.fn.max('last_calculation_timestamp').as('last_calculation'))
-      .where('last_calculation_timestamp', 'is not', null)
-      .executeTakeFirst()
-
-    return result?.last_calculation ? new Date(result.last_calculation as any) : null
-  }
-
-  // Get referral relationships with active users using the new users table
-  async getReferralRelationshipsWithActiveUsers(): Promise<
-    Array<{
-      referrerId: string
-      referredUsers: Array<{
-        referredId: string
-        chain: Chain
-        referralTimestamp: Date
-        totalDepositsUsd: number
-        isActive: boolean
-      }>
-    }>
-  > {
-    let query = `
-      SELECT 
-        u.referrer_id,
-        u.id as referred_id,
-        u.referral_chain,
-        u.referral_timestamp,
-        COALESCE(uas.total_deposits_usd::decimal, 0) as total_deposits_usd,
-        COALESCE(uas.is_active, false) as is_active
-      FROM users u
-      LEFT JOIN user_activity_status uas ON u.id = uas.account_id
-      WHERE u.referrer_id IS NOT NULL
-      ORDER BY u.referrer_id, u.id
-    `
-
-    const result = await this.pool.query(query)
-
-    // Group by referrer
-    const grouped: { [referrerId: string]: any } = {}
-
-    for (const row of result.rows) {
-      // Skip rows where referrer_id is null
-      if (!row.referrer_id) continue
-
-      if (!grouped[row.referrer_id]) {
-        grouped[row.referrer_id] = {
-          referrerId: row.referrer_id,
-          referredUsers: [],
-        }
-      }
-
-      grouped[row.referrer_id].referredUsers.push({
-        referredId: row.referred_id,
-        chain: row.chain,
-        referralTimestamp: row.referral_timestamp,
-        totalDepositsUsd: Number(row.total_deposits_usd || 0),
-        isActive: Number(row.total_deposits_usd > 1),
+    await this.db
+      .insertInto('positions')
+      .values({
+        id: positionId,
+        chain,
+        user_id: userId,
+        current_deposit_usd: depositUsd.toString(),
+        last_synced_at: new Date(),
       })
-    }
-
-    return Object.values(grouped)
-  }
-
-  async getPointDistributionsForPeriod(
-    periodStart: Date,
-    periodEnd: Date,
-  ): Promise<
-    Array<{
-      id: number
-      accountId: string
-      referrerId: string
-      pointsAwarded: number
-      totalDepositsUsd: number
-      activeReferredUsers: number
-      calculationTimestamp: Date
-      periodStart: Date
-      periodEnd: Date
-      createdAt: Date
-    }>
-  > {
-    const result = await this.db
-      .selectFrom('point_distributions')
-      .selectAll()
-      .where('period_start', '>=', periodStart)
-      .where('period_end', '<=', periodEnd)
-      .orderBy('calculation_timestamp', 'desc')
+      .onConflict((oc) =>
+        oc.columns(['id', 'chain']).doUpdateSet({
+          current_deposit_usd: depositUsd.toString(),
+          last_synced_at: new Date(),
+        }),
+      )
       .execute()
-
-    return result.map((row) => ({
-      id: row.id,
-      accountId: row.account_id,
-      referrerId: row.referrer_id,
-      pointsAwarded: Number(row.points_awarded),
-      totalDepositsUsd: Number(row.total_deposits_usd),
-      activeReferredUsers: row.active_referred_users,
-      calculationTimestamp: new Date(row.calculation_timestamp as any),
-      periodStart: new Date(row.period_start as any),
-      periodEnd: new Date(row.period_end as any),
-      createdAt: new Date(row.created_at as any),
-    }))
   }
 
-  // Legacy methods for compatibility
-  async upsertReferralPoints(
-    accountId: string,
-    points: number,
-    totalDepositsUsd: number,
-    activeReferredUsers: number,
-  ): Promise<void> {
-    await this.pool.query(
-      `
-      INSERT INTO referral_points (account_id, points, total_deposits_usd, active_referred_users)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (account_id) DO UPDATE
-      SET points = $2,
-          total_deposits_usd = $3,
-          active_referred_users = $4,
-          last_updated = NOW()
-    `,
-      [accountId, points, totalDepositsUsd, activeReferredUsers],
+  /**
+   * Update user deposit totals and activity status
+   */
+  async updateUserTotals(userId: string): Promise<void> {
+    const config = await this.config.getConfig()
+    
+    // Calculate total deposits from all positions
+    const result = await this.db
+      .selectFrom('positions')
+      .select((eb) =>
+        eb.fn
+          .sum('current_deposit_usd')
+          .as('total_deposits')
+      )
+      .where('user_id', '=', userId)
+      .executeTakeFirst()
+
+    const totalDeposits = Number(result?.total_deposits || 0)
+    const isActive = totalDeposits >= Number(config.activeUserThresholdUsd)
+
+    await this.db
+      .updateTable('users')
+      .set({
+        total_deposits_usd: totalDeposits.toString(),
+        is_active: isActive,
+        last_activity_at: new Date(),
+      })
+      .where('id', '=', userId)
+      .execute()
+  }
+
+  /**
+   * Recalculate all referral stats (fast single query)
+   */
+  async recalculateReferralStats(): Promise<void> {
+    await this.db.executeQuery(
+      sql`
+      UPDATE referral_codes rc
+      SET 
+        active_users_count = COALESCE(stats.active_users, 0),
+        total_deposits_usd = COALESCE(stats.total_deposits, '0'),
+        updated_at = NOW()
+      FROM (
+        SELECT 
+          referrer_id,
+          COUNT(*) FILTER (WHERE is_active) as active_users,
+          SUM(total_deposits_usd) as total_deposits
+        FROM users
+        WHERE referrer_id IS NOT NULL
+        GROUP BY referrer_id
+      ) stats
+      WHERE rc.id = stats.referrer_id
+    `.compile(this.db),
     )
   }
 
-  // Custom referral codes methods
-  async createCustomReferralCode(
-    customCode: string,
-    actualReferrerId: string,
-    referrerAddress: string,
-  ): Promise<void> {
-    await this.db
-      .insertInto('custom_referral_codes')
-      .values({
-        custom_code: customCode,
-        actual_referrer_id: actualReferrerId,
-        referrer_address: referrerAddress,
-        is_active: true,
-      })
-      .execute()
-  }
-
-  async getCustomReferralCode(customCode: string): Promise<{
-    actualReferrerId: string
-    referrerAddress: string
-    isActive: boolean
-  } | null> {
-    const result = await this.db
-      .selectFrom('custom_referral_codes')
-      .select(['actual_referrer_id', 'referrer_address', 'is_active'])
-      .where('custom_code', '=', customCode)
+  /**
+   * Update daily rates and accumulate points
+   */
+  async updateDailyRatesAndPoints(): Promise<void> {
+    const config = await this.config.getConfig()
+    
+    // Get total active users globally
+    const totalActiveResult = await this.db
+      .selectFrom('users')
+      .select((eb) => eb.fn.count('id').as('count'))
       .where('is_active', '=', true)
       .executeTakeFirst()
+    
+    const totalActiveUsers = Number(totalActiveResult?.count || 0)
 
-    if (!result) return null
-
-    return {
-      actualReferrerId: result.actual_referrer_id,
-      referrerAddress: result.referrer_address,
-      isActive: result.is_active,
-    }
+    // Update points_per_day and accumulate total_points
+    await this.db.executeQuery(
+      sql`
+      UPDATE referral_codes
+      SET 
+        points_per_day = total_deposits_usd * (${config.pointsFormulaBase} + ${config.pointsFormulaLogMultiplier} * ln(${totalActiveUsers} + 1)),
+        deposits_per_day = CASE 
+          WHEN EXTRACT(epoch FROM (NOW() - created_at)) > 0 
+          THEN total_deposits_usd / (EXTRACT(epoch FROM (NOW() - created_at)) / 86400)
+          ELSE 0
+        END,
+        -- Accumulate points (hourly rate)
+        total_points = total_points + (
+          total_deposits_usd * (${config.pointsFormulaBase} + ${config.pointsFormulaLogMultiplier} * ln(${totalActiveUsers} + 1)) / 24
+        ),
+        last_calculated_at = NOW()
+      WHERE active_users_count > 0
+    `.compile(this.db),
+    )
   }
 
-  async deactivateCustomReferralCode(customCode: string): Promise<void> {
+  /**
+   * Update daily stats for historical tracking
+   */
+  async updateDailyStats(): Promise<void> {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    await this.db.executeQuery(
+      sql`
+      INSERT INTO daily_stats (referral_id, date, points_earned, active_users, total_deposits)
+      SELECT 
+        id as referral_id,
+        ${today}::date as date,
+        points_per_day as points_earned,
+        active_users_count as active_users,
+        total_deposits_usd as total_deposits
+      FROM referral_codes
+      WHERE active_users_count > 0
+      ON CONFLICT (referral_id, date) 
+      DO UPDATE SET
+        points_earned = EXCLUDED.points_earned,
+        active_users = EXCLUDED.active_users,
+        total_deposits = EXCLUDED.total_deposits
+    `.compile(this.db),
+    )
+  }
+
+  /**
+   * Get processing checkpoint
+   */
+  async getLastProcessedTimestamp(): Promise<Date | null> {
+    const result = await this.db
+      .selectFrom('processing_checkpoint')
+      .select('last_processed_timestamp')
+      .orderBy('id', 'desc')
+      .limit(1)
+      .executeTakeFirst()
+
+    return result?.last_processed_timestamp || null
+  }
+
+  /**
+   * Update processing checkpoint
+   */
+  async updateProcessingCheckpoint(timestamp: Date): Promise<void> {
     await this.db
-      .updateTable('custom_referral_codes')
-      .set({ is_active: false })
-      .where('custom_code', '=', customCode)
+      .insertInto('processing_checkpoint')
+      .values({
+        last_processed_timestamp: timestamp,
+      })
       .execute()
   }
 
-  async savePositionSnapshot(
-    accountId: string,
-    chain: Chain,
-    positionId: string,
-    depositAmountUsd: number,
-    createdTimestamp: Date,
-    referralTimestamp?: Date,
-  ): Promise<void> {
-    await this.db.transaction().execute(async (trx) => {
-      await trx
-        .insertInto('position_snapshots')
-        .values({
-          account_id: accountId,
-          chain: chain,
-          position_id: positionId,
-          deposit_amount_usd: depositAmountUsd,
-          created_timestamp: createdTimestamp,
-          referral_timestamp: referralTimestamp,
-          snapshot_timestamp: sql`NOW()`,
-        })
-        .onConflict((oc) =>
-          oc.columns(['account_id', 'chain', 'position_id']).doUpdateSet({
-            deposit_amount_usd: depositAmountUsd,
-            created_timestamp: createdTimestamp,
-            referral_timestamp: referralTimestamp,
-            snapshot_timestamp: sql`NOW()`,
-          }),
-        )
-        .execute()
-
-      // Update user activity status when saving position snapshot
-      await this.updateUserActivityStatus(accountId, depositAmountUsd, createdTimestamp)
-    })
-  }
-
-  async getReferralPoints(accountId: string): Promise<{
-    points: number
-    totalDepositsUsd: number
-    activeReferredUsers: number
-    lastUpdated: Date
-  } | null> {
+  /**
+   * Get referral code with stats
+   */
+  async getReferralCode(id: string): Promise<SimplifiedReferralCode | null> {
     const result = await this.db
-      .selectFrom('referral_points')
-      .select(['points', 'total_deposits_usd', 'active_referred_users', 'last_updated'])
-      .where('account_id', '=', accountId)
+      .selectFrom('referral_codes')
+      .selectAll()
+      .where('id', '=', id)
       .executeTakeFirst()
 
     if (!result) return null
 
     return {
-      points: Number(result.points),
-      totalDepositsUsd: Number(result.total_deposits_usd),
-      activeReferredUsers: result.active_referred_users,
-      lastUpdated: new Date(result.last_updated as any),
+      ...result,
+      total_points: Number(result.total_points),
+      total_deposits_usd: Number(result.total_deposits_usd),
+      points_per_day: Number(result.points_per_day),
+      deposits_per_day: Number(result.deposits_per_day),
+      created_at: result.created_at || new Date(),
+      updated_at: result.updated_at || new Date(),
     }
   }
 
-  async getReferredUsers(accountId: string): Promise<
-    {
-      referredId: string
-      referral_chain: string
-      referralTimestamp: Date
-    }[]
-  > {
-    const result = await this.db
+  /**
+   * Get users referred by a referral code
+   */
+  async getUsersReferredBy(referrerId: string): Promise<SimplifiedUser[]> {
+    const results = await this.db
       .selectFrom('users')
-      .select(['id', 'referral_chain', 'referral_timestamp'])
-      .where('referrer_id', '=', accountId)
+      .selectAll()
+      .where('referrer_id', '=', referrerId)
       .execute()
 
-    return result.map((row) => ({
-      referredId: row.id,
-      referral_chain: row.referral_chain,
-      referralTimestamp: new Date(row.referral_timestamp as any),
+    return results.map(row => ({
+      ...row,
+      total_deposits_usd: Number(row.total_deposits_usd),
+      created_at: row.created_at || new Date(),
+      updated_at: row.updated_at || new Date(),
     }))
   }
 
-  async getPositionSnapshots(
-    accountId: string,
-    fromTimestamp: Date,
-  ): Promise<
-    {
-      chain: Chain
-      positionId: string
-      depositAmountUsd: number
-      createdTimestamp: Date
-      referralTimestamp?: Date
-      snapshotTimestamp: Date
-    }[]
-  > {
-    const result = await this.pool.query(
-      `
-      SELECT chain, position_id, deposit_amount_usd, created_timestamp,
-             referral_timestamp, snapshot_timestamp
-      FROM position_snapshots
-      WHERE account_id = $1 AND snapshot_timestamp >= $2
-      ORDER BY snapshot_timestamp DESC
-    `,
-      [accountId, fromTimestamp],
-    )
+  /**
+   * Get active users referred by a referral code
+   */
+  async getActiveUsersReferredBy(referrerId: string): Promise<SimplifiedUser[]> {
+    const results = await this.db
+      .selectFrom('users')
+      .selectAll()
+      .where('referrer_id', '=', referrerId)
+      .where('is_active', '=', true)
+      .execute()
 
-    return result.rows.map((row: PositionSnapshotRow) => ({
-      chain: row.chain,
-      positionId: row.position_id,
-      depositAmountUsd: row.deposit_amount_usd,
-      createdTimestamp: row.created_timestamp,
-      referralTimestamp: row.referral_timestamp,
-      snapshotTimestamp: row.snapshot_timestamp,
+    return results.map(row => ({
+      ...row,
+      total_deposits_usd: Number(row.total_deposits_usd),
+      created_at: row.created_at || new Date(),
+      updated_at: row.updated_at || new Date(),
+    }))
+  }
+
+  /**
+   * Get all referral codes with stats for leaderboard
+   */
+  async getTopReferralCodes(limit: number = 100): Promise<SimplifiedReferralCode[]> {
+    const results = await this.db
+      .selectFrom('referral_codes')
+      .selectAll()
+      .orderBy('total_points', 'desc')
+      .limit(limit)
+      .execute()
+
+    return results.map(row => ({
+      ...row,
+      total_points: Number(row.total_points),
+      total_deposits_usd: Number(row.total_deposits_usd),
+      points_per_day: Number(row.points_per_day),
+      deposits_per_day: Number(row.deposits_per_day),
+      created_at: row.created_at || new Date(),
+      updated_at: row.updated_at || new Date(),
     }))
   }
 
@@ -512,53 +391,11 @@ export class DatabaseService {
     await this.db.destroy()
   }
 
-  async hasAnyData(): Promise<boolean> {
-    try {
-      const result = await this.pool.query('SELECT COUNT(*) as count FROM referral_points LIMIT 1')
-      return parseInt(result.rows[0].count) > 0
-    } catch (error) {
-      console.error('Error checking if database has data:', error)
-      return false
-    }
-  }
-
-  async getAllReferrerAccounts(): Promise<string[]> {
-    const result = await this.db
-      .selectFrom('users')
-      .select('referrer_id')
-      .where('referrer_id', 'is not', null)
-      .distinct()
-      .execute()
-
-    return result.map((row) => row.referrer_id!)
-  }
-
-  async getAllAccountsWithPoints(): Promise<
-    Array<{
-      accountId: string
-      points: number
-      totalDepositsUsd: number
-      activeReferredUsers: number
-      lastUpdated: Date
-    }>
-  > {
-    const result = await this.db
-      .selectFrom('referral_points')
-      .selectAll()
-      .orderBy('points', 'desc')
-      .execute()
-
-    return result.map((row) => ({
-      accountId: row.account_id,
-      points: Number(row.points),
-      totalDepositsUsd: Number(row.total_deposits_usd),
-      activeReferredUsers: row.active_referred_users,
-      lastUpdated: new Date(row.last_updated as any),
-    }))
-  }
-
-  // Direct database access for complex queries
   get rawDb() {
+    return this.db
+  }
+
+  get rawPool() {
     return this.pool
   }
-}
+} 

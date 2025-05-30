@@ -13,21 +13,13 @@ export class ConfigService {
   constructor(private db: Kysely<DB>) {}
 
   async getConfig(): Promise<PointsConfig> {
-    const result = await this.db
+    const configRows = await this.db
       .selectFrom('points_config')
-      .select(['key', 'value'])
-      .where('key', 'in', [
-        'processing_interval_hours',
-        'active_user_threshold_usd',
-        'points_formula_base',
-        'points_formula_log_multiplier',
-        'enable_backfill',
-      ])
+      .selectAll()
       .execute()
 
-    const config: any = {}
-
-    for (const row of result) {
+    const config: { [key: string]: string } = {}
+    for (const row of configRows) {
       config[row.key] = row.value
     }
 
@@ -40,19 +32,20 @@ export class ConfigService {
     }
   }
 
-  async updateConfig(key: string, value: string): Promise<void> {
+  async updateConfig(key: string, value: string, description?: string): Promise<void> {
     await this.db
-      .updateTable('points_config')
-      .set({
+      .insertInto('points_config')
+      .values({
+        key,
         value,
-        updated_at: new Date(),
+        description: description || null,
       })
-      .where('key', '=', key)
+      .onConflict((oc) =>
+        oc.column('key').doUpdateSet({
+          value,
+          description: description || null,
+        }),
+      )
       .execute()
   }
-
-  async getProcessingIntervalMs(): Promise<number> {
-    const config = await this.getConfig()
-    return config.processingIntervalHours * 60 * 60 * 1000
-  }
-}
+} 

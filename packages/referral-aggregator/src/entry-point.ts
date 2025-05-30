@@ -1,190 +1,117 @@
 #!/usr/bin/env node
 
-import { Logger, ProcessorConfig, ReferralProcessor } from './processor'
+import { ReferralProcessor } from './processor'
+import { DatabaseService } from './db'
 
-export interface EntryPointConfig extends ProcessorConfig {
-  operation: 'process' | 'backfill' | 'stats'
-  backfillFromDate?: string | Date
-}
+async function main() {
+  const args = process.argv.slice(2)
+  const command = args[0] || 'process'
 
-/**
- * Main entry point for all referral aggregator operations
- * Can be used from CLI or Lambda
- */
-export async function execute(config?: Partial<EntryPointConfig>): Promise<{
-  success: boolean
-  data?: any
-  error?: Error
-}> {
-  const operation = config?.operation || 'process'
-  const logger = config?.logger || console
-
-  const processor = new ReferralProcessor({ logger })
+  const processor = new ReferralProcessor()
+  const db = new DatabaseService()
 
   try {
-    switch (operation) {
+    switch (command) {
       case 'process':
-        logger.log('🚀 Starting referral points processing...')
-        const processResult = await processor.processLatest()
-
-        if (processResult.success) {
-          logger.log('✅ Processing completed successfully!')
-          logger.log(`   Points Distributed: ${processResult.pointsDistributed.toFixed(8)}`)
-          logger.log(`   Users Processed: ${processResult.usersProcessed}`)
-          logger.log(`   Active Users: ${processResult.activeUsers}`)
+        console.log('🚀 Starting referral points processor (simplified)...')
+        const result = await processor.processLatest()
+        if (result.success) {
+          console.log(`✅ Processing completed successfully`)
+          console.log(`   Users processed: ${result.usersProcessed}`)
+          console.log(`   Active users: ${result.activeUsers}`)
+        } else {
+          console.error('❌ Processing failed:', result.error)
+          process.exit(1)
         }
-
-        return {
-          success: processResult.success,
-          data: processResult,
-          error: processResult.error,
-        }
+        break
 
       case 'backfill':
-        logger.log('🔄 Starting backfill operation...')
-
-        let fromDate: Date | undefined
-        if (config?.backfillFromDate) {
-          if (config.backfillFromDate instanceof Date) {
-            fromDate = config.backfillFromDate
-          } else if (config.backfillFromDate === '--from-beginning') {
-            fromDate = undefined
-          } else {
-            fromDate = new Date(config.backfillFromDate)
-            if (isNaN(fromDate.getTime())) {
-              throw new Error('Invalid date format. Use YYYY-MM-DD or --from-beginning')
-            }
-          }
+        console.log('🔄 Starting backfill...')
+        const fromDateStr = args[1]
+        const fromDate = fromDateStr ? new Date(fromDateStr) : undefined
+        if (fromDateStr && isNaN(fromDate!.getTime())) {
+          console.error('❌ Invalid date format. Use YYYY-MM-DD')
+          process.exit(1)
         }
-
         const backfillResult = await processor.backfill(fromDate)
-
         if (backfillResult.success) {
-          logger.log('✅ Backfill completed successfully!')
-          logger.log(`   Total Points Distributed: ${backfillResult.pointsDistributed.toFixed(8)}`)
-          logger.log(`   Total Users Processed: ${backfillResult.usersProcessed}`)
-          logger.log(`   Total Active Users: ${backfillResult.activeUsers}`)
-          logger.log(
-            `   Period: ${backfillResult.periodStart.toISOString()} → ${backfillResult.periodEnd.toISOString()}`,
-          )
+          console.log(`✅ Backfill completed successfully`)
+          console.log(`   Period: ${backfillResult.periodStart.toISOString()} to ${backfillResult.periodEnd.toISOString()}`)
+          console.log(`   Users processed: ${backfillResult.usersProcessed}`)
+          console.log(`   Active users: ${backfillResult.activeUsers}`)
+        } else {
+          console.error('❌ Backfill failed:', backfillResult.error)
+          process.exit(1)
         }
-
-        return {
-          success: backfillResult.success,
-          data: backfillResult,
-          error: backfillResult.error,
-        }
+        break
 
       case 'stats':
-        logger.log('📊 Fetching statistics...')
+        console.log('📊 Fetching statistics...')
         const stats = await processor.getStats()
-
-        logger.log('\n=== Referral Aggregator Statistics ===')
-        logger.log(
-          `Last Execution: ${stats.lastExecution ? stats.lastExecution.toISOString() : 'Never'}`,
-        )
-        logger.log(`Next Scheduled: ${stats.nextScheduledExecution.toISOString()}`)
-        logger.log(`Hours Until Next: ${stats.hoursUntilNext.toFixed(2)}`)
-        logger.log(`\nDatabase Statistics:`)
-        logger.log(`  Total Referrers: ${stats.totalReferrers}`)
-        logger.log(`  Total Active Users: ${stats.totalActiveUsers}`)
-        logger.log(`  Total Point Distributions: ${stats.totalPointDistributions}`)
-
+        console.log('\n📈 Referral System Statistics:')
+        console.log(`   Last processed: ${stats.lastProcessed?.toISOString() || 'Never'}`)
+        console.log(`   Total referral codes: ${stats.totalReferralCodes}`)
+        console.log(`   Total active users: ${stats.totalActiveUsers}`)
+        
         if (stats.topReferrers.length > 0) {
-          logger.log(`\nTop Referrers:`)
-          stats.topReferrers.forEach((referrer, index) => {
-            logger.log(
-              `  ${(index + 1).toString().padStart(2)}. ${referrer.accountId} - ` +
-                `${referrer.points.toFixed(4)} points ` +
-                `(${referrer.activeReferredUsers} active users, $${referrer.totalDepositsUsd.toFixed(2)})`,
-            )
+          console.log('\n🏆 Top Referrers:')
+          stats.topReferrers.forEach((ref, index) => {
+            console.log(`   ${index + 1}. ${ref.id}${ref.customCode ? ` (${ref.customCode})` : ''}`)
+            console.log(`      Points: ${ref.totalPoints.toFixed(2)} (${ref.pointsPerDay.toFixed(2)}/day)`)
+            console.log(`      Active users: ${ref.activeUsers}`)
+            console.log(`      Total deposits: $${ref.totalDeposits.toFixed(2)}`)
           })
         }
+        break
 
-        return {
-          success: true,
-          data: stats,
-        }
+      case 'migrate':
+        console.log('🔧 Running database migrations...')
+        await db.migrate()
+        console.log('✅ Migrations completed')
+        break
+
+      case 'reset':
+        console.log('⚠️  WARNING: This will delete all data!')
+        console.log('Press Ctrl+C to cancel, or wait 5 seconds to continue...')
+        await new Promise(resolve => setTimeout(resolve, 5000))
+        
+        const migrator = new (await import('./migrations/kysely-migrator')).KyselyMigrator(db.rawPool)
+        await migrator.reset()
+        console.log('✅ Database reset completed')
+        break
 
       default:
-        throw new Error(`Unknown operation: ${operation}`)
+        console.log(`
+Usage: pnpm execute-simplified <command>
+
+Commands:
+  process    - Process latest referral points (default)
+  backfill   - Backfill historical data
+  stats      - Show system statistics
+  migrate    - Run database migrations
+  reset      - Reset database (WARNING: deletes all data)
+
+Examples:
+  pnpm execute-simplified                    # Process latest
+  pnpm execute-simplified backfill           # Backfill all history
+  pnpm execute-simplified backfill 2024-01-01 # Backfill from specific date
+  pnpm execute-simplified stats              # Show statistics
+        `)
+        process.exit(1)
     }
   } catch (error) {
-    logger.error(`❌ Operation failed:`, error)
-    return {
-      success: false,
-      error: error as Error,
-    }
+    console.error('❌ Fatal error:', error)
+    process.exit(1)
   } finally {
     await processor.close()
+    await db.close()
   }
 }
 
-/**
- * Lambda handler
- */
-export async function handler(event: any, context: any): Promise<any> {
-  // Parse operation from event
-  const operation = event.operation || 'process'
-  const backfillFromDate = event.backfillFromDate
-
-  // Create a logger that works with Lambda
-  const lambdaLogger: Logger = {
-    log: (...args: any[]) => console.log(...args),
-    error: (...args: any[]) => console.error(...args),
-    warn: (...args: any[]) => console.warn(...args),
-  }
-
-  const result = await execute({
-    operation,
-    backfillFromDate,
-    logger: lambdaLogger,
-  })
-
-  return {
-    statusCode: result.success ? 200 : 500,
-    body: JSON.stringify(result),
-  }
-}
-
-// CLI execution
+// Run if called directly
 if (require.main === module) {
-  const args = process.argv.slice(2)
-
-  function showUsage() {
-    console.log('Referral Aggregator - Entry Point')
-    console.log('=================================')
-    console.log('')
-    console.log('Usage:')
-    console.log('  npm run execute                         # Process latest (default)')
-    console.log('  npm run execute process                 # Process latest')
-    console.log('  npm run execute backfill                # Backfill from earliest')
-    console.log('  npm run execute backfill 2024-01-01     # Backfill from date')
-    console.log('  npm run execute backfill --from-beginning # Backfill from beginning')
-    console.log('  npm run execute stats                   # Show statistics')
-    console.log('  npm run execute --help                  # Show help')
-    console.log('')
-    console.log('Description:')
-    console.log('  Single entry point for all referral aggregator operations.')
-    console.log('  Designed to work both as CLI tool and Lambda function.')
-  }
-
-  if (args.includes('--help') || args.includes('-h')) {
-    showUsage()
-    process.exit(0)
-  }
-
-  let operation: 'process' | 'backfill' | 'stats' = 'process'
-  let backfillFromDate: string | undefined
-
-  if (args[0] === 'process' || args[0] === 'backfill' || args[0] === 'stats') {
-    operation = args[0]
-    if (operation === 'backfill' && args[1]) {
-      backfillFromDate = args[1]
-    }
-  }
-
-  execute({ operation, backfillFromDate }).then((result) => {
-    process.exit(result.success ? 0 : 1)
+  main().catch(error => {
+    console.error('❌ Unhandled error:', error)
+    process.exit(1)
   })
-}
+} 
