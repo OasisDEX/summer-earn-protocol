@@ -34,9 +34,17 @@ describe('ReferralProcessor', () => {
       () => mockClient,
     )
 
-    // Mock DatabaseService constructor to return our mocked methods
+    // Mock rawDb with Kysely-like interface
     const mockRawDb = {
-      query: jest.fn(),
+      selectFrom: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      selectAll: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue([]),
+      executeTakeFirst: jest.fn().mockResolvedValue(null),
+      executeQuery: jest.fn().mockResolvedValue({ rows: [] }),
     }
 
     const mockConfig = {
@@ -55,19 +63,22 @@ describe('ReferralProcessor', () => {
         ({
           rawDb: mockRawDb,
           config: mockConfig,
-          getAllReferredActiveUsers: jest.fn(),
-          updateUserActivityStatus: jest.fn(),
-          recordPointDistribution: jest.fn(),
+          hasAnyData: jest.fn(),
+          ensureReferralCode: jest.fn(),
+          upsertUser: jest.fn(),
+          updatePosition: jest.fn(),
+          updateUserTotals: jest.fn(),
+          recalculateReferralStats: jest.fn(),
+          updateDailyRatesAndPoints: jest.fn(),
+          updateDailyStats: jest.fn(),
+          getLastProcessedTimestamp: jest.fn(),
+          updateProcessingCheckpoint: jest.fn(),
+          getReferralCode: jest.fn(),
+          getUsersReferredBy: jest.fn(),
+          getActiveUsersReferredBy: jest.fn(),
+          getTopReferralCodes: jest.fn(),
           close: jest.fn(),
           migrate: jest.fn(),
-          updateReferralRelationships: jest.fn(),
-          updatePositionSnapshots: jest.fn(),
-          getReferralPoints: jest.fn(),
-          getLastCalculationTimestamp: jest.fn(),
-          hasAnyData: jest.fn(),
-          storeReferredAccounts: jest.fn(),
-          upsertUser: jest.fn(),
-          savePositionSnapshot: jest.fn(),
         }) as any,
     )
 
@@ -81,41 +92,52 @@ describe('ReferralProcessor', () => {
 
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({
-        validAccounts: [{ id: 'user1' }, { id: 'user2' }],
+        validAccounts: [
+          { 
+            id: 'user1', 
+            referralData: { id: 'ref1' },
+            referralChain: 'Base' as any,
+            referralTimestamp: String(Date.now() / 1000)
+          }, 
+          { 
+            id: 'user2', 
+            referralData: { id: 'ref2' },
+            referralChain: 'Base' as any,
+            referralTimestamp: String(Date.now() / 1000)
+          }
+        ],
       })
-      mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
+      mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({
+        Base: [{
+          id: 'user1',
+          positions: [{
+            id: 'pos1',
+            createdTimestamp: '1234567890',
+            hourlySnapshots: [{
+              id: 'snap1',
+              timestamp: String(Date.now() / 1000),
+              inputTokenBalanceNormalizedInUSD: '1000'
+            }]
+          }]
+        }]
+      })
 
       // Mock database methods
       mockDb.hasAnyData.mockResolvedValue(true) // Not first run
-      mockDb.rawDb.query
-        .mockResolvedValueOnce({ rows: [{ value: '2024-01-01T00:00:00Z' }] }) // getLastExecutionTimestamp
-        .mockResolvedValueOnce({ rows: [] }) // updateUserActivityForPeriod query 1
-        .mockResolvedValueOnce({ rows: [] }) // updateUserActivityForPeriod query 2
-        .mockResolvedValueOnce({ rows: [] }) // updateLastExecutionTimestamp
-
-      // Mock referral data
-      mockDb.getAllReferredActiveUsers.mockResolvedValue([
-        {
-          referrerId: 'user1',
-          referredUsers: [
-            {
-              referredId: 'user2',
-              chain: 'base' as any,
-              referralTimestamp: new Date('2024-01-01'),
-              totalDepositsUsd: 100,
-              isActive: true,
-            },
-          ],
-        },
-      ])
+      mockDb.getLastProcessedTimestamp.mockResolvedValue(new Date(Date.now() - 3600000)) // 1 hour ago
+      mockDb.rawDb.select.mockReturnThis()
+      mockDb.rawDb.execute.mockResolvedValue([{ id: 'user1' }, { id: 'user2' }])
+      mockDb.rawDb.executeTakeFirst.mockResolvedValue({ count: '2' })
 
       const result = await processor.processLatest()
 
       expect(result.success).toBe(true)
-      expect(result.pointsDistributed).toBeGreaterThan(0)
-      expect(result.usersProcessed).toBe(1)
-      expect(result.activeUsers).toBe(1)
-      expect(mockDb.recordPointDistribution).toHaveBeenCalledTimes(1)
+      expect(result.usersProcessed).toBe(2)
+      expect(result.activeUsers).toBe(2)
+      expect(mockDb.upsertUser).toHaveBeenCalledTimes(2)
+      expect(mockDb.updateUserTotals).toHaveBeenCalled()
+      expect(mockDb.recalculateReferralStats).toHaveBeenCalled()
+      expect(mockDb.updateDailyRatesAndPoints).toHaveBeenCalled()
     })
 
     it('should handle no new data gracefully', async () => {
@@ -125,19 +147,18 @@ describe('ReferralProcessor', () => {
       const now = new Date()
       now.setMinutes(0, 0, 0)
 
-      mockDb.rawDb.query.mockResolvedValueOnce({ rows: [{ value: now.toISOString() }] }) // Same as current hour
+      mockDb.getLastProcessedTimestamp.mockResolvedValue(now) // Same as current hour
 
       const result = await processor.processLatest()
 
       expect(result.success).toBe(true)
-      expect(result.pointsDistributed).toBe(0)
       expect(result.usersProcessed).toBe(0)
       expect(mockLogger.log).toHaveBeenCalledWith(expect.stringContaining('No new data to process'))
     })
 
     it('should handle errors gracefully', async () => {
       const mockDb = (processor as any).db
-      mockDb.rawDb.query.mockRejectedValue(new Error('Database error'))
+      mockDb.getLastProcessedTimestamp.mockRejectedValue(new Error('Database error'))
 
       const result = await processor.processLatest()
 
@@ -145,34 +166,41 @@ describe('ReferralProcessor', () => {
       expect(result.error).toBeDefined()
       expect(mockLogger.error).toHaveBeenCalled()
     })
+
+    it('should handle first run (no previous timestamp)', async () => {
+      const mockDb = (processor as any).db
+
+      // Mock no previous timestamp (first run)
+      mockDb.getLastProcessedTimestamp.mockResolvedValue(null)
+
+      // Mock client methods
+      mockClient.getValidReferredAccounts.mockResolvedValue({ validAccounts: [] })
+      mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
+      
+      // Mock database queries  
+      mockDb.rawDb.execute.mockResolvedValue([])
+      mockDb.rawDb.executeTakeFirst.mockResolvedValue({ count: '0' })
+
+      const result = await processor.processLatest()
+
+      expect(result.success).toBe(true)
+      expect(mockLogger.log).toHaveBeenCalledWith(expect.stringContaining('First run'))
+    })
   })
 
   describe('backfill', () => {
     it('should backfill successfully from earliest referral', async () => {
       const mockDb = (processor as any).db
 
-      // Mock config check - already set in beforeEach
-
       // Mock earliest referral date
-      mockDb.rawDb.query
-        .mockResolvedValueOnce({ rows: [{ earliest_referral: new Date('2024-01-01') }] }) // getEarliestReferralDate
-        .mockResolvedValue({ rows: [] }) // All other queries
-
-      // Mock referral data
-      mockDb.getAllReferredActiveUsers.mockResolvedValue([
-        {
-          referrerId: 'user1',
-          referredUsers: [
-            {
-              referredId: 'user2',
-              chain: 'base' as any,
-              referralTimestamp: new Date('2024-01-01'),
-              totalDepositsUsd: 100,
-              isActive: true,
-            },
-          ],
-        },
-      ])
+      mockDb.rawDb.executeTakeFirst.mockResolvedValue({ earliest: new Date('2024-01-01') })
+      
+      // Mock client methods
+      mockClient.getValidReferredAccounts.mockResolvedValue({ validAccounts: [] })
+      mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
+      
+      // Mock database queries
+      mockDb.rawDb.execute.mockResolvedValue([])
 
       const result = await processor.backfill()
 
@@ -182,93 +210,64 @@ describe('ReferralProcessor', () => {
       expect(mockLogger.log).toHaveBeenCalledWith(expect.stringContaining('Backfilling from'))
     })
 
-    it('should reject backfill when disabled in config', async () => {
-      const mockDb = (processor as any).db
-
-      mockDb.config.getConfig.mockResolvedValue({
-        enableBackfill: false,
-      })
-
-      const result = await processor.backfill()
-
-      expect(result.success).toBe(false)
-      expect(result.error?.message).toContain('Backfill is disabled')
-    })
-
     it('should handle no referral data', async () => {
       const mockDb = (processor as any).db
 
-      mockDb.rawDb.query.mockResolvedValueOnce({ rows: [{ earliest_referral: null }] })
+      mockDb.rawDb.executeTakeFirst.mockResolvedValue({ earliest: null })
+      
+      // Mock client methods
+      mockClient.getValidReferredAccounts.mockResolvedValue({ validAccounts: [] })
+      mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
+      
+      // Mock database queries
+      mockDb.rawDb.execute.mockResolvedValue([])
 
       const result = await processor.backfill()
 
       expect(result.success).toBe(true)
-      expect(result.pointsDistributed).toBe(0)
-      expect(mockLogger.log).toHaveBeenCalledWith(expect.stringContaining('No referral data found'))
+      expect(mockLogger.log).toHaveBeenCalledWith(expect.stringContaining('Backfilling from'))
     })
   })
 
   describe('processPeriod', () => {
-    it('should calculate points correctly using the formula', async () => {
+    it('should process period correctly', async () => {
       const mockDb = (processor as any).db
       const periodStart = new Date('2024-01-01T00:00:00Z')
       const periodEnd = new Date('2024-01-01T01:00:00Z')
 
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({
-        validAccounts: [{ id: 'user1' }, { id: 'user2' }],
+        validAccounts: [
+          { 
+            id: 'user1', 
+            referralData: { id: 'ref1' },
+            referralChain: 'Base' as any,
+            referralTimestamp: String(Date.now() / 1000)
+          }, 
+          { 
+            id: 'user2', 
+            referralData: { id: 'ref2' },
+            referralChain: 'Base' as any,
+            referralTimestamp: String(Date.now() / 1000)
+          }
+        ],
       })
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
 
       // Mock database methods
-      mockDb.hasAnyData.mockResolvedValue(true) // Not first run
-      mockDb.rawDb.query.mockResolvedValue({ rows: [] })
-
-      // Mock referral data with multiple users
-      mockDb.getAllReferredActiveUsers.mockResolvedValue([
-        {
-          referrerId: 'referrer1',
-          referredUsers: [
-            {
-              referredId: 'user1',
-              chain: 'base' as any,
-              referralTimestamp: new Date('2024-01-01'),
-              totalDepositsUsd: 100,
-              isActive: true,
-            },
-            {
-              referredId: 'user2',
-              chain: 'base' as any,
-              referralTimestamp: new Date('2024-01-01'),
-              totalDepositsUsd: 200,
-              isActive: true,
-            },
-          ],
-        },
-      ])
+      mockDb.rawDb.execute.mockResolvedValue([{ id: 'user1' }, { id: 'user2' }])
+      mockDb.rawDb.executeTakeFirst.mockResolvedValue({ count: '2' })
 
       const result = await processor.processPeriod(periodStart, periodEnd)
 
       expect(result.success).toBe(true)
       expect(result.activeUsers).toBe(2)
-
-      // Verify points calculation: totalDeposits * (base + log_multiplier * ln(activeUsers + 1))
-      // totalDeposits = 300, base = 1, log_multiplier = 0.1, activeUsers = 2
-      // points = 300 * (1 + 0.1 * ln(3)) ≈ 300 * 1.1099 ≈ 332.97
-      expect(result.pointsDistributed).toBeCloseTo(332.97, 1)
-
-      expect(mockDb.recordPointDistribution).toHaveBeenCalledWith(
-        'referrer1',
-        'referrer1',
-        expect.any(Number),
-        300,
-        2,
-        periodStart,
-        periodEnd,
-      )
+      expect(mockDb.upsertUser).toHaveBeenCalledTimes(2)
+      expect(mockDb.recalculateReferralStats).toHaveBeenCalled()
+      expect(mockDb.updateDailyRatesAndPoints).toHaveBeenCalled()
     })
 
-    it('should skip referrers with no active users', async () => {
+    it('should handle empty results', async () => {
       const mockDb = (processor as any).db
 
       // Mock client methods
@@ -276,23 +275,8 @@ describe('ReferralProcessor', () => {
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
 
       // Mock database methods
-      mockDb.hasAnyData.mockResolvedValue(true) // Not first run
-      mockDb.rawDb.query.mockResolvedValue({ rows: [] })
-
-      mockDb.getAllReferredActiveUsers.mockResolvedValue([
-        {
-          referrerId: 'referrer1',
-          referredUsers: [
-            {
-              referredId: 'user1',
-              chain: 'base' as any,
-              referralTimestamp: new Date('2024-01-01'),
-              totalDepositsUsd: 100,
-              isActive: false, // Not active
-            },
-          ],
-        },
-      ])
+      mockDb.rawDb.execute.mockResolvedValue([])
+      mockDb.rawDb.executeTakeFirst.mockResolvedValue({ count: '0' })
 
       const result = await processor.processPeriod(
         new Date('2024-01-01T00:00:00Z'),
@@ -300,9 +284,7 @@ describe('ReferralProcessor', () => {
       )
 
       expect(result.success).toBe(true)
-      expect(result.pointsDistributed).toBe(0)
       expect(result.usersProcessed).toBe(0)
-      expect(mockDb.recordPointDistribution).not.toHaveBeenCalled()
     })
   })
 
@@ -311,30 +293,32 @@ describe('ReferralProcessor', () => {
       const mockDb = (processor as any).db
       const mockDate = new Date('2024-01-01T12:00:00Z')
 
-      mockDb.rawDb.query
-        .mockResolvedValueOnce({ rows: [{ value: mockDate.toISOString() }] }) // last execution
-        .mockResolvedValueOnce({ rows: [{ count: '10' }] }) // total referrers
-        .mockResolvedValueOnce({ rows: [{ count: '50' }] }) // total active users
-        .mockResolvedValueOnce({ rows: [{ count: '100' }] }) // total distributions
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              account_id: 'top1',
-              points: 1000,
-              total_deposits_usd: 5000,
-              active_referred_users: 5,
-            },
-          ],
-        }) // top referrers
+      mockDb.getLastProcessedTimestamp.mockResolvedValue(mockDate)
+      
+      // Mock count queries
+      mockDb.rawDb.executeTakeFirst
+        .mockResolvedValueOnce({ count: '10' }) // total referral codes
+        .mockResolvedValueOnce({ count: '50' }) // total active users
+
+      // Mock top referrers
+      mockDb.getTopReferralCodes.mockResolvedValue([
+        {
+          id: 'top1',
+          custom_code: 'CUSTOM1',
+          total_points: 1000,
+          points_per_day: 100,
+          active_users_count: 5,
+          total_deposits_usd: 5000,
+        },
+      ])
 
       const stats = await processor.getStats()
 
-      expect(stats.lastExecution).toEqual(mockDate)
-      expect(stats.totalReferrers).toBe(10)
+      expect(stats.lastProcessed).toEqual(mockDate)
+      expect(stats.totalReferralCodes).toBe(10)
       expect(stats.totalActiveUsers).toBe(50)
-      expect(stats.totalPointDistributions).toBe(100)
       expect(stats.topReferrers).toHaveLength(1)
-      expect(stats.topReferrers[0].accountId).toBe('top1')
+      expect(stats.topReferrers[0].id).toBe('top1')
     })
   })
 

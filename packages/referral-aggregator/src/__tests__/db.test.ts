@@ -1,26 +1,31 @@
 import { DatabaseService } from '../db'
 import { Kysely, sql } from 'kysely'
 import { Pool } from 'pg'
+import { ConfigService } from '../config-updated'
 
 // Mock dependencies
 jest.mock('pg')
 jest.mock('../config-updated')
+jest.mock('../migrations/kysely-migrator')
 
-// Mock kysely sql template
+// Mock kysely sql template literals
+const mockCompiledQuery = {
+  sql: 'mock sql',
+  parameters: [],
+}
+
 jest.mock('kysely', () => ({
   ...jest.requireActual('kysely'),
-  sql: {
-    raw: jest.fn((value) => ({ compile: jest.fn(() => ({ sql: value, parameters: [] })) })),
-    __proto__: {
-      compile: jest.fn(() => ({ sql: 'mock sql', parameters: [] }))
-    }
-  }
+  sql: jest.fn(() => ({
+    compile: jest.fn(() => mockCompiledQuery),
+  })),
 }))
 
 describe('DatabaseService', () => {
   let db: DatabaseService
   let mockPool: jest.Mocked<Pool>
   let mockKysely: any
+  let mockConfig: jest.Mocked<ConfigService>
 
   beforeEach(() => {
     // Reset mocks
@@ -33,11 +38,24 @@ describe('DatabaseService', () => {
       end: jest.fn(),
     } as any
 
-    // Mock Kysely methods
+    // Mock ConfigService
+    mockConfig = {
+      getConfig: jest.fn().mockResolvedValue({
+        activeUserThresholdUsd: '100',
+        pointsFormulaBase: 0.00005,
+        pointsFormulaLogMultiplier: 0.0005,
+      }),
+    } as any
+
+    // Mock Kysely methods with chaining
     mockKysely = {
       insertInto: jest.fn().mockReturnThis(),
       values: jest.fn().mockReturnThis(),
       onConflict: jest.fn().mockReturnThis(),
+      doNothing: jest.fn().mockReturnThis(),
+      doUpdateSet: jest.fn().mockReturnThis(),
+      column: jest.fn().mockReturnThis(),
+      columns: jest.fn().mockReturnThis(),
       execute: jest.fn().mockResolvedValue({ rows: [] }),
       updateTable: jest.fn().mockReturnThis(),
       set: jest.fn().mockReturnThis(),
@@ -50,16 +68,63 @@ describe('DatabaseService', () => {
       executeTakeFirst: jest.fn().mockResolvedValue(null),
       executeQuery: jest.fn().mockResolvedValue({ rows: [] }),
       destroy: jest.fn(),
+      fn: {
+        count: jest.fn().mockReturnValue({ as: jest.fn().mockReturnValue('mock_count') }),
+        sum: jest.fn().mockReturnValue({ as: jest.fn().mockReturnValue('mock_sum') }),
+      },
     }
 
     // Mock Pool constructor
     ;(Pool as jest.MockedClass<typeof Pool>).mockImplementation(() => mockPool)
+
+    // Mock ConfigService constructor
+    ;(ConfigService as jest.MockedClass<typeof ConfigService>).mockImplementation(() => mockConfig)
 
     // Create service instance
     db = new DatabaseService()
     
     // Replace the Kysely instance with our mock
     ;(db as any).db = mockKysely
+  })
+
+  describe('constructor', () => {
+    it('should initialize with default database config', () => {
+      expect(Pool).toHaveBeenCalledWith({
+        host: '127.0.0.1',
+        port: 5432,
+        database: 'referral_points',
+        user: 'postgres',
+        password: 'postgres',
+      })
+    })
+  })
+
+  describe('hasAnyData', () => {
+    it('should return true when data exists', async () => {
+      mockKysely.executeTakeFirst.mockResolvedValue({ count: '5' })
+
+      const result = await db.hasAnyData()
+
+      expect(result).toBe(true)
+      expect(mockKysely.selectFrom).toHaveBeenCalledWith('users')
+      expect(mockKysely.executeTakeFirst).toHaveBeenCalled()
+    })
+
+    it('should return false when no data exists', async () => {
+      mockKysely.executeTakeFirst.mockResolvedValue({ count: '0' })
+
+      const result = await db.hasAnyData()
+
+      expect(result).toBe(false)
+    })
+
+    it('should return false when result is null', async () => {
+      mockKysely.executeTakeFirst.mockResolvedValue(null)
+
+      const result = await db.hasAnyData()
+
+      expect(result).toBe(false)
+    })
   })
 
   describe('ensureReferralCode', () => {
@@ -89,13 +154,19 @@ describe('DatabaseService', () => {
         })
       )
     })
+
+    it('should handle conflicts with doNothing', async () => {
+      await db.ensureReferralCode('ref123')
+
+      expect(mockKysely.onConflict).toHaveBeenCalled()
+    })
   })
 
   describe('upsertUser', () => {
     it('should insert new user with referral info', async () => {
       await db.upsertUser('user123', {
         referrerId: 'ref123',
-        referralChain: 'Base',
+        referralChain: 'Base' as any,
         referralTimestamp: new Date('2024-01-01'),
       })
 
@@ -127,11 +198,17 @@ describe('DatabaseService', () => {
         is_active: false,
       })
     })
+
+    it('should handle conflicts with doUpdateSet', async () => {
+      await db.upsertUser('user123', { referrerId: 'ref123' })
+
+      expect(mockKysely.onConflict).toHaveBeenCalled()
+    })
   })
 
   describe('updatePosition', () => {
-    it('should update position with current deposit', async () => {
-      await db.updatePosition('pos123', 'Base', 'user123', 1000.5)
+    it('should insert new position', async () => {
+      await db.updatePosition('pos123', 'Base' as any, 'user123', 1000.5)
 
       expect(mockKysely.insertInto).toHaveBeenCalledWith('positions')
       expect(mockKysely.values).toHaveBeenCalledWith({
@@ -142,14 +219,16 @@ describe('DatabaseService', () => {
         last_synced_at: expect.any(Date),
       })
     })
+
+    it('should handle conflicts with doUpdateSet', async () => {
+      await db.updatePosition('pos123', 'Base' as any, 'user123', 1000.5)
+
+      expect(mockKysely.onConflict).toHaveBeenCalled()
+    })
   })
 
   describe('updateUserTotals', () => {
-    it('should update user totals based on positions', async () => {
-      // Mock config
-      const mockConfig = { activeUserThresholdUsd: '100' }
-      ;(db.config.getConfig as jest.Mock).mockResolvedValue(mockConfig)
-
+    it('should update user totals and mark as active', async () => {
       // Mock position sum query
       mockKysely.executeTakeFirst.mockResolvedValue({ total_deposits: '500' })
 
@@ -167,15 +246,25 @@ describe('DatabaseService', () => {
     })
 
     it('should mark user as inactive when below threshold', async () => {
-      const mockConfig = { activeUserThresholdUsd: '100' }
-      ;(db.config.getConfig as jest.Mock).mockResolvedValue(mockConfig)
-
       mockKysely.executeTakeFirst.mockResolvedValue({ total_deposits: '50' })
 
       await db.updateUserTotals('user123')
 
       expect(mockKysely.set).toHaveBeenCalledWith(
         expect.objectContaining({
+          is_active: false,
+        })
+      )
+    })
+
+    it('should handle null result from position sum', async () => {
+      mockKysely.executeTakeFirst.mockResolvedValue(null)
+
+      await db.updateUserTotals('user123')
+
+      expect(mockKysely.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          total_deposits_usd: '0',
           is_active: false,
         })
       )
@@ -187,19 +276,12 @@ describe('DatabaseService', () => {
       await db.recalculateReferralStats()
 
       expect(mockKysely.executeQuery).toHaveBeenCalled()
-      const query = mockKysely.executeQuery.mock.calls[0][0]
-      expect(query).toBeDefined()
+      expect(sql).toHaveBeenCalled()
     })
   })
 
   describe('updateDailyRatesAndPoints', () => {
     it('should update daily rates and accumulate points', async () => {
-      const mockConfig = {
-        pointsFormulaBase: 0.00005,
-        pointsFormulaLogMultiplier: 0.0005,
-      }
-      ;(db.config.getConfig as jest.Mock).mockResolvedValue(mockConfig)
-
       // Mock active users count
       mockKysely.executeTakeFirst.mockResolvedValue({ count: '100' })
 
@@ -208,6 +290,24 @@ describe('DatabaseService', () => {
       expect(mockKysely.selectFrom).toHaveBeenCalledWith('users')
       expect(mockKysely.where).toHaveBeenCalledWith('is_active', '=', true)
       expect(mockKysely.executeQuery).toHaveBeenCalled()
+      expect(sql).toHaveBeenCalled()
+    })
+
+    it('should handle no active users', async () => {
+      mockKysely.executeTakeFirst.mockResolvedValue({ count: '0' })
+
+      await db.updateDailyRatesAndPoints()
+
+      expect(mockKysely.executeQuery).toHaveBeenCalled()
+    })
+  })
+
+  describe('updateDailyStats', () => {
+    it('should insert or update daily stats', async () => {
+      await db.updateDailyStats()
+
+      expect(mockKysely.executeQuery).toHaveBeenCalled()
+      expect(sql).toHaveBeenCalled()
     })
   })
 
@@ -286,6 +386,26 @@ describe('DatabaseService', () => {
 
       expect(result).toBeNull()
     })
+
+    it('should handle missing dates with defaults', async () => {
+      mockKysely.executeTakeFirst.mockResolvedValue({
+        id: 'ref123',
+        custom_code: null,
+        total_points: '0',
+        total_deposits_usd: '0',
+        active_users_count: 0,
+        points_per_day: '0',
+        deposits_per_day: '0',
+        last_calculated_at: null,
+        created_at: null,
+        updated_at: null,
+      })
+
+      const result = await db.getReferralCode('ref123')
+
+      expect(result!.created_at).toBeInstanceOf(Date)
+      expect(result!.updated_at).toBeInstanceOf(Date)
+    })
   })
 
   describe('getUsersReferredBy', () => {
@@ -314,6 +434,27 @@ describe('DatabaseService', () => {
           is_active: true,
         })
       )
+    })
+
+    it('should handle missing dates with defaults', async () => {
+      mockKysely.execute.mockResolvedValue([
+        {
+          id: 'user1',
+          referrer_id: 'ref123',
+          referral_chain: null,
+          referral_timestamp: null,
+          total_deposits_usd: '0',
+          is_active: false,
+          last_activity_at: null,
+          created_at: null,
+          updated_at: null,
+        },
+      ])
+
+      const result = await db.getUsersReferredBy('ref123')
+
+      expect(result[0].created_at).toBeInstanceOf(Date)
+      expect(result[0].updated_at).toBeInstanceOf(Date)
     })
   })
 
@@ -361,15 +502,13 @@ describe('DatabaseService', () => {
       expect(result).toHaveLength(1)
       expect(result[0].total_points).toBe(5000)
     })
-  })
 
-  describe('updateDailyStats', () => {
-    it('should insert or update daily stats', async () => {
-      await db.updateDailyStats()
+    it('should use default limit of 100', async () => {
+      mockKysely.execute.mockResolvedValue([])
 
-      expect(mockKysely.executeQuery).toHaveBeenCalled()
-      const query = mockKysely.executeQuery.mock.calls[0][0]
-      expect(query).toBeDefined()
+      await db.getTopReferralCodes()
+
+      expect(mockKysely.limit).toHaveBeenCalledWith(100)
     })
   })
 
@@ -381,13 +520,30 @@ describe('DatabaseService', () => {
     })
   })
 
-  describe('rawDb and rawPool getters', () => {
+  describe('getters', () => {
     it('should return raw database instance', () => {
       expect(db.rawDb).toBe(mockKysely)
     })
 
     it('should return raw pool instance', () => {
       expect(db.rawPool).toBe(mockPool)
+    })
+  })
+
+  describe('migrate', () => {
+    it('should run migrations', async () => {
+      const mockMigrator = {
+        runMigrations: jest.fn().mockResolvedValue(undefined),
+      }
+
+      // Mock the KyselyMigrator
+      const { KyselyMigrator } = require('../migrations/kysely-migrator')
+      KyselyMigrator.mockImplementation(() => mockMigrator)
+
+      await db.migrate()
+
+      expect(KyselyMigrator).toHaveBeenCalledWith(mockPool)
+      expect(mockMigrator.runMigrations).toHaveBeenCalled()
     })
   })
 }) 
