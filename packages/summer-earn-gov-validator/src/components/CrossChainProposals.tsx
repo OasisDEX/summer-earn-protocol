@@ -46,7 +46,12 @@ export const CrossChainProposals: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [executingProposals, setExecutingProposals] = useState<Set<string>>(new Set())
-  const [selectedStatuses, setSelectedStatuses] = useState<ProposalStatus[]>(['Pending', 'Queued', 'Ready', 'Executed'])
+  const [selectedStatuses, setSelectedStatuses] = useState<ProposalStatus[]>([
+    'Pending',
+    'Queued',
+    'Ready',
+    'Executed',
+  ])
 
   const { address, isConnected, chainId } = useAccount()
   const { writeContract, isPending } = useWriteContract()
@@ -194,10 +199,10 @@ export const CrossChainProposals: React.FC = () => {
   }
 
   const filterProposals = (proposals: ProposalWithCrossChain[], statuses: ProposalStatus[]) => {
-    const filtered = proposals.filter(proposal => {
+    const filtered = proposals.filter((proposal) => {
       // First check if the base proposal matches any selected status
       const baseStatus = proposal.baseProposal.status.toUpperCase()
-      const baseStatusMatches = statuses.some(status => {
+      const baseStatusMatches = statuses.some((status) => {
         if (status === 'Queued' && baseStatus === 'QUEUED') return true
         if (status === 'Ready' && baseStatus === 'QUEUED') {
           const currentTimestamp = Math.floor(Date.now() / 1000)
@@ -214,7 +219,7 @@ export const CrossChainProposals: React.FC = () => {
       if (baseStatusMatches) return true
 
       // Then check if any cross-chain proposal matches the selected statuses
-      const crossChainStatusMatches = proposal.crossChainProposals.some(ccp => {
+      const crossChainStatusMatches = proposal.crossChainProposals.some((ccp) => {
         const ccpStatus = getCrossChainProposalStatus(ccp)
         return statuses.includes(ccpStatus)
       })
@@ -418,11 +423,17 @@ export const CrossChainProposals: React.FC = () => {
                   <div className="text-gray-500 italic bg-gray-50 p-4 rounded-lg text-center">
                     <p>No cross-chain proposals found</p>
                     {baseStatus === 'PENDING' || baseStatus === 'ACTIVE' ? (
-                      <p className="text-sm mt-1">Cross-chain proposals will be created after this proposal is executed</p>
+                      <p className="text-sm mt-1">
+                        Cross-chain proposals will be created after this proposal is executed
+                      </p>
                     ) : baseStatus === 'QUEUED' || isBaseReady ? (
-                      <p className="text-sm mt-1">Cross-chain proposals will be created after this proposal is executed</p>
+                      <p className="text-sm mt-1">
+                        Cross-chain proposals will be created after this proposal is executed
+                      </p>
                     ) : (
-                      <p className="text-sm mt-1">This proposal may not have cross-chain components</p>
+                      <p className="text-sm mt-1">
+                        This proposal may not have cross-chain components
+                      </p>
                     )}
                   </div>
                 ) : (
