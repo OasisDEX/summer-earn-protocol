@@ -222,31 +222,38 @@ export class DatabaseService {
   async updateDailyRatesAndPoints(): Promise<void> {
     const config = await this.config.getConfig()
     
-    // Get total active users globally
-    const totalActiveResult = await this.db
-      .selectFrom('users')
-      .select((eb) => eb.fn.count('id').as('count'))
-      .where('is_active', '=', true)
-      .executeTakeFirst()
-    
-    const totalActiveUsers = Number(totalActiveResult?.count || 0)
-
-    // Update points_per_day and accumulate total_points
     await this.db.executeQuery(
       sql`
-      UPDATE referral_codes
+      WITH active_users_per_code AS (
+        SELECT referrer_id, COUNT(*) as active_users
+        FROM users 
+        WHERE is_active = true AND referrer_id IS NOT NULL
+        GROUP BY referrer_id
+      )
+      UPDATE referral_codes rc
       SET 
-        points_per_day = total_deposits_usd * (${config.pointsFormulaBase} + ${config.pointsFormulaLogMultiplier} * ln(${totalActiveUsers} + 1)),
+        points_per_day = rc.total_deposits_usd * (${config.pointsFormulaBase} + ${config.pointsFormulaLogMultiplier} * ln(COALESCE(auc.active_users, 0) + 1)),
         deposits_per_day = CASE 
-          WHEN EXTRACT(epoch FROM (NOW() - created_at)) > 0 
-          THEN total_deposits_usd / (EXTRACT(epoch FROM (NOW() - created_at)) / 86400)
+          WHEN EXTRACT(epoch FROM (NOW() - rc.created_at)) > 0 
+          THEN rc.total_deposits_usd / (EXTRACT(epoch FROM (NOW() - rc.created_at)) / 86400)
           ELSE 0
         END,
         -- Accumulate points (hourly rate)
-        total_points = total_points + (
-          total_deposits_usd * (${config.pointsFormulaBase} + ${config.pointsFormulaLogMultiplier} * ln(${totalActiveUsers} + 1)) / 24
+        total_points = rc.total_points + (
+          rc.total_deposits_usd * (${config.pointsFormulaBase} + ${config.pointsFormulaLogMultiplier} * ln(COALESCE(auc.active_users, 0) + 1)) / 24
         ),
         last_calculated_at = NOW()
+      FROM active_users_per_code auc
+      WHERE rc.id = auc.referrer_id
+      AND rc.active_users_count > 0
+      `.compile(this.db),
+    )
+
+    // Insert new point distributions
+    await this.db.executeQuery(
+      sql`
+      INSERT INTO points_distributions (referral_id, points_amount, description)
+      SELECT id, points_per_day / 24, 'REGULAR' FROM referral_codes
       WHERE active_users_count > 0
     `.compile(this.db),
     )

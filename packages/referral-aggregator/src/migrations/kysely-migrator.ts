@@ -234,6 +234,35 @@ export class KyselyMigrator {
       .addColumn('updated_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
       .execute()
 
+    // 7. Create points distribution table
+    await db.schema
+      .createTable('points_distributions')
+      .ifNotExists()
+      .addColumn('id', 'serial', (col) => col.primaryKey())
+      .addColumn('referral_id', 'varchar(100)', (col) => 
+        col.notNull().references('referral_codes.id').onDelete('cascade')
+      )
+      .addColumn('points_amount', sql`decimal(20,8)`, (col) => col.notNull())
+      .addColumn('description', 'text', (col) => col.notNull())
+      .addColumn('distribution_timestamp', 'timestamptz', (col) => col.notNull().defaultTo(sql`NOW()`))
+      .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
+      .execute()
+
+    // Add index for points_distributions
+    await db.schema
+      .createIndex('idx_points_distributions_referral_id')
+      .ifNotExists()
+      .on('points_distributions')
+      .column('referral_id')
+      .execute()
+
+    await db.schema
+      .createIndex('idx_points_distributions_timestamp')
+      .ifNotExists()
+      .on('points_distributions')
+      .column('distribution_timestamp')
+      .execute()
+
     // Create triggers to update updated_at columns
     await db.executeQuery(
       sql`
@@ -355,6 +384,7 @@ export class KyselyMigrator {
 
   private async migration001SimplifiedDown(db: Kysely<any>): Promise<void> {
     // Drop tables in reverse order of dependencies
+    await db.schema.dropTable('points_distributions').ifExists().execute()
     await db.schema.dropTable('daily_stats').ifExists().execute()
     await db.schema.dropTable('processing_checkpoint').ifExists().execute()
     await db.schema.dropTable('positions').ifExists().execute()

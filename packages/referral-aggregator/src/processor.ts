@@ -46,7 +46,7 @@ export class ReferralProcessor {
       let periodStart: Date
       if (!lastProcessed) {
         // First run - process last 24 hours
-        periodStart = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+        periodStart = new Date(now.getTime() - 2* 24 * 60 * 60 * 1000)
         this.logger.log('📍 First run - processing last 24 hours')
       } else {
         periodStart = lastProcessed
@@ -69,14 +69,34 @@ export class ReferralProcessor {
         }
       }
 
-      const result = await this.processPeriod(periodStart, periodEnd)
-
-      if (result.success) {
-        await this.db.updateProcessingCheckpoint(periodEnd)
-        this.logger.log(`✅ Checkpoint updated to: ${periodEnd.toISOString()}`)
+      // if period is longer than 1 hour, we need to process it in chunks of 1 hour
+      if (periodEnd.getTime() - periodStart.getTime() > 1 * 60 * 60 * 1000) {
+        const chunks = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1 * 60 * 60 * 1000))
+        for (let i = 0; i < chunks; i++) {
+          const chunkStart = new Date(periodStart.getTime() + i * 1 * 60 * 60 * 1000)
+          const chunkEnd = new Date(periodStart.getTime() + (i + 1) * 1 * 60 * 60 * 1000)
+          const result = await this.processPeriod(chunkStart, chunkEnd)
+          if (!result.success) {
+            return result
+          }
+        }
+      } else {
+        const result = await this.processPeriod(periodStart, periodEnd) 
+        if (!result.success) {
+          return result
+        }
       }
 
-      return result
+        await this.db.updateProcessingCheckpoint(periodEnd)
+      this.logger.log(`✅ Checkpoint updated to: ${periodEnd.toISOString()}`)
+
+      return {
+        success: true,
+        usersProcessed: 0,
+        activeUsers: 0,
+        periodStart,
+        periodEnd,
+      }
     } catch (error) {
       this.logger.error('❌ Processing failed:', error)
       return {
