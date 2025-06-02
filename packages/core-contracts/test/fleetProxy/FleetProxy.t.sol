@@ -102,6 +102,7 @@ contract FleetProxyTest is Test {
         vm.stopPrank();
 
         proxy = new FleetProxy(
+            governor,
             address(accessManager),
             address(mockBridgeRouter),
             address(mockBridgeQueue),
