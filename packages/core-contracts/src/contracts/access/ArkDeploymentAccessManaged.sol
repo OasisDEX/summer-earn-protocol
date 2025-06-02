@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ArkAccessManaged} from "../ArkAccessManaged.sol";
-
 /**
  * @title ArkDeploymentAccessManaged
  * @notice Standardized access control with one-way deployment-to-governance transition for Ark contracts
- * @dev Inherits ArkAccessManaged and provides controller pattern during deployment,
+ * @dev Standalone contract that provides controller pattern during deployment,
  *      then permanently transitions to governance-based access control
+ *      Expects the inheriting contract to have access to _accessManager and GOVERNOR_ROLE from ProtocolAccessManaged
  */
-abstract contract ArkDeploymentAccessManaged is ArkAccessManaged {
+abstract contract ArkDeploymentAccessManaged {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -34,8 +33,11 @@ abstract contract ArkDeploymentAccessManaged is ArkAccessManaged {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when caller is not authorized for deployment configuration
-    error CallerNotAuthorizedForDeployment(address caller);
+    /// @notice Thrown when caller is not the deployment controller
+    error CallerIsNotDeploymentController(address caller);
+
+    /// @notice Thrown when caller is not authorized during governance phase
+    error CallerNotAuthorizedDuringGovernance(address caller);
 
     /// @notice Thrown when invalid controller address is provided
     error InvalidController(address controller);
@@ -45,14 +47,10 @@ abstract contract ArkDeploymentAccessManaged is ArkAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the controller and access manager
+     * @notice Initializes the controller
      * @param initialController Address of the initial controller (deployer)
-     * @param accessManager Address of the ProtocolAccessManager
      */
-    constructor(
-        address initialController,
-        address accessManager
-    ) ArkAccessManaged(accessManager) {
+    constructor(address initialController) {
         if (initialController == address(0))
             revert InvalidController(initialController);
 
@@ -70,10 +68,10 @@ abstract contract ArkDeploymentAccessManaged is ArkAccessManaged {
      */
     modifier onlyDeploymentController() {
         if (!_isInDeploymentPhase()) {
-            revert CallerNotAuthorizedForDeployment(msg.sender);
+            revert CallerNotAuthorizedDuringGovernance(msg.sender);
         }
         if (msg.sender != controller) {
-            revert CallerNotAuthorizedForDeployment(msg.sender);
+            revert CallerIsNotDeploymentController(msg.sender);
         }
         _;
     }
@@ -87,12 +85,12 @@ abstract contract ArkDeploymentAccessManaged is ArkAccessManaged {
         if (_isInDeploymentPhase()) {
             // Deployment phase: only controller
             if (msg.sender != controller) {
-                revert CallerNotAuthorizedForDeployment(msg.sender);
+                revert CallerIsNotDeploymentController(msg.sender);
             }
         } else {
             // Governance phase: only governors
-            if (!_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)) {
-                revert CallerIsNotGovernor(msg.sender);
+            if (!_hasGovernorRole(msg.sender)) {
+                revert CallerNotAuthorizedDuringGovernance(msg.sender);
             }
         }
         _;
@@ -114,8 +112,8 @@ abstract contract ArkDeploymentAccessManaged is ArkAccessManaged {
         if (governance == address(0)) revert InvalidController(governance);
 
         // Verify the new controller is actually a governor in the access manager
-        if (!_accessManager.hasRole(GOVERNOR_ROLE, governance)) {
-            revert CallerIsNotGovernor(governance);
+        if (!_hasGovernorRole(governance)) {
+            revert CallerNotAuthorizedDuringGovernance(governance);
         }
 
         address oldController = controller;
@@ -154,6 +152,23 @@ abstract contract ArkDeploymentAccessManaged is ArkAccessManaged {
      * @return True if controller is not a governor in the access manager
      */
     function _isInDeploymentPhase() internal view returns (bool) {
-        return !_accessManager.hasRole(GOVERNOR_ROLE, controller);
+        return !_hasGovernorRole(controller);
     }
+
+    /**
+     * @notice Internal function to check if an account has governor role
+     * @dev Must be implemented by inheriting contract to access their access manager
+     * @param account Address to check
+     * @return True if account has governor role
+     */
+    function _hasGovernorRole(
+        address account
+    ) internal view virtual returns (bool);
+
+    /**
+     * @notice Internal function to get the governor role identifier
+     * @dev Must be implemented by inheriting contract to return their GOVERNOR_ROLE constant
+     * @return The governor role identifier
+     */
+    function _getGovernorRole() internal pure virtual returns (bytes32);
 }
