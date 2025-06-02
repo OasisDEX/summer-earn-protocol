@@ -6,12 +6,13 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
+import {DeploymentAccessManaged} from "@summerfi/access-contracts/contracts/DeploymentAccessManaged.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 
 /**
  * @title BridgeQueue
@@ -20,7 +21,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
  */
 contract BridgeQueue is
     IBridgeQueue,
-    DeploymentController,
+    DeploymentAccessManaged,
     ReentrancyGuard,
     Nonces
 {
@@ -116,7 +117,7 @@ contract BridgeQueue is
         address _accessManager,
         address _initialBridgeRouter,
         address _initialQueueManager
-    ) DeploymentController(msg.sender, _accessManager) {
+    ) DeploymentAccessManaged(msg.sender, _accessManager) {
         if (_initialQueueManager == address(0)) revert InvalidQueueManager(); // Use error for initial manager too
 
         bridgeRouter = _initialBridgeRouter;

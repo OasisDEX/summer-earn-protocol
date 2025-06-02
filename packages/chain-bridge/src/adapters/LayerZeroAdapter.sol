@@ -21,14 +21,14 @@ import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBa
 import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
-import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
+import {DeploymentAccessManaged} from "@summerfi/access-contracts/contracts/DeploymentAccessManaged.sol";
 
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
  * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OAppRead standard
  */
-contract LayerZeroAdapter is OAppRead, IBridgeAdapter, DeploymentController {
+contract LayerZeroAdapter is OAppRead, IBridgeAdapter, DeploymentAccessManaged {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -131,7 +131,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, DeploymentController {
     )
         OAppRead(_endpoint, _deployer)
         Ownable(_deployer)
-        DeploymentController(_deployer, _accessManager)
+        DeploymentAccessManaged(_deployer, _accessManager)
     {
         if (_bridgeRouter == address(0)) revert InvalidParams();
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();

@@ -7,7 +7,7 @@ import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
+import {DeploymentAccessManaged} from "@summerfi/access-contracts/contracts/DeploymentAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
@@ -24,7 +24,7 @@ import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInfligh
 contract FleetProxy is
     IFleetProxy,
     IInflightAssetTracking,
-    DeploymentController,
+    DeploymentAccessManaged,
     ReentrancyGuard,
     Pausable
 {
@@ -81,7 +81,7 @@ contract FleetProxy is
         address _bridgeRouter,
         address _bridgeQueue,
         address _fleetContract
-    ) DeploymentController(initialController, accessManager) {
+    ) DeploymentAccessManaged(initialController, accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
         if (_fleetContract == address(0)) revert InvalidFleetContract();

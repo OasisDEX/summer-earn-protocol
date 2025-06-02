@@ -4,12 +4,12 @@ pragma solidity 0.8.28;
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
 /**
- * @title DeploymentController
+ * @title DeploymentAccessManaged
  * @notice Standardized access control with one-way deployment-to-governance transition
  * @dev Inherits ProtocolAccessManaged and provides controller pattern during deployment,
  *      then permanently transitions to governance-based access control
  */
-abstract contract DeploymentController is ProtocolAccessManaged {
+abstract contract DeploymentAccessManaged is ProtocolAccessManaged {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
