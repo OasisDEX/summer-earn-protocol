@@ -3,7 +3,7 @@
  * Use this until kysely-codegen properly generates the types
  */
 
-import { Generated, ColumnType } from 'kysely'
+import { ColumnType, Generated } from 'kysely'
 
 // Helper types
 type Timestamp = ColumnType<Date, Date | string, Date | string>
@@ -103,4 +103,4 @@ export interface DB {
   user_activity_status: UserActivityStatusTable
   points_config: PointsConfigTable
   migrations: MigrationsTable
-} 
+}

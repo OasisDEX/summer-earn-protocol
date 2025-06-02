@@ -104,4 +104,4 @@ export interface ReferrerWithAllPositions {
     userId: string
     positions: Position[]
   }>
-} 
+}

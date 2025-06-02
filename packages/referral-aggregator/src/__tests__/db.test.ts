@@ -1,7 +1,7 @@
-import { DatabaseService } from '../db'
-import { Kysely, sql } from 'kysely'
+import { sql } from 'kysely'
 import { Pool } from 'pg'
 import { ConfigService } from '../config-updated'
+import { DatabaseService } from '../db'
 
 // Mock dependencies
 jest.mock('pg')
@@ -82,7 +82,7 @@ describe('DatabaseService', () => {
 
     // Create service instance
     db = new DatabaseService()
-    
+
     // Replace the Kysely instance with our mock
     ;(db as any).db = mockKysely
   })
@@ -151,7 +151,7 @@ describe('DatabaseService', () => {
         expect.objectContaining({
           id: 'ref123',
           custom_code: 'CUSTOM123',
-        })
+        }),
       )
     })
 
@@ -172,7 +172,7 @@ describe('DatabaseService', () => {
 
       // Should ensure referral code exists first
       expect(mockKysely.insertInto).toHaveBeenCalledWith('referral_codes')
-      
+
       // Then insert user
       expect(mockKysely.insertInto).toHaveBeenCalledWith('users')
       expect(mockKysely.values).toHaveBeenCalledWith({
@@ -236,7 +236,7 @@ describe('DatabaseService', () => {
 
       expect(mockKysely.selectFrom).toHaveBeenCalledWith('positions')
       expect(mockKysely.where).toHaveBeenCalledWith('user_id', '=', 'user123')
-      
+
       expect(mockKysely.updateTable).toHaveBeenCalledWith('users')
       expect(mockKysely.set).toHaveBeenCalledWith({
         total_deposits_usd: '500',
@@ -253,7 +253,7 @@ describe('DatabaseService', () => {
       expect(mockKysely.set).toHaveBeenCalledWith(
         expect.objectContaining({
           is_active: false,
-        })
+        }),
       )
     })
 
@@ -266,7 +266,7 @@ describe('DatabaseService', () => {
         expect.objectContaining({
           total_deposits_usd: '0',
           is_active: false,
-        })
+        }),
       )
     })
   })
@@ -432,7 +432,7 @@ describe('DatabaseService', () => {
           id: 'user1',
           total_deposits_usd: 1000,
           is_active: true,
-        })
+        }),
       )
     })
 
@@ -546,4 +546,4 @@ describe('DatabaseService', () => {
       expect(mockMigrator.runMigrations).toHaveBeenCalled()
     })
   })
-}) 
+})

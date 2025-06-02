@@ -1,6 +1,6 @@
 import { ReferralClient } from './client'
 import { DatabaseService } from './db'
-import { Account, HourlySnapshot } from './types'
+import { HourlySnapshot } from './types'
 
 export interface ProcessingResult {
   success: boolean
@@ -46,7 +46,7 @@ export class ReferralProcessor {
       let periodStart: Date
       if (!lastProcessed) {
         // First run - process last 24 hours
-        periodStart = new Date(now.getTime() - 2* 24 * 60 * 60 * 1000)
+        periodStart = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000)
         this.logger.log('📍 First run - processing last 24 hours')
       } else {
         periodStart = lastProcessed
@@ -71,24 +71,29 @@ export class ReferralProcessor {
 
       // if period is longer than 1 hour, we need to process it in chunks of 1 hour
       if (periodEnd.getTime() - periodStart.getTime() > 1 * 60 * 60 * 1000) {
-        const chunks = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1 * 60 * 60 * 1000))
+        const chunks = Math.ceil(
+          (periodEnd.getTime() - periodStart.getTime()) / (1 * 60 * 60 * 1000),
+        )
         for (let i = 0; i < chunks; i++) {
           const chunkStart = new Date(periodStart.getTime() + i * 1 * 60 * 60 * 1000)
           const chunkEnd = new Date(periodStart.getTime() + (i + 1) * 1 * 60 * 60 * 1000)
           const result = await this.processPeriod(chunkStart, chunkEnd)
           if (!result.success) {
             return result
+          } else {
+            await this.db.updateProcessingCheckpoint(chunkEnd)
+            this.logger.log(`✅ Checkpoint updated to: ${chunkEnd.toISOString()}`)
           }
         }
       } else {
-        const result = await this.processPeriod(periodStart, periodEnd) 
+        const result = await this.processPeriod(periodStart, periodEnd)
         if (!result.success) {
           return result
+        } else {
+          await this.db.updateProcessingCheckpoint(periodEnd)
+          this.logger.log(`✅ Checkpoint updated to: ${periodEnd.toISOString()}`)
         }
       }
-
-        await this.db.updateProcessingCheckpoint(periodEnd)
-      this.logger.log(`✅ Checkpoint updated to: ${periodEnd.toISOString()}`)
 
       return {
         success: true,
@@ -114,7 +119,9 @@ export class ReferralProcessor {
    * Process a specific time period
    */
   async processPeriod(periodStart: Date, periodEnd: Date): Promise<ProcessingResult> {
-    this.logger.log(`\n🔄 Processing period: ${periodStart.toISOString()} → ${periodEnd.toISOString()}`)
+    this.logger.log(
+      `\n🔄 Processing period: ${periodStart.toISOString()} → ${periodEnd.toISOString()}`,
+    )
 
     try {
       // Step 1: Fetch new referred accounts in this period
@@ -123,9 +130,9 @@ export class ReferralProcessor {
 
       this.logger.log(`📡 Fetching referred accounts...`)
       const { validAccounts } = await this.client.getValidReferredAccounts(timestampGt, timestampLt)
-      
+
       this.logger.log(`📊 Found ${validAccounts.length} new valid referred accounts`)
-      
+
       // Store new users
       for (const account of validAccounts) {
         await this.db.upsertUser(account.id, {
@@ -136,35 +143,31 @@ export class ReferralProcessor {
       }
 
       // Step 2: Get all users that need position updates
-      const allUsers = await this.db.rawDb
-        .selectFrom('users')
-        .select('id')
-        .execute()
+      const allUsers = await this.db.rawDb.selectFrom('users').select('id').execute()
 
-      const userIds = allUsers.map(u => u.id)
+      const userIds = allUsers.map((u) => u.id)
       this.logger.log(`📊 Updating positions for ${userIds.length} users...`)
 
       // Step 3: Fetch and update positions
-      const positionsByChain = await this.client.getAllPositionsWithHourlySnapshots(
-        userIds,
-        { timestampGt, timestampLt }
-      )
-
+      const positionsByChain = await this.client.getAllPositionsWithHourlySnapshots(userIds, {
+        timestampGt,
+        timestampLt,
+      })
+      // console.log("positionsByChain", positionsByChain)
       // Update positions and user totals
       for (const [chain, accounts] of Object.entries(positionsByChain)) {
         for (const account of accounts) {
           if (account.positions) {
             for (const position of account.positions) {
               // Find the latest snapshot in the period
-              const latestSnapshot = this.getLatestSnapshot(position.hourlySnapshots, periodStart, periodEnd)
+              const latestSnapshot = this.getLatestSnapshot(
+                position.hourlySnapshots,
+                periodStart,
+                periodEnd,
+              )
               if (latestSnapshot) {
                 const depositUsd = Number(latestSnapshot.inputTokenBalanceNormalizedInUSD || 0)
-                await this.db.updatePosition(
-                  position.id,
-                  chain as any,
-                  account.id,
-                  depositUsd
-                )
+                await this.db.updatePosition(position.id, chain as any, account.id, depositUsd)
               }
             }
             // Update user totals after all positions are updated
@@ -193,7 +196,9 @@ export class ReferralProcessor {
 
       const activeUsers = Number(activeUsersResult?.count || 0)
 
-      this.logger.log(`✅ Period complete: ${userIds.length} users processed, ${activeUsers} active users`)
+      this.logger.log(
+        `✅ Period complete: ${userIds.length} users processed, ${activeUsers} active users`,
+      )
 
       return {
         success: true,
@@ -221,10 +226,9 @@ export class ReferralProcessor {
   private getLatestSnapshot(
     snapshots: HourlySnapshot[] | undefined,
     periodStart: Date,
-    periodEnd: Date
+    periodEnd: Date,
   ): HourlySnapshot | null {
     if (!snapshots || snapshots.length === 0) return null
-
     const relevantSnapshots = snapshots.filter((snapshot) => {
       const snapshotTime = new Date(Number(snapshot.timestamp) * 1000)
       return snapshotTime >= periodStart && snapshotTime <= periodEnd
@@ -260,13 +264,13 @@ export class ReferralProcessor {
       // Process in chunks of 24 hours
       let currentStart = new Date(startDate)
       currentStart.setHours(0, 0, 0, 0)
-      
+
       let totalUsers = 0
       let totalActive = 0
 
       while (currentStart < endDate) {
         const currentEnd = new Date(currentStart.getTime() + 24 * 60 * 60 * 1000)
-        
+
         const result = await this.processPeriod(currentStart, currentEnd)
         if (result.success) {
           totalUsers = Math.max(totalUsers, result.usersProcessed)
@@ -338,7 +342,7 @@ export class ReferralProcessor {
       lastProcessed,
       totalReferralCodes: Number(referralCodesResult?.count || 0),
       totalActiveUsers: Number(activeUsersResult?.count || 0),
-      topReferrers: topReferrers.map(r => ({
+      topReferrers: topReferrers.map((r) => ({
         id: r.id,
         customCode: r.custom_code,
         totalPoints: r.total_points,
@@ -355,4 +359,4 @@ export class ReferralProcessor {
   async close(): Promise<void> {
     await this.db.close()
   }
-} 
+}

@@ -237,7 +237,6 @@ export class ReferralClient {
       const allAccounts: Account[] = []
       let lastId: string | undefined
       const batchSize = 50
-
       // Paginate through accounts
       while (true) {
         const accounts = await this.getAccountsWithHourlySnapshots(
@@ -249,7 +248,6 @@ export class ReferralClient {
           },
           snapshotOptions,
         )
-
         if (accounts.length === 0) break
 
         allAccounts.push(...accounts)

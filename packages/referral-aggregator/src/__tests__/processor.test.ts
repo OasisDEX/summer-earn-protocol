@@ -93,33 +93,39 @@ describe('ReferralProcessor', () => {
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({
         validAccounts: [
-          { 
-            id: 'user1', 
+          {
+            id: 'user1',
             referralData: { id: 'ref1' },
             referralChain: 'Base' as any,
-            referralTimestamp: String(Date.now() / 1000)
-          }, 
-          { 
-            id: 'user2', 
+            referralTimestamp: String(Date.now() / 1000),
+          },
+          {
+            id: 'user2',
             referralData: { id: 'ref2' },
             referralChain: 'Base' as any,
-            referralTimestamp: String(Date.now() / 1000)
-          }
+            referralTimestamp: String(Date.now() / 1000),
+          },
         ],
       })
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({
-        Base: [{
-          id: 'user1',
-          positions: [{
-            id: 'pos1',
-            createdTimestamp: '1234567890',
-            hourlySnapshots: [{
-              id: 'snap1',
-              timestamp: String(Date.now() / 1000),
-              inputTokenBalanceNormalizedInUSD: '1000'
-            }]
-          }]
-        }]
+        Base: [
+          {
+            id: 'user1',
+            positions: [
+              {
+                id: 'pos1',
+                createdTimestamp: '1234567890',
+                hourlySnapshots: [
+                  {
+                    id: 'snap1',
+                    timestamp: String(Date.now() / 1000),
+                    inputTokenBalanceNormalizedInUSD: '1000',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       })
 
       // Mock database methods
@@ -176,8 +182,8 @@ describe('ReferralProcessor', () => {
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({ validAccounts: [] })
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
-      
-      // Mock database queries  
+
+      // Mock database queries
       mockDb.rawDb.execute.mockResolvedValue([])
       mockDb.rawDb.executeTakeFirst.mockResolvedValue({ count: '0' })
 
@@ -194,11 +200,11 @@ describe('ReferralProcessor', () => {
 
       // Mock earliest referral date
       mockDb.rawDb.executeTakeFirst.mockResolvedValue({ earliest: new Date('2024-01-01') })
-      
+
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({ validAccounts: [] })
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
-      
+
       // Mock database queries
       mockDb.rawDb.execute.mockResolvedValue([])
 
@@ -214,11 +220,11 @@ describe('ReferralProcessor', () => {
       const mockDb = (processor as any).db
 
       mockDb.rawDb.executeTakeFirst.mockResolvedValue({ earliest: null })
-      
+
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({ validAccounts: [] })
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
-      
+
       // Mock database queries
       mockDb.rawDb.execute.mockResolvedValue([])
 
@@ -238,18 +244,18 @@ describe('ReferralProcessor', () => {
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({
         validAccounts: [
-          { 
-            id: 'user1', 
+          {
+            id: 'user1',
             referralData: { id: 'ref1' },
             referralChain: 'Base' as any,
-            referralTimestamp: String(Date.now() / 1000)
-          }, 
-          { 
-            id: 'user2', 
+            referralTimestamp: String(Date.now() / 1000),
+          },
+          {
+            id: 'user2',
             referralData: { id: 'ref2' },
             referralChain: 'Base' as any,
-            referralTimestamp: String(Date.now() / 1000)
-          }
+            referralTimestamp: String(Date.now() / 1000),
+          },
         ],
       })
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({})
@@ -294,7 +300,7 @@ describe('ReferralProcessor', () => {
       const mockDate = new Date('2024-01-01T12:00:00Z')
 
       mockDb.getLastProcessedTimestamp.mockResolvedValue(mockDate)
-      
+
       // Mock count queries
       mockDb.rawDb.executeTakeFirst
         .mockResolvedValueOnce({ count: '10' }) // total referral codes

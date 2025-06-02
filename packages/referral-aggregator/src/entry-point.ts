@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { ReferralProcessor } from './processor'
 import { DatabaseService } from './db'
+import { ReferralProcessor } from './processor'
 
 async function main() {
   const args = process.argv.slice(2)
@@ -36,7 +36,9 @@ async function main() {
         const backfillResult = await processor.backfill(fromDate)
         if (backfillResult.success) {
           console.log(`✅ Backfill completed successfully`)
-          console.log(`   Period: ${backfillResult.periodStart.toISOString()} to ${backfillResult.periodEnd.toISOString()}`)
+          console.log(
+            `   Period: ${backfillResult.periodStart.toISOString()} to ${backfillResult.periodEnd.toISOString()}`,
+          )
           console.log(`   Users processed: ${backfillResult.usersProcessed}`)
           console.log(`   Active users: ${backfillResult.activeUsers}`)
         } else {
@@ -52,12 +54,14 @@ async function main() {
         console.log(`   Last processed: ${stats.lastProcessed?.toISOString() || 'Never'}`)
         console.log(`   Total referral codes: ${stats.totalReferralCodes}`)
         console.log(`   Total active users: ${stats.totalActiveUsers}`)
-        
+
         if (stats.topReferrers.length > 0) {
           console.log('\n🏆 Top Referrers:')
           stats.topReferrers.forEach((ref, index) => {
             console.log(`   ${index + 1}. ${ref.id}${ref.customCode ? ` (${ref.customCode})` : ''}`)
-            console.log(`      Points: ${ref.totalPoints.toFixed(2)} (${ref.pointsPerDay.toFixed(2)}/day)`)
+            console.log(
+              `      Points: ${ref.totalPoints.toFixed(2)} (${ref.pointsPerDay.toFixed(2)}/day)`,
+            )
             console.log(`      Active users: ${ref.activeUsers}`)
             console.log(`      Total deposits: $${ref.totalDeposits.toFixed(2)}`)
           })
@@ -73,9 +77,11 @@ async function main() {
       case 'reset':
         console.log('⚠️  WARNING: This will delete all data!')
         console.log('Press Ctrl+C to cancel, or wait 5 seconds to continue...')
-        await new Promise(resolve => setTimeout(resolve, 5000))
-        
-        const migrator = new (await import('./migrations/kysely-migrator')).KyselyMigrator(db.rawPool)
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+
+        const migrator = new (await import('./migrations/kysely-migrator')).KyselyMigrator(
+          db.rawPool,
+        )
         await migrator.reset()
         console.log('✅ Database reset completed')
         break
@@ -110,8 +116,8 @@ Examples:
 
 // Run if called directly
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error('❌ Unhandled error:', error)
     process.exit(1)
   })
-} 
+}

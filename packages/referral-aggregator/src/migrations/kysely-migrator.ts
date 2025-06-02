@@ -172,8 +172,8 @@ export class KyselyMigrator {
       .createTable('users')
       .ifNotExists()
       .addColumn('id', 'varchar(100)', (col) => col.primaryKey())
-      .addColumn('referrer_id', 'varchar(100)', (col) => 
-        col.references('referral_codes.id').onDelete('set null')
+      .addColumn('referrer_id', 'varchar(100)', (col) =>
+        col.references('referral_codes.id').onDelete('set null'),
       )
       .addColumn('referral_chain', 'varchar(20)')
       .addColumn('referral_timestamp', 'timestamptz')
@@ -191,8 +191,8 @@ export class KyselyMigrator {
       .ifNotExists()
       .addColumn('id', 'varchar(100)', (col) => col.notNull())
       .addColumn('chain', 'varchar(20)', (col) => col.notNull())
-      .addColumn('user_id', 'varchar(100)', (col) => 
-        col.notNull().references('users.id').onDelete('cascade')
+      .addColumn('user_id', 'varchar(100)', (col) =>
+        col.notNull().references('users.id').onDelete('cascade'),
       )
       .addColumn('current_deposit_usd', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
       .addColumn('last_synced_at', 'timestamptz')
@@ -212,8 +212,8 @@ export class KyselyMigrator {
     await db.schema
       .createTable('daily_stats')
       .ifNotExists()
-      .addColumn('referral_id', 'varchar(100)', (col) => 
-        col.notNull().references('referral_codes.id').onDelete('cascade')
+      .addColumn('referral_id', 'varchar(100)', (col) =>
+        col.notNull().references('referral_codes.id').onDelete('cascade'),
       )
       .addColumn('date', 'date', (col) => col.notNull())
       .addColumn('points_earned', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
@@ -239,12 +239,14 @@ export class KyselyMigrator {
       .createTable('points_distributions')
       .ifNotExists()
       .addColumn('id', 'serial', (col) => col.primaryKey())
-      .addColumn('referral_id', 'varchar(100)', (col) => 
-        col.notNull().references('referral_codes.id').onDelete('cascade')
+      .addColumn('referral_id', 'varchar(100)', (col) =>
+        col.notNull().references('referral_codes.id').onDelete('cascade'),
       )
       .addColumn('points_amount', sql`decimal(20,8)`, (col) => col.notNull())
       .addColumn('description', 'text', (col) => col.notNull())
-      .addColumn('distribution_timestamp', 'timestamptz', (col) => col.notNull().defaultTo(sql`NOW()`))
+      .addColumn('distribution_timestamp', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`NOW()`),
+      )
       .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
       .execute()
 
@@ -391,7 +393,7 @@ export class KyselyMigrator {
     await db.schema.dropTable('points_config').ifExists().execute()
     await db.schema.dropTable('users').ifExists().execute()
     await db.schema.dropTable('referral_codes').ifExists().execute()
-    
+
     // Drop the trigger function
     await db.executeQuery(
       sql`DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;`.compile(db),

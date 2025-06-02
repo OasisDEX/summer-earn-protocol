@@ -13,10 +13,7 @@ export class ConfigService {
   constructor(private db: Kysely<DB>) {}
 
   async getConfig(): Promise<PointsConfig> {
-    const configRows = await this.db
-      .selectFrom('points_config')
-      .selectAll()
-      .execute()
+    const configRows = await this.db.selectFrom('points_config').selectAll().execute()
 
     const config: { [key: string]: string } = {}
     for (const row of configRows) {
@@ -48,4 +45,4 @@ export class ConfigService {
       )
       .execute()
   }
-} 
+}

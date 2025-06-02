@@ -176,7 +176,7 @@ export const ACCOUNTS_WITH_HOURLY_SNAPSHOTS_QUERY = gql`
           amountOfReferred
         }
         hourlySnapshots(
-          where: { timestamp_gt: $timestampGt, timestamp_lt: $timestampLt }
+          where: { timestamp_gt: $timestampGt, timestamp_lte: $timestampLt }
           orderBy: timestamp
           orderDirection: desc
         ) {

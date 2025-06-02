@@ -100,18 +100,18 @@ describe('ReferralProcessor', () => {
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({
         validAccounts: [
-          { 
-            id: 'user1', 
+          {
+            id: 'user1',
             referralData: { id: 'referrer1' },
             referralChain: 'Base',
             referralTimestamp: '1704067200',
           },
-          { 
+          {
             id: 'user2',
             referralData: { id: 'referrer1' },
             referralChain: 'Base',
             referralTimestamp: '1704067200',
-          }
+          },
         ],
       })
 
@@ -120,25 +120,26 @@ describe('ReferralProcessor', () => {
         base: [
           {
             id: 'user1',
-            positions: [{
-              id: 'pos1',
-              createdTimestamp: '1704067200',
-              hourlySnapshots: [{
-                id: 'snapshot1',
-                timestamp: Math.floor(now.getTime() / 1000).toString(),
-                inputTokenBalanceNormalizedInUSD: '1000',
-              }],
-            }],
+            positions: [
+              {
+                id: 'pos1',
+                createdTimestamp: '1704067200',
+                hourlySnapshots: [
+                  {
+                    id: 'snapshot1',
+                    timestamp: Math.floor(now.getTime() / 1000).toString(),
+                    inputTokenBalanceNormalizedInUSD: '1000',
+                  },
+                ],
+              },
+            ],
           },
         ],
       })
 
       // Mock database queries
       mockDb.rawDb.selectFrom.mockReturnValue(mockDb.rawDb)
-      mockDb.rawDb.execute.mockResolvedValue([
-        { id: 'user1' },
-        { id: 'user2' },
-      ])
+      mockDb.rawDb.execute.mockResolvedValue([{ id: 'user1' }, { id: 'user2' }])
       mockDb.rawDb.executeTakeFirst.mockResolvedValue({ count: '2' })
 
       const result = await processor.processLatest()
@@ -212,8 +213,8 @@ describe('ReferralProcessor', () => {
       // Mock client methods
       mockClient.getValidReferredAccounts.mockResolvedValue({
         validAccounts: [
-          { 
-            id: 'user1', 
+          {
+            id: 'user1',
             referralData: { id: 'referrer1' },
             referralChain: 'Base',
             referralTimestamp: '1704067200',
@@ -226,15 +227,19 @@ describe('ReferralProcessor', () => {
         base: [
           {
             id: 'user1',
-            positions: [{
-              id: 'pos1',
-              createdTimestamp: '1704067200',
-              hourlySnapshots: [{
-                id: 'snapshot1',
-                timestamp: Math.floor(periodEnd.getTime() / 1000).toString(),
-                inputTokenBalanceNormalizedInUSD: '1000',
-              }],
-            }],
+            positions: [
+              {
+                id: 'pos1',
+                createdTimestamp: '1704067200',
+                hourlySnapshots: [
+                  {
+                    id: 'snapshot1',
+                    timestamp: Math.floor(periodEnd.getTime() / 1000).toString(),
+                    inputTokenBalanceNormalizedInUSD: '1000',
+                  },
+                ],
+              },
+            ],
           },
         ],
       })
@@ -266,33 +271,45 @@ describe('ReferralProcessor', () => {
       const periodEnd = new Date('2024-01-01T01:00:00Z')
 
       mockClient.getValidReferredAccounts.mockResolvedValue({ validAccounts: [] })
-      
+
       // Mock positions on multiple chains
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({
-        base: [{
-          id: 'user1',
-          positions: [{
-            id: 'pos1',
-            createdTimestamp: '1704067200',
-            hourlySnapshots: [{
-              id: 'snapshot1',
-              timestamp: Math.floor(periodEnd.getTime() / 1000).toString(),
-              inputTokenBalanceNormalizedInUSD: '500',
-            }],
-          }],
-        }],
-        ethereum: [{
-          id: 'user1',
-          positions: [{
-            id: 'pos2',
-            createdTimestamp: '1704067200',
-            hourlySnapshots: [{
-              id: 'snapshot2',
-              timestamp: Math.floor(periodEnd.getTime() / 1000).toString(),
-              inputTokenBalanceNormalizedInUSD: '750',
-            }],
-          }],
-        }],
+        base: [
+          {
+            id: 'user1',
+            positions: [
+              {
+                id: 'pos1',
+                createdTimestamp: '1704067200',
+                hourlySnapshots: [
+                  {
+                    id: 'snapshot1',
+                    timestamp: Math.floor(periodEnd.getTime() / 1000).toString(),
+                    inputTokenBalanceNormalizedInUSD: '500',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        ethereum: [
+          {
+            id: 'user1',
+            positions: [
+              {
+                id: 'pos2',
+                createdTimestamp: '1704067200',
+                hourlySnapshots: [
+                  {
+                    id: 'snapshot2',
+                    timestamp: Math.floor(periodEnd.getTime() / 1000).toString(),
+                    inputTokenBalanceNormalizedInUSD: '750',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       })
 
       mockDb.rawDb.execute.mockResolvedValue([{ id: 'user1' }])
@@ -313,38 +330,42 @@ describe('ReferralProcessor', () => {
       const periodEnd = new Date('2024-01-01T01:00:00Z')
 
       mockClient.getValidReferredAccounts.mockResolvedValue({ validAccounts: [] })
-      
+
       // Mock positions with snapshots before, during, and after period
       mockClient.getAllPositionsWithHourlySnapshots.mockResolvedValue({
-        base: [{
-          id: 'user1',
-          positions: [{
-            id: 'pos1',
-            createdTimestamp: '1704067200',
-            hourlySnapshots: [
+        base: [
+          {
+            id: 'user1',
+            positions: [
               {
-                id: 'snapshot1',
-                timestamp: Math.floor(periodStart.getTime() / 1000 - 3600).toString(), // Before period
-                inputTokenBalanceNormalizedInUSD: '100',
-              },
-              {
-                id: 'snapshot2',
-                timestamp: Math.floor(periodStart.getTime() / 1000 + 1800).toString(), // During period
-                inputTokenBalanceNormalizedInUSD: '200',
-              },
-              {
-                id: 'snapshot3',
-                timestamp: Math.floor(periodEnd.getTime() / 1000 - 1).toString(), // Latest in period
-                inputTokenBalanceNormalizedInUSD: '300',
-              },
-              {
-                id: 'snapshot4',
-                timestamp: Math.floor(periodEnd.getTime() / 1000 + 3600).toString(), // After period
-                inputTokenBalanceNormalizedInUSD: '400',
+                id: 'pos1',
+                createdTimestamp: '1704067200',
+                hourlySnapshots: [
+                  {
+                    id: 'snapshot1',
+                    timestamp: Math.floor(periodStart.getTime() / 1000 - 3600).toString(), // Before period
+                    inputTokenBalanceNormalizedInUSD: '100',
+                  },
+                  {
+                    id: 'snapshot2',
+                    timestamp: Math.floor(periodStart.getTime() / 1000 + 1800).toString(), // During period
+                    inputTokenBalanceNormalizedInUSD: '200',
+                  },
+                  {
+                    id: 'snapshot3',
+                    timestamp: Math.floor(periodEnd.getTime() / 1000 - 1).toString(), // Latest in period
+                    inputTokenBalanceNormalizedInUSD: '300',
+                  },
+                  {
+                    id: 'snapshot4',
+                    timestamp: Math.floor(periodEnd.getTime() / 1000 + 3600).toString(), // After period
+                    inputTokenBalanceNormalizedInUSD: '400',
+                  },
+                ],
               },
             ],
-          }],
-        }],
+          },
+        ],
       })
 
       mockDb.rawDb.execute.mockResolvedValue([{ id: 'user1' }])
@@ -425,7 +446,10 @@ describe('ReferralProcessor', () => {
 
       expect(result.success).toBe(false)
       expect(result.error).toBeDefined()
-      expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Backfill failed'), expect.any(Error))
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Backfill failed'),
+        expect.any(Error),
+      )
     })
   })
 
@@ -435,7 +459,7 @@ describe('ReferralProcessor', () => {
       const mockDate = new Date('2024-01-01T12:00:00Z')
 
       mockDb.getLastProcessedTimestamp.mockResolvedValue(mockDate)
-      
+
       // Mock count queries
       mockDb.rawDb.executeTakeFirst
         .mockResolvedValueOnce({ count: '10' }) // total referral codes
@@ -500,14 +524,14 @@ describe('ReferralProcessor', () => {
       const result = (processor as any).getLatestSnapshot(
         undefined,
         new Date('2024-01-01'),
-        new Date('2024-01-02')
+        new Date('2024-01-02'),
       )
       expect(result).toBeNull()
 
       const result2 = (processor as any).getLatestSnapshot(
         [],
         new Date('2024-01-01'),
-        new Date('2024-01-02')
+        new Date('2024-01-02'),
       )
       expect(result2).toBeNull()
     })
@@ -515,7 +539,7 @@ describe('ReferralProcessor', () => {
     it('should return latest snapshot within period', () => {
       const periodStart = new Date('2024-01-01T00:00:00Z')
       const periodEnd = new Date('2024-01-01T06:00:00Z')
-      
+
       const snapshots = [
         { id: 'snap1', timestamp: '1704070800', inputTokenBalanceNormalizedInUSD: '100' }, // 01:00
         { id: 'snap2', timestamp: '1704074400', inputTokenBalanceNormalizedInUSD: '200' }, // 02:00
@@ -523,14 +547,14 @@ describe('ReferralProcessor', () => {
       ]
 
       const result = (processor as any).getLatestSnapshot(snapshots, periodStart, periodEnd)
-      
+
       expect(result).toEqual(snapshots[2])
     })
 
     it('should filter out snapshots outside period', () => {
       const periodStart = new Date('2024-01-01T02:00:00Z')
       const periodEnd = new Date('2024-01-01T04:00:00Z')
-      
+
       const snapshots = [
         { id: 'snap1', timestamp: '1704070800', inputTokenBalanceNormalizedInUSD: '100' }, // 01:00 - before
         { id: 'snap2', timestamp: '1704078000', inputTokenBalanceNormalizedInUSD: '200' }, // 03:00 - in period
@@ -538,8 +562,8 @@ describe('ReferralProcessor', () => {
       ]
 
       const result = (processor as any).getLatestSnapshot(snapshots, periodStart, periodEnd)
-      
+
       expect(result).toEqual(snapshots[1])
     })
   })
-}) 
+})

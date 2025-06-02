@@ -1,9 +1,9 @@
 import { Kysely, PostgresDialect, sql } from 'kysely'
+import { DB } from 'kysely-codegen'
 import { Pool } from 'pg'
 import { ConfigService } from './config-updated'
 import { KyselyMigrator } from './migrations/kysely-migrator'
 import { Chain } from './types'
-import { DB } from 'kysely-codegen'
 
 export interface SimplifiedReferralCode {
   id: string
@@ -123,13 +123,7 @@ export class DatabaseService {
         total_deposits_usd: '0',
         is_active: false,
       })
-      .onConflict((oc) =>
-        oc.column('id').doUpdateSet({
-          referrer_id: data.referrerId || null,
-          referral_chain: data.referralChain || null,
-          referral_timestamp: data.referralTimestamp || null,
-        }),
-      )
+      .onConflict((oc) => oc.doNothing())
       .execute()
   }
 
@@ -165,15 +159,11 @@ export class DatabaseService {
    */
   async updateUserTotals(userId: string): Promise<void> {
     const config = await this.config.getConfig()
-    
+
     // Calculate total deposits from all positions
     const result = await this.db
       .selectFrom('positions')
-      .select((eb) =>
-        eb.fn
-          .sum('current_deposit_usd')
-          .as('total_deposits')
-      )
+      .select((eb) => eb.fn.sum('current_deposit_usd').as('total_deposits'))
       .where('user_id', '=', userId)
       .executeTakeFirst()
 
@@ -221,7 +211,7 @@ export class DatabaseService {
    */
   async updateDailyRatesAndPoints(): Promise<void> {
     const config = await this.config.getConfig()
-    
+
     await this.db.executeQuery(
       sql`
       WITH active_users_per_code AS (
@@ -345,7 +335,7 @@ export class DatabaseService {
       .where('referrer_id', '=', referrerId)
       .execute()
 
-    return results.map(row => ({
+    return results.map((row) => ({
       ...row,
       total_deposits_usd: Number(row.total_deposits_usd),
       created_at: row.created_at || new Date(),
@@ -364,7 +354,7 @@ export class DatabaseService {
       .where('is_active', '=', true)
       .execute()
 
-    return results.map(row => ({
+    return results.map((row) => ({
       ...row,
       total_deposits_usd: Number(row.total_deposits_usd),
       created_at: row.created_at || new Date(),
@@ -383,7 +373,7 @@ export class DatabaseService {
       .limit(limit)
       .execute()
 
-    return results.map(row => ({
+    return results.map((row) => ({
       ...row,
       total_points: Number(row.total_points),
       total_deposits_usd: Number(row.total_deposits_usd),
@@ -405,4 +395,4 @@ export class DatabaseService {
   get rawPool() {
     return this.pool
   }
-} 
+}
