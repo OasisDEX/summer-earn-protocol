@@ -1,4 +1,4 @@
-import { BigInt, ethereum, log } from '@graphprotocol/graph-ts'
+import { BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Account, ReferralData } from '../../../generated/schema'
 import * as constants from '../../common/constants'
 import { BigDecimalConstants, BigIntConstants, EventSignature } from '../../common/constants'

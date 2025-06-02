@@ -1,0 +1,53 @@
+{
+  "name": "@summer-earn/referral-aggregator",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prebuild": "pnpm codegen",
+    "build": "tsc",
+    "dev": "tsc -w",
+    "codegen": "pnpm codegen:kysely && pnpm codegen:graphql",
+    "codegen:kysely": "kysely-codegen",
+    "codegen:graphql": "graphql-codegen && graphql-mesh generate",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "migrate": "ts-node src/scripts/migrate.ts",
+    "migrate-kysely": "ts-node src/scripts/migrate-kysely.ts",
+    "setup-new-schema": "ts-node src/scripts/setup-new-schema.ts",
+    "execute": "ts-node src/entry-point.ts",
+    "process": "ts-node src/entry-point.ts process",
+    "backfill": "ts-node src/entry-point.ts backfill",
+    "stats": "ts-node src/entry-point.ts stats",
+    "config": "ts-node src/scripts/manage-config.ts",
+    "resrun": "pnpm migrate-kysely reset && pnpm execute"
+  },
+  "dependencies": {
+    "@graphql-mesh/cli": "0.100.4",
+    "@graphql-mesh/graphql": "0.104.3",
+    "@graphql-mesh/runtime": "0.106.3",
+    "@graphql-mesh/transform-prefix": "0.105.4",
+    "@graphql-tools/utils": "10.8.6",
+    "graphql": "^16.8.1",
+    "graphql-request": "^7.2.0",
+    "graphql-tag": "^2.12.6",
+    "kysely": "^0.27.6",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.6",
+    "@graphql-codegen/typescript": "^4.1.6",
+    "@graphql-codegen/typescript-graphql-request": "^6.2.1",
+    "@graphql-codegen/typescript-operations": "^4.6.1",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.19",
+    "@types/pg": "^8.10.9",
+    "jest": "^29.7.0",
+    "kysely-codegen": "^0.18.5",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,11 @@
+schema:
+  - 'https://subgraph.staging.oasisapp.dev/summer-protocol-base'
+  - 'https://subgraph.staging.oasisapp.dev/summer-protocol-arbitrum'
+  - 'https://subgraph.staging.oasisapp.dev/summer-protocol-sonic'
+  - 'https://subgraph.staging.oasisapp.dev/summer-protocol'
+documents: 'src/**/*.ts'
+generates:
+  src/generated/graphql.ts:
+    plugins:
+      - typescript
+      - typescript-operations

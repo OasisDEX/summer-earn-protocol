@@ -4,11 +4,7 @@ import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } 
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
-import {
-  getOrCreatePosition,
-  getOrCreatePositionRewards,
-  getOrCreateToken,
-} from '../common/initializers'
+import { getOrCreatePositionRewards, getOrCreateToken } from '../common/initializers'
 import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 import { PositionDetails, VaultDetails } from '../types'
@@ -59,10 +55,16 @@ export function getPositionDetails(
   const unstakedInputTokenNormalizedUSD = unstakedInputTokenNormalized.times(priceInUSD)
   const stakedInputTokenNormalizedUSD = stakedInputTokenNormalized.times(priceInUSD)
   const totalInputTokenNormalizedUSD = totalInputTokenNormalized.times(priceInUSD)
-  const position = Position.load(utils.formatPositionId(account.toHexString(), vaultDetails.vaultId))
+  const position = Position.load(
+    utils.formatPositionId(account.toHexString(), vaultDetails.vaultId),
+  )
 
-  const stakedInputTokenBalanceBeforeUpdate = position ? position.stakedInputTokenBalance : constants.BigIntConstants.ZERO
-  const unstakedInputTokenBalanceBeforeUpdate = position ? position.unstakedInputTokenBalance : constants.BigIntConstants.ZERO
+  const stakedInputTokenBalanceBeforeUpdate = position
+    ? position.stakedInputTokenBalance
+    : constants.BigIntConstants.ZERO
+  const unstakedInputTokenBalanceBeforeUpdate = position
+    ? position.unstakedInputTokenBalance
+    : constants.BigIntConstants.ZERO
   const totalInputTokenBeforeUpdate = stakedInputTokenBalanceBeforeUpdate.plus(
     unstakedInputTokenBalanceBeforeUpdate,
   )
