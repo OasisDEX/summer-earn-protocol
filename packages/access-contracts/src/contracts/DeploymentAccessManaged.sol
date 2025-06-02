@@ -107,6 +107,14 @@ abstract contract DeploymentAccessManaged is ProtocolAccessManaged {
      * @param governance Address of the governance contract/multisig
      * @dev Can only be called once during deployment phase by current controller
      *      After this call, all future configuration must go through normal governance
+     *
+     *      The governance address must be explicitly specified because:
+     *      - Multiple addresses can have GOVERNOR_ROLE
+     *      - AccessControl doesn't provide role enumeration
+     *      - Explicit specification prevents accidents and improves auditability
+     *
+     *      To find the governance address, check your ProtocolAccessManager deployment
+     *      or governance documentation.
      */
     function transferToGovernance(
         address governance

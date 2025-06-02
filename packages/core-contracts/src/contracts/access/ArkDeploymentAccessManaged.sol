@@ -4,12 +4,12 @@ pragma solidity 0.8.28;
 import {ArkAccessManaged} from "../ArkAccessManaged.sol";
 
 /**
- * @title ArkDeploymentController
+ * @title ArkDeploymentAccessManaged
  * @notice Standardized access control with one-way deployment-to-governance transition for Ark contracts
  * @dev Inherits ArkAccessManaged and provides controller pattern during deployment,
  *      then permanently transitions to governance-based access control
  */
-abstract contract ArkDeploymentController is ArkAccessManaged {
+abstract contract ArkDeploymentAccessManaged is ArkAccessManaged {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
