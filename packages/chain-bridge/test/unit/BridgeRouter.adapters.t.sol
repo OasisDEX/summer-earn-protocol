@@ -11,6 +11,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
 
 contract BridgeRouterAdaptersTest is Test {
     BridgeRouter public router;
@@ -32,14 +33,14 @@ contract BridgeRouterAdaptersTest is Test {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
 
+        vm.startPrank(governor);
+
         // Deploy BridgeQueue first
         bridgeQueue = new BridgeQueue(
             address(accessManager),
             address(0), // Router address set later
             user // queueManager
         );
-
-        vm.startPrank(governor);
 
         // Deploy router, linking it to the queue
         router = new BridgeRouter(address(accessManager), address(bridgeQueue));
@@ -83,7 +84,7 @@ contract BridgeRouterAdaptersTest is Test {
     function testRegisterAdapterUnauthorized() public {
         vm.startPrank(user);
 
-        // Should revert when non-governor tries to register adapter
+        // Should revert when non-governor tries to register adapter (in governance mode)
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControlErrors.CallerIsNotGovernor.selector,
@@ -119,7 +120,7 @@ contract BridgeRouterAdaptersTest is Test {
     function testRemoveAdapterUnauthorized() public {
         vm.startPrank(user);
 
-        // Should revert when non-governor tries to remove adapter
+        // Should revert when non-governor tries to remove adapter (in governance mode)
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControlErrors.CallerIsNotGovernor.selector,

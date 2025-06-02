@@ -40,14 +40,14 @@ contract BridgeRouterReadStateTest is Test {
         accessManager = new ProtocolAccessManager(governor);
         mockReceiver = new MockCrossChainReceiver();
 
+        vm.startPrank(governor);
+
         // Deploy BridgeQueue first, making mockReceiver the queue manager
         bridgeQueue = new BridgeQueue(
             address(accessManager),
             address(0), // Router address set later
             address(mockReceiver) // queueManager is mockReceiver
         );
-
-        vm.startPrank(governor);
 
         // Deploy BridgeRouterTestHelper, linking it to the queue
         router = new BridgeRouterTestHelper(

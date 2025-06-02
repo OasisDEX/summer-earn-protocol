@@ -34,15 +34,15 @@ contract BridgeRouterAdminTest is Test {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
 
+        vm.startPrank(governor);
+        accessManager.grantGuardianRole(guardian);
+
         // Deploy BridgeQueue first
         bridgeQueue = new BridgeQueue(
             address(accessManager),
             address(0), // Router address set later
             user // queueManager
         );
-
-        vm.startPrank(governor);
-        accessManager.grantGuardianRole(guardian);
 
         // Deploy BridgeRouter, linking it to the queue
         router = new BridgeRouter(address(accessManager), address(bridgeQueue));

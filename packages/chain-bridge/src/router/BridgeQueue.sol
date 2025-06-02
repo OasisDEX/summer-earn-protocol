@@ -6,7 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
@@ -20,7 +20,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
  */
 contract BridgeQueue is
     IBridgeQueue,
-    ProtocolAccessManaged,
+    DeploymentController,
     ReentrancyGuard,
     Nonces
 {
@@ -116,7 +116,7 @@ contract BridgeQueue is
         address _accessManager,
         address _initialBridgeRouter,
         address _initialQueueManager
-    ) ProtocolAccessManaged(_accessManager) {
+    ) DeploymentController(msg.sender, _accessManager) {
         if (_initialQueueManager == address(0)) revert InvalidQueueManager(); // Use error for initial manager too
 
         bridgeRouter = _initialBridgeRouter;
@@ -487,7 +487,9 @@ contract BridgeQueue is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeQueue
-    function setBridgeRouter(address _newBridgeRouter) external onlyGovernor {
+    function setBridgeRouter(
+        address _newBridgeRouter
+    ) external onlyControllerOrGovernor {
         if (_newBridgeRouter == address(0)) revert InvalidBridgeRouter();
 
         // Verify that the new router supports the required interface
@@ -506,7 +508,9 @@ contract BridgeQueue is
     }
 
     /// @inheritdoc IBridgeQueue
-    function addQueueManager(address manager) external onlyGovernor {
+    function addQueueManager(
+        address manager
+    ) external onlyControllerOrGovernor {
         if (manager == address(0)) revert InvalidQueueManager();
         if (!isQueueManager[manager]) {
             isQueueManager[manager] = true;
@@ -515,7 +519,9 @@ contract BridgeQueue is
     }
 
     /// @inheritdoc IBridgeQueue
-    function removeQueueManager(address manager) external onlyGovernor {
+    function removeQueueManager(
+        address manager
+    ) external onlyControllerOrGovernor {
         if (manager == address(0)) revert InvalidQueueManager(); // Also check for zero address on removal
         if (isQueueManager[manager]) {
             isQueueManager[manager] = false;
