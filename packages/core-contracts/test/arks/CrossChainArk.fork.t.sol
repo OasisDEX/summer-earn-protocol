@@ -90,14 +90,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(bridgeRouter),
             supportedChains,
             lzEids,
-            governor
+            governor,
+            address(accessManager)
         );
 
         // Setup Stargate adapter
         stargateAdapter = new StargateAdapter(
             address(bridgeRouter),
             governor,
-            LZ_ENDPOINT_MAINNET
+            LZ_ENDPOINT_MAINNET,
+            address(accessManager)
         );
 
         // Register adapters with router

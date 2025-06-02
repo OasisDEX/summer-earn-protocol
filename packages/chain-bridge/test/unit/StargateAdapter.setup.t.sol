@@ -92,7 +92,8 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         adapterA = new StargateAdapter(
             address(routerA),
             governor,
-            lzEndpointA // Use real LayerZero endpoint
+            lzEndpointA, // Use real LayerZero endpoint
+            address(accessManagerA)
         );
 
         adapterA.addSupportedChain(
@@ -136,7 +137,8 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         adapterB = new StargateAdapter(
             address(routerB),
             governor,
-            lzEndpointB // Use real LayerZero endpoint
+            lzEndpointB, // Use real LayerZero endpoint
+            address(accessManagerB)
         );
 
         adapterB.addSupportedChain(

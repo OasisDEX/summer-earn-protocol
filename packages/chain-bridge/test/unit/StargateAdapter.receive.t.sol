@@ -6,10 +6,24 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
 contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
     bytes32 testTransferId = bytes32(uint256(12345));
+
+    function setUp() public override {
+        super.setUp();
+
+        // Grant super keeper role to governor for operational functions
+        useNetworkA();
+        vm.prank(governor);
+        accessManagerA.grantSuperKeeperRole(governor);
+
+        useNetworkB();
+        vm.prank(governor);
+        accessManagerB.grantSuperKeeperRole(governor);
+    }
 
     /*//////////////////////////////////////////////////////////////
                           OPERATION STATUS TESTS
@@ -154,7 +168,12 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
 
         // Try to update transport mode as unauthorized user
         vm.prank(user);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotSuperKeeper.selector,
+                user
+            )
+        );
         adapterA.setDefaultTransportMode(true);
     }
 }

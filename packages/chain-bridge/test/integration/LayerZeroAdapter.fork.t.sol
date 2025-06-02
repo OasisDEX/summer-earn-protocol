@@ -79,7 +79,8 @@ contract LayerZeroIntegrationTest is Test {
             address(router),
             supportedChains,
             lzEids,
-            governor
+            governor,
+            address(accessManager)
         );
 
         // Register adapter with router

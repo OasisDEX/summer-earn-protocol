@@ -120,7 +120,8 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             address(routerA),
             chains,
             lzEids,
-            governor
+            governor,
+            address(accessManagerA)
         );
 
         // Final configuration
@@ -167,7 +168,8 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             address(routerB),
             chains,
             lzEids,
-            governor
+            governor,
+            address(accessManagerB)
         );
 
         // Final configuration

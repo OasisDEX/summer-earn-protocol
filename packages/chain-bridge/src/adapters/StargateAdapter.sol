@@ -11,6 +11,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
 
 // Import CrossChain Ark interface for proper detection
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
@@ -97,7 +98,11 @@ library OftCmdHelper {
  * @notice Adapter for Stargate V2 Protocol - all V2 contracts are OFT-enabled
  * @dev Implements IBridgeAdapter interface and connects to Stargate V2 for efficient cross-chain transfers
  */
-contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
+contract StargateAdapter is
+    IBridgeAdapter,
+    ILayerZeroComposer,
+    DeploymentController
+{
     using SafeERC20 for IERC20;
     using AddressCast for address;
     using OptionsBuilder for bytes;
@@ -242,14 +247,16 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     /**
      * @notice Initializes the StargateAdapter
      * @param _bridgeRouter Address of the BridgeRouter contract
-     * @param _owner Address of the contract owner
+     * @param _deployer Address of the contract deployer
      * @param _lzEndpoint LayerZero endpoint for compose functionality
+     * @param _accessManager Address of the access manager for role-based access
      */
     constructor(
         address _bridgeRouter,
-        address _owner,
-        address _lzEndpoint
-    ) Ownable(_owner) {
+        address _deployer,
+        address _lzEndpoint,
+        address _accessManager
+    ) DeploymentController(_deployer, _accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
         if (_lzEndpoint == address(0)) revert InvalidParams();
 
@@ -264,8 +271,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     /**
      * @notice Sets the default transport mode
      * @param _useTaxi True for taxi mode (immediate), false for bus mode (batched)
+     * @dev Can be called by super keeper for operational tuning
      */
-    function setDefaultTransportMode(bool _useTaxi) external onlyOwner {
+    function setDefaultTransportMode(bool _useTaxi) external onlySuperKeeper {
         defaultUseTaxi = _useTaxi;
         emit DefaultTransportModeChanged(_useTaxi);
     }
@@ -273,8 +281,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     /**
      * @notice Sets the gas limit for compose execution
      * @param _composeGasLimit New gas limit for compose execution
+     * @dev Can be called by super keeper for operational tuning
      */
-    function setComposeGasLimit(uint256 _composeGasLimit) external onlyOwner {
+    function setComposeGasLimit(
+        uint256 _composeGasLimit
+    ) external onlySuperKeeper {
         if (
             _composeGasLimit < MIN_COMPOSE_GAS ||
             _composeGasLimit > MAX_COMPOSE_GAS
@@ -290,12 +301,13 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
      * @param chainId Chain ID in our system
      * @param endpointId Corresponding LayerZero Endpoint ID
      * @param adapterAddress Address of the StargateAdapter for this chain
+     * @dev Long-term configuration - deployer during deployment, governance after transition
      */
     function addSupportedChain(
         uint16 chainId,
         uint32 endpointId,
         address adapterAddress
-    ) external onlyOwner {
+    ) external onlyControllerOrGovernor {
         if (chainToEndpointId[chainId] != 0) revert InvalidParams();
 
         chainToEndpointId[chainId] = endpointId;
@@ -309,11 +321,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
      * @notice Updates the adapter address for an existing supported chain
      * @param chainId Chain ID in our system
      * @param adapterAddress New address of the StargateAdapter for this chain
+     * @dev Long-term configuration - deployer during deployment, governance after transition
      */
     function updateChainAdapter(
         uint16 chainId,
         address adapterAddress
-    ) external onlyOwner {
+    ) external onlyControllerOrGovernor {
         if (chainToEndpointId[chainId] == 0) revert InvalidParams();
 
         chainToAdapter[chainId] = adapterAddress;
@@ -323,11 +336,12 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
      * @notice Adds support for an asset on a specific chain
      * @param asset Address of the asset to support
      * @param stargateContract Address of the Stargate V2 contract for this asset
+     * @dev Long-term configuration - deployer during deployment, governance after transition
      */
     function addSupportedAsset(
         address asset,
         address stargateContract
-    ) external onlyOwner {
+    ) external onlyControllerOrGovernor {
         if (asset == address(0) || stargateContract == address(0))
             revert InvalidParams();
 
@@ -348,8 +362,11 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     /**
      * @notice Updates the bridge router address
      * @param newBridgeRouter Address of the new bridge router
+     * @dev Critical infrastructure - deployer during deployment, governance after transition
      */
-    function setBridgeRouter(address newBridgeRouter) external onlyOwner {
+    function setBridgeRouter(
+        address newBridgeRouter
+    ) external onlyControllerOrGovernor {
         if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
 
         address oldRouter = bridgeRouter;
@@ -904,7 +921,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         bytes32 operationId,
         bool tryReceiveCall,
         bytes calldata customMessage
-    ) external onlyOwner {
+    ) external onlyDeploymentController {
         if (recipient == address(0)) revert InvalidParams();
 
         uint256 balance = IERC20(asset).balanceOf(address(this));

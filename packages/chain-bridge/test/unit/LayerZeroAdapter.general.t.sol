@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
@@ -87,7 +88,10 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function testGetRequiredFeeWithMinGasLimit() public {
         useNetworkA();
+
+        // Grant super keeper role to governor so they can call setMinGasLimit
         vm.startPrank(governor);
+        accessManagerA.grantSuperKeeperRole(governor);
 
         // Set minimum gas limit for GENERAL_MESSAGE with a high value
         adapterA.setMinGasLimit(adapterA.GENERAL_MESSAGE(), 1000000);
@@ -122,7 +126,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         vm.prank(address(2));
         vm.expectRevert(
             abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
+                IAccessControlErrors.CallerIsNotSuperKeeper.selector,
                 address(2)
             )
         );
@@ -160,7 +164,10 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function testAdapterMinGasLimitEnforcement() public {
         useNetworkA();
+
+        // Grant super keeper role to governor so they can call setMinGasLimit
         vm.startPrank(governor);
+        accessManagerA.grantSuperKeeperRole(governor);
 
         // Set a high minimum gas limit for GENERAL_MESSAGE
         uint128 minGasLimit = 1000000;
