@@ -68,6 +68,10 @@ contract StargateAdapterComposeForkTest is Test {
         ProtocolAccessManager accessManager = new ProtocolAccessManager(
             governor
         );
+
+        // Grant super keeper role to governor for operational functions
+        accessManager.grantSuperKeeperRole(governor);
+
         BridgeQueue bridgeQueue = new BridgeQueue(
             address(accessManager),
             address(0),
@@ -83,7 +87,8 @@ contract StargateAdapterComposeForkTest is Test {
         adapterMainnet = new StargateAdapter(
             address(routerMainnet),
             governor,
-            LAYERZERO_ENDPOINT_MAINNET
+            LAYERZERO_ENDPOINT_MAINNET,
+            address(accessManager)
         );
 
         // Configure mainnet adapter with basic chain support only
@@ -124,6 +129,10 @@ contract StargateAdapterComposeForkTest is Test {
         ProtocolAccessManager accessManagerArb = new ProtocolAccessManager(
             governor
         );
+
+        // Grant super keeper role to governor for operational functions
+        accessManagerArb.grantSuperKeeperRole(governor);
+
         BridgeQueue bridgeQueueArb = new BridgeQueue(
             address(accessManagerArb),
             address(0),
@@ -139,7 +148,8 @@ contract StargateAdapterComposeForkTest is Test {
         adapterArbitrum = new StargateAdapter(
             address(routerArbitrum),
             governor,
-            LAYERZERO_ENDPOINT_ARBITRUM
+            LAYERZERO_ENDPOINT_ARBITRUM,
+            address(accessManagerArb)
         );
 
         // Configure Arbitrum adapter with basic chain support only

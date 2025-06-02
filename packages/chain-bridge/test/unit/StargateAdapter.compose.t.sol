@@ -6,6 +6,7 @@ import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
@@ -32,6 +33,15 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
     function setUp() public override {
         super.setUp();
+
+        // Grant super keeper role to governor for operational functions
+        useNetworkA();
+        vm.prank(governor);
+        accessManagerA.grantSuperKeeperRole(governor);
+
+        useNetworkB();
+        vm.prank(governor);
+        accessManagerB.grantSuperKeeperRole(governor);
 
         // Deploy fleet proxies
         useNetworkA();
@@ -190,7 +200,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     function testComposeGasLimitBounds() public {
         useNetworkA();
 
-        // Test minimum bound
+        // Test minimum bound - should fail with InvalidParams since governor has super keeper role
         vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
         vm.prank(governor);
         adapterA.setComposeGasLimit(50000); // Below MIN_COMPOSE_GAS
@@ -204,8 +214,13 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     function testComposeGasLimitUnauthorized() public {
         useNetworkA();
 
-        vm.expectRevert();
-        vm.prank(user); // Not owner
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotSuperKeeper.selector,
+                user
+            )
+        );
+        vm.prank(user); // Not super keeper
         adapterA.setComposeGasLimit(200000);
     }
 

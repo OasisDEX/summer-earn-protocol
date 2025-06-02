@@ -7,9 +7,23 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
+    function setUp() public override {
+        super.setUp();
+
+        // Grant super keeper role to governor for operational functions
+        useNetworkA();
+        vm.prank(governor);
+        accessManagerA.grantSuperKeeperRole(governor);
+
+        useNetworkB();
+        vm.prank(governor);
+        accessManagerB.grantSuperKeeperRole(governor);
+    }
+
     /*//////////////////////////////////////////////////////////////
                           ADAPTER FEATURES TESTS
     //////////////////////////////////////////////////////////////*/
@@ -43,8 +57,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
                           GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    // Removed minDstGasForCall related tests since this functionality was removed
 
     function testAddSupportedChain() public {
         useNetworkA();

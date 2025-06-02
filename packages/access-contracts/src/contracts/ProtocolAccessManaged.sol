@@ -303,7 +303,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * @param account The address to check
      * @return bool True if the address has the Governor role
      */
-    function _isGovernor(address account) internal view returns (bool) {
+    function _isGovernor(address account) internal view virtual returns (bool) {
         return _accessManager.hasRole(GOVERNOR_ROLE, account);
     }
 

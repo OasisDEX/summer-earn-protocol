@@ -21,13 +21,14 @@ import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBa
 import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
+import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
 
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
  * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OAppRead standard
  */
-contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
+contract LayerZeroAdapter is OAppRead, IBridgeAdapter, DeploymentController {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -117,21 +118,27 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _supportedChains Array of chain IDs supported by this adapter
      * @param _lzEids Array of corresponding LayerZero endpoint IDs
-     * @param _owner Address of the contract owner
+     * @param _deployer Address of the contract deployer
+     * @param _accessManager Address of the access manager for role-based access
      */
     constructor(
         address _endpoint,
         address _bridgeRouter,
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
-        address _owner
-    ) OAppRead(_endpoint, _owner) Ownable(_owner) {
+        address _deployer,
+        address _accessManager
+    )
+        OAppRead(_endpoint, _deployer)
+        Ownable(_deployer)
+        DeploymentController(_deployer, _accessManager)
+    {
         if (_bridgeRouter == address(0)) revert InvalidParams();
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();
 
         bridgeRouter = _bridgeRouter;
 
-        // Setup chain ID mappings
+        // Setup chain ID mappings during deployment
         for (uint i = 0; i < _supportedChains.length; i++) {
             chainToLzEid[_supportedChains[i]] = _lzEids[i];
             lzEidToChain[_lzEids[i]] = _supportedChains[i];
@@ -159,21 +166,23 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
      * @notice Sets the minimum gas limit for a specific message type
      * @param msgType Message type to set minimum gas for
      * @param gasLimit New minimum gas limit value
-     * @dev Can only be called by the contract owner
+     * @dev Can be called by super keeper for operational tuning
      */
     function setMinGasLimit(
         uint16 msgType,
         uint128 gasLimit
-    ) external onlyOwner {
+    ) external onlySuperKeeper {
         minGasLimits[msgType] = gasLimit;
     }
 
     /**
      * @notice Activates a read channel for state reading operations
      * @param _readChannelId The ID of the read channel to activate
-     * @dev Can only be called by the contract owner
+     * @dev Long-term configuration - deployer during deployment, governance after transition
      */
-    function activateReadChannel(uint32 _readChannelId) external onlyOwner {
+    function activateReadChannel(
+        uint32 _readChannelId
+    ) external onlyControllerOrGovernor {
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
     }
@@ -182,12 +191,12 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
      * @notice Adds a supported chain
      * @param chainId Chain ID to add
      * @param lzEid LayerZero endpoint ID for the chain
-     * @dev Can only be called by the contract owner
+     * @dev Long-term configuration - deployer during deployment, governance after transition
      */
     function addSupportedChain(
         uint16 chainId,
         uint32 lzEid
-    ) external onlyOwner {
+    ) external onlyControllerOrGovernor {
         chainToLzEid[chainId] = lzEid;
         lzEidToChain[lzEid] = chainId;
         _supportedChainIds.add(chainId);
@@ -196,9 +205,11 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /**
      * @notice Removes a supported chain
      * @param chainId Chain ID to remove
-     * @dev Can only be called by the contract owner
+     * @dev Long-term configuration - deployer during deployment, governance after transition
      */
-    function removeSupportedChain(uint16 chainId) external onlyOwner {
+    function removeSupportedChain(
+        uint16 chainId
+    ) external onlyControllerOrGovernor {
         uint32 lzEid = chainToLzEid[chainId];
         delete chainToLzEid[chainId];
         delete lzEidToChain[lzEid];
@@ -206,11 +217,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     }
 
     /**
-     * @notice Updates the bridge router address (governance only)
+     * @notice Updates the bridge router address
      * @param newBridgeRouter Address of the new bridge router
-     * @dev Can only be called by contract owner/governance
+     * @dev Critical infrastructure - deployer during deployment, governance after transition
      */
-    function setBridgeRouter(address newBridgeRouter) external onlyOwner {
+    function setBridgeRouter(
+        address newBridgeRouter
+    ) external onlyControllerOrGovernor {
         if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
 
         address oldRouter = bridgeRouter;
