@@ -345,7 +345,7 @@ export class ReferralProcessor {
       topReferrers: topReferrers.map((r) => ({
         id: r.id,
         customCode: r.custom_code,
-        totalPoints: r.total_points,
+        totalPoints: r.total_points_earned,
         pointsPerDay: r.points_per_day,
         activeUsers: r.active_users_count,
         totalDeposits: r.total_deposits_usd,

@@ -135,11 +135,11 @@ describe('DatabaseService', () => {
       expect(mockKysely.values).toHaveBeenCalledWith({
         id: 'ref123',
         custom_code: null,
-        total_points: '0',
+        total_points_earned: '0',
         total_deposits_usd: '0',
         active_users_count: 0,
         points_per_day: '0',
-        deposits_per_day: '0',
+        fees_per_day: '0',
       })
       expect(mockKysely.execute).toHaveBeenCalled()
     })
@@ -353,11 +353,11 @@ describe('DatabaseService', () => {
       mockKysely.executeTakeFirst.mockResolvedValue({
         id: 'ref123',
         custom_code: 'CUSTOM',
-        total_points: '1000.5',
+        total_points_earned: '1000.5',
         total_deposits_usd: '5000',
         active_users_count: 10,
         points_per_day: '100.25',
-        deposits_per_day: '500.75',
+        fees_per_day: '500.75',
         last_calculated_at: new Date(),
         created_at: new Date(),
         updated_at: new Date(),
@@ -368,11 +368,11 @@ describe('DatabaseService', () => {
       expect(result).toEqual({
         id: 'ref123',
         custom_code: 'CUSTOM',
-        total_points: 1000.5,
+        total_points_earned: 1000.5,
         total_deposits_usd: 5000,
         active_users_count: 10,
         points_per_day: 100.25,
-        deposits_per_day: 500.75,
+        fees_per_day: 500.75,
         last_calculated_at: expect.any(Date),
         created_at: expect.any(Date),
         updated_at: expect.any(Date),
@@ -391,11 +391,11 @@ describe('DatabaseService', () => {
       mockKysely.executeTakeFirst.mockResolvedValue({
         id: 'ref123',
         custom_code: null,
-        total_points: '0',
+        total_points_earned: '0',
         total_deposits_usd: '0',
         active_users_count: 0,
         points_per_day: '0',
-        deposits_per_day: '0',
+        fees_per_day: '0',
         last_calculated_at: null,
         created_at: null,
         updated_at: null,
@@ -485,11 +485,11 @@ describe('DatabaseService', () => {
         {
           id: 'ref1',
           custom_code: 'TOP1',
-          total_points: '5000',
+          total_points_earned: '5000',
           total_deposits_usd: '10000',
           active_users_count: 50,
           points_per_day: '500',
-          deposits_per_day: '1000',
+          fees_per_day: '1000',
           created_at: new Date(),
           updated_at: new Date(),
         },
@@ -497,10 +497,10 @@ describe('DatabaseService', () => {
 
       const result = await db.getTopReferralCodes(10)
 
-      expect(mockKysely.orderBy).toHaveBeenCalledWith('total_points', 'desc')
+      expect(mockKysely.orderBy).toHaveBeenCalledWith('total_points_earned', 'desc')
       expect(mockKysely.limit).toHaveBeenCalledWith(10)
       expect(result).toHaveLength(1)
-      expect(result[0].total_points).toBe(5000)
+      expect(result[0].total_points_earned).toBe(5000)
     })
 
     it('should use default limit of 100', async () => {

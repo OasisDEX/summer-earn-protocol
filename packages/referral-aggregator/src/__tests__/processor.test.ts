@@ -311,7 +311,7 @@ describe('ReferralProcessor', () => {
         {
           id: 'top1',
           custom_code: 'CUSTOM1',
-          total_points: 1000,
+          total_points_earned: 1000,
           points_per_day: 100,
           active_users_count: 5,
           total_deposits_usd: 5000,

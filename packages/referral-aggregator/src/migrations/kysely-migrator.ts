@@ -155,12 +155,18 @@ export class KyselyMigrator {
       .addColumn('id', 'varchar(100)', (col) => col.primaryKey())
       .addColumn('custom_code', 'varchar(100)', (col) => col.unique())
       // Running totals
-      .addColumn('total_points', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
-      .addColumn('total_deposits_usd', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
+      .addColumn('total_points_earned', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
+      .addColumn('total_summer_earned', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
+      .addColumn('total_fees_earned', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
+      .addColumn('total_summer_claimed', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
+      .addColumn('total_fees_claimed', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
+      .addColumn('total_points_claimed', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
       .addColumn('active_users_count', 'integer', (col) => col.notNull().defaultTo(0))
+      .addColumn('total_deposits_usd', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
       // Daily rates for frontend
       .addColumn('points_per_day', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
-      .addColumn('deposits_per_day', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
+      .addColumn('fees_per_day', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
+      .addColumn('summer_per_day', sql`decimal(20,8)`, (col) => col.notNull().defaultTo(0))
       // Tracking
       .addColumn('last_calculated_at', 'timestamptz')
       .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
@@ -173,6 +179,9 @@ export class KyselyMigrator {
       .ifNotExists()
       .addColumn('id', 'varchar(100)', (col) => col.primaryKey())
       .addColumn('referrer_id', 'varchar(100)', (col) =>
+        col.references('referral_codes.id').onDelete('set null'),
+      )
+      .addColumn('referral_code', 'varchar(100)', (col) =>
         col.references('referral_codes.id').onDelete('set null'),
       )
       .addColumn('referral_chain', 'varchar(20)')
@@ -236,13 +245,14 @@ export class KyselyMigrator {
 
     // 7. Create points distribution table
     await db.schema
-      .createTable('points_distributions')
+      .createTable('rewards_distributions')
       .ifNotExists()
       .addColumn('id', 'serial', (col) => col.primaryKey())
       .addColumn('referral_id', 'varchar(100)', (col) =>
         col.notNull().references('referral_codes.id').onDelete('cascade'),
       )
-      .addColumn('points_amount', sql`decimal(20,8)`, (col) => col.notNull())
+      .addColumn('amount', sql`decimal(20,8)`, (col) => col.notNull())
+      .addColumn('type', 'varchar(100)', (col) => col.notNull())
       .addColumn('description', 'text', (col) => col.notNull())
       .addColumn('distribution_timestamp', 'timestamptz', (col) =>
         col.notNull().defaultTo(sql`NOW()`),
@@ -250,18 +260,18 @@ export class KyselyMigrator {
       .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`NOW()`))
       .execute()
 
-    // Add index for points_distributions
+    // Add index for rewards_distributions
     await db.schema
       .createIndex('idx_points_distributions_referral_id')
       .ifNotExists()
-      .on('points_distributions')
+      .on('rewards_distributions')
       .column('referral_id')
       .execute()
 
     await db.schema
       .createIndex('idx_points_distributions_timestamp')
       .ifNotExists()
-      .on('points_distributions')
+      .on('rewards_distributions')
       .column('distribution_timestamp')
       .execute()
 
@@ -386,7 +396,7 @@ export class KyselyMigrator {
 
   private async migration001SimplifiedDown(db: Kysely<any>): Promise<void> {
     // Drop tables in reverse order of dependencies
-    await db.schema.dropTable('points_distributions').ifExists().execute()
+    await db.schema.dropTable('rewards_distributions').ifExists().execute()
     await db.schema.dropTable('daily_stats').ifExists().execute()
     await db.schema.dropTable('processing_checkpoint').ifExists().execute()
     await db.schema.dropTable('positions').ifExists().execute()
@@ -412,6 +422,8 @@ export class KyselyMigrator {
         'user_activity_status',
         'point_distributions',
         'position_snapshots',
+        'rewards_distributions',
+        'points_distributions',
         'positions',
         'points_config',
         'referral_points',
@@ -420,6 +432,7 @@ export class KyselyMigrator {
         'users',
         'referral_codes',
         'migrations',
+        'daily_stats',
       ]
 
       for (const table of tablesToDrop) {

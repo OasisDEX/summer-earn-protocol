@@ -8,11 +8,11 @@ import { Chain } from './types'
 export interface SimplifiedReferralCode {
   id: string
   custom_code: string | null
-  total_points: number
+  total_points_earned: number
   total_deposits_usd: number
   active_users_count: number
   points_per_day: number
-  deposits_per_day: number
+  fees_per_day: number
   last_calculated_at: Date | null
   created_at: Date
   updated_at: Date
@@ -87,11 +87,11 @@ export class DatabaseService {
       .values({
         id,
         custom_code: customCode || null,
-        total_points: '0',
+        total_points_earned: '0',
         total_deposits_usd: '0',
         active_users_count: 0,
         points_per_day: '0',
-        deposits_per_day: '0',
+        fees_per_day: '0',
       })
       .onConflict((oc) => oc.column('id').doNothing())
       .execute()
@@ -223,13 +223,13 @@ export class DatabaseService {
       UPDATE referral_codes rc
       SET 
         points_per_day = rc.total_deposits_usd * (${config.pointsFormulaBase} + ${config.pointsFormulaLogMultiplier} * ln(COALESCE(auc.active_users, 0) + 1)),
-        deposits_per_day = CASE 
+        fees_per_day = CASE 
           WHEN EXTRACT(epoch FROM (NOW() - rc.created_at)) > 0 
           THEN rc.total_deposits_usd / (EXTRACT(epoch FROM (NOW() - rc.created_at)) / 86400)
           ELSE 0
         END,
         -- Accumulate points (hourly rate)
-        total_points = rc.total_points + (
+        total_points_earned = rc.total_points_earned + (
           rc.total_deposits_usd * (${config.pointsFormulaBase} + ${config.pointsFormulaLogMultiplier} * ln(COALESCE(auc.active_users, 0) + 1)) / 24
         ),
         last_calculated_at = NOW()
@@ -242,7 +242,7 @@ export class DatabaseService {
     // Insert new point distributions
     await this.db.executeQuery(
       sql`
-      INSERT INTO points_distributions (referral_id, points_amount, description)
+      INSERT INTO rewards_distributions (referral_id, amount, description)
       SELECT id, points_per_day / 24, 'REGULAR' FROM referral_codes
       WHERE active_users_count > 0
     `.compile(this.db),
@@ -316,10 +316,10 @@ export class DatabaseService {
 
     return {
       ...result,
-      total_points: Number(result.total_points),
+      total_points_earned: Number(result.total_points_earned),
       total_deposits_usd: Number(result.total_deposits_usd),
       points_per_day: Number(result.points_per_day),
-      deposits_per_day: Number(result.deposits_per_day),
+      fees_per_day: Number(result.fees_per_day),
       created_at: result.created_at || new Date(),
       updated_at: result.updated_at || new Date(),
     }
@@ -369,16 +369,16 @@ export class DatabaseService {
     const results = await this.db
       .selectFrom('referral_codes')
       .selectAll()
-      .orderBy('total_points', 'desc')
+      .orderBy('total_points_earned', 'desc')
       .limit(limit)
       .execute()
 
     return results.map((row) => ({
       ...row,
-      total_points: Number(row.total_points),
+      total_points_earned: Number(row.total_points_earned),
       total_deposits_usd: Number(row.total_deposits_usd),
       points_per_day: Number(row.points_per_day),
-      deposits_per_day: Number(row.deposits_per_day),
+      fees_per_day: Number(row.fees_per_day),
       created_at: row.created_at || new Date(),
       updated_at: row.updated_at || new Date(),
     }))
