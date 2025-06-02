@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
+import {DeploymentAccessManaged} from "@summerfi/access-contracts/contracts/DeploymentAccessManaged.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
@@ -21,7 +23,11 @@ import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
  * @dev Implements IBridgeRouter interface and manages multiple bridge adapters.
  *      Operations can only be initiated via the BridgeQueue or governance.
  */
-contract BridgeRouter is IBridgeRouter, DeploymentController, ReentrancyGuard {
+contract BridgeRouter is
+    IBridgeRouter,
+    DeploymentAccessManaged,
+    ReentrancyGuard
+{
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -70,7 +76,7 @@ contract BridgeRouter is IBridgeRouter, DeploymentController, ReentrancyGuard {
     constructor(
         address accessManager,
         address _bridgeQueue
-    ) DeploymentController(msg.sender, accessManager) {
+    ) DeploymentAccessManaged(msg.sender, accessManager) {
         bridgeQueue = _bridgeQueue;
         emit BridgeQueueUpdated(_bridgeQueue);
     }

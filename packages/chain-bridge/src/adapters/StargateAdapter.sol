@@ -2,26 +2,27 @@
 pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
+import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
+
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
-import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {DeploymentAccessManaged} from "@summerfi/access-contracts/contracts/DeploymentAccessManaged.sol";
 
 // Import CrossChain Ark interface for proper detection
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 
 // Stargate V2 interfaces - based on LayerZero V2 OFT standard
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
-// Add LayerZero composability imports
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
 /**
@@ -101,7 +102,7 @@ library OftCmdHelper {
 contract StargateAdapter is
     IBridgeAdapter,
     ILayerZeroComposer,
-    DeploymentController
+    DeploymentAccessManaged
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
@@ -246,7 +247,7 @@ contract StargateAdapter is
 
     /**
      * @notice Initializes the StargateAdapter
-     * @param _bridgeRouter Address of the BridgeRouter contract
+     * @param _bridgeRouter Address of the bridge router to send messages through
      * @param _deployer Address of the contract deployer
      * @param _lzEndpoint LayerZero endpoint for compose functionality
      * @param _accessManager Address of the access manager for role-based access
@@ -256,7 +257,7 @@ contract StargateAdapter is
         address _deployer,
         address _lzEndpoint,
         address _accessManager
-    ) DeploymentController(_deployer, _accessManager) {
+    ) DeploymentAccessManaged(_deployer, _accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
         if (_lzEndpoint == address(0)) revert InvalidParams();
 
