@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+
 /**
  * @title ArkDeploymentAccessManaged
  * @notice Standardized access control with one-way deployment-to-governance transition for Ark contracts
@@ -8,7 +10,7 @@ pragma solidity 0.8.28;
  *      then permanently transitions to governance-based access control
  *      Expects the inheriting contract to have access to _accessManager and GOVERNOR_ROLE from ProtocolAccessManaged
  */
-abstract contract ArkDeploymentAccessManaged {
+abstract contract ArkDeploymentAccessManaged is IAccessControlErrors {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -35,9 +37,6 @@ abstract contract ArkDeploymentAccessManaged {
 
     /// @notice Thrown when caller is not the deployment controller
     error CallerIsNotDeploymentController(address caller);
-
-    /// @notice Thrown when caller is not authorized during governance phase
-    error CallerNotAuthorizedDuringGovernance(address caller);
 
     /// @notice Thrown when invalid controller address is provided
     error InvalidController(address controller);
@@ -68,7 +67,7 @@ abstract contract ArkDeploymentAccessManaged {
      */
     modifier onlyDeploymentController() {
         if (!_isInDeploymentPhase()) {
-            revert CallerNotAuthorizedDuringGovernance(msg.sender);
+            revert CallerIsNotDeploymentController(msg.sender);
         }
         if (msg.sender != controller) {
             revert CallerIsNotDeploymentController(msg.sender);
@@ -90,7 +89,7 @@ abstract contract ArkDeploymentAccessManaged {
         } else {
             // Governance phase: only governors
             if (!_hasGovernorRole(msg.sender)) {
-                revert CallerNotAuthorizedDuringGovernance(msg.sender);
+                revert CallerIsNotGovernor(msg.sender);
             }
         }
         _;
@@ -113,7 +112,7 @@ abstract contract ArkDeploymentAccessManaged {
 
         // Verify the new controller is actually a governor in the access manager
         if (!_hasGovernorRole(governance)) {
-            revert CallerNotAuthorizedDuringGovernance(governance);
+            revert CallerIsNotGovernor(governance);
         }
 
         address oldController = controller;

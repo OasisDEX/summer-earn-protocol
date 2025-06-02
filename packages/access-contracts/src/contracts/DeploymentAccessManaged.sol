@@ -34,8 +34,8 @@ abstract contract DeploymentAccessManaged is ProtocolAccessManaged {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when caller is not authorized for deployment configuration
-    error CallerNotAuthorizedForDeployment(address caller);
+    /// @notice Thrown when caller is not the deployment controller
+    error CallerIsNotDeploymentController(address caller);
 
     /// @notice Thrown when invalid controller address is provided
     error InvalidController(address controller);
@@ -70,10 +70,10 @@ abstract contract DeploymentAccessManaged is ProtocolAccessManaged {
      */
     modifier onlyDeploymentController() {
         if (!_isInDeploymentPhase()) {
-            revert CallerNotAuthorizedForDeployment(msg.sender);
+            revert CallerIsNotDeploymentController(msg.sender);
         }
         if (msg.sender != controller) {
-            revert CallerNotAuthorizedForDeployment(msg.sender);
+            revert CallerIsNotDeploymentController(msg.sender);
         }
         _;
     }
@@ -87,7 +87,7 @@ abstract contract DeploymentAccessManaged is ProtocolAccessManaged {
         if (_isInDeploymentPhase()) {
             // Deployment phase: only controller
             if (msg.sender != controller) {
-                revert CallerNotAuthorizedForDeployment(msg.sender);
+                revert CallerIsNotDeploymentController(msg.sender);
             }
         } else {
             // Governance phase: only governors

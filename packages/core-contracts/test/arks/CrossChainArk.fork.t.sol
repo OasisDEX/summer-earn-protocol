@@ -78,6 +78,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(bridgeQueue)
         );
 
+        // Transfer BridgeQueue to governance
+        bridgeQueue.transferToGovernance(governor);
+
+        // Transfer BridgeRouter to governance
+        bridgeRouter.transferToGovernance(governor);
+
         // Set the bridge router address in the queue
         vm.startPrank(governor);
         bridgeQueue.setBridgeRouter(address(bridgeRouter));
@@ -1010,6 +1016,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     function test_DeploymentController() public {
         // Create access manager
         accessManager = new ProtocolAccessManager(governor);
+
+        // Initialize mock contracts
+        queue = new MockBridgeQueue();
+        router = new MockBridgeRouter();
 
         // Create a separate deployer address that doesn't have GOVERNOR_ROLE yet
         address deployer = makeAddr("deployer");
