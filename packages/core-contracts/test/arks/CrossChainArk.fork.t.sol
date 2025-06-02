@@ -161,24 +161,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        // Use a separate deployer address that doesn't have GOVERNOR_ROLE yet
-        address deployer = makeAddr("deployer");
-
         ark = new CrossChainArk(
             address(bridgeQueue),
             address(bridgeRouter),
             DEST_CHAIN_ID,
-            deployer, // Use deployer instead of governor
             params
         );
 
-        // Set the target proxy during deployment phase
-        vm.prank(deployer);
+        // Set the target proxy after construction (now only governor can do this)
+        vm.prank(governor);
         ark.setTargetProxy(ARB_PROXY);
-
-        // Transfer to governance
-        vm.prank(deployer);
-        ark.transferToGovernance(governor);
 
         // Add ark as queue manager
         vm.startPrank(governor);
@@ -1021,9 +1013,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         queue = new MockBridgeQueue();
         router = new MockBridgeRouter();
 
-        // Create a separate deployer address that doesn't have GOVERNOR_ROLE yet
-        address deployer = makeAddr("deployer");
-
         // Create Ark with bridge configuration
         ArkParams memory params = ArkParams({
             name: "TestArk",
@@ -1042,28 +1031,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(queue),
             address(router),
             DEST_CHAIN_ID,
-            deployer, // Use deployer instead of governor
             params
         );
 
-        // Check initial state
-        assertTrue(ark.isInDeploymentPhase(), "Should be in deployment phase");
-        assertEq(ark.controller(), deployer, "Controller should be deployer");
-
-        // Set the target proxy during deployment phase
-        vm.prank(deployer);
+        // Set the target proxy using governor (no deployment phase anymore)
+        vm.prank(governor);
         ark.setTargetProxy(ARB_PROXY);
         assertEq(ark.targetProxy(), ARB_PROXY, "Target proxy should be set");
-
-        // Transfer to governance
-        vm.prank(deployer);
-        ark.transferToGovernance(governor);
-
-        // Check final state
-        assertFalse(
-            ark.isInDeploymentPhase(),
-            "Should not be in deployment phase"
-        );
-        assertEq(ark.controller(), governor, "Controller should be governor");
     }
 }

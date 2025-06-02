@@ -59,7 +59,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(queue),
             address(router),
             chainId,
-            governor,
             params
         );
 
