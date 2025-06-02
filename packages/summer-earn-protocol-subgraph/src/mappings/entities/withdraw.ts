@@ -6,6 +6,7 @@ import { PositionDetails } from '../../types'
 export function createWithdrawEventEntity(
   event: ethereum.Event,
   positionDetails: PositionDetails,
+  referralData: string | null,
 ): void {
   let unstaked = Unstaked.load(
     `${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`,
@@ -32,6 +33,7 @@ export function createWithdrawEventEntity(
   withdraw.position = positionDetails.positionId
   withdraw.inputTokenBalance = positionDetails.inputTokenBalance
   withdraw.inputTokenBalanceNormalizedUSD = positionDetails.inputTokenBalanceNormalizedUSD
+  withdraw.referralData = referralData
 
   if (positionDetails.inputTokenDelta.equals(BigIntConstants.ZERO)) {
     return

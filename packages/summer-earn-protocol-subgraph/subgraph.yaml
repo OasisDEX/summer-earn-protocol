@@ -1,6 +1,11 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
+features:
+  - grafting
+graft:
+  base: QmNkkD1VEULSf54kXUiRd1B89ThdXVwX7CqmEZP1QbDJfT
+  block: 30029496
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
@@ -168,7 +173,9 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json          
+          file: ./abis/GovernanceRewardsManager.abi.json   
+        - name: SummerProtocolAccessManager
+          file: ./abis/SummerProtocolAccessManager.json
       eventHandlers:
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
