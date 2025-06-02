@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import "../Ark.sol";
+import "../access/ArkDeploymentAccessManaged.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {ICrossChainStateReadReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainStateReadReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
@@ -16,9 +17,11 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  * @notice Ark contract for managing cross-chain deposits and withdrawals
  * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages.
  *      Supports cross-chain asset reception, state read responses, and inflight asset tracking.
+ *      Uses ArkDeploymentAccessManaged for deployment-phase configuration of target proxy
  */
 contract CrossChainArk is
     Ark,
+    ArkDeploymentAccessManaged,
     ICrossChainAssetReceiver,
     ICrossChainStateReadReceiver,
     IInflightAssetTracking
@@ -119,14 +122,16 @@ contract CrossChainArk is
      * @param _bridgeQueue Address of the BridgeQueue contract
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _targetChainId ID of the target chain
+     * @param _initialController Address of the initial controller (deployer)
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
         address _bridgeQueue,
         address _bridgeRouter,
         uint16 _targetChainId,
+        address _initialController,
         ArkParams memory _params
-    ) Ark(_params) {
+    ) Ark(_params) ArkDeploymentAccessManaged(_initialController) {
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_targetChainId == 0) revert InvalidTargetChain();
@@ -139,12 +144,37 @@ contract CrossChainArk is
     }
 
     /*//////////////////////////////////////////////////////////////
+                        DEPLOYMENT ACCESS MANAGEMENT
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Internal function to check if an account has governor role
+     * @param account Address to check
+     * @return True if account has governor role
+     */
+    function _hasGovernorRole(
+        address account
+    ) internal view override returns (bool) {
+        return _accessManager.hasRole(GOVERNOR_ROLE, account);
+    }
+
+    /**
+     * @notice Internal function to get the governor role identifier
+     * @return The governor role identifier
+     */
+    function _getGovernorRole() internal pure override returns (bytes32) {
+        return GOVERNOR_ROLE;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         EXTERNAL GOVERNOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set new target proxy address
     /// @param _targetProxy The new target proxy address
-    function setTargetProxy(address _targetProxy) external onlyGovernor {
+    function setTargetProxy(
+        address _targetProxy
+    ) external onlyControllerOrGovernor {
         if (_targetProxy == address(0)) revert InvalidTargetProxy();
 
         address oldProxy = targetProxy;

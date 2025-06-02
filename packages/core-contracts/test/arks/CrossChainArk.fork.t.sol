@@ -17,6 +17,8 @@ import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerol
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
+import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
+import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
@@ -26,6 +28,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     StargateAdapter public stargateAdapter;
     IERC20 public usdc;
     MockStargateV2 public mockStargate;
+    MockBridgeQueue public queue;
+    MockBridgeRouter public router;
 
     // LayerZero specific constants
     address public constant LZ_ENDPOINT_MAINNET =
@@ -151,16 +155,24 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
+        // Use a separate deployer address that doesn't have GOVERNOR_ROLE yet
+        address deployer = makeAddr("deployer");
+
         ark = new CrossChainArk(
             address(bridgeQueue),
             address(bridgeRouter),
             DEST_CHAIN_ID,
+            deployer, // Use deployer instead of governor
             params
         );
 
-        // Set the target proxy
-        vm.prank(governor);
+        // Set the target proxy during deployment phase
+        vm.prank(deployer);
         ark.setTargetProxy(ARB_PROXY);
+
+        // Transfer to governance
+        vm.prank(deployer);
+        ark.transferToGovernance(governor);
 
         // Add ark as queue manager
         vm.startPrank(governor);
@@ -993,5 +1005,55 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         emit log_string(
             "SUCCESS: LayerZero adapter read response flow test passed"
         );
+    }
+
+    function test_DeploymentController() public {
+        // Create access manager
+        accessManager = new ProtocolAccessManager(governor);
+
+        // Create a separate deployer address that doesn't have GOVERNOR_ROLE yet
+        address deployer = makeAddr("deployer");
+
+        // Create Ark with bridge configuration
+        ArkParams memory params = ArkParams({
+            name: "TestArk",
+            details: "TestArk details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: address(usdc),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+
+        ark = new CrossChainArk(
+            address(queue),
+            address(router),
+            DEST_CHAIN_ID,
+            deployer, // Use deployer instead of governor
+            params
+        );
+
+        // Check initial state
+        assertTrue(ark.isInDeploymentPhase(), "Should be in deployment phase");
+        assertEq(ark.controller(), deployer, "Controller should be deployer");
+
+        // Set the target proxy during deployment phase
+        vm.prank(deployer);
+        ark.setTargetProxy(ARB_PROXY);
+        assertEq(ark.targetProxy(), ARB_PROXY, "Target proxy should be set");
+
+        // Transfer to governance
+        vm.prank(deployer);
+        ark.transferToGovernance(governor);
+
+        // Check final state
+        assertFalse(
+            ark.isInDeploymentPhase(),
+            "Should not be in deployment phase"
+        );
+        assertEq(ark.controller(), governor, "Controller should be governor");
     }
 }
