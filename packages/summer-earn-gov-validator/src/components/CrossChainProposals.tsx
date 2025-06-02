@@ -1,3 +1,4 @@
+import { ethers } from 'ethers'
 import React, { useEffect, useState } from 'react'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 import config from '../config/index.json'
@@ -30,6 +31,18 @@ const GOVERNOR_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    name: 'queue',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ] as const
 
 // Chain ID to network name mapping
@@ -54,7 +67,7 @@ export const CrossChainProposals: React.FC = () => {
   ])
 
   const { address, isConnected, chainId } = useAccount()
-  const { writeContract, isPending } = useWriteContract()
+  const { writeContract, isPending, error: writeContractError } = useWriteContract()
   const { switchChain } = useSwitchChain()
 
   const handleExecuteProposal = async (proposal: CrossChainProposal) => {
@@ -167,6 +180,68 @@ export const CrossChainProposals: React.FC = () => {
       setExecutingProposals((prev) => {
         const newSet = new Set(prev)
         newSet.delete(proposalId)
+        return newSet
+      })
+    }
+  }
+
+  const handleQueueBaseProposal = async (proposal: {
+    id: string
+    targets: string[]
+    values: string[]
+    calldatas: string[]
+    description: string
+  }) => {
+    if (!isConnected || !address) {
+      alert('Please connect your wallet first')
+      return
+    }
+
+    const networkName = 'base'
+    const governorAddress = config[networkName]?.deployedContracts?.gov?.summerGovernor?.address
+    if (!governorAddress) {
+      alert('Governor address not found for Base network')
+      return
+    }
+
+    try {
+      setExecutingProposals((prev) => new Set(prev).add(proposal.id))
+
+      // Switch to Base if needed
+      if (chainId !== 8453) {
+        await switchChain({ chainId: 8453 })
+      }
+
+      // Create description hash
+      const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposal.description))
+
+      // Queue the proposal
+
+      writeContract({
+        address: governorAddress as `0x${string}`,
+        abi: GOVERNOR_ABI,
+        functionName: 'queue',
+        args: [
+          proposal.targets as `0x${string}`[],
+          proposal.values.map((v) => BigInt(v)),
+          proposal.calldatas as `0x${string}`[],
+          descriptionHash as `0x${string}`,
+        ],
+      })
+
+      // Refresh proposals after queueing
+      setTimeout(() => {
+        loadProposals()
+      }, 2000)
+    } catch (error) {
+      console.error('Error queueing base proposal:', error)
+      alert(
+        `Failed to queue base proposal: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setExecutingProposals((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(proposal.id)
         return newSet
       })
     }
@@ -318,6 +393,53 @@ export const CrossChainProposals: React.FC = () => {
                     >
                       {isBaseReady ? 'Ready' : baseStatus}
                     </span>
+                    {baseStatus === 'PENDING' && (
+                      <button
+                        onClick={() => handleQueueBaseProposal(baseProposal)}
+                        disabled={executingProposals.has(baseProposal.id) || isPending}
+                        className={`px-4 py-1.5 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 ${
+                          executingProposals.has(baseProposal.id) || isPending
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        {executingProposals.has(baseProposal.id) || isPending ? (
+                          <>
+                            <svg
+                              className="w-4 h-4 animate-spin"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
+                            </svg>
+                            <span>Queueing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <span>Queue</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                     {(isBaseReady || isBaseQueued) && (
                       <button
                         onClick={() => handleExecuteBaseProposal(baseProposal.id)}
