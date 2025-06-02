@@ -70,6 +70,29 @@
         "asset": "WETH",
         "protocol": "origin"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Smokehouse_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "FluidLiteArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "fluid"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Term_Summer_WETH",
+        "protocol": "erc4626"
+      }
     }
   ]
 }

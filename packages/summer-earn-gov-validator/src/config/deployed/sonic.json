@@ -13,7 +13,7 @@
   "CoreModule#Raft": "0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204",
   "CoreModule#TipJar": "0xa689599c43C30e20153D2A9eD3d263fb72853E6c",
   "FleetModule_LazyVault_LowerRisk_USDCe#FleetCommander": "0x507A2D9E87DBD3076e65992049C41270b47964f8",
-  "FleetModule_LazyVault_LowerRisk_USDCe#RewardsManager": "0x322bBA211f7160bf1f220DA08aBbea76D7F4b578",
+  "FleetModule_LazyVault_LowerRisk_USDCe#RewardsManager": " 0x322bBA211f7160bf1f220DA08aBbea76D7F4b578",
   "AaveV3_usdce_146#AaveV3Ark": "0x4D00D0dc44c4D6352C2bCb2228f2863e48cd53f4",
   "ERC4626_Euler_MEV_Capital_usdce_146#ERC4626Ark": "0xDa50CE93aaE2c764532E5B11Dc6378Af3330a817",
   "ERC4626_Euler_Re7_Labs_usdce_146#ERC4626Ark": "0x3002A7c8d5dC5CFaf81E747120B54D44bfAD5935",
@@ -24,5 +24,8 @@
   "AdmiralsQuartersModule_20250506T105800249#AdmiralsQuarters": "0xC5B2E6fDbC3EBdc72AA070b8e4573d2c6D125459",
   "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_varlamore_usdce_146#SiloManagedVaultArk": "0x6FCF84Ed928985dB6084Cb993A7D0F764987dCeb",
   "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_re7labs_usdce_146#SiloManagedVaultArk": "0x43A8363929E2B3Dea05C3C117e9c49Aa7FE28745",
-  "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_apostro_usdce_146#SiloManagedVaultArk": "0x552d109f4a5640E2c9124dDD3205D23859d284de"
+  "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_apostro_usdce_146#SiloManagedVaultArk": "0x552d109f4a5640E2c9124dDD3205D23859d284de",
+  "LazyVault_LowerRisk_USDCe_SiloManagedVault_varlamore_usdce_146#SiloManagedVaultArk": "0xF67e17c4627E9D9C150b247b6A4e82c01Bf36c5F",
+  "LazyVault_LowerRisk_USDCe_SiloManagedVault_re7labs_usdce_146#SiloManagedVaultArk": "0x4c62Fc0393393F3A5e455576BdA95Ccb3E284b19",
+  "LazyVault_LowerRisk_USDCe_SiloManagedVault_apostro_usdce_146#SiloManagedVaultArk": "0x39C5d327FF8b12649A0A8056cA4499Cb27f82fa0"
 }

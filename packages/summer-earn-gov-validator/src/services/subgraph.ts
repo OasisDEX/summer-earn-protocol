@@ -15,9 +15,13 @@ const SUBGRAPH_ENDPOINTS = {
     'https://subgraph.staging.oasisapp.dev/summer-protocol-gov',
 }
 
+const SATELLITE_SUBGRAPH_ENDPOINTS = Object.fromEntries(
+  Object.entries(SUBGRAPH_ENDPOINTS).filter(([key]) => key !== 'base'),
+)
+
 const PROPOSALS_QUERY = `
   query GetProposals {
-    proposals(first:1000) {
+    proposals(first:1000, orderBy: createdAt, orderDirection: desc) {
       id
       targets
       values
@@ -28,6 +32,7 @@ const PROPOSALS_QUERY = `
       chains
       dstIds
       eta
+      createdAt
     }
   }
 `
@@ -43,6 +48,7 @@ const CROSS_CHAIN_PROPOSALS_QUERY = `
       targets
       values
       calldatas
+      eta
     }
   }
 `
@@ -58,6 +64,7 @@ export interface Proposal {
   chains: string[]
   dstIds: string[]
   eta: string
+  createdAt: string
 }
 
 export interface CrossChainProposal {
@@ -69,6 +76,7 @@ export interface CrossChainProposal {
   targets: string[]
   values: string[]
   calldatas: string[]
+  eta: string
 }
 
 export interface ProposalWithCrossChain {
@@ -90,7 +98,8 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
 
   const allProposals: ProposalWithCrossChain[] = []
   const allCrossChainProposals: CrossChainProposal[] = []
-  for (const [chain, endpoint] of Object.entries(SUBGRAPH_ENDPOINTS)) {
+  for (const [chain, endpoint] of Object.entries(SATELLITE_SUBGRAPH_ENDPOINTS)) {
+    console.log('chain', chain)
     const client = new GraphQLClient(endpoint)
     const result = await client.request<CrossChainProposalsResponse>(CROSS_CHAIN_PROPOSALS_QUERY)
     allCrossChainProposals.push(...result.crossChainProposals)
@@ -106,6 +115,8 @@ export async function fetchAllProposals(): Promise<ProposalWithCrossChain[]> {
 
     crossChainProposals.push(...matchingProposals)
 
+    // Include all proposals - even those without cross-chain proposals
+    // Cross-chain proposals are only created after the base proposal is executed
     allProposals.push({
       baseProposal: proposal,
       crossChainProposals,

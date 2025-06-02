@@ -101,6 +101,13 @@
         "vaultName": "Smokehouse_USDT",
         "protocol": "morpho"
       }
+    },
+    {
+      "type": "SyrupArk",
+      "params": {
+        "asset": "USDT",
+        "protocol": "Maple"
+      }
     }
   ]
 }

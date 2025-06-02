@@ -1,7 +1,7 @@
 {
   "network": "mainnet",
-  "enable-grafting": false,
-  "grafting-base": "QmbTZrgQCw2N4M2j81R1aBxpv4zCtJn615XaGS3AbTiNEx",
+  "enable-grafting": true,
+  "grafting-base": "QmUK8gypTc9deLvgzK7TZvD9j68x1HNVCG74BEVt1Tnzs9",
   "grafting-block": "22477747",
   "entry_point_address": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
   "entry_point_start_block": 21575816,

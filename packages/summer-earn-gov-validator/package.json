@@ -10,14 +10,19 @@
     "sync-config": "node scripts/sync-config.js"
   },
   "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.0.0",
+    "@tanstack/react-query": "^5.0.0",
     "ethers": "^6.11.1",
     "graphql": "^16.11.0",
     "graphql-request": "^7.1.2",
     "next": "^14.1.0",
+    "pino-pretty": "^13.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
-    "sass": "^1.71.0"
+    "sass": "^1.71.0",
+    "viem": "^2.0.0",
+    "wagmi": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

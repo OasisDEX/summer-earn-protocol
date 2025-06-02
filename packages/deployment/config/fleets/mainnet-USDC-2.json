@@ -103,6 +103,14 @@
         "asset": "USDC",
         "protocol": "Maple"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Term_Summer_USDC",
+        "protocol": "erc4626"
+      }
     }
   ]
 }

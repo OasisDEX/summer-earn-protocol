@@ -34,6 +34,12 @@ export class SiloProduct extends ERC4626Product {
     for (let i = 0; i < programNames.length; i++) {
       const programName = programNames[i]
       const program = incentivesController.incentivesProgram(programName)
+      // check if distribution end is in the past
+      const distributionEnd = program.distributionEnd
+      if (distributionEnd.lt(blockTimestamp)) {
+        continue
+      }
+
       const rewardToken = getOrCreateToken(program.rewardToken)
       const emissionsPerSecond = program.emissionPerSecond
       const emissionsPerSecondNormalized = formatAmount(emissionsPerSecond, rewardToken.decimals)

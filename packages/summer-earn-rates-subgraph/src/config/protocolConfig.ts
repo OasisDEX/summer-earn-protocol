@@ -285,6 +285,12 @@ class ProtocolConfig {
           BigInt.fromI32(22287363),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xbEEF36A5C1372F8D7d211527FCE9f83FE02d8A73'),
+          BigInt.fromI32(22480094),
+          'Morpho',
+        ),
       ]),
       new Protocol('Pendle', [
         new PendlePtProduct(
@@ -476,14 +482,14 @@ class ProtocolConfig {
       ]),
       new Protocol('Term', [
         new ERC4626ManualAssetsProduct(
-          getOrCreateToken(addresses.WETH),
-          Address.fromString('0x26fcb50eec367ddab060ccf5e7394cecd95f7db2'),
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xA9ca4909700505585B1aD2a1579dA3b670FFA9c4'),
           BigInt.fromI32(22480094),
           'Term',
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.WETH),
-          Address.fromString('0x330732581d30076137a1159b3ae8780158d902be'),
+          Address.fromString('0x6e7d87a64c78593781452a014dc989100B24a4aF'),
           BigInt.fromI32(22480094),
           'Term',
         ),
