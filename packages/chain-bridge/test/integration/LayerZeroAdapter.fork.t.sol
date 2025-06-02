@@ -45,7 +45,6 @@ contract LayerZeroIntegrationTest is Test {
         // Configure roles
         vm.startPrank(governor);
         accessManager.grantGuardianRole(guardian);
-        vm.stopPrank();
 
         // Initialize chain router mappings
         uint16[] memory chainIds = new uint16[](1);
@@ -64,9 +63,7 @@ contract LayerZeroIntegrationTest is Test {
         router = new BridgeRouter(address(accessManager), address(bridgeQueue));
 
         // Now set the bridge router address in the queue
-        vm.startPrank(governor);
         bridgeQueue.setBridgeRouter(address(router));
-        vm.stopPrank();
 
         // Setup LZ adapter with v3 endpoint
         uint16[] memory supportedChains = new uint16[](1);
@@ -84,7 +81,6 @@ contract LayerZeroIntegrationTest is Test {
         );
 
         // Register adapter with router
-        vm.startPrank(governor);
         router.registerAdapter(address(adapter));
 
         // Set up peer for Arbitrum chain

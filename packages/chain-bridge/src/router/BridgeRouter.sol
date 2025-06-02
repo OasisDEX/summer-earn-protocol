@@ -7,7 +7,7 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {DeploymentController} from "@summerfi/access-contracts/contracts/DeploymentController.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
@@ -21,7 +21,7 @@ import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
  * @dev Implements IBridgeRouter interface and manages multiple bridge adapters.
  *      Operations can only be initiated via the BridgeQueue or governance.
  */
-contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
+contract BridgeRouter is IBridgeRouter, DeploymentController, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -70,7 +70,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     constructor(
         address accessManager,
         address _bridgeQueue
-    ) ProtocolAccessManaged(accessManager) {
+    ) DeploymentController(msg.sender, accessManager) {
         bridgeQueue = _bridgeQueue;
         emit BridgeQueueUpdated(_bridgeQueue);
     }
@@ -742,7 +742,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeRouter
-    function registerAdapter(address adapter) external onlyGovernor {
+    function registerAdapter(
+        address adapter
+    ) external onlyControllerOrGovernor {
         if (adapters.contains(adapter)) revert AdapterAlreadyRegistered();
 
         adapters.add(adapter);
@@ -750,7 +752,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     }
 
     /// @inheritdoc IBridgeRouter
-    function removeAdapter(address adapter) external onlyGovernor {
+    function removeAdapter(address adapter) external onlyControllerOrGovernor {
         if (!adapters.contains(adapter)) revert UnknownAdapter();
 
         adapters.remove(adapter);
@@ -785,7 +787,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     function setChainRouterAddress(
         uint16 chainId,
         address routerAddress
-    ) external onlyGovernor {
+    ) external onlyControllerOrGovernor {
         chainToRouterAddress[chainId] = routerAddress;
         emit ChainRouterAddressUpdated(chainId, routerAddress);
     }
@@ -812,7 +814,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
 
     /// @notice Sets the BridgeQueue address. Can only be called by governance.
     /// @param _newBridgeQueue The new BridgeQueue address
-    function setBridgeQueue(address _newBridgeQueue) external onlyGovernor {
+    function setBridgeQueue(
+        address _newBridgeQueue
+    ) external onlyControllerOrGovernor {
         if (_newBridgeQueue == address(0)) revert InvalidBridgeQueue();
         bridgeQueue = _newBridgeQueue;
         emit BridgeQueueUpdated(_newBridgeQueue);

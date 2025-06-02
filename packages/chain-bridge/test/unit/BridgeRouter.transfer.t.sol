@@ -39,6 +39,8 @@ contract BridgeRouterTransferTest is Test {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
 
+        vm.startPrank(governor);
+
         // Deploy BridgeQueue first
         // Make the user the queue manager
         bridgeQueue = new BridgeQueue(
@@ -46,8 +48,6 @@ contract BridgeRouterTransferTest is Test {
             address(0), // Router address set later
             user // queueManager
         );
-
-        vm.startPrank(governor);
 
         // Deploy router, linking it to the queue
         router = new BridgeRouter(address(accessManager), address(bridgeQueue));
@@ -70,12 +70,6 @@ contract BridgeRouterTransferTest is Test {
 
         // Fund keeper for execution
         vm.deal(keeper, 1 ether);
-
-        // Fund router for adapter calls
-        vm.deal(address(router), 10 ether);
-
-        // Fund queue for router calls
-        vm.deal(address(bridgeQueue), 10 ether);
 
         vm.stopPrank();
     }
