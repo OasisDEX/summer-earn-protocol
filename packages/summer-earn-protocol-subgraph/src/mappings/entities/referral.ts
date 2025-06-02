@@ -91,7 +91,10 @@ function extractReferralCodeFromEvent(event: ethereum.Event, accountId: string):
     return null
   }
   const rawReferralCode = data[4].toBytes()
-  const referralCode = extractReferralCodeFromFleetEnteredWithReferral(rawReferralCode, data[3].toBigInt())
+  const referralCode = extractReferralCodeFromFleetEnteredWithReferral(
+    rawReferralCode,
+    data[3].toBigInt(),
+  )
   const eventAddress = logTopicToAddress(admiralQuartersReferralLog.topics[1])
 
   // Validate that the event address matches the account
@@ -102,16 +105,16 @@ function extractReferralCodeFromEvent(event: ethereum.Event, accountId: string):
   return referralCode.toString()
 }
 
-function extractReferralCodeFromFleetEnteredWithReferral( data: Bytes, length: BigInt): BigInt {
+function extractReferralCodeFromFleetEnteredWithReferral(data: Bytes, length: BigInt): BigInt {
   if (length.le(BigIntConstants.ZERO)) {
-    return BigIntConstants.ZERO;
+    return BigIntConstants.ZERO
   }
   const trimmedArray = data.subarray(0, length.toI32())
   const trimmedBytes = Bytes.fromUint8Array(trimmedArray.reverse())
 
   const bigInt = BigInt.fromUnsignedBytes(trimmedBytes)
   if (bigInt.le(BigIntConstants.ZERO)) {
-    return BigIntConstants.ZERO;
+    return BigIntConstants.ZERO
   }
   return bigInt
 }
