@@ -124,5 +124,41 @@
     "decayType": "linear",
     "maxMultiplier": 2,
     "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "silo",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.0000148,
+      "usdt": 0.039,
+      "usdc": 0.039,
+      "dai": 0.039,
+      "usde": 0.039,
+      "usdce": 0.039,
+      "eurc": 0.039
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "sky",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.08,
+      "usdt": 0.08,
+      "usdc": 0.08,
+      "dai": 0.08,
+      "usde": 0.08,
+      "usdce": 0.08,
+      "eurc": 0.08
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
   }
 ]

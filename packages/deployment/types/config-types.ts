@@ -77,6 +77,8 @@ export enum Token {
   GEAR = 'gear',
   MORPHO = 'morpho',
   SYRUP = 'syrup',
+  SILO = 'silo',
+  SKY = 'sky',
 }
 
 export interface BaseConfig {
