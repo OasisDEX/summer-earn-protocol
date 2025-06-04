@@ -46,12 +46,14 @@ export function getArkProductId(ark: Ark): string | null {
     return null
   }
 
-  if (!jsonData.isSet('pool') || !jsonData.isSet('protocol') || !jsonData.isSet('chainId')) {
+  if (!jsonData.isSet('protocol') || !jsonData.isSet('chainId')) {
     return null
   }
-
+  if (!jsonData.isSet('pool') && !jsonData.isSet('vault')) {
+    return null
+  }
+  const poolValue = !jsonData.isSet('pool') ? jsonData.get('vault') : jsonData.get('pool')
   const protocolValue = jsonData.get('protocol')
-  const poolValue = jsonData.get('pool')
   const chainIdValue = jsonData.get('chainId')
 
   // Check if all values are strings

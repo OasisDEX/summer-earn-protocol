@@ -6,7 +6,7 @@
   "GovModule#SummerRewardsRedeemer": "0x08543e2B7E644C5471Cddda18e25f3aB93a16326",
   "GovModule#SummerVestingWalletFactory": "0x3cd70DeD351C4c42EE3CE2b273AD3e916a4F49A2",
   "CoreModule#ConfigurationManager": "0xDff0fc7bFa32Fb536807820FB3Be6C9828463e32",
-  "CoreModule#DutchAuctionLibrary": "0x4cd514F696ce580DCbD12e069DE7FE5107b4C770",
+  "CoreModule#DutchAuctionLibirary": "0x4cd514F696ce580DCbD12e069DE7FE5107b4C770",
   "CoreModule#FleetCommanderRewardsManagerFactory": "0xC474Cd1ea6f1809d17be61717b83f0F984EF0459",
   "CoreModule#HarborCommand": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191",
   "CoreModule#AdmiralsQuarters": "0xC61b22540516F70Ada02626Dc144AA9546A77343",

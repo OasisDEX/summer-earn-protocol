@@ -134,7 +134,7 @@ async function deploySiloManagedVaultArkContract(
             type: 'SiloManagedVault',
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
-            vault: userInput.vaultId,
+            pool: userInput.vaultId,
             chainId: chainId,
             vaultName: userInput.vaultName,
           }),

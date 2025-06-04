@@ -4,8 +4,8 @@ schema:
 features:
   - grafting
 graft:
-  base: QmNkkD1VEULSf54kXUiRd1B89ThdXVwX7CqmEZP1QbDJfT
-  block: 30029496
+  base: QmNbkpy3DL8FqD1A8QvpL1Lej5ooEZxzf9CsW6UD8etHok
+  block: 31812917
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand

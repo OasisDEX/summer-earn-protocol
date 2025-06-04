@@ -1,8 +1,8 @@
 {
   "network": "sonic-mainnet",
   "enable-grafting": true,
-  "grafting-base": "QmRdD3Xzz1AhqQvXfu1jrJYPPPN5YCLmCDGyn3ATeYmFcs",
-  "grafting-block": "30820000",
+  "grafting-base": "QmSRZdXBRN5VsFMop7QJFNoAeMHsqR4tqcCvFb8Sh1CqCY",
+  "grafting-block": "27007101",
   "entry_point_address": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
   "entry_point_start_block": 12744800,
   "interval-handler-block-interval": 20
