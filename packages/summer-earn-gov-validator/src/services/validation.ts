@@ -127,6 +127,9 @@ const KNOWN_ABIS = {
 
   // ERC20 functions
   approve: 'function approve(address spender, uint256 amount) external returns (bool)',
+  transfer: 'function transfer(address to, uint256 amount) external returns (bool)',
+  transferFrom:
+    'function transferFrom(address from, address to, uint256 amount) external returns (bool)',
 
   // gov
   setVotingDelay: 'function setVotingDelay(uint48 newVotingDelay) external',

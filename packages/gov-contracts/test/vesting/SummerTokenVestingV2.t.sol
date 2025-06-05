@@ -21,7 +21,11 @@ contract SummerVestingV2Test is SummerTokenTestBase {
     uint256 constant VESTING_PERIODS = 18;
     uint256 constant PERFORMANCE_GOAL_1 = 1000000 ether; // 500M TVL
     uint256 constant PERFORMANCE_GOAL_2 = 1000000 ether; // 100,000 active users
-    uint256 constant TOTAL_AMOUNT = CLIFF_AMOUNT + TIME_VESTING_TOTAL + PERFORMANCE_GOAL_1 + PERFORMANCE_GOAL_2;
+    uint256 constant TOTAL_AMOUNT =
+        CLIFF_AMOUNT +
+            TIME_VESTING_TOTAL +
+            PERFORMANCE_GOAL_1 +
+            PERFORMANCE_GOAL_2;
 
     // September 1st, 2025 timestamp
     uint64 constant CLIFF_END_TIMESTAMP = 1756681200;
@@ -34,15 +38,10 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         nonFoundation = address(0x4);
         beneficiary = address(0x1);
 
-        // Grant foundation role
-        vm.startPrank(address(timelockA));
-        accessManagerA.grantFoundationRole(foundation);
-        vm.stopPrank();
-
-        // Create V2 factory
+        // Create V2 factory (foundation is initial owner)
         factoryV2 = new SummerVestingWalletFactoryV2(
             address(aSummerToken),
-            address(accessManagerA)
+            foundation // foundation is the owner instead of using access manager
         );
 
         // Setup token transfers and approvals
@@ -54,8 +53,10 @@ contract SummerVestingV2Test is SummerTokenTestBase {
     }
 
     function test_CreateVestingWalletV2() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
         address vestingWalletAddress = factoryV2.createVestingWallet(
@@ -64,7 +65,11 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             performanceGoals
         );
 
-        assertNotEq(vestingWalletAddress, address(0), "Vesting wallet should be created");
+        assertNotEq(
+            vestingWalletAddress,
+            address(0),
+            "Vesting wallet should be created"
+        );
         assertEq(
             aSummerToken.balanceOf(vestingWalletAddress),
             TOTAL_AMOUNT,
@@ -78,8 +83,10 @@ contract SummerVestingV2Test is SummerTokenTestBase {
     }
 
     function test_ConfigurableCliff() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
         address vestingWalletAddress = factoryV2.createVestingWallet(
@@ -88,7 +95,9 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             performanceGoals
         );
 
-        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(payable(vestingWalletAddress));
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
 
         // Before cliff
         assertEq(
@@ -113,8 +122,10 @@ contract SummerVestingV2Test is SummerTokenTestBase {
     }
 
     function test_ConfigurableVestingPeriods() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
         address vestingWalletAddress = factoryV2.createVestingWallet(
@@ -123,7 +134,9 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             performanceGoals
         );
 
-        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(payable(vestingWalletAddress));
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
 
         uint256 expectedAmountPerPeriod = TIME_VESTING_TOTAL / VESTING_PERIODS;
         assertEq(
@@ -170,8 +183,10 @@ contract SummerVestingV2Test is SummerTokenTestBase {
     }
 
     function test_PerformanceGoalsWithDescriptions() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
         address vestingWalletAddress = factoryV2.createVestingWallet(
@@ -180,24 +195,56 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             performanceGoals
         );
 
-        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(payable(vestingWalletAddress));
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
 
         // Check performance goals
-        assertEq(vestingWallet.getPerformanceGoalsCount(), 2, "Should have 2 performance goals");
+        assertEq(
+            vestingWallet.getPerformanceGoalsCount(),
+            2,
+            "Should have 2 performance goals"
+        );
 
-        ISummerVestingWalletV2.PerformanceGoal memory goal1 = vestingWallet.performanceGoals(0);
-        assertEq(goal1.amount, PERFORMANCE_GOAL_1, "Goal 1 amount should match");
-        assertEq(goal1.description, "500M TVL", "Goal 1 description should match");
-        assertEq(goal1.reached, false, "Goal 1 should not be reached initially");
+        ISummerVestingWalletV2.PerformanceGoal memory goal1 = vestingWallet
+            .performanceGoals(1);
+        assertEq(
+            goal1.amount,
+            PERFORMANCE_GOAL_1,
+            "Goal 1 amount should match"
+        );
+        assertEq(
+            goal1.description,
+            "500M TVL",
+            "Goal 1 description should match"
+        );
+        assertEq(
+            goal1.reached,
+            false,
+            "Goal 1 should not be reached initially"
+        );
 
-        ISummerVestingWalletV2.PerformanceGoal memory goal2 = vestingWallet.performanceGoals(1);
-        assertEq(goal2.amount, PERFORMANCE_GOAL_2, "Goal 2 amount should match");
-        assertEq(goal2.description, "100,000 active users", "Goal 2 description should match");
-        assertEq(goal2.reached, false, "Goal 2 should not be reached initially");
+        ISummerVestingWalletV2.PerformanceGoal memory goal2 = vestingWallet
+            .performanceGoals(2);
+        assertEq(
+            goal2.amount,
+            PERFORMANCE_GOAL_2,
+            "Goal 2 amount should match"
+        );
+        assertEq(
+            goal2.description,
+            "100,000 active users",
+            "Goal 2 description should match"
+        );
+        assertEq(
+            goal2.reached,
+            false,
+            "Goal 2 should not be reached initially"
+        );
 
         // Mark goal 1 as reached
         vm.prank(foundation);
-        vestingWallet.markGoalReached(0);
+        vestingWallet.markGoalReached(1);
 
         // Check that performance tokens are now vested
         vm.warp(CLIFF_END_TIMESTAMP);
@@ -213,8 +260,10 @@ contract SummerVestingV2Test is SummerTokenTestBase {
     }
 
     function test_AddNewGoalWithDescription() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
         address vestingWalletAddress = factoryV2.createVestingWallet(
@@ -223,7 +272,9 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             performanceGoals
         );
 
-        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(payable(vestingWalletAddress));
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
 
         uint256 newGoalAmount = 500000 ether;
         string memory newGoalDescription = "1B TVL milestone";
@@ -236,17 +287,32 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         vm.stopPrank();
 
         // Check that the new goal was added
-        assertEq(vestingWallet.getPerformanceGoalsCount(), 3, "Should have 3 performance goals");
+        assertEq(
+            vestingWallet.getPerformanceGoalsCount(),
+            3,
+            "Should have 3 performance goals"
+        );
 
-        ISummerVestingWalletV2.PerformanceGoal memory newGoal = vestingWallet.performanceGoals(2);
+        ISummerVestingWalletV2.PerformanceGoal memory newGoal = vestingWallet
+            .performanceGoals(3);
         assertEq(newGoal.amount, newGoalAmount, "New goal amount should match");
-        assertEq(newGoal.description, newGoalDescription, "New goal description should match");
-        assertEq(newGoal.reached, false, "New goal should not be reached initially");
+        assertEq(
+            newGoal.description,
+            newGoalDescription,
+            "New goal description should match"
+        );
+        assertEq(
+            newGoal.reached,
+            false,
+            "New goal should not be reached initially"
+        );
     }
 
-    function test_RecallBothTimeAndPerformanceTokens() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+    function test_RecallTakesEverything() public {
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
         address vestingWalletAddress = factoryV2.createVestingWallet(
@@ -255,44 +321,66 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             performanceGoals
         );
 
-        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(payable(vestingWalletAddress));
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
 
-        // Warp to middle of vesting period
+        // Warp to middle of vesting period - some tokens are now vested
         vm.warp(CLIFF_END_TIMESTAMP + (9 * 30 days)); // 9 months after cliff
 
-        // Mark only goal 1 as reached
+        // Mark a performance goal as reached
         vm.prank(foundation);
-        vestingWallet.markGoalReached(0);
+        vestingWallet.markGoalReached(1);
 
         uint256 initialFoundationBalance = aSummerToken.balanceOf(foundation);
+        uint256 initialWalletBalance = aSummerToken.balanceOf(
+            address(vestingWallet)
+        );
 
-        // Recall unvested tokens
+        // Gentleman's agreement: beneficiary should claim before recall
+        // But admin can take EVERYTHING regardless of vesting status
         vm.prank(foundation);
-        (uint256 timeBasedRecalled, uint256 performanceBasedRecalled) = vestingWallet.recallUnvestedTokens();
+        vm.expectEmit(true, true, true, true);
+        emit ISummerVestingWalletV2.UnvestedTokensRecalled(
+            initialWalletBalance
+        );
+        vestingWallet.recallUnvestedTokens();
 
         uint256 finalFoundationBalance = aSummerToken.balanceOf(foundation);
 
-        // Calculate expected recalls
-        uint256 expectedAmountPerPeriod = TIME_VESTING_TOTAL / VESTING_PERIODS;
-        uint256 expectedTimeBasedRecalled = TIME_VESTING_TOTAL - (9 * expectedAmountPerPeriod); // 9 periods already vested
-        uint256 expectedPerformanceBasedRecalled = PERFORMANCE_GOAL_2; // Goal 2 not reached
-
-        assertEq(timeBasedRecalled, expectedTimeBasedRecalled, "Time-based recall should match expected");
-        assertEq(performanceBasedRecalled, expectedPerformanceBasedRecalled, "Performance-based recall should match expected");
         assertEq(
             finalFoundationBalance - initialFoundationBalance,
-            timeBasedRecalled + performanceBasedRecalled,
-            "Foundation should receive recalled tokens"
+            initialWalletBalance,
+            "Foundation should receive ALL tokens from wallet"
         );
 
-        // Check that unreached goal amount was reset
-        ISummerVestingWalletV2.PerformanceGoal memory goal2 = vestingWallet.performanceGoals(1);
-        assertEq(goal2.amount, 0, "Unreached goal amount should be reset to 0");
+        // Wallet should be completely empty and bricked
+        assertEq(
+            aSummerToken.balanceOf(address(vestingWallet)),
+            0,
+            "Wallet should be empty"
+        );
+        assertTrue(
+            vestingWallet.isRecalled(),
+            "Wallet should be marked as recalled"
+        );
+
+        // No more vesting after recall
+        assertEq(
+            vestingWallet.vestedAmount(
+                address(aSummerToken),
+                uint64(block.timestamp)
+            ),
+            0,
+            "No vesting after recall"
+        );
     }
 
-    function test_CannotRecallTwice() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+    function test_RecallBricksWallet() public {
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
         address vestingWalletAddress = factoryV2.createVestingWallet(
@@ -301,43 +389,115 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             performanceGoals
         );
 
-        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(payable(vestingWalletAddress));
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
 
-        // Warp to middle of vesting period
+        // Warp to middle of vesting period (9 months after cliff)
         vm.warp(CLIFF_END_TIMESTAMP + (9 * 30 days));
 
-        vm.startPrank(foundation);
-        // First recall
-        (uint256 timeBasedRecalled1, uint256 performanceBasedRecalled1) = vestingWallet.recallUnvestedTokens();
+        uint256 balanceBefore = aSummerToken.balanceOf(address(vestingWallet));
+        uint256 adminBalanceBefore = aSummerToken.balanceOf(foundation);
 
-        // Second recall should return 0
-        (uint256 timeBasedRecalled2, uint256 performanceBasedRecalled2) = vestingWallet.recallUnvestedTokens();
-        vm.stopPrank();
+        vm.prank(foundation);
+        // First recall should take ALL tokens and brick the wallet
+        vm.expectEmit(true, true, true, true);
+        emit ISummerVestingWalletV2.UnvestedTokensRecalled(balanceBefore);
+        vestingWallet.recallUnvestedTokens();
 
-        assertGt(timeBasedRecalled1 + performanceBasedRecalled1, 0, "First recall should have tokens");
-        assertEq(timeBasedRecalled2, 0, "Second time-based recall should be 0");
-        assertEq(performanceBasedRecalled2, 0, "Second performance-based recall should be 0");
+        // Check that wallet is now bricked
+        assertTrue(
+            vestingWallet.isRecalled(),
+            "Wallet should be marked as recalled"
+        );
+
+        // Check that ALL tokens were transferred
+        assertEq(
+            aSummerToken.balanceOf(address(vestingWallet)),
+            0,
+            "Wallet should be empty"
+        );
+        assertEq(
+            aSummerToken.balanceOf(foundation),
+            adminBalanceBefore + balanceBefore,
+            "Admin should receive all tokens"
+        );
+
+        // No more vesting should be possible
+        assertEq(
+            vestingWallet.vestedAmount(
+                address(aSummerToken),
+                uint64(block.timestamp)
+            ),
+            0,
+            "No vesting after recall"
+        );
+
+        // Second recall should fail
+        vm.expectRevert(ISummerVestingWalletV2.TokensAlreadyRecalled.selector);
+        vm.prank(foundation);
+        vestingWallet.recallUnvestedTokens();
     }
 
     function test_InvalidVestingParams() public {
         // Test with cliff in the past
-        ISummerVestingWalletV2.VestingParams memory invalidParams = ISummerVestingWalletV2.VestingParams({
-            cliffEndTimestamp: uint64(block.timestamp - 1),
-            cliffAmount: CLIFF_AMOUNT,
-            vestingPeriods: VESTING_PERIODS,
-            totalVestingAmount: TIME_VESTING_TOTAL
-        });
+        ISummerVestingWalletV2.VestingParams
+            memory invalidParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp - 1),
+                cliffAmount: CLIFF_AMOUNT,
+                vestingPeriods: VESTING_PERIODS,
+                totalVestingAmount: TIME_VESTING_TOTAL
+            });
 
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](0);
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                0
+            );
 
         vm.expectRevert(ISummerVestingWalletV2.InvalidVestingParams.selector);
         vm.prank(foundation);
-        factoryV2.createVestingWallet(beneficiary, invalidParams, performanceGoals);
+        factoryV2.createVestingWallet(
+            beneficiary,
+            invalidParams,
+            performanceGoals
+        );
+
+        // Test with positive amount but 0 periods
+        invalidParams = ISummerVestingWalletV2.VestingParams({
+            cliffEndTimestamp: uint64(block.timestamp + 180 days),
+            cliffAmount: CLIFF_AMOUNT,
+            vestingPeriods: 0,
+            totalVestingAmount: TIME_VESTING_TOTAL
+        });
+
+        vm.expectRevert(ISummerVestingWalletV2.InvalidVestingParams.selector);
+        vm.prank(foundation);
+        factoryV2.createVestingWallet(
+            beneficiary,
+            invalidParams,
+            performanceGoals
+        );
     }
 
-    function test_ReleaseVestedTokens() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+    function test_ZeroVestingPeriodsWithZeroAmount() public {
+        // Test cliff + performance only vesting (no time-based vesting)
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: CLIFF_END_TIMESTAMP,
+                cliffAmount: CLIFF_AMOUNT,
+                vestingPeriods: 0, // No time-based vesting periods
+                totalVestingAmount: 0 // No time-based vesting amount
+            });
+
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
+
+        uint256 totalAmount = vestingParams.cliffAmount +
+            PERFORMANCE_GOAL_1 +
+            PERFORMANCE_GOAL_2;
+
+        vm.prank(foundation);
+        aSummerToken.approve(address(factoryV2), totalAmount);
 
         vm.prank(foundation);
         address vestingWalletAddress = factoryV2.createVestingWallet(
@@ -346,12 +506,84 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             performanceGoals
         );
 
-        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(payable(vestingWalletAddress));
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
+
+        // Check that amount per period is 0
+        assertEq(
+            vestingWallet.getAmountPerPeriod(),
+            0,
+            "Amount per period should be 0"
+        );
+
+        // Before cliff
+        assertEq(
+            vestingWallet.vestedAmount(
+                address(aSummerToken),
+                SafeCast.toUint64(block.timestamp)
+            ),
+            0,
+            "No tokens should be vested before cliff"
+        );
+
+        // At cliff
+        vm.warp(CLIFF_END_TIMESTAMP);
+        assertEq(
+            vestingWallet.vestedAmount(
+                address(aSummerToken),
+                SafeCast.toUint64(block.timestamp)
+            ),
+            CLIFF_AMOUNT,
+            "Only cliff amount should be vested"
+        );
+
+        // Mark performance goal as reached
+        vm.prank(foundation);
+        vestingWallet.markGoalReached(1);
+
+        assertEq(
+            vestingWallet.vestedAmount(
+                address(aSummerToken),
+                SafeCast.toUint64(block.timestamp)
+            ),
+            CLIFF_AMOUNT + PERFORMANCE_GOAL_1,
+            "Cliff + performance goal should be vested"
+        );
+
+        // Even after a long time, no additional time-based vesting
+        vm.warp(CLIFF_END_TIMESTAMP + 365 days);
+        assertEq(
+            vestingWallet.vestedAmount(
+                address(aSummerToken),
+                SafeCast.toUint64(block.timestamp)
+            ),
+            CLIFF_AMOUNT + PERFORMANCE_GOAL_1,
+            "Should still only have cliff + performance goal"
+        );
+    }
+
+    function test_ReleaseVestedTokens() public {
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
+
+        vm.prank(foundation);
+        address vestingWalletAddress = factoryV2.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
+
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
 
         // Warp to cliff + 3 months and mark goal 1 as reached
         vm.warp(CLIFF_END_TIMESTAMP + (3 * 30 days));
         vm.prank(foundation);
-        vestingWallet.markGoalReached(0);
+        vestingWallet.markGoalReached(1);
 
         uint256 initialBeneficiaryBalance = aSummerToken.balanceOf(beneficiary);
 
@@ -361,7 +593,9 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         uint256 finalBeneficiaryBalance = aSummerToken.balanceOf(beneficiary);
 
         uint256 expectedAmountPerPeriod = TIME_VESTING_TOTAL / VESTING_PERIODS;
-        uint256 expectedReleased = CLIFF_AMOUNT + (3 * expectedAmountPerPeriod) + PERFORMANCE_GOAL_1;
+        uint256 expectedReleased = CLIFF_AMOUNT +
+            (3 * expectedAmountPerPeriod) +
+            PERFORMANCE_GOAL_1;
 
         assertEq(
             finalBeneficiaryBalance - initialBeneficiaryBalance,
@@ -371,49 +605,174 @@ contract SummerVestingV2Test is SummerTokenTestBase {
     }
 
     function testFail_NonFoundationCannotCreateVestingWallet() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(nonFoundation);
-        factoryV2.createVestingWallet(beneficiary, vestingParams, performanceGoals);
+        factoryV2.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
+    }
+
+    function test_OnlyFactoryOwnerCanManageVestingWallet() public {
+        // Create vesting wallet
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
+
+        vm.prank(foundation);
+        address vestingWalletAddress = factoryV2.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
+
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
+
+        // Non-owner cannot add goals
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerVestingWalletV2.CallerIsNotFactoryOwner.selector,
+                nonFoundation
+            )
+        );
+        vm.prank(nonFoundation);
+        vestingWallet.addNewGoal(1000 ether, "Test goal");
+
+        // Non-owner cannot mark goals as reached
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerVestingWalletV2.CallerIsNotFactoryOwner.selector,
+                nonFoundation
+            )
+        );
+        vm.prank(nonFoundation);
+        vestingWallet.markGoalReached(1);
+
+        // Non-owner cannot recall tokens
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerVestingWalletV2.CallerIsNotFactoryOwner.selector,
+                nonFoundation
+            )
+        );
+        vm.prank(nonFoundation);
+        vestingWallet.recallUnvestedTokens();
+
+        // Factory owner (foundation) can manage the vesting wallet
+        vm.prank(foundation);
+        vestingWallet.markGoalReached(1); // This should work
+    }
+
+    function test_FactoryOwnershipTransfer() public {
+        address newOwner = address(0x999);
+
+        // Create vesting wallet first (before ownership transfer)
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
+
+        vm.prank(foundation);
+        address vestingWalletAddress = factoryV2.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
+
+        SummerVestingWalletV2 vestingWallet = SummerVestingWalletV2(
+            payable(vestingWalletAddress)
+        );
+
+        // Transfer ownership to new address (simulating multisig transfer)
+        vm.prank(foundation);
+        factoryV2.transferOwnership(newOwner);
+
+        // Verify ownership changed
+        assertEq(
+            factoryV2.owner(),
+            newOwner,
+            "Ownership should be transferred"
+        );
+
+        // Old owner cannot manage anymore
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerVestingWalletV2.CallerIsNotFactoryOwner.selector,
+                foundation
+            )
+        );
+        vm.prank(foundation);
+        vestingWallet.markGoalReached(1);
+
+        // New owner can manage
+        vm.prank(newOwner);
+        vestingWallet.markGoalReached(1); // This should work
     }
 
     function testFail_DuplicateVestingWallet() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = _getTestVestingParams();
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = _getTestPerformanceGoals();
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = _getTestVestingParams();
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
-        factoryV2.createVestingWallet(beneficiary, vestingParams, performanceGoals);
+        factoryV2.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
 
         vm.prank(foundation);
-        factoryV2.createVestingWallet(beneficiary, vestingParams, performanceGoals);
+        factoryV2.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
     }
 
     // Helper functions
-    function _getTestVestingParams() private pure returns (ISummerVestingWalletV2.VestingParams memory) {
-        return ISummerVestingWalletV2.VestingParams({
-            cliffEndTimestamp: CLIFF_END_TIMESTAMP,
-            cliffAmount: CLIFF_AMOUNT,
-            vestingPeriods: VESTING_PERIODS,
-            totalVestingAmount: TIME_VESTING_TOTAL
-        });
+    function _getTestVestingParams()
+        private
+        pure
+        returns (ISummerVestingWalletV2.VestingParams memory)
+    {
+        return
+            ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: CLIFF_END_TIMESTAMP,
+                cliffAmount: CLIFF_AMOUNT,
+                vestingPeriods: VESTING_PERIODS,
+                totalVestingAmount: TIME_VESTING_TOTAL
+            });
     }
 
-    function _getTestPerformanceGoals() private pure returns (ISummerVestingWalletV2.PerformanceGoal[] memory) {
-        ISummerVestingWalletV2.PerformanceGoal[] memory goals = new ISummerVestingWalletV2.PerformanceGoal[](2);
-        
+    function _getTestPerformanceGoals()
+        private
+        pure
+        returns (ISummerVestingWalletV2.PerformanceGoal[] memory)
+    {
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory goals = new ISummerVestingWalletV2.PerformanceGoal[](2);
+
         goals[0] = ISummerVestingWalletV2.PerformanceGoal({
             amount: PERFORMANCE_GOAL_1,
             description: "500M TVL",
             reached: false
         });
-        
+
         goals[1] = ISummerVestingWalletV2.PerformanceGoal({
             amount: PERFORMANCE_GOAL_2,
             description: "100,000 active users",
             reached: false
         });
-        
+
         return goals;
     }
-} 
+}

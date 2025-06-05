@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 /**
  * @title ISummerVestingWalletV2
  * @dev Interface for SummerVestingWalletV2, an improved vesting wallet with configurable parameters
- * 
+ *
  * Key Features:
  * - Configurable cliff end date (Unix timestamp)
  * - Configurable cliff amount
@@ -55,7 +55,9 @@ interface ISummerVestingWalletV2 {
     function vestingParams() external view returns (VestingParams memory);
 
     /// @dev Get performance goal by index
-    function performanceGoals(uint256 index) external view returns (PerformanceGoal memory);
+    function performanceGoals(
+        uint256 index
+    ) external view returns (PerformanceGoal memory);
 
     /// @dev Get number of performance goals
     function getPerformanceGoalsCount() external view returns (uint256);
@@ -76,23 +78,21 @@ interface ISummerVestingWalletV2 {
 
     /**
      * @notice Marks a specific performance goal as reached
-     * @param goalIndex The index of the goal to mark as reached (0-indexed)
+     * @param goalNumber The number of the goal to mark as reached (1-indexed)
      */
-    function markGoalReached(uint256 goalIndex) external;
+    function markGoalReached(uint256 goalNumber) external;
 
     /**
      * @notice Recalls unvested tokens (both time-based and performance-based)
-     * @return timeBasedRecalled Amount of time-based tokens recalled
-     * @return performanceBasedRecalled Amount of performance-based tokens recalled
      */
-    function recallUnvestedTokens() external returns (uint256 timeBasedRecalled, uint256 performanceBasedRecalled);
+    function recallUnvestedTokens() external;
 
     //////////////////////////////////////////////
     ///                 ERRORS                 ///
     //////////////////////////////////////////////
 
-    /// @dev Thrown when an invalid goal index is provided
-    error InvalidGoalIndex();
+    /// @dev Thrown when an invalid goal number is provided
+    error InvalidGoalNumber();
 
     /// @dev Thrown when the token address is invalid
     error InvalidToken(address token);
@@ -103,16 +103,26 @@ interface ISummerVestingWalletV2 {
     /// @dev Thrown when cliff has not ended yet
     error CliffNotEnded();
 
+    /// @dev Thrown when caller is not the factory owner
+    error CallerIsNotFactoryOwner(address caller);
+
+    /// @dev Thrown when trying to recall tokens that have already been recalled
+    error TokensAlreadyRecalled();
+
     //////////////////////////////////////////////
     ///                 EVENTS                 ///
     //////////////////////////////////////////////
 
     /// @dev Emitted when a new goal is added
-    event NewGoalAdded(uint256 indexed goalIndex, uint256 goalAmount, string description);
+    event NewGoalAdded(
+        uint256 indexed goalNumber,
+        uint256 goalAmount,
+        string description
+    );
 
     /// @dev Emitted when a goal is reached
-    event GoalReached(uint256 indexed goalIndex);
+    event GoalReached(uint256 indexed goalNumber);
 
     /// @dev Emitted when unvested tokens are recalled
-    event UnvestedTokensRecalled(uint256 timeBasedRecalled, uint256 performanceBasedRecalled);
-} 
+    event UnvestedTokensRecalled(uint256 tokensRecalled);
+}

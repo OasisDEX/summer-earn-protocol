@@ -3,10 +3,10 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ISummerVestingWalletFactoryV2} from "../interfaces/ISummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletV2} from "../interfaces/ISummerVestingWalletV2.sol";
 import {SummerVestingWalletV2} from "../contracts/SummerVestingWalletV2.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 /**
  * @title SummerVestingWalletFactoryV2
@@ -15,7 +15,7 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  */
 contract SummerVestingWalletFactoryV2 is
     ISummerVestingWalletFactoryV2,
-    ProtocolAccessManaged
+    Ownable
 {
     using SafeERC20 for IERC20;
 
@@ -30,7 +30,8 @@ contract SummerVestingWalletFactoryV2 is
     mapping(address beneficiary => address vestingWallet) public vestingWallets;
 
     /** @notice Mapping from vesting wallet address to its beneficiary address */
-    mapping(address vestingWallet => address beneficiary) public vestingWalletOwners;
+    mapping(address vestingWallet => address beneficiary)
+        public vestingWalletOwners;
 
     //////////////////////////////////////////////
     ///              CONSTRUCTOR               ///
@@ -39,12 +40,9 @@ contract SummerVestingWalletFactoryV2 is
     /**
      * @notice Initializes the factory with the token to be vested
      * @param _token The address of the ERC20 token that will be vested
-     * @param _accessManager The address of the ProtocolAccessManager contract
+     * @param _owner The initial owner of the factory (deployer, will transfer to multisig)
      */
-    constructor(
-        address _token,
-        address _accessManager
-    ) ProtocolAccessManaged(_accessManager) {
+    constructor(address _token, address _owner) Ownable(_owner) {
         if (_token == address(0)) revert ZeroTokenAddress();
         token = _token;
     }
@@ -58,13 +56,14 @@ contract SummerVestingWalletFactoryV2 is
         address beneficiary,
         ISummerVestingWalletV2.VestingParams memory vestingParams,
         ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals
-    ) external onlyFoundation returns (address newVestingWallet) {
+    ) external onlyOwner returns (address newVestingWallet) {
         if (vestingWallets[beneficiary] != address(0)) {
             revert VestingWalletAlreadyExists(beneficiary);
         }
 
         // Calculate total amount needed
-        uint256 totalAmount = vestingParams.cliffAmount + vestingParams.totalVestingAmount;
+        uint256 totalAmount = vestingParams.cliffAmount +
+            vestingParams.totalVestingAmount;
         for (uint256 i = 0; i < performanceGoals.length; i++) {
             totalAmount += performanceGoals[i].amount;
         }
@@ -88,7 +87,7 @@ contract SummerVestingWalletFactoryV2 is
                 beneficiary,
                 vestingParams,
                 performanceGoals,
-                address(_accessManager)
+                address(this) // Pass factory address instead of access manager
             )
         );
 
@@ -98,11 +97,18 @@ contract SummerVestingWalletFactoryV2 is
 
         // Transfer tokens to vesting wallet
         uint256 preBalance = tokenContract.balanceOf(newVestingWallet);
-        tokenContract.safeTransferFrom(msg.sender, newVestingWallet, totalAmount);
+        tokenContract.safeTransferFrom(
+            msg.sender,
+            newVestingWallet,
+            totalAmount
+        );
         uint256 postBalance = tokenContract.balanceOf(newVestingWallet);
 
         if (postBalance != preBalance + totalAmount) {
-            revert TransferAmountMismatch(preBalance + totalAmount, postBalance);
+            revert TransferAmountMismatch(
+                preBalance + totalAmount,
+                postBalance
+            );
         }
 
         emit VestingWalletCreated(
@@ -112,4 +118,4 @@ contract SummerVestingWalletFactoryV2 is
             performanceGoals.length
         );
     }
-} 
+}

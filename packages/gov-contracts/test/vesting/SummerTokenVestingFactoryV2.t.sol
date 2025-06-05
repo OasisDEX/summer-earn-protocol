@@ -5,16 +5,13 @@ import {Test} from "forge-std/Test.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletFactoryV2} from "../../src/interfaces/ISummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV2.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract SummerVestingWalletFactoryV2Test is Test {
     SummerVestingWalletFactoryV2 public factory;
     ERC20Mock public token;
-    ProtocolAccessManager public accessManager;
     address public foundation;
     address public beneficiary;
-    address public governor;
 
     event VestingWalletCreated(
         address indexed beneficiary,
@@ -26,46 +23,47 @@ contract SummerVestingWalletFactoryV2Test is Test {
     function setUp() public {
         foundation = makeAddr("foundation");
         beneficiary = makeAddr("beneficiary");
-        governor = makeAddr("governor");
-
-        // Deploy access manager with governor address
-        vm.startPrank(governor);
-        accessManager = new ProtocolAccessManager(governor);
-        accessManager.grantFoundationRole(foundation);
-        vm.stopPrank();
 
         // Deploy mock token
         token = new ERC20Mock();
 
-        // Deploy factory
+        // Deploy factory (foundation is initial owner)
         factory = new SummerVestingWalletFactoryV2(
             address(token),
-            address(accessManager)
+            foundation // foundation is the owner
         );
     }
 
     function test_RevertIf_ZeroTokenAddress() public {
-        vm.expectRevert(ISummerVestingWalletFactoryV2.ZeroTokenAddress.selector);
-        new SummerVestingWalletFactoryV2(address(0), address(accessManager));
+        vm.expectRevert(
+            ISummerVestingWalletFactoryV2.ZeroTokenAddress.selector
+        );
+        new SummerVestingWalletFactoryV2(address(0), foundation);
     }
 
     function test_CreateVestingWallet() public {
         // Setup parameters
-        ISummerVestingWalletV2.VestingParams memory vestingParams = ISummerVestingWalletV2.VestingParams({
-            cliffEndTimestamp: uint64(block.timestamp + 180 days),
-            cliffAmount: 1000 ether,
-            vestingPeriods: 12,
-            totalVestingAmount: 2000 ether
-        });
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: 1000 ether,
+                vestingPeriods: 12,
+                totalVestingAmount: 2000 ether
+            });
 
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](1);
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                1
+            );
         performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
             amount: 500 ether,
             description: "Test goal",
             reached: false
         });
 
-        uint256 totalAmount = vestingParams.cliffAmount + vestingParams.totalVestingAmount + performanceGoals[0].amount;
+        uint256 totalAmount = vestingParams.cliffAmount +
+            vestingParams.totalVestingAmount +
+            performanceGoals[0].amount;
 
         // Mint tokens to foundation and approve factory
         token.mint(foundation, totalAmount);
@@ -90,45 +88,65 @@ contract SummerVestingWalletFactoryV2Test is Test {
 
     function test_RevertIf_VestingWalletAlreadyExists() public {
         // Setup
-        ISummerVestingWalletV2.VestingParams memory vestingParams = ISummerVestingWalletV2.VestingParams({
-            cliffEndTimestamp: uint64(block.timestamp + 180 days),
-            cliffAmount: 1000 ether,
-            vestingPeriods: 12,
-            totalVestingAmount: 2000 ether
-        });
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: 1000 ether,
+                vestingPeriods: 12,
+                totalVestingAmount: 2000 ether
+            });
 
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](0);
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                0
+            );
 
-        uint256 totalAmount = vestingParams.cliffAmount + vestingParams.totalVestingAmount;
+        uint256 totalAmount = vestingParams.cliffAmount +
+            vestingParams.totalVestingAmount;
 
         // Create first vesting wallet
         token.mint(foundation, totalAmount * 2);
         vm.startPrank(foundation);
         token.approve(address(factory), totalAmount * 2);
-        factory.createVestingWallet(beneficiary, vestingParams, performanceGoals);
+        factory.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
 
         // Attempt to create second vesting wallet
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISummerVestingWalletFactoryV2.VestingWalletAlreadyExists.selector,
+                ISummerVestingWalletFactoryV2
+                    .VestingWalletAlreadyExists
+                    .selector,
                 beneficiary
             )
         );
-        factory.createVestingWallet(beneficiary, vestingParams, performanceGoals);
+        factory.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
         vm.stopPrank();
     }
 
     function test_RevertIf_InsufficientAllowance() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = ISummerVestingWalletV2.VestingParams({
-            cliffEndTimestamp: uint64(block.timestamp + 180 days),
-            cliffAmount: 1000 ether,
-            vestingPeriods: 12,
-            totalVestingAmount: 2000 ether
-        });
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: 1000 ether,
+                vestingPeriods: 12,
+                totalVestingAmount: 2000 ether
+            });
 
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](0);
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                0
+            );
 
-        uint256 totalAmount = vestingParams.cliffAmount + vestingParams.totalVestingAmount;
+        uint256 totalAmount = vestingParams.cliffAmount +
+            vestingParams.totalVestingAmount;
 
         token.mint(foundation, totalAmount);
         vm.startPrank(foundation);
@@ -141,21 +159,30 @@ contract SummerVestingWalletFactoryV2Test is Test {
                 totalAmount / 2
             )
         );
-        factory.createVestingWallet(beneficiary, vestingParams, performanceGoals);
+        factory.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
         vm.stopPrank();
     }
 
     function test_RevertIf_InsufficientBalance() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = ISummerVestingWalletV2.VestingParams({
-            cliffEndTimestamp: uint64(block.timestamp + 180 days),
-            cliffAmount: 1000 ether,
-            vestingPeriods: 12,
-            totalVestingAmount: 2000 ether
-        });
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: 1000 ether,
+                vestingPeriods: 12,
+                totalVestingAmount: 2000 ether
+            });
 
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](0);
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                0
+            );
 
-        uint256 totalAmount = vestingParams.cliffAmount + vestingParams.totalVestingAmount;
+        uint256 totalAmount = vestingParams.cliffAmount +
+            vestingParams.totalVestingAmount;
 
         token.mint(foundation, totalAmount / 2); // Mint less than required
         vm.startPrank(foundation);
@@ -168,20 +195,28 @@ contract SummerVestingWalletFactoryV2Test is Test {
                 totalAmount / 2
             )
         );
-        factory.createVestingWallet(beneficiary, vestingParams, performanceGoals);
+        factory.createVestingWallet(
+            beneficiary,
+            vestingParams,
+            performanceGoals
+        );
         vm.stopPrank();
     }
 
     function test_CreateVestingWalletWithMultiplePerformanceGoals() public {
         // Setup parameters with multiple performance goals
-        ISummerVestingWalletV2.VestingParams memory vestingParams = ISummerVestingWalletV2.VestingParams({
-            cliffEndTimestamp: uint64(block.timestamp + 180 days),
-            cliffAmount: 2000006 ether,
-            vestingPeriods: 18,
-            totalVestingAmount: 5999994 ether
-        });
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: 2000006 ether,
+                vestingPeriods: 18,
+                totalVestingAmount: 5999994 ether
+            });
 
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](2);
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                2
+            );
         performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
             amount: 1000000 ether,
             description: "500M TVL",
@@ -193,8 +228,10 @@ contract SummerVestingWalletFactoryV2Test is Test {
             reached: false
         });
 
-        uint256 totalAmount = vestingParams.cliffAmount + vestingParams.totalVestingAmount + 
-                             performanceGoals[0].amount + performanceGoals[1].amount;
+        uint256 totalAmount = vestingParams.cliffAmount +
+            vestingParams.totalVestingAmount +
+            performanceGoals[0].amount +
+            performanceGoals[1].amount;
 
         // Mint tokens to foundation and approve factory
         token.mint(foundation, totalAmount);
@@ -219,16 +256,21 @@ contract SummerVestingWalletFactoryV2Test is Test {
     }
 
     function test_EmptyPerformanceGoals() public {
-        ISummerVestingWalletV2.VestingParams memory vestingParams = ISummerVestingWalletV2.VestingParams({
-            cliffEndTimestamp: uint64(block.timestamp + 180 days),
-            cliffAmount: 1000 ether,
-            vestingPeriods: 12,
-            totalVestingAmount: 2000 ether
-        });
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: 1000 ether,
+                vestingPeriods: 12,
+                totalVestingAmount: 2000 ether
+            });
 
-        ISummerVestingWalletV2.PerformanceGoal[] memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](0);
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                0
+            );
 
-        uint256 totalAmount = vestingParams.cliffAmount + vestingParams.totalVestingAmount;
+        uint256 totalAmount = vestingParams.cliffAmount +
+            vestingParams.totalVestingAmount;
 
         token.mint(foundation, totalAmount);
         vm.startPrank(foundation);
@@ -262,4 +304,4 @@ contract MockIncorrectBalanceERC20V2 is ERC20Mock {
         _transfer(from, to, amount / 2);
         return true;
     }
-} 
+}

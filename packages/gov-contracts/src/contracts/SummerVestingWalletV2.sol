@@ -5,12 +5,12 @@ import {ISummerVestingWalletV2} from "../interfaces/ISummerVestingWalletV2.sol";
 import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title SummerVestingWalletV2
  * @dev Improved vesting wallet with configurable parameters and enhanced functionality
- * 
+ *
  * Features:
  * - Configurable cliff end timestamp
  * - Configurable cliff amount
@@ -19,11 +19,7 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  * - Recall functionality for both time-based and performance-based tokens
  * - Monthly vesting periods (30 days each)
  */
-contract SummerVestingWalletV2 is
-    ISummerVestingWalletV2,
-    VestingWallet,
-    ProtocolAccessManaged
-{
+contract SummerVestingWalletV2 is ISummerVestingWalletV2, VestingWallet {
     using SafeERC20 for IERC20;
 
     //////////////////////////////////////////////
@@ -40,17 +36,31 @@ contract SummerVestingWalletV2 is
     /// @inheritdoc ISummerVestingWalletV2
     address public immutable token;
 
+    /// @dev Address of the factory that created this vesting wallet
+    address public immutable factory;
+
     /// @dev Vesting parameters
     VestingParams private _vestingParams;
 
     /// @dev Array of performance goals
     PerformanceGoal[] private _performanceGoals;
 
-    /// @dev Amount of time-based tokens already recalled
-    uint256 public timeBasedTokensRecalled;
+    /// @dev Flag to indicate if tokens have been recalled (wallet is bricked)
+    bool public isRecalled;
 
-    /// @dev Amount of performance-based tokens already recalled
-    uint256 public performanceBasedTokensRecalled;
+    //////////////////////////////////////////////
+    ///                MODIFIERS               ///
+    //////////////////////////////////////////////
+
+    /**
+     * @dev Modifier to restrict access to the factory owner (multisig)
+     */
+    modifier onlyFactoryOwner() {
+        if (msg.sender != Ownable(factory).owner()) {
+            revert CallerIsNotFactoryOwner(msg.sender);
+        }
+        _;
+    }
 
     //////////////////////////////////////////////
     ///              CONSTRUCTOR               ///
@@ -62,21 +72,20 @@ contract SummerVestingWalletV2 is
      * @param beneficiaryAddress Address of the beneficiary
      * @param vestingParams_ The vesting parameters
      * @param performanceGoals_ Initial performance goals
-     * @param _accessManager The address of the ProtocolAccessManager contract
+     * @param _factory The address of the factory that created this wallet
      */
     constructor(
         address _token,
         address beneficiaryAddress,
         VestingParams memory vestingParams_,
         PerformanceGoal[] memory performanceGoals_,
-        address _accessManager
+        address _factory
     )
         VestingWallet(
             beneficiaryAddress,
             vestingParams_.cliffEndTimestamp,
             uint64(vestingParams_.vestingPeriods * MONTH)
         )
-        ProtocolAccessManaged(_accessManager)
     {
         if (_token == address(0)) {
             revert InvalidToken(_token);
@@ -84,13 +93,14 @@ contract SummerVestingWalletV2 is
 
         if (
             vestingParams_.cliffEndTimestamp <= block.timestamp ||
-            vestingParams_.vestingPeriods == 0 ||
-            (vestingParams_.totalVestingAmount > 0 && vestingParams_.vestingPeriods == 0)
+            (vestingParams_.totalVestingAmount > 0 &&
+                vestingParams_.vestingPeriods == 0)
         ) {
             revert InvalidVestingParams();
         }
 
         token = _token;
+        factory = _factory;
         _vestingParams = vestingParams_;
 
         // Add initial performance goals
@@ -109,11 +119,13 @@ contract SummerVestingWalletV2 is
     }
 
     /// @inheritdoc ISummerVestingWalletV2
-    function performanceGoals(uint256 index) external view returns (PerformanceGoal memory) {
-        if (index >= _performanceGoals.length) {
-            revert InvalidGoalIndex();
+    function performanceGoals(
+        uint256 goalNumber
+    ) external view returns (PerformanceGoal memory) {
+        if (goalNumber < 1 || goalNumber > _performanceGoals.length) {
+            revert InvalidGoalNumber();
         }
-        return _performanceGoals[index];
+        return _performanceGoals[goalNumber - 1];
     }
 
     /// @inheritdoc ISummerVestingWalletV2
@@ -126,7 +138,8 @@ contract SummerVestingWalletV2 is
         if (_vestingParams.vestingPeriods == 0) {
             return 0;
         }
-        return _vestingParams.totalVestingAmount / _vestingParams.vestingPeriods;
+        return
+            _vestingParams.totalVestingAmount / _vestingParams.vestingPeriods;
     }
 
     //////////////////////////////////////////////
@@ -134,55 +147,51 @@ contract SummerVestingWalletV2 is
     //////////////////////////////////////////////
 
     /// @inheritdoc ISummerVestingWalletV2
-    function addNewGoal(uint256 goalAmount, string memory description) external onlyFoundation {
-        _performanceGoals.push(PerformanceGoal({
-            amount: goalAmount,
-            description: description,
-            reached: false
-        }));
+    function addNewGoal(
+        uint256 goalAmount,
+        string memory description
+    ) external onlyFactoryOwner {
+        _performanceGoals.push(
+            PerformanceGoal({
+                amount: goalAmount,
+                description: description,
+                reached: false
+            })
+        );
 
         // Transfer tokens for the new goal
         IERC20(token).safeTransferFrom(msg.sender, address(this), goalAmount);
 
-        emit NewGoalAdded(_performanceGoals.length - 1, goalAmount, description);
+        emit NewGoalAdded(_performanceGoals.length, goalAmount, description);
     }
 
     /// @inheritdoc ISummerVestingWalletV2
-    function markGoalReached(uint256 goalIndex) external onlyFoundation {
-        if (goalIndex >= _performanceGoals.length) {
-            revert InvalidGoalIndex();
+    function markGoalReached(uint256 goalNumber) external onlyFactoryOwner {
+        if (goalNumber < 1 || goalNumber > _performanceGoals.length) {
+            revert InvalidGoalNumber();
         }
-
-        _performanceGoals[goalIndex].reached = true;
-        emit GoalReached(goalIndex);
+        _performanceGoals[goalNumber - 1].reached = true;
+        emit GoalReached(goalNumber);
     }
 
     /// @inheritdoc ISummerVestingWalletV2
-    function recallUnvestedTokens() external onlyFoundation returns (uint256 timeBasedRecalled, uint256 performanceBasedRecalled) {
-        // Calculate unvested time-based tokens
-        timeBasedRecalled = _calculateUnvestedTimeBasedTokens();
-        
-        // Calculate unvested performance-based tokens
-        performanceBasedRecalled = _calculateUnvestedPerformanceTokens();
-
-        // Mark recalled tokens
-        timeBasedTokensRecalled += timeBasedRecalled;
-        performanceBasedTokensRecalled += performanceBasedRecalled;
-
-        // Reset unreached performance goals to 0
-        for (uint256 i = 0; i < _performanceGoals.length; i++) {
-            if (!_performanceGoals[i].reached) {
-                _performanceGoals[i].amount = 0;
-            }
+    function recallUnvestedTokens() external onlyFactoryOwner {
+        if (isRecalled) {
+            revert TokensAlreadyRecalled();
         }
 
-        // Transfer recalled tokens back to admin
-        uint256 totalRecalled = timeBasedRecalled + performanceBasedRecalled;
-        if (totalRecalled > 0) {
-            IERC20(token).safeTransfer(msg.sender, totalRecalled);
+        // Get ALL tokens from this wallet - no calculations needed
+        uint256 totalBalance = IERC20(token).balanceOf(address(this));
+
+        // Brick the wallet permanently
+        isRecalled = true;
+
+        // Transfer ALL tokens to admin (vested + unvested = everything)
+        if (totalBalance > 0) {
+            IERC20(token).safeTransfer(msg.sender, totalBalance);
         }
 
-        emit UnvestedTokensRecalled(timeBasedRecalled, performanceBasedRecalled);
+        emit UnvestedTokensRecalled(totalBalance);
     }
 
     //////////////////////////////////////////////
@@ -198,10 +207,15 @@ contract SummerVestingWalletV2 is
         uint256,
         uint64 timestamp
     ) internal view override returns (uint256) {
+        // If tokens have been recalled, no more vesting
+        if (isRecalled || timestamp < _vestingParams.cliffEndTimestamp) {
+            return 0;
+        }
+
         uint256 cliffVested = _calculateCliffVesting(timestamp);
         uint256 timeBasedVested = _calculateTimeBasedVesting(timestamp);
         uint256 performanceBasedVested = _calculatePerformanceBasedVesting();
-        
+
         return cliffVested + timeBasedVested + performanceBasedVested;
     }
 
@@ -214,7 +228,9 @@ contract SummerVestingWalletV2 is
      * @param timestamp Current timestamp
      * @return Amount vested from cliff
      */
-    function _calculateCliffVesting(uint64 timestamp) private view returns (uint256) {
+    function _calculateCliffVesting(
+        uint64 timestamp
+    ) private view returns (uint256) {
         if (timestamp >= _vestingParams.cliffEndTimestamp) {
             return _vestingParams.cliffAmount;
         }
@@ -226,35 +242,39 @@ contract SummerVestingWalletV2 is
      * @param timestamp Current timestamp
      * @return Amount vested from time-based schedule
      */
-    function _calculateTimeBasedVesting(uint64 timestamp) private view returns (uint256) {
-        if (timestamp < _vestingParams.cliffEndTimestamp) {
-            return 0;
-        }
-
-        if (_vestingParams.totalVestingAmount == 0 || _vestingParams.vestingPeriods == 0) {
+    function _calculateTimeBasedVesting(
+        uint64 timestamp
+    ) private view returns (uint256) {
+        if (
+            _vestingParams.totalVestingAmount == 0 ||
+            _vestingParams.vestingPeriods == 0
+        ) {
             return 0;
         }
 
         uint256 timeSinceCliff = timestamp - _vestingParams.cliffEndTimestamp;
-        uint256 periodsPassed = timeSinceCliff / MONTH;
+        uint256 elapsedMonths = timeSinceCliff / MONTH;
 
-        if (periodsPassed >= _vestingParams.vestingPeriods) {
-            // All periods have passed, return full amount minus recalled
-            return _vestingParams.totalVestingAmount - timeBasedTokensRecalled;
+        if (elapsedMonths >= _vestingParams.vestingPeriods) {
+            // All periods have passed, return full amount
+            return _vestingParams.totalVestingAmount;
         }
 
         // Calculate vested amount based on periods passed
-        uint256 amountPerPeriod = _vestingParams.totalVestingAmount / _vestingParams.vestingPeriods;
-        uint256 vestedAmount = periodsPassed * amountPerPeriod;
-        
-        return vestedAmount > timeBasedTokensRecalled ? vestedAmount - timeBasedTokensRecalled : 0;
+        uint256 amountPerPeriod = _vestingParams.totalVestingAmount /
+            _vestingParams.vestingPeriods;
+        return elapsedMonths * amountPerPeriod;
     }
 
     /**
      * @dev Calculates performance-based vesting amount
      * @return Amount vested from performance goals
      */
-    function _calculatePerformanceBasedVesting() private view returns (uint256) {
+    function _calculatePerformanceBasedVesting()
+        private
+        view
+        returns (uint256)
+    {
         uint256 vested = 0;
         for (uint256 i = 0; i < _performanceGoals.length; i++) {
             if (_performanceGoals[i].reached) {
@@ -263,43 +283,4 @@ contract SummerVestingWalletV2 is
         }
         return vested;
     }
-
-    /**
-     * @dev Calculates unvested time-based tokens
-     * @return Amount of unvested time-based tokens
-     */
-    function _calculateUnvestedTimeBasedTokens() private view returns (uint256) {
-        // Calculate how much should be vested now (without considering recalled tokens)
-        uint256 timeSinceCliff = block.timestamp >= _vestingParams.cliffEndTimestamp ? 
-                                 block.timestamp - _vestingParams.cliffEndTimestamp : 0;
-        uint256 periodsPassed = timeSinceCliff / MONTH;
-        
-        uint256 shouldBeVested;
-        if (periodsPassed >= _vestingParams.vestingPeriods) {
-            shouldBeVested = _vestingParams.totalVestingAmount;
-        } else {
-            uint256 amountPerPeriod = _vestingParams.totalVestingAmount / _vestingParams.vestingPeriods;
-            shouldBeVested = periodsPassed * amountPerPeriod;
-        }
-        
-        // Calculate how much is still unvested
-        uint256 totalAllocated = _vestingParams.totalVestingAmount;
-        uint256 totalVested = shouldBeVested + timeBasedTokensRecalled;
-        
-        return totalAllocated > totalVested ? totalAllocated - totalVested : 0;
-    }
-
-    /**
-     * @dev Calculates unvested performance-based tokens
-     * @return Amount of unvested performance-based tokens
-     */
-    function _calculateUnvestedPerformanceTokens() private view returns (uint256) {
-        uint256 unvested = 0;
-        for (uint256 i = 0; i < _performanceGoals.length; i++) {
-            if (!_performanceGoals[i].reached && _performanceGoals[i].amount > 0) {
-                unvested += _performanceGoals[i].amount;
-            }
-        }
-        return unvested;
-    }
-} 
+}

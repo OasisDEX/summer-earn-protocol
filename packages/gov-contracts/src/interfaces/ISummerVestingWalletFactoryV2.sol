@@ -67,18 +67,22 @@ interface ISummerVestingWalletFactoryV2 {
      * @param beneficiary The address of the beneficiary
      * @return The address of the vesting wallet
      */
-    function vestingWallets(address beneficiary) external view returns (address);
+    function vestingWallets(
+        address beneficiary
+    ) external view returns (address);
 
     /**
      * @notice Gets the beneficiary of a vesting wallet
      * @param vestingWallet The address of the vesting wallet
      * @return The address of the beneficiary
      */
-    function vestingWalletOwners(address vestingWallet) external view returns (address);
+    function vestingWalletOwners(
+        address vestingWallet
+    ) external view returns (address);
 
     /**
      * @notice Gets the token address used by the factory
      * @return The address of the token
      */
     function token() external view returns (address);
-} 
+}
