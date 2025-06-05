@@ -5,7 +5,7 @@ features:
   - grafting
 graft:
   base: QmNbkpy3DL8FqD1A8QvpL1Lej5ooEZxzf9CsW6UD8etHok
-  block: 31812917
+  block: 31810000
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
