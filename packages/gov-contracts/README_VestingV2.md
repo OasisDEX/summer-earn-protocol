@@ -27,14 +27,9 @@ The V2 vesting system addresses the new requirements for internally controlled v
 - **Flexible Tracking**: Goals are tracked by index (0-based) for easy management
 
 ### 4. Enhanced Recall Functionality
-- **Time-Based Recall**: Can recall unvested time-based tokens (not just performance tokens)
-- **Performance-Based Recall**: Can recall tokens from unreached performance goals
-- **Separate Tracking**: Returns separate amounts for time-based and performance-based recalls
+- **All-remaining tokens recall**: Can recall all tokens
 - **One-Time Operation**: Recalled tokens cannot be recalled again
 
-### 5. Delegation Support
-- The vesting wallet maintains compatibility with the existing delegation system
-- Unvested tokens can still be delegated to governance
 
 ## Contract Architecture
 
