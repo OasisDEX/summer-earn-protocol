@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {BridgeRouter, IBridgeRouter} from "@summerfi/chain-bridge/router/BridgeRouter.sol";
@@ -18,6 +19,71 @@ import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 
+// Simple mock registry for fork testing
+contract SimpleMockRegistry is ICrossChainRegistry {
+    function registerArkProxy(
+        address,
+        uint16,
+        address,
+        string calldata
+    ) external override {}
+    function unregisterArkProxy(address) external override {}
+    function updateRelationshipStatus(address, bool) external override {}
+    function getProxyForArk(
+        address
+    ) external pure override returns (address, uint16) {
+        revert RelationshipDoesNotExist(address(0));
+    }
+    function getArkForProxy(
+        uint16,
+        address
+    ) external pure override returns (address) {
+        revert RelationshipDoesNotExist(address(0));
+    }
+    function isValidArkProxyPair(
+        address,
+        uint16,
+        address
+    ) external pure override returns (bool) {
+        return false;
+    }
+    function getRelation(
+        address
+    ) external pure override returns (ArkProxyRelation memory) {
+        revert RelationshipDoesNotExist(address(0));
+    }
+    function getRelationshipMetadata(
+        address
+    ) external pure override returns (RelationshipMetadata memory) {
+        revert RelationshipDoesNotExist(address(0));
+    }
+    function getRegisteredArks()
+        external
+        pure
+        override
+        returns (address[] memory)
+    {
+        return new address[](0);
+    }
+    function getRegisteredProxies(
+        uint16
+    ) external pure override returns (address[] memory) {
+        return new address[](0);
+    }
+    function getRelationshipCount() external pure override returns (uint256) {
+        return 0;
+    }
+    function isArkRegistered(address) external pure override returns (bool) {
+        return false;
+    }
+    function isProxyRegistered(
+        address,
+        uint16
+    ) external pure override returns (bool) {
+        return false;
+    }
+}
+
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
@@ -26,6 +92,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     StargateAdapter public stargateAdapter;
     IERC20 public usdc;
     MockStargateV2 public mockStargate;
+    SimpleMockRegistry public registry;
 
     // LayerZero specific constants
     address public constant LZ_ENDPOINT_MAINNET =
@@ -149,9 +216,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
+        // Create mock registry
+        registry = new SimpleMockRegistry();
+
         ark = new CrossChainArk(
             address(bridgeQueue),
             address(bridgeRouter),
+            address(registry),
             DEST_CHAIN_ID,
             params
         );

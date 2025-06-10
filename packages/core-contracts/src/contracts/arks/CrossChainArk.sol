@@ -8,6 +8,7 @@ import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInfligh
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
+import {ICrossChainRegistry} from "../../interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
@@ -68,6 +69,9 @@ contract CrossChainArk is
     /// @notice Thrown when the provided asset address is invalid.
     error InvalidAsset();
 
+    /// @notice Thrown when the provided registry address is invalid.
+    error InvalidRegistry();
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -76,9 +80,12 @@ contract CrossChainArk is
     IBridgeQueue public immutable bridgeQueue;
     /// @notice The BridgeRouter contract for executing cross-chain operations
     IBridgeRouter public immutable bridgeRouter;
+    /// @notice The CrossChainRegistry contract for managing cross-chain relationships
+    ICrossChainRegistry public immutable crossChainRegistry;
     /// @notice The target chain ID for cross-chain operations
     uint16 public immutable targetChainId;
-    /// @notice The target proxy address on the satellite chain
+    /// @notice The target proxy address on the satellite chain (DEPRECATED: Use crossChainRegistry instead)
+    /// @dev This field is kept for backward compatibility but marked as deprecated
     address public targetProxy;
 
     /// @notice Last known remote asset balance (from state read)
@@ -118,32 +125,38 @@ contract CrossChainArk is
      * @notice Constructor to set up the CrossChainArk
      * @param _bridgeQueue Address of the BridgeQueue contract
      * @param _bridgeRouter Address of the BridgeRouter contract
+     * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _targetChainId ID of the target chain
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
         address _bridgeQueue,
         address _bridgeRouter,
+        address _crossChainRegistry,
         uint16 _targetChainId,
         ArkParams memory _params
     ) Ark(_params) {
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
+        if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_targetChainId == 0) revert InvalidTargetChain();
 
         bridgeQueue = IBridgeQueue(_bridgeQueue);
         bridgeRouter = IBridgeRouter(_bridgeRouter);
+        crossChainRegistry = ICrossChainRegistry(_crossChainRegistry);
         targetChainId = _targetChainId;
 
-        // targetProxy is initialized to address(0) by default and must be set later
+        // targetProxy is initialized to address(0) by default and must be set later for backward compatibility
+        // New deployments should use the registry instead
     }
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL GOVERNOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Set new target proxy address
+    /// @notice Set new target proxy address (DEPRECATED: Use registry instead)
     /// @param _targetProxy The new target proxy address
+    /// @dev This function is deprecated. New deployments should register relationships via CrossChainRegistry
     function setTargetProxy(address _targetProxy) external onlyGovernor {
         if (_targetProxy == address(0)) revert InvalidTargetProxy();
 
@@ -186,12 +199,13 @@ contract CrossChainArk is
         onlyKeeper
         returns (bytes32 queueId)
     {
-        if (targetProxy == address(0)) revert InvalidTargetProxy();
+        address proxyAddress = _getTargetProxy();
+        if (proxyAddress == address(0)) revert InvalidTargetProxy();
 
         // Queue a state read to get the total assets from the FleetProxy on the target chain
         queueId = bridgeQueue.queueReadState(
             targetChainId,
-            targetProxy,
+            proxyAddress,
             IFleetProxy.totalAssets.selector,
             ""
         );
@@ -199,7 +213,7 @@ contract CrossChainArk is
         emit RemoteAssetBalanceUpdateRequested(
             queueId,
             targetChainId,
-            targetProxy
+            proxyAddress
         );
     }
 
@@ -251,11 +265,11 @@ contract CrossChainArk is
     /**
      * @notice Boards the Ark by initiating a cross-chain transfer
      * @param amount Amount of tokens to transfer
-     * @dev This function queues a cross-chain transfer to the target proxy
+     * @dev This function queues a cross-chain transfer to the target proxy using the registry
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        // Ensure targetProxy is set
-        if (targetProxy == address(0)) revert InvalidTargetProxy();
+        address proxyAddress = _getTargetProxy();
+        if (proxyAddress == address(0)) revert InvalidTargetProxy();
 
         // Approve BridgeQueue to spend tokens
         config.asset.approve(address(bridgeQueue), amount);
@@ -264,7 +278,7 @@ contract CrossChainArk is
             targetChainId,
             address(config.asset),
             amount,
-            targetProxy
+            proxyAddress
         );
     }
 
@@ -339,6 +353,28 @@ contract CrossChainArk is
         }
 
         emit AssetsReceived(tokenAddress, amount, sourceChainId);
+    }
+
+    /**
+     * @notice Gets the target proxy address, trying registry first then fallback to deprecated field
+     * @return proxyAddress The target proxy address, or address(0) if not found
+     * @dev This function provides backward compatibility while transitioning to registry-based lookups
+     */
+    function _getTargetProxy() internal view returns (address proxyAddress) {
+        // Try to get from registry first
+        try crossChainRegistry.getProxyForArk(address(this)) returns (
+            address proxy,
+            uint16 chainId
+        ) {
+            if (proxy != address(0) && chainId == targetChainId) {
+                return proxy;
+            }
+        } catch {
+            // Registry lookup failed, fall back to deprecated field
+        }
+
+        // Fallback to deprecated targetProxy field for backward compatibility
+        return targetProxy;
     }
 
     /**
