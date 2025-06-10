@@ -146,9 +146,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             params
         );
 
-        // Set the target proxy after construction (for backward compatibility testing)
-        vm.prank(governor);
-        ark.setTargetProxy(proxy);
+        // Register the ark-proxy relationship in the registry
+        registry.setRelation(address(ark), chainId, proxy);
 
         // Set up FleetCommander with BufferArk
         (address fleetCommanderAddress, ) = setupFleetCommanderWithBufferArk(
@@ -172,7 +171,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.bridgeRouter()), address(router));
         assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.targetChainId(), chainId);
-        assertEq(ark.targetProxy(), proxy);
+        assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
     }
 
     function testBoardCallsQueueTransferAssets() public {
