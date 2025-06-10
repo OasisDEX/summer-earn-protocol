@@ -26,6 +26,10 @@ import {IArkConfigProvider} from "../../src/interfaces/IArkConfigProvider.sol";
 
 // Mock CrossChainRegistry for testing
 contract MockFleetProxyRegistry is ICrossChainRegistry {
+    mapping(uint16 => mapping(address => address)) private chainToProxyToArk;
+    mapping(uint16 => mapping(address => address)) private chainToArkToProxy;
+    mapping(address => bool) private arkToProxyActive;
+
     function registerArkProxy(address, uint16, address) external override {}
 
     function unregisterArkProxy(address) external override {}
@@ -39,18 +43,24 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
     }
 
     function getArkForProxy(
-        uint16,
-        address
-    ) external pure override returns (address) {
-        revert RelationshipDoesNotExist(address(0));
+        uint16 sourceChainId,
+        address proxy
+    ) external view override returns (address) {
+        address ark = chainToProxyToArk[sourceChainId][proxy];
+        if (ark == address(0)) {
+            revert RelationshipDoesNotExist(proxy);
+        }
+        return ark;
     }
 
     function isValidArkProxyPair(
-        address,
-        uint16,
-        address
-    ) external pure override returns (bool) {
-        return false;
+        address ark,
+        uint16 targetChainId,
+        address proxy
+    ) external view override returns (bool) {
+        return
+            chainToProxyToArk[targetChainId][proxy] == ark &&
+            arkToProxyActive[ark];
     }
 
     function getRegisteredArks()
@@ -68,6 +78,17 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
 
     function isArkRegistered(address) external pure override returns (bool) {
         return false;
+    }
+
+    // Helper for testing
+    function setMockRelationship(
+        uint16 sourceChainId,
+        address proxy,
+        address ark
+    ) external {
+        chainToProxyToArk[sourceChainId][proxy] = ark;
+        chainToArkToProxy[sourceChainId][ark] = proxy;
+        arkToProxyActive[ark] = true;
     }
 }
 
@@ -159,9 +180,12 @@ contract CrossChainFleetProxyTest is Test {
             address(fleetCommanderMock)
         );
 
-        // Set the source chain ark after construction (for backward compatibility testing)
-        vm.prank(governor);
-        proxy.setSourceChainArk(SOURCE_ARK_ADDRESS);
+        // Register the ark-proxy relationship in the registry
+        mockRegistry.setMockRelationship(
+            SOURCE_CHAIN_ID,
+            address(proxy),
+            SOURCE_ARK_ADDRESS
+        );
 
         vm.startPrank(governor);
         accessManager.grantKeeperRole(address(proxy), governor);
@@ -180,7 +204,12 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(address(proxy.bridgeQueue()), address(mockBridgeQueue));
         assertEq(address(proxy.crossChainRegistry()), address(mockRegistry));
         assertEq(proxy.fleetContract(), address(fleetCommanderMock));
-        assertEq(proxy.sourceChainArk(), SOURCE_ARK_ADDRESS);
+        // Verify registry relationship works
+        address arkFromRegistry = mockRegistry.getArkForProxy(
+            SOURCE_CHAIN_ID,
+            address(proxy)
+        );
+        assertEq(arkFromRegistry, SOURCE_ARK_ADDRESS);
     }
 
     //----------------- Administrative Tests -----------------//
