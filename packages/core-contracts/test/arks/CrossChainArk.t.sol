@@ -6,6 +6,7 @@ import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
@@ -17,10 +18,117 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
+// Mock CrossChainRegistry for testing
+contract MockCrossChainRegistry is ICrossChainRegistry {
+    mapping(address => ArkProxyRelation) private arkToProxy;
+
+    function registerArkProxy(
+        address ark,
+        uint16 targetChainId,
+        address proxy,
+        string calldata description
+    ) external override {}
+
+    function unregisterArkProxy(address ark) external override {}
+
+    function updateRelationshipStatus(
+        address ark,
+        bool isActive
+    ) external override {}
+
+    function getProxyForArk(
+        address ark
+    ) external view override returns (address proxy, uint16 targetChainId) {
+        ArkProxyRelation memory relation = arkToProxy[ark];
+        if (relation.proxy == address(0)) {
+            revert RelationshipDoesNotExist(ark);
+        }
+        return (relation.proxy, relation.targetChainId);
+    }
+
+    function getArkForProxy(
+        uint16 sourceChainId,
+        address proxy
+    ) external view override returns (address ark) {
+        revert RelationshipDoesNotExist(address(0));
+    }
+
+    function isValidArkProxyPair(
+        address ark,
+        uint16 targetChainId,
+        address proxy
+    ) external view override returns (bool isValid) {
+        return false;
+    }
+
+    function getRelation(
+        address ark
+    ) external view override returns (ArkProxyRelation memory relation) {
+        return arkToProxy[ark];
+    }
+
+    function getRelationshipMetadata(
+        address ark
+    ) external view override returns (RelationshipMetadata memory metadata) {
+        return RelationshipMetadata("", 0, address(0), bytes32(0));
+    }
+
+    function getRegisteredArks()
+        external
+        view
+        override
+        returns (address[] memory arks)
+    {
+        return new address[](0);
+    }
+
+    function getRegisteredProxies(
+        uint16 chainId
+    ) external view override returns (address[] memory proxies) {
+        return new address[](0);
+    }
+
+    function getRelationshipCount()
+        external
+        view
+        override
+        returns (uint256 count)
+    {
+        return 0;
+    }
+
+    function isArkRegistered(
+        address ark
+    ) external view override returns (bool isRegistered) {
+        return false;
+    }
+
+    function isProxyRegistered(
+        address proxy,
+        uint16 chainId
+    ) external view override returns (bool isRegistered) {
+        return false;
+    }
+
+    // Helper for testing
+    function setRelation(
+        address ark,
+        uint16 targetChainId,
+        address proxy
+    ) external {
+        arkToProxy[ark] = ArkProxyRelation({
+            proxy: proxy,
+            targetChainId: targetChainId,
+            isActive: true
+        });
+    }
+}
+
 contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainArk ark;
     MockBridgeQueue queue;
     MockBridgeRouter router;
+    MockCrossChainRegistry registry;
     address proxy = address(0x5);
     uint16 chainId = 1234;
     FleetCommander fleetCommander;
@@ -31,6 +139,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         initializeCoreContracts();
         queue = new MockBridgeQueue();
         router = new MockBridgeRouter();
+        registry = new MockCrossChainRegistry();
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
@@ -58,11 +167,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
         ark = new CrossChainArk(
             address(queue),
             address(router),
+            address(registry),
             chainId,
             params
         );
 
-        // Set the target proxy after construction
+        // Set the target proxy after construction (for backward compatibility testing)
         vm.prank(governor);
         ark.setTargetProxy(proxy);
 
@@ -86,6 +196,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function testConstructorSetsState() public view {
         assertEq(address(ark.bridgeQueue()), address(queue));
         assertEq(address(ark.bridgeRouter()), address(router));
+        assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.targetChainId(), chainId);
         assertEq(ark.targetProxy(), proxy);
     }
