@@ -25,13 +25,10 @@ contract CrossChainRegistryTest is Test {
     uint16 public constant CURRENT_CHAIN_ID = 1;
     uint16 public constant TARGET_CHAIN_ID = 2;
 
-    string public constant DEFAULT_DESCRIPTION = "Test relationship";
-
     event ArkProxyRegistered(
         address indexed ark,
         uint16 indexed targetChainId,
-        address indexed proxy,
-        address creator
+        address indexed proxy
     );
 
     event ArkProxyUnregistered(
@@ -40,34 +37,7 @@ contract CrossChainRegistryTest is Test {
         address indexed proxy
     );
 
-    event RelationshipStatusUpdated(
-        address indexed ark,
-        uint16 indexed targetChainId,
-        address indexed proxy,
-        bool isActive
-    );
-
-    event RelationshipStatusChanged(
-        address indexed ark,
-        uint16 indexed targetChainId,
-        address indexed proxy,
-        ICrossChainRegistry.RelationshipStatus oldStatus,
-        ICrossChainRegistry.RelationshipStatus newStatus
-    );
-
-    event RelationshipMetadataUpdated(
-        address indexed ark,
-        string description,
-        bytes32 configHash
-    );
-
-    event BatchRegistrationCompleted(uint256 count, address indexed actor);
-
-    event RelationshipActionRecorded(
-        address indexed ark,
-        ICrossChainRegistry.RelationshipAction indexed action,
-        address indexed actor
-    );
+    event RelationshipStatusUpdated(address indexed ark, bool isActive);
 
     function setUp() public {
         // Deploy access manager
@@ -82,32 +52,6 @@ contract CrossChainRegistryTest is Test {
         // Grant roles
         vm.prank(governor);
         accessManager.grantKeeperRole(address(registry), keeper);
-
-        // Deploy mock contracts for validation
-        vm.etch(
-            ark1,
-            hex"608060405234801561001057600080fd5b50600436106100575760003560e01c80638da5cb5b1461005c578063a41368620461007a578063f2fde38b14610080575b600080fd5b6100646100a3565b60405161007191906100d4565b60405180910390f35b50600190565b61009361008e3660046100ef565b505050505050565b005b600061009e6100a3565b905090565b60006100ae6100a3565b905090565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006100de826100b3565b9050919050565b6100ee816100d3565b82525050565b60006020828403121561010657610105610122565b5b6000610114848285016100e5565b91505092915050565b600080fd5b50565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fdfea264697066735822"
-        );
-        vm.etch(
-            ark2,
-            hex"608060405234801561001057600080fd5b50600436106100575760003560e01c80638da5cb5b1461005c578063a41368620461007a578063f2fde38b14610080575b600080fd5b6100646100a3565b60405161007191906100d4565b60405180910390f35b50600190565b61009361008e3660046100ef565b505050505050565b005b600061009e6100a3565b905090565b60006100ae6100a3565b905090565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006100de826100b3565b9050919050565b6100ee816100d3565b82525050565b60006020828403121561010657610105610122565b5b6000610114848285016100e5565b91505092915050565b600080fd5b50565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fdfea264697066735822"
-        );
-        vm.etch(
-            ark3,
-            hex"608060405234801561001057600080fd5b50600436106100575760003560e01c80638da5cb5b1461005c578063a41368620461007a578763f2fde38b14610080575b600080fd5b6100646100a3565b60405161007191906100d4565b60405180910390f35b50600190565b61009361008e3660046100ef565b505050505050565b005b600061009e6100a3565b905090565b60006100ae6100a3565b905090565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006100de826100b3565b9050919050565b6100ee816100d3565b82525050565b60006020828403121561010657610105610122565b5b6000610114848285016100e5565b91505092915050565b600080fd5b50565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fdfea264697066735822"
-        );
-        vm.etch(
-            proxy1,
-            hex"608060405234801561001057600080fd5b50600436106100575760003560e01c80638da5cb5b1461005c578063a41368620461007a578063f2fde38b14610080575b600080fd5b6100646100a3565b60405161007191906100d4565b60405180910390f35b50600190565b61009361008e3660046100ef565b505050505050565b005b600061009e6100a3565b905090565b60006100ae6100a3565b905090565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006100de826100b3565b9050919050565b6100ee816100d3565b82525050565b60006020828403121561010657610105610122565b5b6000610114848285016100e5565b91505092915050565b600080fd5b50565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fdfea264697066735822"
-        );
-        vm.etch(
-            proxy2,
-            hex"608060405234801561001057600080fd5b50600436106100575760003560e01c80638da5cb5b1461005c578063a41368620461007a578063f2fde38b14610080575b600080fd5b6100646100a3565b60405161007191906100d4565b60405180910390f35b50600190565b61009361008e3660046100ef565b505050505050565b005b600061009e6100a3565b905090565b60006100ae6100a3565b905090565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006100de826100b3565b9050919050565b6100ee816100d3565b82525050565b60006020828403121561010657610105610122565b5b6000610114848285016100e5565b91505092915050565b600080fd5b50565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fdfea264697066735822"
-        );
-        vm.etch(
-            proxy3,
-            hex"608060405234801561001057600080fd5b50600436106100575760003560e01c80638da5cb5b1461005c578063a41368620461007a578063f2fde38b14610080575b600080fd5b6100646100a3565b60405161007191906100d4565b60405180910390f35b50600190565b61009361008e3660046100ef565b505050505050565b005b600061009e6100a3565b905090565b60006100ae6100a3565b905090565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006100de826100b3565b9050919050565b6100ee816100d3565b82525050565b60006020828403121561010657610105610122565b5b6000610114848285016100e5565b91505092915050565b600080fd5b50565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fdfea264697066735822"
-        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -121,22 +65,10 @@ contract CrossChainRegistryTest is Test {
 
     function test_registerArkProxy() public {
         vm.expectEmit(true, true, true, true);
-        emit ArkProxyRegistered(ark1, TARGET_CHAIN_ID, proxy1, governor);
-
-        vm.expectEmit(true, true, true, false);
-        emit RelationshipActionRecorded(
-            ark1,
-            ICrossChainRegistry.RelationshipAction.CREATED,
-            governor
-        );
+        emit ArkProxyRegistered(ark1, TARGET_CHAIN_ID, proxy1);
 
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
         // Check relationship was created
         (address proxy, uint16 chainId) = registry.getProxyForArk(ark1);
@@ -150,7 +82,6 @@ contract CrossChainRegistryTest is Test {
         // Check validation
         assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
         assertTrue(registry.isArkRegistered(ark1));
-        assertTrue(registry.isProxyRegistered(proxy1, CURRENT_CHAIN_ID));
 
         // Check count
         assertEq(registry.getRelationshipCount(), 1);
@@ -164,12 +95,7 @@ contract CrossChainRegistryTest is Test {
                 address(0)
             )
         );
-        registry.registerArkProxy(
-            address(0),
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(address(0), TARGET_CHAIN_ID, proxy1);
     }
 
     function test_registerArkProxy_revertInvalidProxy() public {
@@ -180,12 +106,7 @@ contract CrossChainRegistryTest is Test {
                 address(0)
             )
         );
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            address(0),
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, address(0));
     }
 
     function test_registerArkProxy_revertInvalidChainId() public {
@@ -196,17 +117,12 @@ contract CrossChainRegistryTest is Test {
                 0
             )
         );
-        registry.registerArkProxy(ark1, 0, proxy1, DEFAULT_DESCRIPTION);
+        registry.registerArkProxy(ark1, 0, proxy1);
     }
 
-    function test_registerArkProxy_revertRelationshipAlreadyExists() public {
+    function test_registerArkProxy_revertAlreadyExists() public {
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
         vm.prank(governor);
         vm.expectRevert(
@@ -214,25 +130,15 @@ contract CrossChainRegistryTest is Test {
                 ICrossChainRegistry.RelationshipAlreadyExists.selector,
                 ark1,
                 TARGET_CHAIN_ID,
-                proxy2
+                proxy1
             )
         );
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy2,
-            "Different proxy"
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
     }
 
     function test_registerArkProxy_revertProxyAlreadyRegistered() public {
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
         vm.prank(governor);
         vm.expectRevert(
@@ -243,55 +149,41 @@ contract CrossChainRegistryTest is Test {
                 ark1
             )
         );
-        registry.registerArkProxy(
-            ark2,
-            TARGET_CHAIN_ID,
-            proxy1,
-            "Different ark"
-        );
+        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy1);
     }
 
-    function test_registerArkProxy_revertUnauthorized() public {
+    function test_registerArkProxy_onlyGovernor() public {
         vm.prank(user);
         vm.expectRevert();
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
     }
 
     function test_unregisterArkProxy() public {
         // First register
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
         vm.expectEmit(true, true, true, true);
         emit ArkProxyUnregistered(ark1, TARGET_CHAIN_ID, proxy1);
-
-        vm.expectEmit(true, true, true, false);
-        emit RelationshipActionRecorded(
-            ark1,
-            ICrossChainRegistry.RelationshipAction.DELETED,
-            governor
-        );
 
         vm.prank(governor);
         registry.unregisterArkProxy(ark1);
 
         // Check relationship was removed
         assertFalse(registry.isArkRegistered(ark1));
-        assertFalse(registry.isProxyRegistered(proxy1, CURRENT_CHAIN_ID));
         assertEq(registry.getRelationshipCount(), 0);
+
+        // Should revert when trying to access
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                ark1
+            )
+        );
+        registry.getProxyForArk(ark1);
     }
 
-    function test_unregisterArkProxy_revertRelationshipDoesNotExist() public {
+    function test_unregisterArkProxy_revertNotExists() public {
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -302,178 +194,211 @@ contract CrossChainRegistryTest is Test {
         registry.unregisterArkProxy(ark1);
     }
 
-    function test_updateRelationshipStatus() public {
-        // Register first
+    function test_unregisterArkProxy_onlyGovernor() public {
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+
+        vm.prank(user);
+        vm.expectRevert();
+        registry.unregisterArkProxy(ark1);
+    }
+
+    function test_updateRelationshipStatus() public {
+        // First register
+        vm.prank(governor);
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+
+        // Check initially active
+        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
 
         // Deactivate
-        vm.expectEmit(true, true, true, true);
-        emit RelationshipStatusChanged(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            ICrossChainRegistry.RelationshipStatus.ACTIVE,
-            ICrossChainRegistry.RelationshipStatus.INACTIVE
-        );
-
-        vm.expectEmit(true, true, true, true);
-        emit RelationshipStatusUpdated(ark1, TARGET_CHAIN_ID, proxy1, false);
-
-        vm.expectEmit(true, true, true, false);
-        emit RelationshipActionRecorded(
-            ark1,
-            ICrossChainRegistry.RelationshipAction.DEACTIVATED,
-            governor
-        );
+        vm.expectEmit(true, false, false, true);
+        emit RelationshipStatusUpdated(ark1, false);
 
         vm.prank(governor);
         registry.updateRelationshipStatus(ark1, false);
 
-        // Check status was updated
+        // Check now inactive
         assertFalse(
             registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1)
         );
 
         // Reactivate
+        vm.expectEmit(true, false, false, true);
+        emit RelationshipStatusUpdated(ark1, true);
+
         vm.prank(governor);
         registry.updateRelationshipStatus(ark1, true);
 
-        // Check status was updated
+        // Check active again
         assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
     }
 
-    function test_getRelation() public {
+    function test_updateRelationshipStatus_revertNotExists() public {
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                ark1
+            )
         );
-
-        ICrossChainRegistry.ArkProxyRelation memory relation = registry
-            .getRelation(ark1);
-        assertEq(relation.proxy, proxy1);
-        assertEq(relation.targetChainId, TARGET_CHAIN_ID);
-        assertEq(
-            uint256(relation.status),
-            uint256(ICrossChainRegistry.RelationshipStatus.ACTIVE)
-        );
+        registry.updateRelationshipStatus(ark1, false);
     }
 
-    function test_getRelationshipMetadata() public {
+    function test_updateRelationshipStatus_onlyGovernor() public {
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
-        ICrossChainRegistry.RelationshipMetadata memory metadata = registry
-            .getRelationshipMetadata(ark1);
-        assertEq(metadata.description, DEFAULT_DESCRIPTION);
-        assertEq(metadata.creator, governor);
-        assertTrue(metadata.createdAt > 0);
-        assertTrue(metadata.configHash != bytes32(0));
+        vm.prank(user);
+        vm.expectRevert();
+        registry.updateRelationshipStatus(ark1, false);
     }
 
     /*//////////////////////////////////////////////////////////////
-                          ENHANCED FEATURES TESTS
+                            QUERY FUNCTION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_setRelationshipStatus() public {
-        // Register first
+    function test_getProxyForArk() public {
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
-        // Test setting to PAUSED
-        vm.expectEmit(true, true, true, true);
-        emit RelationshipStatusChanged(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            ICrossChainRegistry.RelationshipStatus.ACTIVE,
-            ICrossChainRegistry.RelationshipStatus.PAUSED
-        );
+        (address proxy, uint16 chainId) = registry.getProxyForArk(ark1);
+        assertEq(proxy, proxy1);
+        assertEq(chainId, TARGET_CHAIN_ID);
+    }
 
-        vm.expectEmit(true, true, true, false);
-        emit RelationshipActionRecorded(
-            ark1,
-            ICrossChainRegistry.RelationshipAction.PAUSED,
-            governor
+    function test_getProxyForArk_revertNotExists() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                ark1
+            )
         );
+        registry.getProxyForArk(ark1);
+    }
 
+    function test_getArkForProxy() public {
         vm.prank(governor);
-        registry.setRelationshipStatus(
-            ark1,
-            ICrossChainRegistry.RelationshipStatus.PAUSED
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
-        // Check status
-        assertEq(
-            uint256(registry.getRelationshipStatus(ark1)),
-            uint256(ICrossChainRegistry.RelationshipStatus.PAUSED)
+        address ark = registry.getArkForProxy(CURRENT_CHAIN_ID, proxy1);
+        assertEq(ark, ark1);
+    }
+
+    function test_getArkForProxy_revertNotExists() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                proxy1
+            )
         );
+        registry.getArkForProxy(CURRENT_CHAIN_ID, proxy1);
+    }
+
+    function test_isValidArkProxyPair() public {
+        // Should be false before registration
         assertFalse(
             registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1)
-        ); // Only ACTIVE relationships are valid
-
-        // Test setting to DEPRECATED
-        vm.prank(governor);
-        registry.setRelationshipStatus(
-            ark1,
-            ICrossChainRegistry.RelationshipStatus.DEPRECATED
         );
 
-        assertEq(
-            uint256(registry.getRelationshipStatus(ark1)),
-            uint256(ICrossChainRegistry.RelationshipStatus.DEPRECATED)
+        vm.prank(governor);
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+
+        // Should be true after registration
+        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+
+        // Should be false for wrong combinations
+        assertFalse(
+            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy2)
+        );
+        assertFalse(
+            registry.isValidArkProxyPair(ark2, TARGET_CHAIN_ID, proxy1)
+        );
+        assertFalse(
+            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID + 1, proxy1)
+        );
+
+        // Should be false when deactivated
+        vm.prank(governor);
+        registry.updateRelationshipStatus(ark1, false);
+        assertFalse(
+            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1)
         );
     }
 
-    function test_batchRegisterArkProxy() public {
-        ICrossChainRegistry.BatchRegistrationParams[]
-            memory params = new ICrossChainRegistry.BatchRegistrationParams[](
-                3
-            );
-        params[0] = ICrossChainRegistry.BatchRegistrationParams({
-            ark: ark1,
-            targetChainId: TARGET_CHAIN_ID,
-            proxy: proxy1,
-            description: "Batch register 1"
-        });
-        params[1] = ICrossChainRegistry.BatchRegistrationParams({
-            ark: ark2,
-            targetChainId: TARGET_CHAIN_ID,
-            proxy: proxy2,
-            description: "Batch register 2"
-        });
-        params[2] = ICrossChainRegistry.BatchRegistrationParams({
-            ark: ark3,
-            targetChainId: TARGET_CHAIN_ID,
-            proxy: proxy3,
-            description: "Batch register 3"
-        });
+    /*//////////////////////////////////////////////////////////////
+                        ENUMERATION FUNCTION TESTS
+    //////////////////////////////////////////////////////////////*/
 
-        vm.expectEmit(true, false, false, true);
-        emit BatchRegistrationCompleted(3, governor);
+    function test_getRegisteredArks() public {
+        address[] memory arks = registry.getRegisteredArks();
+        assertEq(arks.length, 0);
 
         vm.prank(governor);
-        registry.batchRegisterArkProxy(params);
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
-        // Check all relationships were created
+        arks = registry.getRegisteredArks();
+        assertEq(arks.length, 1);
+        assertEq(arks[0], ark1);
+
+        vm.prank(governor);
+        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2);
+
+        arks = registry.getRegisteredArks();
+        assertEq(arks.length, 2);
+        assertTrue(arks[0] == ark1 || arks[0] == ark2);
+        assertTrue(arks[1] == ark1 || arks[1] == ark2);
+        assertTrue(arks[0] != arks[1]);
+    }
+
+    function test_isArkRegistered() public {
+        assertFalse(registry.isArkRegistered(ark1));
+
+        vm.prank(governor);
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+
+        assertTrue(registry.isArkRegistered(ark1));
+        assertFalse(registry.isArkRegistered(ark2));
+
+        vm.prank(governor);
+        registry.unregisterArkProxy(ark1);
+
+        assertFalse(registry.isArkRegistered(ark1));
+    }
+
+    function test_getRelationshipCount() public {
+        assertEq(registry.getRelationshipCount(), 0);
+
+        vm.prank(governor);
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        assertEq(registry.getRelationshipCount(), 1);
+
+        vm.prank(governor);
+        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2);
+        assertEq(registry.getRelationshipCount(), 2);
+
+        vm.prank(governor);
+        registry.unregisterArkProxy(ark1);
+        assertEq(registry.getRelationshipCount(), 1);
+
+        vm.prank(governor);
+        registry.unregisterArkProxy(ark2);
+        assertEq(registry.getRelationshipCount(), 0);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTEGRATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_multipleRegistrations() public {
+        // Register multiple relationships
+        vm.startPrank(governor);
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2);
+        registry.registerArkProxy(ark3, TARGET_CHAIN_ID, proxy3);
+        vm.stopPrank();
+
+        // Check all relationships exist
         assertEq(registry.getRelationshipCount(), 3);
         assertTrue(registry.isArkRegistered(ark1));
         assertTrue(registry.isArkRegistered(ark2));
@@ -483,330 +408,74 @@ contract CrossChainRegistryTest is Test {
         (address proxy, uint16 chainId) = registry.getProxyForArk(ark1);
         assertEq(proxy, proxy1);
         assertEq(chainId, TARGET_CHAIN_ID);
+
+        (proxy, chainId) = registry.getProxyForArk(ark2);
+        assertEq(proxy, proxy2);
+        assertEq(chainId, TARGET_CHAIN_ID);
+
+        (proxy, chainId) = registry.getProxyForArk(ark3);
+        assertEq(proxy, proxy3);
+        assertEq(chainId, TARGET_CHAIN_ID);
+
+        // Check reverse mappings
+        assertEq(registry.getArkForProxy(CURRENT_CHAIN_ID, proxy1), ark1);
+        assertEq(registry.getArkForProxy(CURRENT_CHAIN_ID, proxy2), ark2);
+        assertEq(registry.getArkForProxy(CURRENT_CHAIN_ID, proxy3), ark3);
+
+        // Check validations
+        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+        assertTrue(registry.isValidArkProxyPair(ark2, TARGET_CHAIN_ID, proxy2));
+        assertTrue(registry.isValidArkProxyPair(ark3, TARGET_CHAIN_ID, proxy3));
     }
 
-    function test_batchUnregisterArkProxy() public {
-        // First register multiple relationships
-        vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1, "Test 1");
-        vm.prank(governor);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2, "Test 2");
-        vm.prank(governor);
-        registry.registerArkProxy(ark3, TARGET_CHAIN_ID, proxy3, "Test 3");
-
-        assertEq(registry.getRelationshipCount(), 3);
-
-        // Batch unregister
-        address[] memory arks = new address[](2);
-        arks[0] = ark1;
-        arks[1] = ark2;
-
-        vm.prank(governor);
-        registry.batchUnregisterArkProxy(arks);
-
-        // Check relationships were removed
-        assertEq(registry.getRelationshipCount(), 1);
-        assertFalse(registry.isArkRegistered(ark1));
-        assertFalse(registry.isArkRegistered(ark2));
-        assertTrue(registry.isArkRegistered(ark3)); // Still registered
-    }
-
-    function test_updateRelationshipMetadata() public {
-        // Register first
-        vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
-
-        string memory newDescription = "Updated description";
-        bytes32 newConfigHash = keccak256("new config");
-
-        vm.expectEmit(true, false, false, true);
-        emit RelationshipMetadataUpdated(ark1, newDescription, newConfigHash);
-
-        vm.expectEmit(true, true, true, false);
-        emit RelationshipActionRecorded(
-            ark1,
-            ICrossChainRegistry.RelationshipAction.METADATA_UPDATED,
-            governor
-        );
-
-        vm.prank(governor);
-        registry.updateRelationshipMetadata(
-            ark1,
-            newDescription,
-            newConfigHash
-        );
-
-        // Check metadata was updated
-        ICrossChainRegistry.RelationshipMetadata memory metadata = registry
-            .getRelationshipMetadata(ark1);
-        assertEq(metadata.description, newDescription);
-        assertEq(metadata.configHash, newConfigHash);
-    }
-
-    function test_getRelationshipHistory() public {
+    function test_registrationAndUnregistration() public {
         // Register
         vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
-        // Update status
+        // Verify registration
+        assertTrue(registry.isArkRegistered(ark1));
+        assertEq(registry.getRelationshipCount(), 1);
+
+        // Unregister
         vm.prank(governor);
-        registry.setRelationshipStatus(
-            ark1,
-            ICrossChainRegistry.RelationshipStatus.PAUSED
-        );
+        registry.unregisterArkProxy(ark1);
 
-        // Update metadata
+        // Verify unregistration
+        assertFalse(registry.isArkRegistered(ark1));
+        assertEq(registry.getRelationshipCount(), 0);
+
+        // Should be able to register again
         vm.prank(governor);
-        registry.updateRelationshipMetadata(
-            ark1,
-            "New description",
-            keccak256("new config")
-        );
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
-        // Get history
-        ICrossChainRegistry.RelationshipHistoryEntry[] memory history = registry
-            .getRelationshipHistory(ark1);
-
-        assertEq(history.length, 3);
-        assertEq(
-            uint256(history[0].action),
-            uint256(ICrossChainRegistry.RelationshipAction.CREATED)
-        );
-        assertEq(
-            uint256(history[1].action),
-            uint256(ICrossChainRegistry.RelationshipAction.PAUSED)
-        );
-        assertEq(
-            uint256(history[2].action),
-            uint256(ICrossChainRegistry.RelationshipAction.METADATA_UPDATED)
-        );
-
-        // Check latest entry
-        ICrossChainRegistry.RelationshipHistoryEntry memory latest = registry
-            .getLatestHistoryEntry(ark1);
-        assertEq(
-            uint256(latest.action),
-            uint256(ICrossChainRegistry.RelationshipAction.METADATA_UPDATED)
-        );
-        assertEq(latest.actor, governor);
+        assertTrue(registry.isArkRegistered(ark1));
+        assertEq(registry.getRelationshipCount(), 1);
     }
 
-    function test_getRelationshipsByStatus() public {
-        // Register multiple relationships with different statuses
+    function test_statusManagement() public {
+        // Register
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1, "Test 1");
-        vm.prank(governor);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2, "Test 2");
-        vm.prank(governor);
-        registry.registerArkProxy(ark3, TARGET_CHAIN_ID, proxy3, "Test 3");
+        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
 
-        // Set different statuses
+        // Initially active
+        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+
+        // Deactivate
         vm.prank(governor);
-        registry.setRelationshipStatus(
-            ark2,
-            ICrossChainRegistry.RelationshipStatus.PAUSED
-        );
-        vm.prank(governor);
-        registry.setRelationshipStatus(
-            ark3,
-            ICrossChainRegistry.RelationshipStatus.DEPRECATED
+        registry.updateRelationshipStatus(ark1, false);
+
+        // Should be inactive but still registered
+        assertTrue(registry.isArkRegistered(ark1));
+        assertFalse(
+            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1)
         );
 
-        // Get relationships by status
-        address[] memory activeArks = registry.getRelationshipsByStatus(
-            ICrossChainRegistry.RelationshipStatus.ACTIVE
-        );
-        address[] memory pausedArks = registry.getRelationshipsByStatus(
-            ICrossChainRegistry.RelationshipStatus.PAUSED
-        );
-        address[] memory deprecatedArks = registry.getRelationshipsByStatus(
-            ICrossChainRegistry.RelationshipStatus.DEPRECATED
-        );
-
-        assertEq(activeArks.length, 1);
-        assertEq(pausedArks.length, 1);
-        assertEq(deprecatedArks.length, 1);
-
-        assertEq(activeArks[0], ark1);
-        assertEq(pausedArks[0], ark2);
-        assertEq(deprecatedArks[0], ark3);
-    }
-
-    function test_getRelationshipStatistics() public {
-        // Register multiple relationships with different statuses
+        // Reactivate
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1, "Test 1");
-        vm.prank(governor);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2, "Test 2");
-        vm.prank(governor);
-        registry.registerArkProxy(ark3, TARGET_CHAIN_ID, proxy3, "Test 3");
+        registry.updateRelationshipStatus(ark1, true);
 
-        // Set different statuses
-        vm.prank(governor);
-        registry.setRelationshipStatus(
-            ark2,
-            ICrossChainRegistry.RelationshipStatus.PAUSED
-        );
-        vm.prank(governor);
-        registry.setRelationshipStatus(
-            ark3,
-            ICrossChainRegistry.RelationshipStatus.DEPRECATED
-        );
-
-        // Get statistics
-        (
-            uint256 totalRelationships,
-            uint256 activeRelationships,
-            uint256 pausedRelationships,
-            uint256 deprecatedRelationships
-        ) = registry.getRelationshipStatistics();
-
-        assertEq(totalRelationships, 3);
-        assertEq(activeRelationships, 1);
-        assertEq(pausedRelationships, 1);
-        assertEq(deprecatedRelationships, 1);
-    }
-
-    function test_getChainStatistics() public {
-        // Register multiple relationships
-        vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1, "Test 1");
-        vm.prank(governor);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2, "Test 2");
-        vm.prank(governor);
-        registry.registerArkProxy(ark3, TARGET_CHAIN_ID, proxy3, "Test 3");
-
-        // Set one to inactive
-        vm.prank(governor);
-        registry.setRelationshipStatus(
-            ark2,
-            ICrossChainRegistry.RelationshipStatus.PAUSED
-        );
-
-        // Get chain statistics
-        (uint256 totalProxies, uint256 activeProxies) = registry
-            .getChainStatistics(CURRENT_CHAIN_ID);
-
-        assertEq(totalProxies, 3);
-        assertEq(activeProxies, 2); // ark1 and ark3 are active, ark2 is paused
-    }
-
-    function test_validateContractExists() public {
-        // Test with existing contract (our registry)
-        assertTrue(registry.validateContractExists(address(registry)));
-
-        // Test with EOA
-        assertFalse(registry.validateContractExists(user));
-
-        // Test with zero address
-        assertFalse(registry.validateContractExists(address(0)));
-    }
-
-    function test_relationshipExists() public {
-        assertFalse(registry.relationshipExists(ark1));
-
-        vm.prank(governor);
-        registry.registerArkProxy(
-            ark1,
-            TARGET_CHAIN_ID,
-            proxy1,
-            DEFAULT_DESCRIPTION
-        );
-
-        assertTrue(registry.relationshipExists(ark1));
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                             ERROR TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function test_getRelationshipStatus_revertRelationshipDoesNotExist()
-        public
-    {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                ark1
-            )
-        );
-        registry.getRelationshipStatus(ark1);
-    }
-
-    function test_getRelationshipHistory_emptyForNonexistentArk() public {
-        ICrossChainRegistry.RelationshipHistoryEntry[] memory history = registry
-            .getRelationshipHistory(ark1);
-        assertEq(history.length, 0);
-    }
-
-    function test_getLatestHistoryEntry_revertNoHistoryEntries() public {
-        vm.expectRevert("No history entries");
-        registry.getLatestHistoryEntry(ark1);
-    }
-
-    function test_batchRegisterArkProxy_revertEmptyBatch() public {
-        ICrossChainRegistry.BatchRegistrationParams[]
-            memory params = new ICrossChainRegistry.BatchRegistrationParams[](
-                0
-            );
-
-        vm.prank(governor);
-        vm.expectRevert("Empty batch");
-        registry.batchRegisterArkProxy(params);
-    }
-
-    function test_batchUnregisterArkProxy_revertEmptyBatch() public {
-        address[] memory arks = new address[](0);
-
-        vm.prank(governor);
-        vm.expectRevert("Empty batch");
-        registry.batchUnregisterArkProxy(arks);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                          ENUMERATION TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function test_getRegisteredArks() public {
-        address[] memory arks = registry.getRegisteredArks();
-        assertEq(arks.length, 0);
-
-        vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1, "Test 1");
-        vm.prank(governor);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2, "Test 2");
-
-        arks = registry.getRegisteredArks();
-        assertEq(arks.length, 2);
-        assertTrue(arks[0] == ark1 || arks[0] == ark2);
-        assertTrue(arks[1] == ark1 || arks[1] == ark2);
-        assertTrue(arks[0] != arks[1]);
-    }
-
-    function test_getRegisteredProxies() public {
-        address[] memory proxies = registry.getRegisteredProxies(
-            CURRENT_CHAIN_ID
-        );
-        assertEq(proxies.length, 0);
-
-        vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1, "Test 1");
-        vm.prank(governor);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2, "Test 2");
-
-        proxies = registry.getRegisteredProxies(CURRENT_CHAIN_ID);
-        assertEq(proxies.length, 2);
-        assertTrue(proxies[0] == proxy1 || proxies[0] == proxy2);
-        assertTrue(proxies[1] == proxy1 || proxies[1] == proxy2);
-        assertTrue(proxies[0] != proxies[1]);
+        // Should be active again
+        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
     }
 }

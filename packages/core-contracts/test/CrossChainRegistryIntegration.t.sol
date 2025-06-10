@@ -42,10 +42,6 @@ contract CrossChainRegistryIntegrationTest is Test {
     uint16 public constant SOURCE_CHAIN_ID = 1; // Ethereum
     uint16 public constant TARGET_CHAIN_ID = 42161; // Arbitrum
 
-    // Test description
-    string public constant RELATIONSHIP_DESCRIPTION =
-        "Test Ethereum->Arbitrum relationship";
-
     function setUp() public {
         // Deploy access manager
         accessManager = new ProtocolAccessManager(testAdmin);
@@ -117,18 +113,16 @@ contract CrossChainRegistryIntegrationTest is Test {
     }
 
     function testRegistryIntegrationWorkflow() public {
-        // 1. Register the relationship in the registry
+        // 1. Register the relationship in the registry (simplified call)
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
             TARGET_CHAIN_ID,
-            address(proxy),
-            RELATIONSHIP_DESCRIPTION
+            address(proxy)
         );
 
         // 2. Verify the relationship is registered
         assertTrue(registry.isArkRegistered(address(ark)));
-        assertTrue(registry.isProxyRegistered(address(proxy), SOURCE_CHAIN_ID));
 
         // 3. Verify ark can get proxy from registry
         (address retrievedProxy, uint16 retrievedChainId) = registry
@@ -177,6 +171,54 @@ contract CrossChainRegistryIntegrationTest is Test {
         assertEq(bridgeQueue.lastRecipient(), address(proxy)); // Should use proxy from registry
     }
 
+    function testRegistryStatusManagement() public {
+        // Register relationship
+        vm.prank(governor);
+        registry.registerArkProxy(
+            address(ark),
+            TARGET_CHAIN_ID,
+            address(proxy)
+        );
+
+        // Initially active
+        assertTrue(
+            registry.isValidArkProxyPair(
+                address(ark),
+                TARGET_CHAIN_ID,
+                address(proxy)
+            )
+        );
+
+        // Deactivate relationship
+        vm.prank(governor);
+        registry.updateRelationshipStatus(address(ark), false);
+
+        // Should be inactive
+        assertFalse(
+            registry.isValidArkProxyPair(
+                address(ark),
+                TARGET_CHAIN_ID,
+                address(proxy)
+            )
+        );
+
+        // But still registered
+        assertTrue(registry.isArkRegistered(address(ark)));
+
+        // Reactivate
+        vm.prank(governor);
+        registry.updateRelationshipStatus(address(ark), true);
+
+        // Should be active again
+        assertTrue(
+            registry.isValidArkProxyPair(
+                address(ark),
+                TARGET_CHAIN_ID,
+                address(proxy)
+            )
+        );
+    }
+
     function testBackwardCompatibilityFallback() public {
         // Test that when registry lookup fails, it falls back to deprecated fields
 
@@ -198,58 +240,90 @@ contract CrossChainRegistryIntegrationTest is Test {
         ark.registerFleetCommander();
         ark.board(1000, "");
 
-        // Should still work using deprecated targetProxy
+        // Verify it still works (fallback to deprecated field)
+        assertEq(bridgeQueue.lastDestinationChainId(), TARGET_CHAIN_ID);
+        assertEq(bridgeQueue.lastAsset(), address(token));
+        assertEq(bridgeQueue.lastAmount(), 1000);
         assertEq(bridgeQueue.lastRecipient(), address(proxy));
     }
 
-    function testRegistryBasedValidation() public {
-        // Test basic registry functionality instead of complex validation
+    function testRegistryOverridesDeprecatedFields() public {
+        // 1. Set deprecated targetProxy to a different address
+        address oldProxy = address(0x9999);
+        vm.prank(governor);
+        ark.setTargetProxy(oldProxy);
 
-        // 1. Register the relationship
+        // 2. Register correct relationship in registry
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
             TARGET_CHAIN_ID,
-            address(proxy),
-            RELATIONSHIP_DESCRIPTION
+            address(proxy)
         );
 
-        // 2. Verify the relationship exists and is valid
-        assertTrue(
-            registry.isValidArkProxyPair(
-                address(ark),
-                TARGET_CHAIN_ID,
-                address(proxy)
-            )
+        // 3. Test that registry takes precedence over deprecated field
+        token.mint(address(this), 1000);
+        token.approve(address(ark), 1000);
+
+        vm.prank(governor);
+        accessManager.grantCommanderRole(address(ark), address(this));
+
+        ark.registerFleetCommander();
+        ark.board(1000, "");
+
+        // Should use proxy from registry, not deprecated field
+        assertEq(bridgeQueue.lastRecipient(), address(proxy)); // From registry
+        assertNotEq(bridgeQueue.lastRecipient(), oldProxy); // Not from deprecated field
+    }
+
+    function testEnumerationFunctions() public {
+        // Initially empty
+        assertEq(registry.getRelationshipCount(), 0);
+        assertEq(registry.getRegisteredArks().length, 0);
+
+        // Register relationship
+        vm.prank(governor);
+        registry.registerArkProxy(
+            address(ark),
+            TARGET_CHAIN_ID,
+            address(proxy)
         );
 
-        // 3. Verify we can retrieve the relationship
+        // Check enumeration
+        assertEq(registry.getRelationshipCount(), 1);
+        address[] memory arks = registry.getRegisteredArks();
+        assertEq(arks.length, 1);
+        assertEq(arks[0], address(ark));
+
+        // Unregister and check
+        vm.prank(governor);
+        registry.unregisterArkProxy(address(ark));
+
+        assertEq(registry.getRelationshipCount(), 0);
+        assertEq(registry.getRegisteredArks().length, 0);
+    }
+
+    function testQueryFunctions() public {
+        // Register relationship
+        vm.prank(governor);
+        registry.registerArkProxy(
+            address(ark),
+            TARGET_CHAIN_ID,
+            address(proxy)
+        );
+
+        // Test all query functions
         (address retrievedProxy, uint16 retrievedChainId) = registry
             .getProxyForArk(address(ark));
         assertEq(retrievedProxy, address(proxy));
         assertEq(retrievedChainId, TARGET_CHAIN_ID);
 
-        // 4. Verify reverse lookup works
         address retrievedArk = registry.getArkForProxy(
             SOURCE_CHAIN_ID,
             address(proxy)
         );
         assertEq(retrievedArk, address(ark));
-    }
 
-    function testRelationshipStatusManagement() public {
-        // Test relationship status management
-
-        // 1. Register the relationship
-        vm.prank(governor);
-        registry.registerArkProxy(
-            address(ark),
-            TARGET_CHAIN_ID,
-            address(proxy),
-            RELATIONSHIP_DESCRIPTION
-        );
-
-        // 2. Verify it's initially active
         assertTrue(
             registry.isValidArkProxyPair(
                 address(ark),
@@ -257,65 +331,6 @@ contract CrossChainRegistryIntegrationTest is Test {
                 address(proxy)
             )
         );
-
-        // 3. Deactivate the relationship
-        vm.prank(governor);
-        registry.updateRelationshipStatus(address(ark), false);
-
-        // 4. Verify it's now inactive
-        assertFalse(
-            registry.isValidArkProxyPair(
-                address(ark),
-                TARGET_CHAIN_ID,
-                address(proxy)
-            )
-        );
-
-        // 5. Reactivate the relationship
-        vm.prank(governor);
-        registry.updateRelationshipStatus(address(ark), true);
-
-        // 6. Verify it's active again
-        assertTrue(
-            registry.isValidArkProxyPair(
-                address(ark),
-                TARGET_CHAIN_ID,
-                address(proxy)
-            )
-        );
-    }
-
-    function testUnregistration() public {
-        // Test relationship unregistration
-
-        // 1. Register the relationship
-        vm.prank(governor);
-        registry.registerArkProxy(
-            address(ark),
-            TARGET_CHAIN_ID,
-            address(proxy),
-            RELATIONSHIP_DESCRIPTION
-        );
-
-        // 2. Verify it's registered
         assertTrue(registry.isArkRegistered(address(ark)));
-        assertEq(registry.getRelationshipCount(), 1);
-
-        // 3. Unregister the relationship
-        vm.prank(governor);
-        registry.unregisterArkProxy(address(ark));
-
-        // 4. Verify it's no longer registered
-        assertFalse(registry.isArkRegistered(address(ark)));
-        assertEq(registry.getRelationshipCount(), 0);
-
-        // 5. Verify lookups fail
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(ark)
-            )
-        );
-        registry.getProxyForArk(address(ark));
     }
 }

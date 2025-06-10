@@ -26,38 +26,25 @@ import {IArkConfigProvider} from "../../src/interfaces/IArkConfigProvider.sol";
 
 // Mock CrossChainRegistry for testing
 contract MockFleetProxyRegistry is ICrossChainRegistry {
-    function registerArkProxy(
-        address,
-        uint16,
-        address,
-        string calldata
-    ) external override {}
+    function registerArkProxy(address, uint16, address) external override {}
+
     function unregisterArkProxy(address) external override {}
+
     function updateRelationshipStatus(address, bool) external override {}
-    function setRelationshipStatus(
-        address,
-        RelationshipStatus
-    ) external override {}
-    function batchRegisterArkProxy(
-        BatchRegistrationParams[] calldata
-    ) external override {}
-    function batchUnregisterArkProxy(address[] calldata) external override {}
-    function updateRelationshipMetadata(
-        address,
-        string calldata,
-        bytes32
-    ) external override {}
+
     function getProxyForArk(
         address
     ) external pure override returns (address, uint16) {
         revert RelationshipDoesNotExist(address(0));
     }
+
     function getArkForProxy(
         uint16,
         address
     ) external pure override returns (address) {
         revert RelationshipDoesNotExist(address(0));
     }
+
     function isValidArkProxyPair(
         address,
         uint16,
@@ -65,16 +52,7 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
     ) external pure override returns (bool) {
         return false;
     }
-    function getRelation(
-        address
-    ) external pure override returns (ArkProxyRelation memory) {
-        revert RelationshipDoesNotExist(address(0));
-    }
-    function getRelationshipMetadata(
-        address
-    ) external pure override returns (RelationshipMetadata memory) {
-        revert RelationshipDoesNotExist(address(0));
-    }
+
     function getRegisteredArks()
         external
         pure
@@ -83,69 +61,13 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
     {
         return new address[](0);
     }
-    function getRegisteredProxies(
-        uint16
-    ) external pure override returns (address[] memory) {
-        return new address[](0);
-    }
+
     function getRelationshipCount() external pure override returns (uint256) {
         return 0;
     }
+
     function isArkRegistered(address) external pure override returns (bool) {
         return false;
-    }
-    function isProxyRegistered(
-        address,
-        uint16
-    ) external pure override returns (bool) {
-        return false;
-    }
-    function getRelationshipStatus(
-        address
-    ) external pure override returns (RelationshipStatus) {
-        return RelationshipStatus.INACTIVE;
-    }
-    function getRelationshipHistory(
-        address
-    ) external pure override returns (RelationshipHistoryEntry[] memory) {
-        return new RelationshipHistoryEntry[](0);
-    }
-    function getLatestHistoryEntry(
-        address
-    ) external pure override returns (RelationshipHistoryEntry memory) {
-        return
-            RelationshipHistoryEntry(
-                RelationshipAction.CREATED,
-                0,
-                address(0),
-                ""
-            );
-    }
-    function getRelationshipsByStatus(
-        RelationshipStatus
-    ) external pure override returns (address[] memory) {
-        return new address[](0);
-    }
-    function getRelationshipStatistics()
-        external
-        pure
-        override
-        returns (uint256, uint256, uint256, uint256)
-    {
-        return (0, 0, 0, 0);
-    }
-    function getChainStatistics(
-        uint16
-    ) external pure override returns (uint256, uint256) {
-        return (0, 0);
-    }
-    function relationshipExists(address) external pure override returns (bool) {
-        return false;
-    }
-    function validateContractExists(
-        address contractAddress
-    ) external view override returns (bool) {
-        return contractAddress.code.length > 0;
     }
 }
 
