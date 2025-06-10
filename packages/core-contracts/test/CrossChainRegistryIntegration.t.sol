@@ -219,18 +219,10 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
     }
 
-    function testBackwardCompatibilityFallback() public {
-        // Test that when registry lookup fails, it falls back to deprecated fields
+    function testRegistryOnlyApproach() public {
+        // Test that ark now requires registry registration to work
 
-        // 1. Set deprecated targetProxy on ark (without registering in registry)
-        vm.prank(governor);
-        ark.setTargetProxy(address(proxy));
-
-        // 2. Set deprecated sourceChainArk on proxy (without registering in registry)
-        vm.prank(governor);
-        proxy.setSourceChainArk(address(ark));
-
-        // 3. Test ark boarding still works with deprecated field
+        // 1. Try to board without registry registration - should fail
         token.mint(address(this), 1000);
         token.approve(address(ark), 1000);
 
@@ -238,22 +230,12 @@ contract CrossChainRegistryIntegrationTest is Test {
         accessManager.grantCommanderRole(address(ark), address(this));
 
         ark.registerFleetCommander();
+
+        // Should revert because no proxy relationship is registered
+        vm.expectRevert(CrossChainArk.NoProxyRelationshipRegistered.selector);
         ark.board(1000, "");
 
-        // Verify it still works (fallback to deprecated field)
-        assertEq(bridgeQueue.lastDestinationChainId(), TARGET_CHAIN_ID);
-        assertEq(bridgeQueue.lastAsset(), address(token));
-        assertEq(bridgeQueue.lastAmount(), 1000);
-        assertEq(bridgeQueue.lastRecipient(), address(proxy));
-    }
-
-    function testRegistryOverridesDeprecatedFields() public {
-        // 1. Set deprecated targetProxy to a different address
-        address oldProxy = address(0x9999);
-        vm.prank(governor);
-        ark.setTargetProxy(oldProxy);
-
-        // 2. Register correct relationship in registry
+        // 2. Register relationship in registry
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
@@ -261,19 +243,37 @@ contract CrossChainRegistryIntegrationTest is Test {
             address(proxy)
         );
 
-        // 3. Test that registry takes precedence over deprecated field
-        token.mint(address(this), 1000);
-        token.approve(address(ark), 1000);
-
-        vm.prank(governor);
-        accessManager.grantCommanderRole(address(ark), address(this));
-
-        ark.registerFleetCommander();
+        // 3. Now boarding should work
         ark.board(1000, "");
 
-        // Should use proxy from registry, not deprecated field
-        assertEq(bridgeQueue.lastRecipient(), address(proxy)); // From registry
-        assertNotEq(bridgeQueue.lastRecipient(), oldProxy); // Not from deprecated field
+        // Verify it works with registry
+        assertEq(bridgeQueue.lastDestinationChainId(), TARGET_CHAIN_ID);
+        assertEq(bridgeQueue.lastAsset(), address(token));
+        assertEq(bridgeQueue.lastAmount(), 1000);
+        assertEq(bridgeQueue.lastRecipient(), address(proxy));
+    }
+
+    function testGetTargetProxyFunction() public {
+        // Initially no proxy registered
+        assertEq(ark.getTargetProxy(), address(0));
+
+        // Register relationship
+        vm.prank(governor);
+        registry.registerArkProxy(
+            address(ark),
+            TARGET_CHAIN_ID,
+            address(proxy)
+        );
+
+        // Now should return the registered proxy
+        assertEq(ark.getTargetProxy(), address(proxy));
+
+        // Unregister
+        vm.prank(governor);
+        registry.unregisterArkProxy(address(ark));
+
+        // Should return zero address again
+        assertEq(ark.getTargetProxy(), address(0));
     }
 
     function testEnumerationFunctions() public {

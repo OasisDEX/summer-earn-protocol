@@ -21,6 +21,8 @@ import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.s
 
 // Simple mock registry for fork testing
 contract SimpleMockRegistry is ICrossChainRegistry {
+    mapping(address => ArkProxyRelation) private arkToProxy;
+
     function registerArkProxy(address, uint16, address) external override {}
 
     function unregisterArkProxy(address) external override {}
@@ -28,9 +30,13 @@ contract SimpleMockRegistry is ICrossChainRegistry {
     function updateRelationshipStatus(address, bool) external override {}
 
     function getProxyForArk(
-        address
-    ) external pure override returns (address, uint16) {
-        revert RelationshipDoesNotExist(address(0));
+        address ark
+    ) external view override returns (address, uint16) {
+        ArkProxyRelation memory relation = arkToProxy[ark];
+        if (relation.proxy == address(0)) {
+            revert RelationshipDoesNotExist(ark);
+        }
+        return (relation.proxy, relation.targetChainId);
     }
 
     function getArkForProxy(
@@ -41,11 +47,15 @@ contract SimpleMockRegistry is ICrossChainRegistry {
     }
 
     function isValidArkProxyPair(
-        address,
-        uint16,
-        address
-    ) external pure override returns (bool) {
-        return false;
+        address ark,
+        uint16 targetChainId,
+        address proxy
+    ) external view override returns (bool) {
+        ArkProxyRelation memory relation = arkToProxy[ark];
+        return
+            relation.proxy == proxy &&
+            relation.targetChainId == targetChainId &&
+            relation.isActive;
     }
 
     function getRegisteredArks()
@@ -63,6 +73,15 @@ contract SimpleMockRegistry is ICrossChainRegistry {
 
     function isArkRegistered(address) external pure override returns (bool) {
         return false;
+    }
+
+    // Helper for testing
+    function setMockProxy(address ark, address proxy, uint16 chainId) external {
+        arkToProxy[ark] = ArkProxyRelation({
+            proxy: proxy,
+            targetChainId: chainId,
+            isActive: true
+        });
     }
 }
 
@@ -209,9 +228,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             params
         );
 
-        // Set the target proxy
-        vm.prank(governor);
-        ark.setTargetProxy(ARB_PROXY);
+        // Register the ark-proxy relationship in the registry
+        registry.setMockProxy(address(ark), ARB_PROXY, DEST_CHAIN_ID);
 
         // Add ark as queue manager
         vm.startPrank(governor);
