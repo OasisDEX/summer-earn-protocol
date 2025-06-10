@@ -48,6 +48,7 @@ const addresses: Record<
       ws: '0x0000000000000000000000000000000000000000',
       gear: '0xBa3335588D9403515223F109EdC4eB7269a9Ab5D',
       syrup: '0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66',
+      sky: '0x56072C95FAA701256059aa122697B133aDEd9279',
     },
   },
   sonic: {
@@ -62,6 +63,7 @@ const addresses: Record<
       seam: '0x0000000000000000000000000000000000000000',
       ws: '0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38',
       reul: '0x0000000000000000000000000000000000000000',
+      silo: '0xb098AFC30FCE67f1926e735Db6fDadFE433E61db',
     },
   },
   arbitrum: {
@@ -374,6 +376,7 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'seam':
     case 'syrup':
     case 'well':
+    case 'silo':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -437,6 +440,7 @@ function calculateAuctionMultipliers(
 }
 const rewardsConfig: Record<string, Record<string, Token[]>> = {
   mainnet: {
+    'sky-rewards': [Token.SKY],
     morpho: [Token.MORPHO, Token.SYRUP],
     euler: [Token.REUL],
     gearbox: [Token.GEAR],
@@ -449,7 +453,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
   sonic: {
     aave_v3: [Token.WS],
     euler: [Token.WS],
-    siloV2: [Token.WS],
+    siloV2: [Token.WS, Token.SILO],
   },
 }
 

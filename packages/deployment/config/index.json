@@ -454,7 +454,8 @@
           "Euler_Stablecoin_Maxi": "0xce45EF0414dE3516cAF1BCf937bF7F2Cf67873De",
           "Euler_Swaap_Lend": "0xf2f826c190D020A6D1EC422bF2269E63b8b315E0",
           "Euler_Resolv": "0xcBC9B61177444A793B85442D3a953B90f6170b7D",
-          "Sky_sUSDC": "0xBc65ad17c5C0a2A4D159fa5a503f4992c7B545FE"
+          "Sky_sUSDC": "0xBc65ad17c5C0a2A4D159fa5a503f4992c7B545FE",
+          "Term_Summer_USDC": "0xA9ca4909700505585B1aD2a1579dA3b670FFA9c4"
         },
         "dai": {},
         "usde": {},
@@ -470,7 +471,7 @@
           "Fluid": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
           "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
           "Euler_Swaap_Lend": "0x716bF454066a84F39A2F78b5707e79a9d64f1225",
-          "Term_re7_weth": "0xd5e617420b9ea0be28751435b647328d63b10368"
+          "Term_Summer_WETH": "0x6e7d87a64c78593781452a014dc989100B24a4aF"
         }
       },
       "pendle": {
@@ -537,7 +538,8 @@
             "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0",
             "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4",
             "Mev_Capital_WETH": "0x9a8bC3B04b7f3D87cfC09ba407dCED575f2d61D8",
-            "Gauntlet_WETH_Core": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658"
+            "Gauntlet_WETH_Core": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658",
+            "Smokehouse_WETH": "0xbEEF36A5C1372F8D7d211527FCE9f83FE02d8A73"
           }
         },
         "markets": {

@@ -1,14 +1,10 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
-import { PositionRewards, Vault } from '../../generated/schema'
+import { Position, PositionRewards, Vault } from '../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { addresses } from '../common/addressProvider'
 import * as constants from '../common/constants'
-import {
-  getOrCreatePosition,
-  getOrCreatePositionRewards,
-  getOrCreateToken,
-} from '../common/initializers'
+import { getOrCreatePositionRewards, getOrCreateToken } from '../common/initializers'
 import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 import { PositionDetails, VaultDetails } from '../types'
@@ -59,13 +55,16 @@ export function getPositionDetails(
   const unstakedInputTokenNormalizedUSD = unstakedInputTokenNormalized.times(priceInUSD)
   const stakedInputTokenNormalizedUSD = stakedInputTokenNormalized.times(priceInUSD)
   const totalInputTokenNormalizedUSD = totalInputTokenNormalized.times(priceInUSD)
-  const position = getOrCreatePosition(
+  const position = Position.load(
     utils.formatPositionId(account.toHexString(), vaultDetails.vaultId),
-    block,
   )
 
-  const stakedInputTokenBalanceBeforeUpdate = position.stakedInputTokenBalance
-  const unstakedInputTokenBalanceBeforeUpdate = position.unstakedInputTokenBalance
+  const stakedInputTokenBalanceBeforeUpdate = position
+    ? position.stakedInputTokenBalance
+    : constants.BigIntConstants.ZERO
+  const unstakedInputTokenBalanceBeforeUpdate = position
+    ? position.unstakedInputTokenBalance
+    : constants.BigIntConstants.ZERO
   const totalInputTokenBeforeUpdate = stakedInputTokenBalanceBeforeUpdate.plus(
     unstakedInputTokenBalanceBeforeUpdate,
   )
@@ -162,5 +161,6 @@ export function getPositionDetails(
     account.toHexString(), // account
     vaultDetails.inputToken, // inputToken
     vaultDetails.protocol, // protocol
+    vaultDetails.inputTokenPriceUSD, // inputTokenPriceUSD
   )
 }

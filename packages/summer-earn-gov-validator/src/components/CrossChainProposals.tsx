@@ -1,3 +1,4 @@
+import { ethers } from 'ethers'
 import React, { useEffect, useState } from 'react'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 import config from '../config/index.json'
@@ -24,8 +25,25 @@ const TIMELOCK_ABI = [
 // Governor ABI for execute
 const GOVERNOR_ABI = [
   {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
     name: 'execute',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    name: 'queue',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -48,11 +66,13 @@ export const CrossChainProposals: React.FC = () => {
   const [executingProposals, setExecutingProposals] = useState<Set<string>>(new Set())
   const [selectedStatuses, setSelectedStatuses] = useState<ProposalStatus[]>([
     'Pending',
+    'Queued',
+    'Ready',
     'Executed',
   ])
 
   const { address, isConnected, chainId } = useAccount()
-  const { writeContract, isPending } = useWriteContract()
+  const { writeContract, isPending, error: writeContractError } = useWriteContract()
   const { switchChain } = useSwitchChain()
 
   const handleExecuteProposal = async (proposal: CrossChainProposal) => {
@@ -121,7 +141,13 @@ export const CrossChainProposals: React.FC = () => {
     }
   }
 
-  const handleExecuteBaseProposal = async (proposalId: string) => {
+  const handleExecuteBaseProposal = async (proposal: {
+    id: string
+    targets: string[]
+    values: string[]
+    calldatas: string[]
+    description: string
+  }) => {
     if (!isConnected || !address) {
       alert('Please connect your wallet first')
       return
@@ -135,22 +161,30 @@ export const CrossChainProposals: React.FC = () => {
     }
 
     try {
-      setExecutingProposals((prev) => new Set(prev).add(proposalId))
+      setExecutingProposals((prev) => new Set(prev).add(proposal.id))
 
       // Switch to Base if needed
       if (chainId !== 8453) {
         await switchChain({ chainId: 8453 })
       }
 
+      // Create description hash
+      const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposal.description))
+
       // Execute the proposal
       await writeContract({
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
         functionName: 'execute',
-        args: [BigInt(proposalId)],
+        args: [
+          proposal.targets as `0x${string}`[],
+          proposal.values.map((v) => BigInt(v)),
+          proposal.calldatas as `0x${string}`[],
+          descriptionHash as `0x${string}`,
+        ],
       })
 
-      console.log(`Successfully executed base proposal ${proposalId}`)
+      console.log(`Successfully executed base proposal ${proposal.id}`)
 
       // Refresh proposals after execution
       setTimeout(() => {
@@ -164,7 +198,69 @@ export const CrossChainProposals: React.FC = () => {
     } finally {
       setExecutingProposals((prev) => {
         const newSet = new Set(prev)
-        newSet.delete(proposalId)
+        newSet.delete(proposal.id)
+        return newSet
+      })
+    }
+  }
+
+  const handleQueueBaseProposal = async (proposal: {
+    id: string
+    targets: string[]
+    values: string[]
+    calldatas: string[]
+    description: string
+  }) => {
+    if (!isConnected || !address) {
+      alert('Please connect your wallet first')
+      return
+    }
+
+    const networkName = 'base'
+    const governorAddress = config[networkName]?.deployedContracts?.gov?.summerGovernor?.address
+    if (!governorAddress) {
+      alert('Governor address not found for Base network')
+      return
+    }
+
+    try {
+      setExecutingProposals((prev) => new Set(prev).add(proposal.id))
+
+      // Switch to Base if needed
+      if (chainId !== 8453) {
+        await switchChain({ chainId: 8453 })
+      }
+
+      // Create description hash
+      const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposal.description))
+
+      // Queue the proposal
+
+      writeContract({
+        address: governorAddress as `0x${string}`,
+        abi: GOVERNOR_ABI,
+        functionName: 'queue',
+        args: [
+          proposal.targets as `0x${string}`[],
+          proposal.values.map((v) => BigInt(v)),
+          proposal.calldatas as `0x${string}`[],
+          descriptionHash as `0x${string}`,
+        ],
+      })
+
+      // Refresh proposals after queueing
+      setTimeout(() => {
+        loadProposals()
+      }, 2000)
+    } catch (error) {
+      console.error('Error queueing base proposal:', error)
+      alert(
+        `Failed to queue base proposal: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setExecutingProposals((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(proposal.id)
         return newSet
       })
     }
@@ -200,18 +296,21 @@ export const CrossChainProposals: React.FC = () => {
     const filtered = proposals.filter((proposal) => {
       // First check if the base proposal matches any selected status
       const baseStatus = proposal.baseProposal.status.toUpperCase()
+      const currentTimestamp = Math.floor(Date.now() / 1000)
+      const baseEta = Number(proposal.baseProposal.eta)
+      const isBaseReady = baseStatus === 'QUEUED' && baseEta > 0 && currentTimestamp >= baseEta
+
       const baseStatusMatches = statuses.some((status) => {
-        if (status === 'Queued' && baseStatus === 'QUEUED') return true
-        if (status === 'Ready' && baseStatus === 'QUEUED') {
-          const currentTimestamp = Math.floor(Date.now() / 1000)
-          const eta = Number(proposal.baseProposal.eta)
-          return eta > 0 && currentTimestamp >= eta
-        }
+        if (status === 'Queued' && baseStatus === 'QUEUED' && !isBaseReady) return true
+        if (status === 'Ready' && isBaseReady) return true
         if (status === 'Executed' && baseStatus === 'EXECUTED') return true
         if (status === 'Active' && baseStatus === 'ACTIVE') return true
         if (status === 'Pending' && baseStatus === 'PENDING') return true
         return false
       })
+
+      // If base proposal matches, include it regardless of cross-chain status
+      if (baseStatusMatches) return true
 
       // Then check if any cross-chain proposal matches the selected statuses
       const crossChainStatusMatches = proposal.crossChainProposals.some((ccp) => {
@@ -219,8 +318,7 @@ export const CrossChainProposals: React.FC = () => {
         return statuses.includes(ccpStatus)
       })
 
-      // Include the proposal if either the base proposal or any cross-chain proposal matches
-      return baseStatusMatches || crossChainStatusMatches
+      return crossChainStatusMatches
     })
 
     setFilteredProposals(filtered)
@@ -276,11 +374,10 @@ export const CrossChainProposals: React.FC = () => {
       <div className="grid gap-6">
         {filteredProposals.map(({ baseProposal, crossChainProposals }) => {
           const baseStatus = baseProposal.status.toUpperCase()
+          const currentTimestamp = Math.floor(Date.now() / 1000)
+          const baseEta = Number(baseProposal.eta)
           const isBaseQueued = baseStatus === 'QUEUED'
-          const isBaseReady =
-            isBaseQueued &&
-            Number(baseProposal.eta) > 0 &&
-            Math.floor(Date.now() / 1000) >= Number(baseProposal.eta)
+          const isBaseReady = isBaseQueued && baseEta > 0 && currentTimestamp >= baseEta
 
           return (
             <div
@@ -314,12 +411,65 @@ export const CrossChainProposals: React.FC = () => {
                     >
                       {isBaseReady ? 'Ready' : baseStatus}
                     </span>
-                    {(isBaseReady || isBaseQueued) && (
+                    {baseStatus === 'PENDING' && (
                       <button
-                        onClick={() => handleExecuteBaseProposal(baseProposal.id)}
+                        onClick={() => handleQueueBaseProposal(baseProposal)}
                         disabled={executingProposals.has(baseProposal.id) || isPending}
                         className={`px-4 py-1.5 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 ${
                           executingProposals.has(baseProposal.id) || isPending
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        {executingProposals.has(baseProposal.id) || isPending ? (
+                          <>
+                            <svg
+                              className="w-4 h-4 animate-spin"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
+                            </svg>
+                            <span>Queueing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <span>Queue</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {(isBaseReady || isBaseQueued) && (
+                      <button
+                        onClick={() => handleExecuteBaseProposal(baseProposal)}
+                        disabled={
+                          executingProposals.has(baseProposal.id) ||
+                          isPending ||
+                          (!isBaseReady && isBaseQueued)
+                        }
+                        className={`px-4 py-1.5 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 ${
+                          executingProposals.has(baseProposal.id) ||
+                          isPending ||
+                          (!isBaseReady && isBaseQueued)
                             ? 'bg-gray-400 cursor-not-allowed'
                             : 'bg-blue-600 hover:bg-blue-700'
                         }`}
@@ -416,9 +566,22 @@ export const CrossChainProposals: React.FC = () => {
                   </span>
                 </div>
                 {crossChainProposals.length === 0 ? (
-                  <p className="text-gray-500 italic bg-gray-50 p-4 rounded-lg text-center">
-                    No cross-chain proposals found
-                  </p>
+                  <div className="text-gray-500 italic bg-gray-50 p-4 rounded-lg text-center">
+                    <p>No cross-chain proposals found</p>
+                    {baseStatus === 'PENDING' || baseStatus === 'ACTIVE' ? (
+                      <p className="text-sm mt-1">
+                        Cross-chain proposals will be created after this proposal is executed
+                      </p>
+                    ) : baseStatus === 'QUEUED' || isBaseReady ? (
+                      <p className="text-sm mt-1">
+                        Cross-chain proposals will be created after this proposal is executed
+                      </p>
+                    ) : (
+                      <p className="text-sm mt-1">
+                        This proposal may not have cross-chain components
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <div className="grid gap-3">
                     {crossChainProposals.map((ccp) => {

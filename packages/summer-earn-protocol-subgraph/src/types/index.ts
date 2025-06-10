@@ -36,6 +36,7 @@ export class PositionDetails {
   account: string
   inputToken: Token
   protocol: string
+  inputTokenPriceUSD: BigDecimal
   constructor(
     positionId: string,
     outputTokenBalance: BigInt,
@@ -66,6 +67,7 @@ export class PositionDetails {
     account: string,
     inputToken: Token,
     protocol: string,
+    inputTokenPriceUSD: BigDecimal,
   ) {
     this.positionId = positionId
     this.outputTokenBalance = outputTokenBalance
@@ -96,6 +98,7 @@ export class PositionDetails {
     this.account = account
     this.inputToken = inputToken
     this.protocol = protocol
+    this.inputTokenPriceUSD = inputTokenPriceUSD
   }
 }
 export class VaultDetails {

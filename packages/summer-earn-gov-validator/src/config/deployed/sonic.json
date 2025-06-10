@@ -6,7 +6,7 @@
   "GovModule#SummerRewardsRedeemer": "0x08543e2B7E644C5471Cddda18e25f3aB93a16326",
   "GovModule#SummerVestingWalletFactory": "0x3cd70DeD351C4c42EE3CE2b273AD3e916a4F49A2",
   "CoreModule#ConfigurationManager": "0xDff0fc7bFa32Fb536807820FB3Be6C9828463e32",
-  "CoreModule#DutchAuctionLibrary": "0x4cd514F696ce580DCbD12e069DE7FE5107b4C770",
+  "CoreModule#DutchAuctionLibirary": "0x4cd514F696ce580DCbD12e069DE7FE5107b4C770",
   "CoreModule#FleetCommanderRewardsManagerFactory": "0xC474Cd1ea6f1809d17be61717b83f0F984EF0459",
   "CoreModule#HarborCommand": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191",
   "CoreModule#AdmiralsQuarters": "0xC61b22540516F70Ada02626Dc144AA9546A77343",
@@ -24,5 +24,8 @@
   "AdmiralsQuartersModule_20250506T105800249#AdmiralsQuarters": "0xC5B2E6fDbC3EBdc72AA070b8e4573d2c6D125459",
   "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_varlamore_usdce_146#SiloManagedVaultArk": "0x6FCF84Ed928985dB6084Cb993A7D0F764987dCeb",
   "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_re7labs_usdce_146#SiloManagedVaultArk": "0x43A8363929E2B3Dea05C3C117e9c49Aa7FE28745",
-  "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_apostro_usdce_146#SiloManagedVaultArk": "0x552d109f4a5640E2c9124dDD3205D23859d284de"
+  "BummerLazyVault_LowerRisk_USDCe_SiloManagedVault_apostro_usdce_146#SiloManagedVaultArk": "0x552d109f4a5640E2c9124dDD3205D23859d284de",
+  "LazyVault_LowerRisk_USDCe_SiloManagedVault_varlamore_usdce_146#SiloManagedVaultArk": "0xF67e17c4627E9D9C150b247b6A4e82c01Bf36c5F",
+  "LazyVault_LowerRisk_USDCe_SiloManagedVault_re7labs_usdce_146#SiloManagedVaultArk": "0x4c62Fc0393393F3A5e455576BdA95Ccb3E284b19",
+  "LazyVault_LowerRisk_USDCe_SiloManagedVault_apostro_usdce_146#SiloManagedVaultArk": "0x39C5d327FF8b12649A0A8056cA4499Cb27f82fa0"
 }

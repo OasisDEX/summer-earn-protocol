@@ -43,6 +43,7 @@ import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
 import { updatePosition } from './entities/position'
+import { handleReferrals } from './entities/referral'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
 import {
@@ -101,9 +102,11 @@ export function handleDeposit(event: DepositEvent): void {
     event.block,
   )
 
-  updatePosition(positionDetails, event.block)
+  const referralData = handleReferrals(event, account, positionDetails, 'handleDeposit')
 
-  createDepositEventEntity(event, positionDetails)
+  updatePosition(positionDetails, event.block, referralData)
+
+  createDepositEventEntity(event, positionDetails, referralData)
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
@@ -119,7 +122,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
     return
   }
 
-  getOrCreateAccount(event.params.owner.toHexString())
+  const account = getOrCreateAccount(event.params.owner.toHexString())
 
   const positionDetails = getPositionDetails(
     updatedVault,
@@ -127,9 +130,9 @@ export function handleWithdraw(event: WithdrawEvent): void {
     vaultDetails,
     event.block,
   )
-  updatePosition(positionDetails, event.block)
+  updatePosition(positionDetails, event.block, account.referralData)
 
-  createWithdrawEventEntity(event, positionDetails)
+  createWithdrawEventEntity(event, positionDetails, account.referralData)
 }
 
 // withdaraw already handled in handleWithdraw
@@ -199,10 +202,12 @@ export function handleStaked(event: Staked): void {
     event.block,
   )
 
-  updatePosition(positionDetails, event.block)
+  const referralData = handleReferrals(event, account, positionDetails, 'handleStaked')
+
+  updatePosition(positionDetails, event.block, referralData)
 
   createStakedEventEntity(event, positionDetails)
-  createDepositEventEntity(event, positionDetails)
+  createDepositEventEntity(event, positionDetails, referralData)
 }
 
 export function handleUnstaked(event: Unstaked): void {
@@ -219,10 +224,10 @@ export function handleUnstaked(event: Unstaked): void {
     event.block,
   )
 
-  updatePosition(positionDetails, event.block)
+  updatePosition(positionDetails, event.block, account.referralData)
 
   createUnstakedEventEntity(event, positionDetails)
-  createWithdrawEventEntity(event, positionDetails)
+  createWithdrawEventEntity(event, positionDetails, account.referralData)
 }
 
 export function handleRewardTokenRemoved(event: RewardTokenRemoved): void {
