@@ -36,6 +36,25 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         bool isActive
     ) external override {}
 
+    function setRelationshipStatus(
+        address ark,
+        RelationshipStatus status
+    ) external override {}
+
+    function batchRegisterArkProxy(
+        BatchRegistrationParams[] calldata params
+    ) external override {}
+
+    function batchUnregisterArkProxy(
+        address[] calldata arks
+    ) external override {}
+
+    function updateRelationshipMetadata(
+        address ark,
+        string calldata description,
+        bytes32 configHash
+    ) external override {}
+
     function getProxyForArk(
         address ark
     ) external view override returns (address proxy, uint16 targetChainId) {
@@ -110,6 +129,79 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         return false;
     }
 
+    // Enhanced view functions
+    function getRelationshipStatus(
+        address ark
+    ) external view override returns (RelationshipStatus status) {
+        return RelationshipStatus.INACTIVE;
+    }
+
+    function getRelationshipHistory(
+        address ark
+    )
+        external
+        view
+        override
+        returns (RelationshipHistoryEntry[] memory history)
+    {
+        return new RelationshipHistoryEntry[](0);
+    }
+
+    function getLatestHistoryEntry(
+        address ark
+    ) external view override returns (RelationshipHistoryEntry memory entry) {
+        return
+            RelationshipHistoryEntry(
+                RelationshipAction.CREATED,
+                0,
+                address(0),
+                ""
+            );
+    }
+
+    function getRelationshipsByStatus(
+        RelationshipStatus status
+    ) external view override returns (address[] memory arks) {
+        return new address[](0);
+    }
+
+    function getRelationshipStatistics()
+        external
+        view
+        override
+        returns (
+            uint256 totalRelationships,
+            uint256 activeRelationships,
+            uint256 pausedRelationships,
+            uint256 deprecatedRelationships
+        )
+    {
+        return (0, 0, 0, 0);
+    }
+
+    function getChainStatistics(
+        uint16 chainId
+    )
+        external
+        view
+        override
+        returns (uint256 totalProxies, uint256 activeProxies)
+    {
+        return (0, 0);
+    }
+
+    function relationshipExists(
+        address ark
+    ) external view override returns (bool exists) {
+        return false;
+    }
+
+    function validateContractExists(
+        address contractAddress
+    ) external view override returns (bool isContract) {
+        return contractAddress.code.length > 0;
+    }
+
     // Helper for testing
     function setRelation(
         address ark,
@@ -119,7 +211,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         arkToProxy[ark] = ArkProxyRelation({
             proxy: proxy,
             targetChainId: targetChainId,
-            isActive: true
+            status: RelationshipStatus.ACTIVE
         });
     }
 }

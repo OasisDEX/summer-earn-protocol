@@ -29,6 +29,19 @@ contract SimpleMockRegistry is ICrossChainRegistry {
     ) external override {}
     function unregisterArkProxy(address) external override {}
     function updateRelationshipStatus(address, bool) external override {}
+    function setRelationshipStatus(
+        address,
+        RelationshipStatus
+    ) external override {}
+    function batchRegisterArkProxy(
+        BatchRegistrationParams[] calldata
+    ) external override {}
+    function batchUnregisterArkProxy(address[] calldata) external override {}
+    function updateRelationshipMetadata(
+        address,
+        string calldata,
+        bytes32
+    ) external override {}
     function getProxyForArk(
         address
     ) external pure override returns (address, uint16) {
@@ -81,6 +94,53 @@ contract SimpleMockRegistry is ICrossChainRegistry {
         uint16
     ) external pure override returns (bool) {
         return false;
+    }
+    function getRelationshipStatus(
+        address
+    ) external pure override returns (RelationshipStatus) {
+        return RelationshipStatus.INACTIVE;
+    }
+    function getRelationshipHistory(
+        address
+    ) external pure override returns (RelationshipHistoryEntry[] memory) {
+        return new RelationshipHistoryEntry[](0);
+    }
+    function getLatestHistoryEntry(
+        address
+    ) external pure override returns (RelationshipHistoryEntry memory) {
+        return
+            RelationshipHistoryEntry(
+                RelationshipAction.CREATED,
+                0,
+                address(0),
+                ""
+            );
+    }
+    function getRelationshipsByStatus(
+        RelationshipStatus
+    ) external pure override returns (address[] memory) {
+        return new address[](0);
+    }
+    function getRelationshipStatistics()
+        external
+        pure
+        override
+        returns (uint256, uint256, uint256, uint256)
+    {
+        return (0, 0, 0, 0);
+    }
+    function getChainStatistics(
+        uint16
+    ) external pure override returns (uint256, uint256) {
+        return (0, 0);
+    }
+    function relationshipExists(address) external pure override returns (bool) {
+        return false;
+    }
+    function validateContractExists(
+        address contractAddress
+    ) external view override returns (bool) {
+        return contractAddress.code.length > 0;
     }
 }
 

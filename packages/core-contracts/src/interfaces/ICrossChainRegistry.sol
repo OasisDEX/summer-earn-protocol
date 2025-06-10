@@ -15,12 +15,12 @@ interface ICrossChainRegistry {
      * @notice Represents a relationship between an Ark and a Proxy on a target chain
      * @param proxy The address of the FleetProxy contract on the target chain
      * @param targetChainId The chain ID where the proxy is deployed
-     * @param isActive Whether the relationship is currently active
+     * @param status The current status of the relationship
      */
     struct ArkProxyRelation {
         address proxy;
         uint16 targetChainId;
-        bool isActive;
+        RelationshipStatus status;
     }
 
     /**
@@ -35,6 +35,58 @@ interface ICrossChainRegistry {
         uint256 createdAt;
         address creator;
         bytes32 configHash;
+    }
+
+    /**
+     * @notice Historical record of relationship changes
+     * @param action The type of action performed
+     * @param timestamp When the action occurred
+     * @param actor Who performed the action
+     * @param data Additional data about the action
+     */
+    struct RelationshipHistoryEntry {
+        RelationshipAction action;
+        uint256 timestamp;
+        address actor;
+        bytes data;
+    }
+
+    /**
+     * @notice Enhanced relationship status
+     */
+    enum RelationshipStatus {
+        INACTIVE,
+        ACTIVE,
+        PAUSED,
+        DEPRECATED
+    }
+
+    /**
+     * @notice Types of actions that can be performed on relationships
+     */
+    enum RelationshipAction {
+        CREATED,
+        ACTIVATED,
+        DEACTIVATED,
+        PAUSED,
+        RESUMED,
+        DEPRECATED,
+        DELETED,
+        METADATA_UPDATED
+    }
+
+    /**
+     * @notice Parameters for batch registration
+     * @param ark The address of the CrossChainArk contract
+     * @param targetChainId The chain ID where the proxy is deployed
+     * @param proxy The address of the FleetProxy contract
+     * @param description Optional description for the relationship
+     */
+    struct BatchRegistrationParams {
+        address ark;
+        uint16 targetChainId;
+        address proxy;
+        string description;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -73,6 +125,45 @@ interface ICrossChainRegistry {
         uint16 indexed targetChainId,
         address indexed proxy,
         bool isActive
+    );
+
+    /// @notice Emitted when a relationship's status is updated to a specific state
+    /// @param ark The address of the CrossChainArk contract
+    /// @param targetChainId The chain ID where the proxy is deployed
+    /// @param proxy The address of the FleetProxy contract
+    /// @param oldStatus The previous status
+    /// @param newStatus The new status
+    event RelationshipStatusChanged(
+        address indexed ark,
+        uint16 indexed targetChainId,
+        address indexed proxy,
+        RelationshipStatus oldStatus,
+        RelationshipStatus newStatus
+    );
+
+    /// @notice Emitted when relationship metadata is updated
+    /// @param ark The address of the CrossChainArk contract
+    /// @param description The new description
+    /// @param configHash The new configuration hash
+    event RelationshipMetadataUpdated(
+        address indexed ark,
+        string description,
+        bytes32 configHash
+    );
+
+    /// @notice Emitted when multiple relationships are registered in batch
+    /// @param count The number of relationships registered
+    /// @param actor The address that performed the batch operation
+    event BatchRegistrationCompleted(uint256 count, address indexed actor);
+
+    /// @notice Emitted when a historical action is recorded
+    /// @param ark The address of the CrossChainArk contract
+    /// @param action The type of action performed
+    /// @param actor Who performed the action
+    event RelationshipActionRecorded(
+        address indexed ark,
+        RelationshipAction indexed action,
+        address indexed actor
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -138,6 +229,46 @@ interface ICrossChainRegistry {
      * @dev Only callable by governance
      */
     function updateRelationshipStatus(address ark, bool isActive) external;
+
+    /**
+     * @notice Updates the status of a relationship to a specific state
+     * @param ark The address of the CrossChainArk contract
+     * @param status The new relationship status
+     * @dev Only callable by governance
+     */
+    function setRelationshipStatus(
+        address ark,
+        RelationshipStatus status
+    ) external;
+
+    /**
+     * @notice Batch registers multiple ark-proxy relationships
+     * @param params Array of registration parameters
+     * @dev Only callable by governance. More gas efficient for multiple registrations
+     */
+    function batchRegisterArkProxy(
+        BatchRegistrationParams[] calldata params
+    ) external;
+
+    /**
+     * @notice Batch unregisters multiple ark-proxy relationships
+     * @param arks Array of ark addresses to unregister
+     * @dev Only callable by governance
+     */
+    function batchUnregisterArkProxy(address[] calldata arks) external;
+
+    /**
+     * @notice Updates the metadata for an existing relationship
+     * @param ark The address of the CrossChainArk contract
+     * @param description New description for the relationship
+     * @param configHash New configuration hash
+     * @dev Only callable by governance
+     */
+    function updateRelationshipMetadata(
+        address ark,
+        string calldata description,
+        bytes32 configHash
+    ) external;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
@@ -226,13 +357,98 @@ interface ICrossChainRegistry {
     ) external view returns (bool isRegistered);
 
     /**
-     * @notice Checks if a proxy is registered
+     * @notice Checks if a proxy is registered on a specific chain
      * @param proxy The address of the FleetProxy contract
-     * @param chainId The chain ID where the proxy is deployed
-     * @return isRegistered True if the proxy is registered
+     * @param chainId The chain ID to check
+     * @return isRegistered True if the proxy is registered on the specified chain
      */
     function isProxyRegistered(
         address proxy,
         uint16 chainId
     ) external view returns (bool isRegistered);
+
+    /*//////////////////////////////////////////////////////////////
+                        ENHANCED VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Gets the current status of a relationship
+     * @param ark The address of the CrossChainArk contract
+     * @return status The current relationship status
+     */
+    function getRelationshipStatus(
+        address ark
+    ) external view returns (RelationshipStatus status);
+
+    /**
+     * @notice Gets the relationship history for an ark
+     * @param ark The address of the CrossChainArk contract
+     * @return history Array of historical entries
+     */
+    function getRelationshipHistory(
+        address ark
+    ) external view returns (RelationshipHistoryEntry[] memory history);
+
+    /**
+     * @notice Gets the latest history entry for an ark
+     * @param ark The address of the CrossChainArk contract
+     * @return entry The most recent historical entry
+     */
+    function getLatestHistoryEntry(
+        address ark
+    ) external view returns (RelationshipHistoryEntry memory entry);
+
+    /**
+     * @notice Gets relationships by status
+     * @param status The status to filter by
+     * @return arks Array of ark addresses with the specified status
+     */
+    function getRelationshipsByStatus(
+        RelationshipStatus status
+    ) external view returns (address[] memory arks);
+
+    /**
+     * @notice Gets relationship statistics
+     * @return totalRelationships Total number of relationships
+     * @return activeRelationships Number of active relationships
+     * @return pausedRelationships Number of paused relationships
+     * @return deprecatedRelationships Number of deprecated relationships
+     */
+    function getRelationshipStatistics()
+        external
+        view
+        returns (
+            uint256 totalRelationships,
+            uint256 activeRelationships,
+            uint256 pausedRelationships,
+            uint256 deprecatedRelationships
+        );
+
+    /**
+     * @notice Gets chain-specific statistics
+     * @param chainId The chain ID to get statistics for
+     * @return totalProxies Total number of proxies on the chain
+     * @return activeProxies Number of active proxies on the chain
+     */
+    function getChainStatistics(
+        uint16 chainId
+    ) external view returns (uint256 totalProxies, uint256 activeProxies);
+
+    /**
+     * @notice Checks if a relationship exists
+     * @param ark The address of the CrossChainArk contract
+     * @return exists True if the relationship exists
+     */
+    function relationshipExists(
+        address ark
+    ) external view returns (bool exists);
+
+    /**
+     * @notice Validates if a contract address exists
+     * @param contractAddress The address to validate
+     * @return isContract True if the address is a contract
+     */
+    function validateContractExists(
+        address contractAddress
+    ) external view returns (bool isContract);
 }
