@@ -6,6 +6,7 @@ import { BaseConfig } from '../types/config-types'
 import { ADDRESS_ZERO } from './common/constants'
 import { checkExistingContracts } from './helpers/check-existing-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
+import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
 import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
@@ -52,6 +53,14 @@ async function deployCoreContracts(
   if (config.common.swapProvider === ADDRESS_ZERO) {
     throw new Error('SwapProvider is not deployed')
   }
+
+  // Get current chain ID for CrossChainRegistry
+  const currentChainId = getChainId()
+  console.log(
+    kleur.cyan('Deploying CrossChainRegistry with Chain ID:'),
+    kleur.green(currentChainId),
+  )
+
   const core = await hre.ignition.deploy(CoreModule, {
     parameters: {
       CoreModule: {
@@ -60,11 +69,16 @@ async function deployCoreContracts(
         treasury: config.deployedContracts.gov.timelock.address,
         lzEndpoint: config.common.layerZero.lzEndpoint,
         weth: config.tokens.weth,
+        currentChainId: currentChainId,
       },
     },
   })
 
   console.log(kleur.green().bold('All Core Contracts Deployed Successfully!'))
+  console.log(
+    kleur.cyan('CrossChainRegistry deployed at:'),
+    kleur.green(core.crossChainRegistry.address),
+  )
 
   updateIndexJson('core', hre.network.name, core, useBummerConfig)
 
