@@ -1,8 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
-import path from 'path'
 import { Address } from 'viem'
 import { BaseConfig } from '../types/config-types'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -72,28 +70,7 @@ export async function deployCrossChainRegistry() {
   // Update the main config file
   updateIndexJson('core', hre.network.name, deployedContracts, useBummerConfig)
 
-  // Save deployment info in simplified format
-  const deploymentInfo = {
-    contractName: 'CrossChainRegistry',
-    registryAddress: result.crossChainRegistry.address,
-    network: hre.network.name,
-  }
-
-  // Save to deployments directory
-  const deploymentPath = path.join(
-    __dirname,
-    '../deployments/registries',
-    `CrossChainRegistry_${hre.network.name}_deployment.json`,
-  )
-
-  // Ensure directory exists
-  const deploymentDir = path.dirname(deploymentPath)
-  if (!fs.existsSync(deploymentDir)) {
-    fs.mkdirSync(deploymentDir, { recursive: true })
-  }
-
-  fs.writeFileSync(deploymentPath, JSON.stringify(deploymentInfo, null, 2))
-  console.log(kleur.green('Deployment info saved to:'), kleur.cyan(deploymentPath))
+  console.log(kleur.green('Deployment completed and config updated successfully!'))
 
   return deployedContracts
 }
