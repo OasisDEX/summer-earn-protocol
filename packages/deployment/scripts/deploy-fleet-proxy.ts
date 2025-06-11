@@ -60,7 +60,7 @@ export async function deployFleetProxy() {
   const userInput = await getUserInput(config, useBummerConfig)
 
   // Ask user to confirm parameters before deploying
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config)) {
     const fleetProxyAddress = await deployFleetProxyContract(userInput, config, userInput.fleetName)
 
     console.log(kleur.green().bold('FleetProxy successfully deployed at:'), fleetProxyAddress)
@@ -85,10 +85,28 @@ async function getUserInput(
   config: BaseConfig,
   useBummerConfig: boolean,
 ): Promise<FleetProxyParams> {
-  // Add bridgeQueue to the parameters
+  // Validate required addresses from config
   const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
   const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address as Address
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
+  const crossChainRegistryAddress = config.deployedContracts.core.crossChainRegistry.address
+
+  if (!bridgeRouterAddress) {
+    throw new Error(
+      'Bridge Router address not found in config. Make sure bridge contracts are deployed.',
+    )
+  }
+  if (!bridgeQueueAddress) {
+    throw new Error(
+      'Bridge Queue address not found in config. Make sure bridge contracts are deployed.',
+    )
+  }
+  if (!crossChainRegistryAddress) {
+    throw new Error(
+      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
+    )
+  }
+
   const currentNetwork = hre.network.name
   const currentChainId = getChainIdByNetwork(currentNetwork)
 
@@ -176,11 +194,16 @@ async function getUserInput(
 /**
  * Ask user to confirm deployment parameters
  */
-async function confirmDeployment(params: FleetProxyParams): Promise<boolean> {
+async function confirmDeployment(params: FleetProxyParams, config: BaseConfig): Promise<boolean> {
   console.log(kleur.yellow('\nFleetProxy Deployment Configuration:'))
   console.log(kleur.blue('Fleet Name:'), kleur.cyan(params.fleetName))
   console.log(kleur.blue('Access Manager:'), kleur.cyan(params.accessManager))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(params.bridgeRouter))
+  console.log(kleur.blue('Bridge Queue:'), kleur.cyan(params.bridgeQueue))
+  console.log(
+    kleur.blue('CrossChain Registry:'),
+    kleur.cyan(config.deployedContracts.core.crossChainRegistry.address),
+  )
   console.log(kleur.blue('Fleet Contract:'), kleur.cyan(params.fleetContract))
   console.log(kleur.blue('Source Chain ID:'), kleur.cyan(params.sourceChainId.toString()))
   console.log(kleur.blue('Protocol:'), kleur.cyan(params.protocol))
@@ -200,17 +223,26 @@ async function deployFleetProxyContract(
   const deploymentId = await handleDeploymentId(chainId)
   const moduleName = `FleetProxy_${fleetName}_${deploymentId}`.replace(/-/g, '_')
 
+  // Get the CrossChainRegistry address from config
+  const crossChainRegistryAddress = config.deployedContracts.core.crossChainRegistry.address
+  if (!crossChainRegistryAddress) {
+    throw new Error(
+      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
+    )
+  }
+
   try {
     // Create the FleetProxy module
     const module = createFleetProxyModule(moduleName)
 
-    // Deploy with only essential parameters
+    // Deploy with all required parameters including CrossChainRegistry
     const result = await hre.ignition.deploy(module, {
       parameters: {
         [moduleName]: {
           accessManager: params.accessManager,
           bridgeRouter: params.bridgeRouter,
           bridgeQueue: params.bridgeQueue,
+          crossChainRegistry: crossChainRegistryAddress,
           fleetContract: params.fleetContract,
         },
       },
