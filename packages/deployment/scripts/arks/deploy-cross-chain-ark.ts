@@ -32,6 +32,7 @@ export async function deployCrossChainArk(
   arkParams?: BaseArkParams & {
     bridgeQueue?: Address
     bridgeRouter?: Address
+    crossChainRegistry?: Address
     targetChainId?: number
     targetProtocol?: string
     fleetProxyAddress?: Address
@@ -303,6 +304,14 @@ async function getUserInput(
     throw new Error('Bridge Router address is required')
   }
 
+  // Validate CrossChainRegistry is available
+  const crossChainRegistryAddress = config.deployedContracts.core.crossChainRegistry.address
+  if (!crossChainRegistryAddress) {
+    throw new Error(
+      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
+    )
+  }
+
   const fleetProxyAddress = protocolConfig?.fleetProxyAddress as Address | undefined
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
 
@@ -357,7 +366,7 @@ async function getUserInput(
     }
 
     assetSymbol = selectedAsset.toUpperCase()
-    assetAddress = config.tokens[selectedAsset] as Address
+    assetAddress = config.tokens[selectedAsset as keyof typeof config.tokens] as Address
   } else {
     // Get the asset address from the current chain's config
     assetAddress = config.tokens[assetSymbol.toLowerCase() as keyof typeof config.tokens] as Address
@@ -401,6 +410,10 @@ async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated
   console.log(kleur.blue('Max Rebalance Inflow:'), kleur.cyan(userInput.maxRebalanceInflow))
   console.log(kleur.blue('Bridge Queue:'), kleur.cyan(userInput.bridgeQueue))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(userInput.bridgeRouter))
+  console.log(
+    kleur.blue('CrossChain Registry:'),
+    kleur.cyan(config.deployedContracts.core.crossChainRegistry.address),
+  )
   console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))
   console.log(kleur.blue('Target Protocol:'), kleur.cyan(userInput.targetProtocol))
   console.log(kleur.blue('Fleet Proxy:'), kleur.cyan(userInput.fleetProxyAddress))
@@ -427,11 +440,20 @@ async function deployCrossChainArkContract(
 
   const module = createCrossChainArkModule(moduleName)
 
+  // Get the CrossChainRegistry address from config
+  const crossChainRegistryAddress = config.deployedContracts.core.crossChainRegistry.address
+  if (!crossChainRegistryAddress) {
+    throw new Error(
+      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
+    )
+  }
+
   const result = await hre.ignition.deploy(module, {
     parameters: {
       [moduleName]: {
         bridgeQueue: userInput.bridgeQueue,
         bridgeRouter: userInput.bridgeRouter,
+        crossChainRegistry: crossChainRegistryAddress,
         targetChainId: userInput.targetChainId,
         arkParams: {
           name: `CrossChainArk-${userInput.token.symbol}-${userInput.targetProtocol}`,
