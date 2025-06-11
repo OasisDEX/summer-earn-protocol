@@ -116,8 +116,11 @@ async function getUserInput(
     // Check if fleet name contains "bummer"
     const isBummerFleet = fleetDeployment.fleetName.toLowerCase().includes('bummer')
 
-    // Only add if chain matches and bummer status matches
-    if (sourceChainId === currentChainId && isBummerFleet === useBummerConfig) {
+    // Allow bummer configs to connect to both bummer and prod fleets
+    // But restrict prod configs to only prod fleets for safety
+    const shouldInclude = sourceChainId === currentChainId && (useBummerConfig || !isBummerFleet)
+
+    if (shouldInclude) {
       filteredDeploymentFiles.push(file)
     }
   }
