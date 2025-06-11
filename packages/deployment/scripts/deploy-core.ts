@@ -23,7 +23,7 @@ export async function deployCore() {
     hre.network.name,
     { common: false, gov: true, core: false },
     useBummerConfig,
-  )
+  ) as BaseConfig
   const deployedCore = await deployCoreContracts(config, useBummerConfig)
   ModuleLogger.logCore(deployedCore)
   return deployedCore
@@ -90,7 +90,7 @@ async function deployCoreContracts(
       core: true,
     },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   await setupGovernanceRoles(updatedConfig)
 
