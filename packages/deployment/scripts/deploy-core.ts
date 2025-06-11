@@ -47,19 +47,12 @@ async function deployCoreContracts(
   if (config.deployedContracts.gov.timelock.address === ADDRESS_ZERO) {
     throw new Error('TimelockController is not deployed')
   }
-  if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
-    throw new Error('LayerZero is not deployed')
-  }
   if (config.common.swapProvider === ADDRESS_ZERO) {
     throw new Error('SwapProvider is not deployed')
   }
 
   // Get current chain ID for CrossChainRegistry
   const currentChainId = getChainId()
-  console.log(
-    kleur.cyan('Deploying CrossChainRegistry with Chain ID:'),
-    kleur.green(currentChainId),
-  )
 
   const core = await hre.ignition.deploy(CoreModule, {
     parameters: {
@@ -67,7 +60,6 @@ async function deployCoreContracts(
         swapProvider: config.common.swapProvider,
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         treasury: config.deployedContracts.gov.timelock.address,
-        lzEndpoint: config.common.layerZero.lzEndpoint,
         weth: config.tokens.weth,
         currentChainId: currentChainId,
       },
