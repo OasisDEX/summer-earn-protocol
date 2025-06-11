@@ -255,7 +255,7 @@ async function findMatchingConfigFile(
         }
       }
     } catch (error) {
-      console.warn(kleur.yellow(`Error reading config file ${file}:`, error))
+      console.warn(kleur.yellow(`Error reading config file ${file}: ${error}`))
     }
   }
   return null

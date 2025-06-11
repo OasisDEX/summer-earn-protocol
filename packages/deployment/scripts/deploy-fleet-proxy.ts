@@ -225,7 +225,6 @@ async function deployFleetProxyContract(
       chainId: chainId,
       protocol: params.protocol,
       fleetProxyAddress: fleetProxyAddress,
-      asset: params.asset,
     })
 
     // Make sure the source chain ID is updated in the config
