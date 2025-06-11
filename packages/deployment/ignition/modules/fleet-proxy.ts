@@ -15,7 +15,8 @@ export type FleetProxyContract = {
  */
 export function createFleetProxyModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
-    // Get parameters - including the CrossChainRegistry
+    // Get parameters - including the initialController (deployer key)
+    const initialController = m.getParameter('initialController')
     const accessManager = m.getParameter('accessManager')
     const bridgeRouter = m.getParameter('bridgeRouter')
     const bridgeQueue = m.getParameter('bridgeQueue')
@@ -24,6 +25,7 @@ export function createFleetProxyModule(moduleName: string) {
 
     // Deploy FleetProxy with all 5 required constructor parameters
     const fleetProxy = m.contract('FleetProxy', [
+      initialController, // initialController (deployer key)
       accessManager, // _accessManager
       bridgeRouter, // _bridgeRouter
       bridgeQueue, // _bridgeQueue

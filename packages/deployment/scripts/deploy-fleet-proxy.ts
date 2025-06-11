@@ -243,10 +243,15 @@ async function deployFleetProxyContract(
     // Create the FleetProxy module
     const module = createFleetProxyModule(moduleName)
 
-    // Deploy with all required parameters including CrossChainRegistry
+    // Get the deployer account as the initial controller
+    const [deployer] = await hre.viem.getWalletClients()
+    const initialController = deployer.account.address
+
+    // Deploy with all required parameters including initialController and CrossChainRegistry
     const result = await hre.ignition.deploy(module, {
       parameters: {
         [moduleName]: {
+          initialController: initialController,
           accessManager: params.accessManager,
           bridgeRouter: params.bridgeRouter,
           bridgeQueue: params.bridgeQueue,
