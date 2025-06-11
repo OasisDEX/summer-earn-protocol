@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { BridgeConfig } from './bridge-types'
+import { DeployedBridge } from './bridge-types'
 
 export enum SupportedNetworks {
   MAINNET = 'mainnet',
@@ -97,6 +97,7 @@ export interface BaseConfig {
       harborCommand: { address: string }
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
+      crossChainRegistry: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }
@@ -206,7 +207,7 @@ export interface BaseConfig {
       arm: Address
     }
   }
-  bridge?: BridgeConfig
+  bridge?: DeployedBridge
 }
 
 export interface ArkConfig {
