@@ -1,3 +1,4 @@
+import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
@@ -7,6 +8,7 @@ import { BaseConfig } from '../types/config-types'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { getChainId } from './helpers/get-chainid'
 import { promptForConfigType } from './helpers/prompt-helpers'
+import { updateIndexJson } from './helpers/update-json'
 
 export async function deployCrossChainRegistry() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -35,21 +37,45 @@ export async function deployCrossChainRegistry() {
   console.log(kleur.cyan('Chain ID:'), kleur.green(currentChainId))
   console.log(kleur.cyan('Access Manager:'), kleur.green(protocolAccessManager))
 
-  // Deploy CrossChainRegistry
-  const crossChainRegistry = await hre.viem.deployContract('CrossChainRegistry', [
-    protocolAccessManager,
-    currentChainId,
-  ])
+  // Create a simple ignition module for CrossChainRegistry
+  const CrossChainRegistryModule = buildModule('CrossChainRegistryModule', (m) => {
+    const accessManager = m.getParameter('protocolAccessManager')
+    const chainId = m.getParameter('currentChainId')
+
+    const crossChainRegistry = m.contract('CrossChainRegistry', [accessManager, chainId])
+
+    return { crossChainRegistry }
+  })
+
+  // Deploy CrossChainRegistry using ignition
+  const result = await hre.ignition.deploy(CrossChainRegistryModule, {
+    parameters: {
+      CrossChainRegistryModule: {
+        protocolAccessManager,
+        currentChainId,
+      },
+    },
+  })
 
   console.log(
     kleur.green('CrossChainRegistry deployed at:'),
-    kleur.cyan(crossChainRegistry.address),
+    kleur.cyan(result.crossChainRegistry.address),
   )
+
+  // Create the contracts object in the same format as core module
+  const deployedContracts = {
+    crossChainRegistry: {
+      address: result.crossChainRegistry.address,
+    },
+  }
+
+  // Update the main config file
+  updateIndexJson('core', hre.network.name, deployedContracts, useBummerConfig)
 
   // Save deployment info in simplified format
   const deploymentInfo = {
     contractName: 'CrossChainRegistry',
-    registryAddress: crossChainRegistry.address,
+    registryAddress: result.crossChainRegistry.address,
     network: hre.network.name,
   }
 
@@ -60,14 +86,16 @@ export async function deployCrossChainRegistry() {
     `CrossChainRegistry_${hre.network.name}_deployment.json`,
   )
 
+  // Ensure directory exists
+  const deploymentDir = path.dirname(deploymentPath)
+  if (!fs.existsSync(deploymentDir)) {
+    fs.mkdirSync(deploymentDir, { recursive: true })
+  }
+
   fs.writeFileSync(deploymentPath, JSON.stringify(deploymentInfo, null, 2))
   console.log(kleur.green('Deployment info saved to:'), kleur.cyan(deploymentPath))
 
-  return {
-    crossChainRegistry: {
-      address: crossChainRegistry.address,
-    },
-  }
+  return deployedContracts
 }
 
 // When script is run directly
