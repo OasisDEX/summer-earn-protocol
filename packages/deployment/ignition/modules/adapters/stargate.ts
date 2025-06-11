@@ -6,14 +6,21 @@ export default buildModule('StargateAdapterModule', (m) => {
   const bridgeRouter = m.getParameter<Address>('bridgeRouter', undefined)
   const owner = m.getParameter<Address>('owner', undefined)
   const lzEndpoint = m.getParameter<Address>('lzEndpoint', undefined)
+  const accessManager = m.getParameter<Address>('accessManager', undefined)
 
   // Validate required parameters
   if (!bridgeRouter) throw new Error('bridgeRouter parameter is required')
   if (!owner) throw new Error('owner parameter is required')
   if (!lzEndpoint) throw new Error('lzEndpoint parameter is required')
+  if (!accessManager) throw new Error('accessManager parameter is required')
 
-  // Deploy StargateAdapter for V2 - with all 3 required parameters
-  const stargateAdapter = m.contract('StargateAdapter', [bridgeRouter, owner, lzEndpoint])
+  // Deploy StargateAdapter with all 4 required constructor parameters
+  const stargateAdapter = m.contract('StargateAdapter', [
+    bridgeRouter, // _bridgeRouter
+    owner, // _deployer
+    lzEndpoint, // _lzEndpoint
+    accessManager, // _accessManager
+  ])
 
   // Return the deployed contract
   return {
