@@ -65,6 +65,14 @@ export async function deployFleetProxy() {
 
     console.log(kleur.green().bold('FleetProxy successfully deployed at:'), fleetProxyAddress)
     console.log(kleur.green('Deployment recorded in cross-chain configuration.'))
+
+    // Optional step: Ask if CrossChain Ark has been deployed and save its address
+    await promptForCrossChainArkAddress(
+      userInput.fleetName,
+      userInput.protocol,
+      userInput.sourceChainId,
+    )
+
     console.log(
       kleur.green('Note: Deploy CrossChainArk on the source chain if not already deployed.'),
     )
@@ -275,6 +283,58 @@ async function deployFleetProxyContract(
   } catch (error) {
     console.error(kleur.red('Error deploying FleetProxy:'), error)
     throw error
+  }
+}
+
+/**
+ * Optional step to prompt user for CrossChain Ark address and save it to config
+ */
+async function promptForCrossChainArkAddress(
+  fleetName: string,
+  protocol: string,
+  sourceChainId: number,
+): Promise<void> {
+  console.log(kleur.yellow('\n--- Optional: CrossChain Ark Configuration ---'))
+
+  const { hasCrossChainArk } = await prompts({
+    type: 'confirm',
+    name: 'hasCrossChainArk',
+    message: 'Has the corresponding CrossChain Ark been deployed on the source chain?',
+    initial: false,
+  })
+
+  if (hasCrossChainArk) {
+    const { crossChainArkAddress } = await prompts({
+      type: 'text',
+      name: 'crossChainArkAddress',
+      message: 'Enter the CrossChain Ark address:',
+      validate: (value: string) => {
+        if (!value || value.trim() === '') {
+          return 'CrossChain Ark address is required'
+        }
+        if (!value.startsWith('0x') || value.length !== 42) {
+          return 'Please enter a valid Ethereum address (0x...)'
+        }
+        return true
+      },
+    })
+
+    if (crossChainArkAddress) {
+      // Save the CrossChain Ark address to the cross-chain config
+      saveCrossChainConfig(fleetName, {
+        chainId: sourceChainId,
+        protocol,
+        crossChainArkAddress: crossChainArkAddress.trim(),
+      })
+
+      console.log(
+        kleur.green(`✓ CrossChain Ark address saved to configuration: ${crossChainArkAddress}`),
+      )
+      console.log(kleur.green('✓ Cross-chain configuration is now complete!'))
+    }
+  } else {
+    console.log(kleur.yellow('CrossChain Ark address can be added later when deployed.'))
+    console.log(kleur.yellow('Use the cross-chain config helper to update the configuration.'))
   }
 }
 
