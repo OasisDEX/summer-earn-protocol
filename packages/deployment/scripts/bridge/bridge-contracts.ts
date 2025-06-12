@@ -84,7 +84,7 @@ export async function deployBridgeContracts(
 
   if (!routerExists && !queueExists) {
     // Neither exists, deploy both using original module
-    console.log(kleur.blue('Deploying both BridgeRouter and BridgeQueue'))
+    console.log(kleur.blue('Deploying BridgeRouter, BridgeQueue, and CrossChainRegistry'))
 
     const parameters = {
       BridgeModule: {
@@ -128,7 +128,10 @@ export async function deployBridgeContracts(
     // Now link the existing queue to the new router
     console.log(kleur.blue('Linking existing BridgeQueue to new BridgeRouter...'))
     try {
-      const bridgeQueue = await hre.viem.getContractAt('BridgeQueue', existingQueueAddress)
+      const bridgeQueue = await hre.viem.getContractAt(
+        'BridgeQueue' as string,
+        existingQueueAddress,
+      )
       await bridgeQueue.write.setBridgeRouter([newRouterAddress])
       console.log(kleur.green('✓ BridgeQueue successfully linked to new BridgeRouter'))
     } catch (error) {
