@@ -65,10 +65,15 @@ contract CrossChainRegistryTest is Test {
 
     function test_registerArkProxy() public {
         vm.expectEmit(true, true, true, true);
-        emit ArkProxyRegistered(ark1, TARGET_CHAIN_ID, proxy1);
+        emit ArkProxyRegistered(ark1, CURRENT_CHAIN_ID, proxy1);
 
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         // Check relationship was created
         (address proxy, uint16 chainId) = registry.getProxyForArk(ark1);
@@ -80,7 +85,9 @@ contract CrossChainRegistryTest is Test {
         assertEq(ark, ark1);
 
         // Check validation
-        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+        assertTrue(
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
+        );
         assertTrue(registry.isArkRegistered(ark1));
 
         // Check count
@@ -95,7 +102,12 @@ contract CrossChainRegistryTest is Test {
                 address(0)
             )
         );
-        registry.registerArkProxy(address(0), TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            address(0),
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
     }
 
     function test_registerArkProxy_revertInvalidProxy() public {
@@ -106,7 +118,12 @@ contract CrossChainRegistryTest is Test {
                 address(0)
             )
         );
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, address(0));
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            address(0)
+        );
     }
 
     function test_registerArkProxy_revertInvalidChainId() public {
@@ -117,28 +134,43 @@ contract CrossChainRegistryTest is Test {
                 0
             )
         );
-        registry.registerArkProxy(ark1, 0, proxy1);
+        registry.registerArkProxy(ark1, 0, TARGET_CHAIN_ID, proxy1);
     }
 
     function test_registerArkProxy_revertAlreadyExists() public {
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ICrossChainRegistry.RelationshipAlreadyExists.selector,
                 ark1,
-                TARGET_CHAIN_ID,
+                CURRENT_CHAIN_ID,
                 proxy1
             )
         );
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
     }
 
     function test_registerArkProxy_revertProxyAlreadyRegistered() public {
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         vm.prank(governor);
         vm.expectRevert(
@@ -149,22 +181,37 @@ contract CrossChainRegistryTest is Test {
                 ark1
             )
         );
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark2,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
     }
 
     function test_registerArkProxy_onlyGovernor() public {
         vm.prank(user);
         vm.expectRevert();
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
     }
 
     function test_unregisterArkProxy() public {
         // First register
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         vm.expectEmit(true, true, true, true);
-        emit ArkProxyUnregistered(ark1, TARGET_CHAIN_ID, proxy1);
+        emit ArkProxyUnregistered(ark1, CURRENT_CHAIN_ID, proxy1);
 
         vm.prank(governor);
         registry.unregisterArkProxy(ark1);
@@ -196,7 +243,12 @@ contract CrossChainRegistryTest is Test {
 
     function test_unregisterArkProxy_onlyGovernor() public {
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         vm.prank(user);
         vm.expectRevert();
@@ -206,10 +258,17 @@ contract CrossChainRegistryTest is Test {
     function test_updateRelationshipStatus() public {
         // First register
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         // Check initially active
-        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+        assertTrue(
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
+        );
 
         // Deactivate
         vm.expectEmit(true, false, false, true);
@@ -220,7 +279,7 @@ contract CrossChainRegistryTest is Test {
 
         // Check now inactive
         assertFalse(
-            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1)
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
         );
 
         // Reactivate
@@ -231,7 +290,9 @@ contract CrossChainRegistryTest is Test {
         registry.updateRelationshipStatus(ark1, true);
 
         // Check active again
-        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+        assertTrue(
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
+        );
     }
 
     function test_updateRelationshipStatus_revertNotExists() public {
@@ -247,7 +308,12 @@ contract CrossChainRegistryTest is Test {
 
     function test_updateRelationshipStatus_onlyGovernor() public {
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         vm.prank(user);
         vm.expectRevert();
@@ -260,7 +326,12 @@ contract CrossChainRegistryTest is Test {
 
     function test_getProxyForArk() public {
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         (address proxy, uint16 chainId) = registry.getProxyForArk(ark1);
         assertEq(proxy, proxy1);
@@ -279,7 +350,12 @@ contract CrossChainRegistryTest is Test {
 
     function test_getArkForProxy() public {
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         address ark = registry.getArkForProxy(CURRENT_CHAIN_ID, proxy1);
         assertEq(ark, ark1);
@@ -298,31 +374,38 @@ contract CrossChainRegistryTest is Test {
     function test_isValidArkProxyPair() public {
         // Should be false before registration
         assertFalse(
-            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1)
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
         );
 
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         // Should be true after registration
-        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+        assertTrue(
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
+        );
 
         // Should be false for wrong combinations
         assertFalse(
-            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy2)
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy2)
         );
         assertFalse(
-            registry.isValidArkProxyPair(ark2, TARGET_CHAIN_ID, proxy1)
+            registry.isValidArkProxyPair(ark2, CURRENT_CHAIN_ID, proxy1)
         );
         assertFalse(
-            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID + 1, proxy1)
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID + 1, proxy1)
         );
 
         // Should be false when deactivated
         vm.prank(governor);
         registry.updateRelationshipStatus(ark1, false);
         assertFalse(
-            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1)
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
         );
     }
 
@@ -335,14 +418,24 @@ contract CrossChainRegistryTest is Test {
         assertEq(arks.length, 0);
 
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         arks = registry.getRegisteredArks();
         assertEq(arks.length, 1);
         assertEq(arks[0], ark1);
 
         vm.prank(governor);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2);
+        registry.registerArkProxy(
+            ark2,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy2
+        );
 
         arks = registry.getRegisteredArks();
         assertEq(arks.length, 2);
@@ -355,7 +448,12 @@ contract CrossChainRegistryTest is Test {
         assertFalse(registry.isArkRegistered(ark1));
 
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         assertTrue(registry.isArkRegistered(ark1));
         assertFalse(registry.isArkRegistered(ark2));
@@ -370,11 +468,21 @@ contract CrossChainRegistryTest is Test {
         assertEq(registry.getRelationshipCount(), 0);
 
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
         assertEq(registry.getRelationshipCount(), 1);
 
         vm.prank(governor);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2);
+        registry.registerArkProxy(
+            ark2,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy2
+        );
         assertEq(registry.getRelationshipCount(), 2);
 
         vm.prank(governor);
@@ -393,9 +501,24 @@ contract CrossChainRegistryTest is Test {
     function test_multipleRegistrations() public {
         // Register multiple relationships
         vm.startPrank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
-        registry.registerArkProxy(ark2, TARGET_CHAIN_ID, proxy2);
-        registry.registerArkProxy(ark3, TARGET_CHAIN_ID, proxy3);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
+        registry.registerArkProxy(
+            ark2,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy2
+        );
+        registry.registerArkProxy(
+            ark3,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy3
+        );
         vm.stopPrank();
 
         // Check all relationships exist
@@ -423,15 +546,26 @@ contract CrossChainRegistryTest is Test {
         assertEq(registry.getArkForProxy(CURRENT_CHAIN_ID, proxy3), ark3);
 
         // Check validations
-        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
-        assertTrue(registry.isValidArkProxyPair(ark2, TARGET_CHAIN_ID, proxy2));
-        assertTrue(registry.isValidArkProxyPair(ark3, TARGET_CHAIN_ID, proxy3));
+        assertTrue(
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
+        );
+        assertTrue(
+            registry.isValidArkProxyPair(ark2, CURRENT_CHAIN_ID, proxy2)
+        );
+        assertTrue(
+            registry.isValidArkProxyPair(ark3, CURRENT_CHAIN_ID, proxy3)
+        );
     }
 
     function test_registrationAndUnregistration() public {
         // Register
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         // Verify registration
         assertTrue(registry.isArkRegistered(ark1));
@@ -447,7 +581,12 @@ contract CrossChainRegistryTest is Test {
 
         // Should be able to register again
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         assertTrue(registry.isArkRegistered(ark1));
         assertEq(registry.getRelationshipCount(), 1);
@@ -456,10 +595,17 @@ contract CrossChainRegistryTest is Test {
     function test_statusManagement() public {
         // Register
         vm.prank(governor);
-        registry.registerArkProxy(ark1, TARGET_CHAIN_ID, proxy1);
+        registry.registerArkProxy(
+            ark1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            proxy1
+        );
 
         // Initially active
-        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+        assertTrue(
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
+        );
 
         // Deactivate
         vm.prank(governor);
@@ -468,7 +614,7 @@ contract CrossChainRegistryTest is Test {
         // Should be inactive but still registered
         assertTrue(registry.isArkRegistered(ark1));
         assertFalse(
-            registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1)
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
         );
 
         // Reactivate
@@ -476,6 +622,8 @@ contract CrossChainRegistryTest is Test {
         registry.updateRelationshipStatus(ark1, true);
 
         // Should be active again
-        assertTrue(registry.isValidArkProxyPair(ark1, TARGET_CHAIN_ID, proxy1));
+        assertTrue(
+            registry.isValidArkProxyPair(ark1, CURRENT_CHAIN_ID, proxy1)
+        );
     }
 }

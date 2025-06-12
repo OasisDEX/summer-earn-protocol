@@ -97,11 +97,11 @@ export interface BaseConfig {
       harborCommand: { address: string }
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
-      crossChainRegistry: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }
       bridgeQueue: { address: string }
+      crossChainRegistry: { address: string }
       adapters?: {
         layerZero?: { address: string }
         stargate?: { address: string }

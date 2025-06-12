@@ -30,7 +30,12 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
     mapping(uint16 => mapping(address => address)) private chainToArkToProxy;
     mapping(address => bool) private arkToProxyActive;
 
-    function registerArkProxy(address, uint16, address) external override {}
+    function registerArkProxy(
+        address,
+        uint16,
+        uint16,
+        address
+    ) external override {}
 
     function unregisterArkProxy(address) external override {}
 
@@ -55,11 +60,11 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
 
     function isValidArkProxyPair(
         address ark,
-        uint16 targetChainId,
+        uint16 sourceChainId,
         address proxy
     ) external view override returns (bool) {
         return
-            chainToProxyToArk[targetChainId][proxy] == ark &&
+            chainToProxyToArk[sourceChainId][proxy] == ark &&
             arkToProxyActive[ark];
     }
 

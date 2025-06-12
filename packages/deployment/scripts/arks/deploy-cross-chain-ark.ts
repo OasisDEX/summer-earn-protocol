@@ -305,10 +305,10 @@ async function getUserInput(
   }
 
   // Validate CrossChainRegistry is available
-  const crossChainRegistryAddress = config.deployedContracts.core.crossChainRegistry.address
+  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry?.address
   if (!crossChainRegistryAddress) {
     throw new Error(
-      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
+      'CrossChainRegistry address not found in config. Make sure bridge contracts are deployed.',
     )
   }
 
@@ -386,6 +386,7 @@ async function getUserInput(
     configName,
     bridgeQueue: bridgeQueueAddress,
     bridgeRouter: bridgeRouterAddress,
+    crossChainRegistry: crossChainRegistryAddress,
     targetChainId,
     targetProtocol,
     fleetProxyAddress,
@@ -410,10 +411,7 @@ async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated
   console.log(kleur.blue('Max Rebalance Inflow:'), kleur.cyan(userInput.maxRebalanceInflow))
   console.log(kleur.blue('Bridge Queue:'), kleur.cyan(userInput.bridgeQueue))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(userInput.bridgeRouter))
-  console.log(
-    kleur.blue('CrossChain Registry:'),
-    kleur.cyan(config.deployedContracts.core.crossChainRegistry.address),
-  )
+  console.log(kleur.blue('CrossChain Registry:'), kleur.cyan(userInput.crossChainRegistry))
   console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))
   console.log(kleur.blue('Target Protocol:'), kleur.cyan(userInput.targetProtocol))
   console.log(kleur.blue('Fleet Proxy:'), kleur.cyan(userInput.fleetProxyAddress))
@@ -441,10 +439,10 @@ async function deployCrossChainArkContract(
   const module = createCrossChainArkModule(moduleName)
 
   // Get the CrossChainRegistry address from config
-  const crossChainRegistryAddress = config.deployedContracts.core.crossChainRegistry.address
+  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry?.address
   if (!crossChainRegistryAddress) {
     throw new Error(
-      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
+      'CrossChainRegistry address not found in config. Make sure bridge contracts are deployed.',
     )
   }
 

@@ -69,24 +69,30 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @inheritdoc ICrossChainRegistry
     function registerArkProxy(
         address ark,
+        uint16 sourceChainId,
         uint16 targetChainId,
         address proxy
     ) external override onlyGovernor {
         if (ark == address(0)) revert InvalidArk(ark);
         if (proxy == address(0)) revert InvalidProxy(proxy);
+        if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
         if (targetChainId == 0) revert InvalidChainId(targetChainId);
 
-        // Check if ark already exists
+        // This function can be called on either source or target chain
+        // Source chain: Allows CrossChainArk to find its target proxy
+        // Target chain: Allows FleetProxy to validate source ark relationships
+
+        // Check if ark already exists (using ark address as unique identifier)
         if (arkRegistered[ark]) {
-            revert RelationshipAlreadyExists(ark, targetChainId, proxy);
+            revert RelationshipAlreadyExists(ark, sourceChainId, proxy);
         }
 
-        // Check if proxy is already registered to another ark
-        bytes32 proxyKey = keccak256(abi.encode(currentChainId, proxy));
+        // Check if this proxy is already registered to another ark (for target chain lookups)
+        bytes32 proxyKey = keccak256(abi.encode(sourceChainId, proxy));
         if (proxyToArk[proxyKey] != address(0)) {
             revert ProxyAlreadyRegistered(
                 proxy,
-                currentChainId,
+                sourceChainId,
                 proxyToArk[proxyKey]
             );
         }
@@ -94,18 +100,19 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         // Create the relationship
         arkToProxy[ark] = ArkProxyRelation({
             proxy: proxy,
-            targetChainId: targetChainId,
+            targetChainId: targetChainId, // Explicit target chain ID
+            sourceChainId: sourceChainId, // Explicit source chain ID
             isActive: true // Default to active
         });
 
-        // Set reverse mapping
+        // Set reverse mapping: (sourceChainId, proxy) -> ark (used by target chain FleetProxy)
         proxyToArk[proxyKey] = ark;
 
         // Update tracking
         registeredArks.push(ark);
         arkRegistered[ark] = true;
 
-        emit ArkProxyRegistered(ark, targetChainId, proxy);
+        emit ArkProxyRegistered(ark, sourceChainId, proxy);
     }
 
     /// @inheritdoc ICrossChainRegistry
@@ -116,9 +123,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         ArkProxyRelation memory relation = arkToProxy[ark];
 
-        // Remove reverse mapping
+        // Remove reverse mapping using the stored sourceChainId
         bytes32 proxyKey = keccak256(
-            abi.encode(currentChainId, relation.proxy)
+            abi.encode(relation.sourceChainId, relation.proxy)
         );
         delete proxyToArk[proxyKey];
 
@@ -135,7 +142,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         delete arkToProxy[ark];
         delete arkRegistered[ark];
 
-        emit ArkProxyUnregistered(ark, relation.targetChainId, relation.proxy);
+        emit ArkProxyUnregistered(ark, relation.sourceChainId, relation.proxy);
     }
 
     /// @inheritdoc ICrossChainRegistry
@@ -182,7 +189,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @inheritdoc ICrossChainRegistry
     function isValidArkProxyPair(
         address ark,
-        uint16 targetChainId,
+        uint16 sourceChainId,
         address proxy
     ) external view override returns (bool isValid) {
         if (!arkRegistered[ark]) {
@@ -191,7 +198,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         ArkProxyRelation memory relation = arkToProxy[ark];
         return (relation.proxy == proxy &&
-            relation.targetChainId == targetChainId &&
+            relation.sourceChainId == sourceChainId &&
             relation.isActive);
     }
 
