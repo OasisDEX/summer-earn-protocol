@@ -24,6 +24,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
 
     function registerArkProxy(
         address ark,
+        uint16 sourceChainId,
         uint16 targetChainId,
         address proxy
     ) external override {}
@@ -54,7 +55,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
 
     function isValidArkProxyPair(
         address ark,
-        uint16 targetChainId,
+        uint16 sourceChainId,
         address proxy
     ) external view override returns (bool isValid) {
         return false;
@@ -87,12 +88,14 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
     // Helper for testing
     function setRelation(
         address ark,
+        uint16 sourceChainId,
         uint16 targetChainId,
         address proxy
     ) external {
         arkToProxy[ark] = ArkProxyRelation({
             proxy: proxy,
             targetChainId: targetChainId,
+            sourceChainId: sourceChainId,
             isActive: true
         });
     }
@@ -147,7 +150,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         );
 
         // Register the ark-proxy relationship in the registry
-        registry.setRelation(address(ark), chainId, proxy);
+        registry.setRelation(address(ark), 1, chainId, proxy);
 
         // Set up FleetCommander with BufferArk
         (address fleetCommanderAddress, ) = setupFleetCommanderWithBufferArk(

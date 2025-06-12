@@ -15,11 +15,13 @@ interface ICrossChainRegistry {
      * @notice Represents a relationship between an Ark and a Proxy on a target chain
      * @param proxy The address of the FleetProxy contract on the target chain
      * @param targetChainId The chain ID where the proxy is deployed
+     * @param sourceChainId The chain ID where the ark is deployed
      * @param isActive Simple boolean status instead of complex enum
      */
     struct ArkProxyRelation {
         address proxy;
         uint16 targetChainId;
+        uint16 sourceChainId;
         bool isActive;
     }
 
@@ -29,21 +31,21 @@ interface ICrossChainRegistry {
 
     /// @notice Emitted when an Ark-Proxy relationship is registered
     /// @param ark The address of the CrossChainArk contract
-    /// @param targetChainId The chain ID where the proxy is deployed
+    /// @param sourceChainId The chain ID where the ark is deployed
     /// @param proxy The address of the FleetProxy contract
     event ArkProxyRegistered(
         address indexed ark,
-        uint16 indexed targetChainId,
+        uint16 indexed sourceChainId,
         address indexed proxy
     );
 
     /// @notice Emitted when an Ark-Proxy relationship is unregistered
     /// @param ark The address of the CrossChainArk contract
-    /// @param targetChainId The chain ID where the proxy was deployed
+    /// @param sourceChainId The chain ID where the ark was deployed
     /// @param proxy The address of the FleetProxy contract
     event ArkProxyUnregistered(
         address indexed ark,
-        uint16 indexed targetChainId,
+        uint16 indexed sourceChainId,
         address indexed proxy
     );
 
@@ -59,7 +61,7 @@ interface ICrossChainRegistry {
     /// @notice Thrown when trying to register a relationship that already exists
     error RelationshipAlreadyExists(
         address ark,
-        uint16 targetChainId,
+        uint16 sourceChainId,
         address proxy
     );
 
@@ -89,11 +91,13 @@ interface ICrossChainRegistry {
     /**
      * @notice Register a new Ark-Proxy relationship
      * @param ark The address of the CrossChainArk contract
+     * @param sourceChainId The chain ID where the ark is deployed
      * @param targetChainId The chain ID where the proxy is deployed
      * @param proxy The address of the FleetProxy contract
      */
     function registerArkProxy(
         address ark,
+        uint16 sourceChainId,
         uint16 targetChainId,
         address proxy
     ) external;
@@ -139,13 +143,13 @@ interface ICrossChainRegistry {
     /**
      * @notice Check if an ark-proxy pair is valid and active
      * @param ark The address of the CrossChainArk contract
-     * @param targetChainId The chain ID where the proxy is deployed
+     * @param sourceChainId The chain ID where the ark is deployed
      * @param proxy The address of the FleetProxy contract
      * @return isValid True if the relationship exists and is active
      */
     function isValidArkProxyPair(
         address ark,
-        uint16 targetChainId,
+        uint16 sourceChainId,
         address proxy
     ) external view returns (bool isValid);
 

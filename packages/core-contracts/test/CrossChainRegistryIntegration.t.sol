@@ -117,6 +117,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
+            SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
             address(proxy)
         );
@@ -141,7 +142,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         assertTrue(
             registry.isValidArkProxyPair(
                 address(ark),
-                TARGET_CHAIN_ID,
+                SOURCE_CHAIN_ID,
                 address(proxy)
             )
         );
@@ -176,6 +177,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
+            SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
             address(proxy)
         );
@@ -184,7 +186,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         assertTrue(
             registry.isValidArkProxyPair(
                 address(ark),
-                TARGET_CHAIN_ID,
+                SOURCE_CHAIN_ID,
                 address(proxy)
             )
         );
@@ -197,7 +199,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         assertFalse(
             registry.isValidArkProxyPair(
                 address(ark),
-                TARGET_CHAIN_ID,
+                SOURCE_CHAIN_ID,
                 address(proxy)
             )
         );
@@ -213,7 +215,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         assertTrue(
             registry.isValidArkProxyPair(
                 address(ark),
-                TARGET_CHAIN_ID,
+                SOURCE_CHAIN_ID,
                 address(proxy)
             )
         );
@@ -239,6 +241,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
+            SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
             address(proxy)
         );
@@ -261,6 +264,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
+            SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
             address(proxy)
         );
@@ -285,6 +289,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
+            SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
             address(proxy)
         );
@@ -308,6 +313,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         vm.prank(governor);
         registry.registerArkProxy(
             address(ark),
+            SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
             address(proxy)
         );
@@ -327,7 +333,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         assertTrue(
             registry.isValidArkProxyPair(
                 address(ark),
-                TARGET_CHAIN_ID,
+                SOURCE_CHAIN_ID,
                 address(proxy)
             )
         );

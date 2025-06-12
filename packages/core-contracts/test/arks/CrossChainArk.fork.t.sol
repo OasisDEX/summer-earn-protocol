@@ -23,7 +23,12 @@ import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.s
 contract SimpleMockRegistry is ICrossChainRegistry {
     mapping(address => ArkProxyRelation) private arkToProxy;
 
-    function registerArkProxy(address, uint16, address) external override {}
+    function registerArkProxy(
+        address,
+        uint16,
+        uint16,
+        address
+    ) external override {}
 
     function unregisterArkProxy(address) external override {}
 
@@ -48,13 +53,13 @@ contract SimpleMockRegistry is ICrossChainRegistry {
 
     function isValidArkProxyPair(
         address ark,
-        uint16 targetChainId,
+        uint16 sourceChainId,
         address proxy
     ) external view override returns (bool) {
         ArkProxyRelation memory relation = arkToProxy[ark];
         return
             relation.proxy == proxy &&
-            relation.targetChainId == targetChainId &&
+            relation.sourceChainId == sourceChainId &&
             relation.isActive;
     }
 
@@ -80,6 +85,7 @@ contract SimpleMockRegistry is ICrossChainRegistry {
         arkToProxy[ark] = ArkProxyRelation({
             proxy: proxy,
             targetChainId: chainId,
+            sourceChainId: 1, // Default source chain ID
             isActive: true
         });
     }

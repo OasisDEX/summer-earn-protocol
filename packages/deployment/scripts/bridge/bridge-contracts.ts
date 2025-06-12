@@ -5,6 +5,7 @@ import { Address } from 'viem'
 import bridgeModule from '../../ignition/modules/bridge'
 import { DeployedBridge } from '../../types/bridge-types'
 import { ADDRESS_ZERO } from '../common/constants'
+import { getChainId } from '../helpers/get-chainid'
 
 /**
  * Create a router-only deployment module for when queue already exists
@@ -36,8 +37,12 @@ function hasValidAddress(address?: string): boolean {
 export async function deployBridgeContracts(
   networkConfig: any,
   allConfigs: Record<string, any>,
+  currentChainId?: number,
 ): Promise<DeployedBridge> {
   console.log(kleur.blue('Deploying bridge contracts'))
+
+  // Get current chain ID if not provided
+  const chainId = currentChainId || getChainId()
 
   // Validate required configuration
   if (networkConfig.deployedContracts.gov.protocolAccessManager.address === ADDRESS_ZERO) {
@@ -54,6 +59,7 @@ export async function deployBridgeContracts(
   const bridgeConfig = networkConfig.deployedContracts.bridge
   const queueExists = hasValidAddress(bridgeConfig?.bridgeQueue?.address)
   const routerExists = hasValidAddress(bridgeConfig?.bridgeRouter?.address)
+  const registryExists = hasValidAddress(bridgeConfig?.crossChainRegistry?.address)
 
   console.log(kleur.blue('Deployment status check:'))
   console.log(
@@ -62,13 +68,17 @@ export async function deployBridgeContracts(
   console.log(
     `- BridgeRouter: ${routerExists ? kleur.green('EXISTS') : kleur.yellow('NEEDS DEPLOYMENT')}`,
   )
+  console.log(
+    `- CrossChainRegistry: ${registryExists ? kleur.green('EXISTS') : kleur.yellow('NEEDS DEPLOYMENT')}`,
+  )
 
-  if (routerExists && queueExists) {
-    // Both exist in config
-    console.log(kleur.green('Both contracts already configured'))
+  if (routerExists && queueExists && registryExists) {
+    // All exist in config
+    console.log(kleur.green('All contracts already configured'))
     return {
       bridgeRouter: { address: bridgeConfig.bridgeRouter.address as Address },
       bridgeQueue: { address: bridgeConfig.bridgeQueue.address as Address },
+      crossChainRegistry: { address: bridgeConfig.crossChainRegistry.address as Address },
     }
   }
 
@@ -79,6 +89,7 @@ export async function deployBridgeContracts(
     const parameters = {
       BridgeModule: {
         protocolAccessManager,
+        currentChainId: chainId,
       },
     }
 
@@ -89,6 +100,7 @@ export async function deployBridgeContracts(
     return {
       bridgeRouter: { address: result.bridgeRouter.address as Address },
       bridgeQueue: { address: result.bridgeQueue.address as Address },
+      crossChainRegistry: { address: result.crossChainRegistry.address as Address },
     }
   }
 
@@ -129,6 +141,7 @@ export async function deployBridgeContracts(
     return {
       bridgeRouter: { address: newRouterAddress },
       bridgeQueue: { address: existingQueueAddress },
+      crossChainRegistry: { address: result.crossChainRegistry.address as Address },
     }
   }
 

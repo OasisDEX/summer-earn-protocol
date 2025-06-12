@@ -44,8 +44,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   const swapProvider = m.getParameter('swapProvider')
   const weth = m.getParameter('weth')
   const protocolAccessManager = m.getParameter('protocolAccessManager')
-  const currentChainId = m.getParameter('currentChainId')
-
   /**
    * @dev Step 1: Deploy Core Infrastructure
    *
@@ -55,19 +53,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
    */
   const dutchAuctionLibrary = m.contract('DutchAuctionLibrary', [])
   const configurationManager = m.contract('ConfigurationManager', [protocolAccessManager])
-
-  /**
-   * @dev Deploy CrossChainRegistry
-   *
-   * The CrossChainRegistry manages cross-chain relationships between
-   * CrossChainArk and FleetProxy contracts. It requires:
-   * - ProtocolAccessManager for access control
-   * - Current chain ID for cross-chain identification
-   */
-  const crossChainRegistry = m.contract('CrossChainRegistry', [
-    protocolAccessManager,
-    currentChainId,
-  ])
 
   /**
    * @dev Step 2: Deploy Protocol Components
@@ -141,7 +126,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
     harborCommand,
     admiralsQuarters,
     fleetCommanderRewardsManagerFactory,
-    crossChainRegistry,
   }
 })
 
@@ -156,5 +140,4 @@ export type CoreContracts = {
   harborCommand: { address: string }
   admiralsQuarters: { address: string }
   fleetCommanderRewardsManagerFactory: { address: string }
-  crossChainRegistry: { address: string }
 }
