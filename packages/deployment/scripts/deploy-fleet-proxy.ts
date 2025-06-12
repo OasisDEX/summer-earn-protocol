@@ -97,7 +97,7 @@ async function getUserInput(
   const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
   const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address as Address
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
-  const crossChainRegistryAddress = config.deployedContracts.core.crossChainRegistry.address
+  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry.address
 
   if (!bridgeRouterAddress) {
     throw new Error(
@@ -210,7 +210,7 @@ async function confirmDeployment(params: FleetProxyParams, config: BaseConfig): 
   console.log(kleur.blue('Bridge Queue:'), kleur.cyan(params.bridgeQueue))
   console.log(
     kleur.blue('CrossChain Registry:'),
-    kleur.cyan(config.deployedContracts.core.crossChainRegistry.address),
+    kleur.cyan(config.deployedContracts.bridge?.crossChainRegistry.address as string),
   )
   console.log(kleur.blue('Fleet Contract:'), kleur.cyan(params.fleetContract))
   console.log(kleur.blue('Source Chain ID:'), kleur.cyan(params.sourceChainId.toString()))
@@ -232,7 +232,7 @@ async function deployFleetProxyContract(
   const moduleName = `FleetProxy_${fleetName}_${deploymentId}`.replace(/-/g, '_')
 
   // Get the CrossChainRegistry address from config
-  const crossChainRegistryAddress = config.deployedContracts.core.crossChainRegistry.address
+  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry.address
   if (!crossChainRegistryAddress) {
     throw new Error(
       'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
