@@ -97,7 +97,7 @@ function getSupportedChainsFromConfig(
  */
 async function getWalletClient() {
   const networkName = hre.network.name
-  const rpcUrl = RPC_URL_MAP[networkName as keyof typeof RPC_URL_MAP] || hre.network.config.url
+  const rpcUrl = RPC_URL_MAP[networkName as keyof typeof RPC_URL_MAP]
   const chainConfig = CHAIN_CONFIG_MAP[networkName as keyof typeof CHAIN_CONFIG_MAP]
 
   if (!rpcUrl) {
@@ -464,7 +464,10 @@ export async function configureStargateAdapter(
   // Set minimum gas limit from Stargate config (with check)
   try {
     const currentGasLimit = BigInt(String(await stargateAdapter.read.minDstGasForCall()))
-    const configuredGasLimit = BigInt(stargateConfig.minDstGasForCall)
+    // Use composeGasLimit from config or default to 800000
+    const configuredGasLimit = BigInt(
+      (stargateConfig as any).minDstGasForCall || stargateConfig.composeGasLimit || 800000,
+    )
 
     if (currentGasLimit !== configuredGasLimit) {
       // Use wallet client directly instead of .write
@@ -731,48 +734,8 @@ export async function configureLayerZeroAdapter(
     }
   }
 
-  // Configure read DVNs if configured
-  if (
-    chainConfig.readDVNs &&
-    chainConfig.readLib1002 &&
-    chainConfig.executor &&
-    chainConfig.readChannelId
-  ) {
-    try {
-      console.log(`Configuring read DVNs with ${chainConfig.readDVNs.length} DVNs`)
-      const hash = await walletClient.writeContract({
-        address: getAddress(layerZeroAdapterAddress as `0x${string}`),
-        abi: [
-          {
-            inputs: [
-              { internalType: 'address', name: 'readLib1002Address', type: 'address' },
-              { internalType: 'address[]', name: 'dvnAddresses', type: 'address[]' },
-              { internalType: 'uint64', name: 'confirmations', type: 'uint64' },
-              { internalType: 'address', name: 'executorAddress', type: 'address' },
-              { internalType: 'uint32', name: 'maxMessageSize', type: 'uint32' },
-              { internalType: 'uint32', name: 'channelId', type: 'uint32' },
-            ],
-            name: 'configureReadDVNs',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'configureReadDVNs',
-        args: [
-          chainConfig.readLib1002,
-          chainConfig.readDVNs,
-          BigInt(chainConfig.confirmations || 15),
-          chainConfig.executor,
-          10000, // maxMessageSize
-          chainConfig.readChannelId,
-        ],
-      })
-      console.log(kleur.green(`Read DVNs configured successfully, tx: ${hash}`))
-    } catch (error) {
-      console.error(kleur.red('Error configuring read DVNs:'), error)
-    }
-  }
+  // Note: DVN configuration is now handled through deployment scripts using LayerZero CLI tools
+  // The configureReadDVNs function has been removed as it was not functional in LayerZero V2
 
   // Set minimum gas limits if configured (with checks)
   if (chainConfig.minGasLimits) {

@@ -679,6 +679,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         bytes4,
         bytes calldata,
         address,
+        address, // keeper
         BridgeTypes.AdapterParams calldata
     ) external payable {
         revert OperationNotSupported();
@@ -691,6 +692,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         address,
         bytes calldata,
         address,
+        address, // keeper
         BridgeTypes.AdapterParams calldata
     ) external payable {
         revert OperationNotSupported();

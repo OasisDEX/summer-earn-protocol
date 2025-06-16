@@ -89,13 +89,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint32 indexed readChannelId
     );
 
-    /// @notice Emitted when read DVNs are configured
-    event ReadDVNsConfigured(
-        address[] dvnAddresses,
-        uint64 confirmations,
-        address executor
-    );
-
     // Note: Other events are inherited from IBridgeAdapter and ISendAdapter interfaces
 
     /*//////////////////////////////////////////////////////////////
@@ -130,8 +123,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         }
 
         // Initialize default minimum gas limits
-        minGasLimits[STATE_READ] = 300000;
-        minGasLimits[GENERAL_MESSAGE] = 300000;
+        minGasLimits[STATE_READ] = 700000;
+        minGasLimits[GENERAL_MESSAGE] = 700000;
 
         // Initialize operation type to message type mapping
         operationToMessageType[
@@ -236,41 +229,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         );
 
         emit ReadLibrariesConfigured(readLib1002Address, readChannelId);
-    }
-
-    /**
-     * @notice Configures DVNs for read operations
-     * @param readLib1002Address Address of the ReadLib1002 contract
-     * @param dvnAddresses Array of DVN addresses (must be sorted)
-     * @param confirmations Number of block confirmations required
-     * @param executorAddress Address of the executor
-     * @param maxMessageSize Maximum message size for executor
-     * @param channelId Read channel ID to configure
-     */
-    function configureReadDVNs(
-        address readLib1002Address,
-        address[] calldata dvnAddresses,
-        uint64 confirmations,
-        address executorAddress,
-        uint32 maxMessageSize,
-        uint32 channelId
-    ) external onlyOwner {
-        if (readLib1002Address == address(0) || executorAddress == address(0))
-            revert InvalidParams();
-        if (dvnAddresses.length == 0) revert InvalidParams();
-
-        // Note: LayerZero V2 configuration should be done through deployment scripts
-        // using the LayerZero CLI tools rather than programmatically in the contract.
-        // The SetConfigParam struct no longer exists in LayerZero V2.
-        // Configuration will be handled in the deployment scripts.
-
-        // Store configuration for reference
-        readChannelId = channelId;
-
-        // Suppress unused parameter warnings by referencing them
-        maxMessageSize; // Used in deployment scripts
-
-        emit ReadDVNsConfigured(dvnAddresses, confirmations, executorAddress);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -549,6 +507,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes4 selector,
         bytes calldata readParams,
         address originator,
+        address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable {
         // Only BridgeRouter should call this
@@ -557,7 +516,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Ensure a read channel has been configured
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
-        // Get the LayerZero EID for destination chain (Arbitrum)
+        // Get the LayerZero EID for destination chain
         uint32 lzDstEid = _getLayerZeroEid(dstChainId);
 
         // Create the read command (similar to docs getCmd() function)
@@ -580,13 +539,19 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             cmd, // ✅ Read command
             options, // ✅ Combined options
             EndpointFee(msg.value, 0), // ✅ EndpointFee is an alias for MessagingFee
-            payable(originator) // ✅ Refund address
+            payable(keeper) // ✅ Refund address
         );
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[receipt.guid] = operationId;
 
-        // Emit event and update status...
+        emit ReadRequestInitiated(
+            operationId,
+            srcChainId,
+            dstChainId,
+            dstContract,
+            selector
+        );
     }
 
     function _createFleetReadCommand(
@@ -624,6 +589,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address recipient,
         bytes calldata message,
         address originator,
+        address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable {
         // Only the BridgeRouter should call this function
@@ -647,12 +613,13 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes memory options = _prepareOptions(adapterParams, GENERAL_MESSAGE);
 
         // Send message through OApp's _lzSend
+        // Use tx.origin as refund address since that's the keeper who initiated the transaction
         MessagingReceipt memory receipt = _lzSend(
             lzDstEid,
             payload,
             options,
             EndpointFee(msg.value, 0),
-            payable(originator)
+            payable(keeper)
         );
 
         // Map LayerZero's guid to router's operation ID

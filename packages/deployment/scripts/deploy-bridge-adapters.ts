@@ -95,7 +95,10 @@ async function deployAdapters() {
   ) as BaseConfig
 
   // Get all network configs for cross-chain configuration
-  const allNetworkConfigs = getConfigByNetwork('all', { common: true }, useBummerConfig) as Config
+  const allNetworkConfigs = getConfigByNetwork('all', { common: true }, useBummerConfig) as Record<
+    string,
+    any
+  >
 
   // Validate required configuration
   if (!config) {

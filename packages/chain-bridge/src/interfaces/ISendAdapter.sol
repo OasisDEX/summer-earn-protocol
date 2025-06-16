@@ -78,7 +78,8 @@ interface ISendAdapter {
      * @param selector Function selector to call
      * @param readParams Parameters for the function call
      * @param originator Address that initiated the read (for tracking/callbacks)
-     * @param adapterParams Additional adapter-specific parameters
+     * @param keeper Address that should receive any refunds
+git sts     * @param adapterParams Additional adapter-specific parameters
      * @dev Initiates a cross-chain state read operation
      */
     function readState(
@@ -89,6 +90,7 @@ interface ISendAdapter {
         bytes4 selector,
         bytes calldata readParams,
         address originator,
+        address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable;
 
@@ -99,6 +101,7 @@ interface ISendAdapter {
      * @param recipient Address of the recipient on the destination chain
      * @param message The message data to send
      * @param originator Address that initiated the message (for tracking/callbacks)
+     * @param keeper Address that should receive any refunds
      * @param adapterParams Additional adapter-specific parameters
      * @dev Initiates a cross-chain messaging operation
      */
@@ -108,6 +111,7 @@ interface ISendAdapter {
         address recipient,
         bytes calldata message,
         address originator,
+        address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable;
 }

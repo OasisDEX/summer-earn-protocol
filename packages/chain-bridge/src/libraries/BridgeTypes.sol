@@ -62,6 +62,7 @@ library BridgeTypes {
         bytes4 selector;
         bytes readParams;
         address originator;
+        address keeper; // Add keeper field for refunds
         BridgeOptions options;
     }
 
@@ -73,6 +74,7 @@ library BridgeTypes {
         address recipient;
         bytes message;
         address originator;
+        address keeper; // Add keeper field for refunds
         BridgeOptions options;
     }
 }
