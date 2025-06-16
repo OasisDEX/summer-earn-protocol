@@ -44,33 +44,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
                           GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function testSetMinDstGasForCall() public {
-        useNetworkA();
-
-        // Check current value
-        assertEq(adapterA.minDstGasForCall(), 300000);
-
-        // Update the value as governor
-        vm.prank(governor);
-        adapterA.setMinDstGasForCall(400000);
-
-        // Verify the value was updated
-        assertEq(adapterA.minDstGasForCall(), 400000);
-    }
-
-    function testSetMinDstGasForCallUnauthorized() public {
-        useNetworkA();
-
-        // Try to update the value as unauthorized user
-        vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user
-            )
-        );
-        adapterA.setMinDstGasForCall(400000);
-    }
+    // Removed minDstGasForCall related tests since this functionality was removed
 
     function testAddSupportedChain() public {
         useNetworkA();

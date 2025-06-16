@@ -82,8 +82,8 @@ library LayerZeroOptionsHelper {
 
         // For lzRead operations, we need to provide a reasonable calldata size estimate
         // If not provided in adapterParams, use a default reasonable size
-        uint128 calldataSize = adapterParams.calldataSize > 0
-            ? adapterParams.calldataSize
+        uint32 calldataSize = adapterParams.calldataSize > 0
+            ? uint32(adapterParams.calldataSize)
             : 1024; // Default to 1KB for read responses
 
         // Add our LzRead option to the existing or new options
@@ -91,7 +91,7 @@ library LayerZeroOptionsHelper {
             OptionsBuilder.addExecutorLzReadOption(
                 options,
                 gasLimit,
-                calldataSize, // ✅ Use proper calldata size
+                calldataSize, // ✅ Use proper calldata size (uint32)
                 adapterParams.msgValue
             );
     }

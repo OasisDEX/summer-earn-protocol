@@ -139,6 +139,7 @@ contract MockAdapter is IBridgeAdapter {
         bytes4 selector,
         bytes calldata readParams,
         address originator,
+        address, // keeper - not used in mock
         BridgeTypes.AdapterParams calldata
     ) external payable {
         // Check caller is bridge router
@@ -243,6 +244,7 @@ contract MockAdapter is IBridgeAdapter {
         address recipient,
         bytes calldata message,
         address originator,
+        address, // keeper - not used in mock
         BridgeTypes.AdapterParams calldata
     ) external payable {
         // Check caller is bridge router

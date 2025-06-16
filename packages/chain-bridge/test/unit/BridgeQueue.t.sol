@@ -719,6 +719,7 @@ contract BridgeQueueTest is Test {
                 selector: selector,
                 readParams: readParams,
                 originator: queueManager, // Originator was queueManager
+                keeper: keeper, // Add keeper field
                 options: _defaultOptions()
             });
         bytes32 expectedOperationId = keccak256(
@@ -827,6 +828,7 @@ contract BridgeQueueTest is Test {
                 recipient: recipient,
                 message: message,
                 originator: queueManager, // Originator was queueManager
+                keeper: keeper, // Add keeper field
                 options: _defaultOptions()
             });
         bytes32 expectedOperationId = keccak256(

@@ -324,6 +324,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     selector: readData.selector,
                     readParams: readData.readParams,
                     originator: readData.originator,
+                    keeper: executor, // Add missing keeper field
                     options: options
                 });
 
@@ -350,6 +351,7 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
                     recipient: messageData.recipient,
                     message: messageData.message,
                     originator: messageData.originator,
+                    keeper: executor, // Add missing keeper field
                     options: options
                 });
 

@@ -82,6 +82,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             bytes4(keccak256("balanceOf(address)")),
             abi.encode(recipient),
             address(user),
+            address(user), // keeper
             adapterParams
         );
     }
@@ -133,6 +134,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             recipient,
             message,
             address(user),
+            address(user), // keeper
             adapterParams
         );
 
@@ -235,6 +237,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             recipient,
             abi.encode("This should fail"),
             address(user),
+            address(user), // keeper
             adapterParams
         );
 
@@ -274,6 +277,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             recipient,
             abi.encode("This should fail due to insufficient value"),
             address(user),
+            address(user), // keeper
             adapterParams
         );
 
@@ -343,6 +347,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             bytes4(keccak256("balanceOf(address)")),
             abi.encode(recipient),
             address(user),
+            address(user), // keeper
             adapterParams
         );
     }

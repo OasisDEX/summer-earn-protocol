@@ -361,6 +361,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             bytes4(0),
             "",
             user,
+            user, // keeper
             adapterParams
         );
 
@@ -373,6 +374,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             recipient,
             "",
             user,
+            user, // keeper
             adapterParams
         );
     }

@@ -519,31 +519,41 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Get the LayerZero EID for destination chain
         uint32 lzDstEid = _getLayerZeroEid(dstChainId);
 
-        // Create the read command (similar to docs getCmd() function)
-        bytes memory cmd = _createFleetReadCommand(
-            lzDstEid,
-            dstContract,
-            selector,
-            readParams
-        );
+        // Check if enough value was sent if specified in adapter options
+        if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
+            revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
+        }
 
-        // Use the documentation pattern for options
-        bytes memory options = combineOptions(
-            readChannelId,
-            STATE_READ,
-            adapterParams.options
-        );
+        bytes32 guid;
+        {
+            // Create EVMCallRequestV1 for the read request (scope to avoid stack too deep)
+            EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
+            readRequests[0] = EVMCallRequestV1({
+                appRequestLabel: 1,
+                targetEid: lzDstEid,
+                isBlockNum: false,
+                blockNumOrTimestamp: uint64(block.timestamp),
+                confirmations: 15,
+                to: dstContract,
+                callData: abi.encodePacked(selector, readParams)
+            });
 
-        MessagingReceipt memory receipt = _lzSend(
-            readChannelId, // ✅ Read channel (like READ_CHANNEL in docs)
-            cmd, // ✅ Read command
-            options, // ✅ Combined options
-            EndpointFee(msg.value, 0), // ✅ EndpointFee is an alias for MessagingFee
-            payable(keeper) // ✅ Refund address
-        );
+            // Encode and send
+            bytes memory cmd = ReadCodecV1.encode(0, readRequests);
+            bytes memory options = _prepareOptions(adapterParams, STATE_READ);
+
+            MessagingReceipt memory receipt = _lzSend(
+                readChannelId,
+                cmd,
+                options,
+                EndpointFee(msg.value, 0),
+                payable(originator)
+            );
+            guid = receipt.guid;
+        }
 
         // Map LayerZero's guid to router's operation ID
-        lzMessageToOperationId[receipt.guid] = operationId;
+        lzMessageToOperationId[guid] = operationId;
 
         emit ReadRequestInitiated(
             operationId,
@@ -552,27 +562,12 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             dstContract,
             selector
         );
-    }
 
-    function _createFleetReadCommand(
-        uint32 lzDstEid,
-        address fleetProxyAddress, // Fleet Proxy on Arbitrum
-        bytes4 selector, // totalAssets() selector
-        bytes calldata readParams
-    ) internal view returns (bytes memory) {
-        // Create EVMCallRequestV1 for reading fleet total assets
-        EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
-        readRequests[0] = EVMCallRequestV1({
-            appRequestLabel: 1,
-            targetEid: lzDstEid, // Arbitrum EID
-            isBlockNum: false,
-            blockNumOrTimestamp: uint64(block.timestamp),
-            confirmations: 15,
-            to: fleetProxyAddress, // Fleet Proxy contract address
-            callData: abi.encodePacked(selector, readParams) // totalAssets() call
-        });
-
-        return ReadCodecV1.encode(0, readRequests);
+        // Set initial status as SENT
+        IBridgeRouter(bridgeRouter).updateOperationStatus(
+            operationId,
+            BridgeTypes.OperationStatus.SENT
+        );
     }
 
     /// @inheritdoc IBridgeAdapter
