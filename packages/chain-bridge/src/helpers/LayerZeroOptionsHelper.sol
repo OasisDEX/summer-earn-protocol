@@ -75,19 +75,23 @@ library LayerZeroOptionsHelper {
 
         // Start with user-provided options or create new empty options
         if (adapterParams.options.length > 0) {
-            // Use the user's options as the base if provided
             options = adapterParams.options;
         } else {
-            // Create new empty options if none provided
             options = OptionsBuilder.newOptions();
         }
+
+        // For lzRead operations, we need to provide a reasonable calldata size estimate
+        // If not provided in adapterParams, use a default reasonable size
+        uint128 calldataSize = adapterParams.calldataSize > 0
+            ? adapterParams.calldataSize
+            : 1024; // Default to 1KB for read responses
 
         // Add our LzRead option to the existing or new options
         return
             OptionsBuilder.addExecutorLzReadOption(
                 options,
                 gasLimit,
-                adapterParams.calldataSize,
+                calldataSize, // ✅ Use proper calldata size
                 adapterParams.msgValue
             );
     }

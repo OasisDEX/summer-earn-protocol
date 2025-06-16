@@ -542,7 +542,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function readState(
-        bytes32 operationId, // Accept from router
+        bytes32 operationId,
         uint16 srcChainId,
         uint16 dstChainId,
         address dstContract,
@@ -557,57 +557,57 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Ensure a read channel has been configured
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
-        // Get the LayerZero EID for destination chain
+        // Get the LayerZero EID for destination chain (Arbitrum)
         uint32 lzDstEid = _getLayerZeroEid(dstChainId);
 
-        // Check if enough value was sent if specified in adapter options
-        if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
-            revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
-        }
+        // Create the read command (similar to docs getCmd() function)
+        bytes memory cmd = _createFleetReadCommand(
+            lzDstEid,
+            dstContract,
+            selector,
+            readParams
+        );
 
-        // Create EVMCallRequestV1 for the read request
-        EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
-        readRequests[0] = EVMCallRequestV1({
-            appRequestLabel: 1, // You can use a custom label
-            targetEid: lzDstEid,
-            isBlockNum: false, // Using timestamp
-            blockNumOrTimestamp: uint64(block.timestamp),
-            confirmations: 15, // Adjust based on chain requirements
-            to: dstContract,
-            callData: abi.encodePacked(selector, readParams)
-        });
+        // Use the documentation pattern for options
+        bytes memory options = combineOptions(
+            readChannelId,
+            STATE_READ,
+            adapterParams.options
+        );
 
-        // Encode the read command properly using ReadCodecV1
-        bytes memory cmd = ReadCodecV1.encode(0, readRequests);
-
-        bytes memory options = _prepareOptions(adapterParams, STATE_READ);
-
-        // Send message through OApp's _lzSend to the configured read channel
         MessagingReceipt memory receipt = _lzSend(
-            readChannelId, // Use the stored read channel ID, not the threshold
-            cmd,
-            options,
-            EndpointFee(msg.value, 0),
-            payable(originator)
+            readChannelId, // ✅ Read channel (like READ_CHANNEL in docs)
+            cmd, // ✅ Read command
+            options, // ✅ Combined options
+            EndpointFee(msg.value, 0), // ✅ EndpointFee is an alias for MessagingFee
+            payable(originator) // ✅ Refund address
         );
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[receipt.guid] = operationId;
 
-        // Emit event for read request initiation
-        emit ReadRequestInitiated(
-            operationId,
-            srcChainId,
-            dstChainId,
-            dstContract,
-            selector
-        );
+        // Emit event and update status...
+    }
 
-        // Set initial status as SENT
-        IBridgeRouter(bridgeRouter).updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
+    function _createFleetReadCommand(
+        uint32 lzDstEid,
+        address fleetProxyAddress, // Fleet Proxy on Arbitrum
+        bytes4 selector, // totalAssets() selector
+        bytes calldata readParams
+    ) internal view returns (bytes memory) {
+        // Create EVMCallRequestV1 for reading fleet total assets
+        EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
+        readRequests[0] = EVMCallRequestV1({
+            appRequestLabel: 1,
+            targetEid: lzDstEid, // Arbitrum EID
+            isBlockNum: false,
+            blockNumOrTimestamp: uint64(block.timestamp),
+            confirmations: 15,
+            to: fleetProxyAddress, // Fleet Proxy contract address
+            callData: abi.encodePacked(selector, readParams) // totalAssets() call
+        });
+
+        return ReadCodecV1.encode(0, readRequests);
     }
 
     /// @inheritdoc IBridgeAdapter

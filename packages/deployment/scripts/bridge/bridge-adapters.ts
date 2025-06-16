@@ -149,6 +149,12 @@ export async function deployLayerZeroAdapter(
   const [deployer] = await hre.viem.getWalletClients()
   const signerAddress = deployer.account.address
 
+  // Get the access manager address from network config
+  const accessManagerAddress = networkConfig.deployedContracts.gov.protocolAccessManager.address
+  if (!accessManagerAddress) {
+    throw new Error(`ProtocolAccessManager address not found in config for chain ID ${chainId}`)
+  }
+
   // Deploy using Ignition module
   const deploymentResult = await hre.ignition.deploy(LayerZeroAdapterModule, {
     parameters: {
@@ -158,6 +164,7 @@ export async function deployLayerZeroAdapter(
         chainIds,
         lzEids,
         owner: signerAddress,
+        accessManager: accessManagerAddress,
       },
     },
   })
@@ -192,13 +199,22 @@ export async function deployStargateAdapter(
     )
   }
 
-  // Deploy using Ignition module - V2 requires all 3 constructor parameters
+  // Get the access manager address from network config
+  const accessManagerAddress = networkConfig.deployedContracts.gov.protocolAccessManager.address
+  if (!accessManagerAddress) {
+    throw new Error(
+      `ProtocolAccessManager address not found in config for chain ID ${networkConfig.common.chainId}`,
+    )
+  }
+
+  // Deploy using Ignition module - V2 requires all 4 constructor parameters
   const deploymentResult = await hre.ignition.deploy(StargateAdapterModule, {
     parameters: {
       StargateAdapterModule: {
         bridgeRouter: bridgeRouterAddress,
         owner: signerAddress,
         lzEndpoint: lzEndpoint,
+        accessManager: accessManagerAddress,
       },
     },
   })
@@ -445,10 +461,10 @@ export async function configureStargateAdapter(
 
   console.log(kleur.blue(`Configured ${assetsConfigured} asset mappings`))
 
-  // Set compose gas limit from Stargate config (with check)
+  // Set minimum gas limit from Stargate config (with check)
   try {
-    const currentGasLimit = BigInt(String(await stargateAdapter.read.composeGasLimit()))
-    const configuredGasLimit = BigInt(stargateConfig.composeGasLimit)
+    const currentGasLimit = BigInt(String(await stargateAdapter.read.minDstGasForCall()))
+    const configuredGasLimit = BigInt(stargateConfig.minDstGasForCall)
 
     if (currentGasLimit !== configuredGasLimit) {
       // Use wallet client directly instead of .write
@@ -456,22 +472,26 @@ export async function configureStargateAdapter(
         address: getAddress(stargateAdapterAddress as `0x${string}`),
         abi: [
           {
-            inputs: [{ internalType: 'uint256', name: '_composeGasLimit', type: 'uint256' }],
-            name: 'setComposeGasLimit',
+            inputs: [{ internalType: 'uint256', name: 'gasLimit', type: 'uint256' }],
+            name: 'setMinDstGasForCall',
             outputs: [],
             stateMutability: 'nonpayable',
             type: 'function',
           },
         ] as const,
-        functionName: 'setComposeGasLimit',
+        functionName: 'setMinDstGasForCall',
         args: [configuredGasLimit],
       })
-      console.log(kleur.green(`Compose gas limit updated to ${configuredGasLimit}, tx: ${hash}`))
+      console.log(
+        kleur.green(`Minimum destination gas updated to ${configuredGasLimit}, tx: ${hash}`),
+      )
     } else {
-      console.log(kleur.yellow(`Compose gas limit already set to ${currentGasLimit}, skipping`))
+      console.log(
+        kleur.yellow(`Minimum destination gas already set to ${currentGasLimit}, skipping`),
+      )
     }
   } catch (error) {
-    console.error(kleur.red('Error setting compose gas limit:'), error)
+    console.error(kleur.red('Error setting minimum destination gas:'), error)
   }
 
   // Set default transport mode from Stargate config (with check)
@@ -1113,6 +1133,104 @@ export async function deployBridgeAdapters(
 }
 
 /**
+ * Update LayerZero adapter peers after all adapters are deployed across chains
+ * This should be called after all chains have deployed their LayerZero adapters
+ * @param layerZeroAdapterAddress Address of the LayerZero adapter to configure
+ * @param allNetworkConfigs All network configurations with deployed adapter addresses
+ */
+export async function configureLayerZeroAdapterPeers(
+  layerZeroAdapterAddress: Address,
+  allNetworkConfigs: Record<string, any>,
+): Promise<void> {
+  console.log(kleur.cyan().bold('Configuring LayerZero adapter cross-chain peers...'))
+
+  try {
+    await updateLayerZeroAdapterPeers(layerZeroAdapterAddress, allNetworkConfigs)
+    console.log(kleur.green().bold('LayerZero adapter peers configuration completed!'))
+  } catch (error) {
+    console.error(kleur.red('Error configuring LayerZero adapter peers:'), error)
+    throw error
+  }
+}
+
+/**
+ * Configure LayerZero adapter peers with support for bummer config
+ * @param networkName Current network name
+ * @param useBummerConfig Whether to use bummer config
+ * @param supportedNetworks Array of network names to check for adapters
+ */
+export async function configureLayerZeroAdapterPeersWithConfig(
+  networkName: string,
+  useBummerConfig: boolean = false,
+  supportedNetworks: string[] = ['mainnet', 'base', 'arbitrum', 'sonic'],
+): Promise<void> {
+  console.log(kleur.cyan().bold(`Configuring LayerZero adapter peers on ${networkName}...`))
+
+  // Get current network config
+  const { getConfigByNetwork } = await import('../helpers/config-handler')
+
+  const currentNetworkConfig = getConfigByNetwork(
+    networkName,
+    {
+      common: true,
+      bridge: false,
+      gov: false,
+      core: false,
+    },
+    useBummerConfig,
+  )
+
+  // Check if bridge configuration exists
+  if (!currentNetworkConfig.deployedContracts.bridge) {
+    throw new Error(
+      `Bridge deployment configuration not found for network ${networkName}. Please deploy bridge contracts first.`,
+    )
+  }
+
+  const layerZeroAdapterAddress =
+    currentNetworkConfig.deployedContracts.bridge?.adapters?.layerZero?.address
+
+  if (!layerZeroAdapterAddress) {
+    throw new Error(
+      `LayerZero adapter not found in config for network ${networkName}. Please deploy LayerZero adapter first.`,
+    )
+  }
+
+  // Load all network configurations
+  const allNetworkConfigs: Record<string, any> = {}
+
+  for (const network of supportedNetworks) {
+    try {
+      const config = getConfigByNetwork(
+        network,
+        {
+          common: true,
+          bridge: false,
+          gov: false,
+          core: false,
+        },
+        useBummerConfig,
+      )
+
+      // Check if this network has a LayerZero adapter deployed
+      if (config.deployedContracts.bridge?.adapters?.layerZero?.address) {
+        allNetworkConfigs[network] = config
+        console.log(kleur.green(`✓ Loaded config for ${network}`))
+      } else {
+        console.log(kleur.yellow(`⚠ ${network} doesn't have LayerZero adapter deployed, skipping`))
+      }
+    } catch (error) {
+      console.log(
+        kleur.yellow(`⚠ Could not load config for ${network}: ${(error as Error).message}`),
+      )
+    }
+  }
+
+  // Configure peers
+  await configureLayerZeroAdapterPeers(layerZeroAdapterAddress as Address, allNetworkConfigs)
+}
+
+/**
  * Helper function to get network name from chain ID
  * @param chainId Chain ID
  * @returns Network name used in config
@@ -1208,6 +1326,114 @@ export async function updateStargateAdapterAddresses(
         kleur.red(`Error updating adapter address for chain ${chainInfo.chainId}:`),
         error,
       )
+    }
+  }
+}
+
+/**
+ * Configure LayerZero adapter peers for cross-chain communication
+ * @param layerZeroAdapterAddress Address of the LayerZero adapter to configure
+ * @param allNetworkConfigs All network configurations with deployed adapter addresses
+ */
+export async function updateLayerZeroAdapterPeers(
+  layerZeroAdapterAddress: Address,
+  allNetworkConfigs: Record<string, any>,
+): Promise<void> {
+  console.log(kleur.blue('Configuring LayerZero adapter peers'))
+
+  const layerZeroAdapter = await hre.viem.getContractAt(
+    'LayerZeroAdapter' as string,
+    getAddress(layerZeroAdapterAddress as `0x${string}`),
+  )
+
+  // Get wallet client for transactions using proper setup
+  const walletClient = await getWalletClient()
+
+  const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
+
+  // Filter to only include chains that have LayerZero adapters deployed
+  const availableChains = supportedChains.filter((chainInfo) => {
+    const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
+    const targetNetworkConfig = allNetworkConfigs[targetNetworkName]
+    return targetNetworkConfig?.deployedContracts?.bridge?.adapters?.layerZero?.address
+  })
+
+  if (availableChains.length === 0) {
+    console.log(
+      kleur.yellow('No other chains with LayerZero adapters found, skipping peer configuration'),
+    )
+    return
+  }
+
+  console.log(
+    kleur.blue(`Found ${availableChains.length} chains with LayerZero adapters for peering`),
+  )
+
+  for (const chainInfo of availableChains) {
+    try {
+      const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
+      const targetNetworkConfig = allNetworkConfigs[targetNetworkName]
+      const targetAdapterAddress =
+        targetNetworkConfig?.deployedContracts?.bridge?.adapters?.layerZero?.address
+
+      if (targetAdapterAddress) {
+        // Check if peer is already set
+        let currentPeer: string
+        try {
+          const result = await layerZeroAdapter.read.peers([chainInfo.endpointId])
+          currentPeer = result as string
+        } catch (error) {
+          // If the call fails, peer might not be set yet
+          currentPeer = '0x0000000000000000000000000000000000000000000000000000000000000000'
+        }
+
+        // Format peer address as bytes32 (padded with zeros)
+        const peerAddressBytes32 =
+          `0x000000000000000000000000${targetAdapterAddress.slice(2)}` as `0x${string}`
+
+        if (currentPeer.toLowerCase() !== peerAddressBytes32.toLowerCase()) {
+          console.log(
+            `Setting peer for LayerZero EID ${chainInfo.endpointId} to adapter ${targetAdapterAddress}`,
+          )
+
+          // Use wallet client directly instead of .write
+          const hash = await walletClient.writeContract({
+            address: getAddress(layerZeroAdapterAddress as `0x${string}`),
+            abi: [
+              {
+                inputs: [
+                  { internalType: 'uint32', name: '_eid', type: 'uint32' },
+                  { internalType: 'bytes32', name: '_peer', type: 'bytes32' },
+                ],
+                name: 'setPeer',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function',
+              },
+            ] as const,
+            functionName: 'setPeer',
+            args: [chainInfo.endpointId, peerAddressBytes32],
+          })
+
+          console.log(kleur.green(`Peer set for EID ${chainInfo.endpointId}, tx: ${hash}`))
+
+          // Wait for transaction confirmation
+          const publicClient = await hre.viem.getPublicClient()
+          await publicClient.waitForTransactionReceipt({ hash })
+        } else {
+          console.log(
+            kleur.yellow(`Peer for EID ${chainInfo.endpointId} already set correctly, skipping`),
+          )
+        }
+      } else {
+        console.log(
+          kleur.yellow(
+            `No LayerZero adapter address found for chain ${chainInfo.chainId}, skipping peer setup`,
+          ),
+        )
+      }
+    } catch (error) {
+      console.error(kleur.red(`Error setting peer for EID ${chainInfo.endpointId}:`), error)
     }
   }
 }
