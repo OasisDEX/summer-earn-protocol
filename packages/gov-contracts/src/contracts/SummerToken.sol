@@ -287,18 +287,6 @@ contract SummerToken is
         emit TransfersEnabled();
     }
 
-    /// @inheritdoc ISummerToken
-    function addToWhitelist(address account) external onlyGovernor {
-        whitelistedAddresses[account] = true;
-        emit AddressWhitelisted(account);
-    }
-
-    /// @inheritdoc ISummerToken
-    function removeFromWhitelist(address account) external onlyGovernor {
-        whitelistedAddresses[account] = false;
-        emit AddressRemovedFromWhitelist(account);
-    }
-
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/

@@ -507,12 +507,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             if (readChannelId == 0) revert ReadChannelNotConfigured();
 
-            EndpointFee memory fee = _quote(
-                readChannelId,
-                payload,
-                options,
-                false
-            );
+            EndpointFee memory fee = _quote(lzDstEid, payload, options, false);
             return (fee.nativeFee, fee.lzTokenFee);
         } else {
             EndpointFee memory fee = _quote(dstEid, payload, options, false);

@@ -15,6 +15,6 @@
       "eth": "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3"
     }
   },
-  "minDstGasForCall": 300000,
+  "minDstGasForCall": 700000,
   "defaultUseTaxi": false
 }
