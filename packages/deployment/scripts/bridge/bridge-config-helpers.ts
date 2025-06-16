@@ -41,7 +41,7 @@ export function getBridgeAdapterConfigs(config: any): BridgeAdaptersConfig | und
         router: adapters.stargate.router,
         chainMapping: chainMappings,
         supportedAssets: adapters.stargate.supportedAssets || {},
-        minDstGasForCall: adapters.stargate.minDstGasForCall,
+        // composeGasLimit: adapters.stargate.composeGasLimit, // TODO: Add to BridgeAdaptersConfig type
       }
     }
   }

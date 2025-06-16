@@ -164,9 +164,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     /// @notice List of supported chains
     uint16[] public supportedChains;
 
-    /// @notice Minimum gas limit for destination transaction execution
-    uint256 public minDstGasForCall = 300000;
-
     /// @notice Default transport mode (true = taxi, false = bus)
     /// @dev Taxi mode is required for composability - bus mode does not support compose
     bool public defaultUseTaxi = true;
@@ -263,14 +260,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     /*//////////////////////////////////////////////////////////////
                           GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Sets the minimum destination gas for calls
-     * @param _minDstGasForCall New minimum gas value
-     */
-    function setMinDstGasForCall(uint256 _minDstGasForCall) external onlyOwner {
-        minDstGasForCall = _minDstGasForCall;
-    }
 
     /**
      * @notice Sets the default transport mode

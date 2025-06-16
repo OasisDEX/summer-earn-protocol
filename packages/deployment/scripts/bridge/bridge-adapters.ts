@@ -445,10 +445,10 @@ export async function configureStargateAdapter(
 
   console.log(kleur.blue(`Configured ${assetsConfigured} asset mappings`))
 
-  // Set minimum gas limit from Stargate config (with check)
+  // Set compose gas limit from Stargate config (with check)
   try {
-    const currentGasLimit = BigInt(String(await stargateAdapter.read.minDstGasForCall()))
-    const configuredGasLimit = BigInt(stargateConfig.minDstGasForCall)
+    const currentGasLimit = BigInt(String(await stargateAdapter.read.composeGasLimit()))
+    const configuredGasLimit = BigInt(stargateConfig.composeGasLimit)
 
     if (currentGasLimit !== configuredGasLimit) {
       // Use wallet client directly instead of .write
@@ -456,26 +456,22 @@ export async function configureStargateAdapter(
         address: getAddress(stargateAdapterAddress as `0x${string}`),
         abi: [
           {
-            inputs: [{ internalType: 'uint256', name: 'gasLimit', type: 'uint256' }],
-            name: 'setMinDstGasForCall',
+            inputs: [{ internalType: 'uint256', name: '_composeGasLimit', type: 'uint256' }],
+            name: 'setComposeGasLimit',
             outputs: [],
             stateMutability: 'nonpayable',
             type: 'function',
           },
         ] as const,
-        functionName: 'setMinDstGasForCall',
+        functionName: 'setComposeGasLimit',
         args: [configuredGasLimit],
       })
-      console.log(
-        kleur.green(`Minimum destination gas updated to ${configuredGasLimit}, tx: ${hash}`),
-      )
+      console.log(kleur.green(`Compose gas limit updated to ${configuredGasLimit}, tx: ${hash}`))
     } else {
-      console.log(
-        kleur.yellow(`Minimum destination gas already set to ${currentGasLimit}, skipping`),
-      )
+      console.log(kleur.yellow(`Compose gas limit already set to ${currentGasLimit}, skipping`))
     }
   } catch (error) {
-    console.error(kleur.red('Error setting minimum destination gas:'), error)
+    console.error(kleur.red('Error setting compose gas limit:'), error)
   }
 
   // Set default transport mode from Stargate config (with check)
