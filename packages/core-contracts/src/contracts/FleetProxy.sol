@@ -35,8 +35,6 @@ contract FleetProxy is
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when source chain ark address is invalid
-    error InvalidSourceChainArk();
     /// @notice Error thrown when bridge router address is invalid
     error InvalidBridgeRouter();
     /// @notice Error thrown when bridge queue address is invalid
@@ -47,10 +45,10 @@ contract FleetProxy is
     error InvalidFleetContract();
     /// @notice Error thrown when withdrawal failed
     error WithdrawalFailed();
-    /// @notice Error thrown when source chain is invalid
-    error InvalidSourceChain();
     /// @notice Error thrown when no ark relationship is registered for this proxy
     error NoArkRelationshipRegistered();
+    /// @notice Thrown when the caller is not authorized to perform the action.
+    error Unauthorized();
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
@@ -349,25 +347,4 @@ contract FleetProxy is
         // Emit event for tracking
         emit ProxyDeposit(fleetContract, token, amount, sourceChainId);
     }
-
-    /*//////////////////////////////////////////////////////////////
-                            ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Error thrown when source chain ark address is invalid
-    error InvalidSourceChainArk();
-    /// @notice Error thrown when bridge router address is invalid
-    error InvalidBridgeRouter();
-    /// @notice Error thrown when bridge queue address is invalid
-    error InvalidBridgeQueue();
-    /// @notice Error thrown when registry address is invalid
-    error InvalidRegistry();
-    /// @notice Error thrown when fleet contract address is invalid
-    error InvalidFleetContract();
-    /// @notice Error thrown when withdrawal failed
-    error WithdrawalFailed();
-    /// @notice Thrown when the caller is not authorized to perform the action.
-    error Unauthorized();
-    /// @notice Error thrown when source chain is invalid
-    error InvalidSourceChain();
 }
