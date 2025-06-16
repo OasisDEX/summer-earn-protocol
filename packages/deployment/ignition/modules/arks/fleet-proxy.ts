@@ -22,7 +22,7 @@ export function createFleetProxyModule(moduleName: string) {
     const fleetContract = m.getParameter('fleetContract')
 
     // Deploy FleetProxy with only essential parameters
-    const fleetProxy = m.contract('CrossChainFleetProxy', [
+    const fleetProxy = m.contract('FleetProxy', [
       accessManager,
       bridgeRouter,
       bridgeQueue,
