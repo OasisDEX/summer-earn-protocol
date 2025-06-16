@@ -670,6 +670,66 @@ export async function configureLayerZeroAdapter(
     }
   }
 
+  // Configure ReadLib1002 libraries if configured
+  if (chainConfig.readLib1002) {
+    try {
+      console.log(`Configuring ReadLib1002 libraries with address ${chainConfig.readLib1002}`)
+      const hash = await walletClient.writeContract({
+        address: getAddress(layerZeroAdapterAddress as `0x${string}`),
+        abi: [
+          {
+            inputs: [{ internalType: 'address', name: 'readLib1002Address', type: 'address' }],
+            name: 'configureReadLibraries',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ] as const,
+        functionName: 'configureReadLibraries',
+        args: [chainConfig.readLib1002],
+      })
+      console.log(kleur.green(`ReadLib1002 libraries configured successfully, tx: ${hash}`))
+    } catch (error) {
+      console.error(kleur.red('Error configuring ReadLib1002 libraries:'), error)
+    }
+  }
+
+  // Configure read DVNs if configured
+  if (chainConfig.readDVNs && chainConfig.readLib1002 && chainConfig.executor) {
+    try {
+      console.log(`Configuring read DVNs with ${chainConfig.readDVNs.length} DVNs`)
+      const hash = await walletClient.writeContract({
+        address: getAddress(layerZeroAdapterAddress as `0x${string}`),
+        abi: [
+          {
+            inputs: [
+              { internalType: 'address', name: 'readLib1002Address', type: 'address' },
+              { internalType: 'address[]', name: 'dvnAddresses', type: 'address[]' },
+              { internalType: 'uint64', name: 'confirmations', type: 'uint64' },
+              { internalType: 'address', name: 'executorAddress', type: 'address' },
+              { internalType: 'uint32', name: 'maxMessageSize', type: 'uint32' },
+            ],
+            name: 'configureReadDVNs',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ] as const,
+        functionName: 'configureReadDVNs',
+        args: [
+          chainConfig.readLib1002,
+          chainConfig.readDVNs,
+          BigInt(chainConfig.confirmations || 15),
+          chainConfig.executor,
+          10000, // maxMessageSize
+        ],
+      })
+      console.log(kleur.green(`Read DVNs configured successfully, tx: ${hash}`))
+    } catch (error) {
+      console.error(kleur.red('Error configuring read DVNs:'), error)
+    }
+  }
+
   // Set minimum gas limits if configured (with checks)
   if (chainConfig.minGasLimits) {
     const messageTypeMap: Record<string, number> = {

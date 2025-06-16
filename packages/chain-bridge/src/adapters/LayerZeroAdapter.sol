@@ -13,10 +13,12 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
-import {MessagingParams, MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {MessagingParams, MessagingFee as EndpointFee, MessagingReceipt, SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
+import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -78,6 +80,79 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /// @notice Use EnumerableSet for storage
     EnumerableSet.UintSet private _supportedChainIds;
+
+    /// @notice Thrown when read channel is not configured
+    error ReadChannelNotConfigured();
+
+    /// @notice Thrown when invalid bridge router address is provided
+    error InvalidBridgeRouter();
+
+    /// @notice Thrown when invalid parameters are provided
+    error InvalidParams();
+
+    /// @notice Thrown when operation is not supported
+    error OperationNotSupported();
+
+    /// @notice Thrown when unauthorized access is attempted
+    error Unauthorized();
+
+    /// @notice Thrown when unsupported chain is accessed
+    error UnsupportedChain();
+
+    /// @notice Thrown when insufficient message value is provided
+    error InsufficientMsgValue(uint256 required, uint256 provided);
+
+    /// @notice Emitted when read libraries are configured
+    event ReadLibrariesConfigured(
+        address indexed readLib1002,
+        uint32 indexed readChannelId
+    );
+
+    /// @notice Emitted when read DVNs are configured
+    event ReadDVNsConfigured(
+        address[] dvnAddresses,
+        uint64 confirmations,
+        address executor
+    );
+
+    /// @notice Emitted when bridge router is updated
+    event BridgeRouterUpdated(
+        address indexed oldRouter,
+        address indexed newRouter
+    );
+
+    /// @notice Emitted when a relay operation fails
+    event RelayFailed(bytes32 indexed operationId, bytes reason);
+
+    /// @notice Emitted when a message is delivered
+    event MessageDelivered(
+        bytes32 indexed messageId,
+        address indexed recipient,
+        bool delivered
+    );
+
+    /// @notice Emitted when a read operation is not found
+    event ReadOperationNotFound(bytes32 indexed guid, string reason);
+
+    /// @notice Emitted when a read response is delivered
+    event ReadResponseDelivered(bytes32 indexed operationId, bytes payload);
+
+    /// @notice Emitted when a read request is initiated
+    event ReadRequestInitiated(
+        bytes32 indexed operationId,
+        uint16 indexed srcChainId,
+        uint16 indexed dstChainId,
+        address dstContract,
+        bytes4 selector
+    );
+
+    /// @notice Emitted when a message is initiated
+    event MessageInitiated(
+        bytes32 indexed operationId,
+        uint16 indexed destinationChainId,
+        address indexed recipient,
+        bytes message
+    );
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -189,6 +264,86 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bridgeRouter = newBridgeRouter;
 
         emit BridgeRouterUpdated(oldRouter, newBridgeRouter);
+    }
+
+    /**
+     * @notice Configures ReadLib1002 for read operations
+     * @param readLib1002Address Address of the ReadLib1002 contract
+     * @dev Must be called to enable read operations
+     */
+    function configureReadLibraries(
+        address readLib1002Address
+    ) external onlyOwner {
+        if (readChannelId == 0) revert ReadChannelNotConfigured();
+
+        // Set send library for read channel
+        endpoint.setSendLibrary(
+            address(this),
+            readChannelId,
+            readLib1002Address
+        );
+
+        // Set receive library for read channel
+        endpoint.setReceiveLibrary(
+            address(this),
+            readChannelId,
+            readLib1002Address,
+            0
+        );
+
+        emit ReadLibrariesConfigured(readLib1002Address, readChannelId);
+    }
+
+    /**
+     * @notice Configures DVNs for read operations
+     * @param readLib1002Address Address of the ReadLib1002 contract
+     * @param dvnAddresses Array of DVN addresses (must be sorted)
+     * @param confirmations Number of block confirmations required
+     * @param executorAddress Address of the executor
+     * @param maxMessageSize Maximum message size for executor
+     */
+    function configureReadDVNs(
+        address readLib1002Address,
+        address[] calldata dvnAddresses,
+        uint64 confirmations,
+        address executorAddress,
+        uint32 maxMessageSize
+    ) external onlyOwner {
+        if (readChannelId == 0) revert ReadChannelNotConfigured();
+
+        // Configure ULN (DVN) settings
+        UlnConfig memory ulnConfig = UlnConfig({
+            confirmations: confirmations,
+            requiredDVNCount: uint8(dvnAddresses.length),
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: dvnAddresses,
+            optionalDVNs: new address[](0)
+        });
+
+        // Configure Executor settings
+        ExecutorConfig memory executorConfig = ExecutorConfig({
+            maxMessageSize: maxMessageSize,
+            executor: executorAddress
+        });
+
+        // Prepare config parameters
+        SetConfigParam[] memory params = new SetConfigParam[](2);
+        params[0] = SetConfigParam({
+            eid: readChannelId,
+            configType: 1, // EXECUTOR_CONFIG_TYPE
+            config: abi.encode(executorConfig)
+        });
+        params[1] = SetConfigParam({
+            eid: readChannelId,
+            configType: 2, // ULN_CONFIG_TYPE
+            config: abi.encode(ulnConfig)
+        });
+
+        // Set configuration on endpoint
+        endpoint.setConfig(address(this), readLib1002Address, params);
+
+        emit ReadDVNsConfigured(dvnAddresses, confirmations, executorAddress);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -423,6 +578,8 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Get the fee required
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            if (readChannelId == 0) revert ReadChannelNotConfigured();
+
             EndpointFee memory fee = _quote(
                 readChannelId,
                 payload,
@@ -660,7 +817,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Get minimum gas limit for this message type
         uint128 minimumGas = minGasLimits[_msgType];
 
-        // Create default options with minimum gas limit
+        // Create default options with minimum gas
         bytes memory options;
 
         if (_msgType == STATE_READ) {
