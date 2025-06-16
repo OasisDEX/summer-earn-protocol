@@ -671,14 +671,17 @@ export async function configureLayerZeroAdapter(
   }
 
   // Configure ReadLib1002 libraries if configured
-  if (chainConfig.readLib1002) {
+  if (chainConfig.readLib1002 && chainConfig.readChannelId) {
     try {
       console.log(`Configuring ReadLib1002 libraries with address ${chainConfig.readLib1002}`)
       const hash = await walletClient.writeContract({
         address: getAddress(layerZeroAdapterAddress as `0x${string}`),
         abi: [
           {
-            inputs: [{ internalType: 'address', name: 'readLib1002Address', type: 'address' }],
+            inputs: [
+              { internalType: 'address', name: 'readLib1002Address', type: 'address' },
+              { internalType: 'uint32', name: 'channelId', type: 'uint32' },
+            ],
             name: 'configureReadLibraries',
             outputs: [],
             stateMutability: 'nonpayable',
@@ -686,7 +689,7 @@ export async function configureLayerZeroAdapter(
           },
         ] as const,
         functionName: 'configureReadLibraries',
-        args: [chainConfig.readLib1002],
+        args: [chainConfig.readLib1002, chainConfig.readChannelId],
       })
       console.log(kleur.green(`ReadLib1002 libraries configured successfully, tx: ${hash}`))
     } catch (error) {
@@ -695,7 +698,12 @@ export async function configureLayerZeroAdapter(
   }
 
   // Configure read DVNs if configured
-  if (chainConfig.readDVNs && chainConfig.readLib1002 && chainConfig.executor) {
+  if (
+    chainConfig.readDVNs &&
+    chainConfig.readLib1002 &&
+    chainConfig.executor &&
+    chainConfig.readChannelId
+  ) {
     try {
       console.log(`Configuring read DVNs with ${chainConfig.readDVNs.length} DVNs`)
       const hash = await walletClient.writeContract({
@@ -708,6 +716,7 @@ export async function configureLayerZeroAdapter(
               { internalType: 'uint64', name: 'confirmations', type: 'uint64' },
               { internalType: 'address', name: 'executorAddress', type: 'address' },
               { internalType: 'uint32', name: 'maxMessageSize', type: 'uint32' },
+              { internalType: 'uint32', name: 'channelId', type: 'uint32' },
             ],
             name: 'configureReadDVNs',
             outputs: [],
@@ -722,6 +731,7 @@ export async function configureLayerZeroAdapter(
           BigInt(chainConfig.confirmations || 15),
           chainConfig.executor,
           10000, // maxMessageSize
+          chainConfig.readChannelId,
         ],
       })
       console.log(kleur.green(`Read DVNs configured successfully, tx: ${hash}`))

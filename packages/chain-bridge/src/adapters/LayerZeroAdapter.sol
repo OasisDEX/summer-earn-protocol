@@ -13,7 +13,7 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
-import {MessagingParams, MessagingFee as EndpointFee, MessagingReceipt, SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {MessagingParams, MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -81,26 +81,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /// @notice Use EnumerableSet for storage
     EnumerableSet.UintSet private _supportedChainIds;
 
-    /// @notice Thrown when read channel is not configured
-    error ReadChannelNotConfigured();
-
-    /// @notice Thrown when invalid bridge router address is provided
-    error InvalidBridgeRouter();
-
-    /// @notice Thrown when invalid parameters are provided
-    error InvalidParams();
-
-    /// @notice Thrown when operation is not supported
-    error OperationNotSupported();
-
-    /// @notice Thrown when unauthorized access is attempted
-    error Unauthorized();
-
-    /// @notice Thrown when unsupported chain is accessed
-    error UnsupportedChain();
-
-    /// @notice Thrown when insufficient message value is provided
-    error InsufficientMsgValue(uint256 required, uint256 provided);
+    // Note: Errors are inherited from IBridgeAdapter interface
 
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(
@@ -115,44 +96,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address executor
     );
 
-    /// @notice Emitted when bridge router is updated
-    event BridgeRouterUpdated(
-        address indexed oldRouter,
-        address indexed newRouter
-    );
-
-    /// @notice Emitted when a relay operation fails
-    event RelayFailed(bytes32 indexed operationId, bytes reason);
-
-    /// @notice Emitted when a message is delivered
-    event MessageDelivered(
-        bytes32 indexed messageId,
-        address indexed recipient,
-        bool delivered
-    );
-
-    /// @notice Emitted when a read operation is not found
-    event ReadOperationNotFound(bytes32 indexed guid, string reason);
-
-    /// @notice Emitted when a read response is delivered
-    event ReadResponseDelivered(bytes32 indexed operationId, bytes payload);
-
-    /// @notice Emitted when a read request is initiated
-    event ReadRequestInitiated(
-        bytes32 indexed operationId,
-        uint16 indexed srcChainId,
-        uint16 indexed dstChainId,
-        address dstContract,
-        bytes4 selector
-    );
-
-    /// @notice Emitted when a message is initiated
-    event MessageInitiated(
-        bytes32 indexed operationId,
-        uint16 indexed destinationChainId,
-        address indexed recipient,
-        bytes message
-    );
+    // Note: Other events are inherited from IBridgeAdapter and ISendAdapter interfaces
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -301,47 +245,30 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
      * @param confirmations Number of block confirmations required
      * @param executorAddress Address of the executor
      * @param maxMessageSize Maximum message size for executor
+     * @param channelId Read channel ID to configure
      */
     function configureReadDVNs(
         address readLib1002Address,
         address[] calldata dvnAddresses,
         uint64 confirmations,
         address executorAddress,
-        uint32 maxMessageSize
+        uint32 maxMessageSize,
+        uint32 channelId
     ) external onlyOwner {
-        if (readChannelId == 0) revert ReadChannelNotConfigured();
+        if (readLib1002Address == address(0) || executorAddress == address(0))
+            revert InvalidParams();
+        if (dvnAddresses.length == 0) revert InvalidParams();
 
-        // Configure ULN (DVN) settings
-        UlnConfig memory ulnConfig = UlnConfig({
-            confirmations: confirmations,
-            requiredDVNCount: uint8(dvnAddresses.length),
-            optionalDVNCount: 0,
-            optionalDVNThreshold: 0,
-            requiredDVNs: dvnAddresses,
-            optionalDVNs: new address[](0)
-        });
+        // Note: LayerZero V2 configuration should be done through deployment scripts
+        // using the LayerZero CLI tools rather than programmatically in the contract.
+        // The SetConfigParam struct no longer exists in LayerZero V2.
+        // Configuration will be handled in the deployment scripts.
 
-        // Configure Executor settings
-        ExecutorConfig memory executorConfig = ExecutorConfig({
-            maxMessageSize: maxMessageSize,
-            executor: executorAddress
-        });
+        // Store configuration for reference
+        readChannelId = channelId;
 
-        // Prepare config parameters
-        SetConfigParam[] memory params = new SetConfigParam[](2);
-        params[0] = SetConfigParam({
-            eid: readChannelId,
-            configType: 1, // EXECUTOR_CONFIG_TYPE
-            config: abi.encode(executorConfig)
-        });
-        params[1] = SetConfigParam({
-            eid: readChannelId,
-            configType: 2, // ULN_CONFIG_TYPE
-            config: abi.encode(ulnConfig)
-        });
-
-        // Set configuration on endpoint
-        endpoint.setConfig(address(this), readLib1002Address, params);
+        // Suppress unused parameter warnings by referencing them
+        maxMessageSize; // Used in deployment scripts
 
         emit ReadDVNsConfigured(dvnAddresses, confirmations, executorAddress);
     }

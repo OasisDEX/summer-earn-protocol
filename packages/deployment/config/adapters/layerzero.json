@@ -10,11 +10,7 @@
       "sendUln302": "0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1",
       "receiveUln302": "0xc02Ab410f0734EFa3F14628780e6e695156024C2",
       "executor": "0x173272739Bd7Aa6e4e214714048a9fE699453059",
-      "readDVNs": [
-        "0xdb979d0a36af0525afa60fc265b1525505c55d79",
-        "0x1e129c36bc3afc3f0d46a42c9d9cab7586bda94c",
-        "0x3a283ed6bcce8d9dfb673fbfba6e644c9d02e9ab"
-      ],
+      "readDVNs": ["0xdb979d0a36af0525afa60fc265b1525505c55d79"],
       "confirmations": 15
     },
     "8453": {
@@ -27,7 +23,7 @@
       "sendUln302": "0xB5320B0B3a13cC860893E2Bd79FCd7e13484Dda2",
       "receiveUln302": "0xc70AB6f32772f59fBfc23889Caf4Ba3376C84bAf",
       "executor": "0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4",
-      "readDVNs": ["0xdb979d0a36af0525afa60fc265b1525505c55d79"],
+      "readDVNs": ["0x9e059a54699a285714207b43B055483E78FAac25"],
       "confirmations": 15
     },
     "42161": {
@@ -40,7 +36,7 @@
       "sendUln302": "0x975bcD720be66659e3EB3C0e4F1866a3020E493A",
       "receiveUln302": "0x7B9E184e07a6EE1aC23eAe0fe8D6Be2f663f05e6",
       "executor": "0x31CAe3B7fB82d847621859fb1585353c5720660D",
-      "readDVNs": ["0x1308151a7ebac14f435d3ad5ff95c34160d539a5"],
+      "readDVNs": ["0x2f55C492897526677C5B68fb199637468EB54101"],
       "confirmations": 15
     },
     "146": {
@@ -49,7 +45,7 @@
         "generalMessage": 300000
       },
       "readChannelId": 4294967295,
-      "readLib1002": null,
+      "readLib1002": "0x1641D737e97916f1400CB6BA032eceE765484D9C",
       "sendUln302": "0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7",
       "receiveUln302": "0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043",
       "executor": "0x4208D6E27538189bB48E603D6123A94b8Abe0A0b",
