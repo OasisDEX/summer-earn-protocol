@@ -660,6 +660,10 @@ export async function configureLayerZeroAdapter(
           args: [chainConfig.readChannelId],
         })
         console.log(kleur.green(`Read channel activated successfully, tx: ${hash}`))
+
+        // Verify the channel was activated
+        const verifyReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
+        console.log(kleur.blue(`Read channel ID verified: ${verifyReadChannelId}`))
       } else {
         console.log(
           kleur.yellow(`Read channel ${chainConfig.readChannelId} already active, skipping`),
@@ -667,21 +671,27 @@ export async function configureLayerZeroAdapter(
       }
     } catch (error) {
       console.error(kleur.red('Error activating read channel:'), error)
+      throw error // Re-throw to prevent further configuration if channel activation fails
     }
+  } else {
+    console.log(kleur.yellow('No read channel ID configured, skipping read channel activation'))
   }
 
   // Configure ReadLib1002 libraries if configured
   if (chainConfig.readLib1002 && chainConfig.readChannelId) {
     try {
+      // Verify read channel is activated before configuring libraries
+      const currentReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
+      if (currentReadChannelId === BigInt(0)) {
+        throw new Error('Read channel must be activated before configuring libraries')
+      }
+
       console.log(`Configuring ReadLib1002 libraries with address ${chainConfig.readLib1002}`)
       const hash = await walletClient.writeContract({
         address: getAddress(layerZeroAdapterAddress as `0x${string}`),
         abi: [
           {
-            inputs: [
-              { internalType: 'address', name: 'readLib1002Address', type: 'address' },
-              { internalType: 'uint32', name: 'channelId', type: 'uint32' },
-            ],
+            inputs: [{ internalType: 'address', name: 'readLib1002Address', type: 'address' }],
             name: 'configureReadLibraries',
             outputs: [],
             stateMutability: 'nonpayable',
@@ -689,11 +699,19 @@ export async function configureLayerZeroAdapter(
           },
         ] as const,
         functionName: 'configureReadLibraries',
-        args: [chainConfig.readLib1002, chainConfig.readChannelId],
+        args: [chainConfig.readLib1002],
       })
       console.log(kleur.green(`ReadLib1002 libraries configured successfully, tx: ${hash}`))
     } catch (error) {
       console.error(kleur.red('Error configuring ReadLib1002 libraries:'), error)
+      throw error // Re-throw to prevent further configuration if library setup fails
+    }
+  } else {
+    if (!chainConfig.readLib1002) {
+      console.log(kleur.yellow('No ReadLib1002 address configured, skipping library configuration'))
+    }
+    if (!chainConfig.readChannelId) {
+      console.log(kleur.yellow('No read channel ID configured, skipping library configuration'))
     }
   }
 
