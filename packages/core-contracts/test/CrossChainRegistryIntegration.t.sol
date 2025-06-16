@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {CrossChainRegistry} from "../src/contracts/CrossChainRegistry.sol";
 import {CrossChainArk} from "../src/contracts/arks/CrossChainArk.sol";
-import {CrossChainFleetProxy} from "../src/contracts/FleetProxy.sol";
+import {FleetProxy} from "../src/contracts/FleetProxy.sol";
 import {ICrossChainRegistry} from "../src/interfaces/ICrossChainRegistry.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
@@ -24,7 +24,7 @@ contract CrossChainRegistryIntegrationTest is Test {
     // Contracts
     CrossChainRegistry public registry;
     CrossChainArk public ark;
-    CrossChainFleetProxy public proxy;
+    FleetProxy public proxy;
     ProtocolAccessManager public accessManager;
     MockBridgeQueue public bridgeQueue;
     MockBridgeRouter public bridgeRouter;
@@ -103,7 +103,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         // Deploy FleetProxy
-        proxy = new CrossChainFleetProxy(
+        proxy = new FleetProxy(
             address(accessManager),
             address(bridgeRouter),
             address(bridgeQueue),
