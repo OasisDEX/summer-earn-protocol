@@ -32,11 +32,11 @@
         "generalMessage": 300000
       },
       "readChannelId": 4294967295,
-      "readLib1002": "0x2B79f3C2EE059E465a24bf5A2F4FE989546053B1",
+      "readLib1002": "0xbcd4CADCac3F767C57c4F402932C4705DF62BEFf",
       "sendUln302": "0x975bcD720be66659e3EB3C0e4F1866a3020E493A",
       "receiveUln302": "0x7B9E184e07a6EE1aC23eAe0fe8D6Be2f663f05e6",
       "executor": "0x31CAe3B7fB82d847621859fb1585353c5720660D",
-      "readDVNs": ["0x2f55C492897526677C5B68fb199637468EB54101"],
+      "readDVNs": ["0x1308151a7ebac14f435d3ad5ff95c34160d539a5"],
       "confirmations": 15
     },
     "146": {
