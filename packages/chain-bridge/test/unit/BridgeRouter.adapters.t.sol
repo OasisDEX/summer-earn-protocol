@@ -156,7 +156,7 @@ contract BridgeRouterAdaptersTest is Test {
         vm.stopPrank();
     }
 
-    // ---- ADAPTER SELECTION TESTS ----
+    // ---- ADAPTER SPECIFICATION TESTS ----
 
     function testSpecifiedAdapter() public {
         vm.startPrank(governor);
@@ -346,7 +346,7 @@ contract BridgeRouterAdaptersTest is Test {
                 adapterParams: adapterParams
             });
 
-        (, , address selectedAdapter) = router.quote(
+        (, , address specifiedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -355,7 +355,7 @@ contract BridgeRouterAdaptersTest is Test {
         );
 
         assertEq(
-            selectedAdapter,
+            specifiedAdapter,
             address(mockAdapter),
             "Should return the specified valid adapter"
         );
@@ -410,7 +410,7 @@ contract BridgeRouterAdaptersTest is Test {
 
         // Test 5: Valid adapter with different token (MockAdapter supports any token)
         ERC20Mock newToken = new ERC20Mock();
-        (, , address selectedAdapterForNewToken) = router.quote(
+        (, , address specifiedAdapterForNewToken) = router.quote(
             DEST_CHAIN_ID,
             address(newToken),
             TRANSFER_AMOUNT,
@@ -419,7 +419,7 @@ contract BridgeRouterAdaptersTest is Test {
         );
 
         assertEq(
-            selectedAdapterForNewToken,
+            specifiedAdapterForNewToken,
             address(mockAdapter),
             "Should return specified adapter for any supported token"
         );
@@ -443,7 +443,7 @@ contract BridgeRouterAdaptersTest is Test {
         });
 
         // Get quote
-        (uint256 nativeFee, , address selectedAdapter) = router.quote(
+        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -452,7 +452,7 @@ contract BridgeRouterAdaptersTest is Test {
         );
 
         // Verify quote
-        assertEq(selectedAdapter, address(mockAdapter));
+        assertEq(specifiedAdapter, address(mockAdapter));
         assertTrue(nativeFee > 0);
     }
 

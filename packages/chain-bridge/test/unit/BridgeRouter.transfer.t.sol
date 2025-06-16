@@ -104,7 +104,7 @@ contract BridgeRouterTransferTest is Test {
         });
 
         // Get a quote first to determine the required fee FOR EXECUTION
-        (uint256 nativeFee, , address selectedAdapter) = router.quote(
+        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -113,8 +113,8 @@ contract BridgeRouterTransferTest is Test {
         );
         // vm.deal(user, nativeFee); // REMOVED: User no longer pays fee
 
-        // Verify the selected adapter matches what we specified
-        assertEq(selectedAdapter, address(mockAdapter));
+        // Verify the specified adapter matches what we provided
+        assertEq(specifiedAdapter, address(mockAdapter));
 
         // Queue the transfer via BridgeQueue (NO VALUE)
         bytes32 queueId = bridgeQueue.queueTransferAssets(
@@ -156,7 +156,7 @@ contract BridgeRouterTransferTest is Test {
                 options,
                 BridgeTypes.OperationType.TRANSFER_ASSET
             ),
-            abi.encode(nativeFee, uint256(0), selectedAdapter) // Mock return for execution quote
+            abi.encode(nativeFee, uint256(0), specifiedAdapter) // Mock return for execution quote
         );
         // Mock the executeTransferAssets call
         vm.expectCall(
@@ -196,7 +196,7 @@ contract BridgeRouterTransferTest is Test {
         //     uint256(router.operationStatuses(operationId)),
         //     uint256(BridgeTypes.OperationStatus.PENDING)
         // );
-        // assertEq(router.operationToAdapter(operationId), selectedAdapter); // Check correct adapter used
+        // assertEq(router.operationToAdapter(operationId), specifiedAdapter); // Check correct adapter used
         assertEq(operationId, expectedOperationId, "Operation ID mismatch"); // Check returned ID
     }
 

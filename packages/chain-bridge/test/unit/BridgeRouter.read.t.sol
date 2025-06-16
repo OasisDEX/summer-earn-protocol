@@ -102,7 +102,7 @@ contract BridgeRouterReadStateTest is Test {
         });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , address selectedAdapter) = router.quote(
+        (uint256 fee, , address specifiedAdapter) = router.quote(
             DEST_CHAIN_ID,
             targetContract, // Use target contract in quote
             0,
@@ -110,11 +110,11 @@ contract BridgeRouterReadStateTest is Test {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Verify the selected adapter matches what we specified
-        assertEq(selectedAdapter, address(mockAdapter));
+        // Verify the specified adapter matches what we provided
+        assertEq(specifiedAdapter, address(mockAdapter));
 
-        // Use selected adapter in options for queueing
-        options.specifiedAdapter = selectedAdapter;
+        // Use specified adapter in options for queueing
+        options.specifiedAdapter = specifiedAdapter;
 
         // Queue read state (NO VALUE)
         bytes32 queueId = bridgeQueue.queueReadState(
@@ -156,7 +156,7 @@ contract BridgeRouterReadStateTest is Test {
                 options,
                 BridgeTypes.OperationType.READ_STATE
             ),
-            abi.encode(fee, uint256(0), selectedAdapter) // Mock return for execution quote
+            abi.encode(fee, uint256(0), specifiedAdapter) // Mock return for execution quote
         );
         // Mock the executeReadState call
         vm.expectCall(
@@ -194,7 +194,7 @@ contract BridgeRouterReadStateTest is Test {
         //     uint256(router.operationStatuses(operationId)),
         //     uint256(BridgeTypes.OperationStatus.PENDING)
         // );
-        // assertEq(router.operationToAdapter(operationId), selectedAdapter); // Check selected adapter
+        // assertEq(router.operationToAdapter(operationId), specifiedAdapter); // Check specified adapter
         // // Verify originator was stored correctly (should be mockReceiver)
         // assertEq(
         //     router.readRequestToOriginator(operationId),

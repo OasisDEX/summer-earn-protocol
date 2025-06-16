@@ -10,6 +10,7 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
+import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 
 /**
  * @title BridgeQueue
@@ -520,22 +521,23 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             BridgeTypes.OperationType.TRANSFER_ASSET
         ) {
             address originator = queuedTransfers[queueId].originator;
-            // Check if originator supports ICrossChainArk interface before calling updateInflightAssets
+            // Check if originator supports IInflightAssetTracking interface before calling updateInflightAssets
             if (originator.code.length > 0) {
                 try
                     IERC165(originator).supportsInterface(
-                        type(ICrossChainArk).interfaceId
+                        type(IInflightAssetTracking).interfaceId
                     )
                 returns (bool supported) {
                     if (supported) {
                         try
-                            ICrossChainArk(originator).updateInflightAssets(0)
+                            IInflightAssetTracking(originator)
+                                .updateInflightAssets(0)
                         {} catch {
                             // Ignore failures in updateInflightAssets
                         }
                     }
                 } catch {
-                    // Originator doesn't support ERC165 or ICrossChainArk, ignore
+                    // Originator doesn't support ERC165 or IInflightAssetTracking, ignore
                 }
             }
         }

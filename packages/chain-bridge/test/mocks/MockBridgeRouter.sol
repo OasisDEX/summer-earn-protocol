@@ -136,12 +136,12 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     )
         external
         view
-        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         nativeFee = mockFee;
         tokenFee = 0;
-        selectedAdapter = MOCK_ADAPTER_ADDRESS;
-        return (nativeFee, tokenFee, selectedAdapter);
+        specifiedAdapter = MOCK_ADAPTER_ADDRESS;
+        return (nativeFee, tokenFee, specifiedAdapter);
     }
 
     // --- Internal Execution Functions (Helper for external calls) ---
@@ -157,7 +157,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         operationId = keccak256(abi.encodePacked("transfer", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
-        operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS; // Simulate adapter selection
+        operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS; // Store specified adapter
         operationBaseFeesPaid[operationId] = msg.value; // Track base fee received
 
         // Simulate token transfer from queue (already approved)
@@ -337,28 +337,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     }
 
     // Implement other view functions simply returning mock/default values
-    function getBestAdapter(
-        uint16,
-        address,
-        uint256
-    ) external pure returns (address bestAdapter) {
-        return MOCK_ADAPTER_ADDRESS;
-    }
-
-    function getBestAdapter(
-        uint16,
-        address,
-        uint256,
-        BridgeTypes.OperationType
-    ) external pure returns (address bestAdapter) {
-        return MOCK_ADAPTER_ADDRESS;
-    }
-
-    function getBestAdapterForStateRead(
-        uint16
-    ) external pure returns (address) {
-        return MOCK_ADAPTER_ADDRESS;
-    }
 
     function getAdapters() external pure returns (address[] memory) {
         address[] memory adapters = new address[](1);
@@ -572,7 +550,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockPaused = _mockPaused;
         shouldRevert = _shouldRevert;
         mockFee = _mockFee;
-        // Note: We don't have mockSelectedAdapter in this version as we use MOCK_ADAPTER_ADDRESS
+        // Note: We don't have mockSpecifiedAdapter in this version as we use MOCK_ADAPTER_ADDRESS
     }
 
     // Add readState function from core contracts version

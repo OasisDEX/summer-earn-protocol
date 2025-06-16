@@ -149,7 +149,7 @@ contract BridgeRouterAdminTest is Test {
         });
 
         // Get fee estimate first (for keeper execution)
-        (uint256 nativeFee, , address selectedAdapter) = router.quote(
+        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
@@ -158,8 +158,8 @@ contract BridgeRouterAdminTest is Test {
         );
         // vm.deal(user, nativeFee); // REMOVED: User no longer pays
 
-        // Verify the selected adapter matches what we specified
-        assertEq(selectedAdapter, address(mockAdapter));
+        // Verify the specified adapter matches what we provided
+        assertEq(specifiedAdapter, address(mockAdapter));
 
         // Queue the transfer via BridgeQueue - this should succeed (NO VALUE)
         bytes32 queueId = bridgeQueue.queueTransferAssets(
@@ -196,7 +196,7 @@ contract BridgeRouterAdminTest is Test {
                 options,
                 BridgeTypes.OperationType.TRANSFER_ASSET
             ),
-            abi.encode(nativeFee, uint256(0), selectedAdapter) // Mock return for execution quote
+            abi.encode(nativeFee, uint256(0), specifiedAdapter) // Mock return for execution quote
         );
         // Mock the execute call - it won't actually happen due to pause, but setup is needed before revert check
         vm.expectCall(

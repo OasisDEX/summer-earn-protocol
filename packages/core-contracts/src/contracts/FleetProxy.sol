@@ -13,19 +13,20 @@ import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
+import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 
 /**
- * @title CrossChainFleetProxy
+ * @title FleetProxy
  * @author SummerFi
  * @notice Proxy contract that receives and holds assets on a satellite chain on behalf of a source chain fleet
  * @dev Implements ICrossChainReceiver to handle cross-chain messages
  */
-contract CrossChainFleetProxy is
+contract FleetProxy is
     IFleetProxy,
+    IInflightAssetTracking,
     ProtocolAccessManaged,
     ReentrancyGuard,
-    Pausable,
-    IERC165
+    Pausable
 {
     using SafeERC20 for IERC20;
 
@@ -44,6 +45,9 @@ contract CrossChainFleetProxy is
 
     /// @notice The address of the source chain's CrossChainArk
     address public sourceChainArk;
+
+    /// @notice Amount of withdrawal assets currently in-flight (being bridged back)
+    uint256 public inflightWithdrawals;
 
     /*//////////////////////////////////////////////////////////////
                             EVENTS
@@ -99,7 +103,8 @@ contract CrossChainFleetProxy is
 
     /// @inheritdoc IFleetProxy
     function totalAssets() external view returns (uint256) {
-        return IFleetCommander(fleetContract).totalAssets();
+        return
+            IFleetCommander(fleetContract).totalAssets() + inflightWithdrawals;
     }
 
     /// @inheritdoc IFleetProxy
@@ -120,11 +125,34 @@ contract CrossChainFleetProxy is
         emit SourceChainArkUpdated(_sourceChainArk);
     }
 
+    /// @notice Force update the inflight withdrawals amount (emergency governance function)
+    /// @param amount Amount of withdrawal assets to set as in-flight
+    /// @dev This is an emergency function that allows governance to manually correct inflight withdrawal tracking
+    /// in case of bridge failures or accounting discrepancies
+    function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
+        inflightWithdrawals = amount;
+        emit InflightAssetsUpdated(amount);
+    }
+
+    /// @inheritdoc IInflightAssetTracking
+    function updateInflightAssets(uint256 amount) external {
+        // Only the bridge queue or router should be able to call this
+        if (
+            msg.sender != address(bridgeQueue) &&
+            msg.sender != address(bridgeRouter)
+        ) {
+            revert Unauthorized();
+        }
+
+        inflightWithdrawals = amount;
+        emit InflightAssetsUpdated(amount);
+    }
+
     /// @notice Keeper function to withdraw and transfer assets
     function withdrawAndTransfer(
         uint256 amount,
         uint16 sourceChainId
-    ) external payable whenNotPaused nonReentrant onlyKeeper {
+    ) external whenNotPaused nonReentrant onlyKeeper {
         if (amount == 0) revert NoAssets();
 
         // 1. Get the asset from fleet config
@@ -143,10 +171,14 @@ contract CrossChainFleetProxy is
         if (IERC20(asset).balanceOf(address(this)) < amount)
             revert WithdrawalFailed();
 
-        // 4. Approve the bridge queue to transfer the assets
+        // 4. Track inflight withdrawals before bridging
+        inflightWithdrawals += amount;
+        emit InflightAssetsUpdated(inflightWithdrawals);
+
+        // 5. Approve the bridge queue to transfer the assets
         IERC20(asset).approve(address(bridgeQueue), amount);
 
-        // 5. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
+        // 6. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
         bridgeQueue.queueTransferAssets(
             sourceChainId,
             asset,
@@ -197,6 +229,7 @@ contract CrossChainFleetProxy is
     ) external pure override(ICrossChainAssetReceiver, IERC165) returns (bool) {
         return
             interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
+            interfaceId == type(IInflightAssetTracking).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 
@@ -244,4 +277,6 @@ contract CrossChainFleetProxy is
     error InvalidFleetContract();
     /// @notice Error thrown when withdrawal failed
     error WithdrawalFailed();
+    /// @notice Thrown when the caller is not authorized to perform the action.
+    error Unauthorized();
 }

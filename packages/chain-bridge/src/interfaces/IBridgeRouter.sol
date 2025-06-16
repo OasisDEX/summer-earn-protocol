@@ -245,7 +245,7 @@ interface IBridgeRouter is IERC165 {
      * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET).
      * @return nativeFee Estimated base fee in native currency.
      * @return tokenFee Estimated base fee in the asset token (if applicable).
-     * @return selectedAdapter The adapter that would be used for this operation.
+     * @return specifiedAdapter The adapter that was specified in the options.
      */
     function quote(
         uint16 destinationChainId,
@@ -256,7 +256,7 @@ interface IBridgeRouter is IERC165 {
     )
         external
         view
-        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter);
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter);
 
     /**
      * @notice Get the status of an operation

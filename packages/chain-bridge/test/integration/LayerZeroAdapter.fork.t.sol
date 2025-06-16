@@ -263,15 +263,15 @@ contract LayerZeroIntegrationTest is Test {
         bytes memory callData = abi.encode(user); // Reading user balance
 
         // Now get quote for fees FOR EXECUTION
-        (uint256 nativeFee, , address selectedAdapter) = router.quote( // Capture selected adapter
+        (uint256 nativeFee, , address specifiedAdapter) = router.quote( // Capture specified adapter
                 DEST_CHAIN_ID,
                 targetContract, // Target contract used in quote
                 0,
                 options, // Use defined options
                 BridgeTypes.OperationType.READ_STATE
             );
-        // Verify the selected adapter matches what we specified
-        assertEq(selectedAdapter, address(adapter));
+        // Verify the specified adapter matches what we provided
+        assertEq(specifiedAdapter, address(adapter));
 
         // 1. Queue the operation (as user/queueManager) (NO VALUE)
         vm.startPrank(user);
@@ -313,7 +313,7 @@ contract LayerZeroIntegrationTest is Test {
                 options,
                 BridgeTypes.OperationType.READ_STATE
             ),
-            abi.encode(nativeFee, uint256(0), selectedAdapter) // Mock return for execution quote
+            abi.encode(nativeFee, uint256(0), specifiedAdapter) // Mock return for execution quote
         );
         vm.expectCall(
             address(router),
@@ -351,6 +351,6 @@ contract LayerZeroIntegrationTest is Test {
         //     uint256(BridgeTypes.OperationStatus.PENDING)
         // );
         // Verify correct adapter was assigned by router/queue (if checking router state)
-        // assertEq(router.operationToAdapter(operationId), selectedAdapter); // Check against quoted adapter
+        // assertEq(router.operationToAdapter(operationId), specifiedAdapter); // Check against quoted adapter
     }
 }

@@ -29,7 +29,7 @@ library BridgeTypes {
      * @notice Bridge options structure
      */
     struct BridgeOptions {
-        address specifiedAdapter; // Optional specific adapter to use (address(0) means auto-select)
+        address specifiedAdapter; // Required specific adapter to use (address(0) will revert)
         AdapterParams adapterParams; // Generic adapter options
     }
 

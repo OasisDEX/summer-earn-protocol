@@ -12,6 +12,9 @@ import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.s
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
+// Import CrossChain Ark interface for proper detection
+import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
+
 // Stargate V2 interfaces - based on LayerZero V2 OFT standard
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
@@ -117,6 +120,27 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         bytes32 operationId;
     }
 
+    /// @notice Maximum gas limit for compose execution
+    uint256 public constant MAX_COMPOSE_GAS = 1000000;
+
+    /// @notice Information about failed compose operations for recovery
+    struct FailedCompose {
+        address asset;
+        uint256 amount;
+        address intendedRecipient;
+        bytes32 operationId;
+        address originator;
+        uint16 sourceChainId;
+        uint256 timestamp;
+        bool isDeposit; // true for deposits to FleetProxy, false for withdrawals to CrossChainArk
+    }
+
+    /// @notice Mapping of operation IDs to failed compose details
+    mapping(bytes32 => FailedCompose) public failedComposes;
+
+    /// @notice Array of failed operation IDs for easier iteration
+    bytes32[] public failedOperationIds;
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -152,9 +176,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
 
     /// @notice Minimum gas limit for compose execution
     uint256 public constant MIN_COMPOSE_GAS = 200000;
-
-    /// @notice Maximum gas limit for compose execution
-    uint256 public constant MAX_COMPOSE_GAS = 1000000;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -194,6 +215,24 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
 
     /// @notice Emitted when stuck tokens are recovered
     event TokensRecovered(
+        address indexed asset,
+        uint256 amount,
+        address indexed recipient
+    );
+
+    /// @notice Emitted when a compose operation fails and assets are held for recovery
+    event ComposeFailedAssetsHeld(
+        bytes32 indexed operationId,
+        address indexed asset,
+        uint256 amount,
+        address intendedRecipient,
+        bool isDeposit,
+        string reason
+    );
+
+    /// @notice Emitted when a failed compose operation is recovered
+    event FailedComposeRecovered(
+        bytes32 indexed operationId,
         address indexed asset,
         uint256 amount,
         address indexed recipient
@@ -699,7 +738,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     }
 
     /**
-     * @dev Internal function to handle the composed message logic
+     * @dev Internal function to handle the composed message logic - SIMPLIFIED
      */
     function _handleComposedMessage(
         address _from,
@@ -708,7 +747,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     ) internal {
         // Decode the compose message
         (
-            address fleetProxy,
+            address recipient,
             address sourceAsset,
             ,
             uint256 sourceChainId,
@@ -719,30 +758,32 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 (address, address, uint256, uint256, bytes32, address)
             );
 
-        // Get destination asset and validate we have sufficient balance
-        address destinationAsset = _getDestinationAssetAndValidateBalance(
-            _from,
-            amountLD,
-            operationId,
-            fleetProxy
-        );
+        // Get destination asset - SIMPLIFIED: fail fast if we can't get it
+        address destinationAsset = IStargate(_from).token();
 
-        // Validate other parameters
-        if (fleetProxy == address(0)) {
-            emit ComposeCallFailed(
-                operationId,
-                fleetProxy,
-                abi.encodeWithSignature("InvalidFleetProxy()")
-            );
+        // Basic validation - fail fast
+        if (
+            destinationAsset == address(0) ||
+            recipient == address(0) ||
+            amountLD == 0
+        ) {
             revert InvalidParams();
         }
 
-        // Transfer tokens from adapter to FleetProxy
-        IERC20(destinationAsset).safeTransfer(fleetProxy, amountLD);
+        // Check adapter balance
+        uint256 adapterBalance = IERC20(destinationAsset).balanceOf(
+            address(this)
+        );
+        if (adapterBalance < amountLD) {
+            revert InsufficientBalance();
+        }
 
-        // Call FleetProxy to handle the received assets
-        _callFleetProxy(
-            fleetProxy,
+        // Determine if this is a deposit or withdrawal based on recipient type
+        bool isDeposit = _isFleetProxy(recipient);
+
+        // Try to deliver assets - if it fails, hold them for governance recovery
+        bool success = _tryDeliverAssets(
+            recipient,
             destinationAsset,
             amountLD,
             operationId,
@@ -750,98 +791,104 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             sourceAsset,
             uint16(sourceChainId)
         );
-    }
 
-    /**
-     * @dev Gets destination asset from Stargate contract and validates sufficient balance
-     * @param _from The Stargate contract that delivered tokens
-     * @param amountLD Amount that should have been delivered
-     * @param operationId Operation ID for error reporting
-     * @param fleetProxy Fleet proxy address for error reporting
-     * @return destinationAsset Address of the destination asset
-     */
-    function _getDestinationAssetAndValidateBalance(
-        address _from,
-        uint256 amountLD,
-        bytes32 operationId,
-        address fleetProxy
-    ) internal returns (address destinationAsset) {
-        // Get the destination asset from the Stargate contract
-        try IStargate(_from).token() returns (address token) {
-            destinationAsset = token;
-        } catch {
-            emit ComposeCallFailed(
+        if (!success) {
+            // Store failed compose details for governance recovery
+            failedComposes[operationId] = FailedCompose({
+                asset: destinationAsset,
+                amount: amountLD,
+                intendedRecipient: recipient,
+                operationId: operationId,
+                originator: originator,
+                sourceChainId: uint16(sourceChainId),
+                timestamp: block.timestamp,
+                isDeposit: isDeposit
+            });
+
+            failedOperationIds.push(operationId);
+
+            emit ComposeFailedAssetsHeld(
                 operationId,
-                fleetProxy,
-                abi.encodeWithSignature(
-                    "FailedToGetDestinationAsset(address)",
-                    _from
-                )
+                destinationAsset,
+                amountLD,
+                recipient,
+                isDeposit,
+                "Recipient call failed"
             );
-            revert InvalidParams();
+
+            // Don't revert - just hold the assets for recovery
+            return;
         }
 
-        // Validate destination asset
-        if (destinationAsset == address(0) || amountLD == 0) {
-            emit ComposeCallFailed(
-                operationId,
-                fleetProxy,
-                abi.encodeWithSignature(
-                    "InvalidDecodedParams(address,uint256)",
-                    destinationAsset,
-                    amountLD
-                )
-            );
-            revert InvalidParams();
-        }
-
-        // Check that we have sufficient balance
-        uint256 adapterBalance = IERC20(destinationAsset).balanceOf(
-            address(this)
+        emit ComposedAssetHandled(
+            operationId,
+            recipient,
+            destinationAsset,
+            amountLD,
+            uint16(sourceChainId)
         );
-        if (adapterBalance < amountLD) {
-            emit ComposeCallFailed(
-                operationId,
-                fleetProxy,
-                abi.encodeWithSignature(
-                    "InsufficientAdapterBalance(uint256,uint256)",
-                    adapterBalance,
-                    amountLD
-                )
-            );
-            revert InsufficientBalance();
-        }
     }
 
     /**
-     * @dev Calls the FleetProxy to handle received assets
+     * @dev Try to deliver assets to recipient without reverting on failure
      */
-    function _callFleetProxy(
-        address fleetProxy,
-        address destinationAsset,
-        uint256 amountLD,
+    function _tryDeliverAssets(
+        address recipient,
+        address asset,
+        uint256 amount,
         bytes32 operationId,
         address originator,
         address sourceAsset,
         uint16 sourceChainId
-    ) internal {
+    ) internal returns (bool success) {
+        // Transfer tokens first
+        IERC20(asset).safeTransfer(recipient, amount);
+
+        // Try to call recipient - return false if it fails
         try
-            ICrossChainAssetReceiver(fleetProxy).receiveMessageWithAssets(
-                destinationAsset,
-                amountLD,
+            ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
+                asset,
+                amount,
                 abi.encode(operationId, originator, sourceAsset),
                 sourceChainId
             )
         {
-            emit ComposedAssetHandled(
-                operationId,
-                fleetProxy,
-                destinationAsset,
-                amountLD,
-                sourceChainId
-            );
-        } catch (bytes memory reason) {
-            emit ComposeCallFailed(operationId, fleetProxy, reason);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * @dev Check if an address is a FleetProxy (vs CrossChainArk)
+     * @dev This helps determine the recovery strategy
+     * @dev FleetProxy: supports ICrossChainAssetReceiver but NOT ICrossChainArk
+     * @dev CrossChainArk: supports both ICrossChainAssetReceiver AND ICrossChainArk
+     */
+    function _isFleetProxy(address recipient) internal view returns (bool) {
+        // If it supports ICrossChainArk, it's a CrossChainArk, not a FleetProxy
+        try
+            IERC165(recipient).supportsInterface(
+                type(ICrossChainArk).interfaceId
+            )
+        returns (bool supportsArk) {
+            if (supportsArk) {
+                return false; // It's a CrossChainArk
+            }
+        } catch {
+            // If we can't check, assume it's not a CrossChainArk
+        }
+
+        // Check if it supports ICrossChainAssetReceiver (both FleetProxy and CrossChainArk do)
+        // But we already ruled out CrossChainArk above, so if it supports this, it's likely a FleetProxy
+        try
+            IERC165(recipient).supportsInterface(
+                type(ICrossChainAssetReceiver).interfaceId
+            )
+        returns (bool supportsReceiver) {
+            return supportsReceiver;
+        } catch {
+            return false; // Can't determine, assume not a FleetProxy
         }
     }
 
@@ -853,16 +900,22 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     }
 
     /**
-     * @notice Emergency function to recover stuck tokens
-     * @dev Only callable by owner when tokens are stuck due to failed compose
-     * @param asset Token address to recover
+     * @notice Manual recovery for edge cases
+     * @dev When automated recovery isn't possible, governance can manually send assets
+     * @param asset Token to recover
      * @param amount Amount to recover
-     * @param recipient Address to send recovered tokens to
+     * @param recipient Where to send the tokens
+     * @param operationId Operation ID to clear (optional)
+     * @param tryReceiveCall Whether to attempt receiveMessageWithAssets call
+     * @param customMessage Custom message for receiveMessageWithAssets (if tryReceiveCall is true)
      */
-    function recoverStuckTokens(
+    function manualRecovery(
         address asset,
         uint256 amount,
-        address recipient
+        address recipient,
+        bytes32 operationId,
+        bool tryReceiveCall,
+        bytes calldata customMessage
     ) external onlyOwner {
         if (recipient == address(0)) revert InvalidParams();
 
@@ -871,7 +924,60 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
 
         IERC20(asset).safeTransfer(recipient, amount);
 
+        // Optionally try the receive call with custom message
+        if (tryReceiveCall) {
+            try
+                ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
+                    asset,
+                    amount,
+                    customMessage,
+                    uint16(block.chainid) // Use current chain as source for manual recovery
+                )
+            {
+                // Success - call completed
+            } catch (bytes memory reason) {
+                // Log failure but continue - tokens were already sent
+                emit ComposeCallFailed(operationId, recipient, reason);
+            }
+        }
+
+        // Clear failed compose record if provided
+        if (operationId != bytes32(0)) {
+            delete failedComposes[operationId];
+
+            // Remove from failed operation IDs array
+            for (uint256 i = 0; i < failedOperationIds.length; i++) {
+                if (failedOperationIds[i] == operationId) {
+                    // Move last element to this position and pop
+                    failedOperationIds[i] = failedOperationIds[
+                        failedOperationIds.length - 1
+                    ];
+                    failedOperationIds.pop();
+                    break;
+                }
+            }
+        }
+
         emit TokensRecovered(asset, amount, recipient);
+    }
+
+    /**
+     * @notice Get all failed compose operations
+     * @return Array of failed operation IDs
+     */
+    function getFailedOperations() external view returns (bytes32[] memory) {
+        return failedOperationIds;
+    }
+
+    /**
+     * @notice Get details of a specific failed operation
+     * @param operationId Operation ID to query
+     * @return Failed compose details
+     */
+    function getFailedCompose(
+        bytes32 operationId
+    ) external view returns (FailedCompose memory) {
+        return failedComposes[operationId];
     }
 
     /**

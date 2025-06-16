@@ -74,7 +74,7 @@ contract BridgeQueueTest is Test {
     {
         return
             BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(0), // Use best adapter
+                specifiedAdapter: address(0), // No adapter specified
                 adapterParams: BridgeTypes.AdapterParams({
                     gasLimit: 200000,
                     msgValue: 0, // Not used directly here

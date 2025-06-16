@@ -16,14 +16,14 @@ import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import {CrossChainFleetProxy, IFleetProxy} from "../../src/contracts/FleetProxy.sol";
+import {FleetProxy, IFleetProxy} from "../../src/contracts/FleetProxy.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {IArkConfigProvider} from "../../src/interfaces/IArkConfigProvider.sol";
 
-contract CrossChainFleetProxyTest is Test {
+contract FleetProxyTest is Test {
     // Constants
     uint16 constant SOURCE_CHAIN_ID = 111;
     uint16 constant DEST_CHAIN_ID = 222;
@@ -36,7 +36,7 @@ contract CrossChainFleetProxyTest is Test {
     bytes32 constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     // Contracts under test
-    CrossChainFleetProxy public proxy;
+    FleetProxy public proxy;
 
     // Mocks
     ERC20Mock public mockToken;
@@ -101,7 +101,7 @@ contract CrossChainFleetProxyTest is Test {
         accessManager.grantGovernorRole(governor);
         vm.stopPrank();
 
-        proxy = new CrossChainFleetProxy(
+        proxy = new FleetProxy(
             address(accessManager),
             address(mockBridgeRouter),
             address(mockBridgeQueue),

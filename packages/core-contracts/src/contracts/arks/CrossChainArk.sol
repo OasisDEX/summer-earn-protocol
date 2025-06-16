@@ -324,10 +324,16 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
     function receiveMessageWithAssets(
         address tokenAddress,
         uint256 amount,
-        bytes calldata, // TODO: Use this to send latest true balance after withdrawal
+        bytes calldata,
         uint16 sourceChainId
     ) external {
-        if (msg.sender != address(bridgeRouter)) revert Unauthorized();
+        // Allow calls from BridgeRouter or registered bridge adapters
+        if (
+            msg.sender != address(bridgeRouter) &&
+            !bridgeRouter.isValidAdapter(msg.sender)
+        ) {
+            revert Unauthorized();
+        }
         if (sourceChainId != targetChainId) revert InvalidSourceChain();
         if (tokenAddress != address(config.asset)) revert InvalidAsset();
 

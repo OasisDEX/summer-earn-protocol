@@ -13,6 +13,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
+import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 
 /**
  * @title BridgeRouter
@@ -253,8 +254,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     {
         _validateTransferParams(params);
 
-        // Get required base fee and selected adapter (no multiplier)
-        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
+        // Get required base fee and specified adapter (no multiplier)
+        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
             params.destinationChainId,
             params.asset,
             params.amount,
@@ -269,7 +270,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         _validateFee(msg.value, bufferedFee);
 
         _validateAdapterSupportsOperation(
-            selectedAdapter,
+            specifiedAdapter,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
@@ -281,28 +282,27 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Now approve the adapter to spend Router's tokens
-        IERC20(params.asset).approve(selectedAdapter, 0);
-        IERC20(params.asset).approve(selectedAdapter, params.amount);
+        IERC20(params.asset).approve(specifiedAdapter, 0);
+        IERC20(params.asset).approve(specifiedAdapter, params.amount);
 
         // Notify originator that assets are now officially in-flight
         // Attempt to call updateInflightAssets if the originator supports it
         if (params.originator.code.length > 0) {
             try
                 IERC165(params.originator).supportsInterface(
-                    type(ICrossChainArk).interfaceId
+                    type(IInflightAssetTracking).interfaceId
                 )
             returns (bool supported) {
                 if (supported) {
                     try
-                        ICrossChainArk(params.originator).updateInflightAssets(
-                            params.amount
-                        )
+                        IInflightAssetTracking(params.originator)
+                            .updateInflightAssets(params.amount)
                     {} catch {
                         // Ignore failures in updateInflightAssets
                     }
                 }
             } catch {
-                // Originator doesn't support ERC165 or ICrossChainArk, ignore
+                // Originator doesn't support ERC165 or IInflightAssetTracking, ignore
             }
         }
 
@@ -317,10 +317,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Set up operation to adapter mapping BEFORE the adapter call
-        operationToAdapter[operationId] = selectedAdapter;
+        operationToAdapter[operationId] = specifiedAdapter;
 
         // Call adapter with the full msg.value
-        ISendAdapter(selectedAdapter).transferAsset{value: bufferedFee}(
+        ISendAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.asset,
@@ -337,7 +337,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             params.asset,
             params.amount,
             params.recipient,
-            selectedAdapter
+            specifiedAdapter
         );
 
         // No refund needed - adapter will handle refunding excess back through the chain
@@ -360,8 +360,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     {
         _validateReadStateParams(params);
 
-        // Get required base fee and selected adapter (no multiplier)
-        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
+        // Get required base fee and specified adapter (no multiplier)
+        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
             params.dstChainId,
             address(0), // No asset
             0, // No amount
@@ -376,7 +376,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         _validateFee(msg.value, bufferedFee);
 
         _validateAdapterSupportsOperation(
-            selectedAdapter,
+            specifiedAdapter,
             BridgeTypes.OperationType.READ_STATE
         );
 
@@ -396,13 +396,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         );
 
         // Set operation to adapter mapping BEFORE the adapter call
-        operationToAdapter[operationId] = selectedAdapter;
+        operationToAdapter[operationId] = specifiedAdapter;
 
         // Store the originator for response delivery
         readRequestToOriginator[operationId] = params.originator;
 
         // Call adapter with the full msg.value
-        ISendAdapter(selectedAdapter).readState{value: bufferedFee}(
+        ISendAdapter(specifiedAdapter).readState{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             uint16(block.chainid),
             params.dstChainId,
@@ -419,7 +419,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             params.dstContract,
             params.selector,
             params.readParams,
-            selectedAdapter
+            specifiedAdapter
         );
 
         // No refund needed - adapter will handle refunding excess back through the chain
@@ -442,8 +442,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     {
         _validateSendMessageParams(params);
 
-        // Get required base fee and selected adapter (no multiplier)
-        (uint256 requiredBaseFee, , address selectedAdapter) = _quote(
+        // Get required base fee and specified adapter (no multiplier)
+        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
             params.destinationChainId,
             address(0), // No asset
             0, // No amount
@@ -458,7 +458,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         _validateFee(msg.value, bufferedFee);
 
         _validateAdapterSupportsOperation(
-            selectedAdapter,
+            specifiedAdapter,
             BridgeTypes.OperationType.MESSAGE
         );
 
@@ -472,10 +472,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             abi.encode(params.message, params.originator)
         );
 
-        operationToAdapter[operationId] = selectedAdapter;
+        operationToAdapter[operationId] = specifiedAdapter;
 
         // Call adapter with the full msg.value
-        ISendAdapter(selectedAdapter).sendMessage{value: bufferedFee}(
+        ISendAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.recipient,
@@ -488,7 +488,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             operationId,
             params.destinationChainId,
             params.recipient,
-            selectedAdapter
+            specifiedAdapter
         );
 
         // No refund needed - adapter will handle refunding excess back through the chain
@@ -501,7 +501,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Internal implementation of quote that handles adapter selection and gets the base fee.
+     * @dev Internal implementation of quote that validates the specified adapter and gets the base fee.
      * @param destinationChainId ID of the destination chain.
      * @param asset Address of the asset to transfer.
      * @param amount Amount of the asset to transfer.
@@ -509,7 +509,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
      * @param operationType Type of operation being performed.
      * @return nativeFee Base fee in native token required by the adapter.
      * @return tokenFee Base fee in the asset token required by the adapter.
-     * @return selectedAdapter Address of the selected adapter.
+     * @return specifiedAdapter Address of the specified adapter.
      */
     function _quote(
         uint16 destinationChainId,
@@ -520,24 +520,24 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     )
         internal
         view
-        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
-        selectedAdapter = options.specifiedAdapter;
+        specifiedAdapter = options.specifiedAdapter;
 
         // If no adapter specified, revert
-        if (selectedAdapter == address(0)) {
+        if (specifiedAdapter == address(0)) {
             revert NoSuitableAdapter();
         } else {
             // Validate specified adapter
-            if (!this.isValidAdapter(selectedAdapter)) {
+            if (!this.isValidAdapter(specifiedAdapter)) {
                 revert UnknownAdapter();
             }
         }
 
-        _validateAdapterSupportsOperation(selectedAdapter, operationType);
+        _validateAdapterSupportsOperation(specifiedAdapter, operationType);
 
-        // Get base fee from the selected adapter
-        (nativeFee, tokenFee) = IBridgeAdapter(selectedAdapter).estimateFee(
+        // Get base fee from the specified adapter
+        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter).estimateFee(
             destinationChainId,
             asset,
             amount,
@@ -545,7 +545,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
             operationType
         );
 
-        return (nativeFee, tokenFee, selectedAdapter);
+        return (nativeFee, tokenFee, specifiedAdapter);
     }
 
     /// @inheritdoc IBridgeRouter
@@ -558,7 +558,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
     )
         external
         view
-        returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter)
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         // Get the base fee from internal quote
         (uint256 baseFee, uint256 baseTokenFee, address adapter) = _quote(
