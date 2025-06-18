@@ -827,8 +827,8 @@ export async function configureLayerZeroAdapter(
             abi: [
               {
                 inputs: [
-                  { internalType: 'uint8', name: 'messageType', type: 'uint8' },
-                  { internalType: 'uint256', name: 'gasLimit', type: 'uint256' },
+                  { internalType: 'uint16', name: 'msgType', type: 'uint16' },
+                  { internalType: 'uint128', name: 'gasLimit', type: 'uint128' },
                 ],
                 name: 'setMinGasLimit',
                 outputs: [],
