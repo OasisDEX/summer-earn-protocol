@@ -3,7 +3,8 @@ pragma solidity 0.8.28;
 
 import "../Ark.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
+import {ICrossChainStateReadReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainStateReadReceiver.sol";
+import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
@@ -13,9 +14,15 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 /**
  * @title CrossChainArk
  * @notice Ark contract for managing cross-chain deposits and withdrawals
- * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages
+ * @dev Implements strategy for depositing tokens to a satellite chain proxy and handling cross-chain messages.
+ *      Supports cross-chain asset reception, state read responses, and inflight asset tracking.
  */
-contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
+contract CrossChainArk is
+    Ark,
+    ICrossChainAssetReceiver,
+    ICrossChainStateReadReceiver,
+    IInflightAssetTracking
+{
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -51,9 +58,6 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
 
     /// @notice Thrown when the requestor address is invalid.
     error InvalidRequestor();
-
-    /// @notice Thrown when receiveMessage is called (not supported for this Ark).
-    error ReceiveMessageNotSupported();
 
     /// @notice Thrown when receiveMessageWithAssets is called (not supported for this Ark).
     error ReceiveMessageWithAssetsNotSupported();
@@ -223,10 +227,20 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure override(ICrossChainAssetReceiver, IERC165) returns (bool) {
+    )
+        external
+        pure
+        override(
+            ICrossChainAssetReceiver,
+            ICrossChainStateReadReceiver,
+            IERC165
+        )
+        returns (bool)
+    {
         return
             interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
-            interfaceId == type(ICrossChainArk).interfaceId ||
+            interfaceId == type(ICrossChainStateReadReceiver).interfaceId ||
+            interfaceId == type(IInflightAssetTracking).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 
@@ -273,17 +287,13 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
     }
 
     /**
-     * @notice Receives state read results from another chain
-     * @param resultData The data returned from the cross-chain read
-     * @param requestor The address that initiated the request
-     * @param sourceChainId The chain ID where the data was read from
-     * @param requestId The unique ID of the original request
+     * @inheritdoc ICrossChainStateReadReceiver
      */
     function receiveStateRead(
         bytes calldata resultData,
         address requestor,
-        uint16 sourceChainId,
-        bytes32 requestId
+        bytes32 requestId,
+        uint16 sourceChainId
     ) external {
         if (msg.sender != address(bridgeRouter)) revert Unauthorized();
         if (sourceChainId != targetChainId) revert InvalidSourceChain();
@@ -302,24 +312,7 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver, ICrossChainArk {
     }
 
     /**
-     * @notice Receives a general cross-chain message (not supported)
-     */
-    function receiveMessage(
-        bytes calldata,
-        address,
-        uint16,
-        bytes32
-    ) external pure {
-        revert ReceiveMessageNotSupported();
-    }
-
-    /**
      * @inheritdoc ICrossChainAssetReceiver
-     * @notice Receives assets from another chain along with a message
-     * @param tokenAddress The address of the received token
-     * @param amount The amount of tokens received
-     * @param // message The associated message data
-     * @param sourceChainId The chain ID where the message originated from
      */
     function receiveMessageWithAssets(
         address tokenAddress,
