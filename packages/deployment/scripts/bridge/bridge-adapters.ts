@@ -699,22 +699,95 @@ export async function configureLayerZeroAdapter(
         throw new Error('Read channel must be activated before configuring libraries')
       }
 
-      console.log(`Configuring ReadLib1002 libraries with address ${chainConfig.readLib1002}`)
-      const hash = await walletClient.writeContract({
-        address: getAddress(layerZeroAdapterAddress as `0x${string}`),
-        abi: [
-          {
-            inputs: [{ internalType: 'address', name: 'readLib1002Address', type: 'address' }],
-            name: 'configureReadLibraries',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'configureReadLibraries',
-        args: [chainConfig.readLib1002],
-      })
-      console.log(kleur.green(`ReadLib1002 libraries configured successfully, tx: ${hash}`))
+      // Check if libraries are already configured to avoid "same value" error
+      const publicClient = await hre.viem.getPublicClient()
+
+      let needsConfiguration = false
+
+      // Check send library
+      try {
+        const currentSendLib = await publicClient.readContract({
+          address: networkConfig.common.layerZero.lzEndpoint as `0x${string}`,
+          abi: [
+            {
+              inputs: [
+                { internalType: 'address', name: 'oApp', type: 'address' },
+                { internalType: 'uint32', name: 'eid', type: 'uint32' },
+              ],
+              name: 'getSendLibrary',
+              outputs: [{ internalType: 'address', name: '', type: 'address' }],
+              stateMutability: 'view',
+              type: 'function',
+            },
+          ] as const,
+          functionName: 'getSendLibrary',
+          args: [getAddress(layerZeroAdapterAddress as `0x${string}`), chainConfig.readChannelId],
+        })
+
+        if (currentSendLib.toLowerCase() !== chainConfig.readLib1002.toLowerCase()) {
+          needsConfiguration = true
+          console.log(`Send library needs update: ${currentSendLib} -> ${chainConfig.readLib1002}`)
+        }
+      } catch (error) {
+        // If we can't check, assume it needs configuration
+        needsConfiguration = true
+        console.log('Could not check current send library, assuming needs configuration')
+      }
+
+      // Check receive library if send library is already correct
+      if (!needsConfiguration) {
+        try {
+          const currentReceiveLib = await publicClient.readContract({
+            address: networkConfig.common.layerZero.lzEndpoint as `0x${string}`,
+            abi: [
+              {
+                inputs: [
+                  { internalType: 'address', name: 'oApp', type: 'address' },
+                  { internalType: 'uint32', name: 'eid', type: 'uint32' },
+                ],
+                name: 'getReceiveLibrary',
+                outputs: [{ internalType: 'address', name: '', type: 'address' }],
+                stateMutability: 'view',
+                type: 'function',
+              },
+            ] as const,
+            functionName: 'getReceiveLibrary',
+            args: [getAddress(layerZeroAdapterAddress as `0x${string}`), chainConfig.readChannelId],
+          })
+
+          if (currentReceiveLib.toLowerCase() !== chainConfig.readLib1002.toLowerCase()) {
+            needsConfiguration = true
+            console.log(
+              `Receive library needs update: ${currentReceiveLib} -> ${chainConfig.readLib1002}`,
+            )
+          }
+        } catch (error) {
+          // If we can't check, assume it needs configuration
+          needsConfiguration = true
+          console.log('Could not check current receive library, assuming needs configuration')
+        }
+      }
+
+      if (needsConfiguration) {
+        console.log(`Configuring ReadLib1002 libraries with address ${chainConfig.readLib1002}`)
+        const hash = await walletClient.writeContract({
+          address: getAddress(layerZeroAdapterAddress as `0x${string}`),
+          abi: [
+            {
+              inputs: [{ internalType: 'address', name: 'readLib1002Address', type: 'address' }],
+              name: 'configureReadLibraries',
+              outputs: [],
+              stateMutability: 'nonpayable',
+              type: 'function',
+            },
+          ] as const,
+          functionName: 'configureReadLibraries',
+          args: [chainConfig.readLib1002],
+        })
+        console.log(kleur.green(`ReadLib1002 libraries configured successfully, tx: ${hash}`))
+      } else {
+        console.log(kleur.yellow(`ReadLib1002 libraries already configured correctly, skipping`))
+      }
     } catch (error) {
       console.error(kleur.red('Error configuring ReadLib1002 libraries:'), error)
       throw error // Re-throw to prevent further configuration if library setup fails
