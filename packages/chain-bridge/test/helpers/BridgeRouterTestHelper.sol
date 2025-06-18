@@ -11,6 +11,8 @@ import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
  * @dev Exposes internal functions and mappings for testing purposes
  */
 contract BridgeRouterTestHelper is BridgeRouter {
+    /// @notice Flag to simulate revert behavior for testing
+    bool public shouldRevert = false;
     /**
      * @notice Constructor for BridgeRouterTestHelper
      * @param _accessManager Address of the access manager
@@ -88,5 +90,13 @@ contract BridgeRouterTestHelper is BridgeRouter {
         BridgeTypes.OperationStatus status
     ) external {
         operationStatuses[operationId] = status;
+    }
+
+    /**
+     * @notice Sets whether operations should revert for testing purposes
+     * @param _shouldRevert Whether operations should revert
+     */
+    function setShouldRevert(bool _shouldRevert) external {
+        shouldRevert = _shouldRevert;
     }
 }

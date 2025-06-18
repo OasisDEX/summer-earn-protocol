@@ -33,7 +33,7 @@ contract BridgeRouterTransferTest is Test {
     uint8 constant OPTION_TYPE_EXECUTOR = 1;
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 7;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 5;
 
     function setUp() public {
         // Deploy access manager and set up roles

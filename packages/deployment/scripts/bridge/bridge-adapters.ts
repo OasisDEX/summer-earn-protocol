@@ -734,8 +734,67 @@ export async function configureLayerZeroAdapter(
     }
   }
 
-  // Note: DVN configuration is now handled through deployment scripts using LayerZero CLI tools
-  // The configureReadDVNs function has been removed as it was not functional in LayerZero V2
+  // Configure DVNs and executor for read operations
+  if (
+    chainConfig.readLib1002 &&
+    chainConfig.readDVNs &&
+    chainConfig.executor &&
+    chainConfig.confirmations
+  ) {
+    try {
+      // Verify read channel is activated before configuring DVNs
+      const currentReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
+      if (currentReadChannelId === BigInt(0)) {
+        throw new Error('Read channel must be activated before configuring DVNs')
+      }
+
+      console.log(`Configuring read DVNs and executor for read operations`)
+      console.log(`- ReadLib1002: ${chainConfig.readLib1002}`)
+      console.log(`- DVNs: ${chainConfig.readDVNs.join(', ')}`)
+      console.log(`- Executor: ${chainConfig.executor}`)
+      console.log(`- Confirmations: ${chainConfig.confirmations}`)
+
+      const hash = await walletClient.writeContract({
+        address: getAddress(layerZeroAdapterAddress as `0x${string}`),
+        abi: [
+          {
+            inputs: [
+              { internalType: 'address', name: 'readLib1002Address', type: 'address' },
+              { internalType: 'address[]', name: 'readDVNs', type: 'address[]' },
+              { internalType: 'uint64', name: 'confirmations', type: 'uint64' },
+              { internalType: 'address', name: 'executor', type: 'address' },
+            ],
+            name: 'configureReadDVNs',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ] as const,
+        functionName: 'configureReadDVNs',
+        args: [
+          chainConfig.readLib1002,
+          chainConfig.readDVNs,
+          chainConfig.confirmations,
+          chainConfig.executor,
+        ],
+      })
+      console.log(kleur.green(`Read DVNs and executor configured successfully, tx: ${hash}`))
+
+      // Wait for transaction confirmation
+      const publicClient = await hre.viem.getPublicClient()
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Read DVNs configuration transaction confirmed`))
+    } catch (error) {
+      console.error(kleur.red('Error configuring read DVNs and executor:'), error)
+      throw error // Re-throw to prevent further configuration if DVN setup fails
+    }
+  } else {
+    console.log(kleur.yellow('Missing read configuration parameters, skipping DVN configuration'))
+    if (!chainConfig.readLib1002) console.log(kleur.yellow('  - Missing readLib1002'))
+    if (!chainConfig.readDVNs) console.log(kleur.yellow('  - Missing readDVNs'))
+    if (!chainConfig.executor) console.log(kleur.yellow('  - Missing executor'))
+    if (!chainConfig.confirmations) console.log(kleur.yellow('  - Missing confirmations'))
+  }
 
   // Set minimum gas limits if configured (with checks)
   if (chainConfig.minGasLimits) {

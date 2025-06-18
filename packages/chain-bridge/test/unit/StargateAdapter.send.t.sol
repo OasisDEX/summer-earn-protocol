@@ -360,7 +360,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             address(tokenA),
             bytes4(0),
             "",
-            user,
             user, // keeper
             adapterParams
         );
@@ -373,7 +372,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             CHAIN_ID_B,
             recipient,
             "",
-            user,
             user, // keeper
             adapterParams
         );

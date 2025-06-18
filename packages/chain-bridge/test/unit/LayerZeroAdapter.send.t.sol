@@ -80,8 +80,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             CHAIN_ID_B,
             address(tokenB),
             bytes4(keccak256("balanceOf(address)")),
-            abi.encode(recipient),
-            address(user),
+            abi.encode("read params"),
             address(user), // keeper
             adapterParams
         );
@@ -133,7 +132,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             CHAIN_ID_B,
             recipient,
             message,
-            address(user),
             address(user), // keeper
             adapterParams
         );
@@ -236,7 +234,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             CHAIN_ID_B,
             recipient,
             abi.encode("This should fail"),
-            address(user),
             address(user), // keeper
             adapterParams
         );
@@ -276,7 +273,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             CHAIN_ID_B,
             recipient,
             abi.encode("This should fail due to insufficient value"),
-            address(user),
             address(user), // keeper
             adapterParams
         );
@@ -346,7 +342,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             address(tokenB),
             bytes4(keccak256("balanceOf(address)")),
             abi.encode(recipient),
-            address(user),
             address(user), // keeper
             adapterParams
         );

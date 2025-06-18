@@ -49,7 +49,6 @@ contract ChainlinkAdapter is IBridgeAdapter {
         address,
         bytes4,
         bytes calldata,
-        address,
         address, // keeper - Accept from router but not implemented
         BridgeTypes.AdapterParams calldata
     ) external payable {
@@ -104,7 +103,6 @@ contract ChainlinkAdapter is IBridgeAdapter {
         uint16,
         address,
         bytes calldata,
-        address,
         address, // keeper - Accept from router but not implemented
         BridgeTypes.AdapterParams calldata
     ) external payable {

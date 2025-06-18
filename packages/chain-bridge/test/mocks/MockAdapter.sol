@@ -138,7 +138,6 @@ contract MockAdapter is IBridgeAdapter {
         address dstContract,
         bytes4 selector,
         bytes calldata readParams,
-        address originator,
         address, // keeper - not used in mock
         BridgeTypes.AdapterParams calldata
     ) external payable {
@@ -155,8 +154,7 @@ contract MockAdapter is IBridgeAdapter {
             dstChainId,
             dstContract,
             selector,
-            readParams,
-            originator
+            readParams
         );
 
         // No return value needed
@@ -226,15 +224,7 @@ contract MockAdapter is IBridgeAdapter {
         uint16 dstChainId,
         address dstContract,
         bytes4 selector,
-        bytes readParams,
-        address originator
-    );
-
-    event MockComposeInitiated(
-        bytes32 requestId,
-        uint16 destinationChainId,
-        bytes[] actions,
-        address originator
+        bytes readParams
     );
 
     /// @inheritdoc ISendAdapter
@@ -243,7 +233,6 @@ contract MockAdapter is IBridgeAdapter {
         uint16 destinationChainId,
         address recipient,
         bytes calldata message,
-        address originator,
         address, // keeper - not used in mock
         BridgeTypes.AdapterParams calldata
     ) external payable {
@@ -258,8 +247,7 @@ contract MockAdapter is IBridgeAdapter {
             operationId, // Use router's ID
             destinationChainId,
             recipient,
-            message,
-            originator
+            message
         );
 
         // No return value needed
@@ -269,8 +257,7 @@ contract MockAdapter is IBridgeAdapter {
         bytes32 messageId,
         uint16 destinationChainId,
         address recipient,
-        bytes message,
-        address originator
+        bytes message
     );
 
     /// @inheritdoc IBridgeAdapter

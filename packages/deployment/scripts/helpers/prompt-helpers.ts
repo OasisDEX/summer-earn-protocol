@@ -67,3 +67,19 @@ export async function promptForConfigType(): Promise<boolean> {
 
   return configResponse.configType as boolean
 }
+
+/**
+ * Simple yes/no prompt helper
+ * @param question The question to ask the user
+ * @returns A boolean indicating the user's choice
+ */
+export async function promptYesNo(question: string): Promise<boolean> {
+  const response = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: question,
+    initial: false,
+  })
+
+  return response.confirmed || false
+}

@@ -19,6 +19,8 @@ import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadRe
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
+import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -87,6 +89,20 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     event ReadLibrariesConfigured(
         address indexed readLib1002,
         uint32 indexed readChannelId
+    );
+
+    /// @notice Emitted when read DVNs are configured
+    event ReadDVNsConfigured(
+        uint32 indexed readChannelId,
+        address[] readDVNs,
+        uint64 confirmations
+    );
+
+    /// @notice Emitted when read executor is configured
+    event ReadExecutorConfigured(
+        uint32 indexed readChannelId,
+        address indexed executor,
+        uint32 maxMessageSize
     );
 
     // Note: Other events are inherited from IBridgeAdapter and ISendAdapter interfaces
@@ -229,6 +245,57 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         );
 
         emit ReadLibrariesConfigured(readLib1002Address, readChannelId);
+    }
+
+    /**
+     * @notice Configures DVN settings for read operations
+     * @param readLib1002Address Address of the ReadLib1002 contract
+     * @param readDVNs Array of DVN addresses for read operations (must be sorted alphabetically)
+     * @param confirmations Number of block confirmations required
+     * @param executor Address of the executor for read operations
+     * @dev Must be called to enable read operations with proper DVN and executor configuration
+     */
+    function configureReadDVNs(
+        address readLib1002Address,
+        address[] memory readDVNs,
+        uint64 confirmations,
+        address executor
+    ) external onlyOwner {
+        if (readChannelId == 0) revert ReadChannelNotConfigured();
+        if (readDVNs.length == 0) revert InvalidParams();
+        if (readLib1002Address == address(0)) revert InvalidParams();
+        if (executor == address(0)) revert InvalidParams();
+
+        // Verify DVNs are sorted (required by LayerZero)
+        for (uint i = 1; i < readDVNs.length; i++) {
+            if (readDVNs[i] <= readDVNs[i - 1]) revert InvalidParams(); // Must be sorted
+        }
+
+        // Create ReadLibConfig for read operations (this includes BOTH DVNs AND executor)
+        ReadLibConfig memory readLibConfig = ReadLibConfig({
+            executor: executor,
+            requiredDVNCount: uint8(readDVNs.length),
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: readDVNs,
+            optionalDVNs: new address[](0)
+        });
+
+        // Encode the ReadLibConfig
+        bytes memory encodedConfig = abi.encode(readLibConfig);
+
+        // Create SetConfigParam array for the read channel
+        SetConfigParam[] memory params = new SetConfigParam[](1);
+        params[0] = SetConfigParam({
+            eid: readChannelId,
+            configType: 1, // CONFIG_TYPE_READ_LID_CONFIG
+            config: encodedConfig
+        });
+
+        // Configure read library for read channel
+        endpoint.setConfig(address(this), readLib1002Address, params);
+
+        emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -465,7 +532,12 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             if (readChannelId == 0) revert ReadChannelNotConfigured();
 
-            EndpointFee memory fee = _quote(lzDstEid, payload, options, false);
+            EndpointFee memory fee = _quote(
+                readChannelId,
+                payload,
+                options,
+                false
+            );
             return (fee.nativeFee, fee.lzTokenFee);
         } else {
             EndpointFee memory fee = _quote(dstEid, payload, options, false);
@@ -506,7 +578,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address dstContract,
         bytes4 selector,
         bytes calldata readParams,
-        address originator,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable {
@@ -547,7 +618,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 cmd,
                 options,
                 EndpointFee(msg.value, 0),
-                payable(originator)
+                payable(keeper)
             );
             guid = receipt.guid;
         }
@@ -583,7 +654,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         uint16 destinationChainId,
         address recipient,
         bytes calldata message,
-        address originator,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable {
@@ -701,35 +771,31 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         // Get minimum gas limit for this message type
         uint128 minimumGas = minGasLimits[_msgType];
 
-        // Create default options with minimum gas
+        // Create default options with minimum - use scoping to avoid stack too deep
         bytes memory options;
+        {
+            // Create params in limited scope
+            BridgeTypes.AdapterParams memory params = BridgeTypes
+                .AdapterParams({
+                    gasLimit: uint64(minimumGas),
+                    msgValue: 0,
+                    calldataSize: 0,
+                    options: bytes("")
+                });
 
-        if (_msgType == STATE_READ) {
-            // For state read, create read options with minimum gas
-            BridgeTypes.AdapterParams memory params = BridgeTypes
-                .AdapterParams({
-                    gasLimit: uint64(minimumGas),
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: bytes("")
-                });
-            options = LayerZeroOptionsHelper.createLzReadOptions(
-                params,
-                minimumGas
-            );
-        } else {
-            // For standard messaging, create messaging options with minimum gas
-            BridgeTypes.AdapterParams memory params = BridgeTypes
-                .AdapterParams({
-                    gasLimit: uint64(minimumGas),
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: bytes("")
-                });
-            options = LayerZeroOptionsHelper.createMessagingOptions(
-                params,
-                minimumGas
-            );
+            if (_msgType == STATE_READ) {
+                // For state read, create read options with minimum gas
+                options = LayerZeroOptionsHelper.createLzReadOptions(
+                    params,
+                    minimumGas
+                );
+            } else {
+                // For standard messaging, create messaging options with minimum gas
+                options = LayerZeroOptionsHelper.createMessagingOptions(
+                    params,
+                    minimumGas
+                );
+            }
         }
 
         // Quote the fee with our generated options

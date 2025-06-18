@@ -1,6 +1,5 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import readline from 'readline'
 import { Address, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../types/config-types'
 import {
@@ -9,23 +8,8 @@ import {
   deployBridgeAdapters,
 } from './bridge/bridge-adapters'
 import { getConfigByNetwork } from './helpers/config-handler'
-import { promptForConfigType } from './helpers/prompt-helpers'
+import { promptForConfigType, promptYesNo } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
-
-// Helper function for yes/no prompts
-async function promptYesNo(question: string): Promise<boolean> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  })
-
-  return new Promise<boolean>((resolve) => {
-    rl.question(`${question} (y/n): `, (answer) => {
-      rl.close()
-      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes')
-    })
-  })
-}
 
 /**
  * Wait for pending transactions to be confirmed
