@@ -86,6 +86,9 @@ interface IFleetProxy is ICrossChainAssetReceiver {
     /// @notice Thrown when an invalid asset is attempted to be deposited
     error InvalidAsset();
 
+    /// @notice Error thrown when source chain is invalid
+    error InvalidSourceChain();
+
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/

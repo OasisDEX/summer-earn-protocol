@@ -14,6 +14,7 @@ import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfig
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
+import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 
 /**
  * @title FleetProxy
@@ -31,6 +32,36 @@ contract FleetProxy is
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Error thrown when bridge router address is invalid
+    error InvalidBridgeRouter();
+    /// @notice Error thrown when bridge queue address is invalid
+    error InvalidBridgeQueue();
+    /// @notice Error thrown when registry address is invalid
+    error InvalidRegistry();
+    /// @notice Error thrown when fleet contract address is invalid
+    error InvalidFleetContract();
+    /// @notice Error thrown when withdrawal failed
+    error WithdrawalFailed();
+    /// @notice Error thrown when no ark relationship is registered for this proxy
+    error NoArkRelationshipRegistered();
+    /// @notice Thrown when the caller is not authorized to perform the action.
+    error Unauthorized();
+
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Ensures that a valid ark relationship exists in the registry for the given source chain
+    modifier onlyWithValidArkRelationship(uint16 sourceChainId) {
+        address ark = _getSourceChainArk(sourceChainId);
+        if (ark == address(0)) revert NoArkRelationshipRegistered();
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -40,11 +71,11 @@ contract FleetProxy is
     /// @notice The bridge queue used for queuing cross-chain transfers
     IBridgeQueue public immutable bridgeQueue;
 
+    /// @notice The CrossChainRegistry contract for managing cross-chain relationships
+    ICrossChainRegistry public immutable crossChainRegistry;
+
     /// @notice The address of the Fleet contract that this proxy covers
     address public immutable fleetContract;
-
-    /// @notice The address of the source chain's CrossChainArk
-    address public sourceChainArk;
 
     /// @notice Amount of withdrawal assets currently in-flight (being bridged back)
     uint256 public inflightWithdrawals;
@@ -60,9 +91,6 @@ contract FleetProxy is
         uint16 sourceChainId
     );
 
-    /// @notice Emitted when the source chain ark address is updated
-    event SourceChainArkUpdated(address indexed newSourceChainArk);
-
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -73,6 +101,7 @@ contract FleetProxy is
      * @param accessManager Address of the access manager
      * @param _bridgeRouter Address of the bridge router
      * @param _bridgeQueue Address of the bridge queue
+     * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _fleetContract Address of the Fleet contract this proxy covers
      */
     constructor(
@@ -80,18 +109,18 @@ contract FleetProxy is
         address accessManager,
         address _bridgeRouter,
         address _bridgeQueue,
+        address _crossChainRegistry,
         address _fleetContract
     ) DeploymentAccessManaged(initialController, accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
+        if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_fleetContract == address(0)) revert InvalidFleetContract();
 
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         bridgeQueue = IBridgeQueue(_bridgeQueue);
+        crossChainRegistry = ICrossChainRegistry(_crossChainRegistry);
         fleetContract = _fleetContract;
-
-        // Default zero initialization will happen automatically
-        // bridgeOptions and sourceChainArk will be initialized to zeros
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -117,16 +146,6 @@ contract FleetProxy is
     /// @inheritdoc IFleetProxy
     function unpause() external onlyGovernor {
         _unpause();
-    }
-
-    /// @notice Updates the source chain ark address
-    /// @param _sourceChainArk The new source chain ark address
-    function setSourceChainArk(
-        address _sourceChainArk
-    ) external onlyControllerOrGovernor {
-        if (_sourceChainArk == address(0)) revert InvalidSourceChainArk();
-        sourceChainArk = _sourceChainArk;
-        emit SourceChainArkUpdated(_sourceChainArk);
     }
 
     /// @notice Force update the inflight withdrawals amount (emergency governance function)
@@ -156,7 +175,13 @@ contract FleetProxy is
     function withdrawAndTransfer(
         uint256 amount,
         uint16 sourceChainId
-    ) external whenNotPaused nonReentrant onlyKeeper {
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        onlyKeeper
+        onlyWithValidArkRelationship(sourceChainId)
+    {
         if (amount == 0) revert NoAssets();
 
         // 1. Get the asset from fleet config
@@ -182,12 +207,15 @@ contract FleetProxy is
         // 5. Approve the bridge queue to transfer the assets
         IERC20(asset).approve(address(bridgeQueue), amount);
 
+        // 5. Get source chain ark address from registry
+        address arkAddress = _getSourceChainArk(sourceChainId);
+
         // 6. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
         bridgeQueue.queueTransferAssets(
             sourceChainId,
             asset,
             amount,
-            sourceChainArk
+            arkAddress
         );
 
         emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
@@ -211,6 +239,11 @@ contract FleetProxy is
         // Only a registered adapter can call this function
         if (!bridgeRouter.isValidAdapter(msg.sender)) {
             revert CallerNotRegisteredAdapter();
+        }
+
+        // Validate the relationship using registry
+        if (!_isValidSourceChain(sourceChainId)) {
+            revert InvalidSourceChain();
         }
 
         // Get the fleet config and check if the asset matches
@@ -242,6 +275,56 @@ contract FleetProxy is
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Gets the source chain ark address from the registry
+     * @param sourceChainId The chain ID where the ark is deployed
+     * @return arkAddress The source chain ark address, or address(0) if not found
+     */
+    function _getSourceChainArk(
+        uint16 sourceChainId
+    ) internal view returns (address arkAddress) {
+        try
+            crossChainRegistry.getArkForProxy(sourceChainId, address(this))
+        returns (address ark) {
+            if (ark != address(0)) {
+                return ark;
+            }
+        } catch {
+            // Registry lookup failed
+        }
+        return address(0);
+    }
+
+    /**
+     * @notice Validates if the source chain is valid for this proxy
+     * @param sourceChainId The chain ID to validate
+     * @return isValid True if the source chain is valid
+     */
+    function _isValidSourceChain(
+        uint16 sourceChainId
+    ) internal view returns (bool isValid) {
+        try
+            crossChainRegistry.getArkForProxy(sourceChainId, address(this))
+        returns (address ark) {
+            if (ark != address(0)) {
+                try
+                    crossChainRegistry.isValidArkProxyPair(
+                        ark,
+                        sourceChainId,
+                        address(this)
+                    )
+                returns (bool isValidPair) {
+                    return isValidPair;
+                } catch {
+                    return false; // If validation fails, deny access
+                }
+            }
+        } catch {
+            // Registry lookup failed
+        }
+        return false;
+    }
+
+    /**
      * @notice Handle receiving assets from the source chain
      * @param token Address of the token
      * @param amount Amount of tokens
@@ -266,21 +349,4 @@ contract FleetProxy is
         // Emit event for tracking
         emit ProxyDeposit(fleetContract, token, amount, sourceChainId);
     }
-
-    /*//////////////////////////////////////////////////////////////
-                            ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Error thrown when source chain ark address is invalid
-    error InvalidSourceChainArk();
-    /// @notice Error thrown when bridge router address is invalid
-    error InvalidBridgeRouter();
-    /// @notice Error thrown when bridge queue address is invalid
-    error InvalidBridgeQueue();
-    /// @notice Error thrown when fleet contract address is invalid
-    error InvalidFleetContract();
-    /// @notice Error thrown when withdrawal failed
-    error WithdrawalFailed();
-    /// @notice Thrown when the caller is not authorized to perform the action.
-    error Unauthorized();
 }

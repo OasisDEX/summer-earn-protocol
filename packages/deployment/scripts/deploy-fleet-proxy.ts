@@ -60,11 +60,19 @@ export async function deployFleetProxy() {
   const userInput = await getUserInput(config, useBummerConfig)
 
   // Ask user to confirm parameters before deploying
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config)) {
     const fleetProxyAddress = await deployFleetProxyContract(userInput, config, userInput.fleetName)
 
     console.log(kleur.green().bold('FleetProxy successfully deployed at:'), fleetProxyAddress)
     console.log(kleur.green('Deployment recorded in cross-chain configuration.'))
+
+    // Optional step: Ask if CrossChain Ark has been deployed and save its address
+    await promptForCrossChainArkAddress(
+      userInput.fleetName,
+      userInput.protocol,
+      userInput.sourceChainId,
+    )
+
     console.log(
       kleur.green('Note: Deploy CrossChainArk on the source chain if not already deployed.'),
     )
@@ -85,10 +93,28 @@ async function getUserInput(
   config: BaseConfig,
   useBummerConfig: boolean,
 ): Promise<FleetProxyParams> {
-  // Add bridgeQueue to the parameters
+  // Validate required addresses from config
   const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
   const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address as Address
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
+  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry.address
+
+  if (!bridgeRouterAddress) {
+    throw new Error(
+      'Bridge Router address not found in config. Make sure bridge contracts are deployed.',
+    )
+  }
+  if (!bridgeQueueAddress) {
+    throw new Error(
+      'Bridge Queue address not found in config. Make sure bridge contracts are deployed.',
+    )
+  }
+  if (!crossChainRegistryAddress) {
+    throw new Error(
+      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
+    )
+  }
+
   const currentNetwork = hre.network.name
   const currentChainId = getChainIdByNetwork(currentNetwork)
 
@@ -176,11 +202,16 @@ async function getUserInput(
 /**
  * Ask user to confirm deployment parameters
  */
-async function confirmDeployment(params: FleetProxyParams): Promise<boolean> {
+async function confirmDeployment(params: FleetProxyParams, config: BaseConfig): Promise<boolean> {
   console.log(kleur.yellow('\nFleetProxy Deployment Configuration:'))
   console.log(kleur.blue('Fleet Name:'), kleur.cyan(params.fleetName))
   console.log(kleur.blue('Access Manager:'), kleur.cyan(params.accessManager))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(params.bridgeRouter))
+  console.log(kleur.blue('Bridge Queue:'), kleur.cyan(params.bridgeQueue))
+  console.log(
+    kleur.blue('CrossChain Registry:'),
+    kleur.cyan(config.deployedContracts.bridge?.crossChainRegistry.address as string),
+  )
   console.log(kleur.blue('Fleet Contract:'), kleur.cyan(params.fleetContract))
   console.log(kleur.blue('Source Chain ID:'), kleur.cyan(params.sourceChainId.toString()))
   console.log(kleur.blue('Protocol:'), kleur.cyan(params.protocol))
@@ -200,17 +231,26 @@ async function deployFleetProxyContract(
   const deploymentId = await handleDeploymentId(chainId)
   const moduleName = `FleetProxy_${fleetName}_${deploymentId}`.replace(/-/g, '_')
 
+  // Get the CrossChainRegistry address from config
+  const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry.address
+  if (!crossChainRegistryAddress) {
+    throw new Error(
+      'CrossChainRegistry address not found in config. Make sure core contracts are deployed.',
+    )
+  }
+
   try {
     // Create the FleetProxy module
     const module = createFleetProxyModule(moduleName)
 
-    // Deploy with only essential parameters
+    // Deploy with all required parameters including CrossChainRegistry
     const result = await hre.ignition.deploy(module, {
       parameters: {
         [moduleName]: {
           accessManager: params.accessManager,
           bridgeRouter: params.bridgeRouter,
           bridgeQueue: params.bridgeQueue,
+          crossChainRegistry: crossChainRegistryAddress,
           fleetContract: params.fleetContract,
         },
       },
@@ -225,7 +265,6 @@ async function deployFleetProxyContract(
       chainId: chainId,
       protocol: params.protocol,
       fleetProxyAddress: fleetProxyAddress,
-      asset: params.asset,
     })
 
     // Make sure the source chain ID is updated in the config
@@ -244,6 +283,58 @@ async function deployFleetProxyContract(
   } catch (error) {
     console.error(kleur.red('Error deploying FleetProxy:'), error)
     throw error
+  }
+}
+
+/**
+ * Optional step to prompt user for CrossChain Ark address and save it to config
+ */
+async function promptForCrossChainArkAddress(
+  fleetName: string,
+  protocol: string,
+  sourceChainId: number,
+): Promise<void> {
+  console.log(kleur.yellow('\n--- Optional: CrossChain Ark Configuration ---'))
+
+  const { hasCrossChainArk } = await prompts({
+    type: 'confirm',
+    name: 'hasCrossChainArk',
+    message: 'Has the corresponding CrossChain Ark been deployed on the source chain?',
+    initial: false,
+  })
+
+  if (hasCrossChainArk) {
+    const { crossChainArkAddress } = await prompts({
+      type: 'text',
+      name: 'crossChainArkAddress',
+      message: 'Enter the CrossChain Ark address:',
+      validate: (value: string) => {
+        if (!value || value.trim() === '') {
+          return 'CrossChain Ark address is required'
+        }
+        if (!value.startsWith('0x') || value.length !== 42) {
+          return 'Please enter a valid Ethereum address (0x...)'
+        }
+        return true
+      },
+    })
+
+    if (crossChainArkAddress) {
+      // Save the CrossChain Ark address to the cross-chain config
+      saveCrossChainConfig(fleetName, {
+        chainId: sourceChainId,
+        protocol,
+        crossChainArkAddress: crossChainArkAddress.trim(),
+      })
+
+      console.log(
+        kleur.green(`✓ CrossChain Ark address saved to configuration: ${crossChainArkAddress}`),
+      )
+      console.log(kleur.green('✓ Cross-chain configuration is now complete!'))
+    }
+  } else {
+    console.log(kleur.yellow('CrossChain Ark address can be added later when deployed.'))
+    console.log(kleur.yellow('Use the cross-chain config helper to update the configuration.'))
   }
 }
 

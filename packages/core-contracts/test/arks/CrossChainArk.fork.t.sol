@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {BridgeRouter, IBridgeRouter} from "@summerfi/chain-bridge/router/BridgeRouter.sol";
@@ -20,6 +21,78 @@ import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.s
 import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
 
+// Simple mock registry for fork testing
+contract SimpleMockRegistry is ICrossChainRegistry {
+    mapping(address => ArkProxyRelation) private arkToProxy;
+
+    function registerArkProxy(
+        address,
+        uint16,
+        uint16,
+        address
+    ) external override {}
+
+    function unregisterArkProxy(address) external override {}
+
+    function updateRelationshipStatus(address, bool) external override {}
+
+    function getProxyForArk(
+        address ark
+    ) external view override returns (address, uint16) {
+        ArkProxyRelation memory relation = arkToProxy[ark];
+        if (relation.proxy == address(0)) {
+            revert RelationshipDoesNotExist(ark);
+        }
+        return (relation.proxy, relation.targetChainId);
+    }
+
+    function getArkForProxy(
+        uint16,
+        address
+    ) external pure override returns (address) {
+        revert RelationshipDoesNotExist(address(0));
+    }
+
+    function isValidArkProxyPair(
+        address ark,
+        uint16 sourceChainId,
+        address proxy
+    ) external view override returns (bool) {
+        ArkProxyRelation memory relation = arkToProxy[ark];
+        return
+            relation.proxy == proxy &&
+            relation.sourceChainId == sourceChainId &&
+            relation.isActive;
+    }
+
+    function getRegisteredArks()
+        external
+        pure
+        override
+        returns (address[] memory)
+    {
+        return new address[](0);
+    }
+
+    function getRelationshipCount() external pure override returns (uint256) {
+        return 0;
+    }
+
+    function isArkRegistered(address) external pure override returns (bool) {
+        return false;
+    }
+
+    // Helper for testing
+    function setMockProxy(address ark, address proxy, uint16 chainId) external {
+        arkToProxy[ark] = ArkProxyRelation({
+            proxy: proxy,
+            targetChainId: chainId,
+            sourceChainId: 1, // Default source chain ID
+            isActive: true
+        });
+    }
+}
+
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
@@ -28,8 +101,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     StargateAdapter public stargateAdapter;
     IERC20 public usdc;
     MockStargateV2 public mockStargate;
-    MockBridgeQueue public queue;
-    MockBridgeRouter public router;
+    SimpleMockRegistry public registry;
 
     // LayerZero specific constants
     address public constant LZ_ENDPOINT_MAINNET =
@@ -161,16 +233,19 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
+        // Create mock registry
+        registry = new SimpleMockRegistry();
+
         ark = new CrossChainArk(
             address(bridgeQueue),
             address(bridgeRouter),
+            address(registry),
             DEST_CHAIN_ID,
             params
         );
 
-        // Set the target proxy after construction (now only governor can do this)
-        vm.prank(governor);
-        ark.setTargetProxy(ARB_PROXY);
+        // Register the ark-proxy relationship in the registry
+        registry.setMockProxy(address(ark), ARB_PROXY, DEST_CHAIN_ID);
 
         // Add ark as queue manager
         vm.startPrank(governor);
