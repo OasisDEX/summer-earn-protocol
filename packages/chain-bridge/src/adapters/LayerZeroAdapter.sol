@@ -239,7 +239,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, DeploymentAccessManaged {
      */
     function configureReadLibraries(
         address readLib1002Address
-    ) external onlyOwner {
+    ) external onlyControllerOrGovernor {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
         // Set send library for read channel
@@ -273,7 +273,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, DeploymentAccessManaged {
         address[] memory readDVNs,
         uint64 confirmations,
         address executor
-    ) external onlyOwner {
+    ) external onlyControllerOrGovernor {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
         if (readDVNs.length == 0) revert InvalidParams();
         if (readLib1002Address == address(0)) revert InvalidParams();
