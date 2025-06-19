@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {DeploymentAccessManaged} from "@summerfi/access-contracts/contracts/DeploymentAccessManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 
 /**
  * @title CrossChainRegistry
  * @notice Simplified centralized registry for managing cross-chain relationships between CrossChainArk and FleetProxy contracts
- * @dev Inherits from ProtocolAccessManaged for access control and implements ICrossChainRegistry with core functionality only
+ * @dev Inherits from DeploymentAccessManaged for deployment-phase control and governance transition
  */
-contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
+contract CrossChainRegistry is ICrossChainRegistry, DeploymentAccessManaged {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -49,13 +49,15 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
     /**
      * @notice Initializes the CrossChainRegistry
+     * @param initialController Address of the initial controller (deployer)
      * @param _accessManager Address of the access manager
      * @param _currentChainId The chain ID of the current deployment
      */
     constructor(
+        address initialController,
         address _accessManager,
         uint16 _currentChainId
-    ) ProtocolAccessManaged(_accessManager) {
+    ) DeploymentAccessManaged(initialController, _accessManager) {
         if (_currentChainId == 0) revert InvalidCurrentChainId();
 
         currentChainId = _currentChainId;
@@ -72,7 +74,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 sourceChainId,
         uint16 targetChainId,
         address proxy
-    ) external override onlyGovernor {
+    ) external override onlyControllerOrGovernor {
         if (ark == address(0)) revert InvalidArk(ark);
         if (proxy == address(0)) revert InvalidProxy(proxy);
         if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
@@ -116,7 +118,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function unregisterArkProxy(address ark) external override onlyGovernor {
+    function unregisterArkProxy(
+        address ark
+    ) external override onlyControllerOrGovernor {
         if (!arkRegistered[ark]) {
             revert RelationshipDoesNotExist(ark);
         }
@@ -149,7 +153,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function updateRelationshipStatus(
         address ark,
         bool isActive
-    ) external override onlyGovernor {
+    ) external override onlyControllerOrGovernor {
         if (!arkRegistered[ark]) {
             revert RelationshipDoesNotExist(ark);
         }
