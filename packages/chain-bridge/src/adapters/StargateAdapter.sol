@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
+import {IFleetDepositAdapter} from "../interfaces/IFleetDepositAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -22,6 +23,21 @@ import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Addr
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+
+// Import FleetCommander interface for direct deposits
+interface IFleetCommander {
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) external returns (uint256 shares);
+    function deposit(
+        uint256 assets,
+        address receiver,
+        bytes memory referralCode
+    ) external returns (uint256 shares);
+    function asset() external view returns (address);
+    function maxDeposit(address owner) external view returns (uint256);
+}
 
 /**
  * @title IStargate interface for V2
@@ -97,7 +113,12 @@ library OftCmdHelper {
  * @notice Adapter for Stargate V2 Protocol - all V2 contracts are OFT-enabled
  * @dev Implements IBridgeAdapter interface and connects to Stargate V2 for efficient cross-chain transfers
  */
-contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
+contract StargateAdapter is
+    Ownable,
+    IBridgeAdapter,
+    IFleetDepositAdapter,
+    ILayerZeroComposer
+{
     using SafeERC20 for IERC20;
     using AddressCast for address;
     using OptionsBuilder for bytes;
@@ -174,6 +195,10 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     /// @notice Minimum gas limit for compose execution
     uint256 public constant MIN_COMPOSE_GAS = 200000;
 
+    /// @notice Compose message types
+    bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
+    bytes32 public constant ASSET_TRANSFER_TYPE = keccak256("ASSET_TRANSFER");
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -233,6 +258,37 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         address indexed asset,
         uint256 amount,
         address indexed recipient
+    );
+
+    /// @notice Emitted when a cross-chain fleet deposit is initiated
+    event CrossChainFleetDepositInitiated(
+        bytes32 indexed operationId,
+        uint16 indexed destinationChainId,
+        address indexed user,
+        address fleetCommander,
+        address asset,
+        uint256 amount,
+        address shareRecipient
+    );
+
+    /// @notice Emitted when a cross-chain fleet deposit is completed
+    event CrossChainFleetDepositCompleted(
+        bytes32 indexed operationId,
+        address indexed fleetCommander,
+        address indexed shareRecipient,
+        address asset,
+        uint256 amount,
+        uint256 shares,
+        uint16 sourceChainId
+    );
+
+    /// @notice Emitted when a cross-chain fleet deposit fails
+    event CrossChainFleetDepositFailed(
+        bytes32 indexed operationId,
+        address indexed fleetCommander,
+        address asset,
+        uint256 amount,
+        string reason
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -362,6 +418,125 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
 
+    /*//////////////////////////////////////////////////////////////
+                    FLEET DEPOSIT ADAPTER INTERFACE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IFleetDepositAdapter
+    function executeCrossChainFleetDeposit(
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address destinationAdapter,
+        bytes memory composeMessage,
+        BridgeTypes.AdapterParams calldata adapterParams
+    ) external payable override returns (bytes32 operationId) {
+        // Validate inputs
+        if (amount == 0) revert InvalidFleetDepositParams();
+        if (destinationAdapter == address(0))
+            revert InvalidFleetDepositParams();
+
+        // Check if destination chain is supported
+        if (!supportsChain(destinationChainId)) revert UnsupportedChain();
+
+        // Check if asset is supported on current chain
+        if (assetToStargateContract[asset] == address(0))
+            revert UnsupportedAsset();
+
+        // Generate operation ID
+        operationId = keccak256(
+            abi.encode(
+                msg.sender,
+                destinationChainId,
+                amount,
+                block.timestamp,
+                block.number
+            )
+        );
+
+        // Update the operation ID in the compose message
+        bytes memory updatedComposeMessage = _updateOperationIdInMessage(
+            composeMessage,
+            operationId
+        );
+
+        // Execute cross-chain transfer with compose
+        _executeCrossChainFleetDeposit(
+            asset,
+            amount,
+            destinationChainId,
+            destinationAdapter,
+            updatedComposeMessage,
+            adapterParams,
+            msg.value
+        );
+
+        // Emit interface event
+        emit FleetDepositInitiated(
+            operationId,
+            destinationChainId,
+            msg.sender,
+            address(0), // fleetCommander not extracted here for efficiency
+            asset,
+            amount,
+            address(0), // shareRecipient not extracted here for efficiency
+            address(this)
+        );
+    }
+
+    /// @inheritdoc IFleetDepositAdapter
+    function supportsFleetDeposits() external pure override returns (bool) {
+        return true;
+    }
+
+    /**
+     * @dev Helper function to update operation ID in compose message
+     */
+    function _updateOperationIdInMessage(
+        bytes memory composeMessage,
+        bytes32 operationId
+    ) internal pure returns (bytes memory) {
+        // Decode the message to update the operation ID
+        (
+            bytes32 messageType,
+            address fleetCommander,
+            address shareRecipient,
+            address asset,
+            uint256 amount,
+            uint256 sourceChainId, // old operation ID
+            ,
+            address originalUser,
+            bytes memory referralCode
+        ) = abi.decode(
+                composeMessage,
+                (
+                    bytes32,
+                    address,
+                    address,
+                    address,
+                    uint256,
+                    uint256,
+                    bytes32,
+                    address,
+                    bytes
+                )
+            );
+
+        // Re-encode with updated operation ID
+        return
+            abi.encode(
+                messageType,
+                fleetCommander,
+                shareRecipient,
+                asset,
+                amount,
+                sourceChainId,
+                operationId, // Updated operation ID
+                originalUser,
+                referralCode
+            );
+    }
+
     /// @inheritdoc ISendAdapter
     function transferAsset(
         bytes32 operationId,
@@ -435,6 +610,55 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     }
 
     /**
+     * @dev Execute cross-chain fleet deposit using Stargate
+     */
+    function _executeCrossChainFleetDeposit(
+        address asset,
+        uint256 amount,
+        uint16 destinationChainId,
+        address destinationAdapter,
+        bytes memory composeMsg,
+        BridgeTypes.AdapterParams calldata adapterParams,
+        uint256 providedFee
+    ) internal {
+        address stargateContract = assetToStargateContract[asset];
+        IStargate stargate = IStargate(stargateContract);
+
+        // Approve Stargate contract to spend the tokens
+        IERC20(asset).approve(stargateContract, 0);
+        IERC20(asset).approve(stargateContract, amount);
+
+        // Build SendParam for fleet deposit
+        SendParam memory sendParam = _buildFleetDepositSendParam(
+            destinationChainId,
+            destinationAdapter,
+            amount,
+            composeMsg,
+            adapterParams
+        );
+
+        // Update minAmountLD based on quote
+        _updateMinAmount(stargate, sendParam, amount);
+
+        // Execute transfer
+        _performTransfer(
+            stargate,
+            sendParam,
+            TransferParams({
+                stargateContract: stargateContract,
+                destinationChainId: destinationChainId,
+                asset: asset,
+                recipient: destinationAdapter,
+                amount: amount,
+                originator: msg.sender,
+                keeper: msg.sender,
+                operationId: bytes32(0) // Will be in compose message
+            }),
+            providedFee
+        );
+    }
+
+    /**
      * @dev Execute the actual sendToken call
      */
     function _executeSendToken(
@@ -469,6 +693,36 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
 
         // Execute transfer
         _performTransfer(stargate, sendParam, params, providedFee);
+    }
+
+    /**
+     * @dev Build SendParam struct for fleet deposits
+     */
+    function _buildFleetDepositSendParam(
+        uint16 destinationChainId,
+        address destinationAdapter,
+        uint256 amount,
+        bytes memory composeMsg,
+        BridgeTypes.AdapterParams calldata
+    ) internal view returns (SendParam memory) {
+        // Always use taxi mode for compose functionality
+        bytes memory oftCmd = OftCmdHelper.taxi();
+
+        // Add compose options for fleet deposit
+        bytes memory extraOptions = OptionsBuilder
+            .newOptions()
+            .addExecutorLzComposeOption(0, uint128(composeGasLimit), 0);
+
+        return
+            SendParam({
+                dstEid: chainToEndpointId[destinationChainId],
+                to: destinationAdapter.toBytes32(),
+                amountLD: amount,
+                minAmountLD: amount,
+                extraOptions: extraOptions,
+                composeMsg: composeMsg,
+                oftCmd: oftCmd
+            });
     }
 
     /**
@@ -572,7 +826,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        BridgeTypes.AdapterParams calldata,
+        BridgeTypes.AdapterParams calldata adapterParams,
         BridgeTypes.OperationType operationType
     ) public view returns (uint256 nativeFee, uint256 tokenFee) {
         // Check if chain is supported
@@ -589,10 +843,29 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[asset];
 
+        // Use compose gas limit from adapter params if provided, otherwise use default
+        uint256 gasLimit = adapterParams.gasLimit > 0
+            ? adapterParams.gasLimit
+            : composeGasLimit;
+
         // Always include compose options in fee estimation
         bytes memory extraOptions = OptionsBuilder
             .newOptions()
-            .addExecutorLzComposeOption(0, uint128(composeGasLimit), 0);
+            .addExecutorLzComposeOption(0, uint128(gasLimit), 0);
+
+        // Check if a compose message is provided in adapter params
+        bytes memory composeMsg;
+        if (adapterParams.options.length > 0) {
+            // Use the provided compose message for accurate fee estimation
+            composeMsg = adapterParams.options;
+        } else {
+            // Fall back to dummy compose message for legacy compatibility
+            composeMsg = abi.encode(
+                uint16(block.chainid),
+                bytes32(0),
+                address(0)
+            );
+        }
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
@@ -601,11 +874,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             amountLD: amount,
             minAmountLD: amount,
             extraOptions: extraOptions,
-            composeMsg: abi.encode(
-                uint16(block.chainid),
-                bytes32(0),
-                address(0)
-            ), // Dummy compose message
+            composeMsg: composeMsg,
             oftCmd: OftCmdHelper.taxi() // Always use taxi mode
         });
 
@@ -727,14 +996,152 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     }
 
     /**
-     * @dev Internal function to handle the composed message logic - SIMPLIFIED
+     * @dev Internal function to handle the composed message logic - EXTENDED for Fleet Deposits
      */
     function _handleComposedMessage(
         address _from,
         uint256 amountLD,
         bytes memory composeMsg
     ) internal {
-        // Decode the compose message
+        // Get destination asset first
+        address destinationAsset = IStargate(_from).token();
+
+        // Check if this is a fleet deposit message by looking at the first 32 bytes
+        bytes32 messageType;
+        assembly {
+            messageType := mload(add(composeMsg, 0x20))
+        }
+
+        if (messageType == FLEET_DEPOSIT_TYPE) {
+            _handleFleetDepositMessage(
+                _from,
+                amountLD,
+                composeMsg,
+                destinationAsset
+            );
+        } else {
+            _handleLegacyAssetTransferMessage(
+                _from,
+                amountLD,
+                composeMsg,
+                destinationAsset
+            );
+        }
+    }
+
+    /**
+     * @dev Handle fleet deposit compose messages
+     */
+    function _handleFleetDepositMessage(
+        address _from,
+        uint256 amountLD,
+        bytes memory composeMsg,
+        address destinationAsset
+    ) internal {
+        // Decode fleet deposit message
+        (
+            ,
+            // messageType already decoded
+            address fleetCommander,
+            address shareRecipient,
+            address sourceAsset,
+            uint256 originalAmount,
+            uint256 sourceChainId,
+            bytes32 operationId,
+            address originalUser,
+            bytes memory referralCode
+        ) = abi.decode(
+                composeMsg,
+                (
+                    bytes32,
+                    address,
+                    address,
+                    address,
+                    uint256,
+                    uint256,
+                    bytes32,
+                    address,
+                    bytes
+                )
+            );
+
+        // Basic validation
+        if (
+            destinationAsset == address(0) ||
+            fleetCommander == address(0) ||
+            shareRecipient == address(0) ||
+            amountLD == 0
+        ) {
+            revert InvalidParams();
+        }
+
+        // Check adapter balance
+        uint256 adapterBalance = IERC20(destinationAsset).balanceOf(
+            address(this)
+        );
+        if (adapterBalance < amountLD) {
+            revert InsufficientBalance();
+        }
+
+        // Try to deposit to FleetCommander
+        bool success = _tryDepositToFleetCommander(
+            fleetCommander,
+            destinationAsset,
+            amountLD,
+            shareRecipient,
+            referralCode,
+            operationId,
+            originalUser,
+            sourceAsset,
+            uint16(sourceChainId)
+        );
+
+        if (!success) {
+            // Store failed compose details for governance recovery
+            failedComposes[operationId] = FailedCompose({
+                asset: destinationAsset,
+                amount: amountLD,
+                intendedRecipient: fleetCommander,
+                operationId: operationId,
+                originator: originalUser,
+                sourceChainId: uint16(sourceChainId),
+                timestamp: block.timestamp,
+                isDeposit: true // Fleet deposits are always deposits
+            });
+
+            failedOperationIds.push(operationId);
+
+            emit ComposeFailedAssetsHeld(
+                operationId,
+                destinationAsset,
+                amountLD,
+                fleetCommander,
+                true,
+                "Fleet deposit failed"
+            );
+
+            return;
+        }
+
+        emit ComposedAssetHandled(
+            operationId,
+            fleetCommander,
+            destinationAsset,
+            amountLD,
+            uint16(sourceChainId)
+        );
+    }
+
+    /**
+     * @dev Handle legacy asset transfer compose messages (existing functionality)
+     */
+    function _handleLegacyAssetTransferMessage(
+        address _from,
+        uint256 amountLD,
+        bytes memory composeMsg,
+        address destinationAsset
+    ) internal {
+        // Decode the compose message (legacy format)
         (
             address recipient,
             address sourceAsset,
@@ -746,9 +1153,6 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 composeMsg,
                 (address, address, uint256, uint256, bytes32, address)
             );
-
-        // Get destination asset - SIMPLIFIED: fail fast if we can't get it
-        address destinationAsset = IStargate(_from).token();
 
         // Basic validation - fail fast
         if (
@@ -819,6 +1223,116 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
     }
 
     /**
+     * @dev Try to deposit assets to FleetCommander without reverting on failure
+     */
+    function _tryDepositToFleetCommander(
+        address fleetCommander,
+        address asset,
+        uint256 amount,
+        address shareRecipient,
+        bytes memory referralCode,
+        bytes32 operationId,
+        address originalUser,
+        address sourceAsset,
+        uint16 sourceChainId
+    ) internal returns (bool success) {
+        try
+            this._depositToFleetCommander(
+                fleetCommander,
+                asset,
+                amount,
+                shareRecipient,
+                referralCode,
+                operationId,
+                originalUser,
+                sourceAsset,
+                sourceChainId
+            )
+        returns (uint256 shares) {
+            emit CrossChainFleetDepositCompleted(
+                operationId,
+                fleetCommander,
+                shareRecipient,
+                asset,
+                amount,
+                shares,
+                sourceChainId
+            );
+            return true;
+        } catch (bytes memory reason) {
+            emit CrossChainFleetDepositFailed(
+                operationId,
+                fleetCommander,
+                asset,
+                amount,
+                string(reason)
+            );
+            return false;
+        }
+    }
+
+    /**
+     * @dev External function to deposit to FleetCommander (for try/catch)
+     */
+    function _depositToFleetCommander(
+        address fleetCommander,
+        address asset,
+        uint256 amount,
+        address shareRecipient,
+        bytes memory referralCode,
+        bytes32 operationId,
+        address originalUser,
+        address sourceAsset,
+        uint16 sourceChainId
+    ) external returns (uint256 shares) {
+        // Only allow self-calls
+        if (msg.sender != address(this)) {
+            revert Unauthorized();
+        }
+
+        // Validate FleetCommander supports the asset
+        try IFleetCommander(fleetCommander).asset() returns (
+            address fleetAsset
+        ) {
+            if (fleetAsset != asset) {
+                revert InvalidParams();
+            }
+        } catch {
+            revert InvalidParams();
+        }
+
+        // Check deposit limits
+        try IFleetCommander(fleetCommander).maxDeposit(address(this)) returns (
+            uint256 maxDeposit
+        ) {
+            if (amount > maxDeposit) {
+                revert InvalidParams();
+            }
+        } catch {
+            // If we can't check maxDeposit, continue anyway
+        }
+
+        // Approve FleetCommander to spend tokens
+        IERC20(asset).approve(fleetCommander, amount);
+
+        // Deposit to FleetCommander with referral code if provided
+        if (referralCode.length > 0) {
+            shares = IFleetCommander(fleetCommander).deposit(
+                amount,
+                shareRecipient,
+                referralCode
+            );
+        } else {
+            shares = IFleetCommander(fleetCommander).deposit(
+                amount,
+                shareRecipient
+            );
+        }
+
+        return shares;
+    }
+
+    /**
      * @dev Try to deliver assets to recipient without reverting on failure
      */
     function _tryDeliverAssets(
@@ -842,6 +1356,18 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
                 sourceChainId
             )
         {
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * @dev Check if an address is a FleetCommander
+     * @dev FleetCommander: has deposit function and asset function
+     */
+    function _isFleetCommander(address recipient) internal view returns (bool) {
+        try IFleetCommander(recipient).asset() returns (address) {
             return true;
         } catch {
             return false;
