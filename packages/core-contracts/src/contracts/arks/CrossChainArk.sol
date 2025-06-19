@@ -304,11 +304,11 @@ contract CrossChainArk is
 
         lastRemoteAssetBalance = newRemoteBalance;
 
+        emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
+
         // Reset inflight assets as the state read now reflects the current remote balance
         inflightAssets = 0;
         emit InflightAssetsUpdated(0);
-
-        emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
     }
 
     /**
