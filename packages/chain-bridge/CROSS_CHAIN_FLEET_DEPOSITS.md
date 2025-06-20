@@ -22,12 +22,41 @@ Users can choose their preferred bridge technology:
 
 ```mermaid
 graph TB
-    User[User] --> |chooses bridge| FleetDepositManager[FleetDepositManager]
-    FleetDepositManager --> |uses specified| IFleetDepositAdapter{IFleetDepositAdapter}
-    IFleetDepositAdapter --> StargateAdapter[StargateAdapter]
-    IFleetDepositAdapter --> HyperlaneAdapter[HyperlaneAdapter]
-    IFleetDepositAdapter --> LayerZeroAdapter[LayerZeroAdapter]
-    IFleetDepositAdapter --> FutureAdapter[Future Bridge Adapters]
+    %% Source Chain (Arbitrum)
+    subgraph "Source Chain (Arbitrum)"
+        User[User with USDC] --> |chooses bridge| FleetDepositManager[FleetDepositManager]
+        FleetDepositManager --> |uses specified| IFleetDepositAdapter{IFleetDepositAdapter}
+        IFleetDepositAdapter --> StargateAdapter[StargateAdapter]
+        IFleetDepositAdapter --> HyperlaneAdapter[HyperlaneAdapter]
+        IFleetDepositAdapter --> LayerZeroAdapter[LayerZeroAdapter]
+        IFleetDepositAdapter --> FutureAdapter[Future Bridge Adapters]
+    end
+    
+    %% Cross-Chain Bridge
+    StargateAdapter --> |bridge assets + compose message| Bridge[Cross-Chain Bridge Network]
+    HyperlaneAdapter --> |bridge assets + compose message| Bridge
+    LayerZeroAdapter --> |bridge assets + compose message| Bridge
+    FutureAdapter --> |bridge assets + compose message| Bridge
+    
+    %% Destination Chain (Base)
+    subgraph "Destination Chain (Base)"
+        Bridge --> |lzCompose callback| DestAdapter[Destination Bridge Adapter]
+        DestAdapter --> |deposit on behalf of user| FleetCommander[Base USDC Fleet]
+        FleetCommander --> |mints shares to| ShareRecipient[User's Address]
+    end
+    
+    %% Styling
+    classDef userStyle fill:#90EE90,stroke:#333,stroke-width:2px
+    classDef managerStyle fill:#DDA0DD,stroke:#333,stroke-width:2px
+    classDef adapterStyle fill:#FFB6C1,stroke:#333,stroke-width:2px
+    classDef bridgeStyle fill:#87CEEB,stroke:#333,stroke-width:3px
+    classDef fleetStyle fill:#F4A460,stroke:#333,stroke-width:2px
+    
+    class User,ShareRecipient userStyle
+    class FleetDepositManager managerStyle
+    class StargateAdapter,HyperlaneAdapter,LayerZeroAdapter,FutureAdapter,DestAdapter adapterStyle
+    class Bridge bridgeStyle
+    class FleetCommander fleetStyle
 ```
 
 ### 🎯 Benefits of Vendor Agnostic Design
@@ -64,6 +93,99 @@ contract HyperlaneAdapter is IFleetDepositAdapter, IBridgeAdapter {
 // Governance registers the new adapter with BridgeRouter (existing process)
 bridgeRouter.registerAdapter(hyperlaneAdapter);
 ```
+
+## Multi-Chain Deposit Hub Architecture
+
+The cross-chain fleet deposit system enables a **Hub CrossChain Fleet** (deployed on a primary chain like Base) to receive deposits from users across multiple source chains. This creates a unified liquidity hub that aggregates capital from the entire ecosystem.
+
+### 🌐 Hub Fleet Deposit Flow
+
+```mermaid
+graph TB
+    %% Source Chains with Users
+    subgraph "Ethereum Mainnet"
+        UserETH[Users with USDC<br/>10,000 USDC] --> FleetDepMgrETH[FleetDepositManager]
+        FleetDepMgrETH --> AdapterETH[Bridge Adapter]
+    end
+    
+    subgraph "Arbitrum"
+        UserARB[Users with USDC<br/>5,000 USDC] --> FleetDepMgrARB[FleetDepositManager] 
+        FleetDepMgrARB --> AdapterARB[Bridge Adapter]
+    end
+    
+    subgraph "Polygon"
+        UserPOL[Users with USDC<br/>15,000 USDC] --> FleetDepMgrPOL[FleetDepositManager]
+        FleetDepMgrPOL --> AdapterPOL[Bridge Adapter]
+    end
+    
+    subgraph "Optimism"
+        UserOP[Users with USDC<br/>20,000 USDC] --> FleetDepMgrOP[FleetDepositManager]
+        FleetDepMgrOP --> AdapterOP[Bridge Adapter]
+    end
+    
+    %% Bridge Network
+    AdapterETH --> |Cross-Chain Bridge| BridgeNetwork[Multi-Chain Bridge Network]
+    AdapterARB --> |Cross-Chain Bridge| BridgeNetwork
+    AdapterPOL --> |Cross-Chain Bridge| BridgeNetwork  
+    AdapterOP --> |Cross-Chain Bridge| BridgeNetwork
+    
+    %% Hub Chain (Base) - Simplified to show just the entry point
+    subgraph "Base Chain (Hub)"
+        BridgeNetwork --> |All USDC Deposits| HubAdapter[Base Bridge Adapter]
+        HubAdapter --> |50,000 USDC Total| HubFleet[Hub CrossChain USDC Fleet]
+    end
+    
+    %% Styling
+    classDef userStyle fill:#90EE90,stroke:#333,stroke-width:2px
+    classDef managerStyle fill:#DDA0DD,stroke:#333,stroke-width:2px
+    classDef adapterStyle fill:#FFB6C1,stroke:#333,stroke-width:2px
+    classDef bridgeStyle fill:#87CEEB,stroke:#333,stroke-width:3px
+    classDef hubFleetStyle fill:#FF6B6B,stroke:#333,stroke-width:4px
+    
+    class UserETH,UserARB,UserPOL,UserOP userStyle
+    class FleetDepMgrETH,FleetDepMgrARB,FleetDepMgrPOL,FleetDepMgrOP managerStyle
+    class AdapterETH,AdapterARB,AdapterPOL,AdapterOP,HubAdapter adapterStyle
+    class BridgeNetwork bridgeStyle
+    class HubFleet hubFleetStyle
+```
+
+### 🎯 Hub Architecture Benefits
+
+1. **Unified Liquidity Pool**: Aggregates deposits from all supported chains into one managed fleet
+2. **Cross-Chain Yield Optimization**: Hub fleet can deploy capital to the highest-yielding opportunities across all chains
+3. **Simplified User Experience**: Users deposit from any chain but receive shares in a professionally managed cross-chain portfolio
+4. **Economies of Scale**: Larger capital pool enables access to institutional-grade opportunities
+5. **Risk Distribution**: Capital automatically distributed across multiple chains and protocols
+6. **Single Governance**: Centralized strategy decisions with decentralized execution
+
+### 📊 Capital Flow Example
+
+**Scenario**: Hub USDC Fleet on Base receiving deposits from multiple chains
+
+1. **Ethereum User**: Deposits 10,000 USDC → Bridged to Base → 10,000 Hub Fleet shares sent to user's Base EOA
+2. **Arbitrum User**: Deposits 5,000 USDC → Bridged to Base → 5,000 Hub Fleet shares sent to user's Base EOA  
+3. **Polygon User**: Deposits 15,000 USDC → Bridged to Base → 15,000 Hub Fleet shares sent to user's Base EOA
+4. **Optimism User**: Deposits 20,000 USDC → Bridged to Base → 20,000 Hub Fleet shares sent to user's Base EOA
+
+**Result**: 
+- **Hub Fleet**: Receives 50,000 USDC total from all chains for professional multi-chain management
+- **Users**: Each receives fleet shares in their Base chain EOA proportional to their deposit
+- **Management**: Hub fleet handles all cross-chain deployment and yield optimization behind the scenes
+
+### 🔄 Dynamic Rebalancing
+
+The Hub Fleet can dynamically rebalance across chains based on:
+- **Yield Opportunities**: Move capital to chains with better rates
+- **Risk Assessment**: Reduce exposure to chains with elevated risk
+- **Market Conditions**: Adapt to changing DeFi landscape
+- **User Demand**: Allocate based on deposit patterns
+
+### 🛡️ Safety Features
+
+- **Multi-Chain Validation**: Ensures fleet compatibility before accepting deposits
+- **Bridge Redundancy**: Multiple bridge options reduce single points of failure
+- **Emergency Pause**: Can halt deposits if issues detected on any chain
+- **Governance Recovery**: Manual intervention capabilities for edge cases
 
 ## Use Cases
 
@@ -131,21 +253,44 @@ Messages are differentiated by a type identifier in the first 32 bytes.
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant FleetDepositManager
-    participant StargateAdapter
-    participant Stargate
-    participant LayerZero
-    participant DestAdapter
-    participant FleetCommander
+    participant User as User (Arbitrum)
+    participant FleetDepositManager as FleetDepositManager (Arbitrum)
+    participant SourceAdapter as StargateAdapter (Arbitrum)  
+    participant Stargate as Stargate Network
+    participant LayerZero as LayerZero Network
+    participant DestAdapter as StargateAdapter (Base)
+    participant FleetCommander as USDC Fleet (Base)
+    participant ShareRecipient as User Address (Base)
 
-    User->>FleetDepositManager: crossChainDepositToFleet(bridgeAdapter, ...)
-    FleetDepositManager->>StargateAdapter: executeCrossChainFleetDeposit()
-    StargateAdapter->>Stargate: sendToken() with compose message
-    Stargate->>LayerZero: Cross-chain message
-    LayerZero->>DestAdapter: lzCompose()
-    DestAdapter->>FleetCommander: deposit()
-    FleetCommander->>User: Fleet shares minted
+    Note over User,ShareRecipient: Cross-Chain Fleet Deposit Flow
+    
+    %% Source Chain Operations
+    User->>FleetDepositManager: crossChainDepositToFleet(stargateAdapter, Base, ...)
+    Note over User,FleetDepositManager: User chooses Stargate as bridge adapter
+    
+    FleetDepositManager->>SourceAdapter: executeCrossChainFleetDeposit()
+    Note over FleetDepositManager,SourceAdapter: Includes fleet deposit compose message
+    
+    SourceAdapter->>Stargate: sendToken() with fleet compose message
+    Note over SourceAdapter,Stargate: USDC + encoded fleet deposit instruction
+    
+    %% Cross-Chain Bridge
+    Stargate->>LayerZero: Cross-chain message + assets
+    Note over Stargate,LayerZero: Bridging USDC from Arbitrum to Base
+    
+    %% Destination Chain Operations  
+    LayerZero->>DestAdapter: lzCompose(fleetDepositMessage)
+    Note over LayerZero,DestAdapter: Callback with bridged USDC + compose data
+    
+    DestAdapter->>FleetCommander: deposit(amount, shareRecipient, referralCode)
+    Note over DestAdapter,FleetCommander: Deposit bridged USDC on behalf of user
+    
+    FleetCommander->>ShareRecipient: Transfer fleet shares
+    Note over FleetCommander,ShareRecipient: User receives shares on destination chain
+    
+    %% Success Event
+    DestAdapter-->>User: CrossChainFleetDepositCompleted event
+    Note over DestAdapter,User: Event emitted for frontend tracking
 ```
 
 ## Usage Examples
