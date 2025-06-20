@@ -22,8 +22,8 @@ Users can choose their preferred bridge technology:
 
 ```mermaid
 graph TB
-    User[User] --> FleetDepositManager[FleetDepositManager]
-    FleetDepositManager --> IFleetDepositAdapter{IFleetDepositAdapter}
+    User[User] --> |chooses bridge| FleetDepositManager[FleetDepositManager]
+    FleetDepositManager --> |uses specified| IFleetDepositAdapter{IFleetDepositAdapter}
     IFleetDepositAdapter --> StargateAdapter[StargateAdapter]
     IFleetDepositAdapter --> HyperlaneAdapter[HyperlaneAdapter]
     IFleetDepositAdapter --> LayerZeroAdapter[LayerZeroAdapter]
@@ -93,6 +93,7 @@ bridgeRouter.registerAdapter(hyperlaneAdapter);
 #### `crossChainDepositToFleet()`
 ```solidity
 function crossChainDepositToFleet(
+    address bridgeAdapter,
     uint16 destinationChainId,
     address asset,
     uint256 amount,
@@ -100,23 +101,23 @@ function crossChainDepositToFleet(
     address shareRecipient,
     bytes memory referralCode,
     BridgeTypes.AdapterParams calldata adapterParams
-) external payable returns (bytes32 operationId)
+) external payable nonReentrant returns (bytes32 operationId)
 ```
 
-Main function for users to deposit assets cross-chain to FleetCommanders.
+Main function for users to deposit assets cross-chain to FleetCommanders. Users choose their preferred bridge adapter.
 
-#### `estimateFleetDepositFee()`
+#### `encodeFleetDepositMessage()`
 ```solidity
-function estimateFleetDepositFee(
-    uint16 destinationChainId,
+function encodeFleetDepositMessage(
+    address fleetCommander,
+    address shareRecipient,
     address asset,
     uint256 amount,
-    address fleetCommander,
     bytes memory referralCode
-) external view returns (uint256 nativeFee, uint256 tokenFee)
+) external view returns (bytes memory composeMessage)
 ```
 
-Estimates the native fee required for cross-chain fleet deposits.
+Encodes a fleet deposit compose message for fee estimation and bridge adapter usage.
 
 ### Enhanced Compose Message Handling
 
@@ -131,13 +132,15 @@ Messages are differentiated by a type identifier in the first 32 bytes.
 ```mermaid
 sequenceDiagram
     participant User
+    participant FleetDepositManager
     participant StargateAdapter
     participant Stargate
     participant LayerZero
     participant DestAdapter
     participant FleetCommander
 
-    User->>StargateAdapter: crossChainDepositToFleet()
+    User->>FleetDepositManager: crossChainDepositToFleet(bridgeAdapter, ...)
+    FleetDepositManager->>StargateAdapter: executeCrossChainFleetDeposit()
     StargateAdapter->>Stargate: sendToken() with compose message
     Stargate->>LayerZero: Cross-chain message
     LayerZero->>DestAdapter: lzCompose()
@@ -164,7 +167,7 @@ contract MyContract {
 
         // 2. Create fleet deposit message for fee estimation
         bytes memory composeMessage = IFleetDepositManager(fleetDepositManager)
-            .createFleetDepositMessage(
+            .encodeFleetDepositMessage(
                 baseFleetCommander,
                 msg.sender, // share recipient
                 usdcToken,
@@ -227,7 +230,7 @@ function depositWithReferral(
 
     // Create compose message for fee estimation
     bytes memory composeMessage = IFleetDepositManager(fleetDepositManager)
-        .createFleetDepositMessage(
+        .encodeFleetDepositMessage(
             fleetCommander,
             msg.sender, // share recipient
             token,
@@ -372,19 +375,16 @@ The `StargateAdapter.estimateFee()` function has been enhanced to handle both le
 **For Fleet Deposits (with compose message):**
 ```solidity
 // Create fleet deposit compose message for accurate fee estimation
-bytes memory composeMsg = abi.encode(
-    StargateAdapter.FLEET_DEPOSIT_TYPE,
-    fleetCommander,
-    shareRecipient,
-    asset,
-    amount,
-    block.chainid,
-    bytes32(0), // operation ID (filled by adapter)
-    msg.sender, // original user
-    referralCode
-);
+bytes memory composeMsg = IFleetDepositManager(fleetDepositManager)
+    .encodeFleetDepositMessage(
+        fleetCommander,
+        shareRecipient,
+        asset,
+        amount,
+        referralCode
+    );
 
-(uint256 nativeFee, ) = adapter.estimateFee(
+(uint256 nativeFee, ) = IBridgeAdapter(stargateAdapter).estimateFee(
     destinationChainId,
     asset,
     amount,
@@ -473,6 +473,7 @@ function checkSupport(
 
 // Estimate fees for multiple amounts
 function estimateFeesForAmounts(
+    address fleetDepositManager,
     address stargateAdapter,
     uint16 destinationChainId,
     address asset,
@@ -483,7 +484,17 @@ function estimateFeesForAmounts(
     fees = new uint256[](amounts.length);
 
     for (uint256 i = 0; i < amounts.length; i++) {
-        (fees[i], ) = IStargateAdapter(stargateAdapter).estimateFee(
+        // Create proper compose message for fee estimation
+        bytes memory composeMsg = IFleetDepositManager(fleetDepositManager)
+            .encodeFleetDepositMessage(
+                fleetCommander,
+                address(0xdead), // dummy share recipient
+                asset,
+                amounts[i],
+                referralCode
+            );
+
+        (fees[i], ) = IBridgeAdapter(stargateAdapter).estimateFee(
             destinationChainId,
             asset,
             amounts[i],
@@ -491,17 +502,7 @@ function estimateFeesForAmounts(
                 gasLimit: 500000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: abi.encode(
-                    StargateAdapter.FLEET_DEPOSIT_TYPE,
-                    fleetCommander,
-                    address(0xdead),
-                    asset,
-                    amounts[i],
-                    block.chainid,
-                    bytes32(0),
-                    address(0xdead),
-                    referralCode
-                )
+                options: composeMsg
             }),
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
@@ -598,4 +599,10 @@ For projects wanting to integrate cross-chain fleet deposits:
 
 ## Conclusion
 
-The cross-chain fleet deposit functionality provides a seamless user experience for depositing assets to Summer Protocol fleets across different chains. The implementation prioritizes safety, recoverability, and user experience while maintaining the composability benefits of the Stargate V2 protocol. 
+The cross-chain fleet deposit functionality provides a seamless user experience for depositing assets to Summer Protocol fleets across different chains. The **vendor-agnostic architecture** allows users to choose their preferred bridge technology, reducing vendor lock-in and providing flexibility for different use cases. The implementation prioritizes safety, recoverability, and user experience while maintaining the composability benefits of bridge protocols like Stargate V2.
+
+Key architectural benefits:
+- **User Choice**: Users select their preferred bridge adapter at call time
+- **No Vendor Lock-in**: Easy to switch between bridge technologies
+- **Future-Proof**: New bridge adapters can be added without protocol changes
+- **Competitive Ecosystem**: Bridges compete on fees, speed, and reliability 
