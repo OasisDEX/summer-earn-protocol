@@ -199,22 +199,13 @@ export async function deployStargateAdapter(
     )
   }
 
-  // Get the access manager address from network config
-  const accessManagerAddress = networkConfig.deployedContracts.gov.protocolAccessManager.address
-  if (!accessManagerAddress) {
-    throw new Error(
-      `ProtocolAccessManager address not found in config for chain ID ${networkConfig.common.chainId}`,
-    )
-  }
-
-  // Deploy using Ignition module - V2 requires all 4 constructor parameters
+  // Deploy using Ignition module - only 3 constructor parameters needed
   const deploymentResult = await hre.ignition.deploy(StargateAdapterModule, {
     parameters: {
       StargateAdapterModule: {
         bridgeRouter: bridgeRouterAddress,
         owner: signerAddress,
         lzEndpoint: lzEndpoint,
-        accessManager: accessManagerAddress,
       },
     },
   })

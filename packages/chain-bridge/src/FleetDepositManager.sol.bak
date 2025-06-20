@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IFleetDepositAdapter} from "./interfaces/IFleetDepositAdapter.sol";
 import {IBridgeRouter} from "./interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "./libraries/BridgeTypes.sol";
@@ -14,7 +15,7 @@ import {BridgeTypes} from "./libraries/BridgeTypes.sol";
  * @dev Orchestrates fleet deposits through any bridge adapter registered with BridgeRouter
  *      Users can choose their preferred bridge technology (Stargate, LayerZero, Hyperlane, etc.)
  */
-contract FleetDepositManager is ReentrancyGuard {
+contract FleetDepositManager is ProtocolAccessManaged, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -59,9 +60,13 @@ contract FleetDepositManager is ReentrancyGuard {
 
     /**
      * @notice Initializes the FleetDepositManager
+     * @param accessManager Address of the ProtocolAccessManager
      * @param _bridgeRouter Address of the BridgeRouter
      */
-    constructor(address _bridgeRouter) {
+    constructor(
+        address accessManager,
+        address _bridgeRouter
+    ) ProtocolAccessManaged(accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
         bridgeRouter = IBridgeRouter(_bridgeRouter);
     }
@@ -201,10 +206,11 @@ contract FleetDepositManager is ReentrancyGuard {
      * @dev Internal function to check if adapter is supported by BridgeRouter
      */
     function _isAdapterSupported(address adapter) internal view returns (bool) {
+        // Check if adapter supports fleet deposits and is registered with BridgeRouter
         try IFleetDepositAdapter(adapter).supportsFleetDeposits() returns (
-            bool result
+            bool supports
         ) {
-            return result && bridgeRouter.isValidAdapter(adapter);
+            return supports && bridgeRouter.isValidAdapter(adapter);
         } catch {
             return false;
         }
