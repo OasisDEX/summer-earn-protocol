@@ -3,12 +3,16 @@ pragma solidity ^0.8.28;
 
 import {IFleetDepositAdapter} from "../../src/interfaces/IFleetDepositAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title MockFleetDepositAdapter
  * @notice Mock adapter for testing fleet deposit functionality
  */
 contract MockFleetDepositAdapter is IFleetDepositAdapter {
+    using SafeERC20 for IERC20;
+
     bool public shouldRevert = false;
     bytes32 public lastOperationId;
     uint256 public lastAmount;
@@ -17,6 +21,8 @@ contract MockFleetDepositAdapter is IFleetDepositAdapter {
     address public lastDestinationAdapter;
     bytes public lastComposeMessage;
     BridgeTypes.AdapterParams public lastAdapterParams;
+
+    uint256 private operationCounter = 0; // Add counter for unique operation IDs
 
     function setShouldRevert(bool _shouldRevert) external {
         shouldRevert = _shouldRevert;
@@ -32,9 +38,14 @@ contract MockFleetDepositAdapter is IFleetDepositAdapter {
     ) external payable override returns (bytes32 operationId) {
         if (shouldRevert) revert("Mock adapter reverted");
 
+        // Generate unique operation ID using counter
+        operationCounter++;
         operationId = keccak256(
-            abi.encode(block.timestamp, amount, msg.sender)
+            abi.encode(block.timestamp, amount, msg.sender, operationCounter)
         );
+
+        // Transfer tokens from caller (FleetDepositManager) to this contract (adapter receives the tokens)
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
         // Store all parameters for verification
         lastOperationId = operationId;
@@ -78,5 +89,6 @@ contract MockFleetDepositAdapter is IFleetDepositAdapter {
         lastDestinationAdapter = address(0);
         lastComposeMessage = "";
         delete lastAdapterParams;
+        // Don't reset operationCounter to maintain uniqueness across resets
     }
 }

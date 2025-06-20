@@ -2,21 +2,21 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {FleetDepositManager} from "../src/FleetDepositManager.sol";
-import {IFleetDepositAdapter} from "../src/interfaces/IFleetDepositAdapter.sol";
-import {BridgeTypes} from "../src/libraries/BridgeTypes.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {FleetDepositManager} from "../../src/FleetDepositManager.sol";
+import {IFleetDepositAdapter} from "../../src/interfaces/IFleetDepositAdapter.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockBridgeRouter} from "./mocks/MockBridgeRouter.sol";
-import {MockAccessManager} from "./mocks/MockAccessManager.sol";
-import {MockFleetDepositAdapter} from "./mocks/MockFleetDepositAdapter.sol";
-import {MockFleetDepositAdapterNoSupport} from "./mocks/MockFleetDepositAdapterNoSupport.sol";
+import {MockBridgeRouter} from "../mocks/MockBridgeRouter.sol";
+import {MockAccessManager} from "../mocks/MockAccessManager.sol";
+import {MockFleetDepositAdapter} from "../mocks/MockFleetDepositAdapter.sol";
+import {MockFleetDepositAdapterNoSupport} from "../mocks/MockFleetDepositAdapterNoSupport.sol";
 
 contract FleetDepositManagerTest is Test {
     FleetDepositManager public manager;
     MockFleetDepositAdapter public mockAdapter;
     MockFleetDepositAdapterNoSupport public noSupportAdapter;
-    MockERC20 public token;
+    ERC20Mock public token;
     MockBridgeRouter public mockBridgeRouter;
 
     address public user = address(0x1);
@@ -45,11 +45,13 @@ contract FleetDepositManagerTest is Test {
         manager = new FleetDepositManager(address(mockBridgeRouter));
         mockAdapter = new MockFleetDepositAdapter();
         noSupportAdapter = new MockFleetDepositAdapterNoSupport();
-        token = new MockERC20("MockToken", "MTK", 6);
+        token = new ERC20Mock();
 
-        // Setup users with tokens
+        // Setup users with tokens and ETH
         token.mint(user, DEPOSIT_AMOUNT * 10);
         token.mint(user2, DEPOSIT_AMOUNT * 10);
+        vm.deal(user, 10 ether); // Fund user with ETH
+        vm.deal(user2, 10 ether); // Fund user2 with ETH
 
         // Register mock adapter with bridge router
         mockBridgeRouter.registerAdapter(address(mockAdapter));
@@ -144,7 +146,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
-        vm.expectEmit(true, true, true, false);
+        vm.expectEmit(false, true, true, false); // Don't check operationId (first indexed parameter)
         emit CrossChainFleetDepositInitiated(
             bytes32(0), // operationId will be different
             DEST_CHAIN_ID,
@@ -484,8 +486,8 @@ contract FleetDepositManagerTest is Test {
                         COMPOSE MESSAGE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_CreateFleetDepositMessage_Success() public {
-        bytes memory composeMessage = manager.createFleetDepositMessage(
+    function test_EncodeFleetDepositMessage_Success() public {
+        bytes memory composeMessage = manager.encodeFleetDepositMessage(
             fleetCommander,
             shareRecipient,
             address(token),
@@ -531,8 +533,8 @@ contract FleetDepositManagerTest is Test {
         assertEq(referralCode, bytes("SUMMER2024"));
     }
 
-    function test_CreateFleetDepositMessage_EmptyReferralCode() public {
-        bytes memory composeMessage = manager.createFleetDepositMessage(
+    function test_EncodeFleetDepositMessage_EmptyReferralCode() public {
+        bytes memory composeMessage = manager.encodeFleetDepositMessage(
             fleetCommander,
             shareRecipient,
             address(token),
@@ -565,7 +567,7 @@ contract FleetDepositManagerTest is Test {
             "VERYLONGREFERRALCODEFORFLEETDEPOSITS2024"
         );
 
-        bytes memory composeMessage = manager.createFleetDepositMessage(
+        bytes memory composeMessage = manager.encodeFleetDepositMessage(
             fleetCommander,
             shareRecipient,
             address(token),
@@ -599,7 +601,7 @@ contract FleetDepositManagerTest is Test {
 
     function test_CrossChainDepositToFleet_DifferentTokenDecimals() public {
         // Test with 18 decimal token
-        MockERC20 token18 = new MockERC20("Token18", "T18", 18);
+        ERC20Mock token18 = new ERC20Mock();
         uint256 amount18 = 1000 * 10 ** 18;
         token18.mint(user, amount18);
 
@@ -630,7 +632,7 @@ contract FleetDepositManagerTest is Test {
     }
 
     function test_CrossChainDepositToFleet_MaxUint256Amount() public {
-        uint256 maxAmount = type(uint256).max;
+        uint256 maxAmount = type(uint256).max / 2; // Use half of max to avoid overflow
         token.mint(user, maxAmount);
 
         vm.startPrank(user);
@@ -681,8 +683,12 @@ contract FleetDepositManagerTest is Test {
         vm.stopPrank();
 
         assertNotEq(operationId, bytes32(0));
-        assertEq(mockAdapter.lastAdapterParams().gasLimit, 5000000);
-        assertEq(mockAdapter.lastAdapterParams().calldataSize, 1000);
+
+        // Get adapter params to verify - destructure the tuple
+        (uint64 gasLimit, uint32 calldataSize, uint128 msgValue, ) = mockAdapter
+            .lastAdapterParams();
+        assertEq(gasLimit, 5000000);
+        assertEq(calldataSize, 1000);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -734,7 +740,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         // Create compose message for verification
-        bytes memory expectedComposeMessage = manager.createFleetDepositMessage(
+        bytes memory expectedComposeMessage = manager.encodeFleetDepositMessage(
             fleetCommander,
             shareRecipient,
             address(token),
@@ -775,12 +781,12 @@ contract FleetDepositManagerTest is Test {
         assertEq(mockAdapter.lastDestinationChainId(), DEST_CHAIN_ID);
         assertEq(mockAdapter.lastDestinationAdapter(), address(0));
 
-        // Verify adapter params
-        BridgeTypes.AdapterParams memory receivedParams = mockAdapter
+        // Verify adapter params - destructure the tuple
+        (uint64 gasLimit, uint32 calldataSize, uint128 msgValue, ) = mockAdapter
             .lastAdapterParams();
-        assertEq(receivedParams.gasLimit, 500000);
-        assertEq(receivedParams.calldataSize, 100);
-        assertEq(receivedParams.msgValue, 0.01 ether);
+        assertEq(gasLimit, 500000);
+        assertEq(calldataSize, 100);
+        assertEq(msgValue, 0.01 ether);
 
         // Verify compose message structure (it will be different than expected due to operation ID)
         bytes memory actualComposeMessage = mockAdapter.lastComposeMessage();
