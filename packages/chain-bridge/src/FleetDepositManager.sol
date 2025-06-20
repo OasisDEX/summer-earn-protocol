@@ -115,8 +115,9 @@ contract FleetDepositManager is ReentrancyGuard {
             referralCode // Referral code
         );
 
-        // Transfer tokens from user to bridge adapter
-        IERC20(asset).safeTransferFrom(msg.sender, bridgeAdapter, amount);
+        // Transfer tokens from user to this contract, then approve adapter
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(asset).forceApprove(bridgeAdapter, amount);
 
         // Create updated adapter params with compose message
         BridgeTypes.AdapterParams memory updatedParams = BridgeTypes
@@ -151,7 +152,7 @@ contract FleetDepositManager is ReentrancyGuard {
     }
 
     /**
-     * @notice Creates a fleet deposit compose message for fee estimation
+     * @notice Encodes a fleet deposit compose message for fee estimation
      * @param fleetCommander FleetCommander address on destination chain
      * @param shareRecipient Share recipient address
      * @param asset Asset to bridge
@@ -159,7 +160,7 @@ contract FleetDepositManager is ReentrancyGuard {
      * @param referralCode Referral code
      * @return composeMessage Encoded compose message for use with adapter's estimateFee
      */
-    function createFleetDepositMessage(
+    function encodeFleetDepositMessage(
         address fleetCommander,
         address shareRecipient,
         address asset,
@@ -201,10 +202,21 @@ contract FleetDepositManager is ReentrancyGuard {
      * @dev Internal function to check if adapter is supported by BridgeRouter
      */
     function _isAdapterSupported(address adapter) internal view returns (bool) {
+        // First check if adapter code exists
+        if (adapter.code.length == 0) {
+            return false;
+        }
+
         try IFleetDepositAdapter(adapter).supportsFleetDeposits() returns (
             bool result
         ) {
-            return result && bridgeRouter.isValidAdapter(adapter);
+            if (!result) return false;
+
+            try bridgeRouter.isValidAdapter(adapter) returns (bool isValid) {
+                return isValid;
+            } catch {
+                return false;
+            }
         } catch {
             return false;
         }

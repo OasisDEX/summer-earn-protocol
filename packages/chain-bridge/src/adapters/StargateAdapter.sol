@@ -954,7 +954,7 @@ contract StargateAdapter is
      * @dev Handle fleet deposit compose messages
      */
     function _handleFleetDepositMessage(
-        address _from,
+        address, // _from - not used but required by interface
         uint256 amountLD,
         bytes memory composeMsg,
         address destinationAsset
@@ -965,8 +965,8 @@ contract StargateAdapter is
             // messageType already decoded
             address fleetCommander,
             address shareRecipient,
-            address sourceAsset,
-            uint256 originalAmount,
+            address sourceAsset, // originalAmount - not used in current implementation
+            ,
             uint256 sourceChainId,
             bytes32 operationId,
             address originalUser,
@@ -1057,7 +1057,7 @@ contract StargateAdapter is
      * @dev Handle legacy asset transfer compose messages (existing functionality)
      */
     function _handleLegacyAssetTransferMessage(
-        address _from,
+        address, // _from - not used but required by interface
         uint256 amountLD,
         bytes memory composeMsg,
         address destinationAsset
@@ -1153,23 +1153,112 @@ contract StargateAdapter is
         address shareRecipient,
         bytes memory referralCode,
         bytes32 operationId,
-        address originalUser,
-        address sourceAsset,
+        address, // originalUser - not used in current implementation
+        address, // sourceAsset - not used in current implementation
         uint16 sourceChainId
     ) internal returns (bool success) {
-        try
-            this._depositToFleetCommander(
+        // Validate FleetCommander supports the asset
+        try IFleetCommanderMinimal(fleetCommander).asset() returns (
+            address fleetAsset
+        ) {
+            if (fleetAsset != asset) {
+                emit CrossChainFleetDepositFailed(
+                    operationId,
+                    fleetCommander,
+                    asset,
+                    amount,
+                    "Asset mismatch"
+                );
+                return false;
+            }
+        } catch {
+            emit CrossChainFleetDepositFailed(
+                operationId,
                 fleetCommander,
                 asset,
                 amount,
-                shareRecipient,
-                referralCode,
-                operationId,
-                originalUser,
-                sourceAsset,
-                sourceChainId
-            )
-        returns (uint256 shares) {
+                "Asset check failed"
+            );
+            return false;
+        }
+
+        // Check deposit limits
+        try
+            IFleetCommanderMinimal(fleetCommander).maxDeposit(address(this))
+        returns (uint256 maxDeposit) {
+            if (amount > maxDeposit) {
+                emit CrossChainFleetDepositFailed(
+                    operationId,
+                    fleetCommander,
+                    asset,
+                    amount,
+                    "Exceeds max deposit"
+                );
+                return false;
+            }
+        } catch {
+            // If we can't check maxDeposit, continue anyway
+        }
+
+        // Approve FleetCommander to spend tokens
+        IERC20(asset).approve(fleetCommander, amount);
+
+        // Deposit to FleetCommander with referral code if provided
+        uint256 shares;
+        bool depositSuccess = false;
+
+        if (referralCode.length > 0) {
+            try
+                IFleetCommanderMinimal(fleetCommander).deposit(
+                    amount,
+                    shareRecipient,
+                    referralCode
+                )
+            returns (uint256 _shares) {
+                shares = _shares;
+                depositSuccess = true;
+            } catch (bytes memory reason) {
+                // Extract revert reason if available
+                string memory reasonString = reason.length > 0
+                    ? string(reason)
+                    : "Deposit with referral failed";
+
+                emit CrossChainFleetDepositFailed(
+                    operationId,
+                    fleetCommander,
+                    asset,
+                    amount,
+                    reasonString
+                );
+                return false;
+            }
+        } else {
+            try
+                IFleetCommanderMinimal(fleetCommander).deposit(
+                    amount,
+                    shareRecipient
+                )
+            returns (uint256 _shares) {
+                shares = _shares;
+                depositSuccess = true;
+            } catch (bytes memory reason) {
+                // Extract revert reason if available
+                string memory reasonString = reason.length > 0
+                    ? string(reason)
+                    : "Deposit failed";
+
+                emit CrossChainFleetDepositFailed(
+                    operationId,
+                    fleetCommander,
+                    asset,
+                    amount,
+                    reasonString
+                );
+                return false;
+            }
+        }
+
+        if (depositSuccess) {
             emit CrossChainFleetDepositCompleted(
                 operationId,
                 fleetCommander,
@@ -1180,77 +1269,9 @@ contract StargateAdapter is
                 sourceChainId
             );
             return true;
-        } catch (bytes memory reason) {
-            emit CrossChainFleetDepositFailed(
-                operationId,
-                fleetCommander,
-                asset,
-                amount,
-                string(reason)
-            );
-            return false;
-        }
-    }
-
-    /**
-     * @dev External function to deposit to FleetCommander (for try/catch)
-     */
-    function _depositToFleetCommander(
-        address fleetCommander,
-        address asset,
-        uint256 amount,
-        address shareRecipient,
-        bytes memory referralCode,
-        bytes32 operationId,
-        address originalUser,
-        address sourceAsset,
-        uint16 sourceChainId
-    ) external returns (uint256 shares) {
-        // Only allow self-calls
-        if (msg.sender != address(this)) {
-            revert Unauthorized();
         }
 
-        // Validate FleetCommander supports the asset
-        try IFleetCommanderMinimal(fleetCommander).asset() returns (
-            address fleetAsset
-        ) {
-            if (fleetAsset != asset) {
-                revert InvalidParams();
-            }
-        } catch {
-            revert InvalidParams();
-        }
-
-        // Check deposit limits
-        try
-            IFleetCommanderMinimal(fleetCommander).maxDeposit(address(this))
-        returns (uint256 maxDeposit) {
-            if (amount > maxDeposit) {
-                revert InvalidParams();
-            }
-        } catch {
-            // If we can't check maxDeposit, continue anyway
-        }
-
-        // Approve FleetCommander to spend tokens
-        IERC20(asset).approve(fleetCommander, amount);
-
-        // Deposit to FleetCommander with referral code if provided
-        if (referralCode.length > 0) {
-            shares = IFleetCommanderMinimal(fleetCommander).deposit(
-                amount,
-                shareRecipient,
-                referralCode
-            );
-        } else {
-            shares = IFleetCommanderMinimal(fleetCommander).deposit(
-                amount,
-                shareRecipient
-            );
-        }
-
-        return shares;
+        return false;
     }
 
     /**

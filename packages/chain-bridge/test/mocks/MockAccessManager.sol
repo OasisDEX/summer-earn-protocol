@@ -27,7 +27,7 @@ contract MockAccessManager {
         return roles[role][account];
     }
 
-    function setRole(bytes32 role, address account, bool hasRole) external {
-        roles[role][account] = hasRole;
+    function setRole(bytes32 role, address account, bool _hasRole) external {
+        roles[role][account] = _hasRole;
     }
 }
