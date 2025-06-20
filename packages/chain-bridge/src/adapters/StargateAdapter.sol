@@ -24,89 +24,10 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
-// Import FleetCommander interface for direct deposits
-interface IFleetCommander {
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) external returns (uint256 shares);
-    function deposit(
-        uint256 assets,
-        address receiver,
-        bytes memory referralCode
-    ) external returns (uint256 shares);
-    function asset() external view returns (address);
-    function maxDeposit(address owner) external view returns (uint256);
-}
-
-/**
- * @title IStargate interface for V2
- * @notice Based on LayerZero V2 OFT standard with Stargate extensions
- */
-interface IStargate {
-    enum StargateType {
-        Pool,
-        OFT
-    }
-
-    struct Ticket {
-        uint56 ticketId;
-        bytes passenger;
-    }
-
-    function sendToken(
-        SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address _refundAddress
-    )
-        external
-        payable
-        returns (
-            MessagingReceipt memory msgReceipt,
-            OFTReceipt memory oftReceipt,
-            Ticket memory ticket
-        );
-
-    function quoteSend(
-        SendParam calldata _sendParam,
-        bool _payInLzToken
-    ) external view returns (MessagingFee memory msgFee);
-
-    function quoteOFT(
-        SendParam calldata _sendParam
-    )
-        external
-        view
-        returns (
-            OFTLimit memory limit,
-            OFTFeeDetail[] memory oftFeeDetails,
-            OFTReceipt memory oftReceipt
-        );
-
-    function stargateType() external pure returns (StargateType);
-
-    function token() external view returns (address);
-}
-
-/**
- * @title OftCmdHelper
- * @notice Helper for creating OFT commands for taxi/bus modes
- */
-library OftCmdHelper {
-    function taxi() internal pure returns (bytes memory) {
-        return "";
-    }
-
-    function bus() internal pure returns (bytes memory) {
-        return new bytes(1);
-    }
-
-    function drive(
-        bytes memory _passengers
-    ) internal pure returns (bytes memory) {
-        return _passengers;
-    }
-}
+// Import interfaces
+import {IFleetCommanderMinimal} from "../interfaces/IFleetCommanderMinimal.sol";
+import {IStargateV2} from "../interfaces/IStargateV2.sol";
+import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
 
 /**
  * @title StargateAdapter
@@ -388,8 +309,8 @@ contract StargateAdapter is
             revert InvalidParams();
 
         // Verify this is a valid Stargate V2 contract (only for current chain)
-        try IStargate(stargateContract).stargateType() returns (
-            IStargate.StargateType
+        try IStargateV2(stargateContract).stargateType() returns (
+            IStargateV2.StargateType
         ) {
             // Valid Stargate V2 contract
         } catch {
@@ -622,7 +543,7 @@ contract StargateAdapter is
         uint256 providedFee
     ) internal {
         address stargateContract = assetToStargateContract[asset];
-        IStargate stargate = IStargate(stargateContract);
+        IStargateV2 stargate = IStargateV2(stargateContract);
 
         // Approve Stargate contract to spend the tokens
         IERC20(asset).approve(stargateContract, 0);
@@ -667,7 +588,7 @@ contract StargateAdapter is
         BridgeTypes.AdapterParams calldata adapterParams,
         uint256 providedFee
     ) internal {
-        IStargate stargate = IStargate(params.stargateContract);
+        IStargateV2 stargate = IStargateV2(params.stargateContract);
 
         // Create compose message - ensure consistent encoding with lzCompose decoder
         bytes memory composeMsg = abi.encode(
@@ -763,7 +684,7 @@ contract StargateAdapter is
      * @dev Update minimum amount based on quote
      */
     function _updateMinAmount(
-        IStargate stargate,
+        IStargateV2 stargate,
         SendParam memory sendParam,
         uint256 amount
     ) internal view {
@@ -782,7 +703,7 @@ contract StargateAdapter is
      * @dev Perform the actual transfer
      */
     function _performTransfer(
-        IStargate stargate,
+        IStargateV2 stargate,
         SendParam memory sendParam,
         TransferParams memory params,
         uint256 providedFee
@@ -879,7 +800,7 @@ contract StargateAdapter is
         });
 
         // Get messaging fee quote
-        try IStargate(stargateContract).quoteSend(sendParam, false) returns (
+        try IStargateV2(stargateContract).quoteSend(sendParam, false) returns (
             MessagingFee memory msgFee
         ) {
             return (msgFee.nativeFee, 0); // Stargate V2 uses only native fees
@@ -1004,7 +925,7 @@ contract StargateAdapter is
         bytes memory composeMsg
     ) internal {
         // Get destination asset first
-        address destinationAsset = IStargate(_from).token();
+        address destinationAsset = IStargateV2(_from).token();
 
         // Check if this is a fleet deposit message by looking at the first 32 bytes
         bytes32 messageType;
@@ -1291,7 +1212,7 @@ contract StargateAdapter is
         }
 
         // Validate FleetCommander supports the asset
-        try IFleetCommander(fleetCommander).asset() returns (
+        try IFleetCommanderMinimal(fleetCommander).asset() returns (
             address fleetAsset
         ) {
             if (fleetAsset != asset) {
@@ -1302,9 +1223,9 @@ contract StargateAdapter is
         }
 
         // Check deposit limits
-        try IFleetCommander(fleetCommander).maxDeposit(address(this)) returns (
-            uint256 maxDeposit
-        ) {
+        try
+            IFleetCommanderMinimal(fleetCommander).maxDeposit(address(this))
+        returns (uint256 maxDeposit) {
             if (amount > maxDeposit) {
                 revert InvalidParams();
             }
@@ -1317,13 +1238,13 @@ contract StargateAdapter is
 
         // Deposit to FleetCommander with referral code if provided
         if (referralCode.length > 0) {
-            shares = IFleetCommander(fleetCommander).deposit(
+            shares = IFleetCommanderMinimal(fleetCommander).deposit(
                 amount,
                 shareRecipient,
                 referralCode
             );
         } else {
-            shares = IFleetCommander(fleetCommander).deposit(
+            shares = IFleetCommanderMinimal(fleetCommander).deposit(
                 amount,
                 shareRecipient
             );
@@ -1363,11 +1284,11 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Check if an address is a FleetCommander
-     * @dev FleetCommander: has deposit function and asset function
+     * @dev Check if an address is a FleetCommander by checking if it has the required interface
+     * @dev Simple interface check for FleetCommander functionality
      */
     function _isFleetCommander(address recipient) internal view returns (bool) {
-        try IFleetCommander(recipient).asset() returns (address) {
+        try IFleetCommanderMinimal(recipient).asset() returns (address) {
             return true;
         } catch {
             return false;

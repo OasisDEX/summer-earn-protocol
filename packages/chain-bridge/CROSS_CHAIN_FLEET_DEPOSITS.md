@@ -213,19 +213,30 @@ contract MyContract {
 
 ```solidity
 function depositWithReferral(
-    address stargateAdapter,
+    address fleetDepositManager,
+    address stargateAdapter, // User's choice of bridge
     address token,
     address fleetCommander,
     uint16 destinationChainId,
     uint256 amount,
     string memory referralCode
 ) external {
-    IERC20(token).approve(stargateAdapter, amount);
+    IERC20(token).approve(fleetDepositManager, amount);
 
     bytes memory referralCodeBytes = bytes(referralCode);
 
-    // Estimate fee (referral code affects message size)
-    (uint256 nativeFee, ) = IStargateAdapter(stargateAdapter)
+    // Create compose message for fee estimation
+    bytes memory composeMessage = IFleetDepositManager(fleetDepositManager)
+        .createFleetDepositMessage(
+            fleetCommander,
+            msg.sender, // share recipient
+            token,
+            amount,
+            referralCodeBytes
+        );
+
+    // Estimate fee using chosen bridge adapter
+    (uint256 nativeFee, ) = IBridgeAdapter(stargateAdapter)
         .estimateFee(
             destinationChainId,
             token,
@@ -234,25 +245,16 @@ function depositWithReferral(
                 gasLimit: 500000,
                 calldataSize: 0,
                 msgValue: 0,
-                options: abi.encode(
-                    StargateAdapter.FLEET_DEPOSIT_TYPE,
-                    fleetCommander,
-                    msg.sender,
-                    token,
-                    amount,
-                    block.chainid,
-                    bytes32(0),
-                    msg.sender,
-                    referralCodeBytes
-                )
+                options: composeMessage
             }),
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-    // Execute with referral code
-    IStargateAdapter(stargateAdapter).crossChainDepositToFleet{
+    // Execute through FleetDepositManager (vendor agnostic)
+    IFleetDepositManager(fleetDepositManager).crossChainDepositToFleet{
         value: nativeFee
     }(
+        stargateAdapter, // User's choice: could be any registered adapter
         destinationChainId,
         token,
         amount,
@@ -274,7 +276,8 @@ function depositWithReferral(
 ```solidity
 function swapAndCrossChainDeposit(
     address dexRouter,
-    address stargateAdapter,
+    address fleetDepositManager,
+    address stargateAdapter, // User's choice of bridge
     address inputToken,
     address outputToken,
     uint256 inputAmount,
@@ -294,11 +297,12 @@ function swapAndCrossChainDeposit(
     );
 
     // 2. Cross-chain deposit the swapped tokens
-    IERC20(outputToken).approve(stargateAdapter, outputAmount);
+    IERC20(outputToken).approve(fleetDepositManager, outputAmount);
 
-    IStargateAdapter(stargateAdapter).crossChainDepositToFleet{
+    IFleetDepositManager(fleetDepositManager).crossChainDepositToFleet{
         value: msg.value
     }(
+        stargateAdapter, // User's choice of bridge adapter
         destinationChainId,
         outputToken,
         outputAmount,
@@ -319,7 +323,8 @@ function swapAndCrossChainDeposit(
 
 ```solidity
 function batchFleetDeposits(
-    address stargateAdapter,
+    address fleetDepositManager,
+    address stargateAdapter, // User's choice of bridge
     address token,
     address fleetCommander,
     uint16 destinationChainId,
@@ -334,13 +339,14 @@ function batchFleetDeposits(
         IERC20(token).safeTransferFrom(users[i], address(this), amounts[i]);
     }
 
-    IERC20(token).approve(stargateAdapter, totalAmount);
+    IERC20(token).approve(fleetDepositManager, totalAmount);
 
     // Execute single cross-chain deposit for all users
     // Note: In production, you'd need logic to distribute shares proportionally
-    IStargateAdapter(stargateAdapter).crossChainDepositToFleet{
+    IFleetDepositManager(fleetDepositManager).crossChainDepositToFleet{
         value: msg.value
     }(
+        stargateAdapter, // User's choice of bridge adapter
         destinationChainId,
         token,
         totalAmount,
