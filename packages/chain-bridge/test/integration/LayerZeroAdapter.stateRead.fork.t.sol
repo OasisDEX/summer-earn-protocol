@@ -13,6 +13,7 @@ import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStat
 import {LayerZeroOptionsHelper} from "../../src/helpers/LayerZeroOptionsHelper.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {ReadCodecV1, EVMCallRequestV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 
 // Mock target contract on destination chain for state reading
 contract MockTargetContract {
@@ -388,6 +389,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
             BridgeTypes.OperationType.READ_STATE
         );
 
+        // Set up the operation-to-adapter mapping for testing
+        router.setOperationToAdapter(currentOperationId, address(adapter));
+
         vm.startPrank(address(router));
         adapter.readState{value: nativeFee}(
             currentOperationId,
@@ -488,9 +492,32 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
     }
 
     function testGetRequiredFeeFunction() public {
-        // Test the getRequiredFee public function
-        bytes memory payload = abi.encode("test payload");
-        uint256 requiredFee = adapter.getRequiredFee(ARB_LZ_EID, 2, payload); // 2 = STATE_READ
+        // Create target call data
+        bytes memory targetCallData = abi.encodePacked(
+            MockTargetContract.getTestValue.selector,
+            ""
+        );
+
+        // Create EVMCallRequestV1 array exactly like the adapter does
+        EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
+        readRequests[0] = EVMCallRequestV1({
+            appRequestLabel: 1,
+            targetEid: ARB_LZ_EID,
+            isBlockNum: false,
+            blockNumOrTimestamp: uint64(block.timestamp),
+            confirmations: 15,
+            to: address(targetContract),
+            callData: targetCallData
+        });
+
+        // Encode using ReadCodecV1.encode exactly like the adapter does
+        bytes memory payload = ReadCodecV1.encode(0, readRequests);
+
+        uint256 requiredFee = adapter.getRequiredFee(
+            READ_CHANNEL_ID, // Use read channel ID for state reads
+            adapter.STATE_READ(), // STATE_READ = 2
+            payload
+        );
 
         assertGt(requiredFee, 0, "Required fee should be greater than 0");
         console.log("Required fee for state read:", requiredFee);
@@ -520,6 +547,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
             adapterParams,
             BridgeTypes.OperationType.READ_STATE
         );
+
+        // Set up the operation-to-adapter mapping for testing
+        router.setOperationToAdapter(currentOperationId, address(adapter));
 
         // This test verifies that the real LayerZero endpoint accepts our read request
         // Even though we can't complete the cross-chain flow in a fork test,
@@ -585,6 +615,9 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
             READ_CHANNEL_ID,
             "Read channel not properly configured"
         );
+
+        // Set up the operation-to-adapter mapping for testing
+        router.setOperationToAdapter(currentOperationId, address(adapter));
 
         // Execute read state to verify ReadLib configuration
         vm.startPrank(address(router));
