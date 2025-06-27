@@ -20,6 +20,34 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         mockReceiver = new MockCrossChainReceiver();
     }
 
+    /// @dev Creates a payload for standard messages based on message type and transfer ID
+    /// @param messageType The type of message (2 for STATE_READ, 3 for GENERAL_MESSAGE)
+    /// @param transferId The transfer ID to include in the payload
+    /// @return payload The encoded payload bytes
+    function _createPayload(
+        uint16 messageType,
+        bytes32 transferId
+    ) internal pure returns (bytes memory payload) {
+        if (messageType == 2) {
+            // STATE_READ
+            // Format for state read message
+            payload = abi.encodePacked(
+                messageType,
+                abi.encode(transferId, bytes("Read data payload"))
+            );
+        } else if (messageType == 3) {
+            // GENERAL_MESSAGE
+            // Format for general message
+            payload = abi.encodePacked(
+                messageType,
+                abi.encode("General message payload")
+            );
+        } else {
+            // Unknown message type
+            revert("Unknown message type");
+        }
+    }
+
     // Modify the executeMessage function to accept a message type parameter
     function executeMessage(
         uint32 srcEid,
@@ -64,24 +92,7 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         // Standard message handling for non-read messages
         // Use the appropriate test helper based on the destination
         if (address(dstAdapter) == address(adapterA)) {
-            if (messageType == 2) {
-                // STATE_READ
-                // Format for state read message
-                payload = abi.encodePacked(
-                    messageType,
-                    abi.encode(transferId, bytes("Read data payload"))
-                );
-            } else if (messageType == 3) {
-                // GENERAL_MESSAGE
-                // Format for general message
-                payload = abi.encodePacked(
-                    messageType,
-                    abi.encode("General message payload")
-                );
-            } else {
-                // Unknown message type
-                revert("Unknown message type");
-            }
+            payload = _createPayload(messageType, transferId);
 
             try
                 adapterA.lzReceiveTest(
@@ -103,24 +114,7 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             }
         } else if (address(dstAdapter) == address(adapterB)) {
             // Create a properly formatted payload for asset transfer
-            if (messageType == 2) {
-                // STATE_READ
-                // Format for state read message
-                payload = abi.encodePacked(
-                    messageType,
-                    abi.encode(transferId, bytes("Read data payload"))
-                );
-            } else if (messageType == 3) {
-                // GENERAL_MESSAGE
-                // Format for general message
-                payload = abi.encodePacked(
-                    messageType,
-                    abi.encode("General message payload")
-                );
-            } else {
-                // Unknown message type
-                revert("Unknown message type");
-            }
+            payload = _createPayload(messageType, transferId);
 
             try
                 adapterB.lzReceiveTest(
