@@ -116,6 +116,15 @@ contract StargateAdapter is
     /// @notice Minimum gas limit for compose execution
     uint256 public constant MIN_COMPOSE_GAS = 200000;
 
+    /// @notice Maximum slippage tolerance (10% = 1000 basis points)
+    uint256 public constant MAX_SLIPPAGE_BPS = 1000;
+
+    /// @notice Minimum slippage tolerance (0.01% = 1 basis point)
+    uint256 public constant MIN_SLIPPAGE_BPS = 1;
+
+    /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
+    uint256 public slippageToleranceBps = 50;
+
     /// @notice Compose message types
     bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
     bytes32 public constant ASSET_TRANSFER_TYPE = keccak256("ASSET_TRANSFER");
@@ -139,6 +148,9 @@ contract StargateAdapter is
 
     /// @notice Emitted when compose gas limit is updated
     event ComposeGasLimitUpdated(uint256 newGasLimit);
+
+    /// @notice Emitted when slippage tolerance is updated
+    event SlippageToleranceUpdated(uint256 newSlippageBps);
 
     /// @notice Emitted when composed assets are handled
     event ComposedAssetHandled(
@@ -212,6 +224,17 @@ contract StargateAdapter is
         string reason
     );
 
+    /// @notice Emitted when a user refund is issued
+    event UserRefundIssued(
+        bytes32 indexed operationId,
+        address indexed asset,
+        uint256 amount,
+        address indexed user,
+        address originalUser,
+        uint16 sourceChainId,
+        string reason
+    );
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -260,6 +283,20 @@ contract StargateAdapter is
         }
         composeGasLimit = _composeGasLimit;
         emit ComposeGasLimitUpdated(_composeGasLimit);
+    }
+
+    /**
+     * @notice Sets the slippage tolerance for fallback minimum amount calculation
+     * @param _slippageBps New slippage tolerance in basis points (e.g., 50 = 0.5%)
+     */
+    function setSlippageTolerance(uint256 _slippageBps) external onlyOwner {
+        if (
+            _slippageBps < MIN_SLIPPAGE_BPS || _slippageBps > MAX_SLIPPAGE_BPS
+        ) {
+            revert InvalidParams();
+        }
+        slippageToleranceBps = _slippageBps;
+        emit SlippageToleranceUpdated(_slippageBps);
     }
 
     /**
@@ -695,7 +732,10 @@ contract StargateAdapter is
         ) {
             sendParam.minAmountLD = oftReceipt.amountReceivedLD;
         } catch {
-            sendParam.minAmountLD = (amount * 9950) / 10000;
+            // Use configurable slippage tolerance
+            sendParam.minAmountLD =
+                (amount * (10000 - slippageToleranceBps)) /
+                10000;
         }
     }
 
@@ -965,7 +1005,7 @@ contract StargateAdapter is
             // messageType already decoded
             address fleetCommander,
             address shareRecipient,
-            address sourceAsset, // originalAmount - not used in current implementation
+            address sourceAsset,
             ,
             uint256 sourceChainId,
             bytes32 operationId,
@@ -1018,29 +1058,33 @@ contract StargateAdapter is
         );
 
         if (!success) {
-            // Store failed compose details for governance recovery
-            failedComposes[operationId] = FailedCompose({
-                asset: destinationAsset,
-                amount: amountLD,
-                intendedRecipient: fleetCommander,
-                operationId: operationId,
-                originator: originalUser,
-                sourceChainId: uint16(sourceChainId),
-                timestamp: block.timestamp,
-                isDeposit: true // Fleet deposits are always deposits
-            });
-
-            failedOperationIds.push(operationId);
-
-            emit ComposeFailedAssetsHeld(
-                operationId,
-                destinationAsset,
-                amountLD,
-                fleetCommander,
-                true,
-                "Fleet deposit failed"
+            // Check if this is a user-led transaction (via FleetDepositManager)
+            bool isUserLedTransaction = _isUserLedTransaction(
+                originalUser,
+                shareRecipient
             );
 
+            if (isUserLedTransaction) {
+                // For user-led transactions, send assets directly to the user on destination chain
+                _handleUserLedFailure(
+                    destinationAsset,
+                    amountLD,
+                    shareRecipient,
+                    operationId,
+                    originalUser,
+                    uint16(sourceChainId)
+                );
+            } else {
+                // For system transactions, keep current behavior - hold for governance recovery
+                _handleSystemFailure(
+                    destinationAsset,
+                    amountLD,
+                    fleetCommander,
+                    operationId,
+                    originalUser,
+                    uint16(sourceChainId)
+                );
+            }
             return;
         }
 
@@ -1050,6 +1094,90 @@ contract StargateAdapter is
             destinationAsset,
             amountLD,
             uint16(sourceChainId)
+        );
+    }
+
+    /**
+     * @dev Check if this is a user-led transaction vs system transaction
+     * @param originalUser The user who initiated the transaction
+     * @param shareRecipient The recipient of fleet shares
+     * @return True if this appears to be a user-led transaction
+     */
+    function _isUserLedTransaction(
+        address originalUser,
+        address shareRecipient
+    ) internal pure returns (bool) {
+        // User-led transactions typically have originalUser == shareRecipient
+        // This indicates the user is depositing for themselves via FleetDepositManager
+        return originalUser == shareRecipient && originalUser != address(0);
+    }
+
+    /**
+     * @dev Handle failure for user-led transactions - send assets to user
+     */
+    function _handleUserLedFailure(
+        address asset,
+        uint256 amount,
+        address user,
+        bytes32 operationId,
+        address originalUser,
+        uint16 sourceChainId
+    ) internal {
+        // Send assets directly to the user on destination chain
+        IERC20(asset).safeTransfer(user, amount);
+
+        emit CrossChainFleetDepositFailed(
+            operationId,
+            address(0), // fleetCommander - not applicable for user refund
+            asset,
+            amount,
+            "Fleet deposit failed - assets sent to user"
+        );
+
+        // Emit a specific event for user refunds
+        emit UserRefundIssued(
+            operationId,
+            asset,
+            amount,
+            user,
+            originalUser,
+            sourceChainId,
+            "Fleet deposit failed"
+        );
+    }
+
+    /**
+     * @dev Handle failure for system transactions - hold for governance recovery
+     */
+    function _handleSystemFailure(
+        address asset,
+        uint256 amount,
+        address intendedRecipient,
+        bytes32 operationId,
+        address originator,
+        uint16 sourceChainId
+    ) internal {
+        // Store failed compose details for governance recovery (existing behavior)
+        failedComposes[operationId] = FailedCompose({
+            asset: asset,
+            amount: amount,
+            intendedRecipient: intendedRecipient,
+            operationId: operationId,
+            originator: originator,
+            sourceChainId: sourceChainId,
+            timestamp: block.timestamp,
+            isDeposit: true
+        });
+
+        failedOperationIds.push(operationId);
+
+        emit ComposeFailedAssetsHeld(
+            operationId,
+            asset,
+            amount,
+            intendedRecipient,
+            true,
+            "Fleet deposit failed - system transaction"
         );
     }
 
