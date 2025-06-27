@@ -415,7 +415,7 @@ contract BridgeRouterTransferTest is Test {
                 }),
                 BridgeTypes.OperationType.TRANSFER_ASSET
             )
-        returns (uint256 nativeFee, uint256 tokenFee) {
+        returns (uint256 nativeFee, uint256) {
             console.log("IBridgeAdapter cast works, nativeFee:", nativeFee);
         } catch {
             console.log("IBridgeAdapter cast failed");
@@ -444,9 +444,6 @@ contract BridgeRouterTransferTest is Test {
             "Router approval to MockAdapter:",
             token.allowance(address(router), address(mockAdapter))
         );
-
-        // Check if we can call the method through ISendAdapter interface
-        ISendAdapter sendAdapter = ISendAdapter(address(mockAdapter));
 
         // Test if basic function calls work
         try mockAdapter.testFunction() returns (bool result) {
