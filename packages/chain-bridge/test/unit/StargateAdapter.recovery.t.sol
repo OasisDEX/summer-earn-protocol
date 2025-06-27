@@ -76,12 +76,12 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
                       INTERFACE DETECTION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testIsFleetProxyDetection() public {
+    function testIsFleetProxyDetection() public view {
         // FleetProxy should be detected as FleetProxy (doesn't support ICrossChainArk)
         assertTrue(wrapperB.isFleetProxy(address(fleetProxy)));
     }
 
-    function testIsNotFleetProxyForRegularContract() public {
+    function testIsNotFleetProxyForRegularContract() public view {
         // Regular contract should not be detected as FleetProxy
         assertFalse(wrapperB.isFleetProxy(address(tokenB)));
     }
@@ -195,8 +195,6 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
     }
 
     function testRecoverFailedComposesUnauthorized() public {
-        bytes32[] memory opsToRecover = new bytes32[](0);
-
         vm.expectRevert(); // Should revert with Ownable error
         vm.prank(user);
         wrapperB.manualRecovery(
@@ -330,12 +328,12 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
                           VIEW FUNCTION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testGetFailedOperationsEmpty() public {
+    function testGetFailedOperationsEmpty() public view {
         bytes32[] memory failedOps = wrapperB.getFailedOperations();
         assertEq(failedOps.length, 0);
     }
 
-    function testGetFailedComposeNonExistent() public {
+    function testGetFailedComposeNonExistent() public view {
         StargateAdapter.FailedCompose memory failed = wrapperB.getFailedCompose(
             bytes32("nonexistent")
         );
@@ -343,7 +341,7 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         assertEq(failed.amount, 0);
     }
 
-    function testGetAdapterBalance() public {
+    function testGetAdapterBalance() public view {
         uint256 balance = wrapperB.getAdapterBalance(address(tokenB));
         assertEq(balance, TEST_AMOUNT * 5);
     }

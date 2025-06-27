@@ -116,7 +116,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
         // Check current value
         uint16 messageType = adapterA.GENERAL_MESSAGE();
-        assertEq(adapterA.minGasLimits(messageType), 300000);
+        assertEq(adapterA.minGasLimits(messageType), 700000);
 
         // Try to set minGasLimit as unauthorized address
         vm.prank(address(2));

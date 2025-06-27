@@ -67,7 +67,14 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
     function setUp() public virtual override {
         super.setUp();
+        _setupEndpoints();
+        _setupChainA();
+        _setupChainB();
+        _configurePeers();
+        useNetworkA();
+    }
 
+    function _setupEndpoints() internal {
         // Set up LayerZero endpoints
         setUpEndpoints(2, LibraryType.UltraLightNode);
         lzEndpointA = address(endpoints[aEid]);
@@ -75,7 +82,9 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
         vm.label(lzEndpointA, "LayerZero Endpoint A");
         vm.label(lzEndpointB, "LayerZero Endpoint B");
+    }
 
+    function _setupChainA() internal {
         // Map regular chain IDs to LayerZero EIDs
         uint16[] memory chains = new uint16[](2);
         chains[0] = CHAIN_ID_A;
@@ -89,19 +98,23 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         useNetworkA();
         vm.startPrank(governor);
 
+        // Deploy access manager and bridge queue
         accessManagerA = new ProtocolAccessManager(governor);
         bridgeQueueA = new BridgeQueue(
             address(accessManagerA),
             address(0), // Router set later
             governor // Use governor as queue manager
         );
+
+        // Deploy router and configure
         routerA = new BridgeRouterTestHelper(
             address(accessManagerA),
             address(bridgeQueueA) // Pass queue address
         );
         bridgeQueueA.setBridgeRouter(address(routerA));
-        tokenA = new ERC20Mock();
 
+        // Deploy token and adapter
+        tokenA = new ERC20Mock();
         adapterA = new LayerZeroAdapterTestHelper(
             lzEndpointA,
             address(routerA),
@@ -110,29 +123,45 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             governor
         );
 
+        // Final configuration
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
         tokenA.mint(address(bridgeQueueA), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
+    }
+
+    function _setupChainB() internal {
+        // Map regular chain IDs to LayerZero EIDs
+        uint16[] memory chains = new uint16[](2);
+        chains[0] = CHAIN_ID_A;
+        chains[1] = CHAIN_ID_B;
+
+        uint32[] memory lzEids = new uint32[](2);
+        lzEids[0] = LZ_EID_A;
+        lzEids[1] = LZ_EID_B;
 
         // Deploy contracts on chain B
         useNetworkB();
         vm.startPrank(governor);
 
+        // Deploy access manager and bridge queue
         accessManagerB = new ProtocolAccessManager(governor);
         bridgeQueueB = new BridgeQueue(
             address(accessManagerB),
             address(0), // Router set later
             governor // Use governor as queue manager
         );
+
+        // Deploy router and configure
         routerB = new BridgeRouterTestHelper(
             address(accessManagerB),
             address(bridgeQueueB) // Pass queue address
         );
         bridgeQueueB.setBridgeRouter(address(routerB));
-        tokenB = new ERC20Mock();
 
+        // Deploy token and adapter
+        tokenB = new ERC20Mock();
         adapterB = new LayerZeroAdapterTestHelper(
             lzEndpointB,
             address(routerB),
@@ -141,13 +170,15 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             governor
         );
 
+        // Final configuration
         routerB.registerAdapter(address(adapterB));
-
         tokenB.mint(user, 10000e18);
         tokenB.mint(address(bridgeQueueB), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
+    }
 
+    function _configurePeers() internal {
         // Set up peers between the two adapters
         // First, set up Chain A's adapter to trust Chain B's adapter
         useNetworkA();
@@ -160,9 +191,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
         adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
         vm.stopPrank();
-
-        // Return to network A for tests to start
-        useNetworkA();
     }
 
     function aTest() public {
