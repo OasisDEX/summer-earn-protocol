@@ -170,15 +170,6 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
         IERC20(asset).forceApprove(bridgeAdapter, amount);
 
-        // Create updated adapter params with compose message
-        BridgeTypes.AdapterParams memory updatedParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: adapterParams.gasLimit,
-                calldataSize: adapterParams.calldataSize,
-                msgValue: adapterParams.msgValue,
-                options: composeMessage // Pass compose message as options
-            });
-
         // Execute cross-chain deposit through the chosen adapter using standard interface
         operationId = IFleetDepositAdapter(bridgeAdapter)
             .executeCrossChainFleetDeposit{value: msg.value}(
@@ -187,7 +178,7 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
             amount,
             address(0), // destinationAdapter - not needed, adapter handles this
             composeMessage,
-            updatedParams
+            adapterParams
         );
 
         emit CrossChainFleetDepositInitiated(
