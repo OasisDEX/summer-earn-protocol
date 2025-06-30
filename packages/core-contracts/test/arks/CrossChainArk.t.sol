@@ -415,13 +415,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
         CrossChainArk arkWithoutProxy = new CrossChainArk(
             address(queue),
             address(router),
+            address(registry),
             chainId,
             params
         );
 
         // Should revert when target proxy is not set
         vm.prank(keeper);
-        vm.expectRevert(CrossChainArk.InvalidTargetProxy.selector);
+        vm.expectRevert(CrossChainArk.NoProxyRelationshipRegistered.selector);
         arkWithoutProxy.requestRemoteAssetBalanceUpdate();
     }
 
