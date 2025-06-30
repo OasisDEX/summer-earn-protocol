@@ -148,7 +148,6 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
         address executor = 0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4;
         address readDVN = 0xB1473AC9f58FB27597a21710da9D1071841E8163;
         uint64 confirmations = 15;
-        uint32 maxMessageSize = 10000;
         uint128 minGasLimit = 300000;
 
         // Step 1: Activate read channel
@@ -180,7 +179,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
         adapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
     }
 
-    function testAdapterConfiguration() public {
+    function testAdapterConfiguration() public view {
         // Test that adapter is properly configured
         assertTrue(
             adapter.supportsChain(DEST_CHAIN_ID),
@@ -215,7 +214,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
         );
     }
 
-    function testEstimateStateReadFee() public {
+    function testEstimateStateReadFee() public view {
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
                 gasLimit: 300000,
@@ -491,7 +490,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
         vm.stopPrank();
     }
 
-    function testGetRequiredFeeFunction() public {
+    function testGetRequiredFeeFunction() public view {
         // Create target call data
         bytes memory targetCallData = abi.encodePacked(
             MockTargetContract.getTestValue.selector,
@@ -853,7 +852,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
         console.log("\n=== Diagnosis Complete ===");
     }
 
-    function testForkBlockAnalysis() public {
+    function testForkBlockAnalysis() public view {
         console.log("=== Fork Block Analysis ===");
         console.log("Current fork configuration:");
         console.log("- Fork block:", FORK_BLOCK);
@@ -1091,7 +1090,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
         console.log("\n=== Calldata Size Analysis Complete ===");
     }
 
-    function testLayerZeroErrorDecoding() public {
+    function testLayerZeroErrorDecoding() public pure {
         console.log("=== LayerZero Error Decoding ===");
 
         // The error we saw was 0x052e5515 with value 0x5

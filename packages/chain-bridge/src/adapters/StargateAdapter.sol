@@ -967,7 +967,7 @@ contract StargateAdapter is
         // Get destination asset first
         address destinationAsset = IStargateV2(_from).token();
 
-        // Check if this is a fleet deposit message by looking at the first 32 bytes
+        // Read the message type from the first parameter of the compose message
         bytes32 messageType;
         assembly {
             messageType := mload(add(composeMsg, 0x20))
@@ -1002,11 +1002,11 @@ contract StargateAdapter is
         // Decode fleet deposit message
         (
             ,
-            // messageType already decoded
+            // messageType already extracted above
             address fleetCommander,
             address shareRecipient,
             address sourceAsset,
-            ,
+            uint256 originalAmount,
             uint256 sourceChainId,
             bytes32 operationId,
             address originalUser,
@@ -1031,7 +1031,7 @@ contract StargateAdapter is
             destinationAsset == address(0) ||
             fleetCommander == address(0) ||
             shareRecipient == address(0) ||
-            amountLD == 0
+            originalAmount == 0
         ) {
             revert InvalidParams();
         }
@@ -1126,15 +1126,7 @@ contract StargateAdapter is
         // Send assets directly to the user on destination chain
         IERC20(asset).safeTransfer(user, amount);
 
-        emit CrossChainFleetDepositFailed(
-            operationId,
-            address(0), // fleetCommander - not applicable for user refund
-            asset,
-            amount,
-            "Fleet deposit failed - assets sent to user"
-        );
-
-        // Emit a specific event for user refunds
+        // Emit a specific event for user refunds first
         emit UserRefundIssued(
             operationId,
             asset,
@@ -1143,6 +1135,14 @@ contract StargateAdapter is
             originalUser,
             sourceChainId,
             "Fleet deposit failed"
+        );
+
+        emit CrossChainFleetDepositFailed(
+            operationId,
+            address(0), // fleetCommander - not applicable for user refund
+            asset,
+            amount,
+            "Fleet deposit failed - assets sent to user"
         );
     }
 
@@ -1281,8 +1281,8 @@ contract StargateAdapter is
         address shareRecipient,
         bytes memory referralCode,
         bytes32 operationId,
-        address, // originalUser - not used in current implementation
-        address, // sourceAsset - not used in current implementation
+        address, // originalUser
+        address, // sourceAsset
         uint16 sourceChainId
     ) internal returns (bool success) {
         // Validate FleetCommander supports the asset

@@ -128,7 +128,6 @@ contract LayerZeroAdapterReadResponseBaseForkTest is Test {
         address executor = 0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4;
         address readDVN = 0xB1473AC9f58FB27597a21710da9D1071841E8163;
         uint64 confirmations = 15;
-        uint32 maxMessageSize = 10000;
         uint128 minGasLimit = 300000;
 
         // Step 1: Activate read channel
@@ -278,7 +277,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is Test {
         console.log("[SUCCESS] Delivery failure handled correctly");
     }
 
-    function testReadChannelThresholdBoundaryConditions() public {
+    function testReadChannelThresholdBoundaryConditions() public pure {
         console.log(
             "=== Testing Read Channel Threshold Boundary Conditions ==="
         );
@@ -315,7 +314,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is Test {
         console.log("[SUCCESS] Boundary conditions handled correctly");
     }
 
-    function testLayerZeroEndpointIntegration() public {
+    function testLayerZeroEndpointIntegration() public view {
         console.log("=== LayerZero Endpoint Integration Test ===");
         console.log(
             "Testing read response handling with real LayerZero endpoint configuration"

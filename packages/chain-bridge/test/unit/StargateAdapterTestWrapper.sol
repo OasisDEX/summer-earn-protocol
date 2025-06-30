@@ -57,4 +57,25 @@ contract StargateAdapterTestWrapper is StargateAdapter {
 
         failedOperationIds.push(operationId);
     }
+
+    /**
+     * @notice Test function to call _handleUserLedFailure directly
+     */
+    function testHandleUserLedFailure(
+        address asset,
+        uint256 amount,
+        address user,
+        bytes32 operationId,
+        address originalUser,
+        uint16 sourceChainId
+    ) external {
+        _handleUserLedFailure(
+            asset,
+            amount,
+            user,
+            operationId,
+            originalUser,
+            sourceChainId
+        );
+    }
 }

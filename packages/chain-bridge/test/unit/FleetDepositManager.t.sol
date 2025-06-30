@@ -79,11 +79,11 @@ contract FleetDepositManagerTest is Test {
                         ADAPTER VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_IsAdapterSupported_Success() public {
+    function test_IsAdapterSupported_Success() public view {
         assertTrue(manager.isAdapterSupported(address(mockAdapter)));
     }
 
-    function test_IsAdapterSupported_UnsupportedAdapter() public {
+    function test_IsAdapterSupported_UnsupportedAdapter() public view {
         address unsupportedAdapter = address(0x999);
         assertFalse(manager.isAdapterSupported(unsupportedAdapter));
     }
@@ -95,11 +95,12 @@ contract FleetDepositManagerTest is Test {
 
     function test_IsAdapterSupported_AdapterDoesNotSupportFleetDeposits()
         public
+        view
     {
         assertFalse(manager.isAdapterSupported(address(noSupportAdapter)));
     }
 
-    function test_IsAdapterSupported_AdapterReverts() public {
+    function test_IsAdapterSupported_AdapterReverts() public view {
         address invalidAdapter = address(0x789);
         assertFalse(manager.isAdapterSupported(invalidAdapter));
     }
@@ -486,7 +487,7 @@ contract FleetDepositManagerTest is Test {
                         COMPOSE MESSAGE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_EncodeFleetDepositMessage_Success() public {
+    function test_EncodeFleetDepositMessage_Success() public view {
         bytes memory composeMessage = manager.encodeFleetDepositMessage(
             fleetCommander,
             shareRecipient,
@@ -533,7 +534,7 @@ contract FleetDepositManagerTest is Test {
         assertEq(referralCode, bytes("SUMMER2024"));
     }
 
-    function test_EncodeFleetDepositMessage_EmptyReferralCode() public {
+    function test_EncodeFleetDepositMessage_EmptyReferralCode() public view {
         bytes memory composeMessage = manager.encodeFleetDepositMessage(
             fleetCommander,
             shareRecipient,
@@ -562,7 +563,7 @@ contract FleetDepositManagerTest is Test {
         assertEq(referralCode.length, 0);
     }
 
-    function test_CreateFleetDepositMessage_LongReferralCode() public {
+    function test_CreateFleetDepositMessage_LongReferralCode() public view {
         bytes memory longReferralCode = bytes(
             "VERYLONGREFERRALCODEFORFLEETDEPOSITS2024"
         );
@@ -685,7 +686,7 @@ contract FleetDepositManagerTest is Test {
         assertNotEq(operationId, bytes32(0));
 
         // Get adapter params to verify - destructure the tuple
-        (uint64 gasLimit, uint32 calldataSize, uint128 msgValue, ) = mockAdapter
+        (uint64 gasLimit, uint32 calldataSize, , ) = mockAdapter
             .lastAdapterParams();
         assertEq(gasLimit, 5000000);
         assertEq(calldataSize, 1000);
@@ -738,15 +739,6 @@ contract FleetDepositManagerTest is Test {
 
         // Approve tokens
         token.approve(address(manager), DEPOSIT_AMOUNT);
-
-        // Create compose message for verification
-        bytes memory expectedComposeMessage = manager.encodeFleetDepositMessage(
-            fleetCommander,
-            shareRecipient,
-            address(token),
-            DEPOSIT_AMOUNT,
-            referralCode
-        );
 
         // Execute deposit
         bytes32 operationId = manager.crossChainDepositToFleet{
