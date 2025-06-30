@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
@@ -15,6 +15,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
 
 // Simple mock fleet commander that actually transfers tokens
 contract SimpleMockFleetCommander {
@@ -662,6 +663,10 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Create a mock fleet commander that will revert deposits
         address mockFleetCommander = makeAddr("mockFleetCommander");
+
+        // Set the fleet commander as active in the mock harbor command
+        harborCommandB.setActiveFleetCommander(mockFleetCommander, true);
+
         vm.mockCall(
             mockFleetCommander,
             abi.encodeWithSignature("asset()"),
@@ -832,6 +837,12 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         SimpleMockFleetCommander mockFleetCommander = new SimpleMockFleetCommander(
                 address(tokenB)
             );
+
+        // Register the fleet commander as active in harbor command
+        harborCommandB.setActiveFleetCommander(
+            address(mockFleetCommander),
+            true
+        );
 
         // Create fleet deposit compose message where originalUser == shareRecipient (user-led)
         bytes memory actualFleetDepositMessage = abi.encode(
@@ -1120,7 +1131,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         StargateAdapterTestWrapper wrapperAdapter = new StargateAdapterTestWrapper(
                 address(routerB),
                 address(this),
-                address(lzEndpointB)
+                address(lzEndpointB),
+                address(0xdead) // Mock HarborCommand address for testing
             );
 
         // Transfer tokens to wrapper for test

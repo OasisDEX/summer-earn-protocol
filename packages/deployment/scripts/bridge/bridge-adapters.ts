@@ -199,13 +199,22 @@ export async function deployStargateAdapter(
     )
   }
 
-  // Deploy using Ignition module - only 3 constructor parameters needed
+  // Get HarborCommand address from network config
+  const harborCommand = networkConfig.deployedContracts.core.harborCommand.address
+  if (!harborCommand) {
+    throw new Error(
+      `HarborCommand address not found in config for chain ID ${networkConfig.common.chainId}`,
+    )
+  }
+
+  // Deploy using Ignition module - all 4 constructor parameters needed
   const deploymentResult = await hre.ignition.deploy(StargateAdapterModule, {
     parameters: {
       StargateAdapterModule: {
         bridgeRouter: bridgeRouterAddress,
         owner: signerAddress,
         lzEndpoint: lzEndpoint,
+        harborCommand: harborCommand,
       },
     },
   })

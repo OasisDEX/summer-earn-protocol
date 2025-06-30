@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
@@ -28,6 +28,7 @@ import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTCompo
 import {IFleetCommanderMinimal} from "../interfaces/IFleetCommanderMinimal.sol";
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
+import {IHarborCommandMinimal} from "../interfaces/IHarborCommandMinimal.sol";
 
 /**
  * @title StargateAdapter
@@ -49,6 +50,9 @@ contract StargateAdapter is
 
     /// @notice Error for insufficient balance
     error InsufficientBalance();
+
+    /// @notice Error for invalid fleet commander
+    error InvalidFleetCommander();
 
     /// @notice Transfer parameters struct to avoid stack too deep
     struct TransferParams {
@@ -92,6 +96,9 @@ contract StargateAdapter is
 
     /// @notice LayerZero endpoint for compose functionality
     address public immutable lzEndpoint;
+
+    /// @notice HarborCommand contract address for fleet commander validation
+    address public immutable harborCommand;
 
     /// @notice Mapping of supported chains to their LayerZero Endpoint IDs
     mapping(uint16 chainId => uint32 endpointId) public chainToEndpointId;
@@ -244,17 +251,21 @@ contract StargateAdapter is
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _owner Address of the contract owner
      * @param _lzEndpoint LayerZero endpoint for compose functionality
+     * @param _harborCommand Address of the HarborCommand contract for fleet commander validation
      */
     constructor(
         address _bridgeRouter,
         address _owner,
-        address _lzEndpoint
+        address _lzEndpoint,
+        address _harborCommand
     ) Ownable(_owner) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
         if (_lzEndpoint == address(0)) revert InvalidParams();
+        if (_harborCommand == address(0)) revert InvalidParams();
 
         bridgeRouter = _bridgeRouter;
         lzEndpoint = _lzEndpoint;
+        harborCommand = _harborCommand;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -1285,6 +1296,22 @@ contract StargateAdapter is
         address, // sourceAsset
         uint16 sourceChainId
     ) internal returns (bool success) {
+        // Validate FleetCommander is active through HarborCommand
+        if (
+            !IHarborCommandMinimal(harborCommand).activeFleetCommanders(
+                fleetCommander
+            )
+        ) {
+            emit CrossChainFleetDepositFailed(
+                operationId,
+                fleetCommander,
+                asset,
+                amount,
+                "FleetCommander not active"
+            );
+            return false;
+        }
+
         // Validate FleetCommander supports the asset
         try IFleetCommanderMinimal(fleetCommander).asset() returns (
             address fleetAsset
@@ -1433,14 +1460,17 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Check if an address is a FleetCommander by checking if it has the required interface
-     * @dev Simple interface check for FleetCommander functionality
+     * @dev Validates that a fleet commander is active through HarborCommand
+     * @param fleetCommander Address of the fleet commander to validate
+     * @dev Reverts with InvalidFleetCommander if fleet commander is not active
      */
-    function _isFleetCommander(address recipient) internal view returns (bool) {
-        try IFleetCommanderMinimal(recipient).asset() returns (address) {
-            return true;
-        } catch {
-            return false;
+    function _validateFleetCommander(address fleetCommander) internal view {
+        if (
+            !IHarborCommandMinimal(harborCommand).activeFleetCommanders(
+                fleetCommander
+            )
+        ) {
+            revert InvalidFleetCommander();
         }
     }
 
@@ -1572,5 +1602,65 @@ contract StargateAdapter is
      */
     function getAdapterBalance(address asset) external view returns (uint256) {
         return IERC20(asset).balanceOf(address(this));
+    }
+
+    /**
+     * @dev Deposit assets to validated FleetCommander - reverts on failure
+     */
+    function _depositToFleetCommander(
+        address fleetCommander,
+        address asset,
+        uint256 amount,
+        address shareRecipient,
+        bytes memory referralCode,
+        bytes32 operationId,
+        address, // originalUser
+        address, // sourceAsset
+        uint16 sourceChainId
+    ) internal {
+        // Validate FleetCommander is active through HarborCommand
+        _validateFleetCommander(fleetCommander);
+
+        // Validate FleetCommander supports the asset
+        address fleetAsset = IFleetCommanderMinimal(fleetCommander).asset();
+        if (fleetAsset != asset) {
+            revert InvalidParams();
+        }
+
+        // Check deposit limits
+        uint256 maxDeposit = IFleetCommanderMinimal(fleetCommander).maxDeposit(
+            address(this)
+        );
+        if (amount > maxDeposit) {
+            revert InvalidParams();
+        }
+
+        // Approve FleetCommander to spend tokens
+        IERC20(asset).approve(fleetCommander, amount);
+
+        // Deposit to FleetCommander
+        uint256 shares;
+        if (referralCode.length > 0) {
+            shares = IFleetCommanderMinimal(fleetCommander).deposit(
+                amount,
+                shareRecipient,
+                referralCode
+            );
+        } else {
+            shares = IFleetCommanderMinimal(fleetCommander).deposit(
+                amount,
+                shareRecipient
+            );
+        }
+
+        emit CrossChainFleetDepositCompleted(
+            operationId,
+            fleetCommander,
+            shareRecipient,
+            asset,
+            amount,
+            shares,
+            sourceChainId
+        );
     }
 }

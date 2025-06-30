@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
@@ -83,7 +83,8 @@ contract StargateAdapterComposeForkTest is Test {
         adapterMainnet = new StargateAdapter(
             address(routerMainnet),
             governor,
-            LAYERZERO_ENDPOINT_MAINNET
+            LAYERZERO_ENDPOINT_MAINNET,
+            address(0xdead) // Mock HarborCommand address for testing
         );
 
         // Configure mainnet adapter with basic chain support only
@@ -139,7 +140,8 @@ contract StargateAdapterComposeForkTest is Test {
         adapterArbitrum = new StargateAdapter(
             address(routerArbitrum),
             governor,
-            LAYERZERO_ENDPOINT_ARBITRUM
+            LAYERZERO_ENDPOINT_ARBITRUM,
+            address(0xdead) // Mock HarborCommand address for testing
         );
 
         // Configure Arbitrum adapter with basic chain support only

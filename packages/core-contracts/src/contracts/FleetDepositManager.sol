@@ -4,9 +4,12 @@ pragma solidity ^0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {IFleetDepositAdapter} from "./interfaces/IFleetDepositAdapter.sol";
-import {IBridgeRouter} from "./interfaces/IBridgeRouter.sol";
-import {BridgeTypes} from "./libraries/BridgeTypes.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {IFleetDepositAdapter} from "@summerfi/chain-bridge/interfaces/IFleetDepositAdapter.sol";
+import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
+import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
+import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
+import {IFleetCommanderMinimal} from "@summerfi/chain-bridge/interfaces/IFleetCommanderMinimal.sol";
 
 /**
  * @title FleetDepositManager
@@ -14,7 +17,7 @@ import {BridgeTypes} from "./libraries/BridgeTypes.sol";
  * @dev Orchestrates fleet deposits through any bridge adapter registered with BridgeRouter
  *      Users can choose their preferred bridge technology (Stargate, LayerZero, Hyperlane, etc.)
  */
-contract FleetDepositManager is ReentrancyGuard {
+contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -33,6 +36,12 @@ contract FleetDepositManager is ReentrancyGuard {
         address shareRecipient
     );
 
+    /// @notice Emitted when the bridge router address is updated
+    event BridgeRouterUpdated(
+        address indexed oldRouter,
+        address indexed newRouter
+    );
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -43,12 +52,24 @@ contract FleetDepositManager is ReentrancyGuard {
     /// @notice Thrown when bridge adapter is not supported
     error UnsupportedBridgeAdapter();
 
+    /// @notice Thrown when fleet commander is invalid
+    error InvalidFleetCommander();
+
+    /// @notice Thrown when asset mismatch
+    error AssetMismatch();
+
+    /// @notice Thrown when deposit exceeds max deposit
+    error ExceedsMaxDeposit();
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The BridgeRouter that manages bridge adapters
-    IBridgeRouter public immutable bridgeRouter;
+    IBridgeRouter public bridgeRouter;
+
+    /// @notice HarborCommand contract address for fleet commander validation
+    address public immutable harborCommand;
 
     /// @notice Fleet deposit message type identifier
     bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
@@ -60,10 +81,36 @@ contract FleetDepositManager is ReentrancyGuard {
     /**
      * @notice Initializes the FleetDepositManager
      * @param _bridgeRouter Address of the BridgeRouter
+     * @param _accessManager Address of the ProtocolAccessManager
+     * @param _harborCommand Address of the HarborCommand contract for fleet commander validation
      */
-    constructor(address _bridgeRouter) {
+    constructor(
+        address _bridgeRouter,
+        address _accessManager,
+        address _harborCommand
+    ) ProtocolAccessManaged(_accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
+        if (_harborCommand == address(0)) revert InvalidParams();
         bridgeRouter = IBridgeRouter(_bridgeRouter);
+        harborCommand = _harborCommand;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                         GOVERNANCE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Updates the bridge router address
+     * @param _newBridgeRouter Address of the new BridgeRouter
+     * @dev Only callable by governance
+     */
+    function setBridgeRouter(address _newBridgeRouter) external onlyGovernor {
+        if (_newBridgeRouter == address(0)) revert InvalidParams();
+
+        address oldRouter = address(bridgeRouter);
+        bridgeRouter = IBridgeRouter(_newBridgeRouter);
+
+        emit BridgeRouterUpdated(oldRouter, _newBridgeRouter);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -102,17 +149,21 @@ contract FleetDepositManager is ReentrancyGuard {
             revert UnsupportedBridgeAdapter();
         }
 
+        // Validate fleet configuration using existing HarborCommand + FleetCommander
+        _validateFleetDeposit(
+            destinationChainId,
+            fleetCommander,
+            asset,
+            amount
+        );
+
         // Create fleet deposit compose message
-        bytes memory composeMessage = abi.encode(
-            FLEET_DEPOSIT_TYPE, // Message type identifier
-            fleetCommander, // FleetCommander address
-            shareRecipient, // Share recipient
-            asset, // Asset being deposited
-            amount, // Amount to deposit
-            block.chainid, // Source chain ID
-            bytes32(0), // Operation ID (will be set by adapter)
-            msg.sender, // Original user
-            referralCode // Referral code
+        bytes memory composeMessage = encodeFleetDepositMessage(
+            fleetCommander,
+            shareRecipient,
+            asset,
+            amount,
+            referralCode
         );
 
         // Transfer tokens from user to this contract, then approve adapter
@@ -166,7 +217,7 @@ contract FleetDepositManager is ReentrancyGuard {
         address asset,
         uint256 amount,
         bytes memory referralCode
-    ) external view returns (bytes memory composeMessage) {
+    ) public view returns (bytes memory composeMessage) {
         return
             abi.encode(
                 FLEET_DEPOSIT_TYPE,
@@ -207,18 +258,48 @@ contract FleetDepositManager is ReentrancyGuard {
             return false;
         }
 
-        try IFleetDepositAdapter(adapter).supportsFleetDeposits() returns (
-            bool result
-        ) {
-            if (!result) return false;
+        try bridgeRouter.isValidAdapter(adapter) returns (bool isValid) {
+            if (!isValid) return false;
 
-            try bridgeRouter.isValidAdapter(adapter) returns (bool isValid) {
-                return isValid;
+            try IFleetDepositAdapter(adapter).supportsFleetDeposits() returns (
+                bool result
+            ) {
+                return result;
             } catch {
                 return false;
             }
         } catch {
             return false;
+        }
+    }
+
+    /**
+     * @dev Internal function to validate fleet deposit configuration
+     */
+    function _validateFleetDeposit(
+        uint16 /* destinationChainId */,
+        address fleetCommander,
+        address asset,
+        uint256 amount
+    ) internal view {
+        // 1. Check FleetCommander is active via HarborCommand
+        if (
+            !IHarborCommand(harborCommand).activeFleetCommanders(fleetCommander)
+        ) {
+            revert InvalidFleetCommander();
+        }
+
+        // 2. Check asset compatibility
+        if (IFleetCommanderMinimal(fleetCommander).asset() != asset) {
+            revert AssetMismatch();
+        }
+
+        // 3. Check deposit limits
+        uint256 maxDeposit = IFleetCommanderMinimal(fleetCommander).maxDeposit(
+            address(this)
+        );
+        if (amount > maxDeposit) {
+            revert ExceedsMaxDeposit();
         }
     }
 }

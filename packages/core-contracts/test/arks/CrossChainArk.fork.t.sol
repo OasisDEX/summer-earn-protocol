@@ -97,7 +97,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         stargateAdapter = new StargateAdapter(
             address(bridgeRouter),
             governor,
-            LZ_ENDPOINT_MAINNET
+            LZ_ENDPOINT_MAINNET,
+            address(0xdead) // Mock HarborCommand address for testing
         );
 
         // Register adapters with router
