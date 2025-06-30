@@ -25,18 +25,18 @@ contract MockHarborCommand {
 }
 
 contract MockFleetCommander {
-    address public asset;
+    address private _asset;
     uint256 public maxDepositAmount;
     bool public shouldRevertAsset;
     bool public shouldRevertMaxDeposit;
 
-    constructor(address _asset) {
-        asset = _asset;
+    constructor(address __asset) {
+        _asset = __asset;
         maxDepositAmount = type(uint256).max;
     }
 
-    function setAsset(address _asset) external {
-        asset = _asset;
+    function setAsset(address __asset) external {
+        _asset = __asset;
     }
 
     function setMaxDeposit(uint256 _maxDeposit) external {
@@ -49,6 +49,13 @@ contract MockFleetCommander {
 
     function setShouldRevertMaxDeposit(bool _shouldRevert) external {
         shouldRevertMaxDeposit = _shouldRevert;
+    }
+
+    function asset() external view returns (address) {
+        if (shouldRevertAsset) {
+            revert("Asset reverted");
+        }
+        return _asset;
     }
 
     function maxDeposit(address) external view returns (uint256) {
@@ -702,6 +709,9 @@ contract FleetDepositManagerTest is Test {
         ERC20Mock token18 = new ERC20Mock();
         uint256 amount18 = 1000 * 10 ** 18;
         token18.mint(user, amount18);
+
+        // Update the mock fleet commander to support the new token
+        mockFleetCommander.setAsset(address(token18));
 
         vm.startPrank(user);
         token18.approve(address(manager), amount18);
