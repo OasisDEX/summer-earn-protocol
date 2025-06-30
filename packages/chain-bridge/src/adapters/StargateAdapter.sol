@@ -56,6 +56,18 @@ contract StargateAdapter is
     /// @notice Error for invalid fleet commander
     error InvalidFleetCommander();
 
+    /// @notice Error for amount below minimum limit
+    error InsufficientAmount(uint256 amount, uint256 minAmount);
+
+    /// @notice Error for amount above maximum limit
+    error ExceedsMaxAmount(uint256 amount, uint256 maxAmount);
+
+    /// @notice Error for zero amount received
+    error ZeroAmountReceived();
+
+    /// @notice Error for invalid amount received
+    error InvalidAmountReceived(uint256 received, uint256 input);
+
     /// @notice Transfer parameters struct to avoid stack too deep
     struct TransferParams {
         address stargateContract;
@@ -735,7 +747,7 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Update minimum amount based on quote
+     * @dev Update minimum amount based on quote with proper validation
      */
     function _updateMinAmount(
         IStargateV2 stargate,
@@ -743,13 +755,45 @@ contract StargateAdapter is
         uint256 amount
     ) internal view {
         try stargate.quoteOFT(sendParam) returns (
-            OFTLimit memory,
+            OFTLimit memory oftLimit,
             OFTFeeDetail[] memory,
             OFTReceipt memory oftReceipt
         ) {
-            sendParam.minAmountLD = oftReceipt.amountReceivedLD;
+            // Validate OFT limits first
+            if (amount < oftLimit.minAmountLD) {
+                revert InsufficientAmount(amount, oftLimit.minAmountLD);
+            }
+            if (amount > oftLimit.maxAmountLD) {
+                revert ExceedsMaxAmount(amount, oftLimit.maxAmountLD);
+            }
+
+            // Validate received amount
+            if (oftReceipt.amountReceivedLD == 0) {
+                revert ZeroAmountReceived();
+            }
+
+            // Check that received amount is not higher than input (suspicious)
+            if (oftReceipt.amountReceivedLD > amount) {
+                revert InvalidAmountReceived(
+                    oftReceipt.amountReceivedLD,
+                    amount
+                );
+            }
+
+            // Calculate minimum slippage threshold (use configurable tolerance)
+            uint256 minExpectedAmount = (amount *
+                (10000 - slippageToleranceBps)) / 10000;
+
+            // Ensure received amount is within acceptable slippage
+            if (oftReceipt.amountReceivedLD < minExpectedAmount) {
+                // Use fallback calculation instead of the quote
+                sendParam.minAmountLD = minExpectedAmount;
+            } else {
+                // Use the quoted amount if it's reasonable
+                sendParam.minAmountLD = oftReceipt.amountReceivedLD;
+            }
         } catch {
-            // Use configurable slippage tolerance
+            // Use configurable slippage tolerance as fallback
             sendParam.minAmountLD =
                 (amount * (10000 - slippageToleranceBps)) /
                 10000;
