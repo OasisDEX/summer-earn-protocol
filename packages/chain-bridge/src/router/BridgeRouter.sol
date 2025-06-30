@@ -14,6 +14,7 @@ import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadRe
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 
 /**
  * @title BridgeRouter
@@ -21,7 +22,12 @@ import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
  * @dev Implements IBridgeRouter interface and manages multiple bridge adapters.
  *      Operations can only be initiated via the BridgeQueue or governance.
  */
-contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
+contract BridgeRouter is
+    IBridgeRouter,
+    ProtocolAccessManaged,
+    ReentrancyGuard,
+    Nonces
+{
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -204,6 +210,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
         address recipient,
         bytes memory additionalData
     ) internal returns (bytes32 operationId) {
+        // Use nonce for better uniqueness and collision resistance
+        uint256 currentNonce = _useNonce(address(this));
+
         operationId = keccak256(
             abi.encode(
                 block.chainid,
@@ -212,7 +221,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard {
                 amount,
                 recipient,
                 additionalData,
-                block.timestamp,
+                currentNonce,
                 operationType
             )
         );
