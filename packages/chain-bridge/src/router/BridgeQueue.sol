@@ -11,13 +11,19 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 
 /**
  * @title BridgeQueue
  * @notice Queues cross-chain operations (transfers, reads, messages) for later execution by keepers.
  * @dev Interacts with a BridgeRouter to get quotes and trigger executions. Implements IBridgeQueue.
  */
-contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
+contract BridgeQueue is
+    IBridgeQueue,
+    ProtocolAccessManaged,
+    ReentrancyGuard,
+    Nonces
+{
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -29,9 +35,6 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
 
     /// @inheritdoc IBridgeQueue
     mapping(address => bool) public isQueueManager;
-
-    /// @notice Nonce to ensure unique queue IDs
-    uint256 private _queueNonce;
 
     /// @notice Pseudo-address used to represent native currency (ETH)
     address public constant NATIVE_PSEUDO_ADDRESS =
@@ -139,7 +142,11 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
             revert InvalidParams();
 
         queueId = keccak256(
-            abi.encodePacked(block.chainid, address(this), _queueNonce++)
+            abi.encodePacked(
+                block.chainid,
+                address(this),
+                _useNonce(address(this))
+            )
         );
 
         queuedTransfers[queueId] = QueuedTransfer({
@@ -178,7 +185,11 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         if (dstContract == address(0)) revert InvalidParams();
 
         queueId = keccak256(
-            abi.encodePacked(block.chainid, address(this), _queueNonce++)
+            abi.encodePacked(
+                block.chainid,
+                address(this),
+                _useNonce(address(this))
+            )
         );
 
         queuedReadStates[queueId] = QueuedReadState({
@@ -214,7 +225,11 @@ contract BridgeQueue is IBridgeQueue, ProtocolAccessManaged, ReentrancyGuard {
         if (recipient == address(0)) revert InvalidParams();
 
         queueId = keccak256(
-            abi.encodePacked(block.chainid, address(this), _queueNonce++)
+            abi.encodePacked(
+                block.chainid,
+                address(this),
+                _useNonce(address(this))
+            )
         );
 
         queuedMessages[queueId] = QueuedMessage({
