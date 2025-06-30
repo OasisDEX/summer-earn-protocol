@@ -58,6 +58,7 @@ export abstract class BaseVaultProduct extends Product {
     if (timeDiff.equals(BigIntConstants.ZERO)) {
       return previousRate
     }
+
     const annualizedRate = priceChange
       .times(BigDecimalConstants.SECONDS_PER_YEAR)
       .div(timeDiff.toBigDecimal())
@@ -65,12 +66,17 @@ export abstract class BaseVaultProduct extends Product {
     const annualizedRateBelowZero = annualizedRate.lt(this.threshold.neg())
     const annualizedRateWithinThreshold =
       annualizedRate.lt(this.threshold) && annualizedRate.gt(this.threshold.neg())
-    // If the rate is negative, this usually indicates the vault is taking a fee
-    // Rather than showing a negative rate, we return the previous rate which better reflects
-    // the actual performance. We still update the vault state to maintain accurate calculations
-    // for the next update
+    // If the rate is negative (e.g., due to a vault fee or loss), we skip updating the vault state and return the previous rate.
+    // This means the next time a positive rate is observed, it will be annualized over the entire period since the last update,
+    // effectively skipping negative rates and waiting for a positive period before updating the vault state.
+
     if (annualizedRateBelowZero) {
-      this.updateVaultState(sharePrice, annualizedRate, currentTimestamp, vaultState)
+      // @dev special handling for fluid lite
+      // for non fluid lite it's usualy one update with negative rate, so we need to restart accounting from current share price
+      // for others it's a longer period of negative rates, hence we air for positive rate to average it out
+      if (!this.name.toLowerCase().includes('0xa0d3707c569ff8c87fa923d3823ec5d81c98be78')) {
+        this.updateVaultState(sharePrice, annualizedRate, currentTimestamp, vaultState)
+      }
       return previousRate
     }
     // If the rate change is minimal (within our threshold), we maintain the previous rate

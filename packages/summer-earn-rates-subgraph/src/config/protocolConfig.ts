@@ -3,6 +3,7 @@ import { addresses } from '../constants/addresses'
 import { Protocol } from '../models/Protocol'
 import { AaveV3Product } from '../products/AaveV3Product'
 import { CompoundProduct } from '../products/CompoundProduct'
+import { ERC4626FluidLiteProduct } from '../products/ERC4626FluidLiteProduct'
 import { ERC4626ManualAssetsProduct } from '../products/ERC4626ManualAssetsProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
 import { GearboxProduct } from '../products/GearboxProduct'
@@ -391,7 +392,7 @@ class ProtocolConfig {
           BigInt.fromI32(18798139),
           'Fluid',
         ),
-        new ERC4626Product(
+        new ERC4626FluidLiteProduct(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xa0d3707c569ff8c87fa923d3823ec5d81c98be78'),
           BigInt.fromI32(22373484),
