@@ -150,6 +150,19 @@ contract StargateAdapter is
     bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
     bytes32 public constant ASSET_TRANSFER_TYPE = keccak256("ASSET_TRANSFER");
 
+    /// @notice Structure to hold decoded fleet deposit message data
+    struct FleetDepositMessageData {
+        bytes32 messageType;
+        address fleetCommander;
+        address shareRecipient;
+        address asset;
+        uint256 amount;
+        uint256 sourceChainId;
+        bytes32 operationId;
+        address originalUser;
+        bytes referralCode;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -441,10 +454,15 @@ contract StargateAdapter is
             )
         );
 
-        // Update the operation ID in the compose message
-        bytes memory updatedComposeMessage = _updateOperationIdInMessage(
-            composeMessage,
-            operationId
+        // Extract data from compose message using the decode helper
+        FleetDepositMessageData memory messageData = _decodeFleetDepositMessage(
+            composeMessage
+        );
+
+        // Update operation ID and re-encode message
+        messageData.operationId = operationId;
+        bytes memory updatedComposeMessage = _encodeFleetDepositMessage(
+            messageData
         );
 
         // Execute cross-chain transfer with compose
@@ -458,15 +476,15 @@ contract StargateAdapter is
             msg.value
         );
 
-        // Emit interface event
+        // Emit interface event with real data from the compose message
         emit FleetDepositInitiated(
             operationId,
             destinationChainId,
             msg.sender,
-            address(0), // fleetCommander not extracted here for efficiency
+            messageData.fleetCommander, // ✅ Real fleet commander address
             asset,
             amount,
-            address(0), // shareRecipient not extracted here for efficiency
+            messageData.shareRecipient, // ✅ Real share recipient address
             address(this)
         );
     }
@@ -474,54 +492,6 @@ contract StargateAdapter is
     /// @inheritdoc IFleetDepositAdapter
     function supportsFleetDeposits() external pure override returns (bool) {
         return true;
-    }
-
-    /**
-     * @dev Helper function to update operation ID in compose message
-     */
-    function _updateOperationIdInMessage(
-        bytes memory composeMessage,
-        bytes32 operationId
-    ) internal pure returns (bytes memory) {
-        // Decode the message to update the operation ID
-        (
-            bytes32 messageType,
-            address fleetCommander,
-            address shareRecipient,
-            address asset,
-            uint256 amount,
-            uint256 sourceChainId, // old operation ID
-            ,
-            address originalUser,
-            bytes memory referralCode
-        ) = abi.decode(
-                composeMessage,
-                (
-                    bytes32,
-                    address,
-                    address,
-                    address,
-                    uint256,
-                    uint256,
-                    bytes32,
-                    address,
-                    bytes
-                )
-            );
-
-        // Re-encode with updated operation ID
-        return
-            abi.encode(
-                messageType,
-                fleetCommander,
-                shareRecipient,
-                asset,
-                amount,
-                sourceChainId,
-                operationId, // Updated operation ID
-                originalUser,
-                referralCode
-            );
     }
 
     /// @inheritdoc ISendAdapter
@@ -620,8 +590,7 @@ contract StargateAdapter is
             destinationChainId,
             destinationAdapter,
             amount,
-            composeMsg,
-            adapterParams
+            composeMsg
         );
 
         // Update minAmountLD based on quote
@@ -689,8 +658,7 @@ contract StargateAdapter is
         uint16 destinationChainId,
         address destinationAdapter,
         uint256 amount,
-        bytes memory composeMsg,
-        BridgeTypes.AdapterParams calldata
+        bytes memory composeMsg
     ) internal view returns (SendParam memory) {
         // Always use taxi mode for compose functionality
         bytes memory oftCmd = OftCmdHelper.taxi();
@@ -1018,6 +986,75 @@ contract StargateAdapter is
     }
 
     /**
+     * @dev Decode fleet deposit compose message
+     * @param composeMessage The encoded compose message
+     * @return Decoded message data
+     */
+    function _decodeFleetDepositMessage(
+        bytes memory composeMessage
+    ) internal pure returns (FleetDepositMessageData memory) {
+        (
+            bytes32 messageType,
+            address fleetCommander,
+            address shareRecipient,
+            address asset,
+            uint256 amount,
+            uint256 sourceChainId,
+            bytes32 operationId,
+            address originalUser,
+            bytes memory referralCode
+        ) = abi.decode(
+                composeMessage,
+                (
+                    bytes32,
+                    address,
+                    address,
+                    address,
+                    uint256,
+                    uint256,
+                    bytes32,
+                    address,
+                    bytes
+                )
+            );
+
+        return
+            FleetDepositMessageData({
+                messageType: messageType,
+                fleetCommander: fleetCommander,
+                shareRecipient: shareRecipient,
+                asset: asset,
+                amount: amount,
+                sourceChainId: sourceChainId,
+                operationId: operationId,
+                originalUser: originalUser,
+                referralCode: referralCode
+            });
+    }
+
+    /**
+     * @dev Encode fleet deposit compose message
+     * @param data The message data to encode
+     * @return Encoded compose message
+     */
+    function _encodeFleetDepositMessage(
+        FleetDepositMessageData memory data
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encode(
+                data.messageType,
+                data.fleetCommander,
+                data.shareRecipient,
+                data.asset,
+                data.amount,
+                data.sourceChainId,
+                data.operationId,
+                data.originalUser,
+                data.referralCode
+            );
+    }
+
+    /**
      * @dev Internal function to handle the composed message logic - EXTENDED for Fleet Deposits
      */
     function _handleComposedMessage(
@@ -1060,39 +1097,17 @@ contract StargateAdapter is
         bytes memory composeMsg,
         address destinationAsset
     ) internal {
-        // Decode fleet deposit message
-        (
-            ,
-            // messageType already extracted above
-            address fleetCommander,
-            address shareRecipient,
-            address sourceAsset,
-            uint256 originalAmount,
-            uint256 sourceChainId,
-            bytes32 operationId,
-            address originalUser,
-            bytes memory referralCode
-        ) = abi.decode(
-                composeMsg,
-                (
-                    bytes32,
-                    address,
-                    address,
-                    address,
-                    uint256,
-                    uint256,
-                    bytes32,
-                    address,
-                    bytes
-                )
-            );
+        // Decode fleet deposit message using helper function
+        FleetDepositMessageData memory messageData = _decodeFleetDepositMessage(
+            composeMsg
+        );
 
         // Basic validation
         if (
             destinationAsset == address(0) ||
-            fleetCommander == address(0) ||
-            shareRecipient == address(0) ||
-            originalAmount == 0
+            messageData.fleetCommander == address(0) ||
+            messageData.shareRecipient == address(0) ||
+            messageData.amount == 0
         ) {
             revert InvalidParams();
         }
@@ -1107,22 +1122,22 @@ contract StargateAdapter is
 
         // Try to deposit to FleetCommander
         bool success = _tryDepositToFleetCommander(
-            fleetCommander,
+            messageData.fleetCommander,
             destinationAsset,
             amountLD,
-            shareRecipient,
-            referralCode,
-            operationId,
-            originalUser,
-            sourceAsset,
-            uint16(sourceChainId)
+            messageData.shareRecipient,
+            messageData.referralCode,
+            messageData.operationId,
+            messageData.originalUser,
+            messageData.asset,
+            uint16(messageData.sourceChainId)
         );
 
         if (!success) {
             // Check if this is a user-led transaction (via FleetDepositManager)
             bool isUserLedTransaction = _isUserLedTransaction(
-                originalUser,
-                shareRecipient
+                messageData.originalUser,
+                messageData.shareRecipient
             );
 
             if (isUserLedTransaction) {
@@ -1130,31 +1145,31 @@ contract StargateAdapter is
                 _handleUserLedFailure(
                     destinationAsset,
                     amountLD,
-                    shareRecipient,
-                    operationId,
-                    originalUser,
-                    uint16(sourceChainId)
+                    messageData.shareRecipient,
+                    messageData.operationId,
+                    messageData.originalUser,
+                    uint16(messageData.sourceChainId)
                 );
             } else {
                 // For system transactions, keep current behavior - hold for governance recovery
                 _handleSystemFailure(
                     destinationAsset,
                     amountLD,
-                    fleetCommander,
-                    operationId,
-                    originalUser,
-                    uint16(sourceChainId)
+                    messageData.fleetCommander,
+                    messageData.operationId,
+                    messageData.originalUser,
+                    uint16(messageData.sourceChainId)
                 );
             }
             return;
         }
 
         emit ComposedAssetHandled(
-            operationId,
-            fleetCommander,
+            messageData.operationId,
+            messageData.fleetCommander,
             destinationAsset,
             amountLD,
-            uint16(sourceChainId)
+            uint16(messageData.sourceChainId)
         );
     }
 
