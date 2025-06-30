@@ -12,6 +12,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 
 // Import CrossChain Ark interface for proper detection
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
@@ -39,7 +40,8 @@ contract StargateAdapter is
     Ownable,
     IBridgeAdapter,
     IFleetDepositAdapter,
-    ILayerZeroComposer
+    ILayerZeroComposer,
+    Nonces
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
@@ -412,14 +414,18 @@ contract StargateAdapter is
         if (assetToStargateContract[asset] == address(0))
             revert UnsupportedAsset();
 
-        // Generate operation ID
+        // Transfer tokens from user to this contract
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+
+        // Generate operation ID with nonce for uniqueness
+        uint256 nonce = _useNonce(msg.sender);
         operationId = keccak256(
             abi.encode(
                 msg.sender,
                 destinationChainId,
                 amount,
-                block.timestamp,
-                block.number
+                nonce,
+                block.chainid
             )
         );
 

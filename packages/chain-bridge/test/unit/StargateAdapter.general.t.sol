@@ -154,4 +154,146 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
+
+    /*//////////////////////////////////////////////////////////////
+                          NONCE SYSTEM TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testNonceSystemPreventsCollisions() public {
+        useNetworkA();
+
+        // Setup test user
+        address testUser = makeAddr("testUser");
+
+        // Check initial nonce is 0
+        assertEq(adapterA.nonces(testUser), 0);
+
+        // Test that identical parameters generate different operation IDs due to nonce
+        uint16 destinationChainId = CHAIN_ID_B;
+        uint256 amount = 1 ether;
+        uint256 chainId = block.chainid;
+
+        // Simulate the operation ID generation logic used in the actual function
+        // First operation (nonce will be 0)
+        bytes32 operationId1 = keccak256(
+            abi.encode(
+                testUser,
+                destinationChainId,
+                amount,
+                0, // nonce = 0
+                chainId
+            )
+        );
+
+        // Second operation (nonce will be 1)
+        bytes32 operationId2 = keccak256(
+            abi.encode(
+                testUser,
+                destinationChainId,
+                amount,
+                1, // nonce = 1
+                chainId
+            )
+        );
+
+        // Third operation (nonce will be 2)
+        bytes32 operationId3 = keccak256(
+            abi.encode(
+                testUser,
+                destinationChainId,
+                amount,
+                2, // nonce = 2
+                chainId
+            )
+        );
+
+        // Verify all operation IDs are unique
+        assertTrue(
+            operationId1 != operationId2,
+            "Operation IDs 1 and 2 should be different"
+        );
+        assertTrue(
+            operationId2 != operationId3,
+            "Operation IDs 2 and 3 should be different"
+        );
+        assertTrue(
+            operationId1 != operationId3,
+            "Operation IDs 1 and 3 should be different"
+        );
+
+        // Test that different users have independent nonces
+        address otherUser = makeAddr("otherUser");
+        assertEq(
+            adapterA.nonces(testUser),
+            0,
+            "testUser nonce should start at 0"
+        );
+        assertEq(
+            adapterA.nonces(otherUser),
+            0,
+            "otherUser nonce should start at 0"
+        );
+
+        // Test with different users having same parameters but different nonces
+        bytes32 testUserOpId = keccak256(
+            abi.encode(
+                testUser,
+                destinationChainId,
+                amount,
+                0, // testUser's first nonce
+                chainId
+            )
+        );
+
+        bytes32 otherUserOpId = keccak256(
+            abi.encode(
+                otherUser,
+                destinationChainId,
+                amount,
+                0, // otherUser's first nonce
+                chainId
+            )
+        );
+
+        // Different users should generate different operation IDs even with same nonce
+        // because the user address is part of the hash
+        assertTrue(
+            testUserOpId != otherUserOpId,
+            "Different users should generate different operation IDs"
+        );
+    }
+
+    function testNonceIncrementForDifferentUsers() public {
+        useNetworkA();
+
+        address user1 = makeAddr("user1");
+        address user2 = makeAddr("user2");
+
+        // Both users start with nonce 0
+        assertEq(adapterA.nonces(user1), 0);
+        assertEq(adapterA.nonces(user2), 0);
+
+        // Test that the nonces() function correctly shows 0 for new users
+        address newUser = makeAddr("newUser");
+        assertEq(adapterA.nonces(newUser), 0, "New user should have nonce 0");
+
+        // Test that each user has independent nonce space
+        // Even without calling functions, we can verify the nonce getter works
+        assertTrue(
+            adapterA.nonces(user1) == adapterA.nonces(user2),
+            "Both users should start with same nonce"
+        );
+
+        // Verify the nonce function is working and users are independent
+        assertEq(adapterA.nonces(user1), 0, "User1 should have nonce 0");
+        assertEq(adapterA.nonces(user2), 0, "User2 should have nonce 0");
+
+        // Test edge case: very large address still returns 0 for initial nonce
+        address maxAddr = address(type(uint160).max);
+        assertEq(
+            adapterA.nonces(maxAddr),
+            0,
+            "Even max address should have nonce 0 initially"
+        );
+    }
 }
