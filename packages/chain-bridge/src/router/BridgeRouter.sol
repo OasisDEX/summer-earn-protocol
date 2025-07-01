@@ -291,8 +291,7 @@ contract BridgeRouter is
         );
 
         // Now approve the adapter to spend Router's tokens
-        IERC20(params.asset).approve(specifiedAdapter, 0);
-        IERC20(params.asset).approve(specifiedAdapter, params.amount);
+        IERC20(params.asset).forceApprove(specifiedAdapter, params.amount);
 
         // Notify originator that assets are now officially in-flight
         // Attempt to call updateInflightAssets if the originator supports it

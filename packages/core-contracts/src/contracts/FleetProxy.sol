@@ -176,7 +176,7 @@ contract FleetProxy is
         emit InflightAssetsUpdated(inflightWithdrawals);
 
         // 5. Approve the bridge queue to transfer the assets
-        IERC20(asset).approve(address(bridgeQueue), amount);
+        IERC20(asset).forceApprove(address(bridgeQueue), amount);
 
         // 6. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
         bridgeQueue.queueTransferAssets(

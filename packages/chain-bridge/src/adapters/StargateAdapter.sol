@@ -397,8 +397,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
         // Approve Stargate contract to spend the tokens
-        IERC20(asset).approve(stargateContract, 0);
-        IERC20(asset).approve(stargateContract, amount);
+        IERC20(asset).forceApprove(stargateContract, amount);
 
         // Execute the Stargate V2 transfer
         TransferParams memory params = TransferParams({
