@@ -24,8 +24,8 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a cross-chain fleet deposit is initiated
-    event CrossChainFleetDepositInitiated(
+    /// @notice Emitted when a fleet deposit to target chain is initiated
+    event FleetDepositToTargetChainInitiated(
         bytes32 indexed operationId,
         uint16 indexed destinationChainId,
         address indexed user,
@@ -118,7 +118,7 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Executes a cross-chain fleet deposit using the specified bridge adapter
+     * @notice Initiates a deposit to a fleet on a target chain using the specified bridge adapter
      * @param bridgeAdapter Address of the bridge adapter to use (user's choice)
      * @param destinationChainId Target chain ID where the FleetCommander is deployed
      * @param asset Asset to bridge and deposit
@@ -129,7 +129,7 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
      * @param adapterParams Bridge-specific adapter parameters
      * @return operationId Unique identifier for this cross-chain deposit operation
      */
-    function crossChainDepositToFleet(
+    function initiateDepositToTargetChainFleet(
         address bridgeAdapter,
         uint16 destinationChainId,
         address asset,
@@ -172,7 +172,7 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
 
         // Execute cross-chain deposit through the chosen adapter using standard interface
         operationId = IFleetDepositAdapter(bridgeAdapter)
-            .executeCrossChainFleetDeposit{value: msg.value}(
+            .sendFleetDepositToDestinationChain{value: msg.value}(
             destinationChainId,
             asset,
             amount,
@@ -181,7 +181,7 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
             adapterParams
         );
 
-        emit CrossChainFleetDepositInitiated(
+        emit FleetDepositToTargetChainInitiated(
             operationId,
             destinationChainId,
             msg.sender,
@@ -252,9 +252,10 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
         try bridgeRouter.isValidAdapter(adapter) returns (bool isValid) {
             if (!isValid) return false;
 
-            try IFleetDepositAdapter(adapter).supportsFleetDeposits() returns (
-                bool result
-            ) {
+            try
+                IFleetDepositAdapter(adapter)
+                    .supportsUserInitiatedFleetDeposits()
+            returns (bool result) {
                 return result;
             } catch {
                 return false;

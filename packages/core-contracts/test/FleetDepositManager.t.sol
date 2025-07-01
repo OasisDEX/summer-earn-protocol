@@ -85,7 +85,7 @@ contract FleetDepositManagerTest is Test {
     uint256 public constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
     uint256 public constant LARGE_AMOUNT = 1_000_000 * 10 ** 18;
 
-    event CrossChainFleetDepositInitiated(
+    event FleetDepositToTargetChainInitiated(
         bytes32 indexed operationId,
         uint16 indexed destinationChainId,
         address indexed user,
@@ -213,11 +213,11 @@ contract FleetDepositManagerTest is Test {
                         CORE FUNCTIONALITY TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_CrossChainDepositToFleet_Success() public {
+    function test_InitiateDepositToTargetChainFleet_Success() public {
         vm.startPrank(user);
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
-        bytes32 operationId = manager.crossChainDepositToFleet{
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet{
             value: 0.01 ether
         }(
             address(mockAdapter),
@@ -245,14 +245,14 @@ contract FleetDepositManagerTest is Test {
         assertEq(mockAdapter.lastDestinationChainId(), DEST_CHAIN_ID);
     }
 
-    function test_CrossChainDepositToFleet_WithReferralCode() public {
+    function test_InitiateDepositToTargetChainFleet_WithReferralCode() public {
         bytes memory referralCode = bytes("SUMMER2024");
 
         vm.startPrank(user);
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectEmit(false, true, true, false); // Don't check operationId (first indexed parameter)
-        emit CrossChainFleetDepositInitiated(
+        emit FleetDepositToTargetChainInitiated(
             bytes32(0), // operationId will be different
             DEST_CHAIN_ID,
             user,
@@ -263,7 +263,7 @@ contract FleetDepositManagerTest is Test {
             shareRecipient
         );
 
-        bytes32 operationId = manager.crossChainDepositToFleet{
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet{
             value: 0.01 ether
         }(
             address(mockAdapter),
@@ -304,7 +304,7 @@ contract FleetDepositManagerTest is Test {
         assertEq(decodedReferralCode, referralCode);
     }
 
-    function test_CrossChainDepositToFleet_DifferentChainIds() public {
+    function test_InitiateDepositToTargetChainFleet_DifferentChainIds() public {
         uint16[] memory chainIds = new uint16[](3);
         chainIds[0] = 1; // Ethereum
         chainIds[1] = 137; // Polygon
@@ -316,7 +316,7 @@ contract FleetDepositManagerTest is Test {
         for (uint i = 0; i < chainIds.length; i++) {
             mockAdapter.reset(); // Reset adapter state
 
-            bytes32 operationId = manager.crossChainDepositToFleet(
+            bytes32 operationId = manager.initiateDepositToTargetChainFleet(
                 address(mockAdapter),
                 chainIds[i],
                 address(token),
@@ -345,7 +345,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token.approve(address(manager), LARGE_AMOUNT);
 
-        bytes32 operationId = manager.crossChainDepositToFleet(
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -376,7 +376,7 @@ contract FleetDepositManagerTest is Test {
         for (uint i = 0; i < 3; i++) {
             mockAdapter.reset(); // Reset adapter state
 
-            operationIds[i] = manager.crossChainDepositToFleet(
+            operationIds[i] = manager.initiateDepositToTargetChainFleet(
                 address(mockAdapter),
                 DEST_CHAIN_ID,
                 address(token),
@@ -414,7 +414,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert(FleetDepositManager.InvalidParams.selector);
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -439,7 +439,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert(FleetDepositManager.InvalidParams.selector);
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -464,7 +464,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert(FleetDepositManager.InvalidParams.selector);
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -491,7 +491,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert(FleetDepositManager.UnsupportedBridgeAdapter.selector);
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             unsupportedAdapter,
             DEST_CHAIN_ID,
             address(token),
@@ -517,7 +517,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert("Mock adapter reverted");
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -542,7 +542,7 @@ contract FleetDepositManagerTest is Test {
         // Don't approve tokens
 
         vm.expectRevert();
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -569,7 +569,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert();
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -716,7 +716,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token18.approve(address(manager), amount18);
 
-        bytes32 operationId = manager.crossChainDepositToFleet(
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token18),
@@ -746,7 +746,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token.approve(address(manager), maxAmount);
 
-        bytes32 operationId = manager.crossChainDepositToFleet(
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -772,7 +772,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
-        bytes32 operationId = manager.crossChainDepositToFleet(
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -810,7 +810,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
-        bytes32 operationId = manager.crossChainDepositToFleet(
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -848,7 +848,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         // Execute deposit
-        bytes32 operationId = manager.crossChainDepositToFleet{
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet{
             value: 0.01 ether
         }(
             address(mockAdapter),
@@ -936,7 +936,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
-        bytes32 operationId = manager.crossChainDepositToFleet{
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet{
             value: 0.01 ether
         }(
             address(mockAdapter),
@@ -968,7 +968,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert(FleetDepositManager.InvalidFleetCommander.selector);
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -995,7 +995,7 @@ contract FleetDepositManagerTest is Test {
         differentToken.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert(FleetDepositManager.AssetMismatch.selector);
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(differentToken), // Different asset than fleet commander supports
@@ -1023,7 +1023,7 @@ contract FleetDepositManagerTest is Test {
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
         vm.expectRevert(FleetDepositManager.ExceedsMaxDeposit.selector);
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -1049,7 +1049,7 @@ contract FleetDepositManagerTest is Test {
 
         // Should revert with AssetMismatch since asset() call fails
         vm.expectRevert();
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -1077,7 +1077,7 @@ contract FleetDepositManagerTest is Test {
 
         // Should revert when maxDeposit() call fails
         vm.expectRevert();
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -1102,7 +1102,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token.approve(address(manager), DEPOSIT_AMOUNT);
 
-        bytes32 operationId = manager.crossChainDepositToFleet(
+        bytes32 operationId = manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -1128,7 +1128,7 @@ contract FleetDepositManagerTest is Test {
         vm.startPrank(user);
         token.approve(address(manager), DEPOSIT_AMOUNT * 2);
 
-        bytes32 operationId1 = manager.crossChainDepositToFleet(
+        bytes32 operationId1 = manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),
@@ -1151,7 +1151,7 @@ contract FleetDepositManagerTest is Test {
 
         // Second deposit should fail
         vm.expectRevert(FleetDepositManager.InvalidFleetCommander.selector);
-        manager.crossChainDepositToFleet(
+        manager.initiateDepositToTargetChainFleet(
             address(mockAdapter),
             DEST_CHAIN_ID,
             address(token),

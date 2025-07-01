@@ -8,7 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 /**
  * @title MockFleetDepositAdapter
- * @notice Mock adapter for testing fleet deposit functionality
+ * @notice Mock adapter for testing user-initiated fleet deposit functionality
  */
 contract MockFleetDepositAdapter is IFleetDepositAdapter {
     using SafeERC20 for IERC20;
@@ -28,7 +28,7 @@ contract MockFleetDepositAdapter is IFleetDepositAdapter {
         shouldRevert = _shouldRevert;
     }
 
-    function executeCrossChainFleetDeposit(
+    function sendFleetDepositToDestinationChain(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
@@ -59,7 +59,12 @@ contract MockFleetDepositAdapter is IFleetDepositAdapter {
         return operationId;
     }
 
-    function supportsFleetDeposits() external pure override returns (bool) {
+    function supportsUserInitiatedFleetDeposits()
+        external
+        pure
+        override
+        returns (bool)
+    {
         return true;
     }
 

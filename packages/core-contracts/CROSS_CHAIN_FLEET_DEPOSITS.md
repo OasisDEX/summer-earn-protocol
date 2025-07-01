@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Summer Protocol now supports **vendor-agnostic** cross-chain fleet deposits, allowing users to deposit assets from one chain directly to FleetCommanders on another chain using their preferred bridge technology. This architecture provides flexibility and future-proofs the system against bridge technology changes.
+The Summer Protocol now supports **vendor-agnostic** user-initiated cross-chain fleet deposits, allowing users to deposit assets from one chain directly to FleetCommanders on another chain using their preferred bridge technology. This is distinct from the existing keeper-led deposits via fleet proxies. This architecture provides flexibility and future-proofs the system against bridge technology changes.
 
 ## Architecture
 
@@ -11,6 +11,8 @@ The Summer Protocol now supports **vendor-agnostic** cross-chain fleet deposits,
 1. **FleetDepositManager**: Main orchestrator contract that users interact with
 2. **IFleetDepositAdapter**: Interface implemented by bridge adapters  
 3. **Bridge Adapters**: Implementation-specific adapters (StargateAdapter, HyperlaneAdapter, etc.)
+
+> **Note**: This user-initiated flow is distinct from the existing keeper-led cross-chain deposits via fleet proxies. The keeper-led flow uses a different architecture where keepers manage the bridging and fleet proxy contracts handle the deposits.
 
 ### 🔄 Vendor Agnostic Design
 
@@ -79,11 +81,11 @@ To support a new bridge technology:
 ```solidity
 // Example: Adding Hyperlane support
 contract HyperlaneAdapter is IFleetDepositAdapter, IBridgeAdapter {
-    function executeCrossChainFleetDeposit(...) external payable override {
+    function sendFleetDepositToDestinationChain(...) external payable override {
         // Hyperlane-specific implementation
     }
     
-    function supportsFleetDeposits() external pure override returns (bool) {
+    function supportsUserInitiatedFleetDeposits() external pure override returns (bool) {
         return true;
     }
     
@@ -212,9 +214,9 @@ The Hub Fleet can dynamically rebalance across chains based on:
 
 ### New Functions Added
 
-#### `crossChainDepositToFleet()`
+#### `initiateDepositToTargetChainFleet()`
 ```solidity
-function crossChainDepositToFleet(
+function initiateDepositToTargetChainFleet(
     address bridgeAdapter,
     uint16 destinationChainId,
     address asset,
@@ -226,7 +228,7 @@ function crossChainDepositToFleet(
 ) external payable nonReentrant returns (bytes32 operationId)
 ```
 
-Main function for users to deposit assets cross-chain to FleetCommanders. Users choose their preferred bridge adapter.
+Main function for users to initiate deposits to fleets on target chains. Users choose their preferred bridge adapter.
 
 #### `encodeFleetDepositMessage()`
 ```solidity
@@ -265,10 +267,10 @@ sequenceDiagram
     Note over User,ShareRecipient: Cross-Chain Fleet Deposit Flow
     
     %% Source Chain Operations
-    User->>FleetDepositManager: crossChainDepositToFleet(stargateAdapter, Base, ...)
+    User->>FleetDepositManager: initiateDepositToTargetChainFleet(stargateAdapter, Base, ...)
     Note over User,FleetDepositManager: User chooses Stargate as bridge adapter
     
-    FleetDepositManager->>SourceAdapter: executeCrossChainFleetDeposit()
+    FleetDepositManager->>SourceAdapter: sendFleetDepositToDestinationChain()
     Note over FleetDepositManager,SourceAdapter: Includes fleet deposit compose message
     
     SourceAdapter->>Stargate: sendToken() with fleet compose message
@@ -336,7 +338,7 @@ contract MyContract {
             );
 
         // 4. Execute cross-chain deposit through chosen bridge adapter
-        IFleetDepositManager(fleetDepositManager).crossChainDepositToFleet{
+        IFleetDepositManager(fleetDepositManager).initiateDepositToTargetChainFleet{
             value: nativeFee
         }(
             stargateAdapter, // User's choice: could be hyperlaneAdapter, layerZeroAdapter, etc.
@@ -399,7 +401,7 @@ function depositWithReferral(
         );
 
     // Execute through FleetDepositManager (vendor agnostic)
-    IFleetDepositManager(fleetDepositManager).crossChainDepositToFleet{
+    IFleetDepositManager(fleetDepositManager).initiateDepositToTargetChainFleet{
         value: nativeFee
     }(
         stargateAdapter, // User's choice: could be any registered adapter
@@ -447,7 +449,7 @@ function swapAndCrossChainDeposit(
     // 2. Cross-chain deposit the swapped tokens
     IERC20(outputToken).approve(fleetDepositManager, outputAmount);
 
-    IFleetDepositManager(fleetDepositManager).crossChainDepositToFleet{
+    IFleetDepositManager(fleetDepositManager).initiateDepositToTargetChainFleet{
         value: msg.value
     }(
         stargateAdapter, // User's choice of bridge adapter
@@ -491,7 +493,7 @@ function batchFleetDeposits(
 
     // Execute single cross-chain deposit for all users
     // Note: In production, you'd need logic to distribute shares proportionally
-    IFleetDepositManager(fleetDepositManager).crossChainDepositToFleet{
+    IFleetDepositManager(fleetDepositManager).initiateDepositToTargetChainFleet{
         value: msg.value
     }(
         stargateAdapter, // User's choice of bridge adapter
@@ -711,8 +713,8 @@ The functionality works with any chain and asset combination that:
 
 ## Events
 
-### CrossChainFleetDepositInitiated
-Emitted when a user initiates a cross-chain fleet deposit.
+### FleetDepositToTargetChainInitiated
+Emitted when a user initiates a fleet deposit to a target chain.
 
 ### CrossChainFleetDepositCompleted  
 Emitted when a cross-chain fleet deposit completes successfully.
@@ -729,7 +731,7 @@ For projects wanting to integrate cross-chain fleet deposits:
 
 1. **Frontend Integration**:
    - Call `estimateFleetDepositFee()` for fee quotes
-   - Use `crossChainDepositToFleet()` for execution
+   - Use `initiateDepositToTargetChainFleet()` for execution
    - Monitor events for operation status
 
 2. **Smart Contract Integration**:

@@ -14,8 +14,8 @@ interface IFleetDepositAdapter {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a cross-chain fleet deposit is initiated through this adapter
-    event FleetDepositInitiated(
+    /// @notice Emitted when a fleet deposit is sent to destination chain through this adapter
+    event FleetDepositSentToDestination(
         bytes32 indexed operationId,
         uint16 indexed destinationChainId,
         address indexed user,
@@ -30,8 +30,8 @@ interface IFleetDepositAdapter {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when the adapter doesn't support fleet deposits
-    error FleetDepositsNotSupported();
+    /// @notice Thrown when the adapter doesn't support user-initiated fleet deposits
+    error UserInitiatedFleetDepositsNotSupported();
 
     /// @notice Thrown when fleet deposit parameters are invalid
     error InvalidFleetDepositParams();
@@ -41,7 +41,7 @@ interface IFleetDepositAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Executes a cross-chain fleet deposit using this bridge adapter
+     * @notice Sends a fleet deposit to a destination chain using this bridge adapter
      * @param destinationChainId Target chain ID where the FleetCommander is deployed
      * @param asset Asset to bridge and deposit
      * @param amount Amount to bridge and deposit
@@ -54,7 +54,7 @@ interface IFleetDepositAdapter {
      *      2. Execute the cross-chain transfer with compose message
      *      3. Return a unique operation ID for tracking
      */
-    function executeCrossChainFleetDeposit(
+    function sendFleetDepositToDestinationChain(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
@@ -68,8 +68,9 @@ interface IFleetDepositAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Checks if this adapter supports fleet deposits
-     * @return True if fleet deposits are supported
+     * @notice Checks if this adapter supports user-initiated fleet deposits
+     * @dev This is distinct from keeper-led deposits via fleet proxies
+     * @return True if user-initiated fleet deposits are supported
      */
-    function supportsFleetDeposits() external view returns (bool);
+    function supportsUserInitiatedFleetDeposits() external view returns (bool);
 }

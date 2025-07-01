@@ -6,10 +6,10 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
 /**
  * @title MockFleetDepositAdapterNoSupport
- * @notice Mock adapter that doesn't support fleet deposits for testing
+ * @notice Mock adapter that doesn't support user-initiated fleet deposits for testing
  */
 contract MockFleetDepositAdapterNoSupport is IFleetDepositAdapter {
-    function executeCrossChainFleetDeposit(
+    function sendFleetDepositToDestinationChain(
         uint16,
         address,
         uint256,
@@ -17,10 +17,15 @@ contract MockFleetDepositAdapterNoSupport is IFleetDepositAdapter {
         bytes memory,
         BridgeTypes.AdapterParams calldata
     ) external payable override returns (bytes32) {
-        revert("Fleet deposits not supported");
+        revert("User-initiated fleet deposits not supported");
     }
 
-    function supportsFleetDeposits() external pure override returns (bool) {
-        return false; // Does not support fleet deposits
+    function supportsUserInitiatedFleetDeposits()
+        external
+        pure
+        override
+        returns (bool)
+    {
+        return false; // Does not support user-initiated fleet deposits
     }
 }

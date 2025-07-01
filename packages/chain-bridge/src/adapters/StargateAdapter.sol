@@ -419,13 +419,13 @@ contract StargateAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IFleetDepositAdapter
-    function executeCrossChainFleetDeposit(
+    function sendFleetDepositToDestinationChain(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
         address destinationAdapter,
         bytes memory composeMessage,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.AdapterParams calldata /* adapterParams */
     ) external payable override returns (bytes32 operationId) {
         // Validate inputs
         if (amount == 0) revert InvalidFleetDepositParams();
@@ -466,18 +466,17 @@ contract StargateAdapter is
         );
 
         // Execute cross-chain transfer with compose
-        _executeCrossChainFleetDeposit(
+        _sendFleetDepositToDestinationChain(
             asset,
             amount,
             destinationChainId,
             destinationAdapter,
             updatedComposeMessage,
-            adapterParams,
             msg.value
         );
 
         // Emit interface event with real data from the compose message
-        emit FleetDepositInitiated(
+        emit FleetDepositSentToDestination(
             operationId,
             destinationChainId,
             msg.sender,
@@ -490,7 +489,12 @@ contract StargateAdapter is
     }
 
     /// @inheritdoc IFleetDepositAdapter
-    function supportsFleetDeposits() external pure override returns (bool) {
+    function supportsUserInitiatedFleetDeposits()
+        external
+        pure
+        override
+        returns (bool)
+    {
         return true;
     }
 
@@ -566,15 +570,14 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Execute cross-chain fleet deposit using Stargate
+     * @dev Send fleet deposit to destination chain using Stargate
      */
-    function _executeCrossChainFleetDeposit(
+    function _sendFleetDepositToDestinationChain(
         address asset,
         uint256 amount,
         uint16 destinationChainId,
         address destinationAdapter,
         bytes memory composeMsg,
-        BridgeTypes.AdapterParams calldata adapterParams,
         uint256 providedFee
     ) internal {
         address stargateContract = assetToStargateContract[asset];
