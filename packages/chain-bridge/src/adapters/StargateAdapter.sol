@@ -429,8 +429,6 @@ contract StargateAdapter is
     ) external payable override returns (bytes32 operationId) {
         // Validate inputs
         if (amount == 0) revert InvalidFleetDepositParams();
-        if (destinationAdapter == address(0))
-            revert InvalidFleetDepositParams();
 
         // Check if destination chain is supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
@@ -438,6 +436,10 @@ contract StargateAdapter is
         // Check if asset is supported on current chain
         if (assetToStargateContract[asset] == address(0))
             revert UnsupportedAsset();
+
+        // Get destination adapter from mapping (just like in transferAsset)
+        address actualDestinationAdapter = chainToAdapter[destinationChainId];
+        if (actualDestinationAdapter == address(0)) revert UnsupportedChain();
 
         // Transfer tokens from user to this contract
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
@@ -470,20 +472,19 @@ contract StargateAdapter is
             asset,
             amount,
             destinationChainId,
-            destinationAdapter,
+            actualDestinationAdapter,
             updatedComposeMessage,
             msg.value
         );
 
-        // Emit interface event with real data from the compose message
         emit FleetDepositSentToDestination(
             operationId,
             destinationChainId,
             msg.sender,
-            messageData.fleetCommander, // ✅ Real fleet commander address
+            messageData.fleetCommander,
             asset,
             amount,
-            messageData.shareRecipient, // ✅ Real share recipient address
+            messageData.shareRecipient,
             address(this)
         );
     }
