@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -10,8 +11,6 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ProtocolAccessManaged, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
-import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
-import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
@@ -185,10 +184,8 @@ contract FleetProxy is
     {
         if (amount == 0) revert NoAssets();
 
-        // 1. Get the asset from fleet config
-        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
-            .getConfig();
-        address asset = address(config.bufferArk.asset());
+        // 1. Get the asset from fleet contract
+        address asset = IERC4626(fleetContract).asset();
 
         // 2. Withdraw from fleet contract
         IFleetCommander(fleetContract).withdraw(
@@ -247,10 +244,8 @@ contract FleetProxy is
             revert InvalidSourceChain();
         }
 
-        // Get the fleet config and check if the asset matches
-        FleetConfig memory config = IFleetCommanderConfigProvider(fleetContract)
-            .getConfig();
-        if (asset != address(config.bufferArk.asset())) {
+        // Check if the asset matches the fleet's asset
+        if (asset != IERC4626(fleetContract).asset()) {
             revert InvalidAsset();
         }
 
