@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {FleetDepositManager} from "../src/contracts/FleetDepositManager.sol";
+import {FleetDepositManager} from "../../src/contracts/FleetDepositManager.sol";
 import {IFleetDepositAdapter} from "@summerfi/chain-bridge/interfaces/IFleetDepositAdapter.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,60 +11,8 @@ import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRout
 import {MockAccessManager} from "@summerfi/chain-bridge-test/mocks/MockAccessManager.sol";
 import {MockFleetDepositAdapter} from "@summerfi/chain-bridge-test/mocks/MockFleetDepositAdapter.sol";
 import {MockFleetDepositAdapterNoSupport} from "@summerfi/chain-bridge-test/mocks/MockFleetDepositAdapterNoSupport.sol";
-
-// NEW: Add mock contracts for fleet validation
-contract MockHarborCommand {
-    mapping(address => bool) public activeFleetCommanders;
-
-    function setActiveFleetCommander(
-        address fleetCommander,
-        bool isActive
-    ) external {
-        activeFleetCommanders[fleetCommander] = isActive;
-    }
-}
-
-contract MockFleetCommander {
-    address private _asset;
-    uint256 public maxDepositAmount;
-    bool public shouldRevertAsset;
-    bool public shouldRevertMaxDeposit;
-
-    constructor(address __asset) {
-        _asset = __asset;
-        maxDepositAmount = type(uint256).max;
-    }
-
-    function setAsset(address __asset) external {
-        _asset = __asset;
-    }
-
-    function setMaxDeposit(uint256 _maxDeposit) external {
-        maxDepositAmount = _maxDeposit;
-    }
-
-    function setShouldRevertAsset(bool _shouldRevert) external {
-        shouldRevertAsset = _shouldRevert;
-    }
-
-    function setShouldRevertMaxDeposit(bool _shouldRevert) external {
-        shouldRevertMaxDeposit = _shouldRevert;
-    }
-
-    function asset() external view returns (address) {
-        if (shouldRevertAsset) {
-            revert("Asset reverted");
-        }
-        return _asset;
-    }
-
-    function maxDeposit(address) external view returns (uint256) {
-        if (shouldRevertMaxDeposit) {
-            revert("MaxDeposit reverted");
-        }
-        return maxDepositAmount;
-    }
-}
+import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
+import {FleetCommanderTestMock} from "../mocks/FleetCommanderTestMock.sol";
 
 contract FleetDepositManagerTest is Test {
     FleetDepositManager public manager;
@@ -74,7 +22,7 @@ contract FleetDepositManagerTest is Test {
     MockBridgeRouter public mockBridgeRouter;
     MockAccessManager public mockAccessManager;
     MockHarborCommand public mockHarborCommand;
-    MockFleetCommander public mockFleetCommander;
+    FleetCommanderTestMock public mockFleetCommander;
 
     address public user = address(0x1);
     address public user2 = address(0x2);
@@ -114,7 +62,7 @@ contract FleetDepositManagerTest is Test {
         token = new ERC20Mock();
 
         // Create a mock fleet commander that supports the token
-        mockFleetCommander = new MockFleetCommander(address(token));
+        mockFleetCommander = new FleetCommanderTestMock(address(token));
 
         // Setup users with tokens and ETH
         token.mint(user, DEPOSIT_AMOUNT * 10);
@@ -832,8 +780,11 @@ contract FleetDepositManagerTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        INTEGRATION TESTS
+                        FULL FLOW UNIT TESTS
     //////////////////////////////////////////////////////////////*/
+
+    // NOTE: For real integration tests using actual adapters and forks,
+    // see packages/core-contracts/test/integration/FleetDepositManager.integration.fork.t.sol
 
     function test_CrossChainDepositToFleet_FullFlow() public {
         bytes memory referralCode = bytes("INTEGRATION_TEST");
