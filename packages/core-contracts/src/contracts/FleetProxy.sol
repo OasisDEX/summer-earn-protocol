@@ -281,7 +281,10 @@ contract FleetProxy is
         uint16 sourceChainId
     ) internal view returns (address arkAddress) {
         try
-            crossChainRegistry.getArkForProxy(sourceChainId, address(this))
+            crossChainRegistry.getCrossChainArkForFleetProxy(
+                sourceChainId,
+                address(this)
+            )
         returns (address ark) {
             if (ark != address(0)) {
                 return ark;
@@ -301,11 +304,14 @@ contract FleetProxy is
         uint16 sourceChainId
     ) internal view returns (bool isValid) {
         try
-            crossChainRegistry.getArkForProxy(sourceChainId, address(this))
+            crossChainRegistry.getCrossChainArkForFleetProxy(
+                sourceChainId,
+                address(this)
+            )
         returns (address ark) {
             if (ark != address(0)) {
                 try
-                    crossChainRegistry.isValidArkProxyPair(
+                    crossChainRegistry.isValidCrossChainArkFleetProxyPair(
                         ark,
                         sourceChainId,
                         address(this)

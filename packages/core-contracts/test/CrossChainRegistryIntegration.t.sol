@@ -115,7 +115,7 @@ contract CrossChainRegistryIntegrationTest is Test {
     function testRegistryIntegrationWorkflow() public {
         // 1. Register the relationship in the registry (simplified call)
         vm.prank(governor);
-        registry.registerArkProxy(
+        registry.registerCrossChainArkFleetProxy(
             address(ark),
             SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
@@ -123,24 +123,24 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         // 2. Verify the relationship is registered
-        assertTrue(registry.isArkRegistered(address(ark)));
+        assertTrue(registry.isCrossChainArkRegistered(address(ark)));
 
         // 3. Verify ark can get proxy from registry
-        (address retrievedProxy, uint16 retrievedChainId) = registry
-            .getProxyForArk(address(ark));
-        assertEq(retrievedProxy, address(proxy));
+        (address retrievedFleetProxy, uint16 retrievedChainId) = registry
+            .getFleetProxyForCrossChainArk(address(ark));
+        assertEq(retrievedFleetProxy, address(proxy));
         assertEq(retrievedChainId, TARGET_CHAIN_ID);
 
         // 4. Verify proxy can get ark from registry
-        address retrievedArk = registry.getArkForProxy(
+        address retrievedCrossChainArk = registry.getCrossChainArkForFleetProxy(
             SOURCE_CHAIN_ID,
             address(proxy)
         );
-        assertEq(retrievedArk, address(ark));
+        assertEq(retrievedCrossChainArk, address(ark));
 
         // 5. Verify the relationship is valid and active
         assertTrue(
-            registry.isValidArkProxyPair(
+            registry.isValidCrossChainArkFleetProxyPair(
                 address(ark),
                 SOURCE_CHAIN_ID,
                 address(proxy)
@@ -175,7 +175,7 @@ contract CrossChainRegistryIntegrationTest is Test {
     function testRegistryStatusManagement() public {
         // Register relationship
         vm.prank(governor);
-        registry.registerArkProxy(
+        registry.registerCrossChainArkFleetProxy(
             address(ark),
             SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
@@ -184,7 +184,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Initially active
         assertTrue(
-            registry.isValidArkProxyPair(
+            registry.isValidCrossChainArkFleetProxyPair(
                 address(ark),
                 SOURCE_CHAIN_ID,
                 address(proxy)
@@ -197,7 +197,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Should be inactive
         assertFalse(
-            registry.isValidArkProxyPair(
+            registry.isValidCrossChainArkFleetProxyPair(
                 address(ark),
                 SOURCE_CHAIN_ID,
                 address(proxy)
@@ -205,7 +205,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         // But still registered
-        assertTrue(registry.isArkRegistered(address(ark)));
+        assertTrue(registry.isCrossChainArkRegistered(address(ark)));
 
         // Reactivate
         vm.prank(governor);
@@ -213,7 +213,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Should be active again
         assertTrue(
-            registry.isValidArkProxyPair(
+            registry.isValidCrossChainArkFleetProxyPair(
                 address(ark),
                 SOURCE_CHAIN_ID,
                 address(proxy)
@@ -239,7 +239,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // 2. Register relationship in registry
         vm.prank(governor);
-        registry.registerArkProxy(
+        registry.registerCrossChainArkFleetProxy(
             address(ark),
             SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
@@ -262,7 +262,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Register relationship
         vm.prank(governor);
-        registry.registerArkProxy(
+        registry.registerCrossChainArkFleetProxy(
             address(ark),
             SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
@@ -274,7 +274,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Unregister
         vm.prank(governor);
-        registry.unregisterArkProxy(address(ark));
+        registry.unregisterCrossChainArkFleetProxy(address(ark));
 
         // Should return zero address again
         assertEq(ark.getTargetProxy(), address(0));
@@ -283,11 +283,11 @@ contract CrossChainRegistryIntegrationTest is Test {
     function testEnumerationFunctions() public {
         // Initially empty
         assertEq(registry.getRelationshipCount(), 0);
-        assertEq(registry.getRegisteredArks().length, 0);
+        assertEq(registry.getRegisteredCrossChainArks().length, 0);
 
         // Register relationship
         vm.prank(governor);
-        registry.registerArkProxy(
+        registry.registerCrossChainArkFleetProxy(
             address(ark),
             SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
@@ -296,22 +296,23 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Check enumeration
         assertEq(registry.getRelationshipCount(), 1);
-        address[] memory arks = registry.getRegisteredArks();
-        assertEq(arks.length, 1);
-        assertEq(arks[0], address(ark));
+        address[] memory crossChainArks = registry
+            .getRegisteredCrossChainArks();
+        assertEq(crossChainArks.length, 1);
+        assertEq(crossChainArks[0], address(ark));
 
         // Unregister and check
         vm.prank(governor);
-        registry.unregisterArkProxy(address(ark));
+        registry.unregisterCrossChainArkFleetProxy(address(ark));
 
         assertEq(registry.getRelationshipCount(), 0);
-        assertEq(registry.getRegisteredArks().length, 0);
+        assertEq(registry.getRegisteredCrossChainArks().length, 0);
     }
 
     function testQueryFunctions() public {
         // Register relationship
         vm.prank(governor);
-        registry.registerArkProxy(
+        registry.registerCrossChainArkFleetProxy(
             address(ark),
             SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
@@ -319,24 +320,24 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         // Test all query functions
-        (address retrievedProxy, uint16 retrievedChainId) = registry
-            .getProxyForArk(address(ark));
-        assertEq(retrievedProxy, address(proxy));
+        (address retrievedFleetProxy, uint16 retrievedChainId) = registry
+            .getFleetProxyForCrossChainArk(address(ark));
+        assertEq(retrievedFleetProxy, address(proxy));
         assertEq(retrievedChainId, TARGET_CHAIN_ID);
 
-        address retrievedArk = registry.getArkForProxy(
+        address retrievedCrossChainArk = registry.getCrossChainArkForFleetProxy(
             SOURCE_CHAIN_ID,
             address(proxy)
         );
-        assertEq(retrievedArk, address(ark));
+        assertEq(retrievedCrossChainArk, address(ark));
 
         assertTrue(
-            registry.isValidArkProxyPair(
+            registry.isValidCrossChainArkFleetProxyPair(
                 address(ark),
                 SOURCE_CHAIN_ID,
                 address(proxy)
             )
         );
-        assertTrue(registry.isArkRegistered(address(ark)));
+        assertTrue(registry.isCrossChainArkRegistered(address(ark)));
     }
 }

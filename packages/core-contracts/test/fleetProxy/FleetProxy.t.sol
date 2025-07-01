@@ -30,24 +30,24 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
     mapping(uint16 => mapping(address => address)) private chainToArkToProxy;
     mapping(address => bool) private arkToProxyActive;
 
-    function registerArkProxy(
+    function registerCrossChainArkFleetProxy(
         address,
         uint16,
         uint16,
         address
     ) external override {}
 
-    function unregisterArkProxy(address) external override {}
+    function unregisterCrossChainArkFleetProxy(address) external override {}
 
     function updateRelationshipStatus(address, bool) external override {}
 
-    function getProxyForArk(
+    function getFleetProxyForCrossChainArk(
         address
     ) external pure override returns (address, uint16) {
         revert RelationshipDoesNotExist(address(0));
     }
 
-    function getArkForProxy(
+    function getCrossChainArkForFleetProxy(
         uint16 sourceChainId,
         address proxy
     ) external view override returns (address) {
@@ -58,7 +58,7 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
         return ark;
     }
 
-    function isValidArkProxyPair(
+    function isValidCrossChainArkFleetProxyPair(
         address ark,
         uint16 sourceChainId,
         address proxy
@@ -68,7 +68,7 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
             arkToProxyActive[ark];
     }
 
-    function getRegisteredArks()
+    function getRegisteredCrossChainArks()
         external
         pure
         override
@@ -81,7 +81,9 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
         return 0;
     }
 
-    function isArkRegistered(address) external pure override returns (bool) {
+    function isCrossChainArkRegistered(
+        address
+    ) external pure override returns (bool) {
         return false;
     }
 
@@ -210,7 +212,7 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(address(proxy.crossChainRegistry()), address(mockRegistry));
         assertEq(proxy.fleetContract(), address(fleetCommanderMock));
         // Verify registry relationship works
-        address arkFromRegistry = mockRegistry.getArkForProxy(
+        address arkFromRegistry = mockRegistry.getCrossChainArkForFleetProxy(
             SOURCE_CHAIN_ID,
             address(proxy)
         );

@@ -21,49 +21,49 @@ import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.s
 
 // Simple mock registry for fork testing
 contract SimpleMockRegistry is ICrossChainRegistry {
-    mapping(address => ArkProxyRelation) private arkToProxy;
+    mapping(address => CrossChainArkFleetProxyRelation) private arkToProxy;
 
-    function registerArkProxy(
+    function registerCrossChainArkFleetProxy(
         address,
         uint16,
         uint16,
         address
     ) external override {}
 
-    function unregisterArkProxy(address) external override {}
+    function unregisterCrossChainArkFleetProxy(address) external override {}
 
     function updateRelationshipStatus(address, bool) external override {}
 
-    function getProxyForArk(
+    function getFleetProxyForCrossChainArk(
         address ark
     ) external view override returns (address, uint16) {
-        ArkProxyRelation memory relation = arkToProxy[ark];
-        if (relation.proxy == address(0)) {
+        CrossChainArkFleetProxyRelation memory relation = arkToProxy[ark];
+        if (relation.fleetProxy == address(0)) {
             revert RelationshipDoesNotExist(ark);
         }
-        return (relation.proxy, relation.targetChainId);
+        return (relation.fleetProxy, relation.targetChainId);
     }
 
-    function getArkForProxy(
+    function getCrossChainArkForFleetProxy(
         uint16,
         address
     ) external pure override returns (address) {
         revert RelationshipDoesNotExist(address(0));
     }
 
-    function isValidArkProxyPair(
+    function isValidCrossChainArkFleetProxyPair(
         address ark,
         uint16 sourceChainId,
         address proxy
     ) external view override returns (bool) {
-        ArkProxyRelation memory relation = arkToProxy[ark];
+        CrossChainArkFleetProxyRelation memory relation = arkToProxy[ark];
         return
-            relation.proxy == proxy &&
+            relation.fleetProxy == proxy &&
             relation.sourceChainId == sourceChainId &&
             relation.isActive;
     }
 
-    function getRegisteredArks()
+    function getRegisteredCrossChainArks()
         external
         pure
         override
@@ -76,14 +76,16 @@ contract SimpleMockRegistry is ICrossChainRegistry {
         return 0;
     }
 
-    function isArkRegistered(address) external pure override returns (bool) {
+    function isCrossChainArkRegistered(
+        address
+    ) external pure override returns (bool) {
         return false;
     }
 
     // Helper for testing
     function setMockProxy(address ark, address proxy, uint16 chainId) external {
-        arkToProxy[ark] = ArkProxyRelation({
-            proxy: proxy,
+        arkToProxy[ark] = CrossChainArkFleetProxyRelation({
+            fleetProxy: proxy,
             targetChainId: chainId,
             sourceChainId: 1, // Default source chain ID
             isActive: true

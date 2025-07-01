@@ -17,17 +17,18 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice The chain ID of the current deployment
     uint16 public immutable currentChainId;
 
-    /// @notice Mapping from ark address to relationship information
-    mapping(address => ArkProxyRelation) private arkToProxy;
+    /// @notice Mapping from crossChainArk address to relationship information
+    mapping(address => CrossChainArkFleetProxyRelation)
+        private crossChainArkToFleetProxy;
 
-    /// @notice Mapping from keccak256(abi.encode(sourceChainId, proxy)) to ark address
-    mapping(bytes32 => address) private proxyToArk;
+    /// @notice Mapping from keccak256(abi.encode(sourceChainId, fleetProxy)) to crossChainArk address
+    mapping(bytes32 => address) private fleetProxyToCrossChainArk;
 
-    /// @notice Array of all registered ark addresses for enumeration
-    address[] private registeredArks;
+    /// @notice Array of all registered crossChainArk addresses for enumeration
+    address[] private registeredCrossChainArks;
 
-    /// @notice Mapping to track if an ark is registered (for gas optimization)
-    mapping(address => bool) private arkRegistered;
+    /// @notice Mapping to track if a crossChainArk is registered (for gas optimization)
+    mapping(address => bool) private crossChainArkRegistered;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -67,95 +68,117 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function registerArkProxy(
-        address ark,
+    function registerCrossChainArkFleetProxy(
+        address crossChainArk,
         uint16 sourceChainId,
         uint16 targetChainId,
-        address proxy
+        address fleetProxy
     ) external override onlyGovernor {
-        if (ark == address(0)) revert InvalidArk(ark);
-        if (proxy == address(0)) revert InvalidProxy(proxy);
+        if (crossChainArk == address(0))
+            revert InvalidCrossChainArk(crossChainArk);
+        if (fleetProxy == address(0)) revert InvalidFleetProxy(fleetProxy);
         if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
         if (targetChainId == 0) revert InvalidChainId(targetChainId);
 
         // This function can be called on either source or target chain
-        // Source chain: Allows CrossChainArk to find its target proxy
-        // Target chain: Allows FleetProxy to validate source ark relationships
+        // Source chain: Allows CrossChainArk to find its target fleetProxy
+        // Target chain: Allows FleetProxy to validate source crossChainArk relationships
 
-        // Check if ark already exists (using ark address as unique identifier)
-        if (arkRegistered[ark]) {
-            revert RelationshipAlreadyExists(ark, sourceChainId, proxy);
+        // Check if crossChainArk already exists (using crossChainArk address as unique identifier)
+        if (crossChainArkRegistered[crossChainArk]) {
+            revert RelationshipAlreadyExists(
+                crossChainArk,
+                sourceChainId,
+                fleetProxy
+            );
         }
 
-        // Check if this proxy is already registered to another ark (for target chain lookups)
-        bytes32 proxyKey = keccak256(abi.encode(sourceChainId, proxy));
-        if (proxyToArk[proxyKey] != address(0)) {
-            revert ProxyAlreadyRegistered(
-                proxy,
+        // Check if this fleetProxy is already registered to another crossChainArk (for target chain lookups)
+        bytes32 fleetProxyKey = keccak256(
+            abi.encode(sourceChainId, fleetProxy)
+        );
+        if (fleetProxyToCrossChainArk[fleetProxyKey] != address(0)) {
+            revert FleetProxyAlreadyRegistered(
+                fleetProxy,
                 sourceChainId,
-                proxyToArk[proxyKey]
+                fleetProxyToCrossChainArk[fleetProxyKey]
             );
         }
 
         // Create the relationship
-        arkToProxy[ark] = ArkProxyRelation({
-            proxy: proxy,
+        crossChainArkToFleetProxy[
+            crossChainArk
+        ] = CrossChainArkFleetProxyRelation({
+            fleetProxy: fleetProxy,
             targetChainId: targetChainId, // Explicit target chain ID
             sourceChainId: sourceChainId, // Explicit source chain ID
             isActive: true // Default to active
         });
 
-        // Set reverse mapping: (sourceChainId, proxy) -> ark (used by target chain FleetProxy)
-        proxyToArk[proxyKey] = ark;
+        // Set reverse mapping: (sourceChainId, fleetProxy) -> crossChainArk (used by target chain FleetProxy)
+        fleetProxyToCrossChainArk[fleetProxyKey] = crossChainArk;
 
         // Update tracking
-        registeredArks.push(ark);
-        arkRegistered[ark] = true;
+        registeredCrossChainArks.push(crossChainArk);
+        crossChainArkRegistered[crossChainArk] = true;
 
-        emit ArkProxyRegistered(ark, sourceChainId, proxy);
+        emit CrossChainArkFleetProxyRegistered(
+            crossChainArk,
+            sourceChainId,
+            fleetProxy
+        );
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function unregisterArkProxy(address ark) external override onlyGovernor {
-        if (!arkRegistered[ark]) {
-            revert RelationshipDoesNotExist(ark);
+    function unregisterCrossChainArkFleetProxy(
+        address crossChainArk
+    ) external override onlyGovernor {
+        if (!crossChainArkRegistered[crossChainArk]) {
+            revert RelationshipDoesNotExist(crossChainArk);
         }
 
-        ArkProxyRelation memory relation = arkToProxy[ark];
+        CrossChainArkFleetProxyRelation
+            memory relation = crossChainArkToFleetProxy[crossChainArk];
 
         // Remove reverse mapping using the stored sourceChainId
-        bytes32 proxyKey = keccak256(
-            abi.encode(relation.sourceChainId, relation.proxy)
+        bytes32 fleetProxyKey = keccak256(
+            abi.encode(relation.sourceChainId, relation.fleetProxy)
         );
-        delete proxyToArk[proxyKey];
+        delete fleetProxyToCrossChainArk[fleetProxyKey];
 
-        // Remove from registered arks array
-        for (uint256 i = 0; i < registeredArks.length; i++) {
-            if (registeredArks[i] == ark) {
-                registeredArks[i] = registeredArks[registeredArks.length - 1];
-                registeredArks.pop();
+        // Remove from registered crossChainArks array
+        for (uint256 i = 0; i < registeredCrossChainArks.length; i++) {
+            if (registeredCrossChainArks[i] == crossChainArk) {
+                registeredCrossChainArks[i] = registeredCrossChainArks[
+                    registeredCrossChainArks.length - 1
+                ];
+                registeredCrossChainArks.pop();
                 break;
             }
         }
 
         // Clean up mappings
-        delete arkToProxy[ark];
-        delete arkRegistered[ark];
+        delete crossChainArkToFleetProxy[crossChainArk];
+        delete crossChainArkRegistered[crossChainArk];
 
-        emit ArkProxyUnregistered(ark, relation.sourceChainId, relation.proxy);
+        emit CrossChainArkFleetProxyUnregistered(
+            crossChainArk,
+            relation.sourceChainId,
+            relation.fleetProxy
+        );
     }
 
     /// @inheritdoc ICrossChainRegistry
     function updateRelationshipStatus(
-        address ark,
+        address crossChainArk,
         bool isActive
     ) external override onlyGovernor {
-        if (!arkRegistered[ark]) {
-            revert RelationshipDoesNotExist(ark);
+        if (!crossChainArkRegistered[crossChainArk]) {
+            revert RelationshipDoesNotExist(crossChainArk);
         }
 
-        arkToProxy[ark].isActive = isActive;
-        emit RelationshipStatusUpdated(ark, isActive);
+        crossChainArkToFleetProxy[crossChainArk].isActive = isActive;
+        emit RelationshipStatusUpdated(crossChainArk, isActive);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -163,41 +186,50 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function getProxyForArk(
-        address ark
-    ) external view override returns (address proxy, uint16 targetChainId) {
-        if (!arkRegistered[ark]) {
-            revert RelationshipDoesNotExist(ark);
+    function getFleetProxyForCrossChainArk(
+        address crossChainArk
+    )
+        external
+        view
+        override
+        returns (address fleetProxy, uint16 targetChainId)
+    {
+        if (!crossChainArkRegistered[crossChainArk]) {
+            revert RelationshipDoesNotExist(crossChainArk);
         }
 
-        ArkProxyRelation memory relation = arkToProxy[ark];
-        return (relation.proxy, relation.targetChainId);
+        CrossChainArkFleetProxyRelation
+            memory relation = crossChainArkToFleetProxy[crossChainArk];
+        return (relation.fleetProxy, relation.targetChainId);
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function getArkForProxy(
+    function getCrossChainArkForFleetProxy(
         uint16 sourceChainId,
-        address proxy
-    ) external view override returns (address ark) {
-        bytes32 proxyKey = keccak256(abi.encode(sourceChainId, proxy));
-        ark = proxyToArk[proxyKey];
-        if (ark == address(0)) {
-            revert RelationshipDoesNotExist(proxy);
+        address fleetProxy
+    ) external view override returns (address crossChainArk) {
+        bytes32 fleetProxyKey = keccak256(
+            abi.encode(sourceChainId, fleetProxy)
+        );
+        crossChainArk = fleetProxyToCrossChainArk[fleetProxyKey];
+        if (crossChainArk == address(0)) {
+            revert RelationshipDoesNotExist(fleetProxy);
         }
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function isValidArkProxyPair(
-        address ark,
+    function isValidCrossChainArkFleetProxyPair(
+        address crossChainArk,
         uint16 sourceChainId,
-        address proxy
+        address fleetProxy
     ) external view override returns (bool isValid) {
-        if (!arkRegistered[ark]) {
+        if (!crossChainArkRegistered[crossChainArk]) {
             return false;
         }
 
-        ArkProxyRelation memory relation = arkToProxy[ark];
-        return (relation.proxy == proxy &&
+        CrossChainArkFleetProxyRelation
+            memory relation = crossChainArkToFleetProxy[crossChainArk];
+        return (relation.fleetProxy == fleetProxy &&
             relation.sourceChainId == sourceChainId &&
             relation.isActive);
     }
@@ -207,20 +239,20 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function getRegisteredArks()
+    function getRegisteredCrossChainArks()
         external
         view
         override
-        returns (address[] memory arks)
+        returns (address[] memory crossChainArks)
     {
-        return registeredArks;
+        return registeredCrossChainArks;
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function isArkRegistered(
-        address ark
+    function isCrossChainArkRegistered(
+        address crossChainArk
     ) external view override returns (bool isRegistered) {
-        return arkRegistered[ark];
+        return crossChainArkRegistered[crossChainArk];
     }
 
     /// @inheritdoc ICrossChainRegistry
@@ -230,6 +262,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         override
         returns (uint256 count)
     {
-        return registeredArks.length;
+        return registeredCrossChainArks.length;
     }
 }

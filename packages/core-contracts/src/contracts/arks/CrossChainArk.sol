@@ -361,10 +361,9 @@ contract CrossChainArk is
      * @return proxyAddress The target proxy address, or address(0) if not registered
      */
     function _getTargetProxy() internal view returns (address proxyAddress) {
-        try crossChainRegistry.getProxyForArk(address(this)) returns (
-            address proxy,
-            uint16 chainId
-        ) {
+        try
+            crossChainRegistry.getFleetProxyForCrossChainArk(address(this))
+        returns (address proxy, uint16 chainId) {
             if (proxy != address(0) && chainId == targetChainId) {
                 return proxy;
             }

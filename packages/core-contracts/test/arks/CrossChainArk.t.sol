@@ -20,40 +20,45 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 // Mock CrossChainRegistry for testing
 contract MockCrossChainRegistry is ICrossChainRegistry {
-    mapping(address => ArkProxyRelation) private arkToProxy;
+    mapping(address => CrossChainArkFleetProxyRelation) private arkToProxy;
 
-    function registerArkProxy(
+    function registerCrossChainArkFleetProxy(
         address ark,
         uint16 sourceChainId,
         uint16 targetChainId,
         address proxy
     ) external override {}
 
-    function unregisterArkProxy(address ark) external override {}
+    function unregisterCrossChainArkFleetProxy(address ark) external override {}
 
     function updateRelationshipStatus(
         address ark,
         bool isActive
     ) external override {}
 
-    function getProxyForArk(
+    function getFleetProxyForCrossChainArk(
         address ark
-    ) external view override returns (address proxy, uint16 targetChainId) {
-        ArkProxyRelation memory relation = arkToProxy[ark];
-        if (relation.proxy == address(0)) {
+    )
+        external
+        view
+        override
+        returns (address fleetProxy, uint16 targetChainId)
+    {
+        CrossChainArkFleetProxyRelation memory relation = arkToProxy[ark];
+        if (relation.fleetProxy == address(0)) {
             revert RelationshipDoesNotExist(ark);
         }
-        return (relation.proxy, relation.targetChainId);
+        return (relation.fleetProxy, relation.targetChainId);
     }
 
-    function getArkForProxy(
+    function getCrossChainArkForFleetProxy(
         uint16 sourceChainId,
         address proxy
     ) external view override returns (address ark) {
         revert RelationshipDoesNotExist(address(0));
     }
 
-    function isValidArkProxyPair(
+    function isValidCrossChainArkFleetProxyPair(
         address ark,
         uint16 sourceChainId,
         address proxy
@@ -61,7 +66,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         return false;
     }
 
-    function getRegisteredArks()
+    function getRegisteredCrossChainArks()
         external
         view
         override
@@ -79,7 +84,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         return 0;
     }
 
-    function isArkRegistered(
+    function isCrossChainArkRegistered(
         address ark
     ) external view override returns (bool isRegistered) {
         return false;
@@ -92,8 +97,8 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         uint16 targetChainId,
         address proxy
     ) external {
-        arkToProxy[ark] = ArkProxyRelation({
-            proxy: proxy,
+        arkToProxy[ark] = CrossChainArkFleetProxyRelation({
+            fleetProxy: proxy,
             targetChainId: targetChainId,
             sourceChainId: sourceChainId,
             isActive: true

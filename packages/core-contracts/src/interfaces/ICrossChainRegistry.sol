@@ -12,14 +12,14 @@ interface ICrossChainRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Represents a relationship between an Ark and a Proxy on a target chain
-     * @param proxy The address of the FleetProxy contract on the target chain
-     * @param targetChainId The chain ID where the proxy is deployed
-     * @param sourceChainId The chain ID where the ark is deployed
+     * @notice Represents a relationship between a CrossChainArk and a FleetProxy on a target chain
+     * @param fleetProxy The address of the FleetProxy contract on the target chain
+     * @param targetChainId The chain ID where the fleetProxy is deployed
+     * @param sourceChainId The chain ID where the crossChainArk is deployed
      * @param isActive Simple boolean status instead of complex enum
      */
-    struct ArkProxyRelation {
-        address proxy;
+    struct CrossChainArkFleetProxyRelation {
+        address fleetProxy;
         uint16 targetChainId;
         uint16 sourceChainId;
         bool isActive;
@@ -29,30 +29,33 @@ interface ICrossChainRegistry {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when an Ark-Proxy relationship is registered
-    /// @param ark The address of the CrossChainArk contract
-    /// @param sourceChainId The chain ID where the ark is deployed
-    /// @param proxy The address of the FleetProxy contract
-    event ArkProxyRegistered(
-        address indexed ark,
+    /// @notice Emitted when a CrossChainArk-FleetProxy relationship is registered
+    /// @param crossChainArk The address of the CrossChainArk contract
+    /// @param sourceChainId The chain ID where the crossChainArk is deployed
+    /// @param fleetProxy The address of the FleetProxy contract
+    event CrossChainArkFleetProxyRegistered(
+        address indexed crossChainArk,
         uint16 indexed sourceChainId,
-        address indexed proxy
+        address indexed fleetProxy
     );
 
-    /// @notice Emitted when an Ark-Proxy relationship is unregistered
-    /// @param ark The address of the CrossChainArk contract
-    /// @param sourceChainId The chain ID where the ark was deployed
-    /// @param proxy The address of the FleetProxy contract
-    event ArkProxyUnregistered(
-        address indexed ark,
+    /// @notice Emitted when a CrossChainArk-FleetProxy relationship is unregistered
+    /// @param crossChainArk The address of the CrossChainArk contract
+    /// @param sourceChainId The chain ID where the crossChainArk was deployed
+    /// @param fleetProxy The address of the FleetProxy contract
+    event CrossChainArkFleetProxyUnregistered(
+        address indexed crossChainArk,
         uint16 indexed sourceChainId,
-        address indexed proxy
+        address indexed fleetProxy
     );
 
     /// @notice Emitted when a relationship's status is updated
-    /// @param ark The address of the CrossChainArk contract
+    /// @param crossChainArk The address of the CrossChainArk contract
     /// @param isActive The new active status
-    event RelationshipStatusUpdated(address indexed ark, bool isActive);
+    event RelationshipStatusUpdated(
+        address indexed crossChainArk,
+        bool isActive
+    );
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -60,28 +63,28 @@ interface ICrossChainRegistry {
 
     /// @notice Thrown when trying to register a relationship that already exists
     error RelationshipAlreadyExists(
-        address ark,
+        address crossChainArk,
         uint16 sourceChainId,
-        address proxy
+        address fleetProxy
     );
 
     /// @notice Thrown when trying to access a relationship that doesn't exist
-    error RelationshipDoesNotExist(address ark);
+    error RelationshipDoesNotExist(address crossChainArk);
 
-    /// @notice Thrown when an invalid ark address is provided
-    error InvalidArk(address ark);
+    /// @notice Thrown when an invalid crossChainArk address is provided
+    error InvalidCrossChainArk(address crossChainArk);
 
-    /// @notice Thrown when an invalid proxy address is provided
-    error InvalidProxy(address proxy);
+    /// @notice Thrown when an invalid fleetProxy address is provided
+    error InvalidFleetProxy(address fleetProxy);
 
     /// @notice Thrown when an invalid chain ID is provided
     error InvalidChainId(uint16 chainId);
 
-    /// @notice Thrown when trying to register a proxy that's already registered to another ark
-    error ProxyAlreadyRegistered(
-        address proxy,
+    /// @notice Thrown when trying to register a fleetProxy that's already registered to another crossChainArk
+    error FleetProxyAlreadyRegistered(
+        address fleetProxy,
         uint16 chainId,
-        address existingArk
+        address existingCrossChainArk
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -89,68 +92,71 @@ interface ICrossChainRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Register a new Ark-Proxy relationship
-     * @param ark The address of the CrossChainArk contract
-     * @param sourceChainId The chain ID where the ark is deployed
-     * @param targetChainId The chain ID where the proxy is deployed
-     * @param proxy The address of the FleetProxy contract
+     * @notice Register a new CrossChainArk-FleetProxy relationship
+     * @param crossChainArk The address of the CrossChainArk contract
+     * @param sourceChainId The chain ID where the crossChainArk is deployed
+     * @param targetChainId The chain ID where the fleetProxy is deployed
+     * @param fleetProxy The address of the FleetProxy contract
      */
-    function registerArkProxy(
-        address ark,
+    function registerCrossChainArkFleetProxy(
+        address crossChainArk,
         uint16 sourceChainId,
         uint16 targetChainId,
-        address proxy
+        address fleetProxy
     ) external;
 
     /**
-     * @notice Unregister an existing Ark-Proxy relationship
-     * @param ark The address of the CrossChainArk contract
+     * @notice Unregister an existing CrossChainArk-FleetProxy relationship
+     * @param crossChainArk The address of the CrossChainArk contract
      */
-    function unregisterArkProxy(address ark) external;
+    function unregisterCrossChainArkFleetProxy(address crossChainArk) external;
 
     /**
      * @notice Update the status of a relationship
-     * @param ark The address of the CrossChainArk contract
+     * @param crossChainArk The address of the CrossChainArk contract
      * @param isActive Whether the relationship should be active
      */
-    function updateRelationshipStatus(address ark, bool isActive) external;
+    function updateRelationshipStatus(
+        address crossChainArk,
+        bool isActive
+    ) external;
 
     /*//////////////////////////////////////////////////////////////
                             QUERY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get the proxy and target chain for a given ark
-     * @param ark The address of the CrossChainArk contract
-     * @return proxy The address of the FleetProxy contract
-     * @return targetChainId The chain ID where the proxy is deployed
+     * @notice Get the fleetProxy and target chain for a given crossChainArk
+     * @param crossChainArk The address of the CrossChainArk contract
+     * @return fleetProxy The address of the FleetProxy contract
+     * @return targetChainId The chain ID where the fleetProxy is deployed
      */
-    function getProxyForArk(
-        address ark
-    ) external view returns (address proxy, uint16 targetChainId);
+    function getFleetProxyForCrossChainArk(
+        address crossChainArk
+    ) external view returns (address fleetProxy, uint16 targetChainId);
 
     /**
-     * @notice Get the ark address for a given proxy on a source chain
+     * @notice Get the crossChainArk address for a given fleetProxy on a source chain
      * @param sourceChainId The chain ID of the source chain
-     * @param proxy The address of the FleetProxy contract
-     * @return ark The address of the CrossChainArk contract
+     * @param fleetProxy The address of the FleetProxy contract
+     * @return crossChainArk The address of the CrossChainArk contract
      */
-    function getArkForProxy(
+    function getCrossChainArkForFleetProxy(
         uint16 sourceChainId,
-        address proxy
-    ) external view returns (address ark);
+        address fleetProxy
+    ) external view returns (address crossChainArk);
 
     /**
-     * @notice Check if an ark-proxy pair is valid and active
-     * @param ark The address of the CrossChainArk contract
-     * @param sourceChainId The chain ID where the ark is deployed
-     * @param proxy The address of the FleetProxy contract
+     * @notice Check if a crossChainArk-fleetProxy pair is valid and active
+     * @param crossChainArk The address of the CrossChainArk contract
+     * @param sourceChainId The chain ID where the crossChainArk is deployed
+     * @param fleetProxy The address of the FleetProxy contract
      * @return isValid True if the relationship exists and is active
      */
-    function isValidArkProxyPair(
-        address ark,
+    function isValidCrossChainArkFleetProxyPair(
+        address crossChainArk,
         uint16 sourceChainId,
-        address proxy
+        address fleetProxy
     ) external view returns (bool isValid);
 
     /*//////////////////////////////////////////////////////////////
@@ -158,18 +164,21 @@ interface ICrossChainRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get all registered ark addresses
-     * @return arks Array of registered ark addresses
+     * @notice Get all registered crossChainArk addresses
+     * @return crossChainArks Array of registered crossChainArk addresses
      */
-    function getRegisteredArks() external view returns (address[] memory arks);
+    function getRegisteredCrossChainArks()
+        external
+        view
+        returns (address[] memory crossChainArks);
 
     /**
-     * @notice Check if an ark is registered
-     * @param ark The address of the CrossChainArk contract
-     * @return isRegistered True if the ark is registered
+     * @notice Check if a crossChainArk is registered
+     * @param crossChainArk The address of the CrossChainArk contract
+     * @return isRegistered True if the crossChainArk is registered
      */
-    function isArkRegistered(
-        address ark
+    function isCrossChainArkRegistered(
+        address crossChainArk
     ) external view returns (bool isRegistered);
 
     /**
