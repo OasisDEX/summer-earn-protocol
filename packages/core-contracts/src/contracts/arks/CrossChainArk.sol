@@ -38,8 +38,8 @@ contract CrossChainArk is
     /// @notice Thrown when the provided BridgeRouter address is zero.
     error InvalidBridgeRouter();
 
-    /// @notice Thrown when the provided target chain ID is zero.
-    error InvalidTargetChain();
+    /// @notice Thrown when the provided satellite chain ID is zero.
+    error InvalidSatelliteChain();
 
     /// @notice Thrown when the provided target proxy address is zero.
     error InvalidTargetProxy();
@@ -98,8 +98,8 @@ contract CrossChainArk is
     IBridgeRouter public immutable bridgeRouter;
     /// @notice The CrossChainRegistry contract for managing cross-chain relationships
     ICrossChainRegistry public immutable crossChainRegistry;
-    /// @notice The target chain ID for cross-chain operations
-    uint16 public immutable targetChainId;
+    /// @notice The satellite chain ID where the fleet proxy operates
+    uint16 public immutable satelliteChainId;
 
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
@@ -133,25 +133,25 @@ contract CrossChainArk is
      * @param _bridgeQueue Address of the BridgeQueue contract
      * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
-     * @param _targetChainId ID of the target chain
+     * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
         address _bridgeQueue,
         address _bridgeRouter,
         address _crossChainRegistry,
-        uint16 _targetChainId,
+        uint16 _satelliteChainId,
         ArkParams memory _params
     ) Ark(_params) {
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
-        if (_targetChainId == 0) revert InvalidTargetChain();
+        if (_satelliteChainId == 0) revert InvalidSatelliteChain();
 
         bridgeQueue = IBridgeQueue(_bridgeQueue);
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         crossChainRegistry = ICrossChainRegistry(_crossChainRegistry);
-        targetChainId = _targetChainId;
+        satelliteChainId = _satelliteChainId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -195,9 +195,9 @@ contract CrossChainArk is
     {
         address proxyAddress = _getTargetProxy();
 
-        // Queue a state read to get the total assets from the FleetProxy on the target chain
+        // Queue a state read to get the total assets from the FleetProxy on the satellite chain
         queueId = bridgeQueue.queueReadState(
-            targetChainId,
+            satelliteChainId,
             proxyAddress,
             IFleetProxy.totalAssets.selector,
             ""
@@ -205,7 +205,7 @@ contract CrossChainArk is
 
         emit RemoteAssetBalanceUpdateRequested(
             queueId,
-            targetChainId,
+            satelliteChainId,
             proxyAddress
         );
     }
@@ -278,7 +278,7 @@ contract CrossChainArk is
         config.asset.approve(address(bridgeQueue), amount);
 
         bridgeQueue.queueTransferAssets(
-            targetChainId,
+            satelliteChainId,
             address(config.asset),
             amount,
             proxyAddress
@@ -313,7 +313,7 @@ contract CrossChainArk is
         uint16 sourceChainId
     ) external {
         if (msg.sender != address(bridgeRouter)) revert Unauthorized();
-        if (sourceChainId != targetChainId) revert InvalidSourceChain();
+        if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
         if (requestor != address(this)) revert InvalidRequestor();
 
         // Decode the remote asset balance
@@ -344,7 +344,7 @@ contract CrossChainArk is
         ) {
             revert Unauthorized();
         }
-        if (sourceChainId != targetChainId) revert InvalidSourceChain();
+        if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
         if (tokenAddress != address(config.asset)) revert InvalidAsset();
 
         // Update the remote asset tracking
@@ -369,7 +369,7 @@ contract CrossChainArk is
                 ARK_FLEET_RELATIONSHIP
             )
         returns (address proxy, uint16 chainId) {
-            if (proxy != address(0) && chainId == targetChainId) {
+            if (proxy != address(0) && chainId == satelliteChainId) {
                 return proxy;
             }
         } catch {
