@@ -1,0 +1,19 @@
+{
+  "title": "SIP2.16: Add 1 Ark to LazyVault_LowerRisk_WETH Fleet",
+  "description": "# SIP2.16: Add Ark to LazyVault_LowerRisk_WETH Fleet\n\n## Summary\nThis proposal adds 1 new Ark to the existing LazyVault_LowerRisk_WETH Fleet.\n\n## New Ark Address\n1. `0x7D3607937Fac84AA6d41beb67E252098E52EcD6b`\n\n## Actions\n1. Grant COMMANDER_ROLE to Fleet Commander for the Ark\n2. Add the Ark to the Fleet Commander\n\n## References\nDiscourse: https://forum.summer.fi/t/sip2-16-onboard-morpho-seamless-weth-market-to-base-weth-lower-risk-vault/266\n",
+  "governorId": "eip155:8453:0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa",
+  "targets": [
+    "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af"
+  ],
+  "values": [
+    "0",
+    "0"
+  ],
+  "calldatas": [
+    "0x1981b9a70000000000000000000000007d3607937fac84aa6d41beb67e252098e52ecd6b0000000000000000000000002bb9ad69feba5547b7cd57aafe8457d40bf834af",
+    "0xe37d5b7f0000000000000000000000007d3607937fac84aa6d41beb67e252098e52ecd6b"
+  ],
+  "discourseURL": "https://forum.summer.fi/t/sip2-16-onboard-morpho-seamless-weth-market-to-base-weth-lower-risk-vault/266",
+  "timestamp": 1751356988198
+}
