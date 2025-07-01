@@ -299,7 +299,10 @@ contract BridgeQueue is
             );
 
             // Approve router
-            IERC20(transferData.asset).approve(router, transferData.amount);
+            IERC20(transferData.asset).forceApprove(
+                router,
+                transferData.amount
+            );
 
             BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
                 .ExecuteTransferParams({
@@ -316,9 +319,6 @@ contract BridgeQueue is
             operationId = IBridgeRouter(router).executeTransferAssets{
                 value: totalNativeFee
             }(params);
-
-            // Clean up approval
-            IERC20(transferData.asset).approve(router, 0);
         } else if (opType == BridgeTypes.OperationType.READ_STATE) {
             QueuedReadState storage readData = queuedReadStates[queueId];
 
