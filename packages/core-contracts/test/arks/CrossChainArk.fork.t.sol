@@ -22,6 +22,26 @@ import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.s
 // Simple mock registry for fork testing
 contract SimpleMockRegistry is ICrossChainRegistry {
     mapping(address => CrossChainRelation) private arkToProxy;
+    mapping(bytes32 => address) private proxyToArk;
+
+    uint16 public currentChainId = 1;
+
+    function _getTargetKey(
+        uint16 sourceChainId,
+        uint16 targetChainId,
+        address targetContract,
+        bytes32 relationshipType
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    sourceChainId,
+                    targetChainId,
+                    targetContract,
+                    relationshipType
+                )
+            );
+    }
 
     function registerCrossChainRelationship(
         address sourceContract,
@@ -36,62 +56,58 @@ contract SimpleMockRegistry is ICrossChainRegistry {
         bytes32 relationshipType
     ) external {}
 
-    function updateRelationshipStatus(
-        address sourceContract,
-        bytes32 relationshipType,
-        bool isActive
-    ) external {}
-
     function getTargetForSource(
         address sourceContract,
         bytes32 relationshipType
-    ) external view returns (address targetContract, uint16 targetChainId) {
+    ) external view returns (address, uint16) {
         CrossChainRelation memory relation = arkToProxy[sourceContract];
-        if (relation.targetContract == address(0)) {
-            revert RelationshipDoesNotExist(sourceContract, relationshipType);
-        }
         return (relation.targetContract, relation.targetChainId);
     }
 
     function getSourceForTarget(
         uint16 sourceChainId,
+        uint16 targetChainId,
         address targetContract,
         bytes32 relationshipType
-    ) external pure returns (address sourceContract) {
-        revert RelationshipDoesNotExist(targetContract, relationshipType);
-    }
-
-    function isValidCrossChainPair(
-        address sourceContract,
-        address targetContract,
-        uint16 sourceChainId,
-        bytes32 relationshipType
-    ) external view returns (bool) {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        return
-            relation.targetContract == targetContract &&
-            relation.sourceChainId == sourceChainId &&
-            relation.isActive;
-    }
-
-    function getRelationship(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (CrossChainRelation memory) {
-        return arkToProxy[sourceContract];
-    }
-
-    function getRegisteredSourceContracts(
-        bytes32 relationshipType
-    ) external pure returns (address[] memory) {
-        return new address[](0);
+    ) external view returns (address) {
+        bytes32 targetKey = _getTargetKey(
+            sourceChainId,
+            targetChainId,
+            targetContract,
+            relationshipType
+        );
+        return proxyToArk[targetKey];
     }
 
     function isSourceContractRegistered(
         address sourceContract,
         bytes32 relationshipType
     ) external view returns (bool) {
-        return arkToProxy[sourceContract].targetContract != address(0);
+        return arkToProxy[sourceContract].sourceContract != address(0);
+    }
+
+    function setMockProxy(
+        address ark,
+        address proxy,
+        uint16 sourceChainId,
+        uint16 targetChainId,
+        bytes32 relationshipType
+    ) public {
+        arkToProxy[ark] = CrossChainRelation({
+            sourceContract: ark,
+            targetContract: proxy,
+            sourceChainId: sourceChainId,
+            targetChainId: targetChainId,
+            relationshipType: relationshipType,
+            isActive: true
+        });
+        bytes32 targetKey = _getTargetKey(
+            sourceChainId,
+            targetChainId,
+            proxy,
+            relationshipType
+        );
+        proxyToArk[targetKey] = ark;
     }
 
     function getRelationshipCount(
@@ -105,21 +121,37 @@ contract SimpleMockRegistry is ICrossChainRegistry {
         pure
         returns (bytes32[] memory)
     {
-        bytes32[] memory types = new bytes32[](1);
-        types[0] = keccak256("ARK_FLEET");
-        return types;
+        bytes32[] memory supported = new bytes32[](1);
+        supported[0] = keccak256("ARK_FLEET");
+        return supported;
     }
 
-    // Helper for testing
-    function setMockProxy(address ark, address proxy, uint16 chainId) external {
-        arkToProxy[ark] = CrossChainRelation({
-            sourceContract: ark,
-            targetContract: proxy,
-            sourceChainId: 1, // Default source chain ID
-            targetChainId: chainId,
-            relationshipType: keccak256("ARK_FLEET"),
-            isActive: true
-        });
+    function getRelationship(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external view returns (CrossChainRelation memory) {
+        return arkToProxy[sourceContract];
+    }
+
+    function isValidCrossChainPair(
+        address sourceContract,
+        address targetContract,
+        uint16 sourceChainId,
+        uint16 targetChainId,
+        bytes32 relationshipType
+    ) external view returns (bool) {
+        CrossChainRelation memory relation = arkToProxy[sourceContract];
+        return
+            relation.targetContract == targetContract &&
+            relation.sourceChainId == sourceChainId &&
+            relation.targetChainId == targetChainId;
+    }
+
+    function getRegisteredSourceContracts(
+        bytes32 relationshipType
+    ) external pure returns (address[] memory sourceContracts) {
+        // Return empty array for mock implementation
+        return new address[](0);
     }
 }
 
@@ -267,7 +299,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Register the ark-proxy relationship in the registry
-        registry.setMockProxy(address(ark), ARB_PROXY, DEST_CHAIN_ID);
+        registry.setMockProxy(
+            address(ark),
+            ARB_PROXY,
+            DEST_CHAIN_ID,
+            DEST_CHAIN_ID,
+            keccak256("ARK_FLEET")
+        );
 
         // Add ark as queue manager
         vm.startPrank(governor);

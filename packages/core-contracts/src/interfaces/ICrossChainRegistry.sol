@@ -103,6 +103,7 @@ interface ICrossChainRegistry {
     error TargetContractAlreadyRegistered(
         address targetContract,
         uint16 sourceChainId,
+        uint16 targetChainId,
         bytes32 relationshipType,
         address existingSourceContract
     );
@@ -137,18 +138,6 @@ interface ICrossChainRegistry {
         bytes32 relationshipType
     ) external;
 
-    /**
-     * @notice Update the status of a relationship
-     * @param sourceContract The address of the source contract
-     * @param relationshipType The type of relationship
-     * @param isActive Whether the relationship should be active
-     */
-    function updateRelationshipStatus(
-        address sourceContract,
-        bytes32 relationshipType,
-        bool isActive
-    ) external;
-
     /*//////////////////////////////////////////////////////////////
                             QUERY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -168,28 +157,32 @@ interface ICrossChainRegistry {
     /**
      * @notice Get the source contract address for a given target contract and relationship type
      * @param sourceChainId The chain ID of the source chain
+     * @param targetChainId The chain ID of the target chain
      * @param targetContract The address of the target contract
      * @param relationshipType The type of relationship
      * @return sourceContract The address of the source contract
      */
     function getSourceForTarget(
         uint16 sourceChainId,
+        uint16 targetChainId,
         address targetContract,
         bytes32 relationshipType
     ) external view returns (address sourceContract);
 
     /**
-     * @notice Check if a source-target contract pair is valid and active for a given relationship type
+     * @notice Check if a source-target contract pair is valid for a given relationship type
      * @param sourceContract The address of the source contract
      * @param targetContract The address of the target contract
      * @param sourceChainId The chain ID where the source contract is deployed
+     * @param targetChainId The chain ID where the target contract is deployed
      * @param relationshipType The type of relationship
-     * @return isValid True if the relationship exists and is active
+     * @return isValid True if the relationship exists
      */
     function isValidCrossChainPair(
         address sourceContract,
         address targetContract,
         uint16 sourceChainId,
+        uint16 targetChainId,
         bytes32 relationshipType
     ) external view returns (bool isValid);
 
@@ -245,4 +238,10 @@ interface ICrossChainRegistry {
         external
         view
         returns (bytes32[] memory relationshipTypes);
+
+    /**
+     * @notice Get the current chain ID
+     * @return The current chain ID
+     */
+    function currentChainId() external view returns (uint16);
 }

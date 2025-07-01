@@ -286,6 +286,7 @@ contract FleetProxy is
         try
             crossChainRegistry.getSourceForTarget(
                 sourceChainId,
+                crossChainRegistry.currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
             )
@@ -310,6 +311,7 @@ contract FleetProxy is
         try
             crossChainRegistry.getSourceForTarget(
                 sourceChainId,
+                crossChainRegistry.currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
             )
@@ -320,6 +322,7 @@ contract FleetProxy is
                         ark,
                         address(this),
                         sourceChainId,
+                        crossChainRegistry.currentChainId(),
                         ARK_FLEET_RELATIONSHIP
                     )
                 returns (bool isValidPair) {

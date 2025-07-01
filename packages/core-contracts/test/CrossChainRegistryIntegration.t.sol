@@ -93,6 +93,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         address sourceContract = registry.getSourceForTarget(
             CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
             proxyAddress,
             ARK_FLEET_RELATIONSHIP
         );
@@ -104,6 +105,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 arkAddress,
                 proxyAddress,
                 CURRENT_CHAIN_ID,
+                TARGET_CHAIN_ID,
                 ARK_FLEET_RELATIONSHIP
             )
         );
@@ -131,6 +133,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 arkAddress,
                 proxyAddress,
                 differentSourceChain,
+                differentTargetChain,
                 ARK_FLEET_RELATIONSHIP
             )
         );
@@ -141,6 +144,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 arkAddress,
                 proxyAddress,
                 CURRENT_CHAIN_ID,
+                differentTargetChain,
                 ARK_FLEET_RELATIONSHIP
             )
         );
@@ -202,6 +206,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 arkAddress,
                 proxy1,
                 CURRENT_CHAIN_ID,
+                TARGET_CHAIN_ID,
                 arkFleetType
             )
         );
@@ -210,6 +215,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 arkAddress,
                 proxy2,
                 CURRENT_CHAIN_ID,
+                TARGET_CHAIN_ID,
                 bridgeType
             )
         );
@@ -278,6 +284,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         address sourceContract = registry.getSourceForTarget(
             CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
             proxy2,
             ARK_FLEET_RELATIONSHIP
         );
@@ -288,6 +295,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 ark2,
                 proxy2,
                 CURRENT_CHAIN_ID,
+                TARGET_CHAIN_ID,
                 ARK_FLEET_RELATIONSHIP
             )
         );
@@ -323,16 +331,13 @@ contract CrossChainRegistryIntegrationTest is Test {
         assertTrue(registry.isSourceContractRegistered(arkAddress, type1));
         assertTrue(registry.isSourceContractRegistered(arkAddress, type2));
 
-        // Deactivate one type
-        vm.prank(governor);
-        registry.updateRelationshipStatus(arkAddress, type1, false);
-
-        // Should only affect the specific type
-        assertFalse(
+        // Both should remain active since status update functionality was removed
+        assertTrue(
             registry.isValidCrossChainPair(
                 arkAddress,
                 proxyAddress,
                 CURRENT_CHAIN_ID,
+                TARGET_CHAIN_ID,
                 type1
             )
         );
@@ -341,6 +346,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 arkAddress,
                 proxyAddress,
                 CURRENT_CHAIN_ID,
+                TARGET_CHAIN_ID,
                 type2
             )
         );
