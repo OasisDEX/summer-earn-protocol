@@ -94,10 +94,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             revert InvalidSourceContract(sourceContract);
         if (targetContract == address(0))
             revert InvalidTargetContract(targetContract);
-        if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
-        if (targetChainId == 0) revert InvalidChainId(targetChainId);
         if (relationshipType == bytes32(0))
             revert InvalidRelationshipType(relationshipType);
+
+        // Enhanced chain ID validation
+        _validateChainIds(sourceChainId, targetChainId);
 
         // Add relationship type if not already supported
         if (!relationshipTypeSupported[relationshipType]) {
@@ -398,6 +399,36 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             supportedRelationshipTypes.push(relationshipType);
             relationshipTypeSupported[relationshipType] = true;
             emit RelationshipTypeAdded(relationshipType);
+        }
+    }
+
+    /**
+     * @notice Validate chain IDs for cross-chain relationships
+     * @param sourceChainId The source chain ID to validate
+     * @param targetChainId The target chain ID to validate
+     */
+    function _validateChainIds(
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) internal view {
+        // Basic non-zero validation
+        if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
+        if (targetChainId == 0) revert InvalidChainId(targetChainId);
+
+        // Prevent same-chain relationships for cross-chain registry
+        if (sourceChainId == targetChainId) {
+            revert SameChainRelationship(sourceChainId);
+        }
+
+        // At least one chain must be the deployment chain
+        if (
+            sourceChainId != currentChainId && targetChainId != currentChainId
+        ) {
+            revert InvalidChainRelationship(
+                sourceChainId,
+                targetChainId,
+                currentChainId
+            );
         }
     }
 }

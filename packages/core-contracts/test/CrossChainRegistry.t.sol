@@ -173,6 +173,72 @@ contract CrossChainRegistryTest is Test {
         );
     }
 
+    function test_registerCrossChainRelationship_revertSameChainRelationship()
+        public
+    {
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.SameChainRelationship.selector,
+                CURRENT_CHAIN_ID
+            )
+        );
+        registry.registerCrossChainRelationship(
+            ark1,
+            proxy1,
+            CURRENT_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            ARK_FLEET_RELATIONSHIP
+        );
+    }
+
+    function test_registerCrossChainRelationship_revertInvalidChainRelationship()
+        public
+    {
+        uint16 otherChain1 = 137; // Polygon
+        uint16 otherChain2 = 56; // BSC
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.InvalidChainRelationship.selector,
+                otherChain1,
+                otherChain2,
+                CURRENT_CHAIN_ID
+            )
+        );
+        registry.registerCrossChainRelationship(
+            ark1,
+            proxy1,
+            otherChain1,
+            otherChain2,
+            ARK_FLEET_RELATIONSHIP
+        );
+    }
+
+    function test_registerCrossChainRelationship_validWithDeploymentChainAsTarget()
+        public
+    {
+        uint16 otherChain = 137; // Polygon
+
+        vm.prank(governor);
+        registry.registerCrossChainRelationship(
+            ark1,
+            proxy1,
+            otherChain,
+            CURRENT_CHAIN_ID,
+            ARK_FLEET_RELATIONSHIP
+        );
+
+        // Verify relationship was created
+        (address targetContract, uint16 chainId) = registry.getTargetForSource(
+            ark1,
+            ARK_FLEET_RELATIONSHIP
+        );
+        assertEq(targetContract, proxy1);
+        assertEq(chainId, CURRENT_CHAIN_ID);
+    }
+
     function test_registerCrossChainRelationship_revertAlreadyExists() public {
         vm.prank(governor);
         registry.registerCrossChainRelationship(
