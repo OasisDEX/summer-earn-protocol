@@ -101,5 +101,6 @@
   "LazyVault_HigherRisk_WETH_FluidLite_weth_1_gov#FluidLiteArk": "0x60390d9493008153B32FFfa4765D21d84875d90e",
   "LazyVault_HigherRisk_USDC_ERC4626_Term_Summer_USDC_usdc_1#ERC4626Ark": "0xfD899321B1FD8d75e255119766D9097C98568519",
   "LazyVault_HigherRisk_WETH_ERC4626_Term_Summer_WETH_weth_1#ERC4626Ark": "0x235dd2d3cfcD5476Bd0B9217e9a4839e709a00F6",
-  "LazyVault_LowerRisk_USDC_SiloManagedVault_apostro_usdc_1#SiloManagedVaultArk": "0xe4917bC3dc12A77c941ad7fE00D0Ec363fefe268"
+  "LazyVault_LowerRisk_USDC_SiloManagedVault_apostro_usdc_1#SiloManagedVaultArk": "0xe4917bC3dc12A77c941ad7fE00D0Ec363fefe268",
+  "LazyVault_LowerRisk_USDC_MorphoVault_usdc_Hyperithm_USDC_1#MorphoVaultArk": "0x756ca6D02523c908972C4F82a4821c15F740D275"
 }
