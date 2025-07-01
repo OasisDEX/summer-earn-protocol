@@ -53,6 +53,14 @@
         "vaultName": "Sky_sUSDC",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "varlamore",
+        "protocol": "silo"
+      }
     }
   ]
 }

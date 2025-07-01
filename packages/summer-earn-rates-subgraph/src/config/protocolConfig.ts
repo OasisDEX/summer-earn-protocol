@@ -222,7 +222,12 @@ class ProtocolConfig {
           BigInt.fromI32(22477748),
           'Morpho',
         ),
-
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x777791C4d6DC2CE140D00D2828a7C93503c67777'),
+          BigInt.fromI32(22822692),
+          'Morpho',
+        ),
         // USDT vaults
         new ERC4626Product(
           getOrCreateToken(addresses.USDT),
@@ -289,12 +294,6 @@ class ProtocolConfig {
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xbEEF36A5C1372F8D7d211527FCE9f83FE02d8A73'),
           BigInt.fromI32(22480094),
-          'Morpho',
-        ),
-        new ERC4626Product(
-          getOrCreateToken(addresses.USDC),
-          Address.fromString('0x777791C4d6DC2CE140D00D2828a7C93503c67777'),
-          BigInt.fromI32(22822692),
           'Morpho',
         ),
       ]),

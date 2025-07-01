@@ -62,18 +62,18 @@
       }
     },
     {
-      "type": "MorphoVaultArk",
-      "params": {
-        "asset": "WETH",
-        "vaultName": "Gauntlet_WETH_Core",
-        "protocol": "morpho"
-      }
-    },
-    {
       "type": "OriginETHArk",
       "params": {
         "asset": "WETH",
         "protocol": "origin"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Seamless_WETH",
+        "protocol": "morpho"
       }
     }
   ]

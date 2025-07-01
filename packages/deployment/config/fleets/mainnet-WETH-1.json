@@ -77,6 +77,13 @@
         "vaultName": "Steakhouse_WETH",
         "protocol": "morpho"
       }
+    },
+    {
+      "type": "OriginETHArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "origin"
+      }
     }
   ]
 }

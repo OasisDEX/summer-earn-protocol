@@ -78,6 +78,14 @@
         "vaultName": "apostro",
         "protocol": "silo"
       }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "usdce",
+        "vaultName": "greenhouse",
+        "protocol": "silo"
+      }
     }
   ]
 }
