@@ -20,74 +20,89 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 // Mock CrossChainRegistry for testing
 contract MockCrossChainRegistry is ICrossChainRegistry {
-    mapping(address => CrossChainArkFleetProxyRelation) private arkToProxy;
+    mapping(address => CrossChainRelation) private arkToProxy;
 
-    function registerCrossChainArkFleetProxy(
-        address ark,
+    function registerCrossChainRelationship(
+        address sourceContract,
+        address targetContract,
         uint16 sourceChainId,
         uint16 targetChainId,
-        address proxy
-    ) external override {}
+        bytes32 relationshipType
+    ) external {}
 
-    function unregisterCrossChainArkFleetProxy(address ark) external override {}
+    function unregisterCrossChainRelationship(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external {}
 
     function updateRelationshipStatus(
-        address ark,
+        address sourceContract,
+        bytes32 relationshipType,
         bool isActive
-    ) external override {}
+    ) external {}
 
-    function getFleetProxyForCrossChainArk(
-        address ark
-    )
-        external
-        view
-        override
-        returns (address fleetProxy, uint16 targetChainId)
-    {
-        CrossChainArkFleetProxyRelation memory relation = arkToProxy[ark];
-        if (relation.fleetProxy == address(0)) {
-            revert RelationshipDoesNotExist(ark);
+    function getTargetForSource(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external view returns (address targetContract, uint16 targetChainId) {
+        CrossChainRelation memory relation = arkToProxy[sourceContract];
+        if (relation.targetContract == address(0)) {
+            revert RelationshipDoesNotExist(sourceContract, relationshipType);
         }
-        return (relation.fleetProxy, relation.targetChainId);
+        return (relation.targetContract, relation.targetChainId);
     }
 
-    function getCrossChainArkForFleetProxy(
+    function getSourceForTarget(
         uint16 sourceChainId,
-        address proxy
-    ) external view override returns (address ark) {
-        revert RelationshipDoesNotExist(address(0));
+        address targetContract,
+        bytes32 relationshipType
+    ) external pure returns (address sourceContract) {
+        revert RelationshipDoesNotExist(targetContract, relationshipType);
     }
 
-    function isValidCrossChainArkFleetProxyPair(
-        address ark,
+    function isValidCrossChainPair(
+        address sourceContract,
+        address targetContract,
         uint16 sourceChainId,
-        address proxy
-    ) external view override returns (bool isValid) {
+        bytes32 relationshipType
+    ) external view returns (bool) {
         return false;
     }
 
-    function getRegisteredCrossChainArks()
-        external
-        view
-        override
-        returns (address[] memory arks)
-    {
+    function getRelationship(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external view returns (CrossChainRelation memory) {
+        return arkToProxy[sourceContract];
+    }
+
+    function getRegisteredSourceContracts(
+        bytes32 relationshipType
+    ) external pure returns (address[] memory) {
         return new address[](0);
     }
 
-    function getRelationshipCount()
-        external
-        view
-        override
-        returns (uint256 count)
-    {
+    function isSourceContractRegistered(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external view returns (bool) {
+        return arkToProxy[sourceContract].targetContract != address(0);
+    }
+
+    function getRelationshipCount(
+        bytes32 relationshipType
+    ) external pure returns (uint256) {
         return 0;
     }
 
-    function isCrossChainArkRegistered(
-        address ark
-    ) external view override returns (bool isRegistered) {
-        return false;
+    function getSupportedRelationshipTypes()
+        external
+        pure
+        returns (bytes32[] memory)
+    {
+        bytes32[] memory types = new bytes32[](1);
+        types[0] = keccak256("ARK_FLEET");
+        return types;
     }
 
     // Helper for testing
@@ -97,10 +112,12 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         uint16 targetChainId,
         address proxy
     ) external {
-        arkToProxy[ark] = CrossChainArkFleetProxyRelation({
-            fleetProxy: proxy,
-            targetChainId: targetChainId,
+        arkToProxy[ark] = CrossChainRelation({
+            sourceContract: ark,
+            targetContract: proxy,
             sourceChainId: sourceChainId,
+            targetChainId: targetChainId,
+            relationshipType: keccak256("ARK_FLEET"),
             isActive: true
         });
     }

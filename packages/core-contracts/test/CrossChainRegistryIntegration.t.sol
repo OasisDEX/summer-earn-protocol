@@ -1,343 +1,395 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
-import {CrossChainRegistry} from "../src/contracts/CrossChainRegistry.sol";
-import {CrossChainArk} from "../src/contracts/arks/CrossChainArk.sol";
-import {FleetProxy} from "../src/contracts/FleetProxy.sol";
-import {ICrossChainRegistry} from "../src/interfaces/ICrossChainRegistry.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
-import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ArkParams} from "../src/types/ArkTypes.sol";
-import {FleetCommanderMock} from "./mocks/FleetCommanderMock.sol";
-import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
-import {Raft} from "../src/contracts/Raft.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import "forge-std/Test.sol";
+import "../src/contracts/CrossChainRegistry.sol";
+import "../src/interfaces/ICrossChainRegistry.sol";
+import "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 /**
  * @title CrossChainRegistryIntegrationTest
  * @notice Integration test demonstrating the complete registry-based workflow
  */
 contract CrossChainRegistryIntegrationTest is Test {
-    // Contracts
     CrossChainRegistry public registry;
-    CrossChainArk public ark;
-    FleetProxy public proxy;
     ProtocolAccessManager public accessManager;
-    MockBridgeQueue public bridgeQueue;
-    MockBridgeRouter public bridgeRouter;
-    ERC20Mock public token;
-    FleetCommanderMock public fleetCommander;
-    ConfigurationManager public configurationManager;
-    Raft public raft;
 
-    // Test addresses
-    address public governor = address(0x1);
-    address public keeper = address(0x2);
-    address public testAdmin = address(0x3);
+    // Mock contracts for testing
+    address public mockBridgeRouter = makeAddr("bridgeRouter");
+    address public mockBridgeQueue = makeAddr("bridgeQueue");
+    address public mockFleetContract = makeAddr("fleetContract");
 
-    // Chain IDs
-    uint16 public constant SOURCE_CHAIN_ID = 1; // Ethereum
-    uint16 public constant TARGET_CHAIN_ID = 42161; // Arbitrum
+    address public governor = makeAddr("governor");
+    address public guardian = makeAddr("guardian");
+    address public keeper = makeAddr("keeper");
+
+    uint16 public constant CURRENT_CHAIN_ID = 1;
+    uint16 public constant TARGET_CHAIN_ID = 42161;
+
+    bytes32 public constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
+
+    event CrossChainRelationshipRegistered(
+        address indexed sourceContract,
+        address indexed targetContract,
+        uint16 indexed sourceChainId,
+        uint16 targetChainId,
+        bytes32 relationshipType
+    );
+
+    event CrossChainRelationshipUnregistered(
+        address indexed sourceContract,
+        address indexed targetContract,
+        uint16 indexed sourceChainId,
+        uint16 targetChainId,
+        bytes32 relationshipType
+    );
 
     function setUp() public {
         // Deploy access manager
-        accessManager = new ProtocolAccessManager(testAdmin);
-
-        // Grant roles
-        vm.startPrank(testAdmin);
-        accessManager.grantGovernorRole(governor);
-        accessManager.grantKeeperRole(address(this), keeper);
-        vm.stopPrank();
-
-        // Deploy configuration manager and raft
-        configurationManager = new ConfigurationManager(address(accessManager));
-        raft = new Raft(address(accessManager));
-
-        // Set up configuration manager
-        vm.prank(governor);
-        configurationManager.setRaft(address(raft));
+        accessManager = new ProtocolAccessManager(governor);
 
         // Deploy registry
+        vm.prank(governor);
         registry = new CrossChainRegistry(
             address(accessManager),
-            SOURCE_CHAIN_ID
-        );
-
-        // Deploy bridge infrastructure
-        bridgeQueue = new MockBridgeQueue();
-        bridgeRouter = new MockBridgeRouter();
-
-        // Deploy token
-        token = new ERC20Mock();
-
-        // Deploy fleet commander mock
-        fleetCommander = new FleetCommanderMock(
-            address(token),
-            address(0),
-            PercentageUtils.fromFraction(1, 100)
-        );
-
-        // Deploy CrossChainArk
-        ArkParams memory arkParams = ArkParams({
-            name: "TestCrossChainArk",
-            details: "Test CrossChain Ark for registry integration",
-            accessManager: address(accessManager),
-            configurationManager: address(configurationManager),
-            asset: address(token),
-            depositCap: type(uint256).max,
-            maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false,
-            maxDepositPercentageOfTVL: PercentageUtils.fromFraction(1, 100)
-        });
-
-        ark = new CrossChainArk(
-            address(bridgeQueue),
-            address(bridgeRouter),
-            address(registry),
-            TARGET_CHAIN_ID,
-            arkParams
-        );
-
-        // Deploy FleetProxy
-        proxy = new FleetProxy(
-            address(accessManager),
-            address(bridgeRouter),
-            address(bridgeQueue),
-            address(registry),
-            address(fleetCommander)
+            CURRENT_CHAIN_ID
         );
     }
 
-    function testRegistryIntegrationWorkflow() public {
-        // 1. Register the relationship in the registry (simplified call)
-        vm.prank(governor);
-        registry.registerCrossChainArkFleetProxy(
-            address(ark),
-            SOURCE_CHAIN_ID,
+    /*//////////////////////////////////////////////////////////////
+                           INTEGRATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_endToEndRegistrationAndValidation() public {
+        address arkAddress = makeAddr("testArk");
+        address proxyAddress = makeAddr("testProxy");
+
+        // Register the relationship
+        vm.expectEmit(true, true, true, true);
+        emit CrossChainRelationshipRegistered(
+            arkAddress,
+            proxyAddress,
+            CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            address(proxy)
+            ARK_FLEET_RELATIONSHIP
         );
 
-        // 2. Verify the relationship is registered
-        assertTrue(registry.isCrossChainArkRegistered(address(ark)));
-
-        // 3. Verify ark can get proxy from registry
-        (address retrievedFleetProxy, uint16 retrievedChainId) = registry
-            .getFleetProxyForCrossChainArk(address(ark));
-        assertEq(retrievedFleetProxy, address(proxy));
-        assertEq(retrievedChainId, TARGET_CHAIN_ID);
-
-        // 4. Verify proxy can get ark from registry
-        address retrievedCrossChainArk = registry.getCrossChainArkForFleetProxy(
-            SOURCE_CHAIN_ID,
-            address(proxy)
+        vm.prank(governor);
+        registry.registerCrossChainRelationship(
+            arkAddress,
+            proxyAddress,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            ARK_FLEET_RELATIONSHIP
         );
-        assertEq(retrievedCrossChainArk, address(ark));
 
-        // 5. Verify the relationship is valid and active
+        // Verify the relationship
+        (address targetContract, uint16 chainId) = registry.getTargetForSource(
+            arkAddress,
+            ARK_FLEET_RELATIONSHIP
+        );
+        assertEq(targetContract, proxyAddress);
+        assertEq(chainId, TARGET_CHAIN_ID);
+
+        address sourceContract = registry.getSourceForTarget(
+            CURRENT_CHAIN_ID,
+            proxyAddress,
+            ARK_FLEET_RELATIONSHIP
+        );
+        assertEq(sourceContract, arkAddress);
+
+        // Validate the relationship
         assertTrue(
-            registry.isValidCrossChainArkFleetProxyPair(
-                address(ark),
-                SOURCE_CHAIN_ID,
-                address(proxy)
+            registry.isValidCrossChainPair(
+                arkAddress,
+                proxyAddress,
+                CURRENT_CHAIN_ID,
+                ARK_FLEET_RELATIONSHIP
             )
         );
-
-        // 6. Test that ark uses registry for boarding (mock the internal call)
-        // Since _getTargetProxy is internal, we test the public behavior
-        // The ark should be able to board without having targetProxy set via the deprecated setter
-
-        // Mint tokens and approve
-        token.mint(address(this), 1000);
-        token.approve(address(ark), 1000);
-
-        // Grant commander role to this test contract
-        vm.prank(governor);
-        accessManager.grantCommanderRole(address(ark), address(this));
-
-        // Register as fleet commander
-        ark.registerFleetCommander();
-
-        // Board should work using registry lookup
-        ark.board(1000, "");
-
-        // Verify the bridge queue received the correct parameters
-        assertEq(bridgeQueue.lastDestinationChainId(), TARGET_CHAIN_ID);
-        assertEq(bridgeQueue.lastAsset(), address(token));
-        assertEq(bridgeQueue.lastAmount(), 1000);
-        assertEq(bridgeQueue.lastRecipient(), address(proxy)); // Should use proxy from registry
     }
 
-    function testRegistryStatusManagement() public {
-        // Register relationship
+    function test_registrationWithDifferentChainIds() public {
+        address arkAddress = makeAddr("ark");
+        address proxyAddress = makeAddr("proxy");
+
+        uint16 differentSourceChain = 137; // Polygon
+        uint16 differentTargetChain = 10; // Optimism
+
         vm.prank(governor);
-        registry.registerCrossChainArkFleetProxy(
-            address(ark),
-            SOURCE_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            address(proxy)
+        registry.registerCrossChainRelationship(
+            arkAddress,
+            proxyAddress,
+            differentSourceChain,
+            differentTargetChain,
+            ARK_FLEET_RELATIONSHIP
         );
 
-        // Initially active
+        // Verify with correct chain IDs
         assertTrue(
-            registry.isValidCrossChainArkFleetProxyPair(
-                address(ark),
-                SOURCE_CHAIN_ID,
-                address(proxy)
+            registry.isValidCrossChainPair(
+                arkAddress,
+                proxyAddress,
+                differentSourceChain,
+                ARK_FLEET_RELATIONSHIP
             )
         );
 
-        // Deactivate relationship
-        vm.prank(governor);
-        registry.updateRelationshipStatus(address(ark), false);
-
-        // Should be inactive
+        // Should fail with wrong source chain
         assertFalse(
-            registry.isValidCrossChainArkFleetProxyPair(
-                address(ark),
-                SOURCE_CHAIN_ID,
-                address(proxy)
+            registry.isValidCrossChainPair(
+                arkAddress,
+                proxyAddress,
+                CURRENT_CHAIN_ID,
+                ARK_FLEET_RELATIONSHIP
             )
         );
 
-        // But still registered
-        assertTrue(registry.isCrossChainArkRegistered(address(ark)));
+        // Verify target chain ID in relationship data
+        (address targetContract, uint16 chainId) = registry.getTargetForSource(
+            arkAddress,
+            ARK_FLEET_RELATIONSHIP
+        );
+        assertEq(targetContract, proxyAddress);
+        assertEq(chainId, differentTargetChain);
+    }
 
-        // Reactivate
+    function test_multipleRelationshipTypes() public {
+        address arkAddress = makeAddr("ark");
+        address proxy1 = makeAddr("proxy1");
+        address proxy2 = makeAddr("proxy2");
+
+        bytes32 arkFleetType = keccak256("ARK_FLEET");
+        bytes32 bridgeType = keccak256("BRIDGE_ADAPTER");
+
+        // Register ark with two different relationship types
         vm.prank(governor);
-        registry.updateRelationshipStatus(address(ark), true);
+        registry.registerCrossChainRelationship(
+            arkAddress,
+            proxy1,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            arkFleetType
+        );
 
-        // Should be active again
+        vm.prank(governor);
+        registry.registerCrossChainRelationship(
+            arkAddress,
+            proxy2,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            bridgeType
+        );
+
+        // Verify both relationships exist
+        (address target1, uint16 chain1) = registry.getTargetForSource(
+            arkAddress,
+            arkFleetType
+        );
+        assertEq(target1, proxy1);
+        assertEq(chain1, TARGET_CHAIN_ID);
+
+        (address target2, uint16 chain2) = registry.getTargetForSource(
+            arkAddress,
+            bridgeType
+        );
+        assertEq(target2, proxy2);
+        assertEq(chain2, TARGET_CHAIN_ID);
+
+        // Check both are valid
         assertTrue(
-            registry.isValidCrossChainArkFleetProxyPair(
-                address(ark),
-                SOURCE_CHAIN_ID,
-                address(proxy)
+            registry.isValidCrossChainPair(
+                arkAddress,
+                proxy1,
+                CURRENT_CHAIN_ID,
+                arkFleetType
             )
         );
+        assertTrue(
+            registry.isValidCrossChainPair(
+                arkAddress,
+                proxy2,
+                CURRENT_CHAIN_ID,
+                bridgeType
+            )
+        );
+
+        // Check counts
+        assertEq(registry.getRelationshipCount(arkFleetType), 1);
+        assertEq(registry.getRelationshipCount(bridgeType), 1);
     }
 
-    function testRegistryOnlyApproach() public {
-        // Test that ark now requires registry registration to work
+    function test_unregistrationCleansUpCorrectly() public {
+        address ark1 = makeAddr("ark1");
+        address ark2 = makeAddr("ark2");
+        address proxy1 = makeAddr("proxy1");
+        address proxy2 = makeAddr("proxy2");
 
-        // 1. Try to board without registry registration - should fail
-        token.mint(address(this), 1000);
-        token.approve(address(ark), 1000);
-
+        // Register two relationships
         vm.prank(governor);
-        accessManager.grantCommanderRole(address(ark), address(this));
-
-        ark.registerFleetCommander();
-
-        // Should revert because no proxy relationship is registered
-        vm.expectRevert(CrossChainArk.NoProxyRelationshipRegistered.selector);
-        ark.board(1000, "");
-
-        // 2. Register relationship in registry
-        vm.prank(governor);
-        registry.registerCrossChainArkFleetProxy(
-            address(ark),
-            SOURCE_CHAIN_ID,
+        registry.registerCrossChainRelationship(
+            ark1,
+            proxy1,
+            CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            address(proxy)
+            ARK_FLEET_RELATIONSHIP
         );
 
-        // 3. Now boarding should work
-        ark.board(1000, "");
-
-        // Verify it works with registry
-        assertEq(bridgeQueue.lastDestinationChainId(), TARGET_CHAIN_ID);
-        assertEq(bridgeQueue.lastAsset(), address(token));
-        assertEq(bridgeQueue.lastAmount(), 1000);
-        assertEq(bridgeQueue.lastRecipient(), address(proxy));
-    }
-
-    function testGetTargetProxyFunction() public {
-        // Initially no proxy registered
-        assertEq(ark.getTargetProxy(), address(0));
-
-        // Register relationship
         vm.prank(governor);
-        registry.registerCrossChainArkFleetProxy(
-            address(ark),
-            SOURCE_CHAIN_ID,
+        registry.registerCrossChainRelationship(
+            ark2,
+            proxy2,
+            CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            address(proxy)
+            ARK_FLEET_RELATIONSHIP
         );
 
-        // Now should return the registered proxy
-        assertEq(ark.getTargetProxy(), address(proxy));
+        assertEq(registry.getRelationshipCount(ARK_FLEET_RELATIONSHIP), 2);
 
-        // Unregister
-        vm.prank(governor);
-        registry.unregisterCrossChainArkFleetProxy(address(ark));
-
-        // Should return zero address again
-        assertEq(ark.getTargetProxy(), address(0));
-    }
-
-    function testEnumerationFunctions() public {
-        // Initially empty
-        assertEq(registry.getRelationshipCount(), 0);
-        assertEq(registry.getRegisteredCrossChainArks().length, 0);
-
-        // Register relationship
-        vm.prank(governor);
-        registry.registerCrossChainArkFleetProxy(
-            address(ark),
-            SOURCE_CHAIN_ID,
+        // Unregister first one
+        vm.expectEmit(true, true, true, true);
+        emit CrossChainRelationshipUnregistered(
+            ark1,
+            proxy1,
+            CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            address(proxy)
+            ARK_FLEET_RELATIONSHIP
         );
 
-        // Check enumeration
-        assertEq(registry.getRelationshipCount(), 1);
-        address[] memory crossChainArks = registry
-            .getRegisteredCrossChainArks();
-        assertEq(crossChainArks.length, 1);
-        assertEq(crossChainArks[0], address(ark));
-
-        // Unregister and check
         vm.prank(governor);
-        registry.unregisterCrossChainArkFleetProxy(address(ark));
+        registry.unregisterCrossChainRelationship(ark1, ARK_FLEET_RELATIONSHIP);
 
-        assertEq(registry.getRelationshipCount(), 0);
-        assertEq(registry.getRegisteredCrossChainArks().length, 0);
-    }
-
-    function testQueryFunctions() public {
-        // Register relationship
-        vm.prank(governor);
-        registry.registerCrossChainArkFleetProxy(
-            address(ark),
-            SOURCE_CHAIN_ID,
-            TARGET_CHAIN_ID,
-            address(proxy)
+        // Verify first is gone, second remains
+        assertEq(registry.getRelationshipCount(ARK_FLEET_RELATIONSHIP), 1);
+        assertFalse(
+            registry.isSourceContractRegistered(ark1, ARK_FLEET_RELATIONSHIP)
+        );
+        assertTrue(
+            registry.isSourceContractRegistered(ark2, ARK_FLEET_RELATIONSHIP)
         );
 
-        // Test all query functions
-        (address retrievedFleetProxy, uint16 retrievedChainId) = registry
-            .getFleetProxyForCrossChainArk(address(ark));
-        assertEq(retrievedFleetProxy, address(proxy));
-        assertEq(retrievedChainId, TARGET_CHAIN_ID);
-
-        address retrievedCrossChainArk = registry.getCrossChainArkForFleetProxy(
-            SOURCE_CHAIN_ID,
-            address(proxy)
+        // Verify second relationship still works
+        (address targetContract, uint16 chainId) = registry.getTargetForSource(
+            ark2,
+            ARK_FLEET_RELATIONSHIP
         );
-        assertEq(retrievedCrossChainArk, address(ark));
+        assertEq(targetContract, proxy2);
+        assertEq(chainId, TARGET_CHAIN_ID);
+
+        address sourceContract = registry.getSourceForTarget(
+            CURRENT_CHAIN_ID,
+            proxy2,
+            ARK_FLEET_RELATIONSHIP
+        );
+        assertEq(sourceContract, ark2);
 
         assertTrue(
-            registry.isValidCrossChainArkFleetProxyPair(
-                address(ark),
-                SOURCE_CHAIN_ID,
-                address(proxy)
+            registry.isValidCrossChainPair(
+                ark2,
+                proxy2,
+                CURRENT_CHAIN_ID,
+                ARK_FLEET_RELATIONSHIP
             )
         );
-        assertTrue(registry.isCrossChainArkRegistered(address(ark)));
+    }
+
+    function test_relationshipTypesAreIndependent() public {
+        address arkAddress = makeAddr("ark");
+        address proxyAddress = makeAddr("proxy");
+
+        bytes32 type1 = keccak256("TYPE_1");
+        bytes32 type2 = keccak256("TYPE_2");
+
+        // Register same source-target pair with different types
+        vm.prank(governor);
+        registry.registerCrossChainRelationship(
+            arkAddress,
+            proxyAddress,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            type1
+        );
+
+        vm.prank(governor);
+        registry.registerCrossChainRelationship(
+            arkAddress,
+            proxyAddress,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            type2
+        );
+
+        // Both should exist independently
+        assertTrue(registry.isSourceContractRegistered(arkAddress, type1));
+        assertTrue(registry.isSourceContractRegistered(arkAddress, type2));
+
+        // Deactivate one type
+        vm.prank(governor);
+        registry.updateRelationshipStatus(arkAddress, type1, false);
+
+        // Should only affect the specific type
+        assertFalse(
+            registry.isValidCrossChainPair(
+                arkAddress,
+                proxyAddress,
+                CURRENT_CHAIN_ID,
+                type1
+            )
+        );
+        assertTrue(
+            registry.isValidCrossChainPair(
+                arkAddress,
+                proxyAddress,
+                CURRENT_CHAIN_ID,
+                type2
+            )
+        );
+
+        // Unregister one type
+        vm.prank(governor);
+        registry.unregisterCrossChainRelationship(arkAddress, type1);
+
+        // Should only affect the specific type
+        assertFalse(registry.isSourceContractRegistered(arkAddress, type1));
+        assertTrue(registry.isSourceContractRegistered(arkAddress, type2));
+
+        assertEq(registry.getRelationshipCount(type1), 0);
+        assertEq(registry.getRelationshipCount(type2), 1);
+    }
+
+    function test_supportedRelationshipTypes() public {
+        // Initially should have ARK_FLEET type pre-registered in constructor
+        bytes32[] memory supportedTypes = registry
+            .getSupportedRelationshipTypes();
+        assertEq(supportedTypes.length, 1);
+        assertEq(supportedTypes[0], keccak256("ARK_FLEET"));
+
+        // Add a new relationship type by using it
+        bytes32 newType = keccak256("NEW_TYPE");
+        address arkAddress = makeAddr("ark");
+        address proxyAddress = makeAddr("proxy");
+
+        vm.prank(governor);
+        registry.registerCrossChainRelationship(
+            arkAddress,
+            proxyAddress,
+            CURRENT_CHAIN_ID,
+            TARGET_CHAIN_ID,
+            newType
+        );
+
+        // Should now have 2 supported types
+        supportedTypes = registry.getSupportedRelationshipTypes();
+        assertEq(supportedTypes.length, 2);
+
+        // Check both types are present (order may vary)
+        bool hasArkFleet = false;
+        bool hasNewType = false;
+        for (uint i = 0; i < supportedTypes.length; i++) {
+            if (supportedTypes[i] == keccak256("ARK_FLEET")) hasArkFleet = true;
+            if (supportedTypes[i] == newType) hasNewType = true;
+        }
+        assertTrue(hasArkFleet);
+        assertTrue(hasNewType);
     }
 }

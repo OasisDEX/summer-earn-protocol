@@ -31,6 +31,9 @@ contract FleetProxy is
 {
     using SafeERC20 for IERC20;
 
+    /// @notice Relationship type constant for ARK-FLEET relationships
+    bytes32 private constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -281,9 +284,10 @@ contract FleetProxy is
         uint16 sourceChainId
     ) internal view returns (address arkAddress) {
         try
-            crossChainRegistry.getCrossChainArkForFleetProxy(
+            crossChainRegistry.getSourceForTarget(
                 sourceChainId,
-                address(this)
+                address(this),
+                ARK_FLEET_RELATIONSHIP
             )
         returns (address ark) {
             if (ark != address(0)) {
@@ -304,17 +308,19 @@ contract FleetProxy is
         uint16 sourceChainId
     ) internal view returns (bool isValid) {
         try
-            crossChainRegistry.getCrossChainArkForFleetProxy(
+            crossChainRegistry.getSourceForTarget(
                 sourceChainId,
-                address(this)
+                address(this),
+                ARK_FLEET_RELATIONSHIP
             )
         returns (address ark) {
             if (ark != address(0)) {
                 try
-                    crossChainRegistry.isValidCrossChainArkFleetProxyPair(
+                    crossChainRegistry.isValidCrossChainPair(
                         ark,
+                        address(this),
                         sourceChainId,
-                        address(this)
+                        ARK_FLEET_RELATIONSHIP
                     )
                 returns (bool isValidPair) {
                     return isValidPair;

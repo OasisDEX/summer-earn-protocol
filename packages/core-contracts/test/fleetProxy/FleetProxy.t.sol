@@ -30,61 +30,90 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
     mapping(uint16 => mapping(address => address)) private chainToArkToProxy;
     mapping(address => bool) private arkToProxyActive;
 
-    function registerCrossChainArkFleetProxy(
-        address,
-        uint16,
-        uint16,
-        address
-    ) external override {}
+    function registerCrossChainRelationship(
+        address sourceContract,
+        address targetContract,
+        uint16 sourceChainId,
+        uint16 targetChainId,
+        bytes32 relationshipType
+    ) external {}
 
-    function unregisterCrossChainArkFleetProxy(address) external override {}
+    function unregisterCrossChainRelationship(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external {}
 
-    function updateRelationshipStatus(address, bool) external override {}
+    function updateRelationshipStatus(
+        address sourceContract,
+        bytes32 relationshipType,
+        bool isActive
+    ) external {}
 
-    function getFleetProxyForCrossChainArk(
-        address
-    ) external pure override returns (address, uint16) {
-        revert RelationshipDoesNotExist(address(0));
+    function getTargetForSource(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external pure returns (address targetContract, uint16 targetChainId) {
+        revert RelationshipDoesNotExist(sourceContract, relationshipType);
     }
 
-    function getCrossChainArkForFleetProxy(
+    function getSourceForTarget(
         uint16 sourceChainId,
-        address proxy
-    ) external view override returns (address) {
-        address ark = chainToProxyToArk[sourceChainId][proxy];
+        address targetContract,
+        bytes32 relationshipType
+    ) external view returns (address sourceContract) {
+        address ark = chainToProxyToArk[sourceChainId][targetContract];
         if (ark == address(0)) {
-            revert RelationshipDoesNotExist(proxy);
+            revert RelationshipDoesNotExist(targetContract, relationshipType);
         }
         return ark;
     }
 
-    function isValidCrossChainArkFleetProxyPair(
-        address ark,
+    function isValidCrossChainPair(
+        address sourceContract,
+        address targetContract,
         uint16 sourceChainId,
-        address proxy
-    ) external view override returns (bool) {
+        bytes32 relationshipType
+    ) external view returns (bool) {
         return
-            chainToProxyToArk[sourceChainId][proxy] == ark &&
-            arkToProxyActive[ark];
+            chainToProxyToArk[sourceChainId][targetContract] ==
+            sourceContract &&
+            arkToProxyActive[sourceContract];
     }
 
-    function getRegisteredCrossChainArks()
-        external
-        pure
-        override
-        returns (address[] memory)
-    {
+    function getRelationship(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external pure returns (CrossChainRelation memory) {
+        revert RelationshipDoesNotExist(sourceContract, relationshipType);
+    }
+
+    function getRegisteredSourceContracts(
+        bytes32 relationshipType
+    ) external pure returns (address[] memory) {
         return new address[](0);
     }
 
-    function getRelationshipCount() external pure override returns (uint256) {
+    function isSourceContractRegistered(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external pure returns (bool) {
+        return false;
+    }
+
+    function getRelationshipCount(
+        bytes32 relationshipType
+    ) external pure returns (uint256) {
         return 0;
     }
 
-    function isCrossChainArkRegistered(
-        address
-    ) external pure override returns (bool) {
-        return false;
+    function getSupportedRelationshipTypes()
+        external
+        pure
+        returns (bytes32[] memory)
+    {
+        bytes32[] memory types = new bytes32[](1);
+        types[0] = keccak256("ARK_FLEET");
+        return types;
     }
 
     // Helper for testing
@@ -212,9 +241,10 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(address(proxy.crossChainRegistry()), address(mockRegistry));
         assertEq(proxy.fleetContract(), address(fleetCommanderMock));
         // Verify registry relationship works
-        address arkFromRegistry = mockRegistry.getCrossChainArkForFleetProxy(
+        address arkFromRegistry = mockRegistry.getSourceForTarget(
             SOURCE_CHAIN_ID,
-            address(proxy)
+            address(proxy),
+            keccak256("ARK_FLEET")
         );
         assertEq(arkFromRegistry, SOURCE_ARK_ADDRESS);
     }

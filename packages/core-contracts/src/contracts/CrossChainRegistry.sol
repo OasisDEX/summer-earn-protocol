@@ -6,8 +6,8 @@ import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 
 /**
  * @title CrossChainRegistry
- * @notice Simplified centralized registry for managing cross-chain relationships between CrossChainArk and FleetProxy contracts
- * @dev Inherits from ProtocolAccessManaged for access control and implements ICrossChainRegistry with core functionality only
+ * @notice Generic centralized registry for managing cross-chain relationships between different contract types
+ * @dev Inherits from ProtocolAccessManaged for access control and implements ICrossChainRegistry with support for multiple relationship types
  */
 contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /*//////////////////////////////////////////////////////////////
@@ -17,18 +17,25 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice The chain ID of the current deployment
     uint16 public immutable currentChainId;
 
-    /// @notice Mapping from crossChainArk address to relationship information
-    mapping(address => CrossChainArkFleetProxyRelation)
-        private crossChainArkToFleetProxy;
+    /// @notice Mapping from relationship key to relationship information
+    /// Key: keccak256(abi.encode(sourceContract, relationshipType))
+    mapping(bytes32 => CrossChainRelation) private crossChainRelations;
 
-    /// @notice Mapping from keccak256(abi.encode(sourceChainId, fleetProxy)) to crossChainArk address
-    mapping(bytes32 => address) private fleetProxyToCrossChainArk;
+    /// @notice Mapping from target key to source contract address
+    /// Key: keccak256(abi.encode(sourceChainId, targetContract, relationshipType))
+    mapping(bytes32 => address) private targetToSource;
 
-    /// @notice Array of all registered crossChainArk addresses for enumeration
-    address[] private registeredCrossChainArks;
+    /// @notice Array of all registered source contracts per relationship type
+    mapping(bytes32 => address[]) private registeredSourceContracts;
 
-    /// @notice Mapping to track if a crossChainArk is registered (for gas optimization)
-    mapping(address => bool) private crossChainArkRegistered;
+    /// @notice Mapping to track if a source contract is registered for a relationship type
+    mapping(bytes32 => bool) private sourceContractRegistered;
+
+    /// @notice Array of supported relationship types
+    bytes32[] private supportedRelationshipTypes;
+
+    /// @notice Mapping to track if a relationship type is supported
+    mapping(bytes32 => bool) private relationshipTypeSupported;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -36,6 +43,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
     /// @notice Emitted when the registry is initialized
     event RegistryInitialized(uint16 currentChainId);
+
+    /// @notice Emitted when a new relationship type is added
+    event RelationshipTypeAdded(bytes32 indexed relationshipType);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -60,6 +70,10 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         if (_currentChainId == 0) revert InvalidCurrentChainId();
 
         currentChainId = _currentChainId;
+
+        // Add the default ARK_FLEET relationship type
+        _addRelationshipType(keccak256("ARK_FLEET"));
+
         emit RegistryInitialized(_currentChainId);
     }
 
@@ -68,117 +82,148 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function registerCrossChainArkFleetProxy(
-        address crossChainArk,
+    function registerCrossChainRelationship(
+        address sourceContract,
+        address targetContract,
         uint16 sourceChainId,
         uint16 targetChainId,
-        address fleetProxy
+        bytes32 relationshipType
     ) external override onlyGovernor {
-        if (crossChainArk == address(0))
-            revert InvalidCrossChainArk(crossChainArk);
-        if (fleetProxy == address(0)) revert InvalidFleetProxy(fleetProxy);
+        if (sourceContract == address(0))
+            revert InvalidSourceContract(sourceContract);
+        if (targetContract == address(0))
+            revert InvalidTargetContract(targetContract);
         if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
         if (targetChainId == 0) revert InvalidChainId(targetChainId);
+        if (relationshipType == bytes32(0))
+            revert InvalidRelationshipType(relationshipType);
 
-        // This function can be called on either source or target chain
-        // Source chain: Allows CrossChainArk to find its target fleetProxy
-        // Target chain: Allows FleetProxy to validate source crossChainArk relationships
-
-        // Check if crossChainArk already exists (using crossChainArk address as unique identifier)
-        if (crossChainArkRegistered[crossChainArk]) {
-            revert RelationshipAlreadyExists(
-                crossChainArk,
-                sourceChainId,
-                fleetProxy
-            );
+        // Add relationship type if not already supported
+        if (!relationshipTypeSupported[relationshipType]) {
+            _addRelationshipType(relationshipType);
         }
 
-        // Check if this fleetProxy is already registered to another crossChainArk (for target chain lookups)
-        bytes32 fleetProxyKey = keccak256(
-            abi.encode(sourceChainId, fleetProxy)
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType
         );
-        if (fleetProxyToCrossChainArk[fleetProxyKey] != address(0)) {
-            revert FleetProxyAlreadyRegistered(
-                fleetProxy,
+
+        // Check if relationship already exists
+        if (sourceContractRegistered[relationshipKey]) {
+            revert RelationshipAlreadyExists(sourceContract, relationshipType);
+        }
+
+        // Check if target contract is already registered for this relationship type
+        bytes32 targetKey = _getTargetKey(
+            sourceChainId,
+            targetContract,
+            relationshipType
+        );
+        if (targetToSource[targetKey] != address(0)) {
+            revert TargetContractAlreadyRegistered(
+                targetContract,
                 sourceChainId,
-                fleetProxyToCrossChainArk[fleetProxyKey]
+                relationshipType,
+                targetToSource[targetKey]
             );
         }
 
         // Create the relationship
-        crossChainArkToFleetProxy[
-            crossChainArk
-        ] = CrossChainArkFleetProxyRelation({
-            fleetProxy: fleetProxy,
-            targetChainId: targetChainId, // Explicit target chain ID
-            sourceChainId: sourceChainId, // Explicit source chain ID
-            isActive: true // Default to active
+        crossChainRelations[relationshipKey] = CrossChainRelation({
+            sourceContract: sourceContract,
+            targetContract: targetContract,
+            sourceChainId: sourceChainId,
+            targetChainId: targetChainId,
+            relationshipType: relationshipType,
+            isActive: true
         });
 
-        // Set reverse mapping: (sourceChainId, fleetProxy) -> crossChainArk (used by target chain FleetProxy)
-        fleetProxyToCrossChainArk[fleetProxyKey] = crossChainArk;
+        // Set reverse mapping
+        targetToSource[targetKey] = sourceContract;
 
         // Update tracking
-        registeredCrossChainArks.push(crossChainArk);
-        crossChainArkRegistered[crossChainArk] = true;
+        registeredSourceContracts[relationshipType].push(sourceContract);
+        sourceContractRegistered[relationshipKey] = true;
 
-        emit CrossChainArkFleetProxyRegistered(
-            crossChainArk,
+        emit CrossChainRelationshipRegistered(
+            sourceContract,
+            targetContract,
             sourceChainId,
-            fleetProxy
+            targetChainId,
+            relationshipType
         );
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function unregisterCrossChainArkFleetProxy(
-        address crossChainArk
+    function unregisterCrossChainRelationship(
+        address sourceContract,
+        bytes32 relationshipType
     ) external override onlyGovernor {
-        if (!crossChainArkRegistered[crossChainArk]) {
-            revert RelationshipDoesNotExist(crossChainArk);
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType
+        );
+
+        if (!sourceContractRegistered[relationshipKey]) {
+            revert RelationshipDoesNotExist(sourceContract, relationshipType);
         }
 
-        CrossChainArkFleetProxyRelation
-            memory relation = crossChainArkToFleetProxy[crossChainArk];
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
 
-        // Remove reverse mapping using the stored sourceChainId
-        bytes32 fleetProxyKey = keccak256(
-            abi.encode(relation.sourceChainId, relation.fleetProxy)
+        // Remove reverse mapping
+        bytes32 targetKey = _getTargetKey(
+            relation.sourceChainId,
+            relation.targetContract,
+            relationshipType
         );
-        delete fleetProxyToCrossChainArk[fleetProxyKey];
+        delete targetToSource[targetKey];
 
-        // Remove from registered crossChainArks array
-        for (uint256 i = 0; i < registeredCrossChainArks.length; i++) {
-            if (registeredCrossChainArks[i] == crossChainArk) {
-                registeredCrossChainArks[i] = registeredCrossChainArks[
-                    registeredCrossChainArks.length - 1
-                ];
-                registeredCrossChainArks.pop();
+        // Remove from registered source contracts array
+        address[] storage sources = registeredSourceContracts[relationshipType];
+        for (uint256 i = 0; i < sources.length; i++) {
+            if (sources[i] == sourceContract) {
+                sources[i] = sources[sources.length - 1];
+                sources.pop();
                 break;
             }
         }
 
         // Clean up mappings
-        delete crossChainArkToFleetProxy[crossChainArk];
-        delete crossChainArkRegistered[crossChainArk];
+        delete crossChainRelations[relationshipKey];
+        delete sourceContractRegistered[relationshipKey];
 
-        emit CrossChainArkFleetProxyUnregistered(
-            crossChainArk,
+        emit CrossChainRelationshipUnregistered(
+            sourceContract,
+            relation.targetContract,
             relation.sourceChainId,
-            relation.fleetProxy
+            relation.targetChainId,
+            relationshipType
         );
     }
 
     /// @inheritdoc ICrossChainRegistry
     function updateRelationshipStatus(
-        address crossChainArk,
+        address sourceContract,
+        bytes32 relationshipType,
         bool isActive
     ) external override onlyGovernor {
-        if (!crossChainArkRegistered[crossChainArk]) {
-            revert RelationshipDoesNotExist(crossChainArk);
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType
+        );
+
+        if (!sourceContractRegistered[relationshipKey]) {
+            revert RelationshipDoesNotExist(sourceContract, relationshipType);
         }
 
-        crossChainArkToFleetProxy[crossChainArk].isActive = isActive;
-        emit RelationshipStatusUpdated(crossChainArk, isActive);
+        crossChainRelations[relationshipKey].isActive = isActive;
+        emit RelationshipStatusUpdated(
+            sourceContract,
+            relationshipType,
+            isActive
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -186,52 +231,87 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function getFleetProxyForCrossChainArk(
-        address crossChainArk
+    function getTargetForSource(
+        address sourceContract,
+        bytes32 relationshipType
     )
         external
         view
         override
-        returns (address fleetProxy, uint16 targetChainId)
+        returns (address targetContract, uint16 targetChainId)
     {
-        if (!crossChainArkRegistered[crossChainArk]) {
-            revert RelationshipDoesNotExist(crossChainArk);
-        }
-
-        CrossChainArkFleetProxyRelation
-            memory relation = crossChainArkToFleetProxy[crossChainArk];
-        return (relation.fleetProxy, relation.targetChainId);
-    }
-
-    /// @inheritdoc ICrossChainRegistry
-    function getCrossChainArkForFleetProxy(
-        uint16 sourceChainId,
-        address fleetProxy
-    ) external view override returns (address crossChainArk) {
-        bytes32 fleetProxyKey = keccak256(
-            abi.encode(sourceChainId, fleetProxy)
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType
         );
-        crossChainArk = fleetProxyToCrossChainArk[fleetProxyKey];
-        if (crossChainArk == address(0)) {
-            revert RelationshipDoesNotExist(fleetProxy);
+
+        if (!sourceContractRegistered[relationshipKey]) {
+            revert RelationshipDoesNotExist(sourceContract, relationshipType);
+        }
+
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
+        return (relation.targetContract, relation.targetChainId);
+    }
+
+    /// @inheritdoc ICrossChainRegistry
+    function getSourceForTarget(
+        uint16 sourceChainId,
+        address targetContract,
+        bytes32 relationshipType
+    ) external view override returns (address sourceContract) {
+        bytes32 targetKey = _getTargetKey(
+            sourceChainId,
+            targetContract,
+            relationshipType
+        );
+        sourceContract = targetToSource[targetKey];
+
+        if (sourceContract == address(0)) {
+            revert RelationshipDoesNotExist(targetContract, relationshipType);
         }
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function isValidCrossChainArkFleetProxyPair(
-        address crossChainArk,
+    function isValidCrossChainPair(
+        address sourceContract,
+        address targetContract,
         uint16 sourceChainId,
-        address fleetProxy
+        bytes32 relationshipType
     ) external view override returns (bool isValid) {
-        if (!crossChainArkRegistered[crossChainArk]) {
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType
+        );
+
+        if (!sourceContractRegistered[relationshipKey]) {
             return false;
         }
 
-        CrossChainArkFleetProxyRelation
-            memory relation = crossChainArkToFleetProxy[crossChainArk];
-        return (relation.fleetProxy == fleetProxy &&
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
+        return (relation.targetContract == targetContract &&
             relation.sourceChainId == sourceChainId &&
             relation.isActive);
+    }
+
+    /// @inheritdoc ICrossChainRegistry
+    function getRelationship(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external view override returns (CrossChainRelation memory relation) {
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType
+        );
+
+        if (!sourceContractRegistered[relationshipKey]) {
+            revert RelationshipDoesNotExist(sourceContract, relationshipType);
+        }
+
+        return crossChainRelations[relationshipKey];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -239,29 +319,85 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function getRegisteredCrossChainArks()
-        external
-        view
-        override
-        returns (address[] memory crossChainArks)
-    {
-        return registeredCrossChainArks;
+    function getRegisteredSourceContracts(
+        bytes32 relationshipType
+    ) external view override returns (address[] memory sourceContracts) {
+        return registeredSourceContracts[relationshipType];
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function isCrossChainArkRegistered(
-        address crossChainArk
+    function isSourceContractRegistered(
+        address sourceContract,
+        bytes32 relationshipType
     ) external view override returns (bool isRegistered) {
-        return crossChainArkRegistered[crossChainArk];
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType
+        );
+        return sourceContractRegistered[relationshipKey];
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function getRelationshipCount()
+    function getRelationshipCount(
+        bytes32 relationshipType
+    ) external view override returns (uint256 count) {
+        return registeredSourceContracts[relationshipType].length;
+    }
+
+    /// @inheritdoc ICrossChainRegistry
+    function getSupportedRelationshipTypes()
         external
         view
         override
-        returns (uint256 count)
+        returns (bytes32[] memory relationshipTypes)
     {
-        return registeredCrossChainArks.length;
+        return supportedRelationshipTypes;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Generate a unique key for a relationship
+     * @param sourceContract The source contract address
+     * @param relationshipType The relationship type
+     * @return key The unique relationship key
+     */
+    function _getRelationshipKey(
+        address sourceContract,
+        bytes32 relationshipType
+    ) internal pure returns (bytes32 key) {
+        return keccak256(abi.encode(sourceContract, relationshipType));
+    }
+
+    /**
+     * @notice Generate a unique key for target lookup
+     * @param sourceChainId The source chain ID
+     * @param targetContract The target contract address
+     * @param relationshipType The relationship type
+     * @return key The unique target key
+     */
+    function _getTargetKey(
+        uint16 sourceChainId,
+        address targetContract,
+        bytes32 relationshipType
+    ) internal pure returns (bytes32 key) {
+        return
+            keccak256(
+                abi.encode(sourceChainId, targetContract, relationshipType)
+            );
+    }
+
+    /**
+     * @notice Add a new relationship type to the registry
+     * @param relationshipType The relationship type to add
+     */
+    function _addRelationshipType(bytes32 relationshipType) internal {
+        if (!relationshipTypeSupported[relationshipType]) {
+            supportedRelationshipTypes.push(relationshipType);
+            relationshipTypeSupported[relationshipType] = true;
+            emit RelationshipTypeAdded(relationshipType);
+        }
     }
 }

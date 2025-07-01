@@ -24,6 +24,8 @@ contract CrossChainArk is
     ICrossChainStateReadReceiver,
     IInflightAssetTracking
 {
+    /// @notice Relationship type constant for ARK-FLEET relationships
+    bytes32 private constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -362,7 +364,10 @@ contract CrossChainArk is
      */
     function _getTargetProxy() internal view returns (address proxyAddress) {
         try
-            crossChainRegistry.getFleetProxyForCrossChainArk(address(this))
+            crossChainRegistry.getTargetForSource(
+                address(this),
+                ARK_FLEET_RELATIONSHIP
+            )
         returns (address proxy, uint16 chainId) {
             if (proxy != address(0) && chainId == targetChainId) {
                 return proxy;

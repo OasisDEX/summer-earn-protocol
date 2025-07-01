@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 /**
  * @title ICrossChainRegistry
- * @notice Simplified interface for managing cross-chain relationships between CrossChainArk and FleetProxy contracts
- * @dev Provides centralized management of cross-chain relationships with focus on core functionality
+ * @notice Generic interface for managing cross-chain relationships between different contract types
+ * @dev Provides centralized management of cross-chain relationships with support for multiple relationship types
  */
 interface ICrossChainRegistry {
     /*//////////////////////////////////////////////////////////////
@@ -12,16 +12,20 @@ interface ICrossChainRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Represents a relationship between a CrossChainArk and a FleetProxy on a target chain
-     * @param fleetProxy The address of the FleetProxy contract on the target chain
-     * @param targetChainId The chain ID where the fleetProxy is deployed
-     * @param sourceChainId The chain ID where the crossChainArk is deployed
-     * @param isActive Simple boolean status instead of complex enum
+     * @notice Represents a generic cross-chain relationship between two contracts
+     * @param sourceContract The address of the source contract
+     * @param targetContract The address of the target contract
+     * @param sourceChainId The chain ID where the source contract is deployed
+     * @param targetChainId The chain ID where the target contract is deployed
+     * @param relationshipType The type of relationship (e.g., keccak256("ARK_FLEET"))
+     * @param isActive Whether the relationship is currently active
      */
-    struct CrossChainArkFleetProxyRelation {
-        address fleetProxy;
-        uint16 targetChainId;
+    struct CrossChainRelation {
+        address sourceContract;
+        address targetContract;
         uint16 sourceChainId;
+        uint16 targetChainId;
+        bytes32 relationshipType;
         bool isActive;
     }
 
@@ -29,31 +33,41 @@ interface ICrossChainRegistry {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a CrossChainArk-FleetProxy relationship is registered
-    /// @param crossChainArk The address of the CrossChainArk contract
-    /// @param sourceChainId The chain ID where the crossChainArk is deployed
-    /// @param fleetProxy The address of the FleetProxy contract
-    event CrossChainArkFleetProxyRegistered(
-        address indexed crossChainArk,
+    /// @notice Emitted when a cross-chain relationship is registered
+    /// @param sourceContract The address of the source contract
+    /// @param targetContract The address of the target contract
+    /// @param sourceChainId The chain ID where the source contract is deployed
+    /// @param targetChainId The chain ID where the target contract is deployed
+    /// @param relationshipType The type of relationship
+    event CrossChainRelationshipRegistered(
+        address indexed sourceContract,
+        address indexed targetContract,
         uint16 indexed sourceChainId,
-        address indexed fleetProxy
+        uint16 targetChainId,
+        bytes32 relationshipType
     );
 
-    /// @notice Emitted when a CrossChainArk-FleetProxy relationship is unregistered
-    /// @param crossChainArk The address of the CrossChainArk contract
-    /// @param sourceChainId The chain ID where the crossChainArk was deployed
-    /// @param fleetProxy The address of the FleetProxy contract
-    event CrossChainArkFleetProxyUnregistered(
-        address indexed crossChainArk,
+    /// @notice Emitted when a cross-chain relationship is unregistered
+    /// @param sourceContract The address of the source contract
+    /// @param targetContract The address of the target contract
+    /// @param sourceChainId The chain ID where the source contract was deployed
+    /// @param targetChainId The chain ID where the target contract was deployed
+    /// @param relationshipType The type of relationship
+    event CrossChainRelationshipUnregistered(
+        address indexed sourceContract,
+        address indexed targetContract,
         uint16 indexed sourceChainId,
-        address indexed fleetProxy
+        uint16 targetChainId,
+        bytes32 relationshipType
     );
 
     /// @notice Emitted when a relationship's status is updated
-    /// @param crossChainArk The address of the CrossChainArk contract
+    /// @param sourceContract The address of the source contract
+    /// @param relationshipType The type of relationship
     /// @param isActive The new active status
     event RelationshipStatusUpdated(
-        address indexed crossChainArk,
+        address indexed sourceContract,
+        bytes32 indexed relationshipType,
         bool isActive
     );
 
@@ -63,28 +77,34 @@ interface ICrossChainRegistry {
 
     /// @notice Thrown when trying to register a relationship that already exists
     error RelationshipAlreadyExists(
-        address crossChainArk,
-        uint16 sourceChainId,
-        address fleetProxy
+        address sourceContract,
+        bytes32 relationshipType
     );
 
     /// @notice Thrown when trying to access a relationship that doesn't exist
-    error RelationshipDoesNotExist(address crossChainArk);
+    error RelationshipDoesNotExist(
+        address sourceContract,
+        bytes32 relationshipType
+    );
 
-    /// @notice Thrown when an invalid crossChainArk address is provided
-    error InvalidCrossChainArk(address crossChainArk);
+    /// @notice Thrown when an invalid source contract address is provided
+    error InvalidSourceContract(address sourceContract);
 
-    /// @notice Thrown when an invalid fleetProxy address is provided
-    error InvalidFleetProxy(address fleetProxy);
+    /// @notice Thrown when an invalid target contract address is provided
+    error InvalidTargetContract(address targetContract);
 
     /// @notice Thrown when an invalid chain ID is provided
     error InvalidChainId(uint16 chainId);
 
-    /// @notice Thrown when trying to register a fleetProxy that's already registered to another crossChainArk
-    error FleetProxyAlreadyRegistered(
-        address fleetProxy,
-        uint16 chainId,
-        address existingCrossChainArk
+    /// @notice Thrown when an invalid relationship type is provided
+    error InvalidRelationshipType(bytes32 relationshipType);
+
+    /// @notice Thrown when trying to register a target contract that's already registered to another source contract
+    error TargetContractAlreadyRegistered(
+        address targetContract,
+        uint16 sourceChainId,
+        bytes32 relationshipType,
+        address existingSourceContract
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -92,32 +112,40 @@ interface ICrossChainRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Register a new CrossChainArk-FleetProxy relationship
-     * @param crossChainArk The address of the CrossChainArk contract
-     * @param sourceChainId The chain ID where the crossChainArk is deployed
-     * @param targetChainId The chain ID where the fleetProxy is deployed
-     * @param fleetProxy The address of the FleetProxy contract
+     * @notice Register a new cross-chain relationship
+     * @param sourceContract The address of the source contract
+     * @param targetContract The address of the target contract
+     * @param sourceChainId The chain ID where the source contract is deployed
+     * @param targetChainId The chain ID where the target contract is deployed
+     * @param relationshipType The type of relationship
      */
-    function registerCrossChainArkFleetProxy(
-        address crossChainArk,
+    function registerCrossChainRelationship(
+        address sourceContract,
+        address targetContract,
         uint16 sourceChainId,
         uint16 targetChainId,
-        address fleetProxy
+        bytes32 relationshipType
     ) external;
 
     /**
-     * @notice Unregister an existing CrossChainArk-FleetProxy relationship
-     * @param crossChainArk The address of the CrossChainArk contract
+     * @notice Unregister an existing cross-chain relationship
+     * @param sourceContract The address of the source contract
+     * @param relationshipType The type of relationship
      */
-    function unregisterCrossChainArkFleetProxy(address crossChainArk) external;
+    function unregisterCrossChainRelationship(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external;
 
     /**
      * @notice Update the status of a relationship
-     * @param crossChainArk The address of the CrossChainArk contract
+     * @param sourceContract The address of the source contract
+     * @param relationshipType The type of relationship
      * @param isActive Whether the relationship should be active
      */
     function updateRelationshipStatus(
-        address crossChainArk,
+        address sourceContract,
+        bytes32 relationshipType,
         bool isActive
     ) external;
 
@@ -126,64 +154,95 @@ interface ICrossChainRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get the fleetProxy and target chain for a given crossChainArk
-     * @param crossChainArk The address of the CrossChainArk contract
-     * @return fleetProxy The address of the FleetProxy contract
-     * @return targetChainId The chain ID where the fleetProxy is deployed
+     * @notice Get the target contract and chain for a given source contract and relationship type
+     * @param sourceContract The address of the source contract
+     * @param relationshipType The type of relationship
+     * @return targetContract The address of the target contract
+     * @return targetChainId The chain ID where the target contract is deployed
      */
-    function getFleetProxyForCrossChainArk(
-        address crossChainArk
-    ) external view returns (address fleetProxy, uint16 targetChainId);
+    function getTargetForSource(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external view returns (address targetContract, uint16 targetChainId);
 
     /**
-     * @notice Get the crossChainArk address for a given fleetProxy on a source chain
+     * @notice Get the source contract address for a given target contract and relationship type
      * @param sourceChainId The chain ID of the source chain
-     * @param fleetProxy The address of the FleetProxy contract
-     * @return crossChainArk The address of the CrossChainArk contract
+     * @param targetContract The address of the target contract
+     * @param relationshipType The type of relationship
+     * @return sourceContract The address of the source contract
      */
-    function getCrossChainArkForFleetProxy(
+    function getSourceForTarget(
         uint16 sourceChainId,
-        address fleetProxy
-    ) external view returns (address crossChainArk);
+        address targetContract,
+        bytes32 relationshipType
+    ) external view returns (address sourceContract);
 
     /**
-     * @notice Check if a crossChainArk-fleetProxy pair is valid and active
-     * @param crossChainArk The address of the CrossChainArk contract
-     * @param sourceChainId The chain ID where the crossChainArk is deployed
-     * @param fleetProxy The address of the FleetProxy contract
+     * @notice Check if a source-target contract pair is valid and active for a given relationship type
+     * @param sourceContract The address of the source contract
+     * @param targetContract The address of the target contract
+     * @param sourceChainId The chain ID where the source contract is deployed
+     * @param relationshipType The type of relationship
      * @return isValid True if the relationship exists and is active
      */
-    function isValidCrossChainArkFleetProxyPair(
-        address crossChainArk,
+    function isValidCrossChainPair(
+        address sourceContract,
+        address targetContract,
         uint16 sourceChainId,
-        address fleetProxy
+        bytes32 relationshipType
     ) external view returns (bool isValid);
+
+    /**
+     * @notice Get the full relationship details
+     * @param sourceContract The address of the source contract
+     * @param relationshipType The type of relationship
+     * @return relation The complete relationship details
+     */
+    function getRelationship(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external view returns (CrossChainRelation memory relation);
 
     /*//////////////////////////////////////////////////////////////
                         ENUMERATION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get all registered crossChainArk addresses
-     * @return crossChainArks Array of registered crossChainArk addresses
+     * @notice Get all registered source contracts for a specific relationship type
+     * @param relationshipType The type of relationship
+     * @return sourceContracts Array of registered source contract addresses
      */
-    function getRegisteredCrossChainArks()
-        external
-        view
-        returns (address[] memory crossChainArks);
+    function getRegisteredSourceContracts(
+        bytes32 relationshipType
+    ) external view returns (address[] memory sourceContracts);
 
     /**
-     * @notice Check if a crossChainArk is registered
-     * @param crossChainArk The address of the CrossChainArk contract
-     * @return isRegistered True if the crossChainArk is registered
+     * @notice Check if a source contract is registered for a specific relationship type
+     * @param sourceContract The address of the source contract
+     * @param relationshipType The type of relationship
+     * @return isRegistered True if the source contract is registered
      */
-    function isCrossChainArkRegistered(
-        address crossChainArk
+    function isSourceContractRegistered(
+        address sourceContract,
+        bytes32 relationshipType
     ) external view returns (bool isRegistered);
 
     /**
-     * @notice Get the total number of registered relationships
+     * @notice Get the total number of registered relationships for a specific type
+     * @param relationshipType The type of relationship
      * @return count The number of registered relationships
      */
-    function getRelationshipCount() external view returns (uint256 count);
+    function getRelationshipCount(
+        bytes32 relationshipType
+    ) external view returns (uint256 count);
+
+    /**
+     * @notice Get all supported relationship types
+     * @return relationshipTypes Array of supported relationship type hashes
+     */
+    function getSupportedRelationshipTypes()
+        external
+        view
+        returns (bytes32[] memory relationshipTypes);
 }
