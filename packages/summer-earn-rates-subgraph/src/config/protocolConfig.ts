@@ -291,6 +291,12 @@ class ProtocolConfig {
           BigInt.fromI32(22480094),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x777791C4d6DC2CE140D00D2828a7C93503c67777'),
+          BigInt.fromI32(22822692),
+          'Morpho',
+        ),
       ]),
       new Protocol('Pendle', [
         new PendlePtProduct(
@@ -494,6 +500,14 @@ class ProtocolConfig {
           'Term',
         ),
       ]),
+      new Protocol('Silo', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xed9278c5188f37670b33ef3B00729E38260cd5D5'),
+          BigInt.fromI32(22822692),
+          'Silo',
+        ),
+      ]),
     ]
   }
 
@@ -573,6 +587,14 @@ class ProtocolConfig {
           Address.fromString('0x940098b108fB7D0a7E374f6eDED7760787464609'),
           BigInt.fromI32(311940473),
           'Sky',
+        ),
+      ]),
+      new Protocol('Silo', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x2BA39e5388aC6C702Cb29AEA78d52aa66832f1ee'),
+          BigInt.fromI32(22822692),
+          'Silo',
         ),
       ]),
     ]
@@ -732,6 +754,12 @@ class ProtocolConfig {
           BigInt.fromI32(29043399),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x27d8c7273fd3fcc6956a0b370ce5fd4a7fc65c18'),
+          BigInt.fromI32(32281914),
+          'Morpho',
+        ),
       ]),
       new Protocol('Moonwell', [
         new MoonwellProduct(
@@ -818,6 +846,12 @@ class ProtocolConfig {
           getOrCreateToken(addresses.USDCE),
           Address.fromString('0xcca902f2d3d265151f123d8ce8FdAc38ba9745ed'),
           BigInt.fromI32(27007101),
+          'Silo',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0xf6bC16B79c469b94Cdd25F3e2334DD4FEE47A581'),
+          BigInt.fromI32(36683119),
           'Silo',
         ),
       ]),
