@@ -1075,15 +1075,9 @@ contract StargateAdapter is
         }
 
         if (messageType == FLEET_DEPOSIT_TYPE) {
-            _handleFleetDepositMessage(
-                _from,
-                amountLD,
-                composeMsg,
-                destinationAsset
-            );
+            _handleFleetDepositMessage(amountLD, composeMsg, destinationAsset);
         } else {
             _handleLegacyAssetTransferMessage(
-                _from,
                 amountLD,
                 composeMsg,
                 destinationAsset
@@ -1095,7 +1089,6 @@ contract StargateAdapter is
      * @dev Handle fleet deposit compose messages
      */
     function _handleFleetDepositMessage(
-        address, // _from - not used but required by interface
         uint256 amountLD,
         bytes memory composeMsg,
         address destinationAsset
@@ -1264,7 +1257,6 @@ contract StargateAdapter is
      * @dev Handle legacy asset transfer compose messages (existing functionality)
      */
     function _handleLegacyAssetTransferMessage(
-        address, // _from - not used but required by interface
         uint256 amountLD,
         bytes memory composeMsg,
         address destinationAsset
@@ -1381,46 +1373,31 @@ contract StargateAdapter is
         }
 
         // Validate FleetCommander supports the asset
-        try IFleetCommanderMinimal(fleetCommander).asset() returns (
-            address fleetAsset
-        ) {
-            if (fleetAsset != asset) {
-                emit CrossChainFleetDepositFailed(
-                    operationId,
-                    fleetCommander,
-                    asset,
-                    amount,
-                    "Asset mismatch"
-                );
-                return false;
-            }
-        } catch {
+        address fleetAsset = IFleetCommanderMinimal(fleetCommander).asset();
+        if (fleetAsset != asset) {
             emit CrossChainFleetDepositFailed(
                 operationId,
                 fleetCommander,
                 asset,
                 amount,
-                "Asset check failed"
+                "Asset mismatch"
             );
             return false;
         }
 
         // Check deposit limits
-        try
-            IFleetCommanderMinimal(fleetCommander).maxDeposit(address(this))
-        returns (uint256 maxDeposit) {
-            if (amount > maxDeposit) {
-                emit CrossChainFleetDepositFailed(
-                    operationId,
-                    fleetCommander,
-                    asset,
-                    amount,
-                    "Exceeds max deposit"
-                );
-                return false;
-            }
-        } catch {
-            // If we can't check maxDeposit, continue anyway
+        uint256 maxDeposit = IFleetCommanderMinimal(fleetCommander).maxDeposit(
+            address(this)
+        );
+        if (amount > maxDeposit) {
+            emit CrossChainFleetDepositFailed(
+                operationId,
+                fleetCommander,
+                asset,
+                amount,
+                "Exceeds max deposit"
+            );
+            return false;
         }
 
         // Approve FleetCommander to spend tokens
@@ -1440,18 +1417,14 @@ contract StargateAdapter is
             returns (uint256 _shares) {
                 shares = _shares;
                 depositSuccess = true;
-            } catch (bytes memory reason) {
-                // Extract revert reason if available
-                string memory reasonString = reason.length > 0
-                    ? string(reason)
-                    : "Deposit with referral failed";
-
+            } catch (bytes memory /* reason */) {
+                // Don't stringify bytes - custom errors can't be reliably converted to strings
                 emit CrossChainFleetDepositFailed(
                     operationId,
                     fleetCommander,
                     asset,
                     amount,
-                    reasonString
+                    "Deposit with referral failed"
                 );
                 return false;
             }
@@ -1464,18 +1437,14 @@ contract StargateAdapter is
             returns (uint256 _shares) {
                 shares = _shares;
                 depositSuccess = true;
-            } catch (bytes memory reason) {
-                // Extract revert reason if available
-                string memory reasonString = reason.length > 0
-                    ? string(reason)
-                    : "Deposit failed";
-
+            } catch (bytes memory /* reason */) {
+                // Don't stringify bytes - custom errors can't be reliably converted to strings
                 emit CrossChainFleetDepositFailed(
                     operationId,
                     fleetCommander,
                     asset,
                     amount,
-                    reasonString
+                    "Deposit failed"
                 );
                 return false;
             }
