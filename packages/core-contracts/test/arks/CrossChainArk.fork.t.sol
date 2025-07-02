@@ -53,7 +53,8 @@ contract SimpleMockRegistry is ICrossChainRegistry {
 
     function unregisterCrossChainRelationship(
         address sourceContract,
-        bytes32 relationshipType
+        bytes32 relationshipType,
+        uint16 targetChainId
     ) external {}
 
     function getTargetForSource(
@@ -62,6 +63,21 @@ contract SimpleMockRegistry is ICrossChainRegistry {
     ) external view returns (address, uint16) {
         CrossChainRelation memory relation = arkToProxy[sourceContract];
         return (relation.targetContract, relation.targetChainId);
+    }
+
+    function getTargetsForSource(
+        address sourceContract,
+        bytes32 relationshipType
+    ) external view returns (address[] memory, uint16[] memory) {
+        CrossChainRelation memory relation = arkToProxy[sourceContract];
+        if (relation.sourceContract != address(0)) {
+            address[] memory targets = new address[](1);
+            uint16[] memory chainIds = new uint16[](1);
+            targets[0] = relation.targetContract;
+            chainIds[0] = relation.targetChainId;
+            return (targets, chainIds);
+        }
+        return (new address[](0), new uint16[](0));
     }
 
     function getSourceForTarget(
@@ -130,6 +146,27 @@ contract SimpleMockRegistry is ICrossChainRegistry {
         bytes32 relationshipType
     ) external view returns (CrossChainRelation memory) {
         return arkToProxy[sourceContract];
+    }
+
+    function getRelationshipByTarget(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    ) external view returns (CrossChainRelation memory) {
+        CrossChainRelation memory relation = arkToProxy[sourceContract];
+        // Validate that the target chain ID matches
+        if (
+            relation.sourceContract != address(0) &&
+            relation.targetChainId == targetChainId
+        ) {
+            return relation;
+        }
+        // Revert just like the real registry does
+        revert RelationshipDoesNotExist(
+            sourceContract,
+            relationshipType,
+            targetChainId
+        );
     }
 
     function isValidCrossChainPair(

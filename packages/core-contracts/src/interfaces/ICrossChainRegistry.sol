@@ -66,13 +66,15 @@ interface ICrossChainRegistry {
     /// @notice Thrown when trying to register a relationship that already exists
     error RelationshipAlreadyExists(
         address sourceContract,
-        bytes32 relationshipType
+        bytes32 relationshipType,
+        uint16 targetChainId
     );
 
     /// @notice Thrown when trying to access a relationship that doesn't exist
     error RelationshipDoesNotExist(
         address sourceContract,
-        bytes32 relationshipType
+        bytes32 relationshipType,
+        uint16 targetChainId
     );
 
     /// @notice Thrown when an invalid source contract address is provided
@@ -130,10 +132,12 @@ interface ICrossChainRegistry {
      * @notice Unregister an existing cross-chain relationship
      * @param sourceContract The address of the source contract
      * @param relationshipType The type of relationship
+     * @param targetChainId The target chain ID to identify the specific relationship
      */
     function unregisterCrossChainRelationship(
         address sourceContract,
-        bytes32 relationshipType
+        bytes32 relationshipType,
+        uint16 targetChainId
     ) external;
 
     /*//////////////////////////////////////////////////////////////
@@ -142,6 +146,7 @@ interface ICrossChainRegistry {
 
     /**
      * @notice Get the target contract and chain for a given source contract and relationship type
+     * @dev This function returns the first registered relationship. Use getTargetsForSource for multiple relationships.
      * @param sourceContract The address of the source contract
      * @param relationshipType The type of relationship
      * @return targetContract The address of the target contract
@@ -151,6 +156,24 @@ interface ICrossChainRegistry {
         address sourceContract,
         bytes32 relationshipType
     ) external view returns (address targetContract, uint16 targetChainId);
+
+    /**
+     * @notice Get all target contracts and chains for a given source contract and relationship type
+     * @param sourceContract The address of the source contract
+     * @param relationshipType The type of relationship
+     * @return targetContracts Array of target contract addresses
+     * @return targetChainIds Array of target chain IDs
+     */
+    function getTargetsForSource(
+        address sourceContract,
+        bytes32 relationshipType
+    )
+        external
+        view
+        returns (
+            address[] memory targetContracts,
+            uint16[] memory targetChainIds
+        );
 
     /**
      * @notice Get the source contract address for a given target contract and relationship type
@@ -186,6 +209,7 @@ interface ICrossChainRegistry {
 
     /**
      * @notice Get the full relationship details
+     * @dev This function returns the first registered relationship. Use getRelationshipByTarget for specific relationships.
      * @param sourceContract The address of the source contract
      * @param relationshipType The type of relationship
      * @return relation The complete relationship details
@@ -193,6 +217,19 @@ interface ICrossChainRegistry {
     function getRelationship(
         address sourceContract,
         bytes32 relationshipType
+    ) external view returns (CrossChainRelation memory relation);
+
+    /**
+     * @notice Get the full relationship details for a specific target chain
+     * @param sourceContract The address of the source contract
+     * @param relationshipType The type of relationship
+     * @param targetChainId The target chain ID
+     * @return relation The complete relationship details
+     */
+    function getRelationshipByTarget(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
     ) external view returns (CrossChainRelation memory relation);
 
     /*//////////////////////////////////////////////////////////////

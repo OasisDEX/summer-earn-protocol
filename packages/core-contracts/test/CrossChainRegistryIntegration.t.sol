@@ -263,7 +263,11 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(ark1, ARK_FLEET_RELATIONSHIP);
+        registry.unregisterCrossChainRelationship(
+            ark1,
+            ARK_FLEET_RELATIONSHIP,
+            TARGET_CHAIN_ID
+        );
 
         // Verify first is gone, second remains
         assertEq(registry.getRelationshipCount(ARK_FLEET_RELATIONSHIP), 1);
@@ -353,7 +357,11 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Unregister one type
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(arkAddress, type1);
+        registry.unregisterCrossChainRelationship(
+            arkAddress,
+            type1,
+            TARGET_CHAIN_ID
+        );
 
         // Should only affect the specific type
         assertFalse(registry.isSourceContractRegistered(arkAddress, type1));

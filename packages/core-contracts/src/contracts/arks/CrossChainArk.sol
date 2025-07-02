@@ -74,20 +74,6 @@ contract CrossChainArk is
     /// @notice Thrown when the provided registry address is invalid.
     error InvalidRegistry();
 
-    /// @notice Thrown when no proxy relationship is registered for this ark.
-    error NoProxyRelationshipRegistered();
-
-    /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Ensures that a valid proxy relationship exists in the registry
-    modifier onlyWithValidProxyRelationship() {
-        address proxy = _getTargetProxy();
-        if (proxy == address(0)) revert NoProxyRelationshipRegistered();
-        _;
-    }
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -190,7 +176,6 @@ contract CrossChainArk is
     function requestRemoteAssetBalanceUpdate()
         external
         onlyKeeper
-        onlyWithValidProxyRelationship
         returns (bytes32 queueId)
     {
         address proxyAddress = _getTargetProxy();
@@ -228,7 +213,8 @@ contract CrossChainArk is
 
     /**
      * @notice Gets the target proxy address from the registry
-     * @return The target proxy address, or address(0) if not registered
+     * @return The target proxy address
+     * @dev Reverts if no relationship exists for the satellite chain
      */
     function getTargetProxy() external view returns (address) {
         return _getTargetProxy();
@@ -268,10 +254,7 @@ contract CrossChainArk is
      * @param amount Amount of tokens to transfer
      * @dev This function queues a cross-chain transfer to the target proxy using the registry
      */
-    function _board(
-        uint256 amount,
-        bytes calldata
-    ) internal override onlyWithValidProxyRelationship {
+    function _board(uint256 amount, bytes calldata) internal override {
         address proxyAddress = _getTargetProxy();
 
         // Approve BridgeQueue to spend tokens
@@ -360,22 +343,17 @@ contract CrossChainArk is
 
     /**
      * @notice Gets the target proxy address from the registry
-     * @return proxyAddress The target proxy address, or address(0) if not registered
+     * @return proxyAddress The target proxy address
+     * @dev Reverts if no relationship exists for the satellite chain
      */
     function _getTargetProxy() internal view returns (address proxyAddress) {
-        try
-            crossChainRegistry.getTargetForSource(
+        ICrossChainRegistry.CrossChainRelation
+            memory relation = crossChainRegistry.getRelationshipByTarget(
                 address(this),
-                ARK_FLEET_RELATIONSHIP
-            )
-        returns (address proxy, uint16 chainId) {
-            if (proxy != address(0) && chainId == satelliteChainId) {
-                return proxy;
-            }
-        } catch {
-            // Registry lookup failed, return address(0)
-        }
-        return address(0);
+                ARK_FLEET_RELATIONSHIP,
+                satelliteChainId
+            );
+        return relation.targetContract;
     }
 
     /**

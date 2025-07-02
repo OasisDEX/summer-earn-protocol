@@ -32,6 +32,10 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     mapping(bytes32 => EnumerableSet.AddressSet)
         private registeredSourceContracts;
 
+    /// @notice Mapping to track all target chain IDs for each source contract and relationship type
+    /// Key: keccak256(abi.encode(sourceContract, relationshipType))
+    mapping(bytes32 => uint16[]) private sourceToTargetChains;
+
     /// @notice Array of supported relationship types
     bytes32[] private supportedRelationshipTypes;
 
@@ -107,14 +111,17 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
-            relationshipType
+            relationshipType,
+            targetChainId
         );
 
-        // Check if relationship already exists
-        if (
-            registeredSourceContracts[relationshipType].contains(sourceContract)
-        ) {
-            revert RelationshipAlreadyExists(sourceContract, relationshipType);
+        // Check if this specific relationship already exists
+        if (crossChainRelations[relationshipKey].sourceContract != address(0)) {
+            revert RelationshipAlreadyExists(
+                sourceContract,
+                relationshipType,
+                targetChainId
+            );
         }
 
         // Check if target contract is already registered for this relationship type
@@ -149,6 +156,13 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         // Update tracking
         registeredSourceContracts[relationshipType].add(sourceContract);
 
+        // Update sourceToTargetChains
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+            sourceContract,
+            relationshipType
+        );
+        sourceToTargetChains[sourceTrackingKey].push(targetChainId);
+
         emit CrossChainRelationshipRegistered(
             sourceContract,
             targetContract,
@@ -161,19 +175,22 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @inheritdoc ICrossChainRegistry
     function unregisterCrossChainRelationship(
         address sourceContract,
-        bytes32 relationshipType
+        bytes32 relationshipType,
+        uint16 targetChainId
     ) external override onlyGovernor {
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
-            relationshipType
+            relationshipType,
+            targetChainId
         );
 
-        if (
-            !registeredSourceContracts[relationshipType].contains(
-                sourceContract
-            )
-        ) {
-            revert RelationshipDoesNotExist(sourceContract, relationshipType);
+        // Check if this specific relationship exists
+        if (crossChainRelations[relationshipKey].sourceContract == address(0)) {
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                targetChainId
+            );
         }
 
         CrossChainRelation memory relation = crossChainRelations[
@@ -189,8 +206,24 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         );
         delete targetToSource[targetKey];
 
-        // Remove from registered source contracts
-        registeredSourceContracts[relationshipType].remove(sourceContract);
+        // Remove from sourceToTargetChains
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+            sourceContract,
+            relationshipType
+        );
+        uint16[] storage targetChains = sourceToTargetChains[sourceTrackingKey];
+        for (uint256 i = 0; i < targetChains.length; i++) {
+            if (targetChains[i] == targetChainId) {
+                targetChains[i] = targetChains[targetChains.length - 1];
+                targetChains.pop();
+                break;
+            }
+        }
+
+        // Remove from registered source contracts if no more relationships exist
+        if (targetChains.length == 0) {
+            registeredSourceContracts[relationshipType].remove(sourceContract);
+        }
 
         // Clean up mappings
         delete crossChainRelations[relationshipKey];
@@ -223,12 +256,33 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 sourceContract
             )
         ) {
-            revert RelationshipDoesNotExist(sourceContract, relationshipType);
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                0
+            );
         }
 
-        bytes32 relationshipKey = _getRelationshipKey(
+        // Get the first target chain for this source contract and relationship type
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
             sourceContract,
             relationshipType
+        );
+        uint16[] memory targetChains = sourceToTargetChains[sourceTrackingKey];
+
+        if (targetChains.length == 0) {
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                0
+            );
+        }
+
+        uint16 firstTargetChainId = targetChains[0];
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType,
+            firstTargetChainId
         );
 
         CrossChainRelation memory relation = crossChainRelations[
@@ -253,7 +307,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         sourceContract = targetToSource[targetKey];
 
         if (sourceContract == address(0)) {
-            revert RelationshipDoesNotExist(targetContract, relationshipType);
+            revert RelationshipDoesNotExist(
+                address(0),
+                relationshipType,
+                targetChainId
+            );
         }
     }
 
@@ -267,7 +325,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     ) external view override returns (bool isValid) {
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
-            relationshipType
+            relationshipType,
+            targetChainId
         );
 
         if (
@@ -296,15 +355,94 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 sourceContract
             )
         ) {
-            revert RelationshipDoesNotExist(sourceContract, relationshipType);
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                0
+            );
         }
 
-        bytes32 relationshipKey = _getRelationshipKey(
+        // Get the first target chain for this source contract and relationship type
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
             sourceContract,
             relationshipType
         );
+        uint16[] memory targetChains = sourceToTargetChains[sourceTrackingKey];
+
+        if (targetChains.length == 0) {
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                0
+            );
+        }
+
+        uint16 firstTargetChainId = targetChains[0];
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType,
+            firstTargetChainId
+        );
 
         return crossChainRelations[relationshipKey];
+    }
+
+    /// @inheritdoc ICrossChainRegistry
+    function getTargetsForSource(
+        address sourceContract,
+        bytes32 relationshipType
+    )
+        external
+        view
+        override
+        returns (
+            address[] memory targetContracts,
+            uint16[] memory targetChainIds
+        )
+    {
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+            sourceContract,
+            relationshipType
+        );
+        uint16[] memory targetChains = sourceToTargetChains[sourceTrackingKey];
+
+        targetContracts = new address[](targetChains.length);
+        targetChainIds = new uint16[](targetChains.length);
+
+        for (uint256 i = 0; i < targetChains.length; i++) {
+            bytes32 relationshipKey = _getRelationshipKey(
+                sourceContract,
+                relationshipType,
+                targetChains[i]
+            );
+            CrossChainRelation memory relation = crossChainRelations[
+                relationshipKey
+            ];
+            targetContracts[i] = relation.targetContract;
+            targetChainIds[i] = relation.targetChainId;
+        }
+    }
+
+    /// @inheritdoc ICrossChainRegistry
+    function getRelationshipByTarget(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    ) external view override returns (CrossChainRelation memory relation) {
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType,
+            targetChainId
+        );
+
+        relation = crossChainRelations[relationshipKey];
+        if (relation.sourceContract == address(0)) {
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                targetChainId
+            );
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -354,13 +492,18 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
      * @notice Generate a unique key for a relationship
      * @param sourceContract The source contract address
      * @param relationshipType The relationship type
+     * @param targetChainId The target chain ID
      * @return key The unique relationship key
      */
     function _getRelationshipKey(
         address sourceContract,
-        bytes32 relationshipType
+        bytes32 relationshipType,
+        uint16 targetChainId
     ) internal pure returns (bytes32 key) {
-        return keccak256(abi.encode(sourceContract, relationshipType));
+        return
+            keccak256(
+                abi.encode(sourceContract, relationshipType, targetChainId)
+            );
     }
 
     /**
@@ -428,5 +571,18 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 currentChainId
             );
         }
+    }
+
+    /**
+     * @notice Generate a unique key for tracking source contracts and their relationship types
+     * @param sourceContract The source contract address
+     * @param relationshipType The relationship type
+     * @return key The unique source tracking key
+     */
+    function _getSourceTrackingKey(
+        address sourceContract,
+        bytes32 relationshipType
+    ) internal pure returns (bytes32 key) {
+        return keccak256(abi.encode(sourceContract, relationshipType));
     }
 }

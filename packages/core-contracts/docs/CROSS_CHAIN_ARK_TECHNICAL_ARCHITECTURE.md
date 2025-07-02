@@ -15,29 +15,33 @@ This document describes the security and validation mechanisms for Summer's Cros
 **Security Functions**:
 ```solidity
 // Core validation functions
-function getProxyForArk(address ark) external view returns (address proxy, uint16 targetChainId)
-function getArkForProxy(uint16 sourceChainId, address proxy) external view returns (address ark)
-function isValidArkProxyPair(address ark, uint16 sourceChainId, address proxy) external view returns (bool)
+function getRelationshipByTarget(address sourceContract, bytes32 relationshipType, uint16 targetChainId) 
+    external view returns (CrossChainRelation memory)
+function getTargetsForSource(address sourceContract, bytes32 relationshipType) 
+    external view returns (address[] memory, uint16[] memory)
+function getSourceForTarget(uint16 sourceChainId, uint16 targetChainId, address proxy, bytes32 relationshipType) 
+    external view returns (address ark)
+function isValidCrossChainPair(address ark, uint16 sourceChainId, address proxy, uint16 targetChainId) 
+    external view returns (bool)
 
 // Governance functions
-function registerArkProxy(address ark, uint16 sourceChainId, uint16 targetChainId, address proxy)
-function unregisterArkProxy(address ark)
-function updateRelationshipStatus(address ark, bool isActive)
+function registerCrossChainRelationship(address ark, address proxy, uint16 sourceChainId, uint16 targetChainId, bytes32 relationshipType)
+function unregisterCrossChainRelationship(address ark, bytes32 relationshipType, uint16 targetChainId)
 ```
 
 **Security Model**:
 - Only governance can register/modify relationships
 - Registry must be deployed with identical state across all chains
 - All cross-chain operations require registry validation
-- Supports emergency deactivation of relationships
+- Registry functions revert with detailed errors when relationships don't exist
 
-## Two-Stage Validation Process
+## Direct Registry Validation
 
-Cross-chain operations require validation at two critical points:
+Cross-chain operations use direct registry validation that reverts immediately when relationships don't exist:
 
-### Stage 1: Operation Queuing Validation
+### CrossChainArk Registry Integration
 
-When CrossChainArk initiates a cross-chain transfer:
+When CrossChainArk needs to perform operations:
 
 ```mermaid
 sequenceDiagram
@@ -46,37 +50,36 @@ sequenceDiagram
     participant Queue as BridgeQueue
     
     Ark->>Ark: _board(amount) called
-    Ark->>Reg: getProxyForArk(address(this))
+    Ark->>Reg: getRelationshipByTarget(address(this), ARK_FLEET_RELATIONSHIP, satelliteChainId)
     alt Valid Relationship
-        Reg-->>Ark: (proxyAddress, targetChainId)
+        Reg-->>Ark: CrossChainRelation{targetContract, targetChainId, ...}
         Ark->>Queue: queueTransferAssets(targetChain, asset, amount, proxy)
     else Invalid Relationship
-        Reg-->>Ark: revert / address(0)
-        Ark->>Ark: revert NoProxyRelationshipRegistered()
+        Reg-->>Ark: revert RelationshipDoesNotExist(sourceContract, relationshipType, targetChainId)
+        Ark->>Ark: Transaction reverted
     end
 ```
 
-**Security Check**:
+**Direct Registry Call**:
 ```solidity
-modifier onlyWithValidProxyRelationship() {
-    address proxy = _getTargetProxy();
-    if (proxy == address(0)) revert NoProxyRelationshipRegistered();
-    _;
+function _getTargetProxy() internal view returns (address proxyAddress) {
+    ICrossChainRegistry.CrossChainRelation memory relation = crossChainRegistry.getRelationshipByTarget(
+        address(this),
+        ARK_FLEET_RELATIONSHIP,
+        satelliteChainId
+    );
+    return relation.targetContract;
 }
 
-function _getTargetProxy() internal view returns (address) {
-    try crossChainRegistry.getProxyForArk(address(this)) returns (
-        address proxy, uint16 chainId
-    ) {
-        if (proxy != address(0) && chainId == targetChainId) {
-            return proxy;
-        }
-    } catch {}
-    return address(0);
+function _board(uint256 amount, bytes calldata) internal override {
+    address proxyAddress = _getTargetProxy(); // Reverts if no relationship
+    
+    config.asset.approve(address(bridgeQueue), amount);
+    bridgeQueue.queueTransferAssets(satelliteChainId, address(config.asset), amount, proxyAddress);
 }
 ```
 
-### Stage 2: Asset Reception Validation
+### FleetProxy Registry Integration
 
 When FleetProxy receives cross-chain assets:
 
@@ -88,10 +91,10 @@ sequenceDiagram
     participant Fleet as Local Fleet
     
     Adapter->>Proxy: receiveMessageWithAssets(asset, amount, message, sourceChain)
-    Proxy->>Reg: getArkForProxy(sourceChain, address(this))
+    Proxy->>Reg: getSourceForTarget(sourceChain, targetChain, address(this), ARK_FLEET_RELATIONSHIP)
     alt Valid Source Ark
         Reg-->>Proxy: arkAddress
-        Proxy->>Reg: isValidArkProxyPair(ark, sourceChain, address(this))
+        Proxy->>Reg: isValidCrossChainPair(ark, sourceChain, address(this), targetChain, ARK_FLEET_RELATIONSHIP)
         alt Active Relationship
             Reg-->>Proxy: true
             Proxy->>Fleet: deposit(amount)
@@ -100,55 +103,62 @@ sequenceDiagram
             Proxy->>Proxy: revert InvalidSourceChain()
         end
     else Invalid Source
-        Reg-->>Proxy: address(0) / revert
-        Proxy->>Proxy: revert InvalidSourceChain()
+        Reg-->>Proxy: revert RelationshipDoesNotExist(...)
+        Proxy->>Proxy: Transaction reverted
     end
 ```
 
-**Security Validation**:
+**Direct Registry Validation**:
 ```solidity
 function _isValidSourceChain(uint16 sourceChainId) internal view returns (bool) {
-    try crossChainRegistry.getArkForProxy(sourceChainId, address(this)) returns (address ark) {
+    try crossChainRegistry.getSourceForTarget(
+        sourceChainId, 
+        uint16(block.chainid), 
+        address(this), 
+        ARK_FLEET_RELATIONSHIP
+    ) returns (address ark) {
         if (ark != address(0)) {
-            return crossChainRegistry.isValidArkProxyPair(ark, sourceChainId, address(this));
+            return crossChainRegistry.isValidCrossChainPair(
+                ark, 
+                sourceChainId, 
+                address(this), 
+                uint16(block.chainid), 
+                ARK_FLEET_RELATIONSHIP
+            );
         }
     } catch {}
     return false;
 }
 ```
 
-## Multi-Layer Security Architecture
+## Simplified Security Architecture
 
-The system implements defense-in-depth through multiple validation layers:
+The system implements direct validation through registry calls:
 
 ```mermaid
 graph TD
-    A[Cross-Chain Operation] --> B[Stage 1: Queue Validation]
+    A[Cross-Chain Operation] --> B[Direct Registry Validation]
     B --> C{Registry Relationship Exists?}
-    C -->|No| D[❌ Reject at Source]
-    C -->|Yes| E{Relationship Active?}
-    E -->|No| D
-    E -->|Yes| F[Queue Operation]
+    C -->|No| D[❌ Immediate Revert with RelationshipDoesNotExist]
+    C -->|Yes| E[✅ Continue with Operation]
     
-    F --> G[Cross-Chain Bridge Execution]
-    G --> H[Stage 2: Reception Validation]
-    H --> I{Valid Source Ark?}
-    I -->|No| J[❌ Reject at Target]
-    I -->|Yes| K{Active Relationship?}
-    K -->|No| J
-    K -->|Yes| L{Authorized Caller?}
-    L -->|No| J
-    L -->|Yes| M[✅ Execute Operation]
+    E --> F[Cross-Chain Bridge Execution]
+    F --> G[Target Validation]
+    G --> H{Valid Source Relationship?}
+    H -->|No| I[❌ Reject at Target]
+    H -->|Yes| J{Authorized Caller?}
+    J -->|No| I
+    J -->|Yes| K[✅ Execute Operation]
     
     classDef successStyle fill:#90EE90,stroke:#333,stroke-width:2px
     classDef failStyle fill:#FFB6B6,stroke:#333,stroke-width:2px
     classDef processStyle fill:#87CEEB,stroke:#333,stroke-width:2px
     classDef checkStyle fill:#F0E68C,stroke:#333,stroke-width:2px
     
-    class M successStyle
-    class D,J failStyle
-    class F,G processStyle
-    class B,H,C,E,I,K,L checkStyle
+    class E,K successStyle
+    class D,I failStyle
+    class F processStyle
+    class B,G,C,H,J checkStyle
 ```
 
 ## Security Properties
@@ -156,8 +166,8 @@ graph TD
 ### Registry Guarantees
 
 1. **Authoritative Mappings**: Only governance can establish Ark ↔ Proxy relationships
-2. **Bilateral Validation**: Both source and target chains validate relationships
-3. **Atomic Operations**: Relationships are either fully valid or completely invalid
+2. **Direct Validation**: Operations fail immediately if relationships don't exist
+3. **Detailed Errors**: Registry provides specific error information for debugging
 4. **Emergency Controls**: Governance can instantly deactivate compromised relationships
 
 ### Validation Properties
@@ -165,16 +175,16 @@ graph TD
 1. **Source Validation**: CrossChainArk cannot initiate transfers to unregistered proxies
 2. **Target Validation**: FleetProxy cannot accept assets from unregistered arks
 3. **Chain Validation**: Operations must occur between correct source/target chain pairs
-4. **Status Validation**: Inactive relationships are rejected at both stages
+4. **Immediate Failure**: Invalid operations revert at the first validation point
 
 ### Attack Prevention
 
-The two-stage validation prevents several attack vectors:
+The direct validation approach prevents several attack vectors:
 
 - **Malicious Ark Registration**: Cannot register without governance approval
 - **Proxy Impersonation**: Target validation prevents unauthorized asset reception
 - **Chain Confusion**: Explicit chain ID validation prevents wrong-chain attacks  
-- **Relationship Hijacking**: Bilateral validation ensures both sides agree on relationship
+- **Relationship Hijacking**: Direct registry validation ensures only valid relationships proceed
 
 ## Technical Implementation
 
@@ -184,21 +194,26 @@ The two-stage validation prevents several attack vectors:
 contract CrossChainArk is Ark, ICrossChainAssetReceiver {
     ICrossChainRegistry public immutable crossChainRegistry;
     
-    // Stage 1: Validate before queueing operation
-    modifier onlyWithValidProxyRelationship() {
-        address proxy = _getTargetProxy();
-        if (proxy == address(0)) revert NoProxyRelationshipRegistered();
-        _;
+    // Direct registry validation - reverts immediately if relationship doesn't exist
+    function _getTargetProxy() internal view returns (address proxyAddress) {
+        ICrossChainRegistry.CrossChainRelation memory relation = crossChainRegistry.getRelationshipByTarget(
+            address(this),
+            ARK_FLEET_RELATIONSHIP,
+            satelliteChainId
+        );
+        return relation.targetContract;
     }
     
-    function _board(uint256 amount, bytes calldata) 
-        internal 
-        override 
-        onlyWithValidProxyRelationship 
-    {
-        address proxyAddress = _getTargetProxy();
+    function _board(uint256 amount, bytes calldata) internal override {
+        address proxyAddress = _getTargetProxy(); // Direct call - reverts if no relationship
         config.asset.approve(address(bridgeQueue), amount);
-        bridgeQueue.queueTransferAssets(targetChainId, address(config.asset), amount, proxyAddress);
+        bridgeQueue.queueTransferAssets(satelliteChainId, address(config.asset), amount, proxyAddress);
+    }
+    
+    function requestRemoteAssetBalanceUpdate() external onlyKeeper returns (bytes32 queueId) {
+        address proxyAddress = _getTargetProxy(); // Direct call - reverts if no relationship
+        queueId = bridgeQueue.queueReadState(satelliteChainId, proxyAddress, IFleetProxy.totalAssets.selector, "");
+        emit RemoteAssetBalanceUpdateRequested(queueId, satelliteChainId, proxyAddress);
     }
 }
 ```
@@ -209,7 +224,7 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver {
 contract FleetProxy is IFleetProxy, ProtocolAccessManaged {
     ICrossChainRegistry public immutable crossChainRegistry;
     
-    // Stage 2: Validate incoming transfers
+    // Direct registry validation for incoming transfers
     function receiveMessageWithAssets(
         address asset,
         uint256 amount,
@@ -229,6 +244,26 @@ contract FleetProxy is IFleetProxy, ProtocolAccessManaged {
 }
 ```
 
+## Error Types
+
+The simplified system uses registry errors directly:
+
+```solidity
+// Registry errors (from ICrossChainRegistry)
+error RelationshipDoesNotExist(
+    address sourceContract,
+    bytes32 relationshipType,
+    uint16 targetChainId
+);
+
+// Example error when CrossChainArk calls _getTargetProxy() with no relationship:
+RelationshipDoesNotExist(
+    0x123...ark_address, 
+    keccak256("ARK_FLEET"), 
+    42161 // Arbitrum chain ID
+)
+```
+
 ## Deployment Security
 
 ### Registry Synchronization
@@ -237,11 +272,12 @@ Critical security requirement: Registry state must be identical across all chain
 
 ```solidity
 // Must execute on ALL participating chains
-crossChainRegistry.registerArkProxy(
+crossChainRegistry.registerCrossChainRelationship(
     arkAddress,      // Same ark address
+    proxyAddress,    // Same proxy address
     sourceChainId,   // Same source chain
     targetChainId,   // Same target chain  
-    proxyAddress     // Same proxy address
+    keccak256("ARK_FLEET")  // Same relationship type
 );
 ```
 
@@ -250,7 +286,7 @@ crossChainRegistry.registerArkProxy(
 - [ ] Deploy CrossChainRegistry on all participating chains
 - [ ] Verify identical registry state across chains
 - [ ] Register all Ark ↔ Proxy relationships
-- [ ] Test both validation stages reject unauthorized operations
+- [ ] Test that invalid operations revert with registry errors
 - [ ] Configure emergency pause mechanisms
 - [ ] Set up monitoring for validation failures
 
@@ -259,8 +295,12 @@ crossChainRegistry.registerArkProxy(
 ### Immediate Response Actions
 
 ```solidity
-// Deactivate compromised relationship
-crossChainRegistry.updateRelationshipStatus(compromisedArk, false);
+// Unregister compromised relationship (reverts future operations immediately)
+crossChainRegistry.unregisterCrossChainRelationship(
+    compromisedArk, 
+    keccak256("ARK_FLEET"), 
+    targetChainId
+);
 
 // Pause affected contracts  
 fleetProxy.pause();  // Guardian can execute
@@ -269,11 +309,17 @@ fleetProxy.pause();  // Guardian can execute
 ### Recovery Procedures
 
 ```solidity
-// After investigation, reactivate if safe
-crossChainRegistry.updateRelationshipStatus(arkAddress, true);
+// After investigation, re-register if safe
+crossChainRegistry.registerCrossChainRelationship(
+    arkAddress,
+    proxyAddress, 
+    sourceChainId,
+    targetChainId,
+    keccak256("ARK_FLEET")
+);
 
 // Resume operations
 fleetProxy.unpause();  // Governance required
 ```
 
-This two-stage validation architecture ensures that cross-chain operations can only occur between properly authorized and actively validated Ark-Proxy pairs, providing robust security against unauthorized cross-chain transfers.
+This direct registry validation architecture ensures that cross-chain operations can only occur between properly registered Ark-Proxy pairs, with immediate failure and detailed error information when invalid operations are attempted.

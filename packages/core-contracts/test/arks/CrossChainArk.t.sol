@@ -52,7 +52,8 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
 
     function unregisterCrossChainRelationship(
         address sourceContract,
-        bytes32 relationshipType
+        bytes32 relationshipType,
+        uint16 targetChainId
     ) external {}
 
     function getTargetForSource(
@@ -150,6 +151,50 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
     ) external pure returns (address[] memory sourceContracts) {
         // Return empty array for mock implementation
         return new address[](0);
+    }
+
+    function getTargetsForSource(
+        address sourceContract,
+        bytes32 relationshipType
+    )
+        external
+        view
+        returns (
+            address[] memory targetContracts,
+            uint16[] memory targetChainIds
+        )
+    {
+        CrossChainRelation memory relation = arkToProxy[sourceContract];
+        if (relation.sourceContract != address(0)) {
+            targetContracts = new address[](1);
+            targetChainIds = new uint16[](1);
+            targetContracts[0] = relation.targetContract;
+            targetChainIds[0] = relation.targetChainId;
+        } else {
+            targetContracts = new address[](0);
+            targetChainIds = new uint16[](0);
+        }
+    }
+
+    function getRelationshipByTarget(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    ) external view returns (CrossChainRelation memory) {
+        CrossChainRelation memory relation = arkToProxy[sourceContract];
+        // Validate that the target chain ID matches
+        if (
+            relation.sourceContract != address(0) &&
+            relation.targetChainId == targetChainId
+        ) {
+            return relation;
+        }
+        // Revert just like the real registry does
+        revert RelationshipDoesNotExist(
+            sourceContract,
+            relationshipType,
+            targetChainId
+        );
     }
 }
 
@@ -478,9 +523,16 @@ contract CrossChainArkTest is Test, ArkTestBase {
             params
         );
 
-        // Should revert when target proxy is not set
+        // Should revert when target proxy is not set - now with registry error
         vm.prank(keeper);
-        vm.expectRevert(CrossChainArk.NoProxyRelationshipRegistered.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(arkWithoutProxy),
+                keccak256("ARK_FLEET"),
+                chainId
+            )
+        );
         arkWithoutProxy.requestRemoteAssetBalanceUpdate();
     }
 

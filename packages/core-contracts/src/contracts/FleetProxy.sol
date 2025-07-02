@@ -47,21 +47,8 @@ contract FleetProxy is
     error InvalidFleetContract();
     /// @notice Error thrown when withdrawal failed
     error WithdrawalFailed();
-    /// @notice Error thrown when no ark relationship is registered for this proxy
-    error NoArkRelationshipRegistered();
     /// @notice Thrown when the caller is not authorized to perform the action.
     error Unauthorized();
-
-    /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Ensures that a valid ark relationship exists in the registry for the given source chain
-    modifier onlyWithValidArkRelationship(uint16 sourceChainId) {
-        address ark = _getSourceChainArk(sourceChainId);
-        if (ark == address(0)) revert NoArkRelationshipRegistered();
-        _;
-    }
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -175,13 +162,7 @@ contract FleetProxy is
     function withdrawAndTransfer(
         uint256 amount,
         uint16 sourceChainId
-    )
-        external
-        whenNotPaused
-        nonReentrant
-        onlyKeeper
-        onlyWithValidArkRelationship(sourceChainId)
-    {
+    ) external whenNotPaused nonReentrant onlyKeeper {
         if (amount == 0) revert NoAssets();
 
         // 1. Get the asset from fleet contract
@@ -205,10 +186,10 @@ contract FleetProxy is
         // 5. Approve the bridge queue to transfer the assets
         IERC20(asset).forceApprove(address(bridgeQueue), amount);
 
-        // 5. Get source chain ark address from registry
+        // 6. Get source chain ark address from registry - reverts if not found
         address arkAddress = _getSourceChainArk(sourceChainId);
 
-        // 6. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
+        // 7. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
         bridgeQueue.queueTransferAssets(
             sourceChainId,
             asset,
@@ -273,26 +254,19 @@ contract FleetProxy is
     /**
      * @notice Gets the source chain ark address from the registry
      * @param sourceChainId The chain ID where the ark is deployed
-     * @return arkAddress The source chain ark address, or address(0) if not found
+     * @return arkAddress The source chain ark address
+     * @dev Reverts if no valid relationship exists for the source chain
      */
     function _getSourceChainArk(
         uint16 sourceChainId
     ) internal view returns (address arkAddress) {
-        try
+        return
             crossChainRegistry.getSourceForTarget(
                 sourceChainId,
                 crossChainRegistry.currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
-            )
-        returns (address ark) {
-            if (ark != address(0)) {
-                return ark;
-            }
-        } catch {
-            // Registry lookup failed
-        }
-        return address(0);
+            );
     }
 
     /**

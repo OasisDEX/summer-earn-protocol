@@ -254,7 +254,8 @@ contract CrossChainRegistryTest is Test {
             abi.encodeWithSelector(
                 ICrossChainRegistry.RelationshipAlreadyExists.selector,
                 ark1,
-                ARK_FLEET_RELATIONSHIP
+                ARK_FLEET_RELATIONSHIP,
+                TARGET_CHAIN_ID
             )
         );
         registry.registerCrossChainRelationship(
@@ -331,7 +332,11 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(ark1, ARK_FLEET_RELATIONSHIP);
+        registry.unregisterCrossChainRelationship(
+            ark1,
+            ARK_FLEET_RELATIONSHIP,
+            TARGET_CHAIN_ID
+        );
 
         // Check relationship was removed
         assertFalse(
@@ -344,7 +349,8 @@ contract CrossChainRegistryTest is Test {
             abi.encodeWithSelector(
                 ICrossChainRegistry.RelationshipDoesNotExist.selector,
                 ark1,
-                ARK_FLEET_RELATIONSHIP
+                ARK_FLEET_RELATIONSHIP,
+                0
             )
         );
         registry.getTargetForSource(ark1, ARK_FLEET_RELATIONSHIP);
@@ -356,10 +362,15 @@ contract CrossChainRegistryTest is Test {
             abi.encodeWithSelector(
                 ICrossChainRegistry.RelationshipDoesNotExist.selector,
                 ark1,
-                ARK_FLEET_RELATIONSHIP
+                ARK_FLEET_RELATIONSHIP,
+                TARGET_CHAIN_ID
             )
         );
-        registry.unregisterCrossChainRelationship(ark1, ARK_FLEET_RELATIONSHIP);
+        registry.unregisterCrossChainRelationship(
+            ark1,
+            ARK_FLEET_RELATIONSHIP,
+            TARGET_CHAIN_ID
+        );
     }
 
     function test_unregisterCrossChainRelationship_onlyGovernor() public {
@@ -374,7 +385,11 @@ contract CrossChainRegistryTest is Test {
 
         vm.prank(user);
         vm.expectRevert();
-        registry.unregisterCrossChainRelationship(ark1, ARK_FLEET_RELATIONSHIP);
+        registry.unregisterCrossChainRelationship(
+            ark1,
+            ARK_FLEET_RELATIONSHIP,
+            TARGET_CHAIN_ID
+        );
     }
 
     function test_getTargetForSource() public {
@@ -400,7 +415,8 @@ contract CrossChainRegistryTest is Test {
             abi.encodeWithSelector(
                 ICrossChainRegistry.RelationshipDoesNotExist.selector,
                 ark1,
-                ARK_FLEET_RELATIONSHIP
+                ARK_FLEET_RELATIONSHIP,
+                0
             )
         );
         registry.getTargetForSource(ark1, ARK_FLEET_RELATIONSHIP);
@@ -429,8 +445,9 @@ contract CrossChainRegistryTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                proxy1,
-                ARK_FLEET_RELATIONSHIP
+                address(0),
+                ARK_FLEET_RELATIONSHIP,
+                TARGET_CHAIN_ID
             )
         );
         registry.getSourceForTarget(
@@ -655,7 +672,11 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(ark1, ARK_FLEET_RELATIONSHIP);
+        registry.unregisterCrossChainRelationship(
+            ark1,
+            ARK_FLEET_RELATIONSHIP,
+            TARGET_CHAIN_ID
+        );
 
         assertEq(registry.getRelationshipCount(ARK_FLEET_RELATIONSHIP), 1);
         assertFalse(
@@ -677,7 +698,11 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(ark1, ARK_FLEET_RELATIONSHIP);
+        registry.unregisterCrossChainRelationship(
+            ark1,
+            ARK_FLEET_RELATIONSHIP,
+            TARGET_CHAIN_ID
+        );
 
         vm.prank(governor);
         registry.registerCrossChainRelationship(

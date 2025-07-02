@@ -61,7 +61,8 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
 
     function unregisterCrossChainRelationship(
         address sourceContract,
-        bytes32 relationshipType
+        bytes32 relationshipType,
+        uint16 targetChainId
     ) external {}
 
     function getTargetForSource(
@@ -146,6 +147,44 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
         bytes32[] memory supported = new bytes32[](1);
         supported[0] = keccak256("ARK_FLEET");
         return supported;
+    }
+
+    function getTargetsForSource(
+        address sourceContract,
+        bytes32 relationshipType
+    )
+        external
+        view
+        returns (
+            address[] memory targetContracts,
+            uint16[] memory targetChainIds
+        )
+    {
+        address proxy = arkToProxy[sourceContract];
+        if (proxy != address(0) && arkToProxyActive[sourceContract]) {
+            targetContracts = new address[](1);
+            targetChainIds = new uint16[](1);
+            targetContracts[0] = proxy;
+            targetChainIds[0] = currentChainId;
+        } else {
+            targetContracts = new address[](0);
+            targetChainIds = new uint16[](0);
+        }
+    }
+
+    function getRelationshipByTarget(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    ) external view returns (CrossChainRelation memory) {
+        return
+            CrossChainRelation({
+                sourceContract: sourceContract,
+                targetContract: arkToProxy[sourceContract],
+                sourceChainId: 0,
+                targetChainId: targetChainId,
+                relationshipType: relationshipType
+            });
     }
 
     // Helper for testing
