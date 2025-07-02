@@ -115,7 +115,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         address arkAddress = makeAddr("ark");
         address proxyAddress = makeAddr("proxy");
 
-        uint16 differentSourceChain = 137; // Polygon
+        uint16 differentSourceChain = CURRENT_CHAIN_ID; // Current deployment chain (1)
         uint16 differentTargetChain = 10; // Optimism
 
         vm.prank(governor);
@@ -138,13 +138,13 @@ contract CrossChainRegistryIntegrationTest is Test {
             )
         );
 
-        // Should fail with wrong source chain
+        // Should fail with wrong target chain
         assertFalse(
             registry.isValidCrossChainPair(
                 arkAddress,
                 proxyAddress,
                 CURRENT_CHAIN_ID,
-                differentTargetChain,
+                TARGET_CHAIN_ID, // Different target chain
                 ARK_FLEET_RELATIONSHIP
             )
         );

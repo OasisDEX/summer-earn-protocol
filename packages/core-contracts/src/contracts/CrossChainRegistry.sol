@@ -140,8 +140,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             targetContract: targetContract,
             sourceChainId: sourceChainId,
             targetChainId: targetChainId,
-            relationshipType: relationshipType,
-            isActive: true
+            relationshipType: relationshipType
         });
 
         // Set reverse mapping
@@ -284,8 +283,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         ];
         return (relation.targetContract == targetContract &&
             relation.sourceChainId == sourceChainId &&
-            relation.targetChainId == targetChainId &&
-            relation.isActive);
+            relation.targetChainId == targetChainId);
     }
 
     /// @inheritdoc ICrossChainRegistry

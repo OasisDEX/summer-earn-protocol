@@ -115,8 +115,7 @@ contract MockFleetProxyRegistry is ICrossChainRegistry {
                 targetContract: arkToProxy[sourceContract],
                 sourceChainId: 0,
                 targetChainId: currentChainId,
-                relationshipType: relationshipType,
-                isActive: true
+                relationshipType: relationshipType
             });
     }
 

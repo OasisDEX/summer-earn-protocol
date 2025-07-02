@@ -18,7 +18,6 @@ interface ICrossChainRegistry {
      * @param sourceChainId The chain ID where the source contract is deployed
      * @param targetChainId The chain ID where the target contract is deployed
      * @param relationshipType The type of relationship (e.g., keccak256("ARK_FLEET"))
-     * @param isActive Whether the relationship is currently active
      */
     struct CrossChainRelation {
         address sourceContract;
@@ -26,7 +25,6 @@ interface ICrossChainRegistry {
         uint16 sourceChainId;
         uint16 targetChainId;
         bytes32 relationshipType;
-        bool isActive;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -59,16 +57,6 @@ interface ICrossChainRegistry {
         uint16 indexed sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    );
-
-    /// @notice Emitted when a relationship's status is updated
-    /// @param sourceContract The address of the source contract
-    /// @param relationshipType The type of relationship
-    /// @param isActive The new active status
-    event RelationshipStatusUpdated(
-        address indexed sourceContract,
-        bytes32 indexed relationshipType,
-        bool isActive
     );
 
     /*//////////////////////////////////////////////////////////////

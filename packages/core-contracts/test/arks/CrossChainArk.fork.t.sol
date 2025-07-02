@@ -98,8 +98,7 @@ contract SimpleMockRegistry is ICrossChainRegistry {
             targetContract: proxy,
             sourceChainId: sourceChainId,
             targetChainId: targetChainId,
-            relationshipType: relationshipType,
-            isActive: true
+            relationshipType: relationshipType
         });
         bytes32 targetKey = _getTargetKey(
             sourceChainId,

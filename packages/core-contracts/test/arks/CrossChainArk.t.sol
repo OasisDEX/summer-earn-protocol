@@ -97,8 +97,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
             targetContract: proxy,
             sourceChainId: sourceChainId,
             targetChainId: targetChainId,
-            relationshipType: relationshipType,
-            isActive: true
+            relationshipType: relationshipType
         });
         bytes32 targetKey = _getTargetKey(
             sourceChainId,
@@ -232,7 +231,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.bridgeQueue()), address(queue));
         assertEq(address(ark.bridgeRouter()), address(router));
         assertEq(address(ark.crossChainRegistry()), address(registry));
-        assertEq(ark.targetChainId(), chainId);
+        assertEq(ark.satelliteChainId(), chainId);
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
     }
 
