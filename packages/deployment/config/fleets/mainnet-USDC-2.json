@@ -111,6 +111,14 @@
         "vaultName": "Term_Summer_USDC",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "SiloManagedVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "apostro",
+        "protocol": "silo"
+      }
     }
   ]
 }

@@ -131,6 +131,14 @@
         "asset": "USDC",
         "protocol": "Maple"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Hyperithm_USDC",
+        "protocol": "morpho"
+      }
     }
   ]
 }

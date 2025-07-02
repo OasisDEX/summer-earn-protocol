@@ -109,7 +109,8 @@
           "weth": {
             "Moonwell_Flagship_WETH": "0xa0E430870c4604CcfC7B38Ca7845B1FF653D0ff1",
             "Steakhouse_WETH": "0xbEEf050a7485865A7a8d8Ca0CC5f7536b7a3443e",
-            "Gauntlet_WETH_Core": "0x6b13c060F13Af1fdB319F52315BbbF3fb1D88844"
+            "Gauntlet_WETH_Core": "0x6b13c060F13Af1fdB319F52315BbbF3fb1D88844",
+            "Seamless_WETH": "0x27d8c7273fd3fcc6956a0b370ce5fd4a7fc65c18"
           }
         },
         "markets": {
@@ -321,6 +322,20 @@
           }
         },
         "rewards": "0x88730d254A2f7e6AC8388c3198aFd694bA9f7fae"
+      },
+      "silo": {
+        "pools": {
+          "usdc": {},
+          "dai": {},
+          "usde": {},
+          "usdt": {},
+          "usdce": {}
+        },
+        "vaults": {
+          "usdc": {
+            "varlamore": "0x2BA39e5388aC6C702Cb29AEA78d52aa66832f1ee"
+          }
+        }
       }
     }
   },
@@ -505,7 +520,8 @@
             "Smokehouse_USDC": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC",
             "Gauntlet_Frontier_USDC": "0xc582F04d8a82795aa2Ff9c8bb4c1c889fe7b754e",
             "Relend_USDC": "0x0F359FD18BDa75e9c49bC027E7da59a4b01BF32a",
-            "MEV_Capital_USDC": "0xd63070114470f685b75B74D60EEc7c1113d33a3D"
+            "MEV_Capital_USDC": "0xd63070114470f685b75B74D60EEc7c1113d33a3D",
+            "Hyperithm_USDC": "0x777791C4d6DC2CE140D00D2828a7C93503c67777"
           },
           "dai": {},
           "usde": {},
@@ -575,6 +591,20 @@
             "wrapper": "0x64338FD8e7b1918B4a806A175e26eD152B3d0b7b",
             "vault": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
             "withdrawalQueue": "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
+          }
+        }
+      },
+      "silo": {
+        "pools": {
+          "usdc": {},
+          "dai": {},
+          "usde": {},
+          "usdt": {},
+          "usdce": {}
+        },
+        "vaults": {
+          "usdc": {
+            "apostro": "0xed9278c5188f37670b33ef3B00729E38260cd5D5"
           }
         }
       }
@@ -702,7 +732,8 @@
           "usdce": {
             "varlamore": "0xF6F87073cF8929C206A77b0694619DC776F89885",
             "re7labs": "0xF75AE954D30217B4EE70DbFB33f04162aa3Cf260",
-            "apostro": "0xcca902f2d3d265151f123d8ce8FdAc38ba9745ed"
+            "apostro": "0xcca902f2d3d265151f123d8ce8FdAc38ba9745ed",
+            "greenhouse": "0xf6bC16B79c469b94Cdd25F3e2334DD4FEE47A581"
           }
         }
       }
