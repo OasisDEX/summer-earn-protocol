@@ -11,7 +11,6 @@ import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRout
 import {MockAccessManager} from "@summerfi/chain-bridge-test/mocks/MockAccessManager.sol";
 import {MockFleetDepositAdapter} from "@summerfi/chain-bridge-test/mocks/MockFleetDepositAdapter.sol";
 import {MockFleetDepositAdapterNoSupport} from "@summerfi/chain-bridge-test/mocks/MockFleetDepositAdapterNoSupport.sol";
-import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
 import {FleetCommanderTestMock} from "../mocks/FleetCommanderTestMock.sol";
 
 contract FleetDepositManagerTest is Test {
@@ -21,7 +20,6 @@ contract FleetDepositManagerTest is Test {
     ERC20Mock public token;
     MockBridgeRouter public mockBridgeRouter;
     MockAccessManager public mockAccessManager;
-    MockHarborCommand public mockHarborCommand;
     FleetCommanderTestMock public mockFleetCommander;
 
     address public user = address(0x1);
@@ -48,13 +46,11 @@ contract FleetDepositManagerTest is Test {
         // Deploy contracts
         mockBridgeRouter = new MockBridgeRouter();
         mockAccessManager = new MockAccessManager();
-        mockHarborCommand = new MockHarborCommand();
 
-        // FIX: Updated constructor to match actual implementation
+        // Updated constructor to match actual implementation
         manager = new FleetDepositManager(
             address(mockBridgeRouter),
-            address(mockAccessManager),
-            address(mockHarborCommand)
+            address(mockAccessManager)
         );
 
         mockAdapter = new MockFleetDepositAdapter();
@@ -74,13 +70,6 @@ contract FleetDepositManagerTest is Test {
         mockBridgeRouter.registerAdapter(address(mockAdapter));
         mockBridgeRouter.registerAdapter(address(noSupportAdapter));
 
-        // Setup default valid fleet commander
-        mockHarborCommand.setActiveFleetCommander(
-            address(mockFleetCommander),
-            true
-        );
-
-        // Mock harborCommand function in manager (need to add this to FleetDepositManager)
         // For testing, we'll use the mock fleet commander address as fleet commander
         fleetCommander = address(mockFleetCommander);
     }
@@ -92,39 +81,20 @@ contract FleetDepositManagerTest is Test {
     function test_Constructor_Success() public {
         FleetDepositManager newManager = new FleetDepositManager(
             address(mockBridgeRouter),
-            address(mockAccessManager),
-            address(mockHarborCommand)
+            address(mockAccessManager)
         );
         assertEq(address(newManager.bridgeRouter()), address(mockBridgeRouter));
-        assertEq(newManager.harborCommand(), address(mockHarborCommand));
         assertEq(newManager.FLEET_DEPOSIT_TYPE(), keccak256("FLEET_DEPOSIT"));
     }
 
     function test_Constructor_RevertWhen_ZeroAddressBridgeRouter() public {
         vm.expectRevert(FleetDepositManager.InvalidParams.selector);
-        new FleetDepositManager(
-            address(0),
-            address(mockAccessManager),
-            address(mockHarborCommand)
-        );
+        new FleetDepositManager(address(0), address(mockAccessManager));
     }
 
     function test_Constructor_RevertWhen_ZeroAddressAccessManager() public {
         vm.expectRevert();
-        new FleetDepositManager(
-            address(mockBridgeRouter),
-            address(0),
-            address(mockHarborCommand)
-        );
-    }
-
-    function test_Constructor_RevertWhen_ZeroAddressHarborCommand() public {
-        vm.expectRevert(FleetDepositManager.InvalidParams.selector);
-        new FleetDepositManager(
-            address(mockBridgeRouter),
-            address(mockAccessManager),
-            address(0)
-        );
+        new FleetDepositManager(address(mockBridgeRouter), address(0));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -652,41 +622,6 @@ contract FleetDepositManagerTest is Test {
                             EDGE CASE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_CrossChainDepositToFleet_DifferentTokenDecimals() public {
-        // Test with 18 decimal token
-        ERC20Mock token18 = new ERC20Mock();
-        uint256 amount18 = 1000 * 10 ** 18;
-        token18.mint(user, amount18);
-
-        // Update the mock fleet commander to support the new token
-        mockFleetCommander.setAsset(address(token18));
-
-        vm.startPrank(user);
-        token18.approve(address(manager), amount18);
-
-        bytes32 operationId = manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token18),
-            amount18,
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-
-        vm.stopPrank();
-
-        assertNotEq(operationId, bytes32(0));
-        assertEq(mockAdapter.lastAmount(), amount18);
-        assertEq(mockAdapter.lastAsset(), address(token18));
-    }
-
     function test_CrossChainDepositToFleet_MaxUint256Amount() public {
         uint256 maxAmount = type(uint256).max / 2; // Use half of max to avoid overflow
         token.mint(user, maxAmount);
@@ -875,249 +810,5 @@ contract FleetDepositManagerTest is Test {
         assertEq(sourceChainId, block.chainid);
         assertEq(originalUser, user);
         assertEq(receivedReferralCode, referralCode);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        FLEET VALIDATION TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function test_CrossChainDepositToFleet_ValidFleetCommander_Success()
-        public
-    {
-        vm.startPrank(user);
-        token.approve(address(manager), DEPOSIT_AMOUNT);
-
-        bytes32 operationId = manager.initiateDepositToTargetChainFleet{
-            value: 0.01 ether
-        }(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token),
-            DEPOSIT_AMOUNT,
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0.01 ether,
-                options: bytes("")
-            })
-        );
-
-        vm.stopPrank();
-
-        assertNotEq(operationId, bytes32(0));
-    }
-
-    function test_CrossChainDepositToFleet_RevertWhen_InvalidFleetCommander()
-        public
-    {
-        address inactiveFleetCommander = address(0x999);
-
-        vm.startPrank(user);
-        token.approve(address(manager), DEPOSIT_AMOUNT);
-
-        vm.expectRevert(FleetDepositManager.InvalidFleetCommander.selector);
-        manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token),
-            DEPOSIT_AMOUNT,
-            inactiveFleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-        vm.stopPrank();
-    }
-
-    function test_CrossChainDepositToFleet_RevertWhen_AssetMismatch() public {
-        // Create a different token
-        ERC20Mock differentToken = new ERC20Mock();
-        differentToken.mint(user, DEPOSIT_AMOUNT);
-
-        vm.startPrank(user);
-        differentToken.approve(address(manager), DEPOSIT_AMOUNT);
-
-        vm.expectRevert(FleetDepositManager.AssetMismatch.selector);
-        manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(differentToken), // Different asset than fleet commander supports
-            DEPOSIT_AMOUNT,
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-        vm.stopPrank();
-    }
-
-    function test_CrossChainDepositToFleet_RevertWhen_ExceedsMaxDeposit()
-        public
-    {
-        uint256 lowMaxDeposit = DEPOSIT_AMOUNT / 2;
-        mockFleetCommander.setMaxDeposit(lowMaxDeposit);
-
-        vm.startPrank(user);
-        token.approve(address(manager), DEPOSIT_AMOUNT);
-
-        vm.expectRevert(FleetDepositManager.ExceedsMaxDeposit.selector);
-        manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token),
-            DEPOSIT_AMOUNT, // Exceeds max deposit
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-        vm.stopPrank();
-    }
-
-    function test_CrossChainDepositToFleet_HandleAssetCallFailure() public {
-        mockFleetCommander.setShouldRevertAsset(true);
-
-        vm.startPrank(user);
-        token.approve(address(manager), DEPOSIT_AMOUNT);
-
-        // Should revert with AssetMismatch since asset() call fails
-        vm.expectRevert();
-        manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token),
-            DEPOSIT_AMOUNT,
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-        vm.stopPrank();
-    }
-
-    function test_CrossChainDepositToFleet_HandleMaxDepositCallFailure()
-        public
-    {
-        mockFleetCommander.setShouldRevertMaxDeposit(true);
-
-        vm.startPrank(user);
-        token.approve(address(manager), DEPOSIT_AMOUNT);
-
-        // Should revert when maxDeposit() call fails
-        vm.expectRevert();
-        manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token),
-            DEPOSIT_AMOUNT,
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-        vm.stopPrank();
-    }
-
-    function test_CrossChainDepositToFleet_AtMaxDepositLimit_Success() public {
-        // Set max deposit to exact amount
-        mockFleetCommander.setMaxDeposit(DEPOSIT_AMOUNT);
-
-        vm.startPrank(user);
-        token.approve(address(manager), DEPOSIT_AMOUNT);
-
-        bytes32 operationId = manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token),
-            DEPOSIT_AMOUNT, // Exactly at max deposit
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-
-        vm.stopPrank();
-
-        assertNotEq(operationId, bytes32(0));
-    }
-
-    function test_CrossChainDepositToFleet_FleetCommanderDeactivated() public {
-        // First make a successful deposit
-        vm.startPrank(user);
-        token.approve(address(manager), DEPOSIT_AMOUNT * 2);
-
-        bytes32 operationId1 = manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token),
-            DEPOSIT_AMOUNT,
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-
-        assertNotEq(operationId1, bytes32(0));
-
-        // Now deactivate the fleet commander
-        mockHarborCommand.setActiveFleetCommander(fleetCommander, false);
-
-        // Second deposit should fail
-        vm.expectRevert(FleetDepositManager.InvalidFleetCommander.selector);
-        manager.initiateDepositToTargetChainFleet(
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            address(token),
-            DEPOSIT_AMOUNT,
-            fleetCommander,
-            shareRecipient,
-            bytes(""),
-            BridgeTypes.AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            })
-        );
-
-        vm.stopPrank();
     }
 }

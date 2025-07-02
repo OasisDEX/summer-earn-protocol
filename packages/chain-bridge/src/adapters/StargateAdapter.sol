@@ -152,14 +152,25 @@ contract StargateAdapter is
 
     /// @notice Structure to hold decoded fleet deposit message data
     struct FleetDepositMessageData {
+        /// @notice Type of message being sent (e.g., FLEET_DEPOSIT_TYPE)
         bytes32 messageType;
+        /// @notice Address of the FleetCommander contract that will receive the deposit
         address fleetCommander;
+        /// @notice Address that will receive the fleet shares from the deposit
         address shareRecipient;
+        /// @notice Token contract address being deposited
         address asset;
+        /// @notice Amount of tokens being deposited
         uint256 amount;
+        /// @notice Chain ID where the deposit transaction was originally initiated
         uint256 sourceChainId;
+        /// @notice Unique identifier for this cross-chain operation
         bytes32 operationId;
+        /// @notice Address of the user who originally initiated the cross-chain deposit transaction
+        /// @dev Used to distinguish user-led transactions (originalUser == shareRecipient) from system transactions
+        /// @dev In case of deposit failure, determines whether to refund to user or hold for governance recovery
         address originalUser;
+        /// @notice Optional referral code for tracking deposit attribution
         bytes referralCode;
     }
 
@@ -217,25 +228,6 @@ contract StargateAdapter is
         address intendedRecipient,
         bool isDeposit,
         string reason
-    );
-
-    /// @notice Emitted when a failed compose operation is recovered
-    event FailedComposeRecovered(
-        bytes32 indexed operationId,
-        address indexed asset,
-        uint256 amount,
-        address indexed recipient
-    );
-
-    /// @notice Emitted when a cross-chain fleet deposit is initiated
-    event CrossChainFleetDepositInitiated(
-        bytes32 indexed operationId,
-        uint16 indexed destinationChainId,
-        address indexed user,
-        address fleetCommander,
-        address asset,
-        uint256 amount,
-        address shareRecipient
     );
 
     /// @notice Emitted when a cross-chain fleet deposit is completed

@@ -154,16 +154,11 @@ contract FleetDepositManagerIntegrationForkTest is Test {
         // Deploy FleetDepositManager
         manager = new FleetDepositManager(
             address(bridgeRouter), // Only used for adapter validation
-            address(accessManager),
-            address(mockHarborCommand)
+            address(accessManager)
         );
 
         // Create mock fleet commander
         mockFleetCommander = new FleetCommanderTestMock(USDC_MAINNET);
-        mockHarborCommand.setActiveFleetCommander(
-            address(mockFleetCommander),
-            true
-        );
 
         vm.stopPrank();
     }
@@ -457,40 +452,6 @@ contract FleetDepositManagerIntegrationForkTest is Test {
             USDC_MAINNET,
             DEPOSIT_AMOUNT,
             address(mockFleetCommander),
-            shareRecipient,
-            bytes(""),
-            adapterParams
-        );
-
-        vm.stopPrank();
-    }
-
-    function test_FleetDepositIntegration_InvalidFleetCommander() public {
-        vm.selectFork(0); // Mainnet
-
-        address invalidFleetCommander = address(0x999);
-
-        deal(USDC_MAINNET, user, DEPOSIT_AMOUNT);
-        vm.deal(user, 1 ether);
-
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0.01 ether,
-                options: bytes("")
-            });
-
-        vm.startPrank(user);
-        IERC20(USDC_MAINNET).approve(address(manager), DEPOSIT_AMOUNT);
-
-        vm.expectRevert(FleetDepositManager.InvalidFleetCommander.selector);
-        manager.initiateDepositToTargetChainFleet{value: 0.01 ether}(
-            address(adapterMainnet),
-            CHAIN_ID_BASE,
-            USDC_MAINNET,
-            DEPOSIT_AMOUNT,
-            invalidFleetCommander, // Not registered with harbor command
             shareRecipient,
             bytes(""),
             adapterParams

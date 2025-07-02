@@ -8,8 +8,6 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {IFleetDepositAdapter} from "@summerfi/chain-bridge/interfaces/IFleetDepositAdapter.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
-import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
-import {IFleetCommanderMinimal} from "@summerfi/chain-bridge/interfaces/IFleetCommanderMinimal.sol";
 
 /**
  * @title FleetDepositManager
@@ -52,24 +50,12 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
     /// @notice Thrown when bridge adapter is not supported
     error UnsupportedBridgeAdapter();
 
-    /// @notice Thrown when fleet commander is invalid
-    error InvalidFleetCommander();
-
-    /// @notice Thrown when asset mismatch
-    error AssetMismatch();
-
-    /// @notice Thrown when deposit exceeds max deposit
-    error ExceedsMaxDeposit();
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The BridgeRouter that manages bridge adapters
     IBridgeRouter public bridgeRouter;
-
-    /// @notice HarborCommand contract address for fleet commander validation
-    address public immutable harborCommand;
 
     /// @notice Fleet deposit message type identifier
     bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
@@ -82,17 +68,13 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
      * @notice Initializes the FleetDepositManager
      * @param _bridgeRouter Address of the BridgeRouter
      * @param _accessManager Address of the ProtocolAccessManager
-     * @param _harborCommand Address of the HarborCommand contract for fleet commander validation
      */
     constructor(
         address _bridgeRouter,
-        address _accessManager,
-        address _harborCommand
+        address _accessManager
     ) ProtocolAccessManaged(_accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidParams();
-        if (_harborCommand == address(0)) revert InvalidParams();
         bridgeRouter = IBridgeRouter(_bridgeRouter);
-        harborCommand = _harborCommand;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -148,14 +130,6 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
         if (!_isAdapterSupported(bridgeAdapter)) {
             revert UnsupportedBridgeAdapter();
         }
-
-        // Validate fleet configuration using existing HarborCommand + FleetCommander
-        _validateFleetDeposit(
-            destinationChainId,
-            fleetCommander,
-            asset,
-            amount
-        );
 
         // Create fleet deposit compose message
         bytes memory composeMessage = encodeFleetDepositMessage(
@@ -244,54 +218,8 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
      * @dev Internal function to check if adapter is supported by BridgeRouter
      */
     function _isAdapterSupported(address adapter) internal view returns (bool) {
-        // First check if adapter code exists
-        if (adapter.code.length == 0) {
-            return false;
-        }
-
-        try bridgeRouter.isValidAdapter(adapter) returns (bool isValid) {
-            if (!isValid) return false;
-
-            try
-                IFleetDepositAdapter(adapter)
-                    .supportsUserInitiatedFleetDeposits()
-            returns (bool result) {
-                return result;
-            } catch {
-                return false;
-            }
-        } catch {
-            return false;
-        }
-    }
-
-    /**
-     * @dev Internal function to validate fleet deposit configuration
-     */
-    function _validateFleetDeposit(
-        uint16 /* destinationChainId */,
-        address fleetCommander,
-        address asset,
-        uint256 amount
-    ) internal view {
-        // 1. Check FleetCommander is active via HarborCommand
-        if (
-            !IHarborCommand(harborCommand).activeFleetCommanders(fleetCommander)
-        ) {
-            revert InvalidFleetCommander();
-        }
-
-        // 2. Check asset compatibility
-        if (IFleetCommanderMinimal(fleetCommander).asset() != asset) {
-            revert AssetMismatch();
-        }
-
-        // 3. Check deposit limits
-        uint256 maxDeposit = IFleetCommanderMinimal(fleetCommander).maxDeposit(
-            address(this)
-        );
-        if (amount > maxDeposit) {
-            revert ExceedsMaxDeposit();
-        }
+        return
+            bridgeRouter.isValidAdapter(adapter) &&
+            IFleetDepositAdapter(adapter).supportsUserInitiatedFleetDeposits();
     }
 }

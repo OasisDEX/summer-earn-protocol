@@ -34,13 +34,6 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         string reason
     );
 
-    event FailedComposeRecovered(
-        bytes32 indexed operationId,
-        address indexed asset,
-        uint256 amount,
-        address indexed recipient
-    );
-
     event TokensRecovered(
         address indexed asset,
         uint256 amount,
