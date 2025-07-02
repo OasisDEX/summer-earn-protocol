@@ -1124,8 +1124,6 @@ contract StargateAdapter is
             messageData.shareRecipient,
             messageData.referralCode,
             messageData.operationId,
-            messageData.originalUser,
-            messageData.asset,
             uint16(messageData.sourceChainId)
         );
 
@@ -1352,8 +1350,6 @@ contract StargateAdapter is
         address shareRecipient,
         bytes memory referralCode,
         bytes32 operationId,
-        address, // originalUser
-        address, // sourceAsset
         uint16 sourceChainId
     ) internal returns (bool success) {
         // Validate FleetCommander is active through HarborCommand
@@ -1651,8 +1647,6 @@ contract StargateAdapter is
         address shareRecipient,
         bytes memory referralCode,
         bytes32 operationId,
-        address, // originalUser
-        address, // sourceAsset
         uint16 sourceChainId
     ) internal {
         // Validate FleetCommander is active through HarborCommand
