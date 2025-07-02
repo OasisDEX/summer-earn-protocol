@@ -179,7 +179,7 @@ export async function submitProposal({
   calldatas: `0x${string}`[]
   governorAddress: Address
   useBummerConfig: boolean
-}): Promise<boolean> {
+}): Promise<{ success: boolean; transactionHash?: string }> {
   // Display proposal summary
   displayProposalSummary(title, description, targets, values, governorAddress)
 
@@ -273,17 +273,17 @@ export async function submitProposal({
         console.log('Note: Could not extract proposal ID')
       }
 
-      return true
+      return { success: true, transactionHash: hash }
     } catch (error: any) {
       console.error(`Error submitting proposal: ${error.message}`)
       if (error.cause) {
         console.error('Error cause:', error.cause)
       }
-      return false
+      return { success: false }
     }
   } else {
     console.log('\nProposal submission cancelled.')
-    return false
+    return { success: false }
   }
 }
 
