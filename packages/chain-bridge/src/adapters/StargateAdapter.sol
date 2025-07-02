@@ -1065,8 +1065,8 @@ contract StargateAdapter is
         uint256 amountLD,
         bytes memory composeMsg
     ) internal {
-        // Get destination asset first
-        address destinationAsset = IStargateV2(_from).token();
+        // Get the received asset from the Stargate contract
+        address receivedAsset = IStargateV2(_from).token();
 
         // Read the message type from the first parameter of the compose message
         bytes32 messageType;
@@ -1075,12 +1075,12 @@ contract StargateAdapter is
         }
 
         if (messageType == FLEET_DEPOSIT_TYPE) {
-            _handleFleetDepositMessage(amountLD, composeMsg, destinationAsset);
+            _handleFleetDepositMessage(amountLD, composeMsg, receivedAsset);
         } else {
             _handleLegacyAssetTransferMessage(
                 amountLD,
                 composeMsg,
-                destinationAsset
+                receivedAsset
             );
         }
     }
@@ -1091,7 +1091,7 @@ contract StargateAdapter is
     function _handleFleetDepositMessage(
         uint256 amountLD,
         bytes memory composeMsg,
-        address destinationAsset
+        address receivedAsset
     ) internal {
         // Decode fleet deposit message using helper function
         FleetDepositMessageData memory messageData = _decodeFleetDepositMessage(
@@ -1100,7 +1100,7 @@ contract StargateAdapter is
 
         // Basic validation
         if (
-            destinationAsset == address(0) ||
+            receivedAsset == address(0) ||
             messageData.fleetCommander == address(0) ||
             messageData.shareRecipient == address(0) ||
             messageData.amount == 0
@@ -1109,9 +1109,7 @@ contract StargateAdapter is
         }
 
         // Check adapter balance
-        uint256 adapterBalance = IERC20(destinationAsset).balanceOf(
-            address(this)
-        );
+        uint256 adapterBalance = IERC20(receivedAsset).balanceOf(address(this));
         if (adapterBalance < amountLD) {
             revert InsufficientBalance();
         }
@@ -1119,7 +1117,7 @@ contract StargateAdapter is
         // Try to deposit to FleetCommander
         bool success = _tryDepositToFleetCommander(
             messageData.fleetCommander,
-            destinationAsset,
+            receivedAsset,
             amountLD,
             messageData.shareRecipient,
             messageData.referralCode,
@@ -1137,7 +1135,7 @@ contract StargateAdapter is
             if (isUserLedTransaction) {
                 // For user-led transactions, send assets directly to the user on destination chain
                 _handleUserLedFailure(
-                    destinationAsset,
+                    receivedAsset,
                     amountLD,
                     messageData.shareRecipient,
                     messageData.operationId,
@@ -1147,7 +1145,7 @@ contract StargateAdapter is
             } else {
                 // For system transactions, keep current behavior - hold for governance recovery
                 _handleSystemFailure(
-                    destinationAsset,
+                    receivedAsset,
                     amountLD,
                     messageData.fleetCommander,
                     messageData.operationId,
@@ -1161,7 +1159,7 @@ contract StargateAdapter is
         emit ComposedAssetHandled(
             messageData.operationId,
             messageData.fleetCommander,
-            destinationAsset,
+            receivedAsset,
             amountLD,
             uint16(messageData.sourceChainId)
         );
@@ -1257,7 +1255,7 @@ contract StargateAdapter is
     function _handleLegacyAssetTransferMessage(
         uint256 amountLD,
         bytes memory composeMsg,
-        address destinationAsset
+        address receivedAsset
     ) internal {
         // Decode the compose message (legacy format)
         (
@@ -1274,7 +1272,7 @@ contract StargateAdapter is
 
         // Basic validation - fail fast
         if (
-            destinationAsset == address(0) ||
+            receivedAsset == address(0) ||
             recipient == address(0) ||
             amountLD == 0
         ) {
@@ -1282,9 +1280,7 @@ contract StargateAdapter is
         }
 
         // Check adapter balance
-        uint256 adapterBalance = IERC20(destinationAsset).balanceOf(
-            address(this)
-        );
+        uint256 adapterBalance = IERC20(receivedAsset).balanceOf(address(this));
         if (adapterBalance < amountLD) {
             revert InsufficientBalance();
         }
@@ -1295,7 +1291,7 @@ contract StargateAdapter is
         // Try to deliver assets - if it fails, hold them for governance recovery
         bool success = _tryDeliverAssets(
             recipient,
-            destinationAsset,
+            receivedAsset,
             amountLD,
             operationId,
             originator,
@@ -1306,7 +1302,7 @@ contract StargateAdapter is
         if (!success) {
             // Store failed compose details for governance recovery
             failedComposes[operationId] = FailedCompose({
-                asset: destinationAsset,
+                asset: receivedAsset,
                 amount: amountLD,
                 intendedRecipient: recipient,
                 operationId: operationId,
@@ -1320,7 +1316,7 @@ contract StargateAdapter is
 
             emit ComposeFailedAssetsHeld(
                 operationId,
-                destinationAsset,
+                receivedAsset,
                 amountLD,
                 recipient,
                 isDeposit,
@@ -1334,7 +1330,7 @@ contract StargateAdapter is
         emit ComposedAssetHandled(
             operationId,
             recipient,
-            destinationAsset,
+            receivedAsset,
             amountLD,
             uint16(sourceChainId)
         );
@@ -1399,22 +1395,18 @@ contract StargateAdapter is
         // Approve FleetCommander to spend tokens
         IERC20(asset).approve(fleetCommander, amount);
 
-        // Deposit to FleetCommander with referral code if provided
+        // Deposit to FleetCommander using helper methods
         uint256 shares;
-        bool depositSuccess = false;
+        bool depositSuccess;
 
         if (referralCode.length > 0) {
-            try
-                IFleetCommanderMinimal(fleetCommander).deposit(
-                    amount,
-                    shareRecipient,
-                    referralCode
-                )
-            returns (uint256 _shares) {
-                shares = _shares;
-                depositSuccess = true;
-            } catch (bytes memory /* reason */) {
-                // Don't stringify bytes - custom errors can't be reliably converted to strings
+            (depositSuccess, shares) = _executeFleetDepositWithReferral(
+                fleetCommander,
+                amount,
+                shareRecipient,
+                referralCode
+            );
+            if (!depositSuccess) {
                 emit CrossChainFleetDepositFailed(
                     operationId,
                     fleetCommander,
@@ -1425,16 +1417,12 @@ contract StargateAdapter is
                 return false;
             }
         } else {
-            try
-                IFleetCommanderMinimal(fleetCommander).deposit(
-                    amount,
-                    shareRecipient
-                )
-            returns (uint256 _shares) {
-                shares = _shares;
-                depositSuccess = true;
-            } catch (bytes memory /* reason */) {
-                // Don't stringify bytes - custom errors can't be reliably converted to strings
+            (depositSuccess, shares) = _executeFleetDepositWithoutReferral(
+                fleetCommander,
+                amount,
+                shareRecipient
+            );
+            if (!depositSuccess) {
                 emit CrossChainFleetDepositFailed(
                     operationId,
                     fleetCommander,
@@ -1638,6 +1626,59 @@ contract StargateAdapter is
     }
 
     /**
+     * @dev Execute fleet deposit with referral code
+     * @param fleetCommander Address of the fleet commander
+     * @param amount Amount to deposit
+     * @param shareRecipient Address to receive the shares
+     * @param referralCode Referral code for the deposit
+     * @return success Whether the deposit succeeded
+     * @return shares Number of shares received (0 if failed)
+     */
+    function _executeFleetDepositWithReferral(
+        address fleetCommander,
+        uint256 amount,
+        address shareRecipient,
+        bytes memory referralCode
+    ) internal returns (bool success, uint256 shares) {
+        try
+            IFleetCommanderMinimal(fleetCommander).deposit(
+                amount,
+                shareRecipient,
+                referralCode
+            )
+        returns (uint256 _shares) {
+            return (true, _shares);
+        } catch {
+            return (false, 0);
+        }
+    }
+
+    /**
+     * @dev Execute fleet deposit without referral code
+     * @param fleetCommander Address of the fleet commander
+     * @param amount Amount to deposit
+     * @param shareRecipient Address to receive the shares
+     * @return success Whether the deposit succeeded
+     * @return shares Number of shares received (0 if failed)
+     */
+    function _executeFleetDepositWithoutReferral(
+        address fleetCommander,
+        uint256 amount,
+        address shareRecipient
+    ) internal returns (bool success, uint256 shares) {
+        try
+            IFleetCommanderMinimal(fleetCommander).deposit(
+                amount,
+                shareRecipient
+            )
+        returns (uint256 _shares) {
+            return (true, _shares);
+        } catch {
+            return (false, 0);
+        }
+    }
+
+    /**
      * @dev Deposit assets to validated FleetCommander - reverts on failure
      */
     function _depositToFleetCommander(
@@ -1669,19 +1710,27 @@ contract StargateAdapter is
         // Approve FleetCommander to spend tokens
         IERC20(asset).approve(fleetCommander, amount);
 
-        // Deposit to FleetCommander
+        // Deposit to FleetCommander using helper methods
         uint256 shares;
+        bool success;
+
         if (referralCode.length > 0) {
-            shares = IFleetCommanderMinimal(fleetCommander).deposit(
+            (success, shares) = _executeFleetDepositWithReferral(
+                fleetCommander,
                 amount,
                 shareRecipient,
                 referralCode
             );
         } else {
-            shares = IFleetCommanderMinimal(fleetCommander).deposit(
+            (success, shares) = _executeFleetDepositWithoutReferral(
+                fleetCommander,
                 amount,
                 shareRecipient
             );
+        }
+
+        if (!success) {
+            revert InvalidParams(); // Or a more specific error
         }
 
         emit CrossChainFleetDepositCompleted(
