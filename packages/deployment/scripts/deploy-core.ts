@@ -22,7 +22,7 @@ export async function deployCore() {
     hre.network.name,
     { common: false, gov: true, core: false },
     useBummerConfig,
-  )
+  ) as BaseConfig
   const deployedCore = await deployCoreContracts(config, useBummerConfig)
   ModuleLogger.logCore(deployedCore)
   return deployedCore
@@ -46,19 +46,16 @@ async function deployCoreContracts(
   if (config.deployedContracts.gov.timelock.address === ADDRESS_ZERO) {
     throw new Error('TimelockController is not deployed')
   }
-  if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
-    throw new Error('LayerZero is not deployed')
-  }
   if (config.common.swapProvider === ADDRESS_ZERO) {
     throw new Error('SwapProvider is not deployed')
   }
+
   const core = await hre.ignition.deploy(CoreModule, {
     parameters: {
       CoreModule: {
         swapProvider: config.common.swapProvider,
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         treasury: config.deployedContracts.gov.timelock.address,
-        lzEndpoint: config.common.layerZero.lzEndpoint,
         weth: config.tokens.weth,
       },
     },
@@ -76,7 +73,7 @@ async function deployCoreContracts(
       core: true,
     },
     useBummerConfig,
-  )
+  ) as BaseConfig
 
   await setupGovernanceRoles(updatedConfig)
 

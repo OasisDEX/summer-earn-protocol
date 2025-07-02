@@ -8,6 +8,7 @@ import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInfligh
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
+import {ICrossChainRegistry} from "../../interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
@@ -23,6 +24,8 @@ contract CrossChainArk is
     ICrossChainStateReadReceiver,
     IInflightAssetTracking
 {
+    /// @notice Relationship type constant for ARK-FLEET relationships
+    bytes32 private constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -35,8 +38,8 @@ contract CrossChainArk is
     /// @notice Thrown when the provided BridgeRouter address is zero.
     error InvalidBridgeRouter();
 
-    /// @notice Thrown when the provided target chain ID is zero.
-    error InvalidTargetChain();
+    /// @notice Thrown when the provided satellite chain ID is zero.
+    error InvalidSatelliteChain();
 
     /// @notice Thrown when the provided target proxy address is zero.
     error InvalidTargetProxy();
@@ -68,6 +71,9 @@ contract CrossChainArk is
     /// @notice Thrown when the provided asset address is invalid.
     error InvalidAsset();
 
+    /// @notice Thrown when the provided registry address is invalid.
+    error InvalidRegistry();
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -76,10 +82,10 @@ contract CrossChainArk is
     IBridgeQueue public immutable bridgeQueue;
     /// @notice The BridgeRouter contract for executing cross-chain operations
     IBridgeRouter public immutable bridgeRouter;
-    /// @notice The target chain ID for cross-chain operations
-    uint16 public immutable targetChainId;
-    /// @notice The target proxy address on the satellite chain
-    address public targetProxy;
+    /// @notice The CrossChainRegistry contract for managing cross-chain relationships
+    ICrossChainRegistry public immutable crossChainRegistry;
+    /// @notice The satellite chain ID where the fleet proxy operates
+    uint16 public immutable satelliteChainId;
 
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
@@ -97,12 +103,6 @@ contract CrossChainArk is
         uint16 sourceChainId
     );
 
-    /// @notice Emitted when the target proxy is updated
-    event TargetProxyUpdated(
-        address indexed oldProxy,
-        address indexed newProxy
-    );
-
     /// @notice Emitted when a remote asset balance update is requested
     event RemoteAssetBalanceUpdateRequested(
         bytes32 indexed queueId,
@@ -118,39 +118,31 @@ contract CrossChainArk is
      * @notice Constructor to set up the CrossChainArk
      * @param _bridgeQueue Address of the BridgeQueue contract
      * @param _bridgeRouter Address of the BridgeRouter contract
-     * @param _targetChainId ID of the target chain
+     * @param _crossChainRegistry Address of the CrossChainRegistry contract
+     * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
         address _bridgeQueue,
         address _bridgeRouter,
-        uint16 _targetChainId,
+        address _crossChainRegistry,
+        uint16 _satelliteChainId,
         ArkParams memory _params
     ) Ark(_params) {
         if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
-        if (_targetChainId == 0) revert InvalidTargetChain();
+        if (_crossChainRegistry == address(0)) revert InvalidRegistry();
+        if (_satelliteChainId == 0) revert InvalidSatelliteChain();
 
         bridgeQueue = IBridgeQueue(_bridgeQueue);
         bridgeRouter = IBridgeRouter(_bridgeRouter);
-        targetChainId = _targetChainId;
-
-        // targetProxy is initialized to address(0) by default and must be set later
+        crossChainRegistry = ICrossChainRegistry(_crossChainRegistry);
+        satelliteChainId = _satelliteChainId;
     }
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL GOVERNOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Set new target proxy address
-    /// @param _targetProxy The new target proxy address
-    function setTargetProxy(address _targetProxy) external onlyGovernor {
-        if (_targetProxy == address(0)) revert InvalidTargetProxy();
-
-        address oldProxy = targetProxy;
-        targetProxy = _targetProxy;
-        emit TargetProxyUpdated(oldProxy, _targetProxy);
-    }
 
     /// @notice Force update the inflight assets amount (emergency governance function)
     /// @param amount Amount of assets to set as in-flight
@@ -186,20 +178,20 @@ contract CrossChainArk is
         onlyKeeper
         returns (bytes32 queueId)
     {
-        if (targetProxy == address(0)) revert InvalidTargetProxy();
+        address proxyAddress = _getTargetProxy();
 
-        // Queue a state read to get the total assets from the FleetProxy on the target chain
+        // Queue a state read to get the total assets from the FleetProxy on the satellite chain
         queueId = bridgeQueue.queueReadState(
-            targetChainId,
-            targetProxy,
+            satelliteChainId,
+            proxyAddress,
             IFleetProxy.totalAssets.selector,
             ""
         );
 
         emit RemoteAssetBalanceUpdateRequested(
             queueId,
-            targetChainId,
-            targetProxy
+            satelliteChainId,
+            proxyAddress
         );
     }
 
@@ -217,6 +209,15 @@ contract CrossChainArk is
             config.asset.balanceOf(address(this)) +
             lastRemoteAssetBalance +
             inflightAssets;
+    }
+
+    /**
+     * @notice Gets the target proxy address from the registry
+     * @return The target proxy address
+     * @dev Reverts if no relationship exists for the satellite chain
+     */
+    function getTargetProxy() external view returns (address) {
+        return _getTargetProxy();
     }
 
     /**
@@ -251,20 +252,19 @@ contract CrossChainArk is
     /**
      * @notice Boards the Ark by initiating a cross-chain transfer
      * @param amount Amount of tokens to transfer
-     * @dev This function queues a cross-chain transfer to the target proxy
+     * @dev This function queues a cross-chain transfer to the target proxy using the registry
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        // Ensure targetProxy is set
-        if (targetProxy == address(0)) revert InvalidTargetProxy();
+        address proxyAddress = _getTargetProxy();
 
         // Approve BridgeQueue to spend tokens
         config.asset.approve(address(bridgeQueue), amount);
 
         bridgeQueue.queueTransferAssets(
-            targetChainId,
+            satelliteChainId,
             address(config.asset),
             amount,
-            targetProxy
+            proxyAddress
         );
     }
 
@@ -296,7 +296,7 @@ contract CrossChainArk is
         uint16 sourceChainId
     ) external {
         if (msg.sender != address(bridgeRouter)) revert Unauthorized();
-        if (sourceChainId != targetChainId) revert InvalidSourceChain();
+        if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
         if (requestor != address(this)) revert InvalidRequestor();
 
         // Decode the remote asset balance
@@ -327,7 +327,7 @@ contract CrossChainArk is
         ) {
             revert Unauthorized();
         }
-        if (sourceChainId != targetChainId) revert InvalidSourceChain();
+        if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
         if (tokenAddress != address(config.asset)) revert InvalidAsset();
 
         // Update the remote asset tracking
@@ -339,6 +339,21 @@ contract CrossChainArk is
         }
 
         emit AssetsReceived(tokenAddress, amount, sourceChainId);
+    }
+
+    /**
+     * @notice Gets the target proxy address from the registry
+     * @return proxyAddress The target proxy address
+     * @dev Reverts if no relationship exists for the satellite chain
+     */
+    function _getTargetProxy() internal view returns (address proxyAddress) {
+        ICrossChainRegistry.CrossChainRelation
+            memory relation = crossChainRegistry.getRelationshipByTarget(
+                address(this),
+                ARK_FLEET_RELATIONSHIP,
+                satelliteChainId
+            );
+        return relation.targetContract;
     }
 
     /**
