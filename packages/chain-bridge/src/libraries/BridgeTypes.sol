@@ -48,9 +48,9 @@ library BridgeTypes {
         address asset;
         uint256 amount;
         address recipient;
-        bytes message;
         address originator;
         address refundAddress;
+        bytes message;
         BridgeOptions options;
     }
 

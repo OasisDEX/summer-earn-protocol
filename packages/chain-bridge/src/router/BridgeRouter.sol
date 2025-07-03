@@ -443,9 +443,9 @@ contract BridgeRouter is
             params.asset,
             params.recipient,
             params.amount,
-            params.message,
             params.originator,
             params.refundAddress,
+            params.message,
             params.options.adapterParams
         );
 
@@ -532,9 +532,9 @@ contract BridgeRouter is
             params.asset,
             params.shareRecipient,
             params.amount,
-            params.message,
             params.originalUser,
             params.originalUser, // Refund address is the original user
+            params.message,
             params.options.adapterParams
         );
 

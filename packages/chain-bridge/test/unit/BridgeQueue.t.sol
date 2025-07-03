@@ -98,6 +98,7 @@ contract BridgeQueueTest is Test {
             uint16 destinationChainId,
             address asset_,
             uint256 amount,
+            bytes memory message,
             address recipient_,
             address originator_,
             bytes32 operationId
@@ -110,6 +111,7 @@ contract BridgeQueueTest is Test {
                 amount: amount,
                 recipient: recipient_,
                 originator: originator_,
+                message: bytes(""),
                 operationId: operationId
             });
     }
@@ -171,7 +173,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             amount,
-            _recipient
+            _recipient,
+            bytes("")
         );
         vm.stopPrank();
         return queueId;
@@ -209,7 +212,8 @@ contract BridgeQueueTest is Test {
             destChainId,
             address(asset),
             amount,
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -483,7 +487,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             TRANSFER_AMOUNT,
-            recipient
+            recipient,
+            bytes("")
         );
     }
 
@@ -517,7 +522,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             0, // Test InvalidParams with zero amount
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
         // Note: There's no direct "InsufficientFee" revert during *queueing* because
@@ -536,7 +542,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             0, // Zero amount
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
     }
@@ -553,7 +560,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             TRANSFER_AMOUNT,
-            address(0) // Zero recipient
+            address(0), // Zero recipient
+            bytes("")
         );
         vm.stopPrank();
     }
@@ -571,7 +579,8 @@ contract BridgeQueueTest is Test {
             destChainId,
             address(asset),
             amount,
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -719,7 +728,7 @@ contract BridgeQueueTest is Test {
                 selector: selector,
                 readParams: readParams,
                 originator: queueManager, // Originator was queueManager
-                keeper: keeper, // Add keeper field
+                refundAddress: keeper, // Add keeper field
                 options: _defaultOptions()
             });
         bytes32 expectedOperationId = keccak256(
@@ -828,7 +837,7 @@ contract BridgeQueueTest is Test {
                 recipient: recipient,
                 message: message,
                 originator: queueManager, // Originator was queueManager
-                keeper: keeper, // Add keeper field
+                refundAddress: keeper, // Add keeper field
                 options: _defaultOptions()
             });
         bytes32 expectedOperationId = keccak256(
@@ -943,7 +952,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             TRANSFER_AMOUNT,
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -969,7 +979,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             TRANSFER_AMOUNT,
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -1038,7 +1049,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             TRANSFER_AMOUNT,
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -1084,7 +1096,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             TRANSFER_AMOUNT,
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -1112,7 +1125,8 @@ contract BridgeQueueTest is Test {
             DEST_CHAIN_ID,
             address(asset),
             TRANSFER_AMOUNT,
-            recipient
+            recipient,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -1140,7 +1154,8 @@ contract BridgeQueueTest is Test {
                     amount: TRANSFER_AMOUNT,
                     recipient: recipient,
                     originator: queueManager,
-                    keeper: keeper,
+                    refundAddress: keeper,
+                    message: bytes(""),
                     options: _defaultOptions()
                 })
             ),

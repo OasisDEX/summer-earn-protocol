@@ -4,19 +4,241 @@ pragma solidity ^0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {IFleetDepositAdapter} from "../../src/interfaces/IFleetDepositAdapter.sol";
+import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {MockFleetDepositAdapter} from "../mocks/MockFleetDepositAdapter.sol";
-import {MockFleetDepositAdapterNoSupport} from "../mocks/MockFleetDepositAdapterNoSupport.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+
+/**
+ * @title MockTransferAdapter
+ * @notice Mock adapter that supports transferAsset operations for fleet deposits
+ */
+contract MockTransferAdapter is ISendAdapter, IBridgeAdapter {
+    using SafeERC20 for IERC20;
+
+    address public bridgeRouter;
+
+    // Track last transferAsset call
+    uint256 public lastAmount;
+    address public lastAsset;
+    uint16 public lastDestinationChainId;
+    address public lastRecipient;
+    bytes public lastMessage;
+    address public lastOriginator;
+    BridgeTypes.AdapterParams public lastAdapterParams;
+    bytes32 public lastOperationId;
+
+    constructor() {
+        // Initialize with empty bridgeRouter, will be set later
+    }
+
+    function setBridgeRouter(address _bridgeRouter) external {
+        bridgeRouter = _bridgeRouter;
+    }
+
+    function reset() external {
+        lastAmount = 0;
+        lastAsset = address(0);
+        lastDestinationChainId = 0;
+        lastRecipient = address(0);
+        lastMessage = "";
+        lastOriginator = address(0);
+        lastOperationId = bytes32(0);
+        delete lastAdapterParams;
+    }
+
+    function transferAsset(
+        bytes32 operationId,
+        uint16 destinationChainId,
+        address asset,
+        address recipient,
+        uint256 amount,
+        address originator,
+        address /* refundAddress */,
+        bytes calldata message,
+        BridgeTypes.AdapterParams calldata adapterParams
+    ) external payable {
+        // Store the call data for verification
+        lastOperationId = operationId;
+        lastDestinationChainId = destinationChainId;
+        lastAsset = asset;
+        lastRecipient = recipient;
+        lastAmount = amount;
+        lastMessage = message;
+        lastOriginator = originator;
+        lastAdapterParams = adapterParams;
+
+        // Transfer tokens from caller (should be BridgeRouter)
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+    }
+
+    function sendMessage(
+        bytes32 /* operationId */,
+        uint16 /* destinationChainId */,
+        address /* recipient */,
+        bytes calldata /* message */,
+        address /* refundAddress */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */
+    ) external payable {
+        revert("Not implemented");
+    }
+
+    function readState(
+        bytes32 /* operationId */,
+        uint16 /* srcChainId */,
+        uint16 /* dstChainId */,
+        address /* dstContract */,
+        bytes4 /* selector */,
+        bytes calldata /* readParams */,
+        address /* refundAddress */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */
+    ) external payable {
+        revert("Not implemented");
+    }
+
+    function estimateFee(
+        uint16 /* destinationChainId */,
+        address /* asset */,
+        uint256 /* amount */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */,
+        BridgeTypes.OperationType /* operationType */
+    ) external pure returns (uint256 nativeFee, uint256 tokenFee) {
+        nativeFee = 0.01 ether; // Base fee for testing
+        tokenFee = 0;
+    }
+
+    function getOperationStatus(
+        bytes32 /* operationId */
+    ) external pure returns (BridgeTypes.OperationStatus) {
+        return BridgeTypes.OperationStatus.SENT;
+    }
+
+    function getSupportedChains() external pure returns (uint16[] memory) {
+        uint16[] memory chains = new uint16[](1);
+        chains[0] = 8453; // Base
+        return chains;
+    }
+
+    function supportsChain(uint16 /* chainId */) external pure returns (bool) {
+        return true;
+    }
+
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external pure returns (bool) {
+        return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure returns (bool) {
+        return
+            interfaceId == type(ISendAdapter).interfaceId ||
+            interfaceId == type(IBridgeAdapter).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
+    }
+}
+
+/**
+ * @title MockUnsupportedAdapter
+ * @notice Mock adapter that doesn't support transfer operations
+ */
+contract MockUnsupportedAdapter is ISendAdapter, IBridgeAdapter {
+    function transferAsset(
+        bytes32 /* operationId */,
+        uint16 /* destinationChainId */,
+        address /* asset */,
+        address /* recipient */,
+        uint256 /* amount */,
+        address /* originator */,
+        address /* refundAddress */,
+        bytes calldata /* message */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */
+    ) external payable {
+        revert("Transfer not supported");
+    }
+
+    function sendMessage(
+        bytes32 /* operationId */,
+        uint16 /* destinationChainId */,
+        address /* recipient */,
+        bytes calldata /* message */,
+        address /* refundAddress */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */
+    ) external payable {
+        revert("Not implemented");
+    }
+
+    function readState(
+        bytes32 /* operationId */,
+        uint16 /* srcChainId */,
+        uint16 /* dstChainId */,
+        address /* dstContract */,
+        bytes4 /* selector */,
+        bytes calldata /* readParams */,
+        address /* refundAddress */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */
+    ) external payable {
+        revert("Not implemented");
+    }
+
+    function estimateFee(
+        uint16 /* destinationChainId */,
+        address /* asset */,
+        uint256 /* amount */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */,
+        BridgeTypes.OperationType /* operationType */
+    ) external pure returns (uint256 nativeFee, uint256 tokenFee) {
+        nativeFee = 0.01 ether;
+        tokenFee = 0;
+    }
+
+    function getOperationStatus(
+        bytes32 /* operationId */
+    ) external pure returns (BridgeTypes.OperationStatus) {
+        return BridgeTypes.OperationStatus.SENT;
+    }
+
+    function getSupportedChains() external pure returns (uint16[] memory) {
+        uint16[] memory chains = new uint16[](1);
+        chains[0] = 8453;
+        return chains;
+    }
+
+    function supportsChain(uint16 /* chainId */) external pure returns (bool) {
+        return true;
+    }
+
+    function supportsOperation(
+        BridgeTypes.OperationType /* operationType */
+    ) external pure returns (bool) {
+        return false; // Doesn't support any operations
+    }
+
+    function setBridgeRouter(address /* newBridgeRouter */) external {
+        // No-op for mock
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure returns (bool) {
+        return
+            interfaceId == type(ISendAdapter).interfaceId ||
+            interfaceId == type(IBridgeAdapter).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
+    }
+}
 
 contract BridgeRouterFleetDepositTest is Test {
     BridgeRouter public router;
     BridgeQueue public bridgeQueue;
-    MockFleetDepositAdapter public mockAdapter;
-    MockFleetDepositAdapterNoSupport public noSupportAdapter;
+    MockTransferAdapter public mockAdapter;
+    MockUnsupportedAdapter public unsupportedAdapter;
     ERC20Mock public token;
     ProtocolAccessManager public accessManager;
 
@@ -31,7 +253,7 @@ contract BridgeRouterFleetDepositTest is Test {
     uint16 public constant ALT_CHAIN_ID = 137; // Polygon
     uint256 public constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
     uint256 public constant LARGE_AMOUNT = 1_000_000 * 10 ** 18;
-    uint256 public constant BASE_NATIVE_FEE = 0.01 ether;
+    uint128 public constant BASE_NATIVE_FEE = 0.01 ether;
 
     event FleetDepositInitiated(
         bytes32 indexed operationId,
@@ -42,6 +264,11 @@ contract BridgeRouterFleetDepositTest is Test {
         address shareRecipient,
         address adapter
     );
+
+    // Helper method to calculate buffered fee (1% buffer)
+    function getBufferedFee() internal pure returns (uint256) {
+        return (BASE_NATIVE_FEE * 101) / 100;
+    }
 
     function setUp() public {
         // Deploy access manager and set up roles
@@ -63,13 +290,15 @@ contract BridgeRouterFleetDepositTest is Test {
         bridgeQueue.setBridgeRouter(address(router));
 
         // Deploy mock adapters
-        mockAdapter = new MockFleetDepositAdapter();
-        noSupportAdapter = new MockFleetDepositAdapterNoSupport();
+        mockAdapter = new MockTransferAdapter();
+        mockAdapter.setBridgeRouter(address(router));
+        unsupportedAdapter = new MockUnsupportedAdapter();
+
         token = new ERC20Mock();
 
         // Register adapters
         router.registerAdapter(address(mockAdapter));
-        router.registerAdapter(address(noSupportAdapter));
+        router.registerAdapter(address(unsupportedAdapter));
 
         vm.stopPrank();
 
@@ -95,7 +324,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -119,7 +350,7 @@ contract BridgeRouterFleetDepositTest is Test {
         );
 
         bytes32 operationId = router.executeUserFleetDeposit{
-            value: BASE_NATIVE_FEE
+            value: getBufferedFee()
         }(params);
 
         vm.stopPrank();
@@ -129,6 +360,8 @@ contract BridgeRouterFleetDepositTest is Test {
         assertEq(mockAdapter.lastAmount(), DEPOSIT_AMOUNT);
         assertEq(mockAdapter.lastAsset(), address(token));
         assertEq(mockAdapter.lastDestinationChainId(), DEST_CHAIN_ID);
+        assertEq(mockAdapter.lastRecipient(), shareRecipient);
+        assertEq(mockAdapter.lastOriginator(), user);
 
         // Verify token transfer occurred
         assertEq(token.balanceOf(address(mockAdapter)), DEPOSIT_AMOUNT);
@@ -148,7 +381,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: referralCode,
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -161,21 +396,17 @@ contract BridgeRouterFleetDepositTest is Test {
             });
 
         bytes32 operationId = router.executeUserFleetDeposit{
-            value: BASE_NATIVE_FEE
+            value: getBufferedFee()
         }(params);
 
         vm.stopPrank();
 
         assertNotEq(operationId, bytes32(0));
 
-        // Verify referral code is in compose message
-        bytes memory composeMessage = mockAdapter.lastComposeMessage();
-        (, BridgeTypes.FleetDepositMessageData memory messageData) = abi.decode(
-            composeMessage,
-            (bytes32, BridgeTypes.FleetDepositMessageData)
-        );
-        assertEq(messageData.referralCode, referralCode);
-        assertEq(messageData.originalUser, user);
+        // Verify the basic transfer occurred correctly
+        assertEq(mockAdapter.lastAmount(), DEPOSIT_AMOUNT);
+        assertEq(mockAdapter.lastAsset(), address(token));
+        assertEq(mockAdapter.lastOriginator(), user);
     }
 
     function test_ExecuteUserFleetDeposit_DifferentChainIds() public {
@@ -197,7 +428,9 @@ contract BridgeRouterFleetDepositTest is Test {
                     amount: DEPOSIT_AMOUNT,
                     fleetCommander: fleetCommander,
                     shareRecipient: shareRecipient,
+                    originalUser: user,
                     referralCode: bytes(""),
+                    message: bytes(""),
                     options: BridgeTypes.BridgeOptions({
                         specifiedAdapter: address(mockAdapter),
                         adapterParams: BridgeTypes.AdapterParams({
@@ -210,7 +443,7 @@ contract BridgeRouterFleetDepositTest is Test {
                 });
 
             bytes32 operationId = router.executeUserFleetDeposit{
-                value: BASE_NATIVE_FEE
+                value: getBufferedFee()
             }(params);
 
             assertNotEq(operationId, bytes32(0));
@@ -233,7 +466,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: LARGE_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -246,7 +481,7 @@ contract BridgeRouterFleetDepositTest is Test {
             });
 
         bytes32 operationId = router.executeUserFleetDeposit{
-            value: BASE_NATIVE_FEE
+            value: getBufferedFee()
         }(params);
 
         vm.stopPrank();
@@ -271,7 +506,9 @@ contract BridgeRouterFleetDepositTest is Test {
                     amount: DEPOSIT_AMOUNT,
                     fleetCommander: fleetCommander,
                     shareRecipient: shareRecipient,
+                    originalUser: user,
                     referralCode: abi.encodePacked("REF", i),
+                    message: bytes(""),
                     options: BridgeTypes.BridgeOptions({
                         specifiedAdapter: address(mockAdapter),
                         adapterParams: BridgeTypes.AdapterParams({
@@ -284,7 +521,7 @@ contract BridgeRouterFleetDepositTest is Test {
                 });
 
             operationIds[i] = router.executeUserFleetDeposit{
-                value: BASE_NATIVE_FEE
+                value: getBufferedFee()
             }(params);
 
             assertNotEq(operationIds[i], bytes32(0));
@@ -315,7 +552,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: 0, // Zero amount
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -327,8 +566,8 @@ contract BridgeRouterFleetDepositTest is Test {
                 })
             });
 
-        vm.expectRevert(BridgeRouter.InvalidParams.selector);
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
@@ -342,7 +581,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -354,8 +595,8 @@ contract BridgeRouterFleetDepositTest is Test {
                 })
             });
 
-        vm.expectRevert(BridgeRouter.InvalidParams.selector);
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
@@ -372,7 +613,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: address(0), // Zero fleet commander
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -384,8 +627,8 @@ contract BridgeRouterFleetDepositTest is Test {
                 })
             });
 
-        vm.expectRevert(BridgeRouter.InvalidParams.selector);
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
@@ -402,7 +645,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: address(0), // Zero share recipient
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -414,8 +659,8 @@ contract BridgeRouterFleetDepositTest is Test {
                 })
             });
 
-        vm.expectRevert(BridgeRouter.InvalidParams.selector);
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
@@ -430,7 +675,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(0), // No adapter specified
                     adapterParams: BridgeTypes.AdapterParams({
@@ -442,8 +689,8 @@ contract BridgeRouterFleetDepositTest is Test {
                 })
             });
 
-        vm.expectRevert(BridgeRouter.NoSuitableAdapter.selector);
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
@@ -460,7 +707,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: unknownAdapter,
                     adapterParams: BridgeTypes.AdapterParams({
@@ -472,12 +721,12 @@ contract BridgeRouterFleetDepositTest is Test {
                 })
             });
 
-        vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
-    function test_ExecuteUserFleetDeposit_RevertWhen_AdapterDoesNotSupportFleetDeposits()
+    function test_ExecuteUserFleetDeposit_RevertWhen_AdapterDoesNotSupportTransfers()
         public
     {
         vm.startPrank(user);
@@ -490,9 +739,11 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(noSupportAdapter), // Adapter that doesn't support fleet deposits
+                    specifiedAdapter: address(unsupportedAdapter), // Adapter that doesn't support transfers
                     adapterParams: BridgeTypes.AdapterParams({
                         gasLimit: 500000,
                         calldataSize: 0,
@@ -502,8 +753,8 @@ contract BridgeRouterFleetDepositTest is Test {
                 })
             });
 
-        vm.expectRevert(BridgeRouter.UnsupportedAdapterOperation.selector);
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        vm.expectRevert(IBridgeRouter.UnsupportedAdapterOperation.selector);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
@@ -518,7 +769,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -531,7 +784,7 @@ contract BridgeRouterFleetDepositTest is Test {
             });
 
         // Provide insufficient fee (less than 1% buffer over base fee)
-        vm.expectRevert(BridgeRouter.InsufficientFee.selector);
+        vm.expectRevert(IBridgeRouter.InsufficientFee.selector);
         router.executeUserFleetDeposit{value: BASE_NATIVE_FEE / 2}(params);
         vm.stopPrank();
     }
@@ -549,7 +802,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -562,7 +817,7 @@ contract BridgeRouterFleetDepositTest is Test {
             });
 
         vm.expectRevert();
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
@@ -570,6 +825,9 @@ contract BridgeRouterFleetDepositTest is Test {
         public
     {
         address poorUser = address(0x123);
+        // Give the user enough ETH to pay for the transaction but no tokens
+        vm.deal(poorUser, 10 ether);
+
         vm.startPrank(poorUser);
 
         token.approve(address(router), DEPOSIT_AMOUNT);
@@ -581,7 +839,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: poorUser,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -594,7 +854,7 @@ contract BridgeRouterFleetDepositTest is Test {
             });
 
         vm.expectRevert();
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
@@ -613,7 +873,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -625,18 +887,16 @@ contract BridgeRouterFleetDepositTest is Test {
                 })
             });
 
-        vm.expectRevert(BridgeRouter.Paused.selector);
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
+        vm.expectRevert(IBridgeRouter.Paused.selector);
+        router.executeUserFleetDeposit{value: getBufferedFee()}(params);
         vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////
-                        COMPOSE MESSAGE TESTS
+                        MESSAGE STRUCTURE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_FleetDepositMessageStructure() public {
-        bytes memory referralCode = bytes("SUMMER2024");
-
+    function test_FleetDepositMessage_CorrectRecipient() public {
         vm.startPrank(user);
         token.approve(address(router), DEPOSIT_AMOUNT);
 
@@ -647,7 +907,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
-                referralCode: referralCode,
+                originalUser: user,
+                referralCode: bytes("SUMMER2024"),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -660,68 +922,15 @@ contract BridgeRouterFleetDepositTest is Test {
             });
 
         bytes32 operationId = router.executeUserFleetDeposit{
-            value: BASE_NATIVE_FEE
+            value: getBufferedFee()
         }(params);
 
         vm.stopPrank();
 
-        // Verify compose message structure
-        bytes memory composeMessage = mockAdapter.lastComposeMessage();
-        assertGt(composeMessage.length, 0);
-
-        (
-            bytes32 messageType,
-            BridgeTypes.FleetDepositMessageData memory messageData
-        ) = abi.decode(
-                composeMessage,
-                (bytes32, BridgeTypes.FleetDepositMessageData)
-            );
-
-        assertEq(messageType, BridgeTypes.USER_FLEET_DEPOSIT_TYPE);
-        assertEq(messageData.fleetCommander, fleetCommander);
-        assertEq(messageData.shareRecipient, shareRecipient);
-        assertEq(messageData.asset, address(token));
-        assertEq(messageData.amount, DEPOSIT_AMOUNT);
-        assertEq(messageData.sourceChainId, block.chainid);
-        assertEq(messageData.originalUser, user);
-        assertEq(messageData.referralCode, referralCode);
-        // Note: operationId in message will be bytes32(0) placeholder, actual ID is set by adapter
-    }
-
-    function test_FleetDepositMessage_EmptyReferralCode() public {
-        vm.startPrank(user);
-        token.approve(address(router), DEPOSIT_AMOUNT);
-
-        BridgeTypes.ExecuteUserFleetDepositParams memory params = BridgeTypes
-            .ExecuteUserFleetDepositParams({
-                destinationChainId: DEST_CHAIN_ID,
-                asset: address(token),
-                amount: DEPOSIT_AMOUNT,
-                fleetCommander: fleetCommander,
-                shareRecipient: shareRecipient,
-                referralCode: bytes(""), // Empty referral code
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 500000,
-                        calldataSize: 0,
-                        msgValue: BASE_NATIVE_FEE,
-                        options: bytes("")
-                    })
-                })
-            });
-
-        router.executeUserFleetDeposit{value: BASE_NATIVE_FEE}(params);
-
-        vm.stopPrank();
-
-        bytes memory composeMessage = mockAdapter.lastComposeMessage();
-        (, BridgeTypes.FleetDepositMessageData memory messageData) = abi.decode(
-            composeMessage,
-            (bytes32, BridgeTypes.FleetDepositMessageData)
-        );
-
-        assertEq(messageData.referralCode.length, 0);
+        // Verify the transfer went to the share recipient (not fleet commander)
+        assertEq(mockAdapter.lastRecipient(), shareRecipient);
+        assertEq(mockAdapter.lastOriginator(), user);
+        assertNotEq(operationId, bytes32(0));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -730,9 +939,6 @@ contract BridgeRouterFleetDepositTest is Test {
 
     function test_ExecuteUserFleetDeposit_FeeBufferApplied() public {
         // The router applies a 1% fee buffer to account for volatility
-        // So if base fee is 0.01 ether, buffered fee should be 0.0101 ether
-        uint256 expectedBufferedFee = (BASE_NATIVE_FEE * 101) / 100;
-
         vm.startPrank(user);
         token.approve(address(router), DEPOSIT_AMOUNT);
 
@@ -743,7 +949,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -757,7 +965,7 @@ contract BridgeRouterFleetDepositTest is Test {
 
         // Should succeed with exact buffered fee
         bytes32 operationId = router.executeUserFleetDeposit{
-            value: expectedBufferedFee
+            value: getBufferedFee()
         }(params);
         assertNotEq(operationId, bytes32(0));
 
@@ -782,7 +990,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: bytes(""),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -795,7 +1005,7 @@ contract BridgeRouterFleetDepositTest is Test {
             });
 
         bytes32 operationId = router.executeUserFleetDeposit{
-            value: BASE_NATIVE_FEE
+            value: getBufferedFee()
         }(params);
 
         vm.stopPrank();
@@ -826,7 +1036,9 @@ contract BridgeRouterFleetDepositTest is Test {
                 amount: DEPOSIT_AMOUNT,
                 fleetCommander: fleetCommander,
                 shareRecipient: shareRecipient,
+                originalUser: user,
                 referralCode: referralCode,
+                message: bytes("test_message"),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -840,7 +1052,7 @@ contract BridgeRouterFleetDepositTest is Test {
 
         // Execute deposit
         bytes32 operationId = router.executeUserFleetDeposit{
-            value: BASE_NATIVE_FEE
+            value: getBufferedFee()
         }(params);
 
         vm.stopPrank();
@@ -854,35 +1066,20 @@ contract BridgeRouterFleetDepositTest is Test {
         assertEq(mockAdapter.lastAmount(), DEPOSIT_AMOUNT);
         assertEq(mockAdapter.lastAsset(), address(token));
         assertEq(mockAdapter.lastDestinationChainId(), DEST_CHAIN_ID);
-        assertEq(mockAdapter.lastDestinationAdapter(), address(0));
+        assertEq(mockAdapter.lastRecipient(), shareRecipient);
+        assertEq(mockAdapter.lastOriginator(), user);
+        assertEq(mockAdapter.lastOperationId(), operationId);
 
         // Verify adapter params
-        (uint64 gasLimit, uint32 calldataSize, uint128 msgValue, ) = mockAdapter
-            .lastAdapterParams();
+        (
+            uint64 gasLimit,
+            uint32 calldataSize,
+            uint128 msgValue,
+            bytes memory options
+        ) = mockAdapter.lastAdapterParams();
         assertEq(gasLimit, 500000);
         assertEq(calldataSize, 100);
         assertEq(msgValue, BASE_NATIVE_FEE);
-
-        // Verify compose message structure
-        bytes memory actualComposeMessage = mockAdapter.lastComposeMessage();
-        assertGt(actualComposeMessage.length, 0);
-
-        (
-            bytes32 messageType,
-            BridgeTypes.FleetDepositMessageData memory messageData
-        ) = abi.decode(
-                actualComposeMessage,
-                (bytes32, BridgeTypes.FleetDepositMessageData)
-            );
-
-        assertEq(messageType, BridgeTypes.USER_FLEET_DEPOSIT_TYPE);
-        assertEq(messageData.fleetCommander, fleetCommander);
-        assertEq(messageData.shareRecipient, shareRecipient);
-        assertEq(messageData.asset, address(token));
-        assertEq(messageData.amount, DEPOSIT_AMOUNT);
-        assertEq(messageData.sourceChainId, block.chainid);
-        assertEq(messageData.originalUser, user);
-        assertEq(messageData.referralCode, referralCode);
 
         // Verify operation status in router
         assertEq(

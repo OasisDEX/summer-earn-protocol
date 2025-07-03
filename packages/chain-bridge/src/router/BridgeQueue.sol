@@ -45,7 +45,7 @@ contract BridgeQueue is
         uint16 destinationChainId;
         address asset;
         uint256 amount;
-        bytes message; // can be bytes(0)
+        bytes message; // can be bytes("")
         address recipient;
         address originator; // Address that must pre-approve this contract for 'amount' of 'asset'
         bytes32 operationId; // ID returned by adapter upon execution

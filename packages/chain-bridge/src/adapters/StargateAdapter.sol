@@ -388,9 +388,9 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
         address asset,
         address recipient,
         uint256 amount,
-        bytes calldata message,
         address originator,
         address refundAddress,
+        bytes calldata message,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable override {
         // Store msg.value early

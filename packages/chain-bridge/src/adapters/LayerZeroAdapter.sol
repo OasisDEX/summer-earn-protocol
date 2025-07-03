@@ -469,9 +469,9 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address /* asset */,
         address /* recipient */,
         uint256 /* amount */,
-        bytes calldata /* message */,
         address /* originator */,
         address /* refundAddress */,
+        bytes calldata /* message */,
         BridgeTypes.AdapterParams calldata /* adapterParams */
     ) external payable {
         // This adapter doesn't support asset transfers directly

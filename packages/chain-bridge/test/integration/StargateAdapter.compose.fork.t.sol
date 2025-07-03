@@ -453,6 +453,7 @@ contract StargateAdapterComposeForkTest is Test {
             amount,
             user,
             user,
+            bytes(""),
             adapterParams
         );
     }

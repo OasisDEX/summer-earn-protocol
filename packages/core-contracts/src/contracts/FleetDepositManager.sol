@@ -123,33 +123,29 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
         if (fleetCommander == address(0)) revert InvalidParams();
         if (shareRecipient == address(0)) revert InvalidParams();
 
-        // Check if adapter is registered with BridgeRouter
-        if (!_isAdapterSupported(bridgeAdapter)) {
-            revert UnsupportedBridgeAdapter();
-        }
-
-        // Create fleet deposit compose message
-        bytes memory composeMessage = encodeFleetDepositMessage(
-            fleetCommander,
-            shareRecipient,
-            asset,
-            amount,
-            referralCode
-        );
-
-        // Transfer tokens from user to this contract, then approve adapter
+        // Transfer tokens from user to this contract, then approve BridgeRouter
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(asset).forceApprove(bridgeAdapter, amount);
+        IERC20(asset).forceApprove(address(bridgeRouter), amount);
 
-        // Execute cross-chain deposit through the chosen adapter using standard interface
-        operationId = IFleetDepositAdapter(bridgeAdapter)
-            .sendFleetDepositToDestinationChain{value: msg.value}(
-            destinationChainId,
-            asset,
-            amount,
-            address(0), // destinationAdapter - not needed, adapter handles this
-            composeMessage,
-            adapterParams
+        // Create fleet deposit parameters
+        BridgeTypes.ExecuteUserFleetDepositParams memory params = BridgeTypes
+            .ExecuteUserFleetDepositParams({
+                destinationChainId: destinationChainId,
+                asset: asset,
+                amount: amount,
+                fleetCommander: fleetCommander,
+                shareRecipient: shareRecipient,
+                originalUser: msg.sender,
+                referralCode: referralCode,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: bridgeAdapter,
+                    adapterParams: adapterParams
+                })
+            });
+
+        // Route through BridgeRouter for proper operation tracking
+        operationId = bridgeRouter.executeUserFleetDeposit{value: msg.value}(
+            params
         );
 
         emit FleetDepositToTargetChainInitiated(
@@ -188,37 +184,11 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
                 asset: asset,
                 amount: amount,
                 sourceChainId: block.chainid,
-                operationId: bytes32(0), // Operation ID placeholder
+                operationId: bytes32(0), // Operation ID placeholder (not known yet)
                 originalUser: msg.sender, // Original user
                 referralCode: referralCode
             });
 
         return abi.encode(BridgeTypes.USER_FLEET_DEPOSIT_TYPE, messageData);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Checks if a bridge adapter is supported by the BridgeRouter
-     * @param adapter Address of the adapter to check
-     * @return True if the adapter is supported
-     */
-    function isAdapterSupported(address adapter) external view returns (bool) {
-        return _isAdapterSupported(adapter);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                          INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev Internal function to check if adapter is supported by BridgeRouter
-     */
-    function _isAdapterSupported(address adapter) internal view returns (bool) {
-        return
-            bridgeRouter.isValidAdapter(adapter) &&
-            IFleetDepositAdapter(adapter).supportsUserInitiatedFleetDeposits();
     }
 }

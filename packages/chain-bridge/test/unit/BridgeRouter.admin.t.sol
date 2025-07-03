@@ -166,7 +166,8 @@ contract BridgeRouterAdminTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            user
+            user,
+            bytes("")
         );
 
         vm.stopPrank(); // User stops queueing

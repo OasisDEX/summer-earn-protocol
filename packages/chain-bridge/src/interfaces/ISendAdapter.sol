@@ -53,9 +53,9 @@ interface ISendAdapter {
      * @param asset Address of the asset to transfer
      * @param recipient Address of the recipient on the destination chain
      * @param amount Amount of the asset to transfer
-     * @param message Message for the transfer (if any)
      * @param originator Address that initiated the transfer (for tracking/callbacks)
      * @param refundAddress Address that should receive any refunds
+     * @param message Message for the transfer (if any)
      * @param adapterParams Additional adapter-specific parameters
      * @dev Initiates a cross-chain asset transfer
      */
@@ -65,9 +65,9 @@ interface ISendAdapter {
         address asset,
         address recipient,
         uint256 amount,
-        bytes calldata message,
         address originator,
         address refundAddress,
+        bytes calldata message,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable;
 

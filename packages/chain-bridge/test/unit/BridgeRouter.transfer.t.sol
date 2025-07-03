@@ -121,7 +121,8 @@ contract BridgeRouterTransferTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            user
+            user,
+            bytes("")
         );
 
         // Verify queue status
@@ -214,7 +215,8 @@ contract BridgeRouterTransferTest is Test {
             DEST_CHAIN_ID,
             address(token),
             0, // Zero amount
-            user
+            user,
+            bytes("")
         );
 
         // Queue transfer with zero recipient - should revert with InvalidParams
@@ -223,7 +225,8 @@ contract BridgeRouterTransferTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            address(0)
+            address(0),
+            bytes("")
         );
 
         vm.stopPrank();
@@ -290,7 +293,8 @@ contract BridgeRouterTransferTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            user
+            user,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -345,7 +349,8 @@ contract BridgeRouterTransferTest is Test {
             DEST_CHAIN_ID,
             address(token),
             TRANSFER_AMOUNT,
-            user
+            user,
+            bytes("")
         );
         vm.stopPrank();
 
@@ -470,6 +475,7 @@ contract BridgeRouterTransferTest is Test {
                 1,
                 user,
                 user, // Add keeper parameter
+                bytes(""),
                 simpleParams
             )
         {
@@ -494,6 +500,7 @@ contract BridgeRouterTransferTest is Test {
                 1,
                 user,
                 user, // Add keeper parameter
+                bytes(""),
                 simpleParams
             )
         {
@@ -625,7 +632,8 @@ contract BridgeRouterTransferTest is Test {
                 amount: TRANSFER_AMOUNT,
                 recipient: user,
                 originator: user,
-                keeper: address(bridgeQueue),
+                refundAddress: address(bridgeQueue),
+                message: bytes(""),
                 options: options
             });
 
@@ -690,7 +698,8 @@ contract BridgeRouterTransferTest is Test {
                 amount: 100,
                 recipient: user,
                 originator: user,
-                keeper: address(bridgeQueue),
+                refundAddress: address(bridgeQueue),
+                message: bytes(""),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({

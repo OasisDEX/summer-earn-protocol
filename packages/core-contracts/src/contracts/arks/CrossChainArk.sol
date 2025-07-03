@@ -264,6 +264,7 @@ contract CrossChainArk is
             satelliteChainId,
             address(config.asset),
             amount,
+            bytes(0),
             proxyAddress
         );
     }

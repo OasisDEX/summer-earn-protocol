@@ -307,6 +307,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             1 ether,
             user,
             user, // Add keeper parameter
+            bytes(""),
             adapterParams
         );
 
