@@ -521,14 +521,7 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
             composeMsg = message;
         } else {
             // Create default compose message for regular asset transfers
-            composeMsg = abi.encode(
-                params.recipient, // FleetProxy address
-                params.asset, // Asset being transferred
-                params.amount, // Amount being transferred
-                block.chainid, // Source chain ID
-                params.operationId, // Operation ID
-                params.originator // Original sender
-            );
+            composeMsg = _createDefaultComposeMessage(params);
         }
 
         // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
@@ -545,6 +538,25 @@ contract StargateAdapter is Ownable, IBridgeAdapter, ILayerZeroComposer {
 
         // Execute transfer
         _performTransfer(stargate, sendParam, params, providedFee);
+    }
+
+    /**
+     * @dev Creates the default compose message for regular asset transfers
+     * @param params Transfer parameters containing recipient, asset, amount, etc.
+     * @return Encoded compose message for asset transfers
+     */
+    function _createDefaultComposeMessage(
+        TransferParams memory params
+    ) internal view returns (bytes memory) {
+        return
+            abi.encode(
+                params.recipient, // FleetProxy address
+                params.asset, // Asset being transferred
+                params.amount, // Amount being transferred
+                block.chainid, // Source chain ID
+                params.operationId, // Operation ID
+                params.originator // Original sender
+            );
     }
 
     /**
