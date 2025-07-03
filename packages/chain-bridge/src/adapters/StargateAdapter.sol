@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
+import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {IFleetDepositAdapter} from "../interfaces/IFleetDepositAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -261,6 +262,16 @@ contract StargateAdapter is
         string reason
     );
 
+    /// @notice Emitted when a failed compose is queued for automatic recovery
+    event FailedComposeQueuedForRecovery(
+        bytes32 indexed originalOperationId,
+        bytes32 indexed recoveryQueueId,
+        address indexed asset,
+        uint256 amount,
+        address recipient,
+        uint16 originChainId
+    );
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -406,16 +417,12 @@ contract StargateAdapter is
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
 
-    /*//////////////////////////////////////////////////////////////
-                    FLEET DEPOSIT ADAPTER INTERFACE
-    //////////////////////////////////////////////////////////////*/
-
     /// @inheritdoc IFleetDepositAdapter
     function sendFleetDepositToDestinationChain(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address destinationAdapter,
+        address /* destinationAdapter */,
         bytes memory composeMessage,
         BridgeTypes.AdapterParams calldata /* adapterParams */
     ) external payable override returns (bytes32 operationId) {
@@ -916,7 +923,7 @@ contract StargateAdapter is
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) external pure override returns (bool) {
-        // Stargate V2 only supports asset transfers
+        // Stargate V2 supports asset transfers
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 
@@ -1135,7 +1142,7 @@ contract StargateAdapter is
                     uint16(messageData.sourceChainId)
                 );
             } else {
-                // For system transactions, keep current behavior - hold for governance recovery
+                // For system transactions, queue for automatic recovery
                 _handleSystemFailure(
                     receivedAsset,
                     amountLD,
@@ -1207,37 +1214,38 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Handle failure for system transactions - hold for governance recovery
+     * @dev Handle failure for system transactions - queue for automatic recovery
      */
     function _handleSystemFailure(
         address asset,
         uint256 amount,
-        address intendedRecipient,
+        address /* intendedRecipient */,
         bytes32 operationId,
         address originator,
         uint16 sourceChainId
     ) internal {
-        // Store failed compose details for governance recovery (existing behavior)
-        failedComposes[operationId] = FailedCompose({
-            asset: asset,
-            amount: amount,
-            intendedRecipient: intendedRecipient,
-            operationId: operationId,
-            originator: originator,
-            sourceChainId: sourceChainId,
-            timestamp: block.timestamp,
-            isDeposit: true
-        });
+        // Get bridge queue for automatic recovery
+        address bridgeQueueAddr = IBridgeRouter(bridgeRouter).bridgeQueue();
 
-        failedOperationIds.push(operationId);
+        // Approve bridge queue to spend the tokens
+        IERC20(asset).forceApprove(bridgeQueueAddr, amount);
 
-        emit ComposeFailedAssetsHeld(
+        // Queue for automatic recovery back to origin chain using existing queueTransferAssets
+        bytes32 recoveryQueueId = IBridgeQueue(bridgeQueueAddr)
+            .queueTransferAssets(
+                uint16(sourceChainId),
+                asset,
+                amount,
+                originator // Send back to original user
+            );
+
+        emit FailedComposeQueuedForRecovery(
             operationId,
+            recoveryQueueId,
             asset,
             amount,
-            intendedRecipient,
-            true,
-            "Fleet deposit failed - system transaction"
+            originator,
+            uint16(sourceChainId)
         );
     }
 
@@ -1277,9 +1285,6 @@ contract StargateAdapter is
             revert InsufficientBalance();
         }
 
-        // Determine if this is a deposit or withdrawal based on recipient type
-        bool isDeposit = _isFleetProxy(recipient);
-
         // Try to deliver assets - if it fails, hold them for governance recovery
         bool success = _tryDeliverAssets(
             recipient,
@@ -1292,30 +1297,30 @@ contract StargateAdapter is
         );
 
         if (!success) {
-            // Store failed compose details for governance recovery
-            failedComposes[operationId] = FailedCompose({
-                asset: receivedAsset,
-                amount: amountLD,
-                intendedRecipient: recipient,
-                operationId: operationId,
-                originator: originator,
-                sourceChainId: uint16(sourceChainId),
-                timestamp: block.timestamp,
-                isDeposit: isDeposit
-            });
+            // Queue for automatic recovery back to origin chain
+            address bridgeQueueAddr = IBridgeRouter(bridgeRouter).bridgeQueue();
 
-            failedOperationIds.push(operationId);
+            // Approve bridge queue to spend the tokens
+            IERC20(receivedAsset).approve(bridgeQueueAddr, amountLD);
 
-            emit ComposeFailedAssetsHeld(
+            bytes32 recoveryQueueId = IBridgeQueue(bridgeQueueAddr)
+                .queueTransferAssets(
+                    uint16(sourceChainId),
+                    receivedAsset,
+                    amountLD,
+                    originator // Send back to original user
+                );
+
+            emit FailedComposeQueuedForRecovery(
                 operationId,
+                recoveryQueueId,
                 receivedAsset,
                 amountLD,
-                recipient,
-                isDeposit,
-                "Recipient call failed"
+                originator,
+                uint16(sourceChainId)
             );
 
-            // Don't revert - just hold the assets for recovery
+            // Don't revert - assets are queued for recovery
             return;
         }
 

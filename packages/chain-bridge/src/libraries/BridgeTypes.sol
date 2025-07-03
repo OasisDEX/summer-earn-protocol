@@ -33,7 +33,7 @@ library BridgeTypes {
         AdapterParams adapterParams; // Generic adapter options
     }
 
-    // Add a new enum for operation types
+    // Enum for operation types
     enum OperationType {
         MESSAGE,
         READ_STATE,

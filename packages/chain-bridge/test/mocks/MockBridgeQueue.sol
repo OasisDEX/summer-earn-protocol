@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {IBridgeQueue} from "../../src/interfaces/IBridgeQueue.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MockBridgeQueue is IBridgeQueue {
     // Storage for last call data for test assertions
