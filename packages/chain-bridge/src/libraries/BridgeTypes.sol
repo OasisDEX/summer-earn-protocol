@@ -79,10 +79,11 @@ library BridgeTypes {
     }
 
     /**
-     * @notice Fleet deposit message type identifier
-     * @dev Used to identify fleet deposit compose messages in cross-chain transfers
+     * @notice User fleet deposit message type identifier
+     * @dev Used to identify user-initiated fleet deposit compose messages in cross-chain transfers
      */
-    bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
+    bytes32 public constant USER_FLEET_DEPOSIT_TYPE =
+        keccak256("USER_FLEET_DEPOSIT");
 
     /**
      * @notice Fleet deposit message data for cross-chain fleet deposits

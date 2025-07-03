@@ -104,25 +104,25 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
                 referralCode: referralCode
             });
 
-        return abi.encode(BridgeTypes.FLEET_DEPOSIT_TYPE, messageData);
+        return abi.encode(BridgeTypes.USER_FLEET_DEPOSIT_TYPE, messageData);
     }
 
     /**
      * @dev Helper to add the composeFrom prefix to fleet deposit messages
      * @dev CRITICAL: Stargate strips out the first 32 bytes (composeFrom) from compose messages
      * @dev This prefix tells the destination adapter where the message originated from
-     * @param fleetDepositMessage The encoded fleet deposit message
+     * @param message The encoded fleet deposit message
      * @return Properly formatted compose message with composeFrom prefix
      */
     function _addComposeFromPrefix(
-        bytes memory fleetDepositMessage
+        bytes memory message
     ) internal view returns (bytes memory) {
         // Add composeFrom prefix - Stargate will strip this out and pass the rest to lzCompose
         // The destination adapter needs to know which source adapter sent the message
         return
             abi.encodePacked(
                 bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter address
-                fleetDepositMessage
+                message
             );
     }
 
@@ -671,7 +671,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             });
 
         bytes memory actualFleetDepositMessage = abi.encode(
-            BridgeTypes.FLEET_DEPOSIT_TYPE,
+            BridgeTypes.USER_FLEET_DEPOSIT_TYPE,
             messageData
         );
 
@@ -758,58 +758,38 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
     }
 
-    function testSystemTransactionFleetDepositFlow() public {
+    function testSystemTransactionPartialFailureWithRecovery() public {
         useNetworkB();
 
         uint256 testAmount = 1 ether;
         address testUser = makeAddr("testUser");
-        address systemRecipient = makeAddr("systemRecipient"); // Different from originalUser
+        address systemRecipient = makeAddr("systemRecipient");
         bytes32 testOperationId = keccak256("system-operation");
 
-        // Create a mock fleet commander that will revert deposits
-        address mockFleetCommander = makeAddr("mockFleetCommander");
-
-        // Register the fleet commander as active in harbor command
-        harborCommandB.setActiveFleetCommander(mockFleetCommander, true);
-
-        // Mock the fleet commander's asset to return tokenB
-        vm.mockCall(
-            mockFleetCommander,
-            abi.encodeWithSignature("asset()"),
-            abi.encode(address(tokenB))
-        );
-
-        // Mock maxDeposit to return a large amount
-        vm.mockCall(
-            mockFleetCommander,
-            abi.encodeWithSignature("maxDeposit(address)", address(adapterB)),
-            abi.encode(type(uint256).max)
-        );
-
-        // Mock fleet commander deposit to revert for system transactions
-        vm.mockCallRevert(
-            mockFleetCommander,
-            abi.encodeWithSignature(
-                "deposit(uint256,address)",
-                testAmount,
-                systemRecipient
-            ),
-            abi.encode("Fleet deposit failed")
-        );
+        // Deploy a mock fleet proxy that can receive tokens but will fail receiveMessageWithAssets
+        MockFleetProxy mockFleetCommander = new MockFleetProxy(address(tokenB));
+        mockFleetCommander.setShouldRevert(true); // Make receiveMessageWithAssets fail
 
         // Add the adapter as a queue manager so it can queue recovery operations
         vm.prank(address(0x0000000000000000000000000000000000000001)); // ECRecover (governor)
         bridgeQueueB.addQueueManager(address(adapterB));
 
-        // Create fleet deposit compose message using helper method (system transaction)
-        bytes memory oftEncodedMessage = _createFleetDepositOFTMessage(
-            mockFleetCommander,
-            systemRecipient, // shareRecipient DIFFERENT from originalUser (system transaction)
-            address(tokenB),
+        // Create REGULAR asset transfer message (NOT fleet deposit message)
+        // This will route to _handleAssetTransferMessage which has recovery mechanism
+        bytes memory customComposeMessage = abi.encode(
+            address(mockFleetCommander), // recipient (fleet commander)
+            address(tokenB), // asset
+            testAmount, // amount
+            uint256(CHAIN_ID_A), // sourceChainId as uint256
+            testOperationId, // operationId
+            testUser // originator (original user)
+        );
+
+        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
+            uint64(1),
+            uint32(CHAIN_ID_A),
             testAmount,
-            testOperationId,
-            testUser, // originalUser - DIFFERENT from shareRecipient (system transaction)
-            bytes("") // referralCode
+            _addComposeFromPrefix(customComposeMessage)
         );
 
         // Mint tokens to adapter
@@ -817,21 +797,33 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Mock the Stargate contract to return the correct token
         address mockStargateFrom = makeAddr("mockStargateFrom");
-        console.log("mockStargateFrom", mockStargateFrom);
         vm.mockCall(
             mockStargateFrom,
             abi.encodeWithSignature("token()"),
             abi.encode(address(tokenB))
         );
-        console.log("tokenB", address(tokenB));
 
         // Record balances before
         uint256 userBalanceBefore = tokenB.balanceOf(testUser);
         uint256 systemRecipientBalanceBefore = tokenB.balanceOf(
             systemRecipient
         );
+        uint256 fleetCommanderBalanceBefore = tokenB.balanceOf(
+            address(mockFleetCommander)
+        );
 
-        // Execute lzCompose directly with the fleet deposit message (bypass OFT encoding issues)
+        // Expect the FailedComposeQueuedForRecovery event
+        vm.expectEmit(true, false, true, true); // Don't check recoveryQueueId since it's generated
+        emit StargateAdapter.FailedComposeQueuedForRecovery(
+            testOperationId,
+            bytes32(0), // recoveryQueueId - don't check this specific value
+            address(tokenB),
+            testAmount,
+            testUser, // originator - tokens should be queued back to original user
+            CHAIN_ID_A
+        );
+
+        // Execute lzCompose
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             mockStargateFrom,
@@ -841,11 +833,11 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             hex""
         );
 
-        // Verify neither user nor system recipient received tokens
+        // Verify neither user nor system recipient received tokens directly
         assertEq(
             tokenB.balanceOf(testUser),
             userBalanceBefore,
-            "User should not receive tokens in system transaction"
+            "User should not receive tokens directly - should be queued for recovery"
         );
         assertEq(
             tokenB.balanceOf(systemRecipient),
@@ -853,12 +845,18 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             "System recipient should not receive tokens when deposit fails"
         );
 
-        // In the mock environment, tokens may still be in adapter since MockBridgeQueue just tracks calls
-        // In real implementation, tokens would be transferred to the queue for recovery
-        // The important thing is that queueFailedComposeRecovery was called
-        assertTrue(
-            tokenB.balanceOf(address(adapterB)) >= 0,
-            "Adapter balance check - recovery mechanism was triggered"
+        // Verify fleet commander received the tokens (they were transferred before the receiveMessageWithAssets call failed)
+        assertEq(
+            tokenB.balanceOf(address(mockFleetCommander)),
+            fleetCommanderBalanceBefore + testAmount,
+            "Fleet commander should have received tokens before receiveMessageWithAssets failed"
+        );
+
+        // Verify adapter balance is zero (tokens were used)
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            0,
+            "Adapter should not hold any tokens after transfer"
         );
     }
 

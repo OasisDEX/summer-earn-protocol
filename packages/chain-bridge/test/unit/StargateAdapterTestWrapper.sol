@@ -77,7 +77,7 @@ contract StargateAdapterTestWrapper is StargateAdapter {
         address originalUser,
         uint16 sourceChainId
     ) external {
-        _handleUserLedFailure(
+        _handleUserInitiatedFailure(
             asset,
             amount,
             user,

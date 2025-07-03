@@ -14,7 +14,7 @@ import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.s
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-import {console} from "forge-std/console.sol";
+
 // Import CrossChain Ark interface for proper detection
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 
@@ -981,7 +981,7 @@ contract StargateAdapter is
     function _encodeFleetDepositMessage(
         BridgeTypes.FleetDepositMessageData memory data
     ) internal pure returns (bytes memory) {
-        return abi.encode(BridgeTypes.FLEET_DEPOSIT_TYPE, data);
+        return abi.encode(BridgeTypes.USER_FLEET_DEPOSIT_TYPE, data);
     }
 
     /**
@@ -995,59 +995,32 @@ contract StargateAdapter is
         // Get the received asset from the Stargate contract
         address receivedAsset = IStargateV2(_from).token();
 
-        // Debug: Log basic info
-        console.log("=== _handleComposedMessage DEBUG ===");
-        console.log("_from:", _from);
-        console.log("amountLD:", amountLD);
-        console.log("composeMsg length:", composeMsg.length);
-        console.log("receivedAsset:", receivedAsset);
-
         // Read the message type from the first parameter of the compose message
         bytes32 messageType;
         assembly {
             messageType := mload(add(composeMsg, 0x20))
         }
 
-        if (messageType == BridgeTypes.FLEET_DEPOSIT_TYPE) {
-            _handleFleetDepositMessage(amountLD, composeMsg, receivedAsset);
+        if (messageType == BridgeTypes.USER_FLEET_DEPOSIT_TYPE) {
+            _handleUserFleetDepositMessage(amountLD, composeMsg, receivedAsset);
         } else {
             _handleAssetTransferMessage(amountLD, composeMsg, receivedAsset);
         }
     }
 
     /**
-     * @dev Handle fleet deposit compose messages
+     * @dev Handle user fleet deposit compose messages
      */
-    function _handleFleetDepositMessage(
+    function _handleUserFleetDepositMessage(
         uint256 amountLD,
         bytes memory composeMsg,
         address receivedAsset
     ) internal {
-        console.log("Decoding fleet deposit message");
-        // Decode fleet deposit message using helper function
+        // Decode user message from FleetDepositManager
         BridgeTypes.FleetDepositMessageData
             memory messageData = _decodeFleetDepositMessage(composeMsg);
 
-        console.log("Decoded fleet deposit message");
-
-        // Basic validation
-        if (
-            receivedAsset == address(0) ||
-            messageData.fleetCommander == address(0) ||
-            messageData.shareRecipient == address(0) ||
-            messageData.amount == 0
-        ) {
-            revert InvalidParams();
-        }
-
-        // Check adapter balance
-        uint256 adapterBalance = IERC20(receivedAsset).balanceOf(address(this));
-        if (adapterBalance < amountLD) {
-            revert InsufficientBalance();
-        }
-
-        console.log("Depositing to FleetCommander");
-        // Try to deposit to FleetCommander
+        // Try fleet deposit
         bool success = _tryDepositToFleetCommander(
             messageData.fleetCommander,
             receivedAsset,
@@ -1057,36 +1030,17 @@ contract StargateAdapter is
             messageData.operationId,
             uint16(messageData.sourceChainId)
         );
-        console.log("Deposited to FleetCommander", success);
 
         if (!success) {
-            // Check if this is a user-led transaction (via FleetDepositManager)
-            bool isUserLedTransaction = _isUserLedTransaction(
+            // User-initiated: ALWAYS send to shareRecipient
+            _handleUserInitiatedFailure(
+                receivedAsset,
+                amountLD,
+                messageData.shareRecipient,
+                messageData.operationId,
                 messageData.originalUser,
-                messageData.shareRecipient
+                uint16(messageData.sourceChainId)
             );
-
-            if (isUserLedTransaction) {
-                // For user-led transactions, send assets directly to the user on destination chain
-                _handleUserLedFailure(
-                    receivedAsset,
-                    amountLD,
-                    messageData.shareRecipient,
-                    messageData.operationId,
-                    messageData.originalUser,
-                    uint16(messageData.sourceChainId)
-                );
-            } else {
-                // For system transactions, queue for automatic recovery
-                _handleSystemFailure(
-                    receivedAsset,
-                    amountLD,
-                    messageData.fleetCommander,
-                    messageData.operationId,
-                    messageData.originalUser,
-                    uint16(messageData.sourceChainId)
-                );
-            }
             return;
         }
 
@@ -1096,94 +1050,6 @@ contract StargateAdapter is
             receivedAsset,
             amountLD,
             uint16(messageData.sourceChainId)
-        );
-    }
-
-    /**
-     * @dev Check if this is a user-led transaction vs system transaction
-     * @param originalUser The user who initiated the transaction
-     * @param shareRecipient The recipient of fleet shares
-     * @return True if this appears to be a user-led transaction
-     */
-    function _isUserLedTransaction(
-        address originalUser,
-        address shareRecipient
-    ) internal pure returns (bool) {
-        // User-led transactions typically have originalUser == shareRecipient
-        // This indicates the user is depositing for themselves via FleetDepositManager
-        return originalUser == shareRecipient && originalUser != address(0);
-    }
-
-    /**
-     * @dev Handle failure for user-led transactions - send assets to user
-     */
-    function _handleUserLedFailure(
-        address asset,
-        uint256 amount,
-        address user,
-        bytes32 operationId,
-        address originalUser,
-        uint16 sourceChainId
-    ) internal {
-        // Send assets directly to the user on destination chain
-        IERC20(asset).safeTransfer(user, amount);
-
-        // DON'T store failure details for user-led transactions since they're immediately resolved
-
-        // Emit UserRefundIssued first (as expected by test)
-        emit UserRefundIssued(
-            operationId,
-            asset,
-            amount,
-            user,
-            originalUser,
-            sourceChainId,
-            "Fleet deposit failed"
-        );
-
-        // Then emit CrossChainFleetDepositFailed with address(0)
-        emit CrossChainFleetDepositFailed(
-            operationId,
-            address(0), // fleetCommander set to address(0) for user refunds
-            asset,
-            amount,
-            "Fleet deposit failed - assets sent to user"
-        );
-    }
-
-    /**
-     * @dev Handle failure for system transactions - queue for automatic recovery
-     */
-    function _handleSystemFailure(
-        address asset,
-        uint256 amount,
-        address /* intendedRecipient */,
-        bytes32 operationId,
-        address originator,
-        uint16 sourceChainId
-    ) internal {
-        // Get bridge queue for automatic recovery
-        address bridgeQueueAddr = IBridgeRouter(bridgeRouter).bridgeQueue();
-
-        // Approve bridge queue to spend the tokens
-        IERC20(asset).forceApprove(bridgeQueueAddr, amount);
-
-        // Queue for automatic recovery back to origin chain using existing queueTransferAssets
-        bytes32 recoveryQueueId = IBridgeQueue(bridgeQueueAddr)
-            .queueTransferAssets(
-                uint16(sourceChainId),
-                asset,
-                amount,
-                originator // Send back to original user
-            );
-
-        emit FailedComposeQueuedForRecovery(
-            operationId,
-            recoveryQueueId,
-            asset,
-            amount,
-            originator,
-            uint16(sourceChainId)
         );
     }
 
@@ -1676,6 +1542,41 @@ contract StargateAdapter is
             amount,
             shares,
             sourceChainId
+        );
+    }
+
+    /**
+     * @dev Handle failure for user-initiated transactions - send assets to shareRecipient
+     */
+    function _handleUserInitiatedFailure(
+        address asset,
+        uint256 amount,
+        address shareRecipient,
+        bytes32 operationId,
+        address originalUser,
+        uint16 sourceChainId
+    ) internal {
+        // Send assets directly to the shareRecipient on destination chain
+        IERC20(asset).safeTransfer(shareRecipient, amount);
+
+        // Emit UserRefundIssued event
+        emit UserRefundIssued(
+            operationId,
+            asset,
+            amount,
+            shareRecipient,
+            originalUser,
+            sourceChainId,
+            "Fleet deposit failed"
+        );
+
+        // Emit CrossChainFleetDepositFailed event with address(0) for user refunds
+        emit CrossChainFleetDepositFailed(
+            operationId,
+            address(0), // fleetCommander set to address(0) for user refunds
+            asset,
+            amount,
+            "Fleet deposit failed - assets sent to user"
         );
     }
 }

@@ -193,7 +193,7 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
                 referralCode: referralCode
             });
 
-        return abi.encode(BridgeTypes.FLEET_DEPOSIT_TYPE, messageData);
+        return abi.encode(BridgeTypes.USER_FLEET_DEPOSIT_TYPE, messageData);
     }
 
     /*//////////////////////////////////////////////////////////////
