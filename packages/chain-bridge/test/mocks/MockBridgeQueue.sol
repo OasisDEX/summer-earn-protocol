@@ -18,7 +18,8 @@ contract MockBridgeQueue is IBridgeQueue {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient
+        address recipient,
+        bytes calldata /* message */
     ) external returns (bytes32) {
         lastDestinationChainId = destinationChainId;
         lastAsset = asset;
@@ -75,7 +76,15 @@ contract MockBridgeQueue is IBridgeQueue {
     )
         external
         pure
-        returns (uint16, address, uint256, address, address, bytes32)
+        returns (
+            uint16,
+            address,
+            uint256,
+            bytes memory,
+            address,
+            address,
+            bytes32
+        )
     {
         revert("not implemented");
     }

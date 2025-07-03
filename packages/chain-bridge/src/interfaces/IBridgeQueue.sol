@@ -143,6 +143,7 @@ interface IBridgeQueue {
      * @return destinationChainId Destination chain ID.
      * @return asset Address of the ERC20 token being transferred.
      * @return amount Amount of the token being transferred.
+     * @return message Message for the transfer (if any)
      * @return recipient Address receiving the asset on the destination chain.
      * @return originator Address that requested the transfer via the queue manager. Must pre-approve this contract for 'amount' of 'asset'.
      * @return operationId ID returned by the bridge adapter upon execution, or zero if not executed.
@@ -156,6 +157,7 @@ interface IBridgeQueue {
             uint16 destinationChainId,
             address asset,
             uint256 amount,
+            bytes memory message,
             address recipient,
             address originator,
             bytes32 operationId
@@ -248,13 +250,15 @@ interface IBridgeQueue {
      * @param asset The ERC20 token address to transfer.
      * @param amount The amount of the token to transfer.
      * @param recipient The address to receive the tokens on the destination chain.
+     * @param message The arbitrary message data to be sent.
      * @return queueId The unique ID assigned to this queued operation.
      */
     function queueTransferAssets(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient
+        address recipient,
+        bytes calldata message
     ) external returns (bytes32 queueId);
 
     /**

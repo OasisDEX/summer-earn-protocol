@@ -45,6 +45,7 @@ contract BridgeQueue is
         uint16 destinationChainId;
         address asset;
         uint256 amount;
+        bytes message; // can be bytes(0)
         address recipient;
         address originator; // Address that must pre-approve this contract for 'amount' of 'asset'
         bytes32 operationId; // ID returned by adapter upon execution
@@ -136,7 +137,8 @@ contract BridgeQueue is
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient
+        address recipient,
+        bytes calldata message
     ) external onlyQueueManagerAuth returns (bytes32 queueId) {
         if (asset == address(0) || amount == 0 || recipient == address(0))
             revert InvalidParams();
@@ -153,6 +155,7 @@ contract BridgeQueue is
             destinationChainId: destinationChainId,
             asset: asset,
             amount: amount,
+            message: message,
             recipient: recipient,
             originator: msg.sender, // The queue manager is responsible for ensuring approvals
             operationId: bytes32(0)
@@ -310,8 +313,9 @@ contract BridgeQueue is
                     asset: transferData.asset,
                     amount: transferData.amount,
                     recipient: transferData.recipient,
+                    message: transferData.message,
                     originator: transferData.originator,
-                    keeper: msg.sender,
+                    refundAddress: executor,
                     options: options
                 });
 
@@ -339,7 +343,7 @@ contract BridgeQueue is
                     selector: readData.selector,
                     readParams: readData.readParams,
                     originator: readData.originator,
-                    keeper: executor, // Add missing keeper field
+                    refundAddress: executor,
                     options: options
                 });
 
@@ -366,7 +370,7 @@ contract BridgeQueue is
                     recipient: messageData.recipient,
                     message: messageData.message,
                     originator: messageData.originator,
-                    keeper: executor, // Add missing keeper field
+                    refundAddress: executor,
                     options: options
                 });
 

@@ -132,6 +132,21 @@ contract BridgeRouter is
     }
 
     /**
+     * @dev Internal function to validate fleet deposit parameters
+     * @param params Parameters to validate
+     */
+    function _validateFleetDepositParams(
+        BridgeTypes.ExecuteUserFleetDepositParams calldata params
+    ) internal pure {
+        if (
+            params.amount == 0 ||
+            params.asset == address(0) ||
+            params.fleetCommander == address(0) ||
+            params.shareRecipient == address(0)
+        ) revert InvalidParams();
+    }
+
+    /**
      * @dev Internal function to validate read state parameters
      * @param params Parameters to validate
      */
@@ -244,6 +259,130 @@ contract BridgeRouter is
         return (baseFee * 101) / 100;
     }
 
+    /**
+     * @dev Validates operation parameters and returns adapter and buffered fee
+     * @param destinationChainId Target chain ID
+     * @param asset Asset address
+     * @param amount Amount to transfer
+     * @param options Bridge options including adapter specification
+     * @param operationType Type of operation being performed
+     * @return specifiedAdapter The validated adapter address
+     * @return bufferedFee The fee with buffer applied
+     */
+    function _validateAndGetAdapter(
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        BridgeTypes.BridgeOptions memory options,
+        BridgeTypes.OperationType operationType
+    ) internal view returns (address specifiedAdapter, uint256 bufferedFee) {
+        // Get required base fee and specified adapter
+        (uint256 requiredBaseFee, , address adapter) = _quote(
+            destinationChainId,
+            asset,
+            amount,
+            options,
+            operationType
+        );
+
+        // Apply fee buffer to account for fee volatility
+        bufferedFee = _applyFeeBuffer(requiredBaseFee);
+
+        // Validate fee provided against buffered fee
+        _validateFee(msg.value, bufferedFee);
+
+        _validateAdapterSupportsOperation(adapter, operationType);
+
+        return (adapter, bufferedFee);
+    }
+
+    /**
+     * @dev Transfers tokens from source to router and approves adapter
+     * @param asset Token address
+     * @param amount Amount to transfer
+     * @param from Source address (where tokens come from)
+     * @param adapter Adapter address to approve
+     */
+    function _transferTokensToAdapter(
+        address asset,
+        uint256 amount,
+        address from,
+        address adapter
+    ) internal {
+        // Pull tokens from source to Router
+        IERC20(asset).safeTransferFrom(from, address(this), amount);
+
+        // Approve the adapter to spend Router's tokens
+        IERC20(asset).forceApprove(adapter, amount);
+    }
+
+    /**
+     * @dev Notifies originator about inflight assets if supported
+     * @param originator Address to notify
+     * @param amount Amount that's now inflight
+     */
+    function _notifyInflightAssets(
+        address originator,
+        uint256 amount
+    ) internal {
+        // Notify originator that assets are now officially in-flight
+        if (originator.code.length > 0) {
+            try
+                IERC165(originator).supportsInterface(
+                    type(IInflightAssetTracking).interfaceId
+                )
+            returns (bool supported) {
+                if (supported) {
+                    try
+                        IInflightAssetTracking(originator).updateInflightAssets(
+                            amount
+                        )
+                    {} catch {
+                        // Ignore failures in updateInflightAssets
+                    }
+                }
+            } catch {
+                // Originator doesn't support ERC165 or IInflightAssetTracking, ignore
+            }
+        }
+    }
+
+    /**
+     * @dev Generates operation ID and sets up adapter mapping
+     * @param operationType Type of operation
+     * @param destinationChainId Target chain
+     * @param asset Asset address
+     * @param amount Amount
+     * @param recipient Recipient address
+     * @param additionalData Additional data for ID generation
+     * @param adapter Adapter address to map to operation
+     * @return operationId Generated operation ID
+     */
+    function _generateAndSetupOperation(
+        BridgeTypes.OperationType operationType,
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        bytes memory additionalData,
+        address adapter
+    ) internal returns (bytes32 operationId) {
+        // Generate the operation ID ONCE - Router is the source of truth
+        operationId = _generateOperationId(
+            operationType,
+            destinationChainId,
+            asset,
+            amount,
+            recipient,
+            additionalData
+        );
+
+        // Set up operation to adapter mapping BEFORE the adapter call
+        operationToAdapter[operationId] = adapter;
+
+        return operationId;
+    }
+
     /*//////////////////////////////////////////////////////////////
                            BRIDGE QUEUE OPERATIONS
     //////////////////////////////////////////////////////////////*/
@@ -263,79 +402,50 @@ contract BridgeRouter is
     {
         _validateTransferParams(params);
 
-        // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
-            params.destinationChainId,
+        // Validate and get adapter with buffered fee
+        (
+            address specifiedAdapter,
+            uint256 bufferedFee
+        ) = _validateAndGetAdapter(
+                params.destinationChainId,
+                params.asset,
+                params.amount,
+                params.options,
+                BridgeTypes.OperationType.TRANSFER_ASSET
+            );
+
+        // Transfer tokens from BridgeQueue to adapter via router
+        _transferTokensToAdapter(
             params.asset,
             params.amount,
-            params.options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+            bridgeQueue,
+            specifiedAdapter
         );
 
-        // Apply fee buffer to account for fee volatility
-        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
+        // Notify originator about inflight assets
+        _notifyInflightAssets(params.originator, params.amount);
 
-        // Validate fee provided by BridgeQueue against buffered fee
-        _validateFee(msg.value, bufferedFee);
-
-        _validateAdapterSupportsOperation(
-            specifiedAdapter,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-
-        // Pull tokens from BridgeQueue to Router first
-        IERC20(params.asset).safeTransferFrom(
-            bridgeQueue, // BridgeQueue approved us
-            address(this), // Transfer to Router
-            params.amount
-        );
-
-        // Now approve the adapter to spend Router's tokens
-        IERC20(params.asset).forceApprove(specifiedAdapter, params.amount);
-
-        // Notify originator that assets are now officially in-flight
-        // Attempt to call updateInflightAssets if the originator supports it
-        if (params.originator.code.length > 0) {
-            try
-                IERC165(params.originator).supportsInterface(
-                    type(IInflightAssetTracking).interfaceId
-                )
-            returns (bool supported) {
-                if (supported) {
-                    try
-                        IInflightAssetTracking(params.originator)
-                            .updateInflightAssets(params.amount)
-                    {} catch {
-                        // Ignore failures in updateInflightAssets
-                    }
-                }
-            } catch {
-                // Originator doesn't support ERC165 or IInflightAssetTracking, ignore
-            }
-        }
-
-        // Generate the operation ID ONCE - Router is the source of truth
-        operationId = _generateOperationId(
+        // Generate operation ID and setup mapping
+        operationId = _generateAndSetupOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             params.destinationChainId,
             params.asset,
             params.amount,
             params.recipient,
-            abi.encode(params.originator) // Additional data for uniqueness
+            abi.encode(params.originator),
+            specifiedAdapter
         );
 
-        // Set up operation to adapter mapping BEFORE the adapter call
-        operationToAdapter[operationId] = specifiedAdapter;
-
-        // Call adapter with the full msg.value
+        // Call adapter with the buffered fee
         ISendAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
-            operationId, // Pass the router-generated ID
+            operationId,
             params.destinationChainId,
             params.asset,
             params.recipient,
             params.amount,
+            params.message,
             params.originator,
-            params.keeper, // Pass keeper for refunds
+            params.refundAddress,
             params.options.adapterParams
         );
 
@@ -348,7 +458,96 @@ contract BridgeRouter is
             specifiedAdapter
         );
 
-        // No refund needed - adapter will handle refunding excess back through the chain
+        return operationId;
+    }
+
+    /**
+     * @notice Executes a user-initiated fleet deposit operation
+     * @dev Public method that allows users to initiate fleet deposits directly through FleetDepositManager
+     * @param params Fleet deposit parameters including destination, asset, amounts, and options
+     * @return operationId Unique identifier for the cross-chain operation
+     */
+    function executeUserFleetDeposit(
+        BridgeTypes.ExecuteUserFleetDepositParams calldata params
+    )
+        external
+        payable
+        whenNotPaused
+        nonReentrant
+        returns (bytes32 operationId)
+    {
+        _validateFleetDepositParams(params);
+
+        // Validate adapter supports fleet deposits specifically
+        address specifiedAdapter = params.options.specifiedAdapter;
+        if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
+        if (!this.isValidAdapter(specifiedAdapter)) revert UnknownAdapter();
+
+        _validateAdapterSupportsOperation(
+            specifiedAdapter,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+
+        // Get fee quote for fleet deposit operation
+        (uint256 requiredBaseFee, ) = IBridgeAdapter(specifiedAdapter)
+            .estimateFee(
+                params.destinationChainId,
+                params.asset,
+                params.amount,
+                params.options.adapterParams,
+                BridgeTypes.OperationType.TRANSFER_ASSET
+            );
+
+        // Apply fee buffer and validate
+        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
+        _validateFee(msg.value, bufferedFee);
+
+        // Transfer tokens from caller to adapter via router
+        _transferTokensToAdapter(
+            params.asset,
+            params.amount,
+            msg.sender,
+            specifiedAdapter
+        );
+
+        // Generate operation ID for fleet deposit
+        operationId = _generateAndSetupOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.shareRecipient,
+            abi.encode(
+                params.fleetCommander,
+                params.shareRecipient,
+                params.originalUser
+            ),
+            specifiedAdapter
+        );
+
+        // Call adapter's transferAsset method instead of fleet deposit specific method
+        ISendAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
+            operationId,
+            params.destinationChainId,
+            params.asset,
+            params.shareRecipient,
+            params.amount,
+            params.message,
+            params.originalUser,
+            params.originalUser, // Refund address is the original user
+            params.options.adapterParams
+        );
+
+        // Emit fleet deposit specific event
+        emit FleetDepositInitiated(
+            operationId,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.fleetCommander,
+            params.shareRecipient,
+            specifiedAdapter
+        );
 
         return operationId;
     }
@@ -368,28 +567,20 @@ contract BridgeRouter is
     {
         _validateReadStateParams(params);
 
-        // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
-            params.dstChainId,
-            address(0), // No asset
-            0, // No amount
-            params.options,
-            BridgeTypes.OperationType.READ_STATE
-        );
+        // Validate and get adapter with buffered fee
+        (
+            address specifiedAdapter,
+            uint256 bufferedFee
+        ) = _validateAndGetAdapter(
+                params.dstChainId,
+                address(0), // No asset
+                0, // No amount
+                params.options,
+                BridgeTypes.OperationType.READ_STATE
+            );
 
-        // Apply fee buffer to account for fee volatility
-        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
-
-        // Validate fee provided by BridgeQueue against buffered fee
-        _validateFee(msg.value, bufferedFee);
-
-        _validateAdapterSupportsOperation(
-            specifiedAdapter,
-            BridgeTypes.OperationType.READ_STATE
-        );
-
-        // Generate the operation ID ONCE - Router is the source of truth
-        operationId = _generateOperationId(
+        // Generate operation ID and setup mapping
+        operationId = _generateAndSetupOperation(
             BridgeTypes.OperationType.READ_STATE,
             params.dstChainId,
             address(0), // No asset
@@ -400,24 +591,22 @@ contract BridgeRouter is
                 params.selector,
                 params.readParams,
                 params.originator
-            )
+            ),
+            specifiedAdapter
         );
-
-        // Set operation to adapter mapping BEFORE the adapter call
-        operationToAdapter[operationId] = specifiedAdapter;
 
         // Store the originator for response delivery
         readRequestToOriginator[operationId] = params.originator;
 
-        // Call adapter with the full msg.value
+        // Call adapter with the buffered fee
         ISendAdapter(specifiedAdapter).readState{value: bufferedFee}(
-            operationId, // Pass the router-generated ID
+            operationId,
             uint16(block.chainid),
             params.dstChainId,
             params.dstContract,
             params.selector,
             params.readParams,
-            params.keeper, // Pass keeper for refunds
+            params.refundAddress,
             params.options.adapterParams
         );
 
@@ -429,8 +618,6 @@ contract BridgeRouter is
             params.readParams,
             specifiedAdapter
         );
-
-        // No refund needed - adapter will handle refunding excess back through the chain
 
         return operationId;
     }
@@ -450,45 +637,36 @@ contract BridgeRouter is
     {
         _validateSendMessageParams(params);
 
-        // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
-            params.destinationChainId,
-            address(0), // No asset
-            0, // No amount
-            params.options,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        // Validate and get adapter with buffered fee
+        (
+            address specifiedAdapter,
+            uint256 bufferedFee
+        ) = _validateAndGetAdapter(
+                params.destinationChainId,
+                address(0), // No asset
+                0, // No amount
+                params.options,
+                BridgeTypes.OperationType.MESSAGE
+            );
 
-        // Apply fee buffer to account for fee volatility
-        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
-
-        // Validate fee provided by BridgeQueue against buffered fee
-        _validateFee(msg.value, bufferedFee);
-
-        _validateAdapterSupportsOperation(
-            specifiedAdapter,
-            BridgeTypes.OperationType.MESSAGE
-        );
-
-        // Generate the operation ID ONCE - Router is the source of truth
-        operationId = _generateOperationId(
+        // Generate operation ID and setup mapping
+        operationId = _generateAndSetupOperation(
             BridgeTypes.OperationType.MESSAGE,
             params.destinationChainId,
             address(0), // No asset
             0, // No amount
             params.recipient,
-            abi.encode(params.message, params.originator)
+            abi.encode(params.message, params.originator),
+            specifiedAdapter
         );
 
-        operationToAdapter[operationId] = specifiedAdapter;
-
-        // Call adapter with the full msg.value
+        // Call adapter with the buffered fee
         ISendAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
-            operationId, // Pass the router-generated ID
+            operationId,
             params.destinationChainId,
             params.recipient,
             params.message,
-            params.keeper, // Pass keeper for refunds
+            params.refundAddress,
             params.options.adapterParams
         );
 
@@ -498,8 +676,6 @@ contract BridgeRouter is
             params.recipient,
             specifiedAdapter
         );
-
-        // No refund needed - adapter will handle refunding excess back through the chain
 
         return operationId;
     }
@@ -825,4 +1001,19 @@ contract BridgeRouter is
         bridgeQueue = _newBridgeQueue;
         emit BridgeQueueUpdated(_newBridgeQueue);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a fleet deposit operation is initiated
+    event FleetDepositInitiated(
+        bytes32 indexed operationId,
+        uint16 indexed destinationChainId,
+        address indexed asset,
+        uint256 amount,
+        address fleetCommander,
+        address shareRecipient,
+        address adapter
+    );
 }

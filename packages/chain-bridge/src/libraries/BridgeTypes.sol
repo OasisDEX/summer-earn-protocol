@@ -30,7 +30,7 @@ library BridgeTypes {
      */
     struct BridgeOptions {
         address specifiedAdapter; // Required specific adapter to use (address(0) will revert)
-        AdapterParams adapterParams; // Generic adapter options
+        AdapterParams adapterParams;
     }
 
     // Enum for operation types
@@ -48,8 +48,9 @@ library BridgeTypes {
         address asset;
         uint256 amount;
         address recipient;
+        bytes message;
         address originator;
-        address keeper; // Add keeper field for refunds
+        address refundAddress;
         BridgeOptions options;
     }
 
@@ -62,7 +63,7 @@ library BridgeTypes {
         bytes4 selector;
         bytes readParams;
         address originator;
-        address keeper; // Add keeper field for refunds
+        address refundAddress;
         BridgeOptions options;
     }
 
@@ -74,8 +75,23 @@ library BridgeTypes {
         address recipient;
         bytes message;
         address originator;
-        address keeper; // Add keeper field for refunds
+        address refundAddress;
         BridgeOptions options;
+    }
+
+    /**
+     * @notice Parameters for user-initiated fleet deposits
+     */
+    struct ExecuteUserFleetDepositParams {
+        uint16 destinationChainId;
+        address asset;
+        uint256 amount;
+        address fleetCommander;
+        address shareRecipient;
+        address originalUser;
+        bytes referralCode;
+        bytes message;
+        BridgeTypes.BridgeOptions options;
     }
 
     /**
@@ -100,10 +116,10 @@ library BridgeTypes {
         uint256 amount;
         /// @notice Chain ID where the deposit transaction was originally initiated
         uint256 sourceChainId;
-        /// @notice Unique identifier for this cross-chain operation
-        bytes32 operationId;
         /// @notice Address of the user who originally initiated the cross-chain deposit transaction
         address originalUser;
+        /// @notice Operation ID for the cross-chain deposit operation
+        bytes32 operationId;
         /// @notice Optional referral code for tracking deposit attribution
         bytes referralCode;
     }

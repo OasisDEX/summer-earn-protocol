@@ -464,14 +464,15 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
     /// @inheritdoc ISendAdapter
     function transferAsset(
-        bytes32, // operationId - not used by LayerZero adapter
-        uint16,
-        address,
-        address,
-        uint256,
-        address,
-        address, // keeper - not used by LayerZero adapter
-        BridgeTypes.AdapterParams calldata
+        bytes32 /* operationId */,
+        uint16 /* destinationChainId */,
+        address /* asset */,
+        address /* recipient */,
+        uint256 /* amount */,
+        bytes calldata /* message */,
+        address /* originator */,
+        address /* refundAddress */,
+        BridgeTypes.AdapterParams calldata /* adapterParams */
     ) external payable {
         // This adapter doesn't support asset transfers directly
         // It should never be called for this purpose due to capability flags
