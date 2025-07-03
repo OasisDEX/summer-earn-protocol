@@ -14,7 +14,7 @@ import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.s
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-
+import {console} from "forge-std/console.sol";
 // Import CrossChain Ark interface for proper detection
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 
@@ -146,34 +146,6 @@ contract StargateAdapter is
 
     /// @notice Default slippage tolerance in basis points (0.5% = 50 basis points)
     uint256 public slippageToleranceBps = 50;
-
-    /// @notice Compose message types
-    bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
-    bytes32 public constant ASSET_TRANSFER_TYPE = keccak256("ASSET_TRANSFER");
-
-    /// @notice Structure to hold decoded fleet deposit message data
-    struct FleetDepositMessageData {
-        /// @notice Type of message being sent (e.g., FLEET_DEPOSIT_TYPE)
-        bytes32 messageType;
-        /// @notice Address of the FleetCommander contract that will receive the deposit
-        address fleetCommander;
-        /// @notice Address that will receive the fleet shares from the deposit
-        address shareRecipient;
-        /// @notice Token contract address being deposited
-        address asset;
-        /// @notice Amount of tokens being deposited
-        uint256 amount;
-        /// @notice Chain ID where the deposit transaction was originally initiated
-        uint256 sourceChainId;
-        /// @notice Unique identifier for this cross-chain operation
-        bytes32 operationId;
-        /// @notice Address of the user who originally initiated the cross-chain deposit transaction
-        /// @dev Used to distinguish user-led transactions (originalUser == shareRecipient) from system transactions
-        /// @dev In case of deposit failure, determines whether to refund to user or hold for governance recovery
-        address originalUser;
-        /// @notice Optional referral code for tracking deposit attribution
-        bytes referralCode;
-    }
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -456,9 +428,8 @@ contract StargateAdapter is
         );
 
         // Extract data from compose message using the decode helper
-        FleetDepositMessageData memory messageData = _decodeFleetDepositMessage(
-            composeMessage
-        );
+        BridgeTypes.FleetDepositMessageData
+            memory messageData = _decodeFleetDepositMessage(composeMessage);
 
         // Update operation ID and re-encode message
         messageData.operationId = operationId;
@@ -994,44 +965,12 @@ contract StargateAdapter is
      */
     function _decodeFleetDepositMessage(
         bytes memory composeMessage
-    ) internal pure returns (FleetDepositMessageData memory) {
-        (
-            bytes32 messageType,
-            address fleetCommander,
-            address shareRecipient,
-            address asset,
-            uint256 amount,
-            uint256 sourceChainId,
-            bytes32 operationId,
-            address originalUser,
-            bytes memory referralCode
-        ) = abi.decode(
-                composeMessage,
-                (
-                    bytes32,
-                    address,
-                    address,
-                    address,
-                    uint256,
-                    uint256,
-                    bytes32,
-                    address,
-                    bytes
-                )
-            );
-
-        return
-            FleetDepositMessageData({
-                messageType: messageType,
-                fleetCommander: fleetCommander,
-                shareRecipient: shareRecipient,
-                asset: asset,
-                amount: amount,
-                sourceChainId: sourceChainId,
-                operationId: operationId,
-                originalUser: originalUser,
-                referralCode: referralCode
-            });
+    ) internal pure returns (BridgeTypes.FleetDepositMessageData memory) {
+        (, BridgeTypes.FleetDepositMessageData memory messageData) = abi.decode(
+            composeMessage,
+            (bytes32, BridgeTypes.FleetDepositMessageData)
+        );
+        return messageData;
     }
 
     /**
@@ -1040,20 +979,9 @@ contract StargateAdapter is
      * @return Encoded compose message
      */
     function _encodeFleetDepositMessage(
-        FleetDepositMessageData memory data
+        BridgeTypes.FleetDepositMessageData memory data
     ) internal pure returns (bytes memory) {
-        return
-            abi.encode(
-                data.messageType,
-                data.fleetCommander,
-                data.shareRecipient,
-                data.asset,
-                data.amount,
-                data.sourceChainId,
-                data.operationId,
-                data.originalUser,
-                data.referralCode
-            );
+        return abi.encode(BridgeTypes.FLEET_DEPOSIT_TYPE, data);
     }
 
     /**
@@ -1067,20 +995,23 @@ contract StargateAdapter is
         // Get the received asset from the Stargate contract
         address receivedAsset = IStargateV2(_from).token();
 
+        // Debug: Log basic info
+        console.log("=== _handleComposedMessage DEBUG ===");
+        console.log("_from:", _from);
+        console.log("amountLD:", amountLD);
+        console.log("composeMsg length:", composeMsg.length);
+        console.log("receivedAsset:", receivedAsset);
+
         // Read the message type from the first parameter of the compose message
         bytes32 messageType;
         assembly {
             messageType := mload(add(composeMsg, 0x20))
         }
 
-        if (messageType == FLEET_DEPOSIT_TYPE) {
+        if (messageType == BridgeTypes.FLEET_DEPOSIT_TYPE) {
             _handleFleetDepositMessage(amountLD, composeMsg, receivedAsset);
         } else {
-            _handleLegacyAssetTransferMessage(
-                amountLD,
-                composeMsg,
-                receivedAsset
-            );
+            _handleAssetTransferMessage(amountLD, composeMsg, receivedAsset);
         }
     }
 
@@ -1092,10 +1023,12 @@ contract StargateAdapter is
         bytes memory composeMsg,
         address receivedAsset
     ) internal {
+        console.log("Decoding fleet deposit message");
         // Decode fleet deposit message using helper function
-        FleetDepositMessageData memory messageData = _decodeFleetDepositMessage(
-            composeMsg
-        );
+        BridgeTypes.FleetDepositMessageData
+            memory messageData = _decodeFleetDepositMessage(composeMsg);
+
+        console.log("Decoded fleet deposit message");
 
         // Basic validation
         if (
@@ -1113,6 +1046,7 @@ contract StargateAdapter is
             revert InsufficientBalance();
         }
 
+        console.log("Depositing to FleetCommander");
         // Try to deposit to FleetCommander
         bool success = _tryDepositToFleetCommander(
             messageData.fleetCommander,
@@ -1123,6 +1057,7 @@ contract StargateAdapter is
             messageData.operationId,
             uint16(messageData.sourceChainId)
         );
+        console.log("Deposited to FleetCommander", success);
 
         if (!success) {
             // Check if this is a user-led transaction (via FleetDepositManager)
@@ -1193,7 +1128,9 @@ contract StargateAdapter is
         // Send assets directly to the user on destination chain
         IERC20(asset).safeTransfer(user, amount);
 
-        // Emit a specific event for user refunds first
+        // DON'T store failure details for user-led transactions since they're immediately resolved
+
+        // Emit UserRefundIssued first (as expected by test)
         emit UserRefundIssued(
             operationId,
             asset,
@@ -1204,9 +1141,10 @@ contract StargateAdapter is
             "Fleet deposit failed"
         );
 
+        // Then emit CrossChainFleetDepositFailed with address(0)
         emit CrossChainFleetDepositFailed(
             operationId,
-            address(0), // fleetCommander - not applicable for user refund
+            address(0), // fleetCommander set to address(0) for user refunds
             asset,
             amount,
             "Fleet deposit failed - assets sent to user"
@@ -1250,14 +1188,14 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Handle legacy asset transfer compose messages (existing functionality)
+     * @dev Handle asset transfer compose messages
      */
-    function _handleLegacyAssetTransferMessage(
+    function _handleAssetTransferMessage(
         uint256 amountLD,
         bytes memory composeMsg,
         address receivedAsset
     ) internal {
-        // Decode the compose message (legacy format)
+        // Decode the compose message
         (
             address recipient,
             address sourceAsset,

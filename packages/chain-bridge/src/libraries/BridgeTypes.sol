@@ -77,4 +77,33 @@ library BridgeTypes {
         address keeper; // Add keeper field for refunds
         BridgeOptions options;
     }
+
+    /**
+     * @notice Fleet deposit message type identifier
+     * @dev Used to identify fleet deposit compose messages in cross-chain transfers
+     */
+    bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
+
+    /**
+     * @notice Fleet deposit message data for cross-chain fleet deposits
+     * @dev Used to encode/decode fleet deposit compose messages consistently
+     */
+    struct FleetDepositMessageData {
+        /// @notice Address of the FleetCommander contract that will receive the deposit
+        address fleetCommander;
+        /// @notice Address that will receive the fleet shares from the deposit
+        address shareRecipient;
+        /// @notice Token contract address being deposited
+        address asset;
+        /// @notice Amount of tokens being deposited
+        uint256 amount;
+        /// @notice Chain ID where the deposit transaction was originally initiated
+        uint256 sourceChainId;
+        /// @notice Unique identifier for this cross-chain operation
+        bytes32 operationId;
+        /// @notice Address of the user who originally initiated the cross-chain deposit transaction
+        address originalUser;
+        /// @notice Optional referral code for tracking deposit attribution
+        bytes referralCode;
+    }
 }

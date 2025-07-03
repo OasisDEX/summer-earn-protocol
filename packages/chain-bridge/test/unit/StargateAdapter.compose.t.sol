@@ -72,6 +72,106 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         return OFTComposeMsgCodec.composeMsg(message);
     }
 
+    /**
+     * @dev Internal helper to properly encode fleet deposit messages using BridgeTypes struct
+     * @param fleetCommander Address of the fleet commander contract
+     * @param shareRecipient Address that will receive the fleet shares
+     * @param asset Token address being deposited
+     * @param amount Amount of tokens being deposited
+     * @param operationId Unique operation identifier
+     * @param originalUser Address of the user who initiated the transaction
+     * @param referralCode Optional referral code
+     * @return Properly encoded fleet deposit message
+     */
+    function _encodeFleetDepositMessage(
+        address fleetCommander,
+        address shareRecipient,
+        address asset,
+        uint256 amount,
+        bytes32 operationId,
+        address originalUser,
+        bytes memory referralCode
+    ) internal pure returns (bytes memory) {
+        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes
+            .FleetDepositMessageData({
+                fleetCommander: fleetCommander,
+                shareRecipient: shareRecipient,
+                asset: asset,
+                amount: amount,
+                sourceChainId: CHAIN_ID_A,
+                operationId: operationId,
+                originalUser: originalUser,
+                referralCode: referralCode
+            });
+
+        return abi.encode(BridgeTypes.FLEET_DEPOSIT_TYPE, messageData);
+    }
+
+    /**
+     * @dev Helper to add the composeFrom prefix to fleet deposit messages
+     * @dev CRITICAL: Stargate strips out the first 32 bytes (composeFrom) from compose messages
+     * @dev This prefix tells the destination adapter where the message originated from
+     * @param fleetDepositMessage The encoded fleet deposit message
+     * @return Properly formatted compose message with composeFrom prefix
+     */
+    function _addComposeFromPrefix(
+        bytes memory fleetDepositMessage
+    ) internal view returns (bytes memory) {
+        // Add composeFrom prefix - Stargate will strip this out and pass the rest to lzCompose
+        // The destination adapter needs to know which source adapter sent the message
+        return
+            abi.encodePacked(
+                bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter address
+                fleetDepositMessage
+            );
+    }
+
+    /**
+     * @dev Helper to create properly formatted OFT message for fleet deposits
+     * @param fleetCommander Address of the fleet commander contract
+     * @param shareRecipient Address that will receive the fleet shares
+     * @param asset Token address being deposited
+     * @param amount Amount of tokens being deposited
+     * @param operationId Unique operation identifier
+     * @param originalUser Address of the user who initiated the transaction
+     * @param referralCode Optional referral code
+     * @return Complete OFT-encoded message ready for lzCompose
+     */
+    function _createFleetDepositOFTMessage(
+        address fleetCommander,
+        address shareRecipient,
+        address asset,
+        uint256 amount,
+        bytes32 operationId,
+        address originalUser,
+        bytes memory referralCode
+    ) internal view returns (bytes memory) {
+        // Step 1: Encode the fleet deposit message
+        bytes memory fleetDepositMessage = _encodeFleetDepositMessage(
+            fleetCommander,
+            shareRecipient,
+            asset,
+            amount,
+            operationId,
+            originalUser,
+            referralCode
+        );
+
+        // Step 2: Add the composeFrom prefix (gets stripped by Stargate)
+        bytes memory properComposeMsg = _addComposeFromPrefix(
+            fleetDepositMessage
+        );
+
+        // Step 3: Create OFT encoded message
+        return
+            OFTComposeMsgCodec.encode(
+                uint64(1),
+                uint32(CHAIN_ID_A),
+                amount,
+                properComposeMsg
+            );
+    }
+
     function setUp() public override {
         super.setUp();
 
@@ -558,16 +658,21 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Create fleet deposit compose message where originalUser == shareRecipient (user-led)
+        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes
+            .FleetDepositMessageData({
+                fleetCommander: mockFleetCommander,
+                shareRecipient: testUser,
+                asset: address(tokenB),
+                amount: testAmount,
+                sourceChainId: CHAIN_ID_A,
+                operationId: testOperationId,
+                originalUser: testUser,
+                referralCode: bytes("")
+            });
+
         bytes memory actualFleetDepositMessage = abi.encode(
-            adapterB.FLEET_DEPOSIT_TYPE(), // messageType
-            mockFleetCommander, // fleetCommander
-            testUser, // shareRecipient
-            address(tokenB), // sourceAsset
-            testAmount, // amount
-            uint256(CHAIN_ID_A), // sourceChainId
-            testOperationId, // operationId
-            testUser, // originalUser - SAME as shareRecipient (user-led)
-            bytes("") // referralCode
+            BridgeTypes.FLEET_DEPOSIT_TYPE,
+            messageData
         );
 
         // Properly format for OFT encoding: [composeFrom][actualMessage]
@@ -696,32 +801,15 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(address(0x0000000000000000000000000000000000000001)); // ECRecover (governor)
         bridgeQueueB.addQueueManager(address(adapterB));
 
-        // Create fleet deposit compose message (the actual message content)
-        bytes memory actualFleetDepositMessage = abi.encode(
-            adapterB.FLEET_DEPOSIT_TYPE(), // messageType
-            mockFleetCommander, // fleetCommander
-            systemRecipient, // shareRecipient
-            address(tokenB), // sourceAsset
-            testAmount, // amount
-            uint256(CHAIN_ID_A), // sourceChainId
-            testOperationId, // operationId
+        // Create fleet deposit compose message using helper method (system transaction)
+        bytes memory oftEncodedMessage = _createFleetDepositOFTMessage(
+            mockFleetCommander,
+            systemRecipient, // shareRecipient DIFFERENT from originalUser (system transaction)
+            address(tokenB),
+            testAmount,
+            testOperationId,
             testUser, // originalUser - DIFFERENT from shareRecipient (system transaction)
             bytes("") // referralCode
-        );
-
-        // Properly format for OFT encoding: [composeFrom][actualMessage]
-        // composeFrom should be the originating adapter address (source chain adapter)
-        bytes memory properComposeMsg = abi.encodePacked(
-            bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter
-            actualFleetDepositMessage
-        );
-
-        // Create OFT encoded message with properly formatted compose data
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            properComposeMsg
         );
 
         // Mint tokens to adapter
@@ -792,30 +880,15 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             true
         );
 
-        // Create fleet deposit compose message where originalUser == shareRecipient (user-led)
-        bytes memory actualFleetDepositMessage = abi.encode(
-            adapterB.FLEET_DEPOSIT_TYPE(), // messageType
-            address(mockFleetCommander), // fleetCommander
+        // Create fleet deposit compose message using helper method
+        bytes memory oftEncodedMessage = _createFleetDepositOFTMessage(
+            address(mockFleetCommander),
             testUser, // shareRecipient
-            address(tokenB), // sourceAsset
-            testAmount, // amount
-            uint256(CHAIN_ID_A), // sourceChainId
-            testOperationId, // operationId
+            address(tokenB),
+            testAmount,
+            testOperationId,
             testUser, // originalUser - SAME as shareRecipient (user-led)
             bytes("") // referralCode
-        );
-
-        // Properly format for OFT encoding: [composeFrom][actualMessage]
-        bytes memory properComposeMsg = abi.encodePacked(
-            bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter
-            actualFleetDepositMessage
-        );
-
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            properComposeMsg
         );
 
         // Mint tokens to adapter
@@ -875,194 +948,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             0,
             "No failed operations should be recorded for successful deposits"
         );
-    }
-
-    function testUserLedFleetDepositFlowDebug() public {
-        useNetworkB();
-
-        uint256 testAmount = 1 ether;
-        address testUser = makeAddr("testUser");
-        bytes32 testOperationId = keccak256("user-led-operation");
-
-        // Create a mock fleet commander that will revert deposits
-        address mockFleetCommander = makeAddr("mockFleetCommander");
-        vm.mockCall(
-            mockFleetCommander,
-            abi.encodeWithSignature("asset()"),
-            abi.encode(address(tokenB))
-        );
-        vm.mockCall(
-            mockFleetCommander,
-            abi.encodeWithSignature("maxDeposit(address)", address(adapterB)),
-            abi.encode(type(uint256).max)
-        );
-        // Make the deposit call revert
-        vm.mockCallRevert(
-            mockFleetCommander,
-            abi.encodeWithSignature(
-                "deposit(uint256,address)",
-                testAmount,
-                testUser
-            ),
-            "Fleet deposit failed"
-        );
-
-        // Create fleet deposit compose message where originalUser == shareRecipient (user-led)
-        bytes memory actualFleetDepositMessage = abi.encode(
-            adapterB.FLEET_DEPOSIT_TYPE(), // messageType
-            mockFleetCommander, // fleetCommander
-            testUser, // shareRecipient
-            address(tokenB), // sourceAsset
-            testAmount, // amount
-            uint256(CHAIN_ID_A), // sourceChainId
-            testOperationId, // operationId
-            testUser, // originalUser - SAME as shareRecipient (user-led)
-            bytes("") // referralCode
-        );
-
-        // Properly format for OFT encoding: [composeFrom][actualMessage]
-        bytes memory properComposeMsg = abi.encodePacked(
-            bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter
-            actualFleetDepositMessage
-        );
-
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            properComposeMsg
-        );
-
-        // Mint tokens to adapter
-        tokenB.mint(address(adapterB), testAmount);
-
-        // Mock the Stargate contract to return the correct token
-        address mockStargateFrom = makeAddr("mockStargateFrom");
-        vm.mockCall(
-            mockStargateFrom,
-            abi.encodeWithSignature("token()"),
-            abi.encode(address(tokenB))
-        );
-
-        // Just try to call lzCompose and see if it reverts with a specific error
-        vm.prank(lzEndpointB);
-        try
-            adapterB.lzCompose(
-                mockStargateFrom,
-                bytes32("test-guid"),
-                oftEncodedMessage,
-                address(0),
-                hex""
-            )
-        {
-            console.log("SUCCESS: lzCompose executed without revert");
-        } catch Error(string memory reason) {
-            console.log("ERROR: lzCompose reverted with reason:", reason);
-        } catch (bytes memory lowLevelData) {
-            console.log("ERROR: lzCompose reverted with low-level error");
-            console.logBytes(lowLevelData);
-        }
-    }
-
-    function testUserLedFleetDepositFlowDebugDetailed() public {
-        useNetworkB();
-
-        uint256 testAmount = 1 ether;
-        address testUser = makeAddr("testUser");
-        bytes32 testOperationId = keccak256("user-led-operation");
-
-        // Create a mock fleet commander that will revert deposits
-        address mockFleetCommander = makeAddr("mockFleetCommander");
-        vm.mockCall(
-            mockFleetCommander,
-            abi.encodeWithSignature("asset()"),
-            abi.encode(address(tokenB))
-        );
-
-        // Create fleet deposit compose message where originalUser == shareRecipient (user-led)
-        bytes memory actualFleetDepositMessage = abi.encode(
-            adapterB.FLEET_DEPOSIT_TYPE(), // messageType
-            mockFleetCommander, // fleetCommander
-            testUser, // shareRecipient
-            address(tokenB), // sourceAsset
-            testAmount, // amount
-            uint256(CHAIN_ID_A), // sourceChainId
-            testOperationId, // operationId
-            testUser, // originalUser - SAME as shareRecipient (user-led)
-            bytes("") // referralCode
-        );
-
-        // Let's decode the message manually to see what we get
-        (
-            bytes32 messageType,
-            address decodedFleetCommander,
-            address decodedShareRecipient,
-            address decodedSourceAsset,
-            uint256 decodedAmount,
-            uint256 decodedSourceChainId,
-            bytes32 decodedOperationId,
-            address decodedOriginalUser,
-            bytes memory decodedReferralCode
-        ) = abi.decode(
-                actualFleetDepositMessage,
-                (
-                    bytes32,
-                    address,
-                    address,
-                    address,
-                    uint256,
-                    uint256,
-                    bytes32,
-                    address,
-                    bytes
-                )
-            );
-
-        console.log("=== MANUAL DECODE RESULTS ===");
-        console.log("messageType:", uint256(messageType));
-        console.log("fleetCommander:", decodedFleetCommander);
-        console.log("shareRecipient:", decodedShareRecipient);
-        console.log("sourceAsset:", decodedSourceAsset);
-        console.log("amount:", decodedAmount);
-        console.log("sourceChainId:", decodedSourceChainId);
-        console.log("operationId:", uint256(decodedOperationId));
-        console.log("originalUser:", decodedOriginalUser);
-        console.log("referralCode length:", decodedReferralCode.length);
-
-        // Let's also check the OFT encoding
-        bytes memory properComposeMsg = abi.encodePacked(
-            bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter
-            actualFleetDepositMessage
-        );
-
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            properComposeMsg
-        );
-
-        console.log("=== OFT ENCODED MESSAGE ===");
-        console.logBytes(oftEncodedMessage);
-
-        console.log("=== OFT DECODE RESULTS (SIMULATED) ===");
-        console.log("Expected amountLD:", testAmount);
-
-        // Mint tokens to adapter
-        tokenB.mint(address(adapterB), testAmount);
-
-        // Mock the Stargate contract to return the correct token
-        address mockStargateFrom = makeAddr("mockStargateFrom");
-        vm.mockCall(
-            mockStargateFrom,
-            abi.encodeWithSignature("token()"),
-            abi.encode(address(tokenB))
-        );
-
-        console.log("=== ADAPTER STATE ===");
-        console.log("adapter balance:", tokenB.balanceOf(address(adapterB)));
-        console.log("destinationAsset (tokenB):", address(tokenB));
-        console.log("testAmount:", testAmount);
     }
 
     function testUserRefundDirectly() public {

@@ -57,9 +57,6 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
     /// @notice The BridgeRouter that manages bridge adapters
     IBridgeRouter public bridgeRouter;
 
-    /// @notice Fleet deposit message type identifier
-    bytes32 public constant FLEET_DEPOSIT_TYPE = keccak256("FLEET_DEPOSIT");
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -183,18 +180,20 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
         uint256 amount,
         bytes memory referralCode
     ) public view returns (bytes memory composeMessage) {
-        return
-            abi.encode(
-                FLEET_DEPOSIT_TYPE,
-                fleetCommander,
-                shareRecipient,
-                asset,
-                amount,
-                block.chainid,
-                bytes32(0), // Operation ID placeholder
-                msg.sender, // Original user
-                referralCode
-            );
+        // Create the struct and encode it directly
+        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes
+            .FleetDepositMessageData({
+                fleetCommander: fleetCommander,
+                shareRecipient: shareRecipient,
+                asset: asset,
+                amount: amount,
+                sourceChainId: block.chainid,
+                operationId: bytes32(0), // Operation ID placeholder
+                originalUser: msg.sender, // Original user
+                referralCode: referralCode
+            });
+
+        return abi.encode(BridgeTypes.FLEET_DEPOSIT_TYPE, messageData);
     }
 
     /*//////////////////////////////////////////////////////////////
