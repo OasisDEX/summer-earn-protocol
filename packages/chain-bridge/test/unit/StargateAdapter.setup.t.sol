@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
@@ -10,6 +10,7 @@ import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
 
 // Base test contract with common setup used by all Stargate adapter tests
 contract StargateAdapterSetupTest is TestHelperOz5 {
@@ -55,6 +56,10 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     address public lzEndpointA;
     address public lzEndpointB;
 
+    // Add harbor command mocks
+    MockHarborCommand public harborCommandA;
+    MockHarborCommand public harborCommandB;
+
     function setUp() public virtual override {
         super.setUp();
 
@@ -71,6 +76,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         accessManagerA = new ProtocolAccessManager(governor);
+        harborCommandA = new MockHarborCommand();
         bridgeQueueA = new BridgeQueue(
             address(accessManagerA),
             address(0), // Router set later
@@ -92,7 +98,8 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         adapterA = new StargateAdapter(
             address(routerA),
             governor,
-            lzEndpointA // Use real LayerZero endpoint
+            lzEndpointA, // Use real LayerZero endpoint
+            address(harborCommandA) // Use mock HarborCommand
         );
 
         adapterA.addSupportedChain(
@@ -115,6 +122,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         accessManagerB = new ProtocolAccessManager(governor);
+        harborCommandB = new MockHarborCommand();
         bridgeQueueB = new BridgeQueue(
             address(accessManagerB),
             address(0), // Router set later
@@ -136,7 +144,8 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         adapterB = new StargateAdapter(
             address(routerB),
             governor,
-            lzEndpointB // Use real LayerZero endpoint
+            lzEndpointB, // Use real LayerZero endpoint
+            address(harborCommandB) // Use mock HarborCommand
         );
 
         adapterB.addSupportedChain(

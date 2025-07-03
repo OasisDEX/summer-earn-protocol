@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.26;
 
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
@@ -11,14 +11,22 @@ contract StargateAdapterTestWrapper is StargateAdapter {
     constructor(
         address _bridgeRouter,
         address _owner,
-        address _lzEndpoint
-    ) StargateAdapter(_bridgeRouter, _owner, _lzEndpoint) {}
+        address _lzEndpoint,
+        address _harborCommand
+    ) StargateAdapter(_bridgeRouter, _owner, _lzEndpoint, _harborCommand) {}
 
     /**
      * @notice Exposes the internal _isFleetProxy method for testing
      */
     function isFleetProxy(address recipient) external view returns (bool) {
         return _isFleetProxy(recipient);
+    }
+
+    /**
+     * @notice Exposes the internal _validateFleetCommander method for testing
+     */
+    function validateFleetCommander(address fleetCommander) external view {
+        _validateFleetCommander(fleetCommander);
     }
 
     /**
@@ -56,5 +64,26 @@ contract StargateAdapterTestWrapper is StargateAdapter {
         });
 
         failedOperationIds.push(operationId);
+    }
+
+    /**
+     * @notice Test function to call _handleUserLedFailure directly
+     */
+    function testHandleUserLedFailure(
+        address asset,
+        uint256 amount,
+        address user,
+        bytes32 operationId,
+        address originalUser,
+        uint16 sourceChainId
+    ) external {
+        _handleUserInitiatedFailure(
+            asset,
+            amount,
+            user,
+            operationId,
+            originalUser,
+            sourceChainId
+        );
     }
 }

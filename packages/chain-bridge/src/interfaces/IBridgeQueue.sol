@@ -77,7 +77,8 @@ interface IBridgeQueue {
         uint256 amount
     );
 
-    /* @notice Operation queued for later execution.
+    /**
+     * @notice Operation queued for later execution.
      * @dev This event is emitted when a new operation is queued.
      * @param queueId The unique identifier for the queued operation.
      * @param operationType The type of operation being queued.

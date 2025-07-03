@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
+import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
@@ -12,6 +13,47 @@ import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
+
+// Simple mock fleet commander that actually transfers tokens
+contract SimpleMockFleetCommander {
+    using SafeERC20 for IERC20;
+
+    IERC20 public immutable asset;
+
+    constructor(address _asset) {
+        asset = IERC20(_asset);
+    }
+
+    function deposit(
+        uint256 amount,
+        address /* receiver */
+    ) external returns (uint256) {
+        // Transfer tokens from caller to this contract (like a real fleet commander would)
+        asset.safeTransferFrom(msg.sender, address(this), amount);
+        // Return shares (1:1 ratio for simplicity)
+        return amount;
+    }
+
+    function deposit(
+        uint256 amount,
+        address /* receiver */,
+        bytes memory /* referralCode */
+    ) external returns (uint256) {
+        // Transfer tokens from caller to this contract (like a real fleet commander would)
+        asset.safeTransferFrom(msg.sender, address(this), amount);
+        // Return shares (1:1 ratio for simplicity)
+        return amount;
+    }
+
+    function maxDeposit(
+        address /* depositor */
+    ) external pure returns (uint256) {
+        return type(uint256).max;
+    }
+}
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyA;
@@ -28,6 +70,106 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes calldata message
     ) external pure returns (bytes memory) {
         return OFTComposeMsgCodec.composeMsg(message);
+    }
+
+    /**
+     * @dev Internal helper to properly encode fleet deposit messages using BridgeTypes struct
+     * @param fleetCommander Address of the fleet commander contract
+     * @param shareRecipient Address that will receive the fleet shares
+     * @param asset Token address being deposited
+     * @param amount Amount of tokens being deposited
+     * @param operationId Unique operation identifier
+     * @param originalUser Address of the user who initiated the transaction
+     * @param referralCode Optional referral code
+     * @return Properly encoded fleet deposit message
+     */
+    function _encodeFleetDepositMessage(
+        address fleetCommander,
+        address shareRecipient,
+        address asset,
+        uint256 amount,
+        bytes32 operationId,
+        address originalUser,
+        bytes memory referralCode
+    ) internal pure returns (bytes memory) {
+        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes
+            .FleetDepositMessageData({
+                fleetCommander: fleetCommander,
+                shareRecipient: shareRecipient,
+                asset: asset,
+                amount: amount,
+                sourceChainId: CHAIN_ID_A,
+                operationId: operationId,
+                originalUser: originalUser,
+                referralCode: referralCode
+            });
+
+        return abi.encode(BridgeTypes.USER_FLEET_DEPOSIT_TYPE, messageData);
+    }
+
+    /**
+     * @dev Helper to add the composeFrom prefix to fleet deposit messages
+     * @dev CRITICAL: Stargate strips out the first 32 bytes (composeFrom) from compose messages
+     * @dev This prefix tells the destination adapter where the message originated from
+     * @param message The encoded fleet deposit message
+     * @return Properly formatted compose message with composeFrom prefix
+     */
+    function _addComposeFromPrefix(
+        bytes memory message
+    ) internal view returns (bytes memory) {
+        // Add composeFrom prefix - Stargate will strip this out and pass the rest to lzCompose
+        // The destination adapter needs to know which source adapter sent the message
+        return
+            abi.encodePacked(
+                bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter address
+                message
+            );
+    }
+
+    /**
+     * @dev Helper to create properly formatted OFT message for fleet deposits
+     * @param fleetCommander Address of the fleet commander contract
+     * @param shareRecipient Address that will receive the fleet shares
+     * @param asset Token address being deposited
+     * @param amount Amount of tokens being deposited
+     * @param operationId Unique operation identifier
+     * @param originalUser Address of the user who initiated the transaction
+     * @param referralCode Optional referral code
+     * @return Complete OFT-encoded message ready for lzCompose
+     */
+    function _createFleetDepositOFTMessage(
+        address fleetCommander,
+        address shareRecipient,
+        address asset,
+        uint256 amount,
+        bytes32 operationId,
+        address originalUser,
+        bytes memory referralCode
+    ) internal view returns (bytes memory) {
+        // Step 1: Encode the fleet deposit message
+        bytes memory fleetDepositMessage = _encodeFleetDepositMessage(
+            fleetCommander,
+            shareRecipient,
+            asset,
+            amount,
+            operationId,
+            originalUser,
+            referralCode
+        );
+
+        // Step 2: Add the composeFrom prefix (gets stripped by Stargate)
+        bytes memory properComposeMsg = _addComposeFromPrefix(
+            fleetDepositMessage
+        );
+
+        // Step 3: Create OFT encoded message
+        return
+            OFTComposeMsgCodec.encode(
+                uint64(1),
+                uint32(CHAIN_ID_A),
+                amount,
+                properComposeMsg
+            );
     }
 
     function setUp() public override {
@@ -482,6 +624,389 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         console.log(
             "SUCCESS: Fleet proxy correctly extracted as first parameter!"
+        );
+    }
+
+    function testUserLedFleetDepositFlow() public {
+        useNetworkB();
+
+        uint256 testAmount = 1 ether;
+        address testUser = makeAddr("testUser");
+        bytes32 testOperationId = keccak256("user-led-operation");
+
+        // Create a mock fleet commander that will revert deposits
+        address mockFleetCommander = makeAddr("mockFleetCommander");
+        vm.mockCall(
+            mockFleetCommander,
+            abi.encodeWithSignature("asset()"),
+            abi.encode(address(tokenB))
+        );
+        vm.mockCall(
+            mockFleetCommander,
+            abi.encodeWithSignature("maxDeposit(address)", address(adapterB)),
+            abi.encode(type(uint256).max)
+        );
+        // Make the deposit call revert
+        vm.mockCallRevert(
+            mockFleetCommander,
+            abi.encodeWithSignature(
+                "deposit(uint256,address)",
+                testAmount,
+                testUser
+            ),
+            "Fleet deposit failed"
+        );
+
+        // Create fleet deposit compose message where originalUser == shareRecipient (user-led)
+        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes
+            .FleetDepositMessageData({
+                fleetCommander: mockFleetCommander,
+                shareRecipient: testUser,
+                asset: address(tokenB),
+                amount: testAmount,
+                sourceChainId: CHAIN_ID_A,
+                operationId: testOperationId,
+                originalUser: testUser,
+                referralCode: bytes("")
+            });
+
+        bytes memory actualFleetDepositMessage = abi.encode(
+            BridgeTypes.USER_FLEET_DEPOSIT_TYPE,
+            messageData
+        );
+
+        // Properly format for OFT encoding: [composeFrom][actualMessage]
+        bytes memory properComposeMsg = abi.encodePacked(
+            bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter
+            actualFleetDepositMessage
+        );
+
+        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
+            uint64(1),
+            uint32(CHAIN_ID_A),
+            testAmount,
+            properComposeMsg
+        );
+
+        // Mint tokens to adapter
+        tokenB.mint(address(adapterB), testAmount);
+
+        // Mock the Stargate contract to return the correct token
+        address mockStargateFrom = makeAddr("mockStargateFrom");
+        vm.mockCall(
+            mockStargateFrom,
+            abi.encodeWithSignature("token()"),
+            abi.encode(address(tokenB))
+        );
+
+        // Record user balance before
+        uint256 userBalanceBefore = tokenB.balanceOf(testUser);
+
+        // Expect the UserRefundIssued event
+        vm.expectEmit(true, true, true, true);
+        emit StargateAdapter.UserRefundIssued(
+            testOperationId,
+            address(tokenB),
+            testAmount,
+            testUser,
+            testUser,
+            CHAIN_ID_A,
+            "Fleet deposit failed"
+        );
+
+        // Expect the CrossChainFleetDepositFailed event
+        vm.expectEmit(true, true, true, true);
+        emit StargateAdapter.CrossChainFleetDepositFailed(
+            testOperationId,
+            address(0), // fleetCommander set to address(0) for user refunds
+            address(tokenB),
+            testAmount,
+            "Fleet deposit failed - assets sent to user"
+        );
+
+        // Execute lzCompose
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            mockStargateFrom,
+            bytes32("test-guid"),
+            oftEncodedMessage,
+            address(0),
+            hex""
+        );
+
+        // Verify user received the tokens directly
+        uint256 userBalanceAfter = tokenB.balanceOf(testUser);
+        assertEq(
+            userBalanceAfter,
+            userBalanceBefore + testAmount,
+            "User should receive tokens directly"
+        );
+
+        // Verify adapter balance is zero (tokens were used for deposit)
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            0,
+            "Adapter should not hold any tokens after successful deposit"
+        );
+
+        // Verify no failed compose record was created (user-led transactions don't create recovery records)
+        bytes32[] memory failedOps = adapterB.getFailedOperations();
+        assertEq(
+            failedOps.length,
+            0,
+            "No failed operations should be recorded for user-led transactions"
+        );
+    }
+
+    function testSystemTransactionPartialFailureWithRecovery() public {
+        useNetworkB();
+
+        uint256 testAmount = 1 ether;
+        address testUser = makeAddr("testUser");
+        address systemRecipient = makeAddr("systemRecipient");
+        bytes32 testOperationId = keccak256("system-operation");
+
+        // Deploy a mock fleet proxy that can receive tokens but will fail receiveMessageWithAssets
+        MockFleetProxy mockFleetCommander = new MockFleetProxy(address(tokenB));
+        mockFleetCommander.setShouldRevert(true); // Make receiveMessageWithAssets fail
+
+        // Add the adapter as a queue manager so it can queue recovery operations
+        vm.prank(address(0x0000000000000000000000000000000000000001)); // ECRecover (governor)
+        bridgeQueueB.addQueueManager(address(adapterB));
+
+        // Create REGULAR asset transfer message (NOT fleet deposit message)
+        // This will route to _handleAssetTransferMessage which has recovery mechanism
+        bytes memory customComposeMessage = abi.encode(
+            address(mockFleetCommander), // recipient (fleet commander)
+            address(tokenB), // asset
+            testAmount, // amount
+            uint256(CHAIN_ID_A), // sourceChainId as uint256
+            testOperationId, // operationId
+            testUser // originator (original user)
+        );
+
+        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
+            uint64(1),
+            uint32(CHAIN_ID_A),
+            testAmount,
+            _addComposeFromPrefix(customComposeMessage)
+        );
+
+        // Mint tokens to adapter
+        tokenB.mint(address(adapterB), testAmount);
+
+        // Mock the Stargate contract to return the correct token
+        address mockStargateFrom = makeAddr("mockStargateFrom");
+        vm.mockCall(
+            mockStargateFrom,
+            abi.encodeWithSignature("token()"),
+            abi.encode(address(tokenB))
+        );
+
+        // Record balances before
+        uint256 userBalanceBefore = tokenB.balanceOf(testUser);
+        uint256 systemRecipientBalanceBefore = tokenB.balanceOf(
+            systemRecipient
+        );
+        uint256 fleetCommanderBalanceBefore = tokenB.balanceOf(
+            address(mockFleetCommander)
+        );
+
+        // Expect the FailedComposeQueuedForRecovery event
+        vm.expectEmit(true, false, true, true); // Don't check recoveryQueueId since it's generated
+        emit StargateAdapter.FailedComposeQueuedForRecovery(
+            testOperationId,
+            bytes32(0), // recoveryQueueId - don't check this specific value
+            address(tokenB),
+            testAmount,
+            testUser, // originator - tokens should be queued back to original user
+            CHAIN_ID_A
+        );
+
+        // Execute lzCompose
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            mockStargateFrom,
+            bytes32("test-guid"),
+            oftEncodedMessage,
+            address(0),
+            hex""
+        );
+
+        // Verify neither user nor system recipient received tokens directly
+        assertEq(
+            tokenB.balanceOf(testUser),
+            userBalanceBefore,
+            "User should not receive tokens directly - should be queued for recovery"
+        );
+        assertEq(
+            tokenB.balanceOf(systemRecipient),
+            systemRecipientBalanceBefore,
+            "System recipient should not receive tokens when deposit fails"
+        );
+
+        // Verify fleet commander received the tokens (they were transferred before the receiveMessageWithAssets call failed)
+        assertEq(
+            tokenB.balanceOf(address(mockFleetCommander)),
+            fleetCommanderBalanceBefore + testAmount,
+            "Fleet commander should have received tokens before receiveMessageWithAssets failed"
+        );
+
+        // Verify adapter balance is zero (tokens were used)
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            0,
+            "Adapter should not hold any tokens after transfer"
+        );
+    }
+
+    function testUserLedFleetDepositSuccessFlow() public {
+        useNetworkB();
+
+        uint256 testAmount = 1 ether;
+        address testUser = makeAddr("testUser");
+        bytes32 testOperationId = keccak256("user-led-success-operation");
+
+        // Create a mock fleet commander that will succeed and actually transfer tokens
+        SimpleMockFleetCommander mockFleetCommander = new SimpleMockFleetCommander(
+                address(tokenB)
+            );
+
+        // Register the fleet commander as active in harbor command
+        harborCommandB.setActiveFleetCommander(
+            address(mockFleetCommander),
+            true
+        );
+
+        // Create fleet deposit compose message using helper method
+        bytes memory oftEncodedMessage = _createFleetDepositOFTMessage(
+            address(mockFleetCommander),
+            testUser, // shareRecipient
+            address(tokenB),
+            testAmount,
+            testOperationId,
+            testUser, // originalUser - SAME as shareRecipient (user-led)
+            bytes("") // referralCode
+        );
+
+        // Mint tokens to adapter
+        tokenB.mint(address(adapterB), testAmount);
+
+        // Mock the Stargate contract to return the correct token
+        address mockStargateFrom = makeAddr("mockStargateFrom");
+        vm.mockCall(
+            mockStargateFrom,
+            abi.encodeWithSignature("token()"),
+            abi.encode(address(tokenB))
+        );
+
+        // Expect the CrossChainFleetDepositCompleted event
+        vm.expectEmit(true, true, true, true);
+        emit StargateAdapter.CrossChainFleetDepositCompleted(
+            testOperationId,
+            address(mockFleetCommander),
+            testUser,
+            address(tokenB),
+            testAmount,
+            testAmount, // ERC4626Mock defaults to 1:1 share ratio for first deposit
+            CHAIN_ID_A
+        );
+
+        // Expect the ComposedAssetHandled event
+        vm.expectEmit(true, true, true, true);
+        emit StargateAdapter.ComposedAssetHandled(
+            testOperationId,
+            address(mockFleetCommander),
+            address(tokenB),
+            testAmount,
+            CHAIN_ID_A
+        );
+
+        // Execute lzCompose
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            mockStargateFrom,
+            bytes32("test-guid"),
+            oftEncodedMessage,
+            address(0),
+            hex""
+        );
+
+        // Verify adapter balance is zero (tokens were used for deposit)
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            0,
+            "Adapter should not hold any tokens after successful deposit"
+        );
+
+        // Verify no failed compose record was created
+        bytes32[] memory failedOps = adapterB.getFailedOperations();
+        assertEq(
+            failedOps.length,
+            0,
+            "No failed operations should be recorded for successful deposits"
+        );
+    }
+
+    function testUserRefundDirectly() public {
+        useNetworkB();
+
+        uint256 testAmount = 1 ether;
+        address testUser = makeAddr("testUser");
+        bytes32 testOperationId = keccak256("user-led-operation");
+
+        // Record user balance before
+        uint256 userBalanceBefore = tokenB.balanceOf(testUser);
+
+        // Call the _handleUserLedFailure function directly using a wrapper
+        StargateAdapterTestWrapper wrapperAdapter = new StargateAdapterTestWrapper(
+                address(routerB),
+                address(this),
+                address(lzEndpointB),
+                address(0xdead) // Mock HarborCommand address for testing
+            );
+
+        // Transfer tokens to wrapper for test
+        tokenB.mint(address(wrapperAdapter), testAmount);
+
+        // Expect the UserRefundIssued event from the wrapper instance
+        vm.expectEmit(true, true, true, true);
+        emit StargateAdapter.UserRefundIssued(
+            testOperationId,
+            address(tokenB),
+            testAmount,
+            testUser,
+            testUser,
+            CHAIN_ID_A,
+            "Fleet deposit failed"
+        );
+
+        // Expect the CrossChainFleetDepositFailed event from the wrapper instance
+        vm.expectEmit(true, true, true, true);
+        emit StargateAdapter.CrossChainFleetDepositFailed(
+            testOperationId,
+            address(0), // fleetCommander set to address(0) for user refunds
+            address(tokenB),
+            testAmount,
+            "Fleet deposit failed - assets sent to user"
+        );
+
+        // Call the function directly
+        wrapperAdapter.testHandleUserLedFailure(
+            address(tokenB),
+            testAmount,
+            testUser,
+            testOperationId,
+            testUser,
+            CHAIN_ID_A
+        );
+
+        // Verify user received the tokens directly
+        uint256 userBalanceAfter = tokenB.balanceOf(testUser);
+        assertEq(
+            userBalanceAfter,
+            userBalanceBefore + testAmount,
+            "User should receive tokens directly"
         );
     }
 }
