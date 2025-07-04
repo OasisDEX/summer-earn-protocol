@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import "../Ark.sol";
+import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {ICrossChainStateReadReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainStateReadReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
@@ -20,6 +21,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
  */
 contract CrossChainArk is
     Ark,
+    CrossChainConfigManaged,
     ICrossChainAssetReceiver,
     ICrossChainStateReadReceiver,
     IInflightAssetTracking
@@ -32,17 +34,8 @@ contract CrossChainArk is
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when the provided BridgeQueue address is zero.
-    error InvalidBridgeQueue();
-
-    /// @notice Thrown when the provided BridgeRouter address is zero.
-    error InvalidBridgeRouter();
-
     /// @notice Thrown when the provided satellite chain ID is zero.
     error InvalidSatelliteChain();
-
-    /// @notice Thrown when the provided target proxy address is zero.
-    error InvalidTargetProxy();
 
     /// @notice Thrown when the caller is not authorized to perform the action.
     error Unauthorized();
@@ -71,19 +64,10 @@ contract CrossChainArk is
     /// @notice Thrown when the provided asset address is invalid.
     error InvalidAsset();
 
-    /// @notice Thrown when the provided registry address is invalid.
-    error InvalidRegistry();
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The BridgeQueue contract for queuing cross-chain operations
-    IBridgeQueue public immutable bridgeQueue;
-    /// @notice The BridgeRouter contract for executing cross-chain operations
-    IBridgeRouter public immutable bridgeRouter;
-    /// @notice The CrossChainRegistry contract for managing cross-chain relationships
-    ICrossChainRegistry public immutable crossChainRegistry;
     /// @notice The satellite chain ID where the fleet proxy operates
     uint16 public immutable satelliteChainId;
 
@@ -116,27 +100,16 @@ contract CrossChainArk is
 
     /**
      * @notice Constructor to set up the CrossChainArk
-     * @param _bridgeQueue Address of the BridgeQueue contract
-     * @param _bridgeRouter Address of the BridgeRouter contract
-     * @param _crossChainRegistry Address of the CrossChainRegistry contract
+     * @param _crossChainConfigManager Address of the CrossChainConfigManager contract
      * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address _bridgeQueue,
-        address _bridgeRouter,
-        address _crossChainRegistry,
+        address _crossChainConfigManager,
         uint16 _satelliteChainId,
         ArkParams memory _params
-    ) Ark(_params) {
-        if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
-        if (_crossChainRegistry == address(0)) revert InvalidRegistry();
+    ) Ark(_params) CrossChainConfigManaged(_crossChainConfigManager) {
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
-
-        bridgeQueue = IBridgeQueue(_bridgeQueue);
-        bridgeRouter = IBridgeRouter(_bridgeRouter);
-        crossChainRegistry = ICrossChainRegistry(_crossChainRegistry);
         satelliteChainId = _satelliteChainId;
     }
 
@@ -157,10 +130,7 @@ contract CrossChainArk is
     /// @param amount Amount of assets that are now in-flight
     function updateInflightAssets(uint256 amount) external {
         // Only the bridge queue or router should be able to call this
-        if (
-            msg.sender != address(bridgeQueue) &&
-            msg.sender != address(bridgeRouter)
-        ) {
+        if (msg.sender != bridgeQueue() && msg.sender != bridgeRouter()) {
             revert Unauthorized();
         }
 
@@ -181,7 +151,7 @@ contract CrossChainArk is
         address proxyAddress = _getTargetProxy();
 
         // Queue a state read to get the total assets from the FleetProxy on the satellite chain
-        queueId = bridgeQueue.queueReadState(
+        queueId = IBridgeQueue(bridgeQueue()).queueReadState(
             satelliteChainId,
             proxyAddress,
             IFleetProxy.totalAssets.selector,
@@ -258,9 +228,9 @@ contract CrossChainArk is
         address proxyAddress = _getTargetProxy();
 
         // Approve BridgeQueue to spend tokens
-        config.asset.approve(address(bridgeQueue), amount);
+        config.asset.approve(bridgeQueue(), amount);
 
-        bridgeQueue.queueTransferAssets(
+        IBridgeQueue(bridgeQueue()).queueTransferAssets(
             satelliteChainId,
             address(config.asset),
             amount,
@@ -295,7 +265,7 @@ contract CrossChainArk is
         bytes32 requestId,
         uint16 sourceChainId
     ) external {
-        if (msg.sender != address(bridgeRouter)) revert Unauthorized();
+        if (msg.sender != bridgeRouter()) revert Unauthorized();
         if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
         if (requestor != address(this)) revert InvalidRequestor();
 
@@ -322,8 +292,8 @@ contract CrossChainArk is
     ) external {
         // Allow calls from BridgeRouter or registered bridge adapters
         if (
-            msg.sender != address(bridgeRouter) &&
-            !bridgeRouter.isValidAdapter(msg.sender)
+            msg.sender != bridgeRouter() &&
+            !IBridgeRouter(bridgeRouter()).isValidAdapter(msg.sender)
         ) {
             revert Unauthorized();
         }
@@ -348,11 +318,12 @@ contract CrossChainArk is
      */
     function _getTargetProxy() internal view returns (address proxyAddress) {
         ICrossChainRegistry.CrossChainRelation
-            memory relation = crossChainRegistry.getRelationshipByTarget(
-                address(this),
-                ARK_FLEET_RELATIONSHIP,
-                satelliteChainId
-            );
+            memory relation = ICrossChainRegistry(crossChainRegistry())
+                .getRelationshipByTarget(
+                    address(this),
+                    ARK_FLEET_RELATIONSHIP,
+                    satelliteChainId
+                );
         return relation.targetContract;
     }
 

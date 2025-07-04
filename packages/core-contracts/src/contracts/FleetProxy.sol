@@ -1,32 +1,35 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
-import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ProtocolAccessManaged, ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
+import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
+import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
 /**
  * @title FleetProxy
- * @author SummerFi
- * @notice Proxy contract that receives and holds assets on a satellite chain on behalf of a source chain fleet
- * @dev Implements ICrossChainReceiver to handle cross-chain messages
+ * @notice Proxy contract for managing cross-chain Fleet operations
+ * @dev Implements cross-chain asset reception and management for Fleet contracts
  */
 contract FleetProxy is
-    IFleetProxy,
-    IInflightAssetTracking,
     ProtocolAccessManaged,
-    ReentrancyGuard,
-    Pausable
+    CrossChainConfigManaged,
+    ICrossChainAssetReceiver,
+    IInflightAssetTracking,
+    IFleetProxy,
+    Pausable,
+    ReentrancyGuard
 {
     using SafeERC20 for IERC20;
 
@@ -37,31 +40,24 @@ contract FleetProxy is
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when bridge router address is invalid
-    error InvalidBridgeRouter();
-    /// @notice Error thrown when bridge queue address is invalid
-    error InvalidBridgeQueue();
-    /// @notice Error thrown when registry address is invalid
-    error InvalidRegistry();
     /// @notice Error thrown when fleet contract address is invalid
     error InvalidFleetContract();
     /// @notice Error thrown when withdrawal failed
     error WithdrawalFailed();
     /// @notice Thrown when the caller is not authorized to perform the action.
     error Unauthorized();
+    /// @notice Thrown when the provided asset address is invalid.
+    error InvalidAsset();
+    /// @notice Thrown when the source chain ID is invalid.
+    error InvalidSourceChain();
+    /// @notice Thrown when there are no assets to process
+    error NoAssets();
+    /// @notice Thrown when the caller is not a registered adapter
+    error CallerNotRegisteredAdapter();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice The bridge router used for cross-chain communication
-    IBridgeRouter public immutable bridgeRouter;
-
-    /// @notice The bridge queue used for queuing cross-chain transfers
-    IBridgeQueue public immutable bridgeQueue;
-
-    /// @notice The CrossChainRegistry contract for managing cross-chain relationships
-    ICrossChainRegistry public immutable crossChainRegistry;
 
     /// @notice The address of the Fleet contract that this proxy covers
     address public immutable fleetContract;
@@ -72,6 +68,9 @@ contract FleetProxy is
     /*//////////////////////////////////////////////////////////////
                             EVENTS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when message content is not expected
+    event MessageContentNotExpected();
 
     /// @notice Emitted when assets are withdrawn and transferred back to source chain
     event AssetsWithdrawnAndTransferred(
@@ -87,26 +86,18 @@ contract FleetProxy is
     /**
      * @notice Initializes the CrossChainFleetProxy
      * @param _accessManager Address of the access manager
-     * @param _bridgeRouter Address of the bridge router
-     * @param _bridgeQueue Address of the bridge queue
-     * @param _crossChainRegistry Address of the CrossChainRegistry contract
+     * @param _crossChainConfigManager Address of the CrossChainConfigManager contract
      * @param _fleetContract Address of the Fleet contract this proxy covers
      */
     constructor(
         address _accessManager,
-        address _bridgeRouter,
-        address _bridgeQueue,
-        address _crossChainRegistry,
+        address _crossChainConfigManager,
         address _fleetContract
-    ) ProtocolAccessManaged(_accessManager) {
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
-        if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
-        if (_crossChainRegistry == address(0)) revert InvalidRegistry();
+    )
+        ProtocolAccessManaged(_accessManager)
+        CrossChainConfigManaged(_crossChainConfigManager)
+    {
         if (_fleetContract == address(0)) revert InvalidFleetContract();
-
-        bridgeRouter = IBridgeRouter(_bridgeRouter);
-        bridgeQueue = IBridgeQueue(_bridgeQueue);
-        crossChainRegistry = ICrossChainRegistry(_crossChainRegistry);
         fleetContract = _fleetContract;
     }
 
@@ -147,10 +138,7 @@ contract FleetProxy is
     /// @inheritdoc IInflightAssetTracking
     function updateInflightAssets(uint256 amount) external {
         // Only the bridge queue or router should be able to call this
-        if (
-            msg.sender != address(bridgeQueue) &&
-            msg.sender != address(bridgeRouter)
-        ) {
+        if (msg.sender != bridgeQueue() && msg.sender != bridgeRouter()) {
             revert Unauthorized();
         }
 
@@ -184,13 +172,13 @@ contract FleetProxy is
         emit InflightAssetsUpdated(inflightWithdrawals);
 
         // 5. Approve the bridge queue to transfer the assets
-        IERC20(asset).forceApprove(address(bridgeQueue), amount);
+        IERC20(asset).forceApprove(bridgeQueue(), amount);
 
         // 6. Get source chain ark address from registry - reverts if not found
         address arkAddress = _getSourceChainArk(sourceChainId);
 
         // 7. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
-        bridgeQueue.queueTransferAssets(
+        IBridgeQueue(bridgeQueue()).queueTransferAssets(
             sourceChainId,
             asset,
             amount,
@@ -216,7 +204,7 @@ contract FleetProxy is
         }
 
         // Only a registered adapter can call this function
-        if (!bridgeRouter.isValidAdapter(msg.sender)) {
+        if (!IBridgeRouter(bridgeRouter()).isValidAdapter(msg.sender)) {
             revert CallerNotRegisteredAdapter();
         }
 
@@ -261,9 +249,9 @@ contract FleetProxy is
         uint16 sourceChainId
     ) internal view returns (address arkAddress) {
         return
-            crossChainRegistry.getSourceForTarget(
+            ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
                 sourceChainId,
-                crossChainRegistry.currentChainId(),
+                ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
             );
@@ -278,57 +266,54 @@ contract FleetProxy is
         uint16 sourceChainId
     ) internal view returns (bool isValid) {
         try
-            crossChainRegistry.getSourceForTarget(
+            ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
                 sourceChainId,
-                crossChainRegistry.currentChainId(),
+                ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
             )
         returns (address ark) {
             if (ark != address(0)) {
                 try
-                    crossChainRegistry.isValidCrossChainPair(
-                        ark,
-                        address(this),
-                        sourceChainId,
-                        crossChainRegistry.currentChainId(),
-                        ARK_FLEET_RELATIONSHIP
-                    )
-                returns (bool isValidPair) {
-                    return isValidPair;
+                    ICrossChainRegistry(crossChainRegistry())
+                        .isValidCrossChainPair(
+                            ark,
+                            address(this),
+                            sourceChainId,
+                            ICrossChainRegistry(crossChainRegistry())
+                                .currentChainId(),
+                            ARK_FLEET_RELATIONSHIP
+                        )
+                returns (bool valid) {
+                    return valid;
                 } catch {
-                    return false; // If validation fails, deny access
+                    return false;
                 }
             }
+            return false;
         } catch {
-            // Registry lookup failed
+            return false;
         }
-        return false;
     }
 
     /**
-     * @notice Handle receiving assets from the source chain
-     * @param token Address of the token
-     * @param amount Amount of tokens
-     * @param sourceChainId Source chain ID
+     * @notice Handles receiving assets from a cross-chain transfer
+     * @param asset The asset address
+     * @param amount The amount received
+     * @param sourceChainId The source chain ID
      */
     function _handleReceiveAssets(
-        address token,
+        address asset,
         uint256 amount,
         uint16 sourceChainId
     ) internal {
-        // Deposit the assets into the underlying fleet contract
-        // First approve the fleetContract to spend the tokens
-        IERC20(token).approve(fleetContract, amount);
+        // Approve the fleet contract to take the assets
+        IERC20(asset).forceApprove(fleetContract, amount);
 
-        // Deposit assets into the fleet contract
-        IFleetCommander(fleetContract).deposit(
-            amount,
-            address(this),
-            bytes("")
-        );
+        // Deposit the assets into the fleet contract
+        IFleetCommander(fleetContract).deposit(amount, address(this));
 
-        // Emit event for tracking
-        emit ProxyDeposit(fleetContract, token, amount, sourceChainId);
+        // Emit an event for tracking
+        emit AssetsReceived(asset, amount, sourceChainId);
     }
 }
