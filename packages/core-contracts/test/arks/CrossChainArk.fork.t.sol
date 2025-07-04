@@ -3,13 +3,16 @@ pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
-import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
+import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {BridgeRouter, IBridgeRouter} from "@summerfi/chain-bridge/router/BridgeRouter.sol";
 import {BridgeQueue} from "@summerfi/chain-bridge/router/BridgeQueue.sol";
 import {LayerZeroAdapter} from "@summerfi/chain-bridge/adapters/LayerZeroAdapter.sol";
 import {StargateAdapter} from "@summerfi/chain-bridge/adapters/StargateAdapter.sol";
+import {CrossChainConfigManager} from "@summerfi/chain-bridge/router/CrossChainConfigManager.sol";
+import {CrossChainConfigManagerParams} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManager.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -18,178 +21,7 @@ import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerol
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
-
-// Simple mock registry for fork testing
-contract SimpleMockRegistry is ICrossChainRegistry {
-    mapping(address => CrossChainRelation) private arkToProxy;
-    mapping(bytes32 => address) private proxyToArk;
-
-    uint16 public currentChainId = 1;
-
-    function _getTargetKey(
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        address targetContract,
-        bytes32 relationshipType
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    sourceChainId,
-                    targetChainId,
-                    targetContract,
-                    relationshipType
-                )
-            );
-    }
-
-    function registerCrossChainRelationship(
-        address sourceContract,
-        address targetContract,
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        bytes32 relationshipType
-    ) external {}
-
-    function unregisterCrossChainRelationship(
-        address sourceContract,
-        bytes32 relationshipType,
-        uint16 targetChainId
-    ) external {}
-
-    function getTargetForSource(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (address, uint16) {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        return (relation.targetContract, relation.targetChainId);
-    }
-
-    function getTargetsForSource(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (address[] memory, uint16[] memory) {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        if (relation.sourceContract != address(0)) {
-            address[] memory targets = new address[](1);
-            uint16[] memory chainIds = new uint16[](1);
-            targets[0] = relation.targetContract;
-            chainIds[0] = relation.targetChainId;
-            return (targets, chainIds);
-        }
-        return (new address[](0), new uint16[](0));
-    }
-
-    function getSourceForTarget(
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        address targetContract,
-        bytes32 relationshipType
-    ) external view returns (address) {
-        bytes32 targetKey = _getTargetKey(
-            sourceChainId,
-            targetChainId,
-            targetContract,
-            relationshipType
-        );
-        return proxyToArk[targetKey];
-    }
-
-    function isSourceContractRegistered(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (bool) {
-        return arkToProxy[sourceContract].sourceContract != address(0);
-    }
-
-    function setMockProxy(
-        address ark,
-        address proxy,
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        bytes32 relationshipType
-    ) public {
-        arkToProxy[ark] = CrossChainRelation({
-            sourceContract: ark,
-            targetContract: proxy,
-            sourceChainId: sourceChainId,
-            targetChainId: targetChainId,
-            relationshipType: relationshipType
-        });
-        bytes32 targetKey = _getTargetKey(
-            sourceChainId,
-            targetChainId,
-            proxy,
-            relationshipType
-        );
-        proxyToArk[targetKey] = ark;
-    }
-
-    function getRelationshipCount(
-        bytes32 relationshipType
-    ) external pure returns (uint256) {
-        return 0;
-    }
-
-    function getSupportedRelationshipTypes()
-        external
-        pure
-        returns (bytes32[] memory)
-    {
-        bytes32[] memory supported = new bytes32[](1);
-        supported[0] = keccak256("ARK_FLEET");
-        return supported;
-    }
-
-    function getRelationship(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (CrossChainRelation memory) {
-        return arkToProxy[sourceContract];
-    }
-
-    function getRelationshipByTarget(
-        address sourceContract,
-        bytes32 relationshipType,
-        uint16 targetChainId
-    ) external view returns (CrossChainRelation memory) {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        // Validate that the target chain ID matches
-        if (
-            relation.sourceContract != address(0) &&
-            relation.targetChainId == targetChainId
-        ) {
-            return relation;
-        }
-        // Revert just like the real registry does
-        revert RelationshipDoesNotExist(
-            sourceContract,
-            relationshipType,
-            targetChainId
-        );
-    }
-
-    function isValidCrossChainPair(
-        address sourceContract,
-        address targetContract,
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        bytes32 relationshipType
-    ) external view returns (bool) {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        return
-            relation.targetContract == targetContract &&
-            relation.sourceChainId == sourceChainId &&
-            relation.targetChainId == targetChainId;
-    }
-
-    function getRegisteredSourceContracts(
-        bytes32 relationshipType
-    ) external pure returns (address[] memory sourceContracts) {
-        // Return empty array for mock implementation
-        return new address[](0);
-    }
-}
+import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
@@ -197,13 +29,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     BridgeQueue public bridgeQueue;
     LayerZeroAdapter public layerZeroAdapter;
     StargateAdapter public stargateAdapter;
+    CrossChainConfigManager public crossChainConfigManager;
     IERC20 public usdc;
     MockStargateV2 public mockStargate;
-    SimpleMockRegistry public registry;
+    CrossChainRegistry public registry;
 
     // LayerZero specific constants
     address public constant LZ_ENDPOINT_MAINNET =
         0x1a44076050125825900e736c501f859c50fE728c;
+    uint16 public constant SOURCE_CHAIN_ID = 1; // Mainnet (where the test runs)
     uint16 public constant DEST_CHAIN_ID = 42161; // Arbitrum
     uint32 public constant ARB_LZ_EID = 30110; // LayerZero v2 EID for Arbitrum One
     address public constant ARB_PROXY = address(0x999); // Mock proxy address on Arbitrum
@@ -228,12 +62,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.startPrank(governor);
         accessManager.grantGuardianRole(guardian);
         vm.stopPrank();
-
-        // Initialize chain router mappings
-        uint16[] memory chainIds = new uint16[](1);
-        address[] memory routerAddresses = new address[](1);
-        chainIds[0] = DEST_CHAIN_ID;
-        routerAddresses[0] = address(0x999); // Mock remote router address
 
         // Deploy BridgeQueue
         bridgeQueue = new BridgeQueue(
@@ -310,6 +138,29 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
         vm.stopPrank();
 
+        // Deploy CrossChainRegistry with CURRENT chain ID (mainnet = 1)
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            SOURCE_CHAIN_ID // Use mainnet chain ID, not destination
+        );
+
+        // Deploy CrossChainConfigManager
+        crossChainConfigManager = new CrossChainConfigManager(
+            address(accessManager)
+        );
+
+        // Initialize the CrossChainConfigManager with the bridge components
+        vm.startPrank(governor);
+        CrossChainConfigManagerParams
+            memory configParams = CrossChainConfigManagerParams({
+                bridgeQueue: address(bridgeQueue),
+                bridgeRouter: address(bridgeRouter),
+                crossChainRegistry: address(registry),
+                defaultGasLimit: 200000
+            });
+        crossChainConfigManager.initializeCrossChainConfiguration(configParams);
+        vm.stopPrank();
+
         // Create Ark with bridge configuration
         ArkParams memory params = ArkParams({
             name: "TestArk",
@@ -324,23 +175,20 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        // Create mock registry
-        registry = new SimpleMockRegistry();
-
+        // Create CrossChainArk with the proper CrossChainConfigManager
         ark = new CrossChainArk(
-            address(bridgeQueue),
-            address(bridgeRouter),
-            address(registry),
+            address(crossChainConfigManager),
             DEST_CHAIN_ID,
             params
         );
 
-        // Register the ark-proxy relationship in the registry
-        registry.setMockProxy(
+        // Register the ark-proxy relationship with CORRECT chain IDs
+        vm.prank(governor);
+        registry.registerCrossChainRelationship(
             address(ark),
             ARB_PROXY,
-            DEST_CHAIN_ID,
-            DEST_CHAIN_ID,
+            SOURCE_CHAIN_ID, // Source: Mainnet (1)
+            DEST_CHAIN_ID, // Target: Arbitrum (42161)
             keccak256("ARK_FLEET")
         );
 
@@ -724,7 +572,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 5: Simulate BridgeRouter.deliverReadResponse ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.RemoteAssetBalanceUpdated(
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
             operationId
         );
@@ -845,7 +693,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Test 3: Successful delivery by correct adapter
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.RemoteAssetBalanceUpdated(
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
             operationId
         );
@@ -875,7 +723,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Test 1: Unauthorized caller (not BridgeRouter)
         vm.prank(address(0x999));
-        vm.expectRevert(CrossChainArk.Unauthorized.selector);
+        vm.expectRevert(ICrossChainArk.Unauthorized.selector);
         ark.receiveStateRead(
             responseData,
             address(ark),
@@ -885,7 +733,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Test 2: Invalid source chain
         vm.prank(address(bridgeRouter));
-        vm.expectRevert(CrossChainArk.InvalidSourceChain.selector);
+        vm.expectRevert(ICrossChainArk.InvalidSourceChain.selector);
         ark.receiveStateRead(
             responseData,
             address(ark),
@@ -895,7 +743,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Test 3: Invalid requestor
         vm.prank(address(bridgeRouter));
-        vm.expectRevert(CrossChainArk.InvalidRequestor.selector);
+        vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
         ark.receiveStateRead(
             responseData,
             address(0x123),
@@ -905,7 +753,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Test 4: Successful call with correct parameters
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.RemoteAssetBalanceUpdated(
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
             operationId
         );
@@ -1028,7 +876,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Expect the CrossChainArk events to be emitted
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.RemoteAssetBalanceUpdated(
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
             operationId
         );
@@ -1144,7 +992,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Test the adapter's deliverReadResponse path
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.RemoteAssetBalanceUpdated(
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
             operationId
         );

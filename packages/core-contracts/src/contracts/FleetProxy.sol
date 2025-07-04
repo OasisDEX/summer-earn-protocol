@@ -13,7 +13,7 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
-import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
@@ -37,17 +37,6 @@ contract FleetProxy is
     bytes32 private constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Error thrown when fleet contract address is invalid
-    error InvalidFleetContract();
-    /// @notice Error thrown when withdrawal failed
-    error WithdrawalFailed();
-    /// @notice Thrown when the caller is not authorized to perform the action.
-    error Unauthorized();
-
-    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -56,20 +45,6 @@ contract FleetProxy is
 
     /// @notice Amount of withdrawal assets currently in-flight (being bridged back)
     uint256 public inflightWithdrawals;
-
-    /*//////////////////////////////////////////////////////////////
-                            EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when message content is not expected
-    event MessageContentNotExpected();
-
-    /// @notice Emitted when assets are withdrawn and transferred back to source chain
-    event AssetsWithdrawnAndTransferred(
-        uint256 amount,
-        address asset,
-        uint16 sourceChainId
-    );
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -306,6 +281,6 @@ contract FleetProxy is
         IFleetCommander(fleetContract).deposit(amount, address(this));
 
         // Emit an event for tracking
-        emit AssetsReceived(asset, amount, sourceChainId);
+        emit ProxyDeposit(fleetContract, asset, amount, sourceChainId);
     }
 }

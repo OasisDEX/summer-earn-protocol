@@ -5,11 +5,11 @@ import "../Ark.sol";
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {ICrossChainStateReadReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainStateReadReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
+import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
-import {ICrossChainRegistry} from "../../interfaces/ICrossChainRegistry.sol";
+import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
@@ -24,45 +24,11 @@ contract CrossChainArk is
     CrossChainConfigManaged,
     ICrossChainAssetReceiver,
     ICrossChainStateReadReceiver,
-    IInflightAssetTracking
+    ICrossChainArk
 {
     /// @notice Relationship type constant for ARK-FLEET relationships
     bytes32 private constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
     using SafeERC20 for IERC20;
-
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when the provided satellite chain ID is zero.
-    error InvalidSatelliteChain();
-
-    /// @notice Thrown when the caller is not authorized to perform the action.
-    error Unauthorized();
-
-    /// @notice Thrown when a message ID is invalid.
-    error InvalidMessageId();
-
-    /// @notice Thrown when a request ID is invalid.
-    error InvalidRequestId();
-
-    /// @notice Thrown when the source chain ID is invalid.
-    error InvalidSourceChain();
-
-    /// @notice Thrown when the recipient address is invalid.
-    error InvalidRecipient();
-
-    /// @notice Thrown when the requestor address is invalid.
-    error InvalidRequestor();
-
-    /// @notice Thrown when receiveMessageWithAssets is called (not supported for this Ark).
-    error ReceiveMessageWithAssetsNotSupported();
-
-    /// @notice Thrown when there are insufficient assets on the contract to perform the withdrawal.
-    error InsufficientAssets(uint256 requestedAmount, uint256 availableAmount);
-
-    /// @notice Thrown when the provided asset address is invalid.
-    error InvalidAsset();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -76,23 +42,6 @@ contract CrossChainArk is
 
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
-
-    /// @notice Emitted when the remote asset balance is updated via state read
-    event RemoteAssetBalanceUpdated(uint256 newBalance, bytes32 requestId);
-
-    /// @notice Emitted when assets are received from another chain
-    event AssetsReceived(
-        address indexed token,
-        uint256 amount,
-        uint16 sourceChainId
-    );
-
-    /// @notice Emitted when a remote asset balance update is requested
-    event RemoteAssetBalanceUpdateRequested(
-        bytes32 indexed queueId,
-        uint16 targetChainId,
-        address targetProxy
-    );
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -211,7 +160,7 @@ contract CrossChainArk is
         return
             interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
             interfaceId == type(ICrossChainStateReadReceiver).interfaceId ||
-            interfaceId == type(IInflightAssetTracking).interfaceId ||
+            interfaceId == type(ICrossChainArk).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 

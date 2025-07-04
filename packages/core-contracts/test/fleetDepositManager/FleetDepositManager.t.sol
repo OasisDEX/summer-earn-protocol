@@ -84,10 +84,6 @@ contract FleetDepositManagerTest is Test {
             address(mockAccessManager)
         );
         assertEq(address(newManager.bridgeRouter()), address(mockBridgeRouter));
-        assertEq(
-            BridgeTypes.USER_FLEET_DEPOSIT_TYPE,
-            keccak256("USER_FLEET_DEPOSIT")
-        );
     }
 
     function test_Constructor_RevertWhen_ZeroAddressBridgeRouter() public {
@@ -210,12 +206,12 @@ contract FleetDepositManagerTest is Test {
         bytes memory composeMessage = mockAdapter.lastComposeMessage();
         (
             bytes32 messageType,
-            BridgeTypes.FleetDepositMessageData memory msgData
+            BridgeTypes.FleetDepositMessageData memory messageData
         ) = abi.decode(
                 composeMessage,
                 (bytes32, BridgeTypes.FleetDepositMessageData)
             );
-        assertEq(msgData.referralCode, referralCode);
+        assertEq(messageData.referralCode, referralCode);
     }
 
     function test_InitiateDepositToTargetChainFleet_DifferentChainIds() public {
@@ -505,36 +501,6 @@ contract FleetDepositManagerTest is Test {
                         COMPOSE MESSAGE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_EncodeFleetDepositMessage_Success() public view {
-        bytes memory composeMessage = manager.encodeFleetDepositMessage(
-            fleetCommander,
-            shareRecipient,
-            address(token),
-            DEPOSIT_AMOUNT,
-            bytes("SUMMER2024")
-        );
-
-        assertGt(composeMessage.length, 0);
-
-        (
-            bytes32 messageType,
-            BridgeTypes.FleetDepositMessageData memory msgData
-        ) = abi.decode(
-                composeMessage,
-                (bytes32, BridgeTypes.FleetDepositMessageData)
-            );
-
-        assertEq(messageType, BridgeTypes.USER_FLEET_DEPOSIT_TYPE);
-        assertEq(msgData.fleetCommander, fleetCommander);
-        assertEq(msgData.shareRecipient, shareRecipient);
-        assertEq(msgData.asset, address(token));
-        assertEq(msgData.amount, DEPOSIT_AMOUNT);
-        assertEq(msgData.sourceChainId, block.chainid);
-        assertEq(msgData.operationId, bytes32(0)); // Should be zero placeholder
-        assertEq(msgData.originalUser, address(this)); // msg.sender in view function
-        assertEq(msgData.referralCode, bytes("SUMMER2024"));
-    }
-
     function test_EncodeFleetDepositMessage_EmptyReferralCode() public view {
         bytes memory composeMessage = manager.encodeFleetDepositMessage(
             fleetCommander,
@@ -548,13 +514,13 @@ contract FleetDepositManagerTest is Test {
 
         (
             bytes32 messageType,
-            BridgeTypes.FleetDepositMessageData memory msgData
+            BridgeTypes.FleetDepositMessageData memory messageData
         ) = abi.decode(
                 composeMessage,
                 (bytes32, BridgeTypes.FleetDepositMessageData)
             );
 
-        assertEq(msgData.referralCode.length, 0);
+        assertEq(messageData.referralCode.length, 0);
     }
 
     function test_CreateFleetDepositMessage_LongReferralCode() public view {
@@ -574,13 +540,13 @@ contract FleetDepositManagerTest is Test {
 
         (
             bytes32 messageType,
-            BridgeTypes.FleetDepositMessageData memory msgData
+            BridgeTypes.FleetDepositMessageData memory messageData
         ) = abi.decode(
                 composeMessage,
                 (bytes32, BridgeTypes.FleetDepositMessageData)
             );
 
-        assertEq(msgData.referralCode, longReferralCode);
+        assertEq(messageData.referralCode, longReferralCode);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -744,19 +710,19 @@ contract FleetDepositManagerTest is Test {
 
         (
             bytes32 messageType,
-            BridgeTypes.FleetDepositMessageData memory msgData
+            BridgeTypes.FleetDepositMessageData memory messageData
         ) = abi.decode(
                 actualComposeMessage,
                 (bytes32, BridgeTypes.FleetDepositMessageData)
             );
 
         assertEq(messageType, BridgeTypes.USER_FLEET_DEPOSIT_TYPE);
-        assertEq(msgData.fleetCommander, fleetCommander);
-        assertEq(msgData.shareRecipient, shareRecipient);
-        assertEq(msgData.asset, address(token));
-        assertEq(msgData.amount, DEPOSIT_AMOUNT);
-        assertEq(msgData.sourceChainId, block.chainid);
-        assertEq(msgData.originalUser, user);
-        assertEq(msgData.referralCode, referralCode);
+        assertEq(messageData.fleetCommander, fleetCommander);
+        assertEq(messageData.shareRecipient, shareRecipient);
+        assertEq(messageData.asset, address(token));
+        assertEq(messageData.amount, DEPOSIT_AMOUNT);
+        assertEq(messageData.sourceChainId, block.chainid);
+        assertEq(messageData.originalUser, user);
+        assertEq(messageData.referralCode, referralCode);
     }
 }

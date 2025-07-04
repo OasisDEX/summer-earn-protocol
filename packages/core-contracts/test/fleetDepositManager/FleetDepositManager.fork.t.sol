@@ -368,7 +368,7 @@ contract FleetDepositManagerIntegrationForkTest is Test {
         // Decode the fleet deposit message correctly using the struct
         (
             bytes32 messageType,
-            BridgeTypes.FleetDepositMessageData memory msgData
+            BridgeTypes.FleetDepositMessageData memory messageData
         ) = abi.decode(
                 lastComposeMessage,
                 (bytes32, BridgeTypes.FleetDepositMessageData)
@@ -381,26 +381,30 @@ contract FleetDepositManagerIntegrationForkTest is Test {
             "Message type should match"
         );
         assertEq(
-            msgData.fleetCommander,
+            messageData.fleetCommander,
             address(mockFleetCommander),
             "Fleet commander should match"
         );
         assertEq(
-            msgData.shareRecipient,
+            messageData.shareRecipient,
             shareRecipient,
             "Share recipient should match"
         );
-        assertEq(msgData.asset, USDC_MAINNET, "Asset should match");
-        assertEq(msgData.amount, DEPOSIT_AMOUNT, "Amount should match");
+        assertEq(messageData.asset, USDC_MAINNET, "Asset should match");
+        assertEq(messageData.amount, DEPOSIT_AMOUNT, "Amount should match");
         assertEq(
-            msgData.sourceChainId,
+            messageData.sourceChainId,
             CHAIN_ID_MAINNET,
             "Source chain ID should match"
         );
-        assertEq(msgData.operationId, operationId, "Operation ID should match");
-        assertEq(msgData.originalUser, user, "Original user should match");
         assertEq(
-            msgData.referralCode,
+            messageData.operationId,
+            operationId,
+            "Operation ID should match"
+        );
+        assertEq(messageData.originalUser, user, "Original user should match");
+        assertEq(
+            messageData.referralCode,
             referralCode,
             "Referral code should match"
         );
