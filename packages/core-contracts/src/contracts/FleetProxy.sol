@@ -46,14 +46,6 @@ contract FleetProxy is
     error WithdrawalFailed();
     /// @notice Thrown when the caller is not authorized to perform the action.
     error Unauthorized();
-    /// @notice Thrown when the provided asset address is invalid.
-    error InvalidAsset();
-    /// @notice Thrown when the source chain ID is invalid.
-    error InvalidSourceChain();
-    /// @notice Thrown when there are no assets to process
-    error NoAssets();
-    /// @notice Thrown when the caller is not a registered adapter
-    error CallerNotRegisteredAdapter();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
