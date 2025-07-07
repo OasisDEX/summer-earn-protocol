@@ -4,8 +4,7 @@ pragma solidity ^0.8.28;
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title LayerZeroAdapterTestHelper
  * @notice Helper contract for testing LayerZeroAdapter

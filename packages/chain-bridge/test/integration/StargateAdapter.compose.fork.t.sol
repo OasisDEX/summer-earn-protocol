@@ -12,7 +12,6 @@ import {CrossChainConfigManagerParams} from "../../src/interfaces/ICrossChainCon
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 

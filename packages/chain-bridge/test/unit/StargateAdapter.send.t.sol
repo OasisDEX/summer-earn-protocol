@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
