@@ -14,6 +14,7 @@ import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.s
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 
 // Import CrossChain Ark interface for proper detection
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
@@ -42,7 +43,8 @@ contract StargateAdapter is
     IBridgeAdapter,
     IFleetDepositAdapter,
     ILayerZeroComposer,
-    Nonces
+    Nonces,
+    CrossChainConfigManaged
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
@@ -81,9 +83,6 @@ contract StargateAdapter is
         bytes32 operationId;
     }
 
-    /// @notice Maximum gas limit for compose execution
-    uint256 public constant MAX_COMPOSE_GAS = 1000000;
-
     /// @notice Information about failed compose operations for recovery
     struct FailedCompose {
         address asset;
@@ -105,9 +104,6 @@ contract StargateAdapter is
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice The BridgeRouter that manages this adapter
-    address public bridgeRouter;
 
     /// @notice LayerZero endpoint for compose functionality
     address public immutable lzEndpoint;
@@ -134,9 +130,6 @@ contract StargateAdapter is
 
     /// @notice Gas limit for compose execution on destination
     uint256 public composeGasLimit = 400000;
-
-    /// @notice Minimum gas limit for compose execution
-    uint256 public constant MIN_COMPOSE_GAS = 200000;
 
     /// @notice Maximum slippage tolerance (10% = 1000 basis points)
     uint256 public constant MAX_SLIPPAGE_BPS = 1000;
@@ -250,22 +243,20 @@ contract StargateAdapter is
 
     /**
      * @notice Initializes the StargateAdapter
-     * @param _bridgeRouter Address of the BridgeRouter contract
+     * @param _crossChainConfigManager Address of the CrossChainConfigManager contract
      * @param _owner Address of the contract owner
      * @param _lzEndpoint LayerZero endpoint for compose functionality
      * @param _harborCommand Address of the HarborCommand contract for fleet commander validation
      */
     constructor(
-        address _bridgeRouter,
+        address _crossChainConfigManager,
         address _owner,
         address _lzEndpoint,
         address _harborCommand
-    ) Ownable(_owner) {
-        if (_bridgeRouter == address(0)) revert InvalidParams();
+    ) Ownable(_owner) CrossChainConfigManaged(_crossChainConfigManager) {
         if (_lzEndpoint == address(0)) revert InvalidParams();
         if (_harborCommand == address(0)) revert InvalidParams();
 
-        bridgeRouter = _bridgeRouter;
         lzEndpoint = _lzEndpoint;
         harborCommand = _harborCommand;
     }
@@ -285,17 +276,18 @@ contract StargateAdapter is
 
     /**
      * @notice Sets the gas limit for compose execution
-     * @param _composeGasLimit New gas limit for compose execution
+     * @param _composeGasLimit New gas limit for compose execution (0 uses default from config manager)
      */
     function setComposeGasLimit(uint256 _composeGasLimit) external onlyOwner {
-        if (
-            _composeGasLimit < MIN_COMPOSE_GAS ||
-            _composeGasLimit > MAX_COMPOSE_GAS
-        ) {
-            revert InvalidParams();
+        if (_composeGasLimit == 0) {
+            composeGasLimit = defaultGasLimit() > 0
+                ? defaultGasLimit()
+                : 400000;
+        } else {
+            composeGasLimit = _composeGasLimit;
         }
-        composeGasLimit = _composeGasLimit;
-        emit ComposeGasLimitUpdated(_composeGasLimit);
+
+        emit ComposeGasLimitUpdated(composeGasLimit);
     }
 
     /**
@@ -370,19 +362,6 @@ contract StargateAdapter is
         assetToStargateContract[asset] = stargateContract;
 
         emit AssetSupported(uint16(block.chainid), asset, stargateContract);
-    }
-
-    /**
-     * @notice Updates the bridge router address
-     * @param newBridgeRouter Address of the new bridge router
-     */
-    function setBridgeRouter(address newBridgeRouter) external onlyOwner {
-        if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
-
-        address oldRouter = bridgeRouter;
-        bridgeRouter = newBridgeRouter;
-
-        emit BridgeRouterUpdated(oldRouter, newBridgeRouter);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -484,7 +463,7 @@ contract StargateAdapter is
         uint256 providedFee = msg.value;
 
         // Only the BridgeRouter should call this function
-        if (msg.sender != bridgeRouter) revert Unauthorized();
+        if (msg.sender != bridgeRouter()) revert Unauthorized();
 
         // Check if destination chain is supported
         if (!supportsChain(destinationChainId)) revert UnsupportedChain();
@@ -534,7 +513,7 @@ contract StargateAdapter is
             recipient
         );
 
-        IBridgeRouter(bridgeRouter).updateOperationStatus(
+        IBridgeRouter(bridgeRouter()).updateOperationStatus(
             operationId,
             BridgeTypes.OperationStatus.SENT
         );
@@ -856,7 +835,7 @@ contract StargateAdapter is
     function getOperationStatus(
         bytes32 operationId
     ) external view override returns (BridgeTypes.OperationStatus) {
-        return IBridgeRouter(bridgeRouter).getOperationStatus(operationId);
+        return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -1102,7 +1081,7 @@ contract StargateAdapter is
 
         if (!success) {
             // Queue for automatic recovery back to origin chain
-            address bridgeQueueAddr = IBridgeRouter(bridgeRouter).bridgeQueue();
+            address bridgeQueueAddr = bridgeQueue();
 
             // Approve bridge queue to spend the tokens
             IERC20(receivedAsset).approve(bridgeQueueAddr, amountLD);
@@ -1477,72 +1456,6 @@ contract StargateAdapter is
         } catch {
             return (false, 0);
         }
-    }
-
-    /**
-     * @dev Deposit assets to validated FleetCommander - reverts on failure
-     */
-    function _depositToFleetCommander(
-        address fleetCommander,
-        address asset,
-        uint256 amount,
-        address shareRecipient,
-        bytes memory referralCode,
-        bytes32 operationId,
-        uint16 sourceChainId
-    ) internal {
-        // Validate FleetCommander is active through HarborCommand
-        _validateFleetCommander(fleetCommander);
-
-        // Validate FleetCommander supports the asset
-        address fleetAsset = IFleetCommanderMinimal(fleetCommander).asset();
-        if (fleetAsset != asset) {
-            revert InvalidParams();
-        }
-
-        // Check deposit limits
-        uint256 maxDeposit = IFleetCommanderMinimal(fleetCommander).maxDeposit(
-            address(this)
-        );
-        if (amount > maxDeposit) {
-            revert InvalidParams();
-        }
-
-        // Approve FleetCommander to spend tokens
-        IERC20(asset).approve(fleetCommander, amount);
-
-        // Deposit to FleetCommander using helper methods
-        uint256 shares;
-        bool success;
-
-        if (referralCode.length > 0) {
-            (success, shares) = _executeFleetDepositWithReferral(
-                fleetCommander,
-                amount,
-                shareRecipient,
-                referralCode
-            );
-        } else {
-            (success, shares) = _executeFleetDepositWithoutReferral(
-                fleetCommander,
-                amount,
-                shareRecipient
-            );
-        }
-
-        if (!success) {
-            revert InvalidParams(); // Or a more specific error
-        }
-
-        emit CrossChainFleetDepositCompleted(
-            operationId,
-            fleetCommander,
-            shareRecipient,
-            asset,
-            amount,
-            shares,
-            sourceChainId
-        );
     }
 
     /**

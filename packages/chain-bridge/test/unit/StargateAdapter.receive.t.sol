@@ -6,6 +6,7 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {ICrossChainConfigManager} from "../../src/interfaces/ICrossChainConfigManager.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
 contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
@@ -88,43 +89,6 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
     }
 
     /*//////////////////////////////////////////////////////////////
-                          BRIDGE ROUTER TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testSetBridgeRouter() public {
-        useNetworkA();
-
-        address newRouter = address(0x999);
-
-        // Update bridge router as owner
-        vm.prank(governor);
-        adapterA.setBridgeRouter(newRouter);
-
-        // Verify the router was updated
-        assertEq(adapterA.bridgeRouter(), newRouter);
-    }
-
-    function testSetBridgeRouterUnauthorized() public {
-        useNetworkA();
-
-        address newRouter = address(0x999);
-
-        // Try to update bridge router as unauthorized user
-        vm.prank(user);
-        vm.expectRevert();
-        adapterA.setBridgeRouter(newRouter);
-    }
-
-    function testSetBridgeRouterZeroAddress() public {
-        useNetworkA();
-
-        // Try to set bridge router to zero address
-        vm.prank(governor);
-        vm.expectRevert(IBridgeAdapter.InvalidBridgeRouter.selector);
-        adapterA.setBridgeRouter(address(0));
-    }
-
-    /*//////////////////////////////////////////////////////////////
                           TRANSPORT MODE TESTS
     //////////////////////////////////////////////////////////////*/
 
@@ -156,5 +120,53 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         vm.prank(user);
         vm.expectRevert();
         adapterA.setDefaultTransportMode(true);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          CONFIG MANAGER INTEGRATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testBridgeQueueFromConfigManager() public {
+        useNetworkA();
+
+        // Verify bridge queue is accessible through the adapter
+        address adapterBridgeQueue = adapterA.bridgeQueue();
+        address configBridgeQueue = configManagerA.bridgeQueue();
+
+        assertEq(adapterBridgeQueue, configBridgeQueue);
+        assertEq(adapterBridgeQueue, address(bridgeQueueA));
+    }
+
+    function testCrossChainRegistryFromConfigManager() public {
+        useNetworkA();
+
+        // Verify cross chain registry is accessible through the adapter
+        address adapterRegistry = adapterA.crossChainRegistry();
+        address configRegistry = configManagerA.crossChainRegistry();
+
+        assertEq(adapterRegistry, configRegistry);
+        assertEq(adapterRegistry, address(0x1234)); // Mock registry from setup
+    }
+
+    function testDefaultGasLimitFromConfigManager() public {
+        useNetworkA();
+
+        // Verify default gas limit is accessible through the adapter
+        uint256 adapterGasLimit = adapterA.defaultGasLimit();
+        uint256 configGasLimit = configManagerA.defaultGasLimit();
+
+        assertEq(adapterGasLimit, configGasLimit);
+        assertEq(adapterGasLimit, 400000); // From setup
+    }
+
+    function testComposeGasLimitUsesDefault() public {
+        useNetworkA();
+
+        // Set compose gas limit to 0 to test fallback to default
+        vm.prank(governor);
+        adapterA.setComposeGasLimit(0);
+
+        // Should use default gas limit from config manager
+        assertEq(adapterA.composeGasLimit(), configManagerA.defaultGasLimit());
     }
 }

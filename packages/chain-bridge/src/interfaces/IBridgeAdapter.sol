@@ -111,11 +111,4 @@ interface IBridgeAdapter is ISendAdapter {
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) external view returns (bool);
-
-    /**
-     * @notice Updates the bridge router address (governance only)
-     * @param newBridgeRouter Address of the new bridge router
-     * @dev Can only be called by contract owner/governance
-     */
-    function setBridgeRouter(address newBridgeRouter) external;
 }

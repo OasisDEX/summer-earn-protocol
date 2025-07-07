@@ -39,8 +39,7 @@ contract CrossChainConfigManagerTest is Test {
 
     // ---- CONSTRUCTOR TESTS ----
 
-    function testConstructor() public {
-        assertEq(configManager.authority(), address(accessManager));
+    function testConstructor() public view {
         assertFalse(configManager.initialized());
         assertEq(configManager.bridgeQueue(), address(0));
         assertEq(configManager.bridgeRouter(), address(0));

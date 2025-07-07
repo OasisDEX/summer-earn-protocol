@@ -260,14 +260,6 @@ contract MockAdapter is IBridgeAdapter {
         bytes message
     );
 
-    /// @inheritdoc IBridgeAdapter
-    function setBridgeRouter(address newBridgeRouter) external {
-        if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
-        address oldRouter = bridgeRouter;
-        bridgeRouter = newBridgeRouter;
-        emit BridgeRouterUpdated(oldRouter, newBridgeRouter);
-    }
-
     // Add simulateMessageReceived function from core-contracts version
     function simulateMessageReceived(
         bytes memory message,

@@ -15,7 +15,6 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
 
 // Simple mock fleet commander that actually transfers tokens
 contract SimpleMockFleetCommander {
@@ -331,18 +330,23 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         assertEq(adapterA.composeGasLimit(), newGasLimit);
     }
 
-    function testComposeGasLimitBounds() public {
+    function testComposeGasLimitFlexibility() public {
         useNetworkA();
 
-        // Test minimum bound
-        vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
+        // Test that low values are accepted (no minimum enforcement)
         vm.prank(governor);
-        adapterA.setComposeGasLimit(50000); // Below MIN_COMPOSE_GAS
+        adapterA.setComposeGasLimit(50000);
+        assertEq(adapterA.composeGasLimit(), 50000);
 
-        // Test maximum bound - use value above MAX_COMPOSE_GAS (1000000)
-        vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
+        // Test that high values are accepted (no maximum enforcement)
         vm.prank(governor);
-        adapterA.setComposeGasLimit(1500000); // Above MAX_COMPOSE_GAS (1000000)
+        adapterA.setComposeGasLimit(1500000);
+        assertEq(adapterA.composeGasLimit(), 1500000);
+
+        // Test that 0 uses default from config manager
+        vm.prank(governor);
+        adapterA.setComposeGasLimit(0);
+        assertEq(adapterA.composeGasLimit(), adapterA.defaultGasLimit());
     }
 
     function testComposeGasLimitUnauthorized() public {

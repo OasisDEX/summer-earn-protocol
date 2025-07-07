@@ -7,6 +7,8 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
+import {CrossChainConfigManager} from "../../src/router/CrossChainConfigManager.sol";
+import {CrossChainConfigManagerParams} from "../../src/interfaces/ICrossChainConfigManager.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
@@ -22,6 +24,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     StargateAdapter public adapterA;
     BridgeRouterTestHelper public routerA;
     BridgeQueue public bridgeQueueA;
+    CrossChainConfigManager public configManagerA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
     MockStargateV2 public stargateA;
@@ -30,6 +33,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     StargateAdapter public adapterB;
     BridgeRouterTestHelper public routerB;
     BridgeQueue public bridgeQueueB;
+    CrossChainConfigManager public configManagerB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
     MockStargateV2 public stargateB;
@@ -87,6 +91,18 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(bridgeQueueA)
         );
         bridgeQueueA.setBridgeRouter(address(routerA));
+
+        // Deploy and initialize CrossChainConfigManager for chain A
+        configManagerA = new CrossChainConfigManager(address(accessManagerA));
+        configManagerA.initializeCrossChainConfiguration(
+            CrossChainConfigManagerParams({
+                bridgeQueue: address(bridgeQueueA),
+                bridgeRouter: address(routerA),
+                crossChainRegistry: address(0x1234), // Mock registry address
+                defaultGasLimit: 400000
+            })
+        );
+
         tokenA = new ERC20Mock();
 
         // Deploy mock Stargate V2 contract for chain A
@@ -96,7 +112,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         );
 
         adapterA = new StargateAdapter(
-            address(routerA),
+            address(configManagerA), // Use config manager instead of router
             governor,
             lzEndpointA, // Use real LayerZero endpoint
             address(harborCommandA) // Use mock HarborCommand
@@ -133,6 +149,18 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(bridgeQueueB)
         );
         bridgeQueueB.setBridgeRouter(address(routerB));
+
+        // Deploy and initialize CrossChainConfigManager for chain B
+        configManagerB = new CrossChainConfigManager(address(accessManagerB));
+        configManagerB.initializeCrossChainConfiguration(
+            CrossChainConfigManagerParams({
+                bridgeQueue: address(bridgeQueueB),
+                bridgeRouter: address(routerB),
+                crossChainRegistry: address(0x5678), // Mock registry address
+                defaultGasLimit: 400000
+            })
+        );
+
         tokenB = new ERC20Mock();
 
         // Deploy mock Stargate V2 contract for chain B
@@ -142,7 +170,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         );
 
         adapterB = new StargateAdapter(
-            address(routerB),
+            address(configManagerB), // Use config manager instead of router
             governor,
             lzEndpointB, // Use real LayerZero endpoint
             address(harborCommandB) // Use mock HarborCommand
