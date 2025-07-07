@@ -15,21 +15,21 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     /**
      * @notice Constructor for LayerZeroAdapterTestHelper
      * @param _endpoint Address of the LayerZero endpoint
-     * @param _bridgeRouter Address of the bridge router
+     * @param _crossChainConfigManager Address of the CrossChainConfigManager contract
      * @param _supportedChains Array of supported chain IDs
      * @param _lzEids Array of corresponding LayerZero endpoint IDs
      * @param _owner Address of the owner
      */
     constructor(
         address _endpoint,
-        address _bridgeRouter,
+        address _crossChainConfigManager,
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
         address _owner
     )
         LayerZeroAdapter(
             _endpoint,
-            _bridgeRouter,
+            _crossChainConfigManager,
             _supportedChains,
             _lzEids,
             _owner
