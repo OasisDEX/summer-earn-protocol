@@ -280,9 +280,7 @@ contract StargateAdapter is
      */
     function setComposeGasLimit(uint256 _composeGasLimit) external onlyOwner {
         if (_composeGasLimit == 0) {
-            composeGasLimit = defaultGasLimit() > 0
-                ? defaultGasLimit()
-                : 400000;
+            composeGasLimit = defaultGasLimit();
         } else {
             composeGasLimit = _composeGasLimit;
         }

@@ -86,7 +86,7 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
         address sourceContract,
         bytes32
     ) external view returns (bool) {
-        return arkToProxy[sourceContract].sourceContract != address(0);
+        return arkToProxy[sourceContract].sourceContract == sourceContract;
     }
 
     function setMockProxy(
