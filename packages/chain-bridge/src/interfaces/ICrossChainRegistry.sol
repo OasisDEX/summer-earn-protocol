@@ -354,4 +354,117 @@ interface ICrossChainRegistry {
      * @return The current chain ID
      */
     function currentChainId() external view returns (uint16);
+
+    /*//////////////////////////////////////////////////////////////
+                        ADAPTER PEER CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a peer relationship between two bridge adapters
+     * @param sourceAdapter Address of the source adapter
+     * @param targetAdapter Address of the target adapter
+     * @param sourceChainId Chain ID where the source adapter is deployed
+     * @param targetChainId Chain ID where the target adapter is deployed
+     */
+    function registerAdapterPeer(
+        address sourceAdapter,
+        address targetAdapter,
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) external;
+
+    /**
+     * @notice Get the peer adapter address for a given source adapter and target chain
+     * @param sourceAdapter Address of the source adapter
+     * @param targetChainId Chain ID where the target adapter is deployed
+     * @return targetAdapter Address of the target adapter
+     */
+    function getAdapterPeer(
+        address sourceAdapter,
+        uint16 targetChainId
+    ) external view returns (address targetAdapter);
+
+    /**
+     * @notice Check if two adapters are registered as valid peers
+     * @param sourceAdapter Address of the source adapter
+     * @param targetAdapter Address of the target adapter
+     * @param sourceChainId Chain ID where the source adapter is deployed
+     * @param targetChainId Chain ID where the target adapter is deployed
+     * @return True if the adapters are registered peers
+     */
+    function isValidAdapterPeer(
+        address sourceAdapter,
+        address targetAdapter,
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) external view returns (bool);
+
+    /*//////////////////////////////////////////////////////////////
+                        ARK/FLEET CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a relationship between an Ark and its Fleet
+     * @param arkProxy Address of the Ark proxy
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     */
+    function registerArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external;
+
+    /**
+     * @notice Get the Fleet proxy address for a given Ark proxy
+     * @param arkProxy Address of the Ark proxy
+     * @return fleetProxy Address of the Fleet proxy
+     * @return fleetChainId Chain ID where the Fleet is deployed
+     */
+    function getFleetForArk(
+        address arkProxy
+    ) external view returns (address fleetProxy, uint16 fleetChainId);
+
+    /**
+     * @notice Get the Ark proxy address for a given Fleet proxy and chain IDs
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     * @return arkProxy Address of the Ark proxy
+     */
+    function getArkForFleet(
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external view returns (address arkProxy);
+
+    /**
+     * @notice Check if an Ark and Fleet are properly registered
+     * @param arkProxy Address of the Ark proxy
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     * @return True if the Ark and Fleet are properly registered
+     */
+    function isValidArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external view returns (bool);
+
+    /**
+     * @notice Get all Fleets registered for a given Ark
+     * @param arkProxy Address of the Ark proxy
+     * @return fleetProxies Array of Fleet proxy addresses
+     * @return fleetChainIds Array of chain IDs where the Fleets are deployed
+     */
+    function getAllFleetsForArk(
+        address arkProxy
+    )
+        external
+        view
+        returns (address[] memory fleetProxies, uint16[] memory fleetChainIds);
 }

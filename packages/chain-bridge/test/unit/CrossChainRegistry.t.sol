@@ -745,7 +745,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_multipleRelationshipTypes() public {
         bytes32 arkFleetType = keccak256("ARK_FLEET");
-        bytes32 bridgeType = keccak256("BRIDGE_ADAPTER");
+        bytes32 bridgeType = keccak256("ADAPTER_PEER");
 
         vm.prank(governor);
         registry.registerCrossChainRelationship(
@@ -1117,11 +1117,28 @@ contract CrossChainRegistryTest is Test {
         assertEq(registry.defaultGasLimit(), 0);
         assertFalse(registry.bridgeConfigInitialized());
 
-        // Test that ARK_FLEET relationship type is supported by default
+        // Test that both ADAPTER_PEER and ARK_FLEET relationship types are supported by default
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 1);
-        assertEq(supportedTypes[0], ARK_FLEET_RELATIONSHIP);
+        assertEq(supportedTypes.length, 2);
+
+        // Check that both relationship types are present (order may vary)
+        bool hasAdapterPeer = false;
+        bool hasArkFleet = false;
+
+        for (uint256 i = 0; i < supportedTypes.length; i++) {
+            if (supportedTypes[i] == keccak256("ADAPTER_PEER")) {
+                hasAdapterPeer = true;
+            } else if (supportedTypes[i] == ARK_FLEET_RELATIONSHIP) {
+                hasArkFleet = true;
+            }
+        }
+
+        assertTrue(
+            hasAdapterPeer,
+            "BRIDGE_ADAPTER relationship type not found"
+        );
+        assertTrue(hasArkFleet, "ARK_FLEET relationship type not found");
 
         // Test that current chain ID is set correctly
         assertEq(registry.currentChainId(), CURRENT_CHAIN_ID);

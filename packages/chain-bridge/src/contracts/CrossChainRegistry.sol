@@ -92,7 +92,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    ) external override onlyGovernor {
+    ) public onlyGovernor {
         if (sourceContract == address(0))
             revert InvalidSourceContract(sourceContract);
         if (targetContract == address(0))
@@ -176,7 +176,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
-    ) external override onlyGovernor {
+    ) public onlyGovernor {
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
@@ -320,12 +320,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function getTargetForSource(
         address sourceContract,
         bytes32 relationshipType
-    )
-        external
-        view
-        override
-        returns (address targetContract, uint16 targetChainId)
-    {
+    ) public view returns (address targetContract, uint16 targetChainId) {
         if (
             !registeredSourceContracts[relationshipType].contains(
                 sourceContract
@@ -372,7 +367,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 targetChainId,
         address targetContract,
         bytes32 relationshipType
-    ) external view override returns (address sourceContract) {
+    ) public view returns (address sourceContract) {
         bytes32 targetKey = _getTargetKey(
             sourceChainId,
             targetChainId,
@@ -397,7 +392,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    ) external view override returns (bool isValid) {
+    ) public view returns (bool isValid) {
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
@@ -424,7 +419,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function getRelationship(
         address sourceContract,
         bytes32 relationshipType
-    ) external view override returns (CrossChainRelation memory relation) {
+    ) external view returns (CrossChainRelation memory relation) {
         if (
             !registeredSourceContracts[relationshipType].contains(
                 sourceContract
@@ -467,9 +462,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceContract,
         bytes32 relationshipType
     )
-        external
+        public
         view
-        override
         returns (
             address[] memory targetContracts,
             uint16[] memory targetChainIds
@@ -503,7 +497,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
-    ) external view override returns (CrossChainRelation memory relation) {
+    ) external view returns (CrossChainRelation memory relation) {
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
@@ -527,7 +521,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @inheritdoc ICrossChainRegistry
     function getRegisteredSourceContracts(
         bytes32 relationshipType
-    ) external view override returns (address[] memory sourceContracts) {
+    ) external view returns (address[] memory sourceContracts) {
         return registeredSourceContracts[relationshipType].values();
     }
 
@@ -535,7 +529,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function isSourceContractRegistered(
         address sourceContract,
         bytes32 relationshipType
-    ) external view override returns (bool isRegistered) {
+    ) external view returns (bool isRegistered) {
         return
             registeredSourceContracts[relationshipType].contains(
                 sourceContract
@@ -553,7 +547,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function getSupportedRelationshipTypes()
         external
         view
-        override
         returns (bytes32[] memory relationshipTypes)
     {
         return supportedRelationshipTypes;

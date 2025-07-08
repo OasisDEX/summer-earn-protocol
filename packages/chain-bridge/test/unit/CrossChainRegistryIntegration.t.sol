@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
-import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 /**
@@ -375,8 +374,9 @@ contract CrossChainRegistryIntegrationTest is Test {
         // Initially should have ARK_FLEET type pre-registered in constructor
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 1);
-        assertEq(supportedTypes[0], keccak256("ARK_FLEET"));
+        assertEq(supportedTypes.length, 2);
+        assertEq(supportedTypes[0], keccak256("ADAPTER_PEER"));
+        assertEq(supportedTypes[1], keccak256("ARK_FLEET"));
 
         // Add a new relationship type by using it
         bytes32 newType = keccak256("NEW_TYPE");
@@ -394,7 +394,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Should now have 2 supported types
         supportedTypes = registry.getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 2);
+        assertEq(supportedTypes.length, 3);
 
         // Check both types are present (order may vary)
         bool hasArkFleet = false;

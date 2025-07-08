@@ -567,7 +567,7 @@ contract BridgeRouterTransferTest is Test {
 
         // Transfer tokens to BridgeQueue first
         vm.prank(user);
-        token.transfer(address(bridgeQueue), TRANSFER_AMOUNT);
+        assertTrue(token.transfer(address(bridgeQueue), TRANSFER_AMOUNT));
 
         // Approve BridgeRouter to spend BridgeQueue's tokens
         vm.prank(address(bridgeQueue));
