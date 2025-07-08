@@ -42,6 +42,18 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Mapping to track if a relationship type is supported
     mapping(bytes32 => bool) private relationshipTypeSupported;
 
+    /// @notice Flag to track if bridge configuration has been initialized
+    bool public bridgeConfigInitialized;
+
+    /// @notice The bridge queue contract address
+    address public bridgeQueue;
+
+    /// @notice The bridge router contract address
+    address public bridgeRouter;
+
+    /// @notice The default gas limit for cross-chain transactions
+    uint256 public defaultGasLimit;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -52,12 +64,45 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Emitted when a new relationship type is added
     event RelationshipTypeAdded(bytes32 indexed relationshipType);
 
+    /// @notice Emitted when the bridge queue address is updated
+    event BridgeQueueUpdated(
+        address indexed oldBridgeQueue,
+        address indexed newBridgeQueue
+    );
+
+    /// @notice Emitted when the bridge router address is updated
+    event BridgeRouterUpdated(
+        address indexed oldBridgeRouter,
+        address indexed newBridgeRouter
+    );
+
+    /// @notice Emitted when the cross chain registry address is updated
+    event CrossChainRegistryUpdated(
+        address indexed oldRegistry,
+        address indexed newRegistry
+    );
+
+    /// @notice Emitted when the default gas limit is updated
+    event DefaultGasLimitUpdated(
+        uint256 oldDefaultGasLimit,
+        uint256 newDefaultGasLimit
+    );
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Thrown when the current chain ID is zero
     error InvalidCurrentChainId();
+
+    /// @notice Thrown when bridge configuration is already initialized
+    error BridgeConfigAlreadyInitialized();
+
+    /// @notice Thrown when an invalid gas limit is provided
+    error InvalidGasLimit();
+
+    /// @notice Thrown when an address parameter is zero
+    error AddressZero();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -235,6 +280,82 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             relation.targetChainId,
             relationshipType
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        BRIDGE CONFIG FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes the bridge configuration parameters
+     * @param _bridgeQueue The address of the bridge queue contract
+     * @param _bridgeRouter The address of the bridge router contract
+     * @param _defaultGasLimit The default gas limit for cross-chain transactions
+     */
+    function initializeBridgeConfiguration(
+        address _bridgeQueue,
+        address _bridgeRouter,
+        uint256 _defaultGasLimit
+    ) external onlyGovernor {
+        if (bridgeConfigInitialized) {
+            revert BridgeConfigAlreadyInitialized();
+        }
+
+        if (_bridgeQueue == address(0) || _bridgeRouter == address(0)) {
+            revert AddressZero();
+        }
+
+        if (_defaultGasLimit == 0) {
+            revert InvalidGasLimit();
+        }
+
+        bridgeQueue = _bridgeQueue;
+        bridgeRouter = _bridgeRouter;
+        defaultGasLimit = _defaultGasLimit;
+
+        emit BridgeQueueUpdated(address(0), _bridgeQueue);
+        emit BridgeRouterUpdated(address(0), _bridgeRouter);
+        emit DefaultGasLimitUpdated(0, _defaultGasLimit);
+
+        bridgeConfigInitialized = true;
+    }
+
+    /**
+     * @notice Updates the bridge queue address
+     * @param newBridgeQueue The new bridge queue address
+     */
+    function setBridgeQueue(address newBridgeQueue) external onlyGovernor {
+        if (newBridgeQueue == address(0)) {
+            revert AddressZero();
+        }
+        emit BridgeQueueUpdated(bridgeQueue, newBridgeQueue);
+        bridgeQueue = newBridgeQueue;
+    }
+
+    /**
+     * @notice Updates the bridge router address
+     * @param newBridgeRouter The new bridge router address
+     */
+    function setBridgeRouter(address newBridgeRouter) external onlyGovernor {
+        if (newBridgeRouter == address(0)) {
+            revert AddressZero();
+        }
+        emit BridgeRouterUpdated(bridgeRouter, newBridgeRouter);
+        bridgeRouter = newBridgeRouter;
+    }
+
+    /**
+     * @notice Updates the default gas limit
+     * @param newDefaultGasLimit The new default gas limit
+     */
+    function setDefaultGasLimit(
+        uint256 newDefaultGasLimit
+    ) external onlyGovernor {
+        if (newDefaultGasLimit == 0) {
+            revert InvalidGasLimit();
+        }
+        emit DefaultGasLimitUpdated(defaultGasLimit, newDefaultGasLimit);
+        defaultGasLimit = newDefaultGasLimit;
     }
 
     /*//////////////////////////////////////////////////////////////
