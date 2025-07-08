@@ -54,6 +54,10 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice The default gas limit for cross-chain transactions
     uint256 public defaultGasLimit;
 
+    /// @notice Constants for relationship types
+    bytes32 public constant ADAPTER_PEER = keccak256("ADAPTER_PEER");
+    bytes32 public constant ARK_FLEET = keccak256("ARK_FLEET");
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -71,7 +75,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         currentChainId = _currentChainId;
 
-        // Add the default ARK_FLEET relationship type
+        _addRelationshipType(keccak256("ADAPTER_PEER"));
         _addRelationshipType(keccak256("ARK_FLEET"));
 
         emit RegistryInitialized(_currentChainId);
@@ -553,6 +557,180 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         returns (bytes32[] memory relationshipTypes)
     {
         return supportedRelationshipTypes;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ADAPTER PEER CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a peer relationship between two bridge adapters
+     * @param sourceAdapter Address of the source adapter
+     * @param targetAdapter Address of the target adapter
+     * @param sourceChainId Chain ID where the source adapter is deployed
+     * @param targetChainId Chain ID where the target adapter is deployed
+     */
+    function registerAdapterPeer(
+        address sourceAdapter,
+        address targetAdapter,
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) external onlyGovernor {
+        registerCrossChainRelationship(
+            sourceAdapter,
+            targetAdapter,
+            sourceChainId,
+            targetChainId,
+            ADAPTER_PEER
+        );
+    }
+
+    /**
+     * @notice Get the peer adapter address for a given source adapter and target chain
+     * @param sourceAdapter Address of the source adapter
+     * @param targetChainId Chain ID where the target adapter is deployed
+     * @return targetAdapter Address of the target adapter
+     */
+    function getAdapterPeer(
+        address sourceAdapter,
+        uint16 targetChainId
+    ) external view returns (address targetAdapter) {
+        (targetAdapter, ) = getTargetForSource(sourceAdapter, ADAPTER_PEER);
+
+        // Validate the target chain matches
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceAdapter,
+            ADAPTER_PEER,
+            targetChainId
+        );
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
+        if (relation.targetChainId != targetChainId) {
+            revert InvalidChainRelationship(
+                relation.sourceChainId,
+                targetChainId,
+                currentChainId
+            );
+        }
+    }
+
+    /**
+     * @notice Check if two adapters are registered as valid peers
+     * @param sourceAdapter Address of the source adapter
+     * @param targetAdapter Address of the target adapter
+     * @param sourceChainId Chain ID where the source adapter is deployed
+     * @param targetChainId Chain ID where the target adapter is deployed
+     * @return True if the adapters are registered peers
+     */
+    function isValidAdapterPeer(
+        address sourceAdapter,
+        address targetAdapter,
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) external view returns (bool) {
+        return
+            isValidCrossChainPair(
+                sourceAdapter,
+                targetAdapter,
+                sourceChainId,
+                targetChainId,
+                ADAPTER_PEER
+            );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ARK/FLEET CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a relationship between an Ark and its Fleet
+     * @param arkProxy Address of the Ark proxy
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     */
+    function registerArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external onlyGovernor {
+        registerCrossChainRelationship(
+            arkProxy,
+            fleetProxy,
+            arkChainId,
+            fleetChainId,
+            ARK_FLEET
+        );
+    }
+
+    /**
+     * @notice Get the Fleet proxy address for a given Ark proxy
+     * @param arkProxy Address of the Ark proxy
+     * @return fleetProxy Address of the Fleet proxy
+     * @return fleetChainId Chain ID where the Fleet is deployed
+     */
+    function getFleetForArk(
+        address arkProxy
+    ) external view returns (address fleetProxy, uint16 fleetChainId) {
+        return getTargetForSource(arkProxy, ARK_FLEET);
+    }
+
+    /**
+     * @notice Get the Ark proxy address for a given Fleet proxy and chain IDs
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     * @return arkProxy Address of the Ark proxy
+     */
+    function getArkForFleet(
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external view returns (address arkProxy) {
+        return
+            getSourceForTarget(arkChainId, fleetChainId, fleetProxy, ARK_FLEET);
+    }
+
+    /**
+     * @notice Check if an Ark and Fleet are properly registered
+     * @param arkProxy Address of the Ark proxy
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     * @return True if the Ark and Fleet are properly registered
+     */
+    function isValidArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external view returns (bool) {
+        return
+            isValidCrossChainPair(
+                arkProxy,
+                fleetProxy,
+                arkChainId,
+                fleetChainId,
+                ARK_FLEET
+            );
+    }
+
+    /**
+     * @notice Get all Fleets registered for a given Ark
+     * @param arkProxy Address of the Ark proxy
+     * @return fleetProxies Array of Fleet proxy addresses
+     * @return fleetChainIds Array of chain IDs where the Fleets are deployed
+     */
+    function getAllFleetsForArk(
+        address arkProxy
+    )
+        external
+        view
+        returns (address[] memory fleetProxies, uint16[] memory fleetChainIds)
+    {
+        return getTargetsForSource(arkProxy, ARK_FLEET);
     }
 
     /*//////////////////////////////////////////////////////////////
