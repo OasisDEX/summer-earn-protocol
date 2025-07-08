@@ -3,8 +3,14 @@ pragma solidity 0.8.28;
 
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ProtocolAccessManaged} from "../contracts/ProtocolAccessManaged.sol";
 
-abstract contract BaseBridgeAdapter is CrossChainConfigManaged {
+abstract contract BaseBridgeAdapter is
+    CrossChainConfigManaged,
+    ReentrancyGuard,
+    ProtocolAccessManaged
+{
     /// @notice Error thrown when destination chain is not supported
     error UnsupportedDestinationChain(uint16 chainId);
 
