@@ -6,14 +6,14 @@ import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
-import {CrossChainConfigManager} from "../../src/router/CrossChainConfigManager.sol";
-import {CrossChainConfigManagerParams} from "../../src/interfaces/ICrossChainConfigManager.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 /**
  * @title LayerZeroAdapter Fork Test Setup
- * @notice Base setup for LayerZero adapter fork tests with proper CrossChainConfigManager integration
+ * @notice Base setup for LayerZero adapter fork tests with proper CrossChainRegistry integration
  * @dev Provides common setup functionality for all LayerZero fork tests
  */
 abstract contract LayerZeroAdapterForkSetupTest is Test {
@@ -21,7 +21,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
     LayerZeroAdapterTestHelper public adapter;
     BridgeRouterTestHelper public router;
     BridgeQueue public bridgeQueue;
-    CrossChainConfigManager public configManager;
+    CrossChainRegistry public registry;
     ProtocolAccessManager public accessManager;
 
     // Test addresses
@@ -93,16 +93,18 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         bridgeQueue.setBridgeRouter(address(router));
         vm.stopPrank();
 
-        // Deploy and initialize CrossChainConfigManager
+        // Deploy registry
         vm.startPrank(governor);
-        configManager = new CrossChainConfigManager(address(accessManager));
-        configManager.initializeCrossChainConfiguration(
-            CrossChainConfigManagerParams({
-                bridgeQueue: address(bridgeQueue),
-                bridgeRouter: address(router),
-                crossChainRegistry: address(0x999), // Mock registry for testing
-                defaultGasLimit: DEFAULT_GAS_LIMIT
-            })
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            SOURCE_CHAIN_ID
+        );
+
+        // Initialize bridge configuration
+        registry.initializeBridgeConfiguration(
+            address(bridgeQueue),
+            address(router),
+            DEFAULT_GAS_LIMIT
         );
         vm.stopPrank();
 
@@ -117,7 +119,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Deploy LayerZero adapter TEST HELPER with CrossChainConfigManager
         adapter = new LayerZeroAdapterTestHelper(
             LZ_ENDPOINT_BASE,
-            address(configManager), // Use config manager instead of router directly
+            address(registry), // Use registry for cross-chain configuration
             supportedChains,
             lzEids,
             governor
@@ -218,16 +220,16 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             "Read channel ID not configured"
         );
 
-        // Test CrossChainConfigManager integration
+        // Test CrossChainRegistry integration
         assertEq(
             adapter.bridgeRouter(),
             address(router),
-            "Bridge router not accessible through config manager"
+            "Bridge router not accessible through registry"
         );
         assertEq(
             adapter.bridgeQueue(),
             address(bridgeQueue),
-            "Bridge queue not accessible through config manager"
+            "Bridge queue not accessible through registry"
         );
     }
 
@@ -243,7 +245,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
 
         LayerZeroAdapterTestHelper unconfiguredAdapter = new LayerZeroAdapterTestHelper(
                 LZ_ENDPOINT_BASE,
-                address(configManager), // Still use config manager for consistency
+                address(registry), // Still use registry for consistency
                 supportedChains,
                 lzEids,
                 governor

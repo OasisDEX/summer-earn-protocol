@@ -6,7 +6,7 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {ICrossChainConfigManager} from "../../src/interfaces/ICrossChainConfigManager.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
 contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
@@ -126,36 +126,35 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
                           CONFIG MANAGER INTEGRATION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testBridgeQueueFromConfigManager() public {
+    function testBridgeQueueFromRegistry() public {
         useNetworkA();
 
         // Verify bridge queue is accessible through the adapter
         address adapterBridgeQueue = adapterA.bridgeQueue();
-        address configBridgeQueue = configManagerA.bridgeQueue();
+        address registryBridgeQueue = registryA.bridgeQueue();
 
-        assertEq(adapterBridgeQueue, configBridgeQueue);
+        assertEq(adapterBridgeQueue, registryBridgeQueue);
         assertEq(adapterBridgeQueue, address(bridgeQueueA));
     }
 
-    function testCrossChainRegistryFromConfigManager() public {
+    function testCrossChainRegistryFromRegistry() public {
         useNetworkA();
 
         // Verify cross chain registry is accessible through the adapter
         address adapterRegistry = adapterA.crossChainRegistry();
-        address configRegistry = configManagerA.crossChainRegistry();
+        address expectedRegistry = address(registryA);
 
-        assertEq(adapterRegistry, configRegistry);
-        assertEq(adapterRegistry, address(0x1234)); // Mock registry from setup
+        assertEq(adapterRegistry, expectedRegistry);
     }
 
-    function testDefaultGasLimitFromConfigManager() public {
+    function testDefaultGasLimitFromRegistry() public {
         useNetworkA();
 
         // Verify default gas limit is accessible through the adapter
         uint256 adapterGasLimit = adapterA.defaultGasLimit();
-        uint256 configGasLimit = configManagerA.defaultGasLimit();
+        uint256 registryGasLimit = registryA.defaultGasLimit();
 
-        assertEq(adapterGasLimit, configGasLimit);
+        assertEq(adapterGasLimit, registryGasLimit);
         assertEq(adapterGasLimit, 400000); // From setup
     }
 
@@ -166,7 +165,7 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterA.setComposeGasLimit(0);
 
-        // Should use default gas limit from config manager
-        assertEq(adapterA.composeGasLimit(), configManagerA.defaultGasLimit());
+        // Should use default gas limit from registry
+        assertEq(adapterA.composeGasLimit(), registryA.defaultGasLimit());
     }
 }

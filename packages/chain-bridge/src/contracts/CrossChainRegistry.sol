@@ -55,56 +55,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     uint256 public defaultGasLimit;
 
     /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when the registry is initialized
-    event RegistryInitialized(uint16 currentChainId);
-
-    /// @notice Emitted when a new relationship type is added
-    event RelationshipTypeAdded(bytes32 indexed relationshipType);
-
-    /// @notice Emitted when the bridge queue address is updated
-    event BridgeQueueUpdated(
-        address indexed oldBridgeQueue,
-        address indexed newBridgeQueue
-    );
-
-    /// @notice Emitted when the bridge router address is updated
-    event BridgeRouterUpdated(
-        address indexed oldBridgeRouter,
-        address indexed newBridgeRouter
-    );
-
-    /// @notice Emitted when the cross chain registry address is updated
-    event CrossChainRegistryUpdated(
-        address indexed oldRegistry,
-        address indexed newRegistry
-    );
-
-    /// @notice Emitted when the default gas limit is updated
-    event DefaultGasLimitUpdated(
-        uint256 oldDefaultGasLimit,
-        uint256 newDefaultGasLimit
-    );
-
-    /*//////////////////////////////////////////////////////////////
-                               ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when the current chain ID is zero
-    error InvalidCurrentChainId();
-
-    /// @notice Thrown when bridge configuration is already initialized
-    error BridgeConfigAlreadyInitialized();
-
-    /// @notice Thrown when an invalid gas limit is provided
-    error InvalidGasLimit();
-
-    /// @notice Thrown when an address parameter is zero
-    error AddressZero();
-
-    /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 

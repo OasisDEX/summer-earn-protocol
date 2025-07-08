@@ -7,8 +7,8 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
-import {CrossChainConfigManager} from "../../src/router/CrossChainConfigManager.sol";
-import {CrossChainConfigManagerParams} from "../../src/interfaces/ICrossChainConfigManager.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
@@ -43,8 +43,8 @@ contract StargateAdapterComposeForkTest is Test {
     StargateAdapter adapterArbitrum;
     BridgeRouterTestHelper routerMainnet;
     BridgeRouterTestHelper routerArbitrum;
-    CrossChainConfigManager configManagerMainnet;
-    CrossChainConfigManager configManagerArbitrum;
+    CrossChainRegistry registryMainnet;
+    CrossChainRegistry registryArbitrum;
     MockFleetProxy fleetProxyArbitrum;
     MockStargateV2 mockStargateMainnet;
     MockStargateV2 mockStargateArbitrum;
@@ -83,21 +83,19 @@ contract StargateAdapterComposeForkTest is Test {
         );
         bridgeQueue.setBridgeRouter(address(routerMainnet));
 
-        // Deploy and initialize CrossChainConfigManager for mainnet
-        configManagerMainnet = new CrossChainConfigManager(
-            address(accessManager)
+        // Deploy and initialize CrossChainRegistry for mainnet
+        registryMainnet = new CrossChainRegistry(
+            address(accessManager),
+            CHAIN_ID_MAINNET
         );
-        configManagerMainnet.initializeCrossChainConfiguration(
-            CrossChainConfigManagerParams({
-                bridgeQueue: address(bridgeQueue),
-                bridgeRouter: address(routerMainnet),
-                crossChainRegistry: address(0x1234), // Mock registry
-                defaultGasLimit: 400000
-            })
+        registryMainnet.initializeBridgeConfiguration(
+            address(bridgeQueue),
+            address(routerMainnet),
+            400000 // defaultGasLimit
         );
 
         adapterMainnet = new StargateAdapter(
-            address(configManagerMainnet), // Use config manager instead of router
+            address(registryMainnet), // Use registry instead of config manager
             governor,
             LAYERZERO_ENDPOINT_MAINNET,
             address(0xdead) // Mock HarborCommand address for testing
@@ -153,21 +151,19 @@ contract StargateAdapterComposeForkTest is Test {
         );
         bridgeQueueArb.setBridgeRouter(address(routerArbitrum));
 
-        // Deploy and initialize CrossChainConfigManager for arbitrum
-        configManagerArbitrum = new CrossChainConfigManager(
-            address(accessManagerArb)
+        // Deploy and initialize CrossChainRegistry for arbitrum
+        registryArbitrum = new CrossChainRegistry(
+            address(accessManagerArb),
+            CHAIN_ID_ARBITRUM
         );
-        configManagerArbitrum.initializeCrossChainConfiguration(
-            CrossChainConfigManagerParams({
-                bridgeQueue: address(bridgeQueueArb),
-                bridgeRouter: address(routerArbitrum),
-                crossChainRegistry: address(0x5678), // Mock registry
-                defaultGasLimit: 400000
-            })
+        registryArbitrum.initializeBridgeConfiguration(
+            address(bridgeQueueArb),
+            address(routerArbitrum),
+            400000 // defaultGasLimit
         );
 
         adapterArbitrum = new StargateAdapter(
-            address(configManagerArbitrum), // Use config manager instead of router
+            address(registryArbitrum), // Use registry instead of config manager
             governor,
             LAYERZERO_ENDPOINT_ARBITRUM,
             address(0xdead) // Mock HarborCommand address for testing
@@ -232,12 +228,12 @@ contract StargateAdapterComposeForkTest is Test {
         adapterMainnet.setComposeGasLimit(1500000);
         assertEq(adapterMainnet.composeGasLimit(), 1500000);
 
-        // Test 0 uses default from config manager
+        // Test 0 uses default from registry
         vm.prank(governor);
         adapterMainnet.setComposeGasLimit(0);
         assertEq(
             adapterMainnet.composeGasLimit(),
-            configManagerMainnet.defaultGasLimit()
+            registryMainnet.defaultGasLimit()
         );
     }
 
