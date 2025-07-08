@@ -2,38 +2,45 @@
 pragma solidity 0.8.28;
 
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 
-abstract contract BaseBridgeAdapter {
-    ICrossChainRegistry public immutable registry;
+abstract contract BaseBridgeAdapter is CrossChainConfigManaged {
+    /// @notice Error thrown when destination chain is not supported
+    error UnsupportedDestinationChain(uint16 chainId);
+
+    /// @notice Error thrown when source adapter is not trusted
+    error UntrustedSourceAdapter(address srcAdapter, uint16 srcChain);
+
+    ICrossChainRegistry public immutable REGISTRY;
     uint16 public immutable THIS_CHAIN;
 
-    constructor(address _registry) {
-        registry = ICrossChainRegistry(_registry);
+    constructor(address _registry) CrossChainConfigManaged(_registry) {
+        REGISTRY = ICrossChainRegistry(_registry);
         THIS_CHAIN = uint16(block.chainid);
     }
 
     modifier onlySupportedDestination(uint16 dstChain) {
-        require(
-            registry.getAdapterPeer(address(this), dstChain) != address(0),
-            "Unsupported destination chain"
-        );
+        if (REGISTRY.getAdapterPeer(address(this), dstChain) == address(0)) {
+            revert UnsupportedDestinationChain(dstChain);
+        }
         _;
     }
 
     modifier onlyTrustedSource(address srcAdapter, uint16 srcChain) {
-        require(
-            registry.isValidAdapterPeer(
+        if (
+            !REGISTRY.isValidAdapterPeer(
                 srcAdapter,
                 address(this),
                 srcChain,
                 THIS_CHAIN
-            ),
-            "Untrusted source adapter"
-        );
+            )
+        ) {
+            revert UntrustedSourceAdapter(srcAdapter, srcChain);
+        }
         _;
     }
 
     function _peerAdapter(uint16 dstChain) internal view returns (address) {
-        return registry.getAdapterPeer(address(this), dstChain);
+        return REGISTRY.getAdapterPeer(address(this), dstChain);
     }
 }

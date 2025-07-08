@@ -14,7 +14,7 @@ import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.s
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
+import {BaseBridgeAdapter} from "../adapters/BaseBridgeAdapter.sol";
 
 // Import CrossChain Ark interface for proper detection
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
@@ -44,7 +44,7 @@ contract StargateAdapter is
     IFleetDepositAdapter,
     ILayerZeroComposer,
     Nonces,
-    CrossChainConfigManaged
+    BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
@@ -243,17 +243,17 @@ contract StargateAdapter is
 
     /**
      * @notice Initializes the StargateAdapter
-     * @param _crossChainConfigManager Address of the CrossChainConfigManager contract
+     * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _owner Address of the contract owner
      * @param _lzEndpoint LayerZero endpoint for compose functionality
      * @param _harborCommand Address of the HarborCommand contract for fleet commander validation
      */
     constructor(
-        address _crossChainConfigManager,
+        address _crossChainRegistry,
         address _owner,
         address _lzEndpoint,
         address _harborCommand
-    ) Ownable(_owner) CrossChainConfigManaged(_crossChainConfigManager) {
+    ) Ownable(_owner) BaseBridgeAdapter(_crossChainRegistry) {
         if (_lzEndpoint == address(0)) revert InvalidParams();
         if (_harborCommand == address(0)) revert InvalidParams();
 
