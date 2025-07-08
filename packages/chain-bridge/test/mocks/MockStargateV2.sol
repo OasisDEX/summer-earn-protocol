@@ -122,4 +122,6 @@ contract MockStargateV2 {
             amountReceivedLD: _sendParam.amountLD // In real scenario, this would be less due to fees
         });
     }
+
+    function testSkipper() public {}
 }

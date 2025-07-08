@@ -123,4 +123,6 @@ contract MockLayerZeroEndpoint {
     function clearComposeCalls() external {
         delete composeCalls;
     }
+
+    function testSkipper() public {}
 }

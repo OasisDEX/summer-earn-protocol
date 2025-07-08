@@ -45,4 +45,6 @@ contract MockFleetProxy is ICrossChainAssetReceiver {
             interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
+
+    function testSkipper() public {}
 }

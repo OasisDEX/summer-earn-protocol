@@ -33,4 +33,6 @@ library OftCmdHelper {
     ) internal pure returns (bytes memory) {
         return _passengers;
     }
+
+    function testSkipper() public {}
 }

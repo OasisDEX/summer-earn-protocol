@@ -99,4 +99,6 @@ contract BridgeRouterTestHelper is BridgeRouter {
     function setShouldRevert(bool _shouldRevert) external {
         shouldRevert = _shouldRevert;
     }
+
+    function testSkipper() public {}
 }

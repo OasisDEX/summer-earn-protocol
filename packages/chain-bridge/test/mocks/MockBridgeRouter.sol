@@ -579,4 +579,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
         return operationId;
     }
+
+    function testSkipper() public {}
 }

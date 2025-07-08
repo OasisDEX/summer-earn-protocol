@@ -28,4 +28,6 @@ contract MockFleetDepositAdapterNoSupport is IFleetDepositAdapter {
     {
         return false; // Does not support user-initiated fleet deposits
     }
+
+    function testSkipper() public {}
 }

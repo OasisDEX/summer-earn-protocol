@@ -205,4 +205,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     function useNetworkB() public {
         vm.chainId(NETWORK_B_CHAIN_ID);
     }
+
+    function testSkipper() public {}
 }

@@ -43,4 +43,6 @@ contract MockAccessManager {
     function isValidAdapter(address) external pure returns (bool) {
         return true; // Always return true for testing
     }
+
+    function testSkipper() public {}
 }
