@@ -139,6 +139,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         adapterA = new LayerZeroAdapterTestHelper(
             lzEndpointA,
             address(registryA), // Use registry instead of config manager
+            address(accessManagerA),
             chains,
             lzEids,
             governor
@@ -200,6 +201,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         adapterB = new LayerZeroAdapterTestHelper(
             lzEndpointB,
             address(registryB), // Use registry instead of config manager
+            address(accessManagerB),
             chains,
             lzEids,
             governor

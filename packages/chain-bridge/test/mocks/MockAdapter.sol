@@ -185,13 +185,6 @@ contract MockAdapter is IBridgeAdapter {
         return operationStatuses[operationId];
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getSupportedChains() external pure returns (uint16[] memory) {
-        uint16[] memory chains = new uint16[](1);
-        chains[0] = 111; // SOURCE_CHAIN_ID from tests
-        return chains;
-    }
-
     function supportsChain(uint16 chainId) external view returns (bool) {
         return supportedChains[chainId];
     }

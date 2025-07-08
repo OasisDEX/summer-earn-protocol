@@ -22,9 +22,21 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     }
 
     function testSupportsChain() public view {
-        assertTrue(adapterA.supportsChain(CHAIN_ID_A));
-        assertTrue(adapterA.supportsChain(CHAIN_ID_B));
-        assertFalse(adapterA.supportsChain(9999)); // Arbitrary unsupported chain
+        assertTrue(
+            adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_A) !=
+                address(0),
+            "Chain A should be supported"
+        );
+        assertTrue(
+            adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_B) !=
+                address(0),
+            "Chain B should be supported"
+        );
+        assertFalse(
+            adapterA.REGISTRY().getAdapterPeer(address(adapterA), 9999) !=
+                address(0),
+            "Arbitrary unsupported chain should not be supported"
+        );
     }
 
     function testFeatureSupport() public view {
@@ -57,7 +69,11 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         adapterA.addSupportedChain(newChainId, newEndpointId, address(0xdead)); // Use non-zero address
 
         // Verify the chain was added
-        assertTrue(adapterA.supportsChain(newChainId));
+        assertTrue(
+            adapterA.REGISTRY().getAdapterPeer(address(adapterA), newChainId) !=
+                address(0),
+            "Chain should be supported"
+        );
         assertEq(adapterA.getEndpointId(newChainId), newEndpointId);
 
         // Verify it's in the list of supported chains

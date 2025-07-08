@@ -238,16 +238,16 @@ contract StargateAdapter is
     /**
      * @notice Initializes the StargateAdapter
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
-     * @param _owner Address of the contract owner
+     * @param _accessManager Address of the AccessManager contract
      * @param _lzEndpoint LayerZero endpoint for compose functionality
      * @param _harborCommand Address of the HarborCommand contract for fleet commander validation
      */
     constructor(
         address _crossChainRegistry,
-        address _owner,
+        address _accessManager,
         address _lzEndpoint,
         address _harborCommand
-    ) Ownable(_owner) BaseBridgeAdapter(_crossChainRegistry) {
+    ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
         if (_lzEndpoint == address(0)) revert InvalidParams();
         if (_harborCommand == address(0)) revert InvalidParams();
 
@@ -314,34 +314,7 @@ contract StargateAdapter is
         chainToEndpointId[chainId] = endpointId;
         supportedChains.push(chainId);
 
-        // Register peer relationship in CrossChainRegistry
-        REGISTRY.registerAdapterPeer(
-            address(this),
-            adapterAddress,
-            uint16(block.chainid),
-            chainId
-        );
-
         emit ChainSupported(chainId, endpointId);
-    }
-
-    /**
-     * @notice Updates the adapter address for an existing supported chain
-     * @param chainId Chain ID in our system
-     * @param adapterAddress New address of the StargateAdapter for this chain
-     */
-    function updateChainAdapter(
-        uint16 chainId,
-        address adapterAddress
-    ) external onlyGovernor {
-        if (chainToEndpointId[chainId] == 0) revert InvalidParams();
-
-        REGISTRY.registerAdapterPeer(
-            address(this),
-            adapterAddress,
-            uint16(block.chainid),
-            chainId
-        );
     }
 
     /**
@@ -376,21 +349,26 @@ contract StargateAdapter is
 
     /// @inheritdoc IFleetDepositAdapter
     function sendFleetDepositToDestinationChain(
-        uint16 destinationChainId,
+        uint16 dstChainId,
         address asset,
         uint256 amount,
         address /* destinationAdapter */,
         bytes memory composeMessage,
         BridgeTypes.AdapterParams calldata /* adapterParams */
-    ) external payable nonReentrant returns (bytes32 operationId) {
+    )
+        external
+        payable
+        onlySupportedDestination(dstChainId)
+        nonReentrant
+        returns (bytes32 operationId)
+    {
         // Validate inputs
         if (amount == 0) revert InvalidFleetDepositParams();
-        if (!supportsChain(destinationChainId)) revert UnsupportedChain();
         if (assetToStargateContract[asset] == address(0))
             revert UnsupportedAsset();
 
         // Resolve peer adapter via registry
-        address actualDestinationAdapter = _peerAdapter(destinationChainId);
+        address actualDestinationAdapter = _peerAdapter(dstChainId);
         if (actualDestinationAdapter == address(0)) revert UnsupportedChain();
 
         // Transfer tokens from user to this contract
@@ -399,13 +377,7 @@ contract StargateAdapter is
         // Generate operation ID with nonce for uniqueness
         uint256 nonce = _useNonce(msg.sender);
         operationId = keccak256(
-            abi.encode(
-                msg.sender,
-                destinationChainId,
-                amount,
-                nonce,
-                block.chainid
-            )
+            abi.encode(msg.sender, dstChainId, amount, nonce, block.chainid)
         );
 
         // Extract data from compose message using the decode helper
@@ -422,7 +394,7 @@ contract StargateAdapter is
         _sendFleetDepositToDestinationChain(
             asset,
             amount,
-            destinationChainId,
+            dstChainId,
             actualDestinationAdapter,
             updatedComposeMessage,
             msg.value
@@ -430,7 +402,7 @@ contract StargateAdapter is
 
         emit FleetDepositSentToDestination(
             operationId,
-            destinationChainId,
+            dstChainId,
             msg.sender,
             messageData.fleetCommander,
             asset,
@@ -764,15 +736,17 @@ contract StargateAdapter is
 
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
-        uint16 destinationChainId,
+        uint16 dstChainId,
         address asset,
         uint256 amount,
         BridgeTypes.AdapterParams calldata adapterParams,
         BridgeTypes.OperationType operationType
-    ) public view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Check if chain is supported
-        if (!supportsChain(destinationChainId)) revert UnsupportedChain();
-
+    )
+        public
+        view
+        onlySupportedDestination(dstChainId)
+        returns (uint256 nativeFee, uint256 tokenFee)
+    {
         // Check if asset is supported on current chain
         if (
             operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
@@ -810,7 +784,7 @@ contract StargateAdapter is
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
-            dstEid: chainToEndpointId[destinationChainId],
+            dstEid: chainToEndpointId[dstChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
@@ -835,21 +809,6 @@ contract StargateAdapter is
         bytes32 operationId
     ) external view override returns (BridgeTypes.OperationStatus) {
         return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function getSupportedChains()
-        external
-        view
-        override
-        returns (uint16[] memory)
-    {
-        return supportedChains;
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsChain(uint16 chainId) public view returns (bool) {
-        return _peerAdapter(chainId) != address(0);
     }
 
     /**

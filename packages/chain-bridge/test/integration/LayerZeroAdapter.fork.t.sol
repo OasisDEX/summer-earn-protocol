@@ -92,7 +92,10 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         );
 
         assertTrue(
-            adapter.supportsChain(DEST_CHAIN_ID),
+            adapter.REGISTRY().getAdapterPeer(
+                address(adapter),
+                DEST_CHAIN_ID
+            ) != address(0),
             "Should support destination chain through config"
         );
 

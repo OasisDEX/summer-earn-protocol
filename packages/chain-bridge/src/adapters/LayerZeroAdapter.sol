@@ -2,12 +2,12 @@
 pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
@@ -17,19 +17,14 @@ import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiv
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
-import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
+import {BaseBridgeAdapter} from "./BaseBridgeAdapter.sol";
 
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
  * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OAppRead standard
  */
-contract LayerZeroAdapter is
-    Ownable,
-    OAppRead,
-    IBridgeAdapter,
-    CrossChainConfigManaged
-{
+contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -113,21 +108,23 @@ contract LayerZeroAdapter is
     /**
      * @notice Initializes the LayerZeroAdapter
      * @param _endpoint Address of the LayerZero endpoint
-     * @param _crossChainConfigManager Address of the CrossChainConfigManager contract
+     * @param _crossChainRegistry Address of the CrossChainRegistry contract
+     * @param _accessManager Address of the AccessManager contract
      * @param _supportedChains Array of chain IDs supported by this adapter
      * @param _lzEids Array of corresponding LayerZero endpoint IDs
-     * @param _owner Address of the contract owner
+     * @param _initialOwner Address of the contract owner
      */
     constructor(
         address _endpoint,
-        address _crossChainConfigManager,
+        address _crossChainRegistry,
+        address _accessManager,
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
-        address _owner
+        address _initialOwner
     )
-        OAppRead(_endpoint, _owner)
-        Ownable(_owner)
-        CrossChainConfigManaged(_crossChainConfigManager)
+        OAppRead(_endpoint, _initialOwner)
+        Ownable(_initialOwner)
+        BaseBridgeAdapter(_crossChainRegistry, _accessManager)
     {
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();
 
@@ -538,24 +535,6 @@ contract LayerZeroAdapter is
         return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getSupportedChains()
-        external
-        view
-        override
-        returns (uint16[] memory)
-    {
-        uint256 length = _supportedChainIds.length();
-        uint16[] memory chains = new uint16[](length);
-
-        for (uint256 i = 0; i < length; i++) {
-            // Need to cast from uint256 to uint16
-            chains[i] = uint16(_supportedChainIds.at(i));
-        }
-
-        return chains;
-    }
-
     /// @inheritdoc ISendAdapter
     function readState(
         bytes32 operationId,
@@ -625,13 +604,6 @@ contract LayerZeroAdapter is
             operationId,
             BridgeTypes.OperationStatus.SENT
         );
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsChain(
-        uint16 chainId
-    ) external view override returns (bool) {
-        return chainToLzEid[chainId] != 0;
     }
 
     /// @inheritdoc ISendAdapter

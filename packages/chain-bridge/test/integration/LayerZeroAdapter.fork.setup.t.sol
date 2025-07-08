@@ -118,6 +118,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         adapter = new LayerZeroAdapterTestHelper(
             LZ_ENDPOINT_BASE,
             address(registry), // Use registry for cross-chain configuration
+            address(accessManager),
             supportedChains,
             lzEids,
             governor
@@ -187,7 +188,10 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
     function _verifyAdapterConfiguration() internal view {
         // Test that adapter is properly configured
         assertTrue(
-            adapter.supportsChain(DEST_CHAIN_ID),
+            adapter.REGISTRY().getAdapterPeer(
+                address(adapter),
+                DEST_CHAIN_ID
+            ) != address(0),
             "Destination chain not supported"
         );
         assertTrue(
@@ -244,6 +248,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         LayerZeroAdapterTestHelper unconfiguredAdapter = new LayerZeroAdapterTestHelper(
                 LZ_ENDPOINT_BASE,
                 address(registry), // Still use registry for consistency
+                address(accessManager),
                 supportedChains,
                 lzEids,
                 governor

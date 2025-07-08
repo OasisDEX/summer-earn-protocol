@@ -95,7 +95,7 @@ contract StargateAdapterComposeForkTest is Test {
 
         adapterMainnet = new StargateAdapter(
             address(registryMainnet), // Use registry instead of config manager
-            governor,
+            address(accessManager),
             LAYERZERO_ENDPOINT_MAINNET,
             address(0xdead) // Mock HarborCommand address for testing
         );
@@ -163,7 +163,7 @@ contract StargateAdapterComposeForkTest is Test {
 
         adapterArbitrum = new StargateAdapter(
             address(registryArbitrum), // Use registry instead of config manager
-            governor,
+            address(accessManagerArb),
             LAYERZERO_ENDPOINT_ARBITRUM,
             address(0xdead) // Mock HarborCommand address for testing
         );
@@ -335,8 +335,20 @@ contract StargateAdapterComposeForkTest is Test {
         vm.selectFork(0); // Mainnet
 
         // Test that adapter is properly configured
-        assertTrue(adapterMainnet.supportsChain(CHAIN_ID_MAINNET));
-        assertTrue(adapterMainnet.supportsChain(CHAIN_ID_ARBITRUM));
+        assertTrue(
+            adapterMainnet.REGISTRY().getAdapterPeer(
+                address(adapterMainnet),
+                CHAIN_ID_MAINNET
+            ) != address(0),
+            "Mainnet should be supported"
+        );
+        assertTrue(
+            adapterMainnet.REGISTRY().getAdapterPeer(
+                address(adapterMainnet),
+                CHAIN_ID_ARBITRUM
+            ) != address(0),
+            "Arbitrum should be supported"
+        );
 
         // Test endpoint ID mapping
         assertEq(

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {Test} from "forge-std/Test.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
@@ -109,7 +108,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         // Deploy adapter with registry instead of config manager
         adapterA = new StargateAdapter(
             address(registryA),
-            governor,
+            address(accessManagerA),
             lzEndpointA,
             address(harborCommandA)
         );
@@ -164,7 +163,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         // Deploy adapter with registry instead of config manager
         adapterB = new StargateAdapter(
             address(registryB),
-            governor,
+            address(accessManagerB),
             lzEndpointB,
             address(harborCommandB)
         );

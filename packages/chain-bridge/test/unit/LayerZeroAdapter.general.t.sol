@@ -52,9 +52,21 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     }
 
     function testSupportsChain() public view {
-        assertTrue(adapterA.supportsChain(CHAIN_ID_A));
-        assertTrue(adapterA.supportsChain(CHAIN_ID_B));
-        assertFalse(adapterA.supportsChain(2)); // Arbitrary unsupported chain
+        assertTrue(
+            adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_A) !=
+                address(0),
+            "Chain A should be supported"
+        );
+        assertTrue(
+            adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_B) !=
+                address(0),
+            "Chain B should be supported"
+        );
+        assertFalse(
+            adapterA.REGISTRY().getAdapterPeer(address(adapterA), 2) !=
+                address(0),
+            "Arbitrary unsupported chain should not be supported"
+        );
     }
 
     // Update test for UnsupportedMessageType error since type 5 is now COMPOSE

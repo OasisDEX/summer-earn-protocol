@@ -94,16 +94,6 @@ interface IBridgeAdapter is ISendAdapter {
     ) external view returns (BridgeTypes.OperationStatus);
 
     /**
-     * @notice Get the list of supported chains
-     */
-    function getSupportedChains() external view returns (uint16[] memory);
-
-    /**
-     * @notice Check if an adapter supports a specific chain
-     */
-    function supportsChain(uint16 chainId) external view returns (bool);
-
-    /**
      * @notice Check if an adapter supports a specific operation type
      * @param operationType Type of operation to check support for
      * @return Whether the adapter supports the operation type
