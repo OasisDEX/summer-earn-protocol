@@ -6,7 +6,7 @@
     "start:ark-rebalancer": "cd packages/ark-rebalancer && venv/bin/python ark_rebalancer.py",
     "dev": "turbo run dev --concurrency=100",
     "prebuild": "turbo run prebuild --cache-dir=.turbo",
-    "build": "turbo run build --cache-dir=.turbo",
+    "build": "turbo run build --cache-dir=.turbo --filter='!./packages/summer-earn-gov-validator' --filter='!./packages/summer-earn-interface' --filter='!./packages/summer-earn-auctions-frontend'",
     "lint": "turbo run lint --cache-dir=.turbo",
     "lint:fix": "turbo run lint:fix",
     "test": "turbo run test --cache-dir=.turbo",
