@@ -151,4 +151,6 @@ contract MockBridgeQueue is IBridgeQueue {
     function recoverFunds(address, address, uint256) external pure {
         revert("not implemented");
     }
+
+    function testSkipper() public {}
 }

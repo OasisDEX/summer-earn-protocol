@@ -89,4 +89,5 @@ library LayerZeroOptionsHelper {
                 adapterParams.msgValue
             );
     }
+    function testSkipper() public {}
 }

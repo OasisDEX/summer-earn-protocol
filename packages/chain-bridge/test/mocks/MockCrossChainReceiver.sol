@@ -78,4 +78,6 @@ contract MockCrossChainReceiver is
             interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
             interfaceId == type(ICrossChainStateReadReceiver).interfaceId;
     }
+
+    function testSkipper() public {}
 }

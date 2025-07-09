@@ -53,6 +53,8 @@ contract SimpleMockFleetCommander {
     ) external pure returns (uint256) {
         return type(uint256).max;
     }
+
+    function testSkipper() public {}
 }
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {

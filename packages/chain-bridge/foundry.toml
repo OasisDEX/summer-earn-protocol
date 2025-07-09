@@ -19,6 +19,11 @@ via_ir = true
 optimizer = true
 optimizer_runs = 100
 
+[profile.coverage]
+via_ir = true
+optimizer = true
+optimizer_runs = 10000
+
 [fmt]
 bracket_spacing = true
 int_types = "long"

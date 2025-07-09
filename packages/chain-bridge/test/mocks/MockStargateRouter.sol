@@ -66,4 +66,6 @@ contract MockStargateRouter {
 
         return (baseGasFee + gasComponent + payloadComponent, _payload.length);
     }
+
+    function testSkipper() public {}
 }

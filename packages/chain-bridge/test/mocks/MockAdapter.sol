@@ -316,4 +316,6 @@ contract MockAdapter is IBridgeAdapter {
         console.log("operationId:", uint256(operationId));
         console.log("destinationChainId:", destinationChainId);
     }
+
+    function testSkipper() public {}
 }

@@ -96,4 +96,6 @@ contract MockFleetDepositAdapter is IFleetDepositAdapter {
         delete lastAdapterParams;
         // Don't reset operationCounter to maintain uniqueness across resets
     }
+
+    function testSkipper() public {}
 }
