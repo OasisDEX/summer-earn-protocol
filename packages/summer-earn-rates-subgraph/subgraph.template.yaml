@@ -85,6 +85,8 @@ dataSources:
           file: ./abis/silo/ISiloVault.json
         - name: ISiloVaultIncentivesModule
           file: ./abis/silo/ISiloVaultIncentivesModule.json
+        - name: ERC4626FluidLite
+          file: ./abis/ERC4626FluidLite.json
       blockHandlers:
         - handler: handleBlock
           filter:

@@ -1,5 +1,5 @@
 {
-  "name": "summer-earn-gov-validator",
+  "name": "@summerfi/summer-earn-gov-validator",
   "version": "1.0.0",
   "private": true,
   "scripts": {

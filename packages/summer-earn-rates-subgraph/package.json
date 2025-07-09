@@ -1,7 +1,7 @@
 {
   "name": "@summerfi/summer-earn-rates-subgraph",
   "license": "UNLICENSED",
-  "version": "1.11.4-sonic-grafting",
+  "version": "1.13.0-new-products-20250701",
   "scripts": {
     "codegen": "graph codegen",
     "build:mainnet": "pnpm run prepare:mainnet && graph codegen && graph build",
@@ -19,8 +19,7 @@
     "deploy:base": "bash -c 'source ../../.env && pnpm run prepare:base && graph deploy summer-earn-protocol-rates-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
     "deploy:optimism": "bash -c 'source ../../.env && pnpm run prepare:optimism && graph deploy summer-earn-protocol-rates-optimism --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
     "deploy:sonic": "bash -c 'source ../../.env && pnpm run prepare:sonic && graph deploy summer-earn-protocol-rates-sonic --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
-    "deploy:all": "pnpm run deploy:mainnet && pnpm run deploy:arbitrum && pnpm run deploy:base && pnpm run deploy:optimism && pnpm run deploy:sonic",
-    "test": "graph test"
+    "deploy:all": "pnpm run deploy:mainnet && pnpm run deploy:arbitrum && pnpm run deploy:base && pnpm run deploy:optimism && pnpm run deploy:sonic"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "0.82.0",

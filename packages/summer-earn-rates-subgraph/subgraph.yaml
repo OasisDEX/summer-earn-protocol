@@ -5,16 +5,16 @@ schema:
 features:
   - grafting
 graft:
-  base: QmSRZdXBRN5VsFMop7QJFNoAeMHsqR4tqcCvFb8Sh1CqCY
-  block: 27007101
+  base: QmZF2rRiwya1bAstzUaBWkbfCeEmnHpdc7NoJCySUaBRWV
+  block: 22822692
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: sonic-mainnet
+    network: mainnet
     source:
       abi: Comet
-      startBlock: 12744800
-      address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
+      startBlock: 21575816
+      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -83,9 +83,11 @@ dataSources:
           file: ./abis/silo/ISiloVault.json
         - name: ISiloVaultIncentivesModule
           file: ./abis/silo/ISiloVaultIncentivesModule.json
+        - name: ERC4626FluidLite
+          file: ./abis/ERC4626FluidLite.json
       blockHandlers:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 20    
+            every: 50    
       file: ./src/mapping.ts
