@@ -113,12 +113,8 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(harborCommandA)
         );
 
-        adapterA.addSupportedChain(
-            CHAIN_ID_A,
-            ENDPOINT_ID_A,
-            address(adapterA)
-        );
-        // Don't add CHAIN_ID_B yet - will add after adapterB is deployed
+        // Set endpoint ID instead of addSupportedChain
+        adapterA.setEndpointId(CHAIN_ID_A, ENDPOINT_ID_A);
 
         adapterA.addSupportedAsset(address(tokenA), address(stargateA));
 
@@ -168,15 +164,16 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(harborCommandB)
         );
 
-        adapterB.addSupportedChain(
+        // Set endpoint ID instead of addSupportedChain
+        adapterB.setEndpointId(CHAIN_ID_B, ENDPOINT_ID_B);
+        adapterB.setEndpointId(CHAIN_ID_A, ENDPOINT_ID_A);
+
+        // Register the cross-chain relationship between adapters
+        registryB.registerAdapterPeer(
+            address(adapterB),
+            address(adapterA),
             CHAIN_ID_B,
-            ENDPOINT_ID_B,
-            address(adapterB)
-        );
-        adapterB.addSupportedChain(
-            CHAIN_ID_A,
-            ENDPOINT_ID_A,
-            address(adapterA)
+            CHAIN_ID_A
         );
 
         adapterB.addSupportedAsset(address(tokenB), address(stargateB));
@@ -187,13 +184,14 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         vm.stopPrank();
 
-        // Now add chain B support to adapter A with the correct adapter B address
+        // Back to Chain A to register the B->A relationship
         useNetworkA();
         vm.prank(governor);
-        adapterA.addSupportedChain(
-            CHAIN_ID_B,
-            ENDPOINT_ID_B,
-            address(adapterB)
+        registryA.registerAdapterPeer(
+            address(adapterA),
+            address(adapterB),
+            CHAIN_ID_A,
+            CHAIN_ID_B
         );
     }
 

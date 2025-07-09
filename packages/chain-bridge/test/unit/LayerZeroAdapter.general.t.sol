@@ -6,6 +6,7 @@ import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     // Implement the executeMessage helper function required by the abstract base test
@@ -45,28 +46,38 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     //////////////////////////////////////////////////////////////*/
 
     function testGetSupportedChains() public view {
-        uint16[] memory supportedChains = adapterA.getSupportedChains();
-        assertEq(supportedChains.length, 2);
-        assertEq(supportedChains[0], CHAIN_ID_A);
-        assertEq(supportedChains[1], CHAIN_ID_B);
+        // Get chains through registry relationships
+        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
+            address(adapterA),
+            registryA.ADAPTER_PEER()
+        );
+
+        assertEq(supportedChains.length, 1);
+        assertEq(supportedChains[0], CHAIN_ID_B);
     }
 
-    function testSupportsChain() public view {
-        assertTrue(
-            adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_A) !=
-                address(0),
-            "Chain A should be supported"
-        );
+    function testSupportsChain() public {
+        // First check still works
         assertTrue(
             adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_B) !=
                 address(0),
             "Chain B should be supported"
         );
-        assertFalse(
-            adapterA.REGISTRY().getAdapterPeer(address(adapterA), 2) !=
-                address(0),
-            "Arbitrary unsupported chain should not be supported"
+
+        // Expect revert with InvalidChainRelationship error
+
+        ICrossChainRegistry registryA = ICrossChainRegistry(
+            address(adapterA.REGISTRY())
         );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.InvalidChainRelationship.selector,
+                0, // sourceChainId - fallback when no relationship is found
+                2, // targetChainId
+                CHAIN_ID_A // currentChainId
+            )
+        );
+        registryA.getAdapterPeer(address(adapterA), 2);
     }
 
     // Update test for UnsupportedMessageType error since type 5 is now COMPOSE

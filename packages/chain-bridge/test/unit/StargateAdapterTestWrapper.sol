@@ -9,11 +9,18 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
  */
 contract StargateAdapterTestWrapper is StargateAdapter {
     constructor(
-        address _bridgeRouter,
-        address _owner,
+        address _crossChainRegistry,
+        address _accessManager,
         address _lzEndpoint,
         address _harborCommand
-    ) StargateAdapter(_bridgeRouter, _owner, _lzEndpoint, _harborCommand) {}
+    )
+        StargateAdapter(
+            _crossChainRegistry,
+            _accessManager,
+            _lzEndpoint,
+            _harborCommand
+        )
+    {}
 
     /**
      * @notice Exposes the internal _isFleetProxy method for testing

@@ -217,16 +217,30 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
     function _configurePeers() internal {
         // Set up peers between the two adapters
-        // First, set up Chain A's adapter to trust Chain B's adapter
-        useNetworkA();
-        vm.startPrank(governor);
-        adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
-        vm.stopPrank();
-
-        // Then, set up Chain B's adapter to trust Chain A's adapter
+        // First, set up Chain B's adapter to trust Chain A's adapter
         useNetworkB();
         vm.startPrank(governor);
+        // Set up both registry and LZ peer relationships
+        registryB.registerAdapterPeer(
+            address(adapterB),
+            address(adapterA),
+            CHAIN_ID_B,
+            CHAIN_ID_A
+        );
         adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
+        vm.stopPrank();
+
+        // Then, set up Chain A's adapter to trust Chain B's adapter
+        useNetworkA();
+        vm.startPrank(governor);
+        // Set up both registry and LZ peer relationships
+        registryA.registerAdapterPeer(
+            address(adapterA),
+            address(adapterB),
+            CHAIN_ID_A,
+            CHAIN_ID_B
+        );
+        adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
         vm.stopPrank();
     }
 

@@ -101,11 +101,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Configure mainnet adapter with basic chain support only
-        adapterMainnet.addSupportedChain(
-            CHAIN_ID_MAINNET,
-            LZ_EID_MAINNET,
-            address(adapterMainnet)
-        );
+        adapterMainnet.setEndpointId(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
         // Don't add CHAIN_ID_ARBITRUM yet - will add after arbitrum adapter is deployed
 
         // Deploy mock Stargate contract for mainnet USDC
@@ -169,16 +165,8 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Configure Arbitrum adapter with basic chain support only
-        adapterArbitrum.addSupportedChain(
-            CHAIN_ID_MAINNET,
-            LZ_EID_MAINNET,
-            address(adapterMainnet)
-        );
-        adapterArbitrum.addSupportedChain(
-            CHAIN_ID_ARBITRUM,
-            LZ_EID_ARBITRUM,
-            address(adapterArbitrum)
-        );
+        adapterArbitrum.setEndpointId(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
+        adapterArbitrum.setEndpointId(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
 
         routerArbitrum.registerAdapter(address(adapterArbitrum));
 
@@ -199,14 +187,19 @@ contract StargateAdapterComposeForkTest is Test {
 
         vm.stopPrank();
 
-        // Now add arbitrum chain support to mainnet adapter with the correct arbitrum adapter address
-        vm.selectFork(0); // Switch back to mainnet
-        vm.prank(governor);
-        adapterMainnet.addSupportedChain(
-            CHAIN_ID_ARBITRUM,
-            LZ_EID_ARBITRUM,
-            address(adapterArbitrum)
+        // Switch back to mainnet fork to set up the reverse relationship
+        vm.selectFork(0);
+        vm.startPrank(governor);
+
+        adapterMainnet.setEndpointId(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
+        registryMainnet.registerAdapterPeer(
+            address(adapterMainnet),
+            address(adapterArbitrum),
+            CHAIN_ID_MAINNET,
+            CHAIN_ID_ARBITRUM
         );
+
+        vm.stopPrank();
     }
 
     function testComposeGasLimitConfiguration() public {
@@ -335,13 +328,6 @@ contract StargateAdapterComposeForkTest is Test {
         vm.selectFork(0); // Mainnet
 
         // Test that adapter is properly configured
-        assertTrue(
-            adapterMainnet.REGISTRY().getAdapterPeer(
-                address(adapterMainnet),
-                CHAIN_ID_MAINNET
-            ) != address(0),
-            "Mainnet should be supported"
-        );
         assertTrue(
             adapterMainnet.REGISTRY().getAdapterPeer(
                 address(adapterMainnet),

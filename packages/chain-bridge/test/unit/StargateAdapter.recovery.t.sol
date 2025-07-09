@@ -43,8 +43,8 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         // Deploy test wrapper
         vm.startPrank(governor);
         wrapperB = new StargateAdapterTestWrapper(
-            address(routerB),
-            governor,
+            address(registryB), // Use registry instead of router
+            address(accessManagerB), // Use access manager instead of owner
             lzEndpointB,
             address(0xdead) // Mock HarborCommand address for testing
         );

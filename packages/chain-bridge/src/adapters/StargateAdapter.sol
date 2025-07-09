@@ -115,9 +115,6 @@ contract StargateAdapter is
     mapping(address asset => address stargateContract)
         public assetToStargateContract;
 
-    /// @notice List of supported chains
-    uint16[] public supportedChains;
-
     /// @notice Default transport mode (true = taxi, false = bus)
     /// @dev Taxi mode is required for composability - bus mode does not support compose
     bool public defaultUseTaxi = true;
@@ -138,8 +135,8 @@ contract StargateAdapter is
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a chain support is added
-    event ChainSupported(uint16 chainId, uint32 endpointId);
+    /// @notice Emitted when an endpoint ID is set
+    event EndpointIdSet(uint16 chainId, uint32 endpointId);
 
     /// @notice Emitted when an asset support is added
     event AssetSupported(
@@ -299,22 +296,20 @@ contract StargateAdapter is
     }
 
     /**
-     * @notice Adds support for a new chain
+     * @notice Sets the LayerZero endpoint ID for a chain
      * @param chainId Chain ID in our system
      * @param endpointId Corresponding LayerZero Endpoint ID
-     * @param adapterAddress Address of the StargateAdapter for this chain
      */
-    function addSupportedChain(
+    function setEndpointId(
         uint16 chainId,
-        uint32 endpointId,
-        address adapterAddress
+        uint32 endpointId
     ) external onlyGovernor {
-        if (chainToEndpointId[chainId] != 0) revert InvalidParams();
+        if (endpointId == 0 || chainToEndpointId[chainId] != 0) {
+            revert InvalidParams();
+        }
 
         chainToEndpointId[chainId] = endpointId;
-        supportedChains.push(chainId);
-
-        emit ChainSupported(chainId, endpointId);
+        emit EndpointIdSet(chainId, endpointId);
     }
 
     /**

@@ -173,6 +173,14 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Step 7: Set up peer for threshold boundary test (exactly at threshold)
         adapter.setPeer(READ_CHANNEL_THRESHOLD, peerAddressBytes32);
 
+        // Register the adapter peer relationship in the registry
+        registry.registerAdapterPeer(
+            address(adapter), // source adapter
+            address(adapter), // target adapter (same address since it's a mirror setup)
+            SOURCE_CHAIN_ID, // Base chain ID (8453)
+            DEST_CHAIN_ID // Arbitrum chain ID (42161)
+        );
+
         vm.stopPrank();
     }
 

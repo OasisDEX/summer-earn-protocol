@@ -964,8 +964,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Call the _handleUserLedFailure function directly using a wrapper
         StargateAdapterTestWrapper wrapperAdapter = new StargateAdapterTestWrapper(
-                address(routerB),
-                address(this),
+                address(registryB),
+                address(accessManagerB),
                 address(lzEndpointB),
                 address(0xdead) // Mock HarborCommand address for testing
             );
