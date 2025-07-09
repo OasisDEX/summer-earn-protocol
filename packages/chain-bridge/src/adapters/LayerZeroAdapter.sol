@@ -545,7 +545,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes calldata readParams,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable {
+    ) external payable nonReentrant {
         // Only BridgeRouter should call this
         if (msg.sender != bridgeRouter()) revert Unauthorized();
 
@@ -614,7 +614,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes calldata message,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable {
+    ) external payable nonReentrant {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter()) revert Unauthorized();
 

@@ -14,7 +14,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
                           ADAPTER FEATURES TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testGetSupportedChains() public {
+    function testGetSupportedChains() public view {
         // Get chains through registry relationships
         (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
             address(adapterA),

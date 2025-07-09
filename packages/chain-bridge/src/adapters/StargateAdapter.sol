@@ -68,6 +68,9 @@ contract StargateAdapter is
     /// @notice Error for invalid amount received
     error InvalidAmountReceived(uint256 received, uint256 input);
 
+    /// @notice Error for untrusted Stargate pool contract
+    error UntrustedStargatePool(address from, address token);
+
     /// @notice Transfer parameters struct to avoid stack too deep
     struct TransferParams {
         address stargateContract;
@@ -420,14 +423,14 @@ contract StargateAdapter is
     /// @inheritdoc ISendAdapter
     function transferAsset(
         bytes32 operationId,
-        uint16 destinationChainId,
+        uint16 dstChainId,
         address asset,
         address recipient,
         uint256 amount,
         address originator,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable nonReentrant {
+    ) external payable onlySupportedDestination(dstChainId) nonReentrant {
         // Store msg.value early
         uint256 providedFee = msg.value;
 
@@ -435,7 +438,7 @@ contract StargateAdapter is
         if (msg.sender != bridgeRouter()) revert Unauthorized();
 
         // Resolve destination adapter via registry
-        address destinationAdapter = _peerAdapter(destinationChainId);
+        address destinationAdapter = _peerAdapter(dstChainId);
         if (destinationAdapter == address(0)) revert UnsupportedChain();
 
         // Check if asset is supported on current chain
@@ -454,7 +457,7 @@ contract StargateAdapter is
         // Execute the Stargate V2 transfer
         TransferParams memory params = TransferParams({
             stargateContract: stargateContract,
-            destinationChainId: destinationChainId,
+            destinationChainId: dstChainId,
             asset: asset,
             recipient: recipient,
             amount: amount,
@@ -473,7 +476,7 @@ contract StargateAdapter is
         // Emit the TransferInitiated event
         emit TransferInitiated(
             operationId,
-            destinationChainId,
+            dstChainId,
             asset,
             amount,
             recipient
@@ -874,11 +877,14 @@ contract StargateAdapter is
         bytes calldata _message,
         address,
         bytes calldata
-    ) external payable override {
+    ) external payable override nonReentrant {
         // Verify caller is LayerZero endpoint
         if (msg.sender != lzEndpoint) {
             revert Unauthorized();
         }
+
+        // Validate the Stargate pool contract
+        _validateStargatePool(_from);
 
         // Extract the amount and compose message from OFT encoding
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
@@ -886,6 +892,31 @@ contract StargateAdapter is
 
         // Decode compose message and handle the rest
         _handleComposedMessage(_from, amountLD, composeMsg);
+    }
+
+    /**
+     * @dev Validates that a contract is a legitimate registered Stargate V2 pool
+     * @param _from Address of the contract to validate
+     * @return token The ERC20 token handled by this Stargate pool
+     * @dev Reverts with UntrustedStargatePool if validation fails
+     */
+    function _validateStargatePool(
+        address _from
+    ) internal view returns (address token) {
+        // 1. Verify _from is a valid Stargate V2 contract by checking token() call
+        try IStargateV2(_from).token() returns (address _token) {
+            token = _token;
+        } catch {
+            // If token() call fails, this is not a valid Stargate V2 contract
+            revert UntrustedStargatePool(_from, address(0));
+        }
+
+        // 2. Verify this exact Stargate contract is registered for this token
+        if (assetToStargateContract[token] != _from) {
+            revert UntrustedStargatePool(_from, token);
+        }
+
+        return token;
     }
 
     /**
@@ -1283,7 +1314,7 @@ contract StargateAdapter is
         bytes32 operationId,
         bool tryReceiveCall,
         bytes calldata customMessage
-    ) external onlyGovernor {
+    ) external onlyGovernor nonReentrant {
         if (recipient == address(0)) revert InvalidParams();
 
         uint256 balance = IERC20(asset).balanceOf(address(this));
