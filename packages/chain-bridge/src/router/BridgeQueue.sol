@@ -9,7 +9,6 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
-import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 

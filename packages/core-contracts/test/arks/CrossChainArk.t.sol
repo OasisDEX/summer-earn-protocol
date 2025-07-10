@@ -6,10 +6,12 @@ import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
-import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
+import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
+import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -18,193 +20,14 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-// Mock CrossChainRegistry for testing
-contract MockCrossChainRegistry is ICrossChainRegistry {
-    mapping(address => CrossChainRelation) private arkToProxy;
-    mapping(bytes32 => address) private proxyToArk;
-
-    uint16 public currentChainId = 1;
-
-    function _getTargetKey(
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        address targetContract,
-        bytes32 relationshipType
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    sourceChainId,
-                    targetChainId,
-                    targetContract,
-                    relationshipType
-                )
-            );
-    }
-
-    function registerCrossChainRelationship(
-        address sourceContract,
-        address targetContract,
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        bytes32 relationshipType
-    ) external {}
-
-    function unregisterCrossChainRelationship(
-        address sourceContract,
-        bytes32 relationshipType,
-        uint16 targetChainId
-    ) external {}
-
-    function getTargetForSource(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (address, uint16) {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        return (relation.targetContract, relation.targetChainId);
-    }
-
-    function getSourceForTarget(
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        address targetContract,
-        bytes32 relationshipType
-    ) external view returns (address) {
-        bytes32 targetKey = _getTargetKey(
-            sourceChainId,
-            targetChainId,
-            targetContract,
-            relationshipType
-        );
-        return proxyToArk[targetKey];
-    }
-
-    function isSourceContractRegistered(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (bool) {
-        return arkToProxy[sourceContract].sourceContract != address(0);
-    }
-
-    function setMockProxy(
-        address ark,
-        address proxy,
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        bytes32 relationshipType
-    ) public {
-        arkToProxy[ark] = CrossChainRelation({
-            sourceContract: ark,
-            targetContract: proxy,
-            sourceChainId: sourceChainId,
-            targetChainId: targetChainId,
-            relationshipType: relationshipType
-        });
-        bytes32 targetKey = _getTargetKey(
-            sourceChainId,
-            targetChainId,
-            proxy,
-            relationshipType
-        );
-        proxyToArk[targetKey] = ark;
-    }
-
-    function getRelationshipCount(
-        bytes32 relationshipType
-    ) external pure returns (uint256) {
-        return 0;
-    }
-
-    function getSupportedRelationshipTypes()
-        external
-        pure
-        returns (bytes32[] memory)
-    {
-        bytes32[] memory supported = new bytes32[](1);
-        supported[0] = keccak256("ARK_FLEET");
-        return supported;
-    }
-
-    function getRelationship(
-        address sourceContract,
-        bytes32 relationshipType
-    ) external view returns (CrossChainRelation memory) {
-        return arkToProxy[sourceContract];
-    }
-
-    function isValidCrossChainPair(
-        address sourceContract,
-        address targetContract,
-        uint16 sourceChainId,
-        uint16 targetChainId,
-        bytes32 relationshipType
-    ) external view returns (bool) {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        return
-            relation.targetContract == targetContract &&
-            relation.sourceChainId == sourceChainId &&
-            relation.targetChainId == targetChainId;
-    }
-
-    function getRegisteredSourceContracts(
-        bytes32 relationshipType
-    ) external pure returns (address[] memory sourceContracts) {
-        // Return empty array for mock implementation
-        return new address[](0);
-    }
-
-    function getTargetsForSource(
-        address sourceContract,
-        bytes32 relationshipType
-    )
-        external
-        view
-        returns (
-            address[] memory targetContracts,
-            uint16[] memory targetChainIds
-        )
-    {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        if (relation.sourceContract != address(0)) {
-            targetContracts = new address[](1);
-            targetChainIds = new uint16[](1);
-            targetContracts[0] = relation.targetContract;
-            targetChainIds[0] = relation.targetChainId;
-        } else {
-            targetContracts = new address[](0);
-            targetChainIds = new uint16[](0);
-        }
-    }
-
-    function getRelationshipByTarget(
-        address sourceContract,
-        bytes32 relationshipType,
-        uint16 targetChainId
-    ) external view returns (CrossChainRelation memory) {
-        CrossChainRelation memory relation = arkToProxy[sourceContract];
-        // Validate that the target chain ID matches
-        if (
-            relation.sourceContract != address(0) &&
-            relation.targetChainId == targetChainId
-        ) {
-            return relation;
-        }
-        // Revert just like the real registry does
-        revert RelationshipDoesNotExist(
-            sourceContract,
-            relationshipType,
-            targetChainId
-        );
-    }
-}
-
 contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainArk ark;
     MockBridgeQueue queue;
     MockBridgeRouter router;
-    MockCrossChainRegistry registry;
+    CrossChainRegistry registry;
     address proxy = address(0x5);
-    uint16 chainId = 1234;
+    uint16 constant SOURCE_CHAIN_ID = 1; // Current chain (mainnet)
+    uint16 constant TARGET_CHAIN_ID = 1234; // Target chain (satellite)
     FleetCommander fleetCommander;
 
     BridgeTypes.BridgeOptions defaultOptions;
@@ -213,7 +36,21 @@ contract CrossChainArkTest is Test, ArkTestBase {
         initializeCoreContracts();
         queue = new MockBridgeQueue();
         router = new MockBridgeRouter();
-        registry = new MockCrossChainRegistry();
+
+        // Deploy CrossChainRegistry BEFORE using it
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            SOURCE_CHAIN_ID // Current chain ID
+        );
+
+        // Initialize the bridge configuration in the registry
+        vm.startPrank(governor);
+        registry.initializeBridgeConfiguration(
+            address(queue),
+            address(router),
+            200000 // defaultGasLimit
+        );
+        vm.stopPrank();
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
@@ -238,20 +75,16 @@ contract CrossChainArkTest is Test, ArkTestBase {
             })
         });
 
-        ark = new CrossChainArk(
-            address(queue),
-            address(router),
-            address(registry),
-            chainId,
-            params
-        );
+        // Create CrossChainArk with the proper CrossChainConfigManager
+        ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
 
         // Register the ark-proxy relationship in the registry
-        registry.setMockProxy(
+        vm.prank(governor);
+        registry.registerCrossChainRelationship(
             address(ark),
             proxy,
-            1,
-            chainId,
+            SOURCE_CHAIN_ID,
+            TARGET_CHAIN_ID,
             keccak256("ARK_FLEET")
         );
 
@@ -276,7 +109,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(address(ark.bridgeQueue()), address(queue));
         assertEq(address(ark.bridgeRouter()), address(router));
         assertEq(address(ark.crossChainRegistry()), address(registry));
-        assertEq(ark.satelliteChainId(), chainId);
+        assertEq(ark.satelliteChainId(), TARGET_CHAIN_ID);
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
     }
 
@@ -288,7 +121,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         vm.prank(address(fleetCommander));
         ark.board(1000, "");
-        assertEq(queue.lastDestinationChainId(), chainId);
+        assertEq(queue.lastDestinationChainId(), TARGET_CHAIN_ID);
         assertEq(queue.lastAsset(), address(mockToken));
         assertEq(queue.lastAmount(), 1000);
         assertEq(queue.lastRecipient(), proxy);
@@ -298,11 +131,11 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 remoteBalance = 12345;
         bytes memory resultData = abi.encode(remoteBalance);
         bytes32 requestId = keccak256("test-request");
-        uint16 sourceChain = chainId;
+        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Should emit the event and update the state
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
 
         // Call as bridgeRouter, with correct sourceChain and requestor
         vm.prank(address(router));
@@ -316,7 +149,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         address tokenAddress = address(mockToken);
         uint256 amount = 500;
         bytes memory message = "";
-        uint16 sourceChain = chainId;
+        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Track initial state
         uint256 initialRemoteBalance = 1000;
@@ -329,7 +162,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Should emit the event when receiving assets
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.AssetsReceived(tokenAddress, amount, sourceChain);
+        emit ICrossChainArk.AssetsReceived(tokenAddress, amount, sourceChain);
 
         // Mock token transfer that would happen in a real bridge
         deal(address(mockToken), address(ark), amount);
@@ -355,11 +188,11 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 remoteBalance = 54321;
         bytes memory resultData = abi.encode(remoteBalance);
         bytes32 requestId = keccak256("parameter-order-test");
-        uint16 sourceChain = chainId;
+        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Test the correct parameter order: (resultData, requestor, requestId, sourceChainId)
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
 
         vm.prank(address(router));
         ark.receiveStateRead(resultData, address(ark), requestId, sourceChain);
@@ -376,7 +209,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 remoteBalance = 2000;
         bytes memory resultData = abi.encode(remoteBalance);
         bytes32 requestId = keccak256("inflight-reset-test");
-        uint16 sourceChain = chainId;
+        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Set some inflight assets first
         vm.prank(address(router));
@@ -406,11 +239,11 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 remoteBalance = 1000;
         bytes memory resultData = abi.encode(remoteBalance);
         bytes32 requestId = keccak256("unauthorized-test");
-        uint16 sourceChain = chainId;
+        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Test unauthorized caller
         vm.prank(address(0x999));
-        vm.expectRevert(CrossChainArk.Unauthorized.selector);
+        vm.expectRevert(ICrossChainArk.Unauthorized.selector);
         ark.receiveStateRead(resultData, address(ark), requestId, sourceChain);
     }
 
@@ -422,7 +255,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Test wrong source chain
         vm.prank(address(router));
-        vm.expectRevert(CrossChainArk.InvalidSourceChain.selector);
+        vm.expectRevert(ICrossChainArk.InvalidSourceChain.selector);
         ark.receiveStateRead(
             resultData,
             address(ark),
@@ -435,11 +268,11 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 remoteBalance = 1000;
         bytes memory resultData = abi.encode(remoteBalance);
         bytes32 requestId = keccak256("wrong-requestor-test");
-        uint16 sourceChain = chainId;
+        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Test wrong requestor
         vm.prank(address(router));
-        vm.expectRevert(CrossChainArk.InvalidRequestor.selector);
+        vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
         ark.receiveStateRead(
             resultData,
             address(0x123),
@@ -455,8 +288,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             "Should support ICrossChainAssetReceiver"
         );
         assertTrue(
-            ark.supportsInterface(type(IInflightAssetTracking).interfaceId),
-            "Should support IInflightAssetTracking"
+            ark.supportsInterface(type(ICrossChainArk).interfaceId),
+            "Should support ICrossChainArk"
         );
         // Note: ICrossChainStateReadReceiver interface support is tested in other tests
     }
@@ -473,7 +306,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
         bytes memory resultData = abi.encode(remoteBalance);
         bytes32 requestId = keccak256("total-assets-test");
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, address(ark), requestId, chainId);
+        ark.receiveStateRead(
+            resultData,
+            address(ark),
+            requestId,
+            TARGET_CHAIN_ID
+        );
 
         // Setup inflight assets
         vm.prank(address(router));
@@ -516,10 +354,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
         });
 
         CrossChainArk arkWithoutProxy = new CrossChainArk(
-            address(queue),
-            address(router),
             address(registry),
-            chainId,
+            TARGET_CHAIN_ID,
             params
         );
 
@@ -530,7 +366,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 ICrossChainRegistry.RelationshipDoesNotExist.selector,
                 address(arkWithoutProxy),
                 keccak256("ARK_FLEET"),
-                chainId
+                TARGET_CHAIN_ID
             )
         );
         arkWithoutProxy.requestRemoteAssetBalanceUpdate();
@@ -542,7 +378,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 remoteBalance = 7777;
         bytes memory resultData = abi.encode(remoteBalance);
         bytes32 operationId = keccak256("delivery-flow-test");
-        uint16 sourceChain = chainId;
+        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // In the real flow:
         // 1. CrossChainArk requests a state read via BridgeQueue
@@ -551,7 +387,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // For this test, we simulate step 3 directly
         vm.expectEmit(true, true, true, true);
-        emit CrossChainArk.RemoteAssetBalanceUpdated(
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
             remoteBalance,
             operationId
         );
@@ -577,8 +413,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             "Should support ICrossChainAssetReceiver"
         );
         assertTrue(
-            ark.supportsInterface(type(IInflightAssetTracking).interfaceId),
-            "Should support IInflightAssetTracking"
+            ark.supportsInterface(type(ICrossChainArk).interfaceId),
+            "Should support ICrossChainArk"
         );
         assertTrue(
             ark.supportsInterface(type(IERC165).interfaceId),

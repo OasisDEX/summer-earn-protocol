@@ -4,8 +4,7 @@ pragma solidity ^0.8.28;
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title LayerZeroAdapterTestHelper
  * @notice Helper contract for testing LayerZeroAdapter
@@ -15,24 +14,27 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     /**
      * @notice Constructor for LayerZeroAdapterTestHelper
      * @param _endpoint Address of the LayerZero endpoint
-     * @param _bridgeRouter Address of the bridge router
+     * @param _crossChainRegistry Address of the CrossChainRegistry contract
+     * @param _accessManager Address of the AccessManager contract
      * @param _supportedChains Array of supported chain IDs
      * @param _lzEids Array of corresponding LayerZero endpoint IDs
-     * @param _owner Address of the owner
+     * @param _initialOwner Address of the owner
      */
     constructor(
         address _endpoint,
-        address _bridgeRouter,
+        address _crossChainRegistry,
+        address _accessManager,
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
-        address _owner
+        address _initialOwner
     )
         LayerZeroAdapter(
             _endpoint,
-            _bridgeRouter,
+            _crossChainRegistry,
+            _accessManager,
             _supportedChains,
             _lzEids,
-            _owner
+            _initialOwner
         )
     {}
 

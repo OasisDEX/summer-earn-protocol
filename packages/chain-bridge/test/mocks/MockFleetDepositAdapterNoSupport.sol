@@ -13,10 +13,9 @@ contract MockFleetDepositAdapterNoSupport is IFleetDepositAdapter {
         uint16,
         address,
         uint256,
-        address,
         bytes memory,
         BridgeTypes.AdapterParams calldata
-    ) external payable override returns (bytes32) {
+    ) external payable returns (bytes32) {
         revert("User-initiated fleet deposits not supported");
     }
 

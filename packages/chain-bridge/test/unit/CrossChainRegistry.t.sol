@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "forge-std/Test.sol";
-import "../src/contracts/CrossChainRegistry.sol";
-import "../src/interfaces/ICrossChainRegistry.sol";
-import "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {Test} from "forge-std/Test.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 contract CrossChainRegistryTest is Test {
     CrossChainRegistry public registry;
@@ -43,6 +43,28 @@ contract CrossChainRegistryTest is Test {
         bytes32 relationshipType
     );
 
+    // Add new variables for bridge config testing
+    address public mockBridgeQueue = makeAddr("bridgeQueue");
+    address public mockBridgeRouter = makeAddr("bridgeRouter");
+    address public newMockBridgeQueue = makeAddr("newBridgeQueue");
+    address public newMockBridgeRouter = makeAddr("newBridgeRouter");
+    uint256 public constant DEFAULT_GAS_LIMIT = 200000;
+    uint256 public constant NEW_GAS_LIMIT = 300000;
+
+    // Add new events
+    event BridgeQueueUpdated(
+        address indexed oldBridgeQueue,
+        address indexed newBridgeQueue
+    );
+    event BridgeRouterUpdated(
+        address indexed oldBridgeRouter,
+        address indexed newBridgeRouter
+    );
+    event DefaultGasLimitUpdated(
+        uint256 oldDefaultGasLimit,
+        uint256 newDefaultGasLimit
+    );
+
     function setUp() public {
         // Deploy access manager
         accessManager = new ProtocolAccessManager(governor);
@@ -59,7 +81,7 @@ contract CrossChainRegistryTest is Test {
                            BASIC FUNCTIONALITY TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_deployment() public {
+    function test_deployment() public view {
         assertEq(registry.currentChainId(), CURRENT_CHAIN_ID);
         assertEq(registry.getRelationshipCount(ARK_FLEET_RELATIONSHIP), 0);
     }
@@ -723,7 +745,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_multipleRelationshipTypes() public {
         bytes32 arkFleetType = keccak256("ARK_FLEET");
-        bytes32 bridgeType = keccak256("BRIDGE_ADAPTER");
+        bytes32 bridgeType = keccak256("ADAPTER_PEER");
 
         vm.prank(governor);
         registry.registerCrossChainRelationship(
@@ -769,5 +791,363 @@ contract CrossChainRegistryTest is Test {
                 (supportedTypes[0] == bridgeType &&
                     supportedTypes[1] == arkFleetType)
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        BRIDGE CONFIG TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_bridgeConfigInitialState() public view {
+        assertFalse(registry.bridgeConfigInitialized());
+        assertEq(registry.bridgeQueue(), address(0));
+        assertEq(registry.bridgeRouter(), address(0));
+        assertEq(registry.defaultGasLimit(), 0);
+    }
+
+    function test_initializeBridgeConfiguration() public {
+        vm.startPrank(governor);
+
+        // Expect events to be emitted
+        vm.expectEmit(true, true, false, true);
+        emit BridgeQueueUpdated(address(0), mockBridgeQueue);
+
+        vm.expectEmit(true, true, false, true);
+        emit BridgeRouterUpdated(address(0), mockBridgeRouter);
+
+        vm.expectEmit(false, false, false, true);
+        emit DefaultGasLimitUpdated(0, DEFAULT_GAS_LIMIT);
+
+        registry.initializeBridgeConfiguration(
+            mockBridgeQueue,
+            mockBridgeRouter,
+            DEFAULT_GAS_LIMIT
+        );
+
+        // Verify state
+        assertTrue(registry.bridgeConfigInitialized());
+        assertEq(registry.bridgeQueue(), mockBridgeQueue);
+        assertEq(registry.bridgeRouter(), mockBridgeRouter);
+        assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
+
+        vm.stopPrank();
+    }
+
+    function test_initializeBridgeConfiguration_revertAlreadyInitialized()
+        public
+    {
+        vm.startPrank(governor);
+
+        registry.initializeBridgeConfiguration(
+            mockBridgeQueue,
+            mockBridgeRouter,
+            DEFAULT_GAS_LIMIT
+        );
+
+        vm.expectRevert(
+            ICrossChainRegistry.BridgeConfigAlreadyInitialized.selector
+        );
+        registry.initializeBridgeConfiguration(
+            mockBridgeQueue,
+            mockBridgeRouter,
+            DEFAULT_GAS_LIMIT
+        );
+
+        vm.stopPrank();
+    }
+
+    function test_initializeBridgeConfiguration_revertUnauthorized() public {
+        vm.prank(user);
+        vm.expectRevert();
+        registry.initializeBridgeConfiguration(
+            mockBridgeQueue,
+            mockBridgeRouter,
+            DEFAULT_GAS_LIMIT
+        );
+    }
+
+    function test_initializeBridgeConfiguration_revertZeroBridgeQueue() public {
+        vm.prank(governor);
+        vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
+        registry.initializeBridgeConfiguration(
+            address(0),
+            mockBridgeRouter,
+            DEFAULT_GAS_LIMIT
+        );
+    }
+
+    function test_initializeBridgeConfiguration_revertZeroBridgeRouter()
+        public
+    {
+        vm.prank(governor);
+        vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
+        registry.initializeBridgeConfiguration(
+            mockBridgeQueue,
+            address(0),
+            DEFAULT_GAS_LIMIT
+        );
+    }
+
+    function test_initializeBridgeConfiguration_revertZeroGasLimit() public {
+        vm.prank(governor);
+        vm.expectRevert(ICrossChainRegistry.InvalidGasLimit.selector);
+        registry.initializeBridgeConfiguration(
+            mockBridgeQueue,
+            mockBridgeRouter,
+            0
+        );
+    }
+
+    function test_setBridgeQueue() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        vm.expectEmit(true, true, false, true);
+        emit BridgeQueueUpdated(mockBridgeQueue, newMockBridgeQueue);
+
+        registry.setBridgeQueue(newMockBridgeQueue);
+        assertEq(registry.bridgeQueue(), newMockBridgeQueue);
+
+        vm.stopPrank();
+    }
+
+    function test_setBridgeQueue_revertUnauthorized() public {
+        _initializeBridgeConfig();
+
+        vm.prank(user);
+        vm.expectRevert();
+        registry.setBridgeQueue(newMockBridgeQueue);
+    }
+
+    function test_setBridgeQueue_revertZeroAddress() public {
+        _initializeBridgeConfig();
+
+        vm.prank(governor);
+        vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
+        registry.setBridgeQueue(address(0));
+    }
+
+    function test_setBridgeRouter() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        vm.expectEmit(true, true, false, true);
+        emit BridgeRouterUpdated(mockBridgeRouter, newMockBridgeRouter);
+
+        registry.setBridgeRouter(newMockBridgeRouter);
+        assertEq(registry.bridgeRouter(), newMockBridgeRouter);
+
+        vm.stopPrank();
+    }
+
+    function test_setBridgeRouter_revertUnauthorized() public {
+        _initializeBridgeConfig();
+
+        vm.prank(user);
+        vm.expectRevert();
+        registry.setBridgeRouter(newMockBridgeRouter);
+    }
+
+    function test_setBridgeRouter_revertZeroAddress() public {
+        _initializeBridgeConfig();
+
+        vm.prank(governor);
+        vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
+        registry.setBridgeRouter(address(0));
+    }
+
+    function test_setDefaultGasLimit() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        vm.expectEmit(false, false, false, true);
+        emit DefaultGasLimitUpdated(DEFAULT_GAS_LIMIT, NEW_GAS_LIMIT);
+
+        registry.setDefaultGasLimit(NEW_GAS_LIMIT);
+        assertEq(registry.defaultGasLimit(), NEW_GAS_LIMIT);
+
+        vm.stopPrank();
+    }
+
+    function test_setDefaultGasLimit_revertUnauthorized() public {
+        _initializeBridgeConfig();
+
+        vm.prank(user);
+        vm.expectRevert();
+        registry.setDefaultGasLimit(NEW_GAS_LIMIT);
+    }
+
+    function test_setDefaultGasLimit_revertZero() public {
+        _initializeBridgeConfig();
+
+        vm.prank(governor);
+        vm.expectRevert(ICrossChainRegistry.InvalidGasLimit.selector);
+        registry.setDefaultGasLimit(0);
+    }
+
+    function test_guardianCannotCallBridgeConfigSetters() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(guardian);
+
+        vm.expectRevert();
+        registry.setBridgeQueue(newMockBridgeQueue);
+
+        vm.expectRevert();
+        registry.setBridgeRouter(newMockBridgeRouter);
+
+        vm.expectRevert();
+        registry.setDefaultGasLimit(NEW_GAS_LIMIT);
+
+        vm.stopPrank();
+    }
+
+    function test_setSameValueBridgeQueue() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        // Setting the same value should still emit event
+        vm.expectEmit(true, true, false, true);
+        emit BridgeQueueUpdated(mockBridgeQueue, mockBridgeQueue);
+
+        registry.setBridgeQueue(mockBridgeQueue);
+        assertEq(registry.bridgeQueue(), mockBridgeQueue);
+
+        vm.stopPrank();
+    }
+
+    function test_setSameValueBridgeRouter() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        // Setting the same value should still emit event
+        vm.expectEmit(true, true, false, true);
+        emit BridgeRouterUpdated(mockBridgeRouter, mockBridgeRouter);
+
+        registry.setBridgeRouter(mockBridgeRouter);
+        assertEq(registry.bridgeRouter(), mockBridgeRouter);
+
+        vm.stopPrank();
+    }
+
+    function test_setSameValueDefaultGasLimit() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        // Setting the same value should still emit event
+        vm.expectEmit(false, false, false, true);
+        emit DefaultGasLimitUpdated(DEFAULT_GAS_LIMIT, DEFAULT_GAS_LIMIT);
+
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
+        assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
+
+        vm.stopPrank();
+    }
+
+    function test_multipleUpdatesBridgeQueue() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        // First update
+        registry.setBridgeQueue(newMockBridgeQueue);
+        assertEq(registry.bridgeQueue(), newMockBridgeQueue);
+
+        // Second update back to original
+        registry.setBridgeQueue(mockBridgeQueue);
+        assertEq(registry.bridgeQueue(), mockBridgeQueue);
+
+        vm.stopPrank();
+    }
+
+    function test_multipleUpdatesBridgeRouter() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        // First update
+        registry.setBridgeRouter(newMockBridgeRouter);
+        assertEq(registry.bridgeRouter(), newMockBridgeRouter);
+
+        // Second update back to original
+        registry.setBridgeRouter(mockBridgeRouter);
+        assertEq(registry.bridgeRouter(), mockBridgeRouter);
+
+        vm.stopPrank();
+    }
+
+    function test_multipleUpdatesDefaultGasLimit() public {
+        _initializeBridgeConfig();
+
+        vm.startPrank(governor);
+
+        // First update
+        registry.setDefaultGasLimit(NEW_GAS_LIMIT);
+        assertEq(registry.defaultGasLimit(), NEW_GAS_LIMIT);
+
+        // Second update back to original
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
+        assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
+
+        vm.stopPrank();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _initializeBridgeConfig() internal {
+        vm.prank(governor);
+        registry.initializeBridgeConfiguration(
+            mockBridgeQueue,
+            mockBridgeRouter,
+            DEFAULT_GAS_LIMIT
+        );
+    }
+
+    function test_constructor() public view {
+        // Test initial state after constructor
+        assertEq(registry.bridgeQueue(), address(0));
+        assertEq(registry.bridgeRouter(), address(0));
+        assertEq(registry.defaultGasLimit(), 0);
+        assertFalse(registry.bridgeConfigInitialized());
+
+        // Test that both ADAPTER_PEER and ARK_FLEET relationship types are supported by default
+        bytes32[] memory supportedTypes = registry
+            .getSupportedRelationshipTypes();
+        assertEq(supportedTypes.length, 2);
+
+        // Check that both relationship types are present (order may vary)
+        bool hasAdapterPeer = false;
+        bool hasArkFleet = false;
+
+        for (uint256 i = 0; i < supportedTypes.length; i++) {
+            if (supportedTypes[i] == keccak256("ADAPTER_PEER")) {
+                hasAdapterPeer = true;
+            } else if (supportedTypes[i] == ARK_FLEET_RELATIONSHIP) {
+                hasArkFleet = true;
+            }
+        }
+
+        assertTrue(
+            hasAdapterPeer,
+            "BRIDGE_ADAPTER relationship type not found"
+        );
+        assertTrue(hasArkFleet, "ARK_FLEET relationship type not found");
+
+        // Test that current chain ID is set correctly
+        assertEq(registry.currentChainId(), CURRENT_CHAIN_ID);
+    }
+
+    function test_constructor_revertZeroChainId() public {
+        vm.startPrank(governor);
+        vm.expectRevert(ICrossChainRegistry.InvalidCurrentChainId.selector);
+        new CrossChainRegistry(address(accessManager), 0);
+        vm.stopPrank();
     }
 }

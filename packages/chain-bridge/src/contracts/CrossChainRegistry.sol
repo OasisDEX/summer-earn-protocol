@@ -42,22 +42,21 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Mapping to track if a relationship type is supported
     mapping(bytes32 => bool) private relationshipTypeSupported;
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
+    /// @notice Flag to track if bridge configuration has been initialized
+    bool public bridgeConfigInitialized;
 
-    /// @notice Emitted when the registry is initialized
-    event RegistryInitialized(uint16 currentChainId);
+    /// @notice The bridge queue contract address
+    address public bridgeQueue;
 
-    /// @notice Emitted when a new relationship type is added
-    event RelationshipTypeAdded(bytes32 indexed relationshipType);
+    /// @notice The bridge router contract address
+    address public bridgeRouter;
 
-    /*//////////////////////////////////////////////////////////////
-                               ERRORS
-    //////////////////////////////////////////////////////////////*/
+    /// @notice The default gas limit for cross-chain transactions
+    uint256 public defaultGasLimit;
 
-    /// @notice Thrown when the current chain ID is zero
-    error InvalidCurrentChainId();
+    /// @notice Constants for relationship types
+    bytes32 public constant ADAPTER_PEER = keccak256("ADAPTER_PEER");
+    bytes32 public constant ARK_FLEET = keccak256("ARK_FLEET");
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -76,8 +75,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         currentChainId = _currentChainId;
 
-        // Add the default ARK_FLEET relationship type
-        _addRelationshipType(keccak256("ARK_FLEET"));
+        _addRelationshipType(ADAPTER_PEER);
+        _addRelationshipType(ARK_FLEET);
 
         emit RegistryInitialized(_currentChainId);
     }
@@ -93,7 +92,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    ) external override onlyGovernor {
+    ) public onlyGovernor {
         if (sourceContract == address(0))
             revert InvalidSourceContract(sourceContract);
         if (targetContract == address(0))
@@ -177,7 +176,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
-    ) external override onlyGovernor {
+    ) public onlyGovernor {
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
@@ -238,6 +237,82 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /*//////////////////////////////////////////////////////////////
+                        BRIDGE CONFIG FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes the bridge configuration parameters
+     * @param _bridgeQueue The address of the bridge queue contract
+     * @param _bridgeRouter The address of the bridge router contract
+     * @param _defaultGasLimit The default gas limit for cross-chain transactions
+     */
+    function initializeBridgeConfiguration(
+        address _bridgeQueue,
+        address _bridgeRouter,
+        uint256 _defaultGasLimit
+    ) external onlyGovernor {
+        if (bridgeConfigInitialized) {
+            revert BridgeConfigAlreadyInitialized();
+        }
+
+        if (_bridgeQueue == address(0) || _bridgeRouter == address(0)) {
+            revert AddressZero();
+        }
+
+        if (_defaultGasLimit == 0) {
+            revert InvalidGasLimit();
+        }
+
+        bridgeQueue = _bridgeQueue;
+        bridgeRouter = _bridgeRouter;
+        defaultGasLimit = _defaultGasLimit;
+
+        emit BridgeQueueUpdated(address(0), _bridgeQueue);
+        emit BridgeRouterUpdated(address(0), _bridgeRouter);
+        emit DefaultGasLimitUpdated(0, _defaultGasLimit);
+
+        bridgeConfigInitialized = true;
+    }
+
+    /**
+     * @notice Updates the bridge queue address
+     * @param newBridgeQueue The new bridge queue address
+     */
+    function setBridgeQueue(address newBridgeQueue) external onlyGovernor {
+        if (newBridgeQueue == address(0)) {
+            revert AddressZero();
+        }
+        emit BridgeQueueUpdated(bridgeQueue, newBridgeQueue);
+        bridgeQueue = newBridgeQueue;
+    }
+
+    /**
+     * @notice Updates the bridge router address
+     * @param newBridgeRouter The new bridge router address
+     */
+    function setBridgeRouter(address newBridgeRouter) external onlyGovernor {
+        if (newBridgeRouter == address(0)) {
+            revert AddressZero();
+        }
+        emit BridgeRouterUpdated(bridgeRouter, newBridgeRouter);
+        bridgeRouter = newBridgeRouter;
+    }
+
+    /**
+     * @notice Updates the default gas limit
+     * @param newDefaultGasLimit The new default gas limit
+     */
+    function setDefaultGasLimit(
+        uint256 newDefaultGasLimit
+    ) external onlyGovernor {
+        if (newDefaultGasLimit == 0) {
+            revert InvalidGasLimit();
+        }
+        emit DefaultGasLimitUpdated(defaultGasLimit, newDefaultGasLimit);
+        defaultGasLimit = newDefaultGasLimit;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             QUERY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -245,12 +320,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function getTargetForSource(
         address sourceContract,
         bytes32 relationshipType
-    )
-        external
-        view
-        override
-        returns (address targetContract, uint16 targetChainId)
-    {
+    ) public view returns (address targetContract, uint16 targetChainId) {
         if (
             !registeredSourceContracts[relationshipType].contains(
                 sourceContract
@@ -297,7 +367,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 targetChainId,
         address targetContract,
         bytes32 relationshipType
-    ) external view override returns (address sourceContract) {
+    ) public view returns (address sourceContract) {
         bytes32 targetKey = _getTargetKey(
             sourceChainId,
             targetChainId,
@@ -322,7 +392,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    ) external view override returns (bool isValid) {
+    ) public view returns (bool isValid) {
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
@@ -349,7 +419,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function getRelationship(
         address sourceContract,
         bytes32 relationshipType
-    ) external view override returns (CrossChainRelation memory relation) {
+    ) external view returns (CrossChainRelation memory relation) {
         if (
             !registeredSourceContracts[relationshipType].contains(
                 sourceContract
@@ -392,9 +462,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceContract,
         bytes32 relationshipType
     )
-        external
+        public
         view
-        override
         returns (
             address[] memory targetContracts,
             uint16[] memory targetChainIds
@@ -428,7 +497,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
-    ) external view override returns (CrossChainRelation memory relation) {
+    ) external view returns (CrossChainRelation memory relation) {
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
@@ -452,7 +521,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @inheritdoc ICrossChainRegistry
     function getRegisteredSourceContracts(
         bytes32 relationshipType
-    ) external view override returns (address[] memory sourceContracts) {
+    ) external view returns (address[] memory sourceContracts) {
         return registeredSourceContracts[relationshipType].values();
     }
 
@@ -460,7 +529,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function isSourceContractRegistered(
         address sourceContract,
         bytes32 relationshipType
-    ) external view override returns (bool isRegistered) {
+    ) external view returns (bool isRegistered) {
         return
             registeredSourceContracts[relationshipType].contains(
                 sourceContract
@@ -478,10 +547,183 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     function getSupportedRelationshipTypes()
         external
         view
-        override
         returns (bytes32[] memory relationshipTypes)
     {
         return supportedRelationshipTypes;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ADAPTER PEER CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a peer relationship between two bridge adapters
+     * @param sourceAdapter Address of the source adapter
+     * @param targetAdapter Address of the target adapter
+     * @param sourceChainId Chain ID where the source adapter is deployed
+     * @param targetChainId Chain ID where the target adapter is deployed
+     */
+    function registerAdapterPeer(
+        address sourceAdapter,
+        address targetAdapter,
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) external onlyGovernor {
+        registerCrossChainRelationship(
+            sourceAdapter,
+            targetAdapter,
+            sourceChainId,
+            targetChainId,
+            ADAPTER_PEER
+        );
+    }
+
+    /**
+     * @notice Get the peer adapter address for a given source adapter and target chain
+     * @param sourceAdapter Address of the source adapter
+     * @param targetChainId Chain ID where the target adapter is deployed
+     * @return targetAdapter Address of the target adapter
+     */
+    function getAdapterPeer(
+        address sourceAdapter,
+        uint16 targetChainId
+    ) external view returns (address targetAdapter) {
+        (targetAdapter, ) = getTargetForSource(sourceAdapter, ADAPTER_PEER);
+
+        // Validate the target chain matches
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceAdapter,
+            ADAPTER_PEER,
+            targetChainId
+        );
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
+        if (relation.targetChainId != targetChainId) {
+            revert InvalidChainRelationship(
+                relation.sourceChainId,
+                targetChainId,
+                currentChainId
+            );
+        }
+    }
+
+    /**
+     * @notice Check if two adapters are registered as valid peers
+     * @param sourceAdapter Address of the source adapter
+     * @param targetAdapter Address of the target adapter
+     * @param sourceChainId Chain ID where the source adapter is deployed
+     * @param targetChainId Chain ID where the target adapter is deployed
+     * @return True if the adapters are registered peers
+     */
+    function isValidAdapterPeer(
+        address sourceAdapter,
+        address targetAdapter,
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) external view returns (bool) {
+        return
+            isValidCrossChainPair(
+                sourceAdapter,
+                targetAdapter,
+                sourceChainId,
+                targetChainId,
+                ADAPTER_PEER
+            );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ARK/FLEET CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a relationship between an Ark and its Fleet
+     * @param arkProxy Address of the Ark proxy
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     */
+    function registerArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external onlyGovernor {
+        registerCrossChainRelationship(
+            arkProxy,
+            fleetProxy,
+            arkChainId,
+            fleetChainId,
+            ARK_FLEET
+        );
+    }
+
+    /**
+     * @notice Get the Fleet proxy address for a given Ark proxy
+     * @param arkProxy Address of the Ark proxy
+     * @return fleetProxy Address of the Fleet proxy
+     * @return fleetChainId Chain ID where the Fleet is deployed
+     */
+    function getFleetForArk(
+        address arkProxy
+    ) external view returns (address fleetProxy, uint16 fleetChainId) {
+        return getTargetForSource(arkProxy, ARK_FLEET);
+    }
+
+    /**
+     * @notice Get the Ark proxy address for a given Fleet proxy and chain IDs
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     * @return arkProxy Address of the Ark proxy
+     */
+    function getArkForFleet(
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external view returns (address arkProxy) {
+        return
+            getSourceForTarget(arkChainId, fleetChainId, fleetProxy, ARK_FLEET);
+    }
+
+    /**
+     * @notice Check if an Ark and Fleet are properly registered
+     * @param arkProxy Address of the Ark proxy
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     * @return True if the Ark and Fleet are properly registered
+     */
+    function isValidArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external view returns (bool) {
+        return
+            isValidCrossChainPair(
+                arkProxy,
+                fleetProxy,
+                arkChainId,
+                fleetChainId,
+                ARK_FLEET
+            );
+    }
+
+    /**
+     * @notice Get all Fleets registered for a given Ark
+     * @param arkProxy Address of the Ark proxy
+     * @return fleetProxies Array of Fleet proxy addresses
+     * @return fleetChainIds Array of chain IDs where the Fleets are deployed
+     */
+    function getAllFleetsForArk(
+        address arkProxy
+    )
+        external
+        view
+        returns (address[] memory fleetProxies, uint16[] memory fleetChainIds)
+    {
+        return getTargetsForSource(arkProxy, ARK_FLEET);
     }
 
     /*//////////////////////////////////////////////////////////////

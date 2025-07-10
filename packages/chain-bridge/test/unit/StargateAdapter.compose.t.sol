@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
-import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
+import {console} from "forge-std/Test.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
+import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
 
 // Simple mock fleet commander that actually transfers tokens
 contract SimpleMockFleetCommander {
@@ -331,18 +328,23 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         assertEq(adapterA.composeGasLimit(), newGasLimit);
     }
 
-    function testComposeGasLimitBounds() public {
+    function testComposeGasLimitFlexibility() public {
         useNetworkA();
 
-        // Test minimum bound
-        vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
+        // Test that low values are accepted (no minimum enforcement)
         vm.prank(governor);
-        adapterA.setComposeGasLimit(50000); // Below MIN_COMPOSE_GAS
+        adapterA.setComposeGasLimit(50000);
+        assertEq(adapterA.composeGasLimit(), 50000);
 
-        // Test maximum bound - use value above MAX_COMPOSE_GAS (1000000)
-        vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
+        // Test that high values are accepted (no maximum enforcement)
         vm.prank(governor);
-        adapterA.setComposeGasLimit(1500000); // Above MAX_COMPOSE_GAS (1000000)
+        adapterA.setComposeGasLimit(1500000);
+        assertEq(adapterA.composeGasLimit(), 1500000);
+
+        // Test that 0 uses default from config manager
+        vm.prank(governor);
+        adapterA.setComposeGasLimit(0);
+        assertEq(adapterA.composeGasLimit(), adapterA.defaultGasLimit());
     }
 
     function testComposeGasLimitUnauthorized() public {
@@ -636,6 +638,9 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         address testUser = makeAddr("testUser");
         bytes32 testOperationId = keccak256("user-led-operation");
 
+        // Record user balance before
+        uint256 userBalanceBefore = tokenB.balanceOf(testUser);
+
         // Create a mock fleet commander that will revert deposits
         address mockFleetCommander = makeAddr("mockFleetCommander");
         vm.mockCall(
@@ -648,7 +653,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             abi.encodeWithSignature("maxDeposit(address)", address(adapterB)),
             abi.encode(type(uint256).max)
         );
-        // Make the deposit call revert
         vm.mockCallRevert(
             mockFleetCommander,
             abi.encodeWithSignature(
@@ -683,6 +687,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             actualFleetDepositMessage
         );
 
+        // Remove destinationAdapter parameter from the call
         bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
             uint64(1),
             uint32(CHAIN_ID_A),
@@ -693,16 +698,15 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
 
-        // Mock the Stargate contract to return the correct token
-        address mockStargateFrom = makeAddr("mockStargateFrom");
-        vm.mockCall(
-            mockStargateFrom,
-            abi.encodeWithSignature("token()"),
-            abi.encode(address(tokenB))
+        // Create and register the mock Stargate contract
+        MockStargateV2 mockStargateFrom = new MockStargateV2(
+            address(tokenB),
+            MockStargateV2.StargateType.Pool
         );
 
-        // Record user balance before
-        uint256 userBalanceBefore = tokenB.balanceOf(testUser);
+        // Register the mock Stargate contract in the adapter
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
         // Expect the UserRefundIssued event
         vm.expectEmit(true, true, true, true);
@@ -729,7 +733,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Execute lzCompose
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            mockStargateFrom,
+            address(mockStargateFrom), // Use actual mock contract instead of random address
             bytes32("test-guid"),
             oftEncodedMessage,
             address(0),
@@ -772,6 +776,16 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         MockFleetProxy mockFleetCommander = new MockFleetProxy(address(tokenB));
         mockFleetCommander.setShouldRevert(true); // Make receiveMessageWithAssets fail
 
+        // Create and register the mock Stargate contract
+        MockStargateV2 mockStargateFrom = new MockStargateV2(
+            address(tokenB),
+            MockStargateV2.StargateType.Pool
+        );
+
+        // Register the mock Stargate contract in the adapter
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
         // Add the adapter as a queue manager so it can queue recovery operations
         vm.prank(address(0x0000000000000000000000000000000000000001)); // ECRecover (governor)
         bridgeQueueB.addQueueManager(address(adapterB));
@@ -797,14 +811,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
 
-        // Mock the Stargate contract to return the correct token
-        address mockStargateFrom = makeAddr("mockStargateFrom");
-        vm.mockCall(
-            mockStargateFrom,
-            abi.encodeWithSignature("token()"),
-            abi.encode(address(tokenB))
-        );
-
         // Record balances before
         uint256 userBalanceBefore = tokenB.balanceOf(testUser);
         uint256 systemRecipientBalanceBefore = tokenB.balanceOf(
@@ -825,10 +831,10 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             CHAIN_ID_A
         );
 
-        // Execute lzCompose
+        // Execute lzCompose with proper mock Stargate contract
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            mockStargateFrom,
+            address(mockStargateFrom), // Use actual mock contract instead of random address
             bytes32("test-guid"),
             oftEncodedMessage,
             address(0),
@@ -880,6 +886,16 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             true
         );
 
+        // Create and register the mock Stargate contract
+        MockStargateV2 mockStargateFrom = new MockStargateV2(
+            address(tokenB),
+            MockStargateV2.StargateType.Pool
+        );
+
+        // Register the mock Stargate contract in the adapter
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
         // Create fleet deposit compose message using helper method
         bytes memory oftEncodedMessage = _createFleetDepositOFTMessage(
             address(mockFleetCommander),
@@ -893,14 +909,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
-
-        // Mock the Stargate contract to return the correct token
-        address mockStargateFrom = makeAddr("mockStargateFrom");
-        vm.mockCall(
-            mockStargateFrom,
-            abi.encodeWithSignature("token()"),
-            abi.encode(address(tokenB))
-        );
 
         // Expect the CrossChainFleetDepositCompleted event
         vm.expectEmit(true, true, true, true);
@@ -927,7 +935,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Execute lzCompose
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            mockStargateFrom,
+            address(mockStargateFrom),
             bytes32("test-guid"),
             oftEncodedMessage,
             address(0),
@@ -962,8 +970,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Call the _handleUserLedFailure function directly using a wrapper
         StargateAdapterTestWrapper wrapperAdapter = new StargateAdapterTestWrapper(
-                address(routerB),
-                address(this),
+                address(registryB),
+                address(accessManagerB),
                 address(lzEndpointB),
                 address(0xdead) // Mock HarborCommand address for testing
             );

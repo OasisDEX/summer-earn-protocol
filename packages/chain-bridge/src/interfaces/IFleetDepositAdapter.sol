@@ -45,7 +45,6 @@ interface IFleetDepositAdapter {
      * @param destinationChainId Target chain ID where the FleetCommander is deployed
      * @param asset Asset to bridge and deposit
      * @param amount Amount to bridge and deposit
-     * @param destinationAdapter Address of the corresponding adapter on destination chain
      * @param composeMessage Encoded message containing fleet deposit instructions
      * @param adapterParams Bridge-specific adapter parameters
      * @return operationId Unique identifier for this cross-chain deposit operation
@@ -58,7 +57,6 @@ interface IFleetDepositAdapter {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address destinationAdapter,
         bytes memory composeMessage,
         BridgeTypes.AdapterParams calldata adapterParams
     ) external payable returns (bytes32 operationId);

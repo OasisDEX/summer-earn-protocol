@@ -2,41 +2,35 @@
 pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
-import {ReadCodecV1, EVMCallRequestV1, EVMCallComputeV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
-import {MessagingParams, MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {ReadCodecV1, EVMCallRequestV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
+import {MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
-import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
-import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
+import {BaseBridgeAdapter} from "./BaseBridgeAdapter.sol";
 
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
  * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OAppRead standard
  */
-contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
+contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice The BridgeRouter that manages this adapter
-    address public bridgeRouter;
 
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
@@ -114,22 +108,25 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     /**
      * @notice Initializes the LayerZeroAdapter
      * @param _endpoint Address of the LayerZero endpoint
-     * @param _bridgeRouter Address of the BridgeRouter contract
+     * @param _crossChainRegistry Address of the CrossChainRegistry contract
+     * @param _accessManager Address of the AccessManager contract
      * @param _supportedChains Array of chain IDs supported by this adapter
      * @param _lzEids Array of corresponding LayerZero endpoint IDs
-     * @param _owner Address of the contract owner
+     * @param _initialOwner Address of the contract owner
      */
     constructor(
         address _endpoint,
-        address _bridgeRouter,
+        address _crossChainRegistry,
+        address _accessManager,
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
-        address _owner
-    ) OAppRead(_endpoint, _owner) Ownable(_owner) {
-        if (_bridgeRouter == address(0)) revert InvalidParams();
+        address _initialOwner
+    )
+        OAppRead(_endpoint, _initialOwner)
+        Ownable(_initialOwner)
+        BaseBridgeAdapter(_crossChainRegistry, _accessManager)
+    {
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();
-
-        bridgeRouter = _bridgeRouter;
 
         // Setup chain ID mappings
         for (uint i = 0; i < _supportedChains.length; i++) {
@@ -203,20 +200,6 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         delete chainToLzEid[chainId];
         delete lzEidToChain[lzEid];
         _supportedChainIds.remove(chainId);
-    }
-
-    /**
-     * @notice Updates the bridge router address (governance only)
-     * @param newBridgeRouter Address of the new bridge router
-     * @dev Can only be called by contract owner/governance
-     */
-    function setBridgeRouter(address newBridgeRouter) external onlyOwner {
-        if (newBridgeRouter == address(0)) revert InvalidBridgeRouter();
-
-        address oldRouter = bridgeRouter;
-        bridgeRouter = newBridgeRouter;
-
-        emit BridgeRouterUpdated(oldRouter, newBridgeRouter);
     }
 
     /**
@@ -398,7 +381,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Only call notifyMessageReceived if the delivery was successful
         if (delivered) {
-            IBridgeRouter(bridgeRouter).notifyMessageReceived(
+            IBridgeRouter(bridgeRouter()).notifyMessageReceived(
                 messageId,
                 address(0), // No asset for general message
                 0, // No amount for general message
@@ -441,7 +424,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
 
         // Forward the result to the bridge router
         try
-            IBridgeRouter(bridgeRouter).deliverReadResponse(
+            IBridgeRouter(bridgeRouter()).deliverReadResponse(
                 operationId,
                 srcChainId,
                 _payload
@@ -549,25 +532,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     function getOperationStatus(
         bytes32 operationId
     ) external view override returns (BridgeTypes.OperationStatus) {
-        return IBridgeRouter(bridgeRouter).getOperationStatus(operationId);
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function getSupportedChains()
-        external
-        view
-        override
-        returns (uint16[] memory)
-    {
-        uint256 length = _supportedChainIds.length();
-        uint16[] memory chains = new uint16[](length);
-
-        for (uint256 i = 0; i < length; i++) {
-            // Need to cast from uint256 to uint16
-            chains[i] = uint16(_supportedChainIds.at(i));
-        }
-
-        return chains;
+        return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
     }
 
     /// @inheritdoc ISendAdapter
@@ -580,9 +545,9 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes calldata readParams,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable {
+    ) external payable nonReentrant {
         // Only BridgeRouter should call this
-        if (msg.sender != bridgeRouter) revert Unauthorized();
+        if (msg.sender != bridgeRouter()) revert Unauthorized();
 
         // Ensure a read channel has been configured
         if (readChannelId == 0) revert ReadChannelNotConfigured();
@@ -635,17 +600,10 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         );
 
         // Set initial status as SENT
-        IBridgeRouter(bridgeRouter).updateOperationStatus(
+        IBridgeRouter(bridgeRouter()).updateOperationStatus(
             operationId,
             BridgeTypes.OperationStatus.SENT
         );
-    }
-
-    /// @inheritdoc IBridgeAdapter
-    function supportsChain(
-        uint16 chainId
-    ) external view override returns (bool) {
-        return chainToLzEid[chainId] != 0;
     }
 
     /// @inheritdoc ISendAdapter
@@ -656,9 +614,9 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes calldata message,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable {
+    ) external payable nonReentrant {
         // Only the BridgeRouter should call this function
-        if (msg.sender != bridgeRouter) revert Unauthorized();
+        if (msg.sender != bridgeRouter()) revert Unauthorized();
 
         // Get the LayerZero EID for destination chain
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
@@ -841,7 +799,10 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes32 operationId,
         BridgeTypes.OperationStatus status
     ) internal {
-        IBridgeRouter(bridgeRouter).updateOperationStatus(operationId, status);
+        IBridgeRouter(bridgeRouter()).updateOperationStatus(
+            operationId,
+            status
+        );
     }
 
     /**
@@ -855,7 +816,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         address recipient,
         BridgeTypes.OperationStatus status
     ) internal {
-        IBridgeRouter(bridgeRouter).updateReceiveStatus(
+        IBridgeRouter(bridgeRouter()).updateReceiveStatus(
             requestId,
             recipient,
             status

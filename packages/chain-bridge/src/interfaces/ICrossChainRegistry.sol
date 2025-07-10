@@ -31,12 +31,31 @@ interface ICrossChainRegistry {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when the registry is initialized
+    event RegistryInitialized(uint16 currentChainId);
+
+    /// @notice Emitted when a new relationship type is added
+    event RelationshipTypeAdded(bytes32 indexed relationshipType);
+
+    /// @notice Emitted when the bridge queue address is updated
+    event BridgeQueueUpdated(
+        address indexed oldBridgeQueue,
+        address indexed newBridgeQueue
+    );
+
+    /// @notice Emitted when the bridge router address is updated
+    event BridgeRouterUpdated(
+        address indexed oldBridgeRouter,
+        address indexed newBridgeRouter
+    );
+
+    /// @notice Emitted when the default gas limit is updated
+    event DefaultGasLimitUpdated(
+        uint256 oldDefaultGasLimit,
+        uint256 newDefaultGasLimit
+    );
+
     /// @notice Emitted when a cross-chain relationship is registered
-    /// @param sourceContract The address of the source contract
-    /// @param targetContract The address of the target contract
-    /// @param sourceChainId The chain ID where the source contract is deployed
-    /// @param targetChainId The chain ID where the target contract is deployed
-    /// @param relationshipType The type of relationship
     event CrossChainRelationshipRegistered(
         address indexed sourceContract,
         address indexed targetContract,
@@ -46,11 +65,6 @@ interface ICrossChainRegistry {
     );
 
     /// @notice Emitted when a cross-chain relationship is unregistered
-    /// @param sourceContract The address of the source contract
-    /// @param targetContract The address of the target contract
-    /// @param sourceChainId The chain ID where the source contract was deployed
-    /// @param targetChainId The chain ID where the target contract was deployed
-    /// @param relationshipType The type of relationship
     event CrossChainRelationshipUnregistered(
         address indexed sourceContract,
         address indexed targetContract,
@@ -62,6 +76,18 @@ interface ICrossChainRegistry {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when the current chain ID is zero
+    error InvalidCurrentChainId();
+
+    /// @notice Thrown when bridge configuration is already initialized
+    error BridgeConfigAlreadyInitialized();
+
+    /// @notice Thrown when an invalid gas limit is provided
+    error InvalidGasLimit();
+
+    /// @notice Thrown when an address parameter is zero
+    error AddressZero();
 
     /// @notice Thrown when trying to register a relationship that already exists
     error RelationshipAlreadyExists(
@@ -109,6 +135,18 @@ interface ICrossChainRegistry {
     );
 
     /*//////////////////////////////////////////////////////////////
+                            CONSTANTS GETTERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Returns the constant for adapter peer relationship type
+    /// @return bytes32 value of keccak256("ADAPTER_PEER")
+    function ADAPTER_PEER() external pure returns (bytes32);
+
+    /// @notice Returns the constant for ark fleet relationship type
+    /// @return bytes32 value of keccak256("ARK_FLEET")
+    function ARK_FLEET() external pure returns (bytes32);
+
+    /*//////////////////////////////////////////////////////////////
                             CORE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -139,6 +177,49 @@ interface ICrossChainRegistry {
         bytes32 relationshipType,
         uint16 targetChainId
     ) external;
+
+    /*//////////////////////////////////////////////////////////////
+                        BRIDGE CONFIG FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Returns the address of the bridge queue contract
+    function bridgeQueue() external view returns (address);
+
+    /// @notice Returns the address of the bridge router contract
+    function bridgeRouter() external view returns (address);
+
+    /// @notice Returns the default gas limit for cross-chain operations
+    function defaultGasLimit() external view returns (uint256);
+
+    /**
+     * @notice Initializes the bridge configuration parameters
+     * @param _bridgeQueue The address of the bridge queue contract
+     * @param _bridgeRouter The address of the bridge router contract
+     * @param _defaultGasLimit The default gas limit for cross-chain transactions
+     */
+    function initializeBridgeConfiguration(
+        address _bridgeQueue,
+        address _bridgeRouter,
+        uint256 _defaultGasLimit
+    ) external;
+
+    /**
+     * @notice Sets the bridge queue address
+     * @param newBridgeQueue The new bridge queue address
+     */
+    function setBridgeQueue(address newBridgeQueue) external;
+
+    /**
+     * @notice Sets the bridge router address
+     * @param newBridgeRouter The new bridge router address
+     */
+    function setBridgeRouter(address newBridgeRouter) external;
+
+    /**
+     * @notice Sets the default gas limit for cross-chain operations
+     * @param newDefaultGasLimit The new default gas limit
+     */
+    function setDefaultGasLimit(uint256 newDefaultGasLimit) external;
 
     /*//////////////////////////////////////////////////////////////
                             QUERY FUNCTIONS
@@ -279,4 +360,117 @@ interface ICrossChainRegistry {
      * @return The current chain ID
      */
     function currentChainId() external view returns (uint16);
+
+    /*//////////////////////////////////////////////////////////////
+                        ADAPTER PEER CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a peer relationship between two bridge adapters
+     * @param sourceAdapter Address of the source adapter
+     * @param targetAdapter Address of the target adapter
+     * @param sourceChainId Chain ID where the source adapter is deployed
+     * @param targetChainId Chain ID where the target adapter is deployed
+     */
+    function registerAdapterPeer(
+        address sourceAdapter,
+        address targetAdapter,
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) external;
+
+    /**
+     * @notice Get the peer adapter address for a given source adapter and target chain
+     * @param sourceAdapter Address of the source adapter
+     * @param targetChainId Chain ID where the target adapter is deployed
+     * @return targetAdapter Address of the target adapter
+     */
+    function getAdapterPeer(
+        address sourceAdapter,
+        uint16 targetChainId
+    ) external view returns (address targetAdapter);
+
+    /**
+     * @notice Check if two adapters are registered as valid peers
+     * @param sourceAdapter Address of the source adapter
+     * @param targetAdapter Address of the target adapter
+     * @param sourceChainId Chain ID where the source adapter is deployed
+     * @param targetChainId Chain ID where the target adapter is deployed
+     * @return True if the adapters are registered peers
+     */
+    function isValidAdapterPeer(
+        address sourceAdapter,
+        address targetAdapter,
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) external view returns (bool);
+
+    /*//////////////////////////////////////////////////////////////
+                        ARK/FLEET CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a relationship between an Ark and its Fleet
+     * @param arkProxy Address of the Ark proxy
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     */
+    function registerArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external;
+
+    /**
+     * @notice Get the Fleet proxy address for a given Ark proxy
+     * @param arkProxy Address of the Ark proxy
+     * @return fleetProxy Address of the Fleet proxy
+     * @return fleetChainId Chain ID where the Fleet is deployed
+     */
+    function getFleetForArk(
+        address arkProxy
+    ) external view returns (address fleetProxy, uint16 fleetChainId);
+
+    /**
+     * @notice Get the Ark proxy address for a given Fleet proxy and chain IDs
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     * @return arkProxy Address of the Ark proxy
+     */
+    function getArkForFleet(
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external view returns (address arkProxy);
+
+    /**
+     * @notice Check if an Ark and Fleet are properly registered
+     * @param arkProxy Address of the Ark proxy
+     * @param fleetProxy Address of the Fleet proxy
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the Fleet is deployed
+     * @return True if the Ark and Fleet are properly registered
+     */
+    function isValidArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external view returns (bool);
+
+    /**
+     * @notice Get all Fleets registered for a given Ark
+     * @param arkProxy Address of the Ark proxy
+     * @return fleetProxies Array of Fleet proxy addresses
+     * @return fleetChainIds Array of chain IDs where the Fleets are deployed
+     */
+    function getAllFleetsForArk(
+        address arkProxy
+    )
+        external
+        view
+        returns (address[] memory fleetProxies, uint16[] memory fleetChainIds);
 }

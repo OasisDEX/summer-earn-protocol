@@ -147,7 +147,6 @@ contract FleetDepositManager is ReentrancyGuard, ProtocolAccessManaged {
             destinationChainId,
             asset,
             amount,
-            address(0), // destinationAdapter - not needed, adapter handles this
             composeMessage,
             adapterParams
         );

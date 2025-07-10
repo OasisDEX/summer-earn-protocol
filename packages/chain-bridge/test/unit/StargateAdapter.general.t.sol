@@ -15,16 +15,30 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     //////////////////////////////////////////////////////////////*/
 
     function testGetSupportedChains() public view {
-        uint16[] memory supportedChains = adapterA.getSupportedChains();
-        assertEq(supportedChains.length, 2);
-        assertEq(supportedChains[0], CHAIN_ID_A);
-        assertEq(supportedChains[1], CHAIN_ID_B);
+        // Get chains through registry relationships
+        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
+            address(adapterA),
+            registryA.ADAPTER_PEER()
+        );
+
+        assertEq(supportedChains.length, 1);
+        assertEq(supportedChains[0], CHAIN_ID_B);
     }
 
-    function testSupportsChain() public view {
-        assertTrue(adapterA.supportsChain(CHAIN_ID_A));
-        assertTrue(adapterA.supportsChain(CHAIN_ID_B));
-        assertFalse(adapterA.supportsChain(9999)); // Arbitrary unsupported chain
+    function testSupportsChain() public {
+        assertTrue(
+            registryA.isValidAdapterPeer(
+                address(adapterA),
+                address(adapterB),
+                CHAIN_ID_A,
+                CHAIN_ID_B
+            ),
+            "Chain B should be supported"
+        );
+
+        // Expect revert when checking unsupported chain
+        vm.expectRevert();
+        registryA.getAdapterPeer(address(adapterA), 9999);
     }
 
     function testFeatureSupport() public view {
@@ -46,43 +60,63 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
     // Removed minDstGasForCall related tests since this functionality was removed
 
-    function testAddSupportedChain() public {
+    function testSetEndpointIdAndRegisterPeer() public {
         useNetworkA();
 
-        // Add a new supported chain
+        // Add a new chain endpoint
         uint16 newChainId = 42161; // Arbitrum
         uint32 newEndpointId = 30110; // LayerZero endpoint ID for Arbitrum
+        address mockArbitrumAdapter = address(0xdead);
 
-        vm.prank(governor);
-        adapterA.addSupportedChain(newChainId, newEndpointId, address(0xdead)); // Use non-zero address
+        vm.startPrank(governor);
 
-        // Verify the chain was added
-        assertTrue(adapterA.supportsChain(newChainId));
+        // First unregister the existing peer relationship for CHAIN_ID_B
+        registryA.unregisterCrossChainRelationship(
+            address(adapterA),
+            registryA.ADAPTER_PEER(),
+            CHAIN_ID_B
+        );
+
+        // Set the endpoint ID
+        adapterA.setEndpointId(newChainId, newEndpointId);
+
+        // Register the peer relationship in the registry
+        registryA.registerAdapterPeer(
+            address(adapterA),
+            mockArbitrumAdapter,
+            CHAIN_ID_A,
+            newChainId
+        );
+
+        vm.stopPrank();
+
+        // Verify the endpoint was configured
         assertEq(adapterA.getEndpointId(newChainId), newEndpointId);
 
-        // Verify it's in the list of supported chains
-        uint16[] memory supportedChains = adapterA.getSupportedChains();
+        // Verify the peer relationship was established
+        assertEq(
+            registryA.getAdapterPeer(address(adapterA), newChainId),
+            mockArbitrumAdapter,
+            "Peer adapter should be registered"
+        );
+
+        // Verify it's in the list of supported chains (through registry relationships)
+        (
+            address[] memory targetContracts,
+            uint16[] memory targetChainIds
+        ) = registryA.getTargetsForSource(
+                address(adapterA),
+                registryA.ADAPTER_PEER()
+            );
+
         bool found = false;
-        for (uint i = 0; i < supportedChains.length; i++) {
-            if (supportedChains[i] == newChainId) {
+        for (uint i = 0; i < targetChainIds.length; i++) {
+            if (targetChainIds[i] == newChainId) {
                 found = true;
                 break;
             }
         }
-        assertTrue(found);
-    }
-
-    function testAddDuplicateSupportedChain() public {
-        useNetworkA();
-
-        // Try to add an already supported chain
-        vm.prank(governor);
-        vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
-        adapterA.addSupportedChain(
-            CHAIN_ID_A,
-            uint32(CHAIN_ID_A),
-            address(adapterA)
-        );
+        assertTrue(found, "New chain should be in registry relationships");
     }
 
     function testAddSupportedAsset() public {
