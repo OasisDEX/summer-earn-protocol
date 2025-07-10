@@ -139,6 +139,7 @@ const KNOWN_ABIS = {
     'function setProposalMaxDuration(uint256 newProposalMaxDuration) external',
   updateDelay: 'function updateDelay(uint256 newDelay) external',
   addToWhitelist: 'function addToWhitelist(address account) external',
+  setRaft: 'function setRaft(address raft) external',
 }
 
 // Create interfaces for each ABI
