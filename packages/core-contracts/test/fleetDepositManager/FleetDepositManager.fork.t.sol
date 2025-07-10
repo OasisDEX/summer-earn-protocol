@@ -393,7 +393,7 @@ contract FleetDepositManagerIntegrationForkTest is Test {
 
         assertEq(
             messageType,
-            manager.FLEET_DEPOSIT_TYPE(),
+            BridgeTypes.USER_FLEET_DEPOSIT_TYPE,
             "Message type should match"
         );
         assertEq(

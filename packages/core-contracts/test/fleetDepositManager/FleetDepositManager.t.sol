@@ -84,7 +84,10 @@ contract FleetDepositManagerTest is Test {
             address(mockAccessManager)
         );
         assertEq(address(newManager.bridgeRouter()), address(mockBridgeRouter));
-        assertEq(newManager.FLEET_DEPOSIT_TYPE(), keccak256("FLEET_DEPOSIT"));
+        assertEq(
+            BridgeTypes.USER_FLEET_DEPOSIT_TYPE,
+            keccak256("USER_FLEET_DEPOSIT")
+        );
     }
 
     function test_Constructor_RevertWhen_ZeroAddressBridgeRouter() public {
@@ -545,7 +548,7 @@ contract FleetDepositManagerTest is Test {
                 )
             );
 
-        assertEq(messageType, manager.FLEET_DEPOSIT_TYPE());
+        assertEq(messageType, BridgeTypes.USER_FLEET_DEPOSIT_TYPE);
         assertEq(decodedFleetCommander, fleetCommander);
         assertEq(decodedRecipient, shareRecipient);
         assertEq(decodedAsset, address(token));
@@ -802,7 +805,7 @@ contract FleetDepositManagerTest is Test {
                 )
             );
 
-        assertEq(messageType, manager.FLEET_DEPOSIT_TYPE());
+        assertEq(messageType, BridgeTypes.USER_FLEET_DEPOSIT_TYPE);
         assertEq(receivedFleetCommander, fleetCommander);
         assertEq(receivedShareRecipient, shareRecipient);
         assertEq(receivedAsset, address(token));
