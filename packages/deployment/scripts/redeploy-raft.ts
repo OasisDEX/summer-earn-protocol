@@ -59,7 +59,7 @@ export async function redeployRaft() {
   const result = await hre.ignition.deploy(RaftModule, {
     parameters: {
       [moduleName]: {
-        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager,
+        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
       },
     },
     deploymentId,
