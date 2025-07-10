@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
-import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -14,6 +13,7 @@ import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 
 /**
  * @title FleetProxy
@@ -39,8 +39,6 @@ contract FleetProxy is
 
     /// @notice Error thrown when bridge router address is invalid
     error InvalidBridgeRouter();
-    /// @notice Error thrown when bridge queue address is invalid
-    error InvalidBridgeQueue();
     /// @notice Error thrown when registry address is invalid
     error InvalidRegistry();
     /// @notice Error thrown when fleet contract address is invalid
@@ -49,6 +47,14 @@ contract FleetProxy is
     error WithdrawalFailed();
     /// @notice Thrown when the caller is not authorized to perform the action.
     error Unauthorized();
+    /// @notice Error thrown when the amount is invalid
+    error InvalidAmount();
+    /// @notice Error thrown when the recipient is invalid
+    error InvalidRecipient();
+    /// @notice Error thrown when the requestor is invalid
+    error InvalidRequestor();
+    /// @notice Error thrown when the satellite chain is invalid
+    error InvalidSatelliteChain();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -56,9 +62,6 @@ contract FleetProxy is
 
     /// @notice The bridge router used for cross-chain communication
     IBridgeRouter public immutable bridgeRouter;
-
-    /// @notice The bridge queue used for queuing cross-chain transfers
-    IBridgeQueue public immutable bridgeQueue;
 
     /// @notice The CrossChainRegistry contract for managing cross-chain relationships
     ICrossChainRegistry public immutable crossChainRegistry;
@@ -88,24 +91,20 @@ contract FleetProxy is
      * @notice Initializes the CrossChainFleetProxy
      * @param _accessManager Address of the access manager
      * @param _bridgeRouter Address of the bridge router
-     * @param _bridgeQueue Address of the bridge queue
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _fleetContract Address of the Fleet contract this proxy covers
      */
     constructor(
         address _accessManager,
         address _bridgeRouter,
-        address _bridgeQueue,
         address _crossChainRegistry,
         address _fleetContract
     ) ProtocolAccessManaged(_accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
-        if (_bridgeQueue == address(0)) revert InvalidBridgeQueue();
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_fleetContract == address(0)) revert InvalidFleetContract();
 
         bridgeRouter = IBridgeRouter(_bridgeRouter);
-        bridgeQueue = IBridgeQueue(_bridgeQueue);
         crossChainRegistry = ICrossChainRegistry(_crossChainRegistry);
         fleetContract = _fleetContract;
     }
@@ -146,11 +145,8 @@ contract FleetProxy is
 
     /// @inheritdoc IInflightAssetTracking
     function updateInflightAssets(uint256 amount) external {
-        // Only the bridge queue or router should be able to call this
-        if (
-            msg.sender != address(bridgeQueue) &&
-            msg.sender != address(bridgeRouter)
-        ) {
+        // Only the bridge router should be able to call this
+        if (msg.sender != address(bridgeRouter)) {
             revert Unauthorized();
         }
 
@@ -161,9 +157,17 @@ contract FleetProxy is
     /// @notice Keeper function to withdraw and transfer assets
     function withdrawAndTransfer(
         uint256 amount,
-        uint16 sourceChainId
+        uint16 sourceChainId,
+        BridgeTypes.ExecuteTransferParams calldata params
     ) external whenNotPaused nonReentrant onlyKeeper {
         if (amount == 0) revert NoAssets();
+        if (amount != params.amount) revert InvalidAmount();
+        if (params.asset != IERC4626(fleetContract).asset())
+            revert InvalidAsset();
+        if (params.recipient != address(this)) revert InvalidRecipient();
+        if (params.originator != address(this)) revert InvalidRequestor();
+        if (params.destinationChainId != sourceChainId)
+            revert InvalidSatelliteChain();
 
         // 1. Get the asset from fleet contract
         address asset = IERC4626(fleetContract).asset();
@@ -183,19 +187,14 @@ contract FleetProxy is
         inflightWithdrawals += amount;
         emit InflightAssetsUpdated(inflightWithdrawals);
 
-        // 5. Approve the bridge queue to transfer the assets
-        IERC20(asset).forceApprove(address(bridgeQueue), amount);
+        // 5. Approve the bridge router to transfer the assets
+        IERC20(asset).forceApprove(address(bridgeRouter), amount);
 
         // 6. Get source chain ark address from registry - reverts if not found
         address arkAddress = _getSourceChainArk(sourceChainId);
 
         // 7. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
-        bridgeQueue.queueTransferAssets(
-            sourceChainId,
-            asset,
-            amount,
-            arkAddress
-        );
+        bridgeRouter.executeTransferAssets(params);
 
         emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
     }

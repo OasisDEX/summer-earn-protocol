@@ -9,7 +9,6 @@ import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
-import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkParams} from "../../src/contracts/Ark.sol";
@@ -223,7 +222,6 @@ contract CrossChainFleetProxyTest is Test {
     // Mocks
     ERC20Mock public mockToken;
     MockBridgeRouter public mockBridgeRouter;
-    MockBridgeQueue public mockBridgeQueue;
     MockFleetProxyRegistry public mockRegistry;
     ProtocolAccessManager public accessManager;
     MockAdapter public mockAdapter;
@@ -241,7 +239,6 @@ contract CrossChainFleetProxyTest is Test {
         // Deploy mocks
         mockToken = new ERC20Mock();
         mockBridgeRouter = new MockBridgeRouter();
-        mockBridgeQueue = new MockBridgeQueue();
         mockRegistry = new MockFleetProxyRegistry();
         accessManager = new ProtocolAccessManager(governor);
         mockAdapter = new MockAdapter(address(mockBridgeRouter));
@@ -288,7 +285,6 @@ contract CrossChainFleetProxyTest is Test {
         proxy = new FleetProxy(
             address(accessManager),
             address(mockBridgeRouter),
-            address(mockBridgeQueue),
             address(mockRegistry),
             address(fleetCommanderMock)
         );
@@ -315,7 +311,6 @@ contract CrossChainFleetProxyTest is Test {
     function test_Constructor() public view {
         // Test all constructor values are properly initialized
         assertEq(address(proxy.bridgeRouter()), address(mockBridgeRouter));
-        assertEq(address(proxy.bridgeQueue()), address(mockBridgeQueue));
         assertEq(address(proxy.crossChainRegistry()), address(mockRegistry));
         assertEq(proxy.fleetContract(), address(fleetCommanderMock));
         // Verify registry relationship works
@@ -359,7 +354,27 @@ contract CrossChainFleetProxyTest is Test {
         // Try withdrawAndTransfer while paused
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        proxy.withdrawAndTransfer(100, SOURCE_CHAIN_ID);
+        proxy.withdrawAndTransfer(
+            100,
+            SOURCE_CHAIN_ID,
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(mockToken),
+                amount: 100,
+                recipient: address(proxy),
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
 
         // Non-governor can't unpause
         vm.prank(guardian);
@@ -544,6 +559,26 @@ contract CrossChainFleetProxyTest is Test {
         // Try to withdraw and transfer with zero amount
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
-        proxy.withdrawAndTransfer(0, SOURCE_CHAIN_ID);
+        proxy.withdrawAndTransfer(
+            0,
+            SOURCE_CHAIN_ID,
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(mockToken),
+                amount: 0,
+                recipient: address(proxy),
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
     }
 }

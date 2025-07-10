@@ -4,11 +4,9 @@ pragma solidity ^0.8.28;
 import "forge-std/Test.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
-import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
@@ -200,7 +198,6 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
 
 contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainArk ark;
-    MockBridgeQueue queue;
     MockBridgeRouter router;
     MockCrossChainRegistry registry;
     address proxy = address(0x5);
@@ -211,7 +208,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function setUp() public {
         initializeCoreContracts();
-        queue = new MockBridgeQueue();
         router = new MockBridgeRouter();
         registry = new MockCrossChainRegistry();
 
@@ -239,7 +235,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
         });
 
         ark = new CrossChainArk(
-            address(queue),
             address(router),
             address(registry),
             chainId,
@@ -273,7 +268,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
     }
 
     function testConstructorSetsState() public view {
-        assertEq(address(ark.bridgeQueue()), address(queue));
         assertEq(address(ark.bridgeRouter()), address(router));
         assertEq(address(ark.crossChainRegistry()), address(registry));
         assertEq(ark.satelliteChainId(), chainId);
@@ -288,10 +282,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         vm.prank(address(fleetCommander));
         ark.board(1000, "");
-        assertEq(queue.lastDestinationChainId(), chainId);
-        assertEq(queue.lastAsset(), address(mockToken));
-        assertEq(queue.lastAmount(), 1000);
-        assertEq(queue.lastRecipient(), proxy);
     }
 
     function testReceiveStateReadUpdatesRemoteBalanceAndEmitsEvent() public {
@@ -492,12 +482,17 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Test that only keeper can request balance updates
         vm.prank(address(0x999));
         vm.expectRevert(); // Should revert with access control error
-        ark.requestRemoteAssetBalanceUpdate();
+        ark.requestRemoteAssetBalanceUpdate(defaultOptions);
 
         // Test successful keeper call
         vm.prank(keeper);
-        bytes32 queueId = ark.requestRemoteAssetBalanceUpdate();
-        assertTrue(queueId != bytes32(0), "Should return non-zero queue ID");
+        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate(
+            defaultOptions
+        );
+        assertTrue(
+            operationId != bytes32(0),
+            "Should return non-zero operation ID"
+        );
     }
 
     function testRequestRemoteAssetBalanceUpdateRequiresTargetProxy() public {
@@ -516,7 +511,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
         });
 
         CrossChainArk arkWithoutProxy = new CrossChainArk(
-            address(queue),
             address(router),
             address(registry),
             chainId,
@@ -533,7 +527,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 chainId
             )
         );
-        arkWithoutProxy.requestRemoteAssetBalanceUpdate();
+        arkWithoutProxy.requestRemoteAssetBalanceUpdate(defaultOptions);
     }
 
     function testBridgeRouterDeliveryFlow() public {
@@ -545,7 +539,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint16 sourceChain = chainId;
 
         // In the real flow:
-        // 1. CrossChainArk requests a state read via BridgeQueue
+        // 1. CrossChainArk requests a state read via BridgeRouter
         // 2. BridgeRouter executes the read request
         // 3. When response comes back, BridgeRouter.deliverReadResponse calls receiveStateRead
 

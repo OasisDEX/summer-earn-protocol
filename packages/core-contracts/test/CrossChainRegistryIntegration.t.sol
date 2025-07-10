@@ -16,7 +16,6 @@ contract CrossChainRegistryIntegrationTest is Test {
 
     // Mock contracts for testing
     address public mockBridgeRouter = makeAddr("bridgeRouter");
-    address public mockBridgeQueue = makeAddr("bridgeQueue");
     address public mockFleetContract = makeAddr("fleetContract");
 
     address public governor = makeAddr("governor");

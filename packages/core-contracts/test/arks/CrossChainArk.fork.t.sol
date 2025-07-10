@@ -375,10 +375,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             uint256 storedAmount,
             address recipient,
             address originator,
-            address keeper,
+            address keeper, // options struct components
 
-        ) = // options struct components
-            ark.pendingTransferParams();
+        ) = ark.pendingTransferParams();
 
         assertEq(
             destinationChainId,
@@ -558,10 +557,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             uint256 storedAmount,
             address recipient,
             address originator,
-            address keeper,
+            address keeper, // options struct
 
-        ) = // options struct
-            ark.pendingTransferParams();
+        ) = ark.pendingTransferParams();
 
         assertEq(
             destinationChainId,

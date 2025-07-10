@@ -171,7 +171,7 @@ contract CrossChainArk is
     /// @return operationId The ID of the queued state read operation
     function requestRemoteAssetBalanceUpdate(
         BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyKeeper {
+    ) external payable onlyKeeper returns (bytes32 operationId) {
         address proxyAddress = _getTargetProxy();
         BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
             .ExecuteReadStateParams({
@@ -183,9 +183,7 @@ contract CrossChainArk is
                 keeper: msg.sender,
                 options: options
             });
-        bytes32 operationId = bridgeRouter.executeReadState{value: msg.value}(
-            params
-        );
+        operationId = bridgeRouter.executeReadState{value: msg.value}(params);
 
         emit RemoteAssetBalanceUpdateRequested(
             operationId,
