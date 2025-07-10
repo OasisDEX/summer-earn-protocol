@@ -638,6 +638,9 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         address testUser = makeAddr("testUser");
         bytes32 testOperationId = keccak256("user-led-operation");
 
+        // Record user balance before
+        uint256 userBalanceBefore = tokenB.balanceOf(testUser);
+
         // Create a mock fleet commander that will revert deposits
         address mockFleetCommander = makeAddr("mockFleetCommander");
         vm.mockCall(
@@ -695,16 +698,15 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
 
-        // Mock the Stargate contract to return the correct token
-        address mockStargateFrom = makeAddr("mockStargateFrom");
-        vm.mockCall(
-            mockStargateFrom,
-            abi.encodeWithSignature("token()"),
-            abi.encode(address(tokenB))
+        // Create and register the mock Stargate contract
+        MockStargateV2 mockStargateFrom = new MockStargateV2(
+            address(tokenB),
+            MockStargateV2.StargateType.Pool
         );
 
-        // Record user balance before
-        uint256 userBalanceBefore = tokenB.balanceOf(testUser);
+        // Register the mock Stargate contract in the adapter
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
         // Expect the UserRefundIssued event
         vm.expectEmit(true, true, true, true);
@@ -808,14 +810,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
-
-        // Mock the Stargate contract to return the correct token
-        address mockStargateFrom = makeAddr("mockStargateFrom");
-        vm.mockCall(
-            mockStargateFrom,
-            abi.encodeWithSignature("token()"),
-            abi.encode(address(tokenB))
-        );
 
         // Record balances before
         uint256 userBalanceBefore = tokenB.balanceOf(testUser);
