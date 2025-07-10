@@ -120,7 +120,7 @@ async function setupRaft() {
     console.log(kleur.yellow(`  ${chain}: ${raftAddresses[chain]}`))
   }
 
-  // Get previous AdmiralsQuarters addresses if needed
+  // Get previous raft addresses if needed
   const previousRaftAddresses: Record<string, Address> = {}
 
   const configurationManagerContractAddress = hubConfig.deployedContracts.core.configurationManager
@@ -188,9 +188,9 @@ async function setupRaft() {
 }
 
 /**
- * Creates a multi-chain governance proposal for granting ADMIRALS_QUARTERS_ROLE to AdmiralsQuarters contracts.
- * @param {Record<string, Address>} admiralsQuartersAddresses - The AdmiralsQuarters addresses for each chain.
- * @param {Record<string, Address>} previousAdmiralsQuartersAddresses - The previous AdmiralsQuarters addresses to revoke role from.
+ * Creates a multi-chain governance proposal for setting the raft address on the ConfigurationManager contract.
+ * @param {Record<string, Address>} raftAddresses - The raft addresses for each chain.
+ * @param {Record<string, Address>} previousRaftAddresses - The previous raft addresses to revoke role from.
  * @param {BaseConfig} hubConfig - The configuration for the hub chain.
  * @param {Record<string, BaseConfig>} satelliteConfigs - The configurations for the satellite chains.
  * @param {boolean} useBummerConfig - Whether to use bummer config.
@@ -226,12 +226,12 @@ async function createMultiChainRaftProposal(
     // 1. Prepare hub chain actions (Base)
     console.log(kleur.yellow('Preparing hub chain actions for Base...'))
 
-    // Get the Protocol Access Manager address
-    const hubProtocolAccessManagerAddress = hubConfig.deployedContracts.gov.protocolAccessManager
+    // Get the Configuration Manager address
+    const hubConfigurationManagerAddress = hubConfig.deployedContracts.core.configurationManager
       .address as Address
 
-    // Action to grant ADMIRALS_QUARTERS_ROLE to AdmiralsQuarters on Base
-    srcTargets.push(hubProtocolAccessManagerAddress)
+    // Action to set raft address on Base
+    srcTargets.push(hubConfigurationManagerAddress)
     srcValues.push(0n)
     srcCalldatas.push(
       encodeFunctionData({
@@ -262,8 +262,8 @@ async function createMultiChainRaftProposal(
     console.log(kleur.yellow('Preparing cross-chain actions for satellite chains...'))
     for (const chainName of SUPPORTED_CHAINS.filter(filterTargetChains)) {
       const satelliteConfig = satelliteConfigs[chainName]
-      const satelliteProtocolAccessManagerAddress = satelliteConfig.deployedContracts.gov
-        .protocolAccessManager.address as Address
+      const satelliteConfigurationManagerAddress = satelliteConfig.deployedContracts.core
+        .configurationManager.address as Address
       const raftAddress = raftAddresses[chainName]
       const currentChainEndpointId = satelliteConfig.common.layerZero.eID
       const chainId = getChainIdByNetwork(chainName)
@@ -274,7 +274,7 @@ async function createMultiChainRaftProposal(
       const dstCalldatas: Hex[] = []
 
       // Action to set raft on satellite chain
-      dstTargets.push(satelliteProtocolAccessManagerAddress)
+      dstTargets.push(satelliteConfigurationManagerAddress)
       dstValues.push(0n)
       dstCalldatas.push(
         encodeFunctionData({
@@ -309,7 +309,7 @@ async function createMultiChainRaftProposal(
 This cross-chain proposal updates the raft address on ${chainName}.
 
 ## Actions
-1. Set raft address on ${chainName} to ${raftAddress} via the ProtocolAccessManager
+1. Set raft address on ${chainName} to ${raftAddress} via the ConfigurationManager
       `.trim()
 
       // Add cross-chain proposal action to the source chain actions
