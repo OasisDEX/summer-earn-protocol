@@ -32,10 +32,9 @@ contract MockFleetDepositAdapter is IFleetDepositAdapter {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address destinationAdapter,
         bytes memory composeMessage,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable override returns (bytes32 operationId) {
+    ) external payable returns (bytes32 operationId) {
         if (shouldRevert) revert("Mock adapter reverted");
 
         // Generate unique operation ID using counter
@@ -52,7 +51,6 @@ contract MockFleetDepositAdapter is IFleetDepositAdapter {
         lastAmount = amount;
         lastAsset = asset;
         lastDestinationChainId = destinationChainId;
-        lastDestinationAdapter = destinationAdapter;
         lastComposeMessage = composeMessage;
         lastAdapterParams = adapterParams;
 

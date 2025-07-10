@@ -49,12 +49,6 @@ interface ICrossChainRegistry {
         address indexed newBridgeRouter
     );
 
-    /// @notice Emitted when the cross chain registry address is updated
-    event CrossChainRegistryUpdated(
-        address indexed oldRegistry,
-        address indexed newRegistry
-    );
-
     /// @notice Emitted when the default gas limit is updated
     event DefaultGasLimitUpdated(
         uint256 oldDefaultGasLimit,
@@ -139,6 +133,18 @@ interface ICrossChainRegistry {
         bytes32 relationshipType,
         address existingSourceContract
     );
+
+    /*//////////////////////////////////////////////////////////////
+                            CONSTANTS GETTERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Returns the constant for adapter peer relationship type
+    /// @return bytes32 value of keccak256("ADAPTER_PEER")
+    function ADAPTER_PEER() external pure returns (bytes32);
+
+    /// @notice Returns the constant for ark fleet relationship type
+    /// @return bytes32 value of keccak256("ARK_FLEET")
+    function ARK_FLEET() external pure returns (bytes32);
 
     /*//////////////////////////////////////////////////////////////
                             CORE FUNCTIONS

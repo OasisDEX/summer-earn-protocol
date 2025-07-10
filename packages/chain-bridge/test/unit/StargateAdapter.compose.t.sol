@@ -650,7 +650,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             abi.encodeWithSignature("maxDeposit(address)", address(adapterB)),
             abi.encode(type(uint256).max)
         );
-        // Make the deposit call revert
         vm.mockCallRevert(
             mockFleetCommander,
             abi.encodeWithSignature(
@@ -685,6 +684,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             actualFleetDepositMessage
         );
 
+        // Remove destinationAdapter parameter from the call
         bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
             uint64(1),
             uint32(CHAIN_ID_A),
@@ -731,7 +731,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Execute lzCompose
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            mockStargateFrom,
+            address(mockStargateFrom), // Use actual mock contract instead of random address
             bytes32("test-guid"),
             oftEncodedMessage,
             address(0),
@@ -773,6 +773,16 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Deploy a mock fleet proxy that can receive tokens but will fail receiveMessageWithAssets
         MockFleetProxy mockFleetCommander = new MockFleetProxy(address(tokenB));
         mockFleetCommander.setShouldRevert(true); // Make receiveMessageWithAssets fail
+
+        // Create and register the mock Stargate contract
+        MockStargateV2 mockStargateFrom = new MockStargateV2(
+            address(tokenB),
+            MockStargateV2.StargateType.Pool
+        );
+
+        // Register the mock Stargate contract in the adapter
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
         // Add the adapter as a queue manager so it can queue recovery operations
         vm.prank(address(0x0000000000000000000000000000000000000001)); // ECRecover (governor)
@@ -827,10 +837,10 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             CHAIN_ID_A
         );
 
-        // Execute lzCompose
+        // Execute lzCompose with proper mock Stargate contract
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            mockStargateFrom,
+            address(mockStargateFrom), // Use actual mock contract instead of random address
             bytes32("test-guid"),
             oftEncodedMessage,
             address(0),
@@ -882,6 +892,16 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             true
         );
 
+        // Create and register the mock Stargate contract
+        MockStargateV2 mockStargateFrom = new MockStargateV2(
+            address(tokenB),
+            MockStargateV2.StargateType.Pool
+        );
+
+        // Register the mock Stargate contract in the adapter
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
         // Create fleet deposit compose message using helper method
         bytes memory oftEncodedMessage = _createFleetDepositOFTMessage(
             address(mockFleetCommander),
@@ -895,14 +915,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
-
-        // Mock the Stargate contract to return the correct token
-        address mockStargateFrom = makeAddr("mockStargateFrom");
-        vm.mockCall(
-            mockStargateFrom,
-            abi.encodeWithSignature("token()"),
-            abi.encode(address(tokenB))
-        );
 
         // Expect the CrossChainFleetDepositCompleted event
         vm.expectEmit(true, true, true, true);
@@ -929,7 +941,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Execute lzCompose
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            mockStargateFrom,
+            address(mockStargateFrom),
             bytes32("test-guid"),
             oftEncodedMessage,
             address(0),

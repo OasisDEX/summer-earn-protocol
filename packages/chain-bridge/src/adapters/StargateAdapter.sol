@@ -307,7 +307,7 @@ contract StargateAdapter is
         uint16 chainId,
         uint32 endpointId
     ) external onlyGovernor {
-        if (endpointId == 0 || chainToEndpointId[chainId] != 0) {
+        if (endpointId == 0) {
             revert InvalidParams();
         }
 
@@ -350,7 +350,6 @@ contract StargateAdapter is
         uint16 dstChainId,
         address asset,
         uint256 amount,
-        address /* destinationAdapter */,
         bytes memory composeMessage,
         BridgeTypes.AdapterParams calldata /* adapterParams */
     )

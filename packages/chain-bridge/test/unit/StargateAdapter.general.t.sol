@@ -119,15 +119,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         assertTrue(found, "New chain should be in registry relationships");
     }
 
-    function testSetDuplicateEndpointId() public {
-        useNetworkA();
-
-        // Try to set endpoint ID for an already configured chain
-        vm.prank(governor);
-        vm.expectRevert(); // Should revert with InvalidParams from setEndpointId
-        adapterA.setEndpointId(CHAIN_ID_A, uint32(CHAIN_ID_A));
-    }
-
     function testAddSupportedAsset() public {
         useNetworkA();
 

@@ -75,8 +75,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         currentChainId = _currentChainId;
 
-        _addRelationshipType(keccak256("ADAPTER_PEER"));
-        _addRelationshipType(keccak256("ARK_FLEET"));
+        _addRelationshipType(ADAPTER_PEER);
+        _addRelationshipType(ARK_FLEET);
 
         emit RegistryInitialized(_currentChainId);
     }
