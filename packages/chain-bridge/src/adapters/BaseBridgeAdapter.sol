@@ -17,6 +17,9 @@ abstract contract BaseBridgeAdapter is
     /// @notice Error thrown when source adapter is not trusted
     error UntrustedSourceAdapter(address srcAdapter, uint16 srcChain);
 
+    /// @notice Error thrown when chain ID exceeds uint16 max value
+    error ChainIdTooLarge(uint256 chainId);
+
     ICrossChainRegistry public immutable REGISTRY;
     uint16 public immutable THIS_CHAIN;
 
@@ -29,6 +32,8 @@ abstract contract BaseBridgeAdapter is
         address _accessManager
     ) CrossChainConfigManaged(_registry) ProtocolAccessManaged(_accessManager) {
         REGISTRY = ICrossChainRegistry(_registry);
+        if (block.chainid > type(uint16).max)
+            revert ChainIdTooLarge(block.chainid);
         THIS_CHAIN = uint16(block.chainid);
     }
 
@@ -63,7 +68,7 @@ abstract contract BaseBridgeAdapter is
     {
         (, uint16[] memory targetChainIds) = REGISTRY.getTargetsForSource(
             address(this),
-            keccak256("ADAPTER_PEER")
+            REGISTRY.ADAPTER_PEER()
         );
         return targetChainIds;
     }

@@ -3,7 +3,12 @@ import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import layerZeroConfig from '../../../config/adapters/layerzero.json'
 import LayerZeroAdapterModule from '../../../ignition/modules/adapters/layerzero'
-import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
+import {
+  extractBridgeRouterAddress,
+  getNetworkNameFromChainId,
+  getSupportedChainsFromConfig,
+  getWalletClient,
+} from './utils'
 
 /**
  * Deploy LayerZero adapter using Ignition module
@@ -370,13 +375,7 @@ export async function configureLayerZeroAdapter(
 
   // Register adapter with bridge router (existing check is good)
   try {
-    let actualAddress: string
-    if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
-      const addressObj = bridgeRouterAddress as any
-      actualAddress = addressObj.bridgeRouterAddress || String(bridgeRouterAddress)
-    } else {
-      actualAddress = String(bridgeRouterAddress)
-    }
+    const actualAddress = extractBridgeRouterAddress(bridgeRouterAddress)
 
     const bridgeRouter = await hre.viem.getContractAt(
       'BridgeRouter' as any,

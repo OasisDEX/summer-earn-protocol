@@ -5,6 +5,9 @@ import stargateConfig from '../../../config/adapters/stargate.json'
 import StargateAdapterModule from '../../../ignition/modules/adapters/stargate'
 import { getNetworkNameFromChainId, getSupportedChainsFromConfig, getWalletClient } from './utils'
 
+// Define a type for the bridge router address parameter
+type BridgeRouterAddressParam = Address | { bridgeRouterAddress: Address }
+
 // Simple ABI for IStargatePool interface validation
 const IStargatePoolABI = [
   {
@@ -97,7 +100,7 @@ export async function deployStargateAdapter(
  */
 export async function configureStargateAdapter(
   stargateAdapterAddress: Address,
-  bridgeRouterAddress: Address,
+  bridgeRouterAddress: BridgeRouterAddressParam,
   networkConfig: any,
   allNetworkConfigs?: Record<string, any>,
 ): Promise<void> {
@@ -393,17 +396,11 @@ export async function configureStargateAdapter(
 
   // Register adapter with bridge router (existing check is good)
   try {
-    let actualAddress: string
-    if (typeof bridgeRouterAddress === 'object' && bridgeRouterAddress !== null) {
-      const addressObj = bridgeRouterAddress as any
-      actualAddress = addressObj.bridgeRouterAddress || String(bridgeRouterAddress)
-    } else {
-      actualAddress = String(bridgeRouterAddress)
-    }
+    const actualAddress = extractBridgeRouterAddress(bridgeRouterAddress)
 
     const bridgeRouter = await hre.viem.getContractAt(
       'BridgeRouter' as string,
-      getAddress(actualAddress as `0x${string}`),
+      getAddress(actualAddress),
     )
 
     const alreadyRegistered = Boolean(
@@ -566,4 +563,16 @@ export async function validateStargateContract(contractAddress: string): Promise
   } catch {
     return false
   }
+}
+
+/**
+ * Extract the actual bridge router address from the input parameter which can be either
+ * a direct Address or an object containing the address
+ */
+export function extractBridgeRouterAddress(
+  bridgeRouterAddress: Address | { bridgeRouterAddress: Address },
+): Address {
+  return typeof bridgeRouterAddress === 'object'
+    ? bridgeRouterAddress.bridgeRouterAddress
+    : bridgeRouterAddress
 }

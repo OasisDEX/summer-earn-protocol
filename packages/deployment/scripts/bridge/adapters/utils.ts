@@ -1,28 +1,33 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import { Address } from 'viem'
 import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../../common/chain-config-map'
+import { getChainConfigs } from '../../helpers/chain-configs'
+import { getChainNameById } from '../../helpers/chain-helpers'
 import { isTenderlyVirtualTestnet } from '../../helpers/tenderly-helpers'
 import { createClients } from '../../helpers/wallet-helper'
 
 /**
- * Helper function to get all supported chains from general config
+ * Helper function to get all supported chains with LayerZero endpoint IDs from config
  */
 export function getSupportedChainsFromConfig(
   allNetworkConfigs?: Record<string, any>,
 ): Array<{ chainId: number; endpointId: number }> {
   if (!allNetworkConfigs) {
-    // Fallback to hardcoded if no configs provided
-    return [
-      { chainId: 1, endpointId: 30101 },
-      { chainId: 8453, endpointId: 30184 },
-      { chainId: 42161, endpointId: 30110 },
-      { chainId: 146, endpointId: 30332 },
-    ]
+    // Get chains from our standard chain configs
+    const configs = getChainConfigs()
+
+    return Object.values(configs)
+      .filter(({ config }) => config.common?.layerZero?.eID)
+      .map(({ chain, config }) => ({
+        chainId: chain.id,
+        endpointId: config.common.layerZero.eID,
+      }))
   }
 
-  // Extract from general config
+  // Extract from provided config
   const chains: Array<{ chainId: number; endpointId: number }> = []
-  for (const [networkName, config] of Object.entries(allNetworkConfigs)) {
+  for (const [, config] of Object.entries(allNetworkConfigs)) {
     if (config?.common?.chainId && config?.common?.layerZero?.eID) {
       chains.push({
         chainId: Number(config.common.chainId),
@@ -56,16 +61,10 @@ export async function getWalletClient() {
 
 /**
  * Helper function to get network name from chain ID
+ * @deprecated Use getChainNameById from chain-helpers.ts instead
  */
 export function getNetworkNameFromChainId(chainId: number): string {
-  const chainIdToNetworkName: Record<number, string> = {
-    1: 'mainnet',
-    8453: 'base',
-    42161: 'arbitrum',
-    146: 'sonic',
-  }
-
-  return chainIdToNetworkName[chainId] || `chain-${chainId}`
+  return getChainNameById(chainId)
 }
 
 /**
@@ -168,4 +167,16 @@ export async function waitForPendingTransactions(
   }
 
   console.log(kleur.yellow('Max wait time reached, proceeding anyway...'))
+}
+
+/**
+ * Extract the actual bridge router address from the input parameter which can be either
+ * a direct Address or an object containing the address
+ */
+export function extractBridgeRouterAddress(
+  bridgeRouterAddress: Address | { bridgeRouterAddress: Address },
+): Address {
+  return typeof bridgeRouterAddress === 'object'
+    ? bridgeRouterAddress.bridgeRouterAddress
+    : bridgeRouterAddress
 }
