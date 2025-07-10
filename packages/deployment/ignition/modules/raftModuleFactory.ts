@@ -11,8 +11,10 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 export function createRaftModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
     const protocolAccessManager = m.getParameter('protocolAccessManager')
-
-    const raft = m.contract('Raft', [protocolAccessManager])
+    const dutchAuctionLibrary = m.contract('DutchAuctionLibrary', [])
+    const raft = m.contract('Raft', [protocolAccessManager], {
+      libraries: { DutchAuctionLibrary: dutchAuctionLibrary },
+    })
 
     return { raft }
   })
