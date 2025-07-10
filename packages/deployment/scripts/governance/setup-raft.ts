@@ -14,8 +14,6 @@ import { constructLzOptions } from '../helpers/layerzero-options'
 import { promptForConfigType } from '../helpers/prompt-helpers'
 import { createGovernanceProposal } from '../helpers/proposal-helpers'
 
-// Target chains for the multi-chain proposal
-// const SUPPORTED_CHAINS = ['base', 'arbitrum', 'mainnet', 'sonic']
 enum SupportedChain {
   base = 'base',
   arbitrum = 'arbitrum',
@@ -44,11 +42,10 @@ const VIEM_CHAIN_MAP = {
   [SupportedChain.sonic]: sonic,
 }
 /**
- * Creates a multi-chain governance proposal to grant ADMIRALS_QUARTERS_ROLE to
- * newly deployed AdmiralsQuarters contracts on Base, Arbitrum, and Mainnet.
- * Also revokes the role from previous AdmiralsQuarters contracts if specified.
+ * Creates a multi-chain governance proposal to set the raft address on
+ * newly deployed raft contracts on Base, Arbitrum, Sonic and Mainnet.
  */
-async function setupAdmiralsQuarters() {
+async function setupRaft() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
@@ -64,14 +61,6 @@ async function setupAdmiralsQuarters() {
 
   // Ask about using bummer config
   const useBummerConfig = await promptForConfigType()
-
-  // Ask if we should also revoke the role from previous contracts
-  const shouldRevokePrevious = await prompts({
-    type: 'confirm',
-    name: 'revoke',
-    message: 'Should the proposal also revoke ADMIRALS_QUARTERS_ROLE from previous contracts?',
-    initial: true,
-  })
 
   // Helper function to filter chains based on bummer config
   const filterTargetChains = (chainName: string) => {
@@ -134,15 +123,38 @@ async function setupAdmiralsQuarters() {
   // Get previous AdmiralsQuarters addresses if needed
   const previousRaftAddresses: Record<string, Address> = {}
 
-  if (shouldRevokePrevious.revoke) {
-    console.log(kleur.cyan('\nEnter previous raft addresses to revoke role from:'))
+  const configurationManagerContractAddress = hubConfig.deployedContracts.core.configurationManager
+    .address as Address
+  const hubPublicClient = await hre.viem.getPublicClient()
 
-    const configurationManagerContractAddress = hubConfig.deployedContracts.core
+  const previousHubRaftAddress = await hubPublicClient.readContract({
+    address: configurationManagerContractAddress,
+    abi: [
+      {
+        name: 'raft',
+        type: 'function',
+        inputs: [],
+        outputs: [{ name: 'raft', type: 'address' }],
+      },
+    ],
+    functionName: 'raft',
+  })
+
+  if (previousHubRaftAddress) {
+    previousRaftAddresses[HUB_CHAIN_NAME] = previousHubRaftAddress as Address
+    console.log(kleur.yellow(`  ${HUB_CHAIN_NAME}: ${previousRaftAddresses[HUB_CHAIN_NAME]}`))
+  }
+
+  // For satellite chains
+  for (const chain of SUPPORTED_CHAINS.filter(filterTargetChains)) {
+    const satellitePublicClient = createPublicClient({
+      chain: VIEM_CHAIN_MAP[chain],
+      transport: http(RPC_URL_MAP[chain]),
+    })
+    const satelliteConfigurationManagerAddress = satelliteConfigs[chain].deployedContracts.core
       .configurationManager.address as Address
-    const hubPublicClient = await hre.viem.getPublicClient()
-
-    const previousHubRaftAddress = await hubPublicClient.readContract({
-      address: configurationManagerContractAddress,
+    const previousSatelliteRaftAddress = await satellitePublicClient.readContract({
+      address: satelliteConfigurationManagerAddress,
       abi: [
         {
           name: 'raft',
@@ -154,36 +166,9 @@ async function setupAdmiralsQuarters() {
       functionName: 'raft',
     })
 
-    if (previousHubRaftAddress) {
-      previousRaftAddresses[HUB_CHAIN_NAME] = previousHubRaftAddress as Address
-      console.log(kleur.yellow(`  ${HUB_CHAIN_NAME}: ${previousRaftAddresses[HUB_CHAIN_NAME]}`))
-    }
-
-    // For satellite chains
-    for (const chain of SUPPORTED_CHAINS.filter(filterTargetChains)) {
-      const satellitePublicClient = createPublicClient({
-        chain: VIEM_CHAIN_MAP[chain],
-        transport: http(RPC_URL_MAP[chain]),
-      })
-      const satelliteConfigurationManagerAddress = satelliteConfigs[chain].deployedContracts.core
-        .configurationManager.address as Address
-      const previousSatelliteRaftAddress = await satellitePublicClient.readContract({
-        address: satelliteConfigurationManagerAddress,
-        abi: [
-          {
-            name: 'raft',
-            type: 'function',
-            inputs: [],
-            outputs: [{ name: 'raft', type: 'address' }],
-          },
-        ],
-        functionName: 'raft',
-      })
-
-      if (previousSatelliteRaftAddress) {
-        previousRaftAddresses[chain] = previousSatelliteRaftAddress as Address
-        console.log(kleur.yellow(`  ${chain}: ${previousRaftAddresses[chain]}`))
-      }
+    if (previousSatelliteRaftAddress) {
+      previousRaftAddresses[chain] = previousSatelliteRaftAddress as Address
+      console.log(kleur.yellow(`  ${chain}: ${previousRaftAddresses[chain]}`))
     }
   }
 
@@ -498,9 +483,9 @@ async function confirmProposal(
 }
 
 // Execute the script
-setupAdmiralsQuarters().catch((error) => {
+setupRaft().catch((error) => {
   console.error(kleur.red().bold('An error occurred:'), error)
   process.exit(1)
 })
 
-export { setupAdmiralsQuarters }
+export { setupRaft }
