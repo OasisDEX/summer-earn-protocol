@@ -365,54 +365,42 @@ contract FleetDepositManagerIntegrationForkTest is Test {
             "Compose message should not be empty"
         );
 
-        // Decode the fleet deposit message
+        // Decode the fleet deposit message correctly using the struct
         (
             bytes32 messageType,
-            address fleetCommander,
-            address recipient,
-            address asset,
-            uint256 amount,
-            uint256 sourceChainId,
-            bytes32 decodedOperationId,
-            address originalUser,
-            bytes memory decodedReferralCode
+            BridgeTypes.FleetDepositMessageData memory msgData
         ) = abi.decode(
                 lastComposeMessage,
-                (
-                    bytes32,
-                    address,
-                    address,
-                    address,
-                    uint256,
-                    uint256,
-                    bytes32,
-                    address,
-                    bytes
-                )
+                (bytes32, BridgeTypes.FleetDepositMessageData)
             );
 
+        // Verify all fields
         assertEq(
             messageType,
             BridgeTypes.USER_FLEET_DEPOSIT_TYPE,
             "Message type should match"
         );
         assertEq(
-            fleetCommander,
+            msgData.fleetCommander,
             address(mockFleetCommander),
             "Fleet commander should match"
         );
-        assertEq(recipient, shareRecipient, "Share recipient should match");
-        assertEq(asset, USDC_MAINNET, "Asset should match");
-        assertEq(amount, DEPOSIT_AMOUNT, "Amount should match");
         assertEq(
-            sourceChainId,
+            msgData.shareRecipient,
+            shareRecipient,
+            "Share recipient should match"
+        );
+        assertEq(msgData.asset, USDC_MAINNET, "Asset should match");
+        assertEq(msgData.amount, DEPOSIT_AMOUNT, "Amount should match");
+        assertEq(
+            msgData.sourceChainId,
             CHAIN_ID_MAINNET,
             "Source chain ID should match"
         );
-        assertEq(decodedOperationId, operationId, "Operation ID should match");
-        assertEq(originalUser, user, "Original user should match");
+        assertEq(msgData.operationId, operationId, "Operation ID should match");
+        assertEq(msgData.originalUser, user, "Original user should match");
         assertEq(
-            decodedReferralCode,
+            msgData.referralCode,
             referralCode,
             "Referral code should match"
         );

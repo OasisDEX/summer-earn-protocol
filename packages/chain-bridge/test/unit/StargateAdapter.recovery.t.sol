@@ -10,7 +10,6 @@ import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainArk} from "../../src/interfaces/ICrossChainArk.sol";
 
 /**
  * @title StargateAdapterRecoveryTest
