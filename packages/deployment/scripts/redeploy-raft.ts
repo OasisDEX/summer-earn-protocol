@@ -67,7 +67,7 @@ export async function redeployRaft() {
 
   console.log(kleur.green().bold('Raft Redeployed Successfully!'))
 
-  // Update just the admiralsQuarters address in the core config
+  // Update just the raft address in the core config
   const coreContracts = {
     ...config.deployedContracts.core,
     raft: result.raft,
@@ -83,7 +83,7 @@ export async function redeployRaft() {
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
 async function confirmDeployment(network: string): Promise<boolean> {
-  console.log(kleur.yellow(`AdmiralsQuarters will be redeployed on: ${network}`))
+  console.log(kleur.yellow(`Raft will be redeployed on: ${network}`))
   return await continueDeploymentCheck()
 }
 
