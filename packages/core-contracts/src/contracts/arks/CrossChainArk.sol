@@ -74,6 +74,12 @@ contract CrossChainArk is
     /// @notice Thrown when the provided registry address is invalid.
     error InvalidRegistry();
 
+    /// @notice Thrown when there are no pending transfer params.
+    error NoPendingTransferParams();
+
+    /// @notice Thrown when the provided amount is invalid.
+    error InvalidAmount();
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -92,6 +98,9 @@ contract CrossChainArk is
 
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
+
+    /// @notice Pending transfer params for the cross-chain transfer
+    BridgeTypes.ExecuteTransferParams public pendingTransferParams;
 
     /// @notice Emitted when the remote asset balance is updated via state read
     event RemoteAssetBalanceUpdated(uint256 newBalance, bytes32 requestId);
@@ -254,18 +263,51 @@ contract CrossChainArk is
      * @param amount Amount of tokens to transfer
      * @dev This function queues a cross-chain transfer to the target proxy using the registry
      */
-    function _board(uint256 amount, bytes calldata) internal override {
+    function _board(
+        uint256 amount,
+        bytes calldata bridgeOptions
+    ) internal override {
         address proxyAddress = _getTargetProxy();
 
         // Approve BridgeQueue to spend tokens
         config.asset.approve(address(bridgeQueue), amount);
-
-        bridgeQueue.queueTransferAssets(
-            satelliteChainId,
-            address(config.asset),
-            amount,
-            proxyAddress
+        BridgeTypes.ExecuteTransferParams memory params = abi.decode(
+            bridgeOptions,
+            (BridgeTypes.ExecuteTransferParams)
         );
+        if (amount == 0) revert InvalidAmount();
+        if (amount != params.amount) revert InvalidAmount();
+        if (params.asset == address(0)) revert InvalidAsset();
+        if (params.asset != address(config.asset)) revert InvalidAsset();
+        if (params.recipient != proxyAddress) revert InvalidRecipient();
+        if (params.originator != address(this)) revert InvalidRequestor();
+        if (params.destinationChainId != satelliteChainId)
+            revert InvalidSatelliteChain();
+
+        pendingTransferParams = params;
+    }
+
+    function executeTransferAssets() external payable onlyKeeper() {
+        if (pendingTransferParams.asset == address(0)) revert NoPendingTransferParams();
+        // todo: add more validaion
+        bridgeRouter.executeTransferAssets(pendingTransferParams);
+        pendingTransferParams = BridgeTypes.ExecuteTransferParams({
+            destinationChainId: 0,
+            asset: address(0),
+            amount: 0,
+            recipient: address(0),
+            originator: address(0),
+            keeper: address(0),
+            options: BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(0),
+                adapterParams: BridgeTypes.AdapterParams({
+                    gasLimit: 0,
+                    calldataSize: 0,
+                    msgValue: 0,
+                    options: bytes("")
+                })
+            })
+        });
     }
 
     /**
