@@ -72,6 +72,9 @@ contract FleetProxy is
     /// @notice Amount of withdrawal assets currently in-flight (being bridged back)
     uint256 public inflightWithdrawals;
 
+    /// @notice The source chain ID where the fleet is deployed
+    uint16 public immutable sourceChainId;
+
     /*//////////////////////////////////////////////////////////////
                             EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -98,7 +101,8 @@ contract FleetProxy is
         address _accessManager,
         address _bridgeRouter,
         address _crossChainRegistry,
-        address _fleetContract
+        address _fleetContract,
+        uint16 _sourceChainId
     ) ProtocolAccessManaged(_accessManager) {
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
@@ -107,6 +111,7 @@ contract FleetProxy is
         bridgeRouter = IBridgeRouter(_bridgeRouter);
         crossChainRegistry = ICrossChainRegistry(_crossChainRegistry);
         fleetContract = _fleetContract;
+        sourceChainId = _sourceChainId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -156,12 +161,9 @@ contract FleetProxy is
 
     /// @notice Keeper function to withdraw and transfer assets
     function withdrawAndTransfer(
-        uint256 amount,
-        uint16 sourceChainId,
         BridgeTypes.ExecuteTransferParams calldata params
     ) external whenNotPaused nonReentrant onlyKeeper {
-        if (amount == 0) revert NoAssets();
-        if (amount != params.amount) revert InvalidAmount();
+        if (params.amount == 0) revert NoAssets();
         if (params.asset != IERC4626(fleetContract).asset())
             revert InvalidAsset();
         if (params.recipient != address(this)) revert InvalidRecipient();
@@ -174,21 +176,21 @@ contract FleetProxy is
 
         // 2. Withdraw from fleet contract
         IFleetCommander(fleetContract).withdraw(
-            amount,
+            params.amount,
             address(this),
             address(this)
         );
 
         // 3. Verify we received the expected amount
-        if (IERC20(asset).balanceOf(address(this)) < amount)
+        if (IERC20(asset).balanceOf(address(this)) < params.amount)
             revert WithdrawalFailed();
 
         // 4. Track inflight withdrawals before bridging
-        inflightWithdrawals += amount;
+        inflightWithdrawals += params.amount;
         emit InflightAssetsUpdated(inflightWithdrawals);
 
         // 5. Approve the bridge router to transfer the assets
-        IERC20(asset).forceApprove(address(bridgeRouter), amount);
+        IERC20(asset).forceApprove(address(bridgeRouter), params.amount);
 
         // 6. Get source chain ark address from registry - reverts if not found
         address arkAddress = _getSourceChainArk(sourceChainId);
@@ -196,7 +198,11 @@ contract FleetProxy is
         // 7. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
         bridgeRouter.executeTransferAssets(params);
 
-        emit AssetsWithdrawnAndTransferred(amount, asset, sourceChainId);
+        emit AssetsWithdrawnAndTransferred(
+            params.amount,
+            params.asset,
+            sourceChainId
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

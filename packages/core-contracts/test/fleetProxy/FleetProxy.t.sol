@@ -286,7 +286,8 @@ contract CrossChainFleetProxyTest is Test {
             address(accessManager),
             address(mockBridgeRouter),
             address(mockRegistry),
-            address(fleetCommanderMock)
+            address(fleetCommanderMock),
+            SOURCE_CHAIN_ID
         );
 
         // Register the ark-proxy relationship in the registry
@@ -355,8 +356,6 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         proxy.withdrawAndTransfer(
-            100,
-            SOURCE_CHAIN_ID,
             BridgeTypes.ExecuteTransferParams({
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(mockToken),
@@ -560,8 +559,6 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
         proxy.withdrawAndTransfer(
-            0,
-            SOURCE_CHAIN_ID,
             BridgeTypes.ExecuteTransferParams({
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(mockToken),
