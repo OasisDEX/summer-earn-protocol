@@ -267,7 +267,7 @@ contract CrossChainArk is
      */
     function _getTargetProxy() internal view returns (address proxyAddress) {
         ICrossChainRegistry.CrossChainRelation
-            memory relation = ICrossChainRegistry(crossChainRegistry())
+            memory relation = ICrossChainRegistry(crossChainRegistry)
                 .getRelationshipByTarget(
                     address(this),
                     ARK_FLEET_RELATIONSHIP,

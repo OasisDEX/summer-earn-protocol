@@ -11,8 +11,6 @@ import {BridgeRouter, IBridgeRouter} from "@summerfi/chain-bridge/router/BridgeR
 import {BridgeQueue} from "@summerfi/chain-bridge/router/BridgeQueue.sol";
 import {LayerZeroAdapter} from "@summerfi/chain-bridge/adapters/LayerZeroAdapter.sol";
 import {StargateAdapter} from "@summerfi/chain-bridge/adapters/StargateAdapter.sol";
-import {CrossChainConfigManager} from "@summerfi/chain-bridge/router/CrossChainConfigManager.sol";
-import {CrossChainConfigManagerParams} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManager.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -22,6 +20,7 @@ import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
+import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
@@ -29,7 +28,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     BridgeQueue public bridgeQueue;
     LayerZeroAdapter public layerZeroAdapter;
     StargateAdapter public stargateAdapter;
-    CrossChainConfigManager public crossChainConfigManager;
     IERC20 public usdc;
     MockStargateV2 public mockStargate;
     CrossChainRegistry public registry;
@@ -50,8 +48,167 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create a mainnet fork
         vm.createSelectFork("mainnet", FORK_BLOCK);
 
-        initializeCoreContracts();
-        setupBridgeContracts();
+        // First create access manager
+        accessManager = new ProtocolAccessManager(governor);
+
+        // Configure roles
+        vm.startPrank(governor);
+        accessManager.grantGuardianRole(guardian);
+        vm.stopPrank();
+
+        // Deploy CrossChainRegistry first with CURRENT chain ID (mainnet = 1)
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            SOURCE_CHAIN_ID // Use mainnet chain ID, not destination
+        );
+
+        // Deploy BridgeQueue first
+        bridgeQueue = new BridgeQueue(
+            address(accessManager),
+            address(0), // Temporarily 0, will be set later
+            commander // Make the commander the queue manager
+        );
+
+        // Create router, passing the deployed BridgeQueue address
+        bridgeRouter = new BridgeRouter(
+            address(accessManager),
+            address(bridgeQueue)
+        );
+
+        // Set the bridge router address in the queue
+        vm.startPrank(governor);
+        bridgeQueue.setBridgeRouter(address(bridgeRouter));
+
+        // Now that both contracts are deployed, initialize the bridge configuration
+        registry.initializeBridgeConfiguration(
+            address(bridgeQueue),
+            address(bridgeRouter),
+            200000 // defaultGasLimit
+        );
+        vm.stopPrank();
+
+        // ------------------------------------------------------------------
+        // Core-protocol configuration manager (needed by ArkConfigProvider)
+        // ------------------------------------------------------------------
+        configurationManager = new ConfigurationManager(address(accessManager));
+        vm.startPrank(governor);
+        configurationManager.initializeConfiguration(
+            ConfigurationManagerParams({
+                tipJar: address(0xdead),
+                raft: address(0xbeef), // any non-zero address is fine for the test
+                treasury: address(0xcafe),
+                harborCommand: address(0xface),
+                fleetCommanderRewardsManagerFactory: address(0xf00d)
+            })
+        );
+        vm.stopPrank();
+
+        // Setup LayerZero adapter
+        uint16[] memory supportedChains = new uint16[](1);
+        uint32[] memory lzEids = new uint32[](1);
+        supportedChains[0] = DEST_CHAIN_ID;
+        lzEids[0] = ARB_LZ_EID;
+
+        layerZeroAdapter = new LayerZeroAdapter(
+            LZ_ENDPOINT_MAINNET,
+            address(registry),
+            address(accessManager),
+            supportedChains,
+            lzEids,
+            governor
+        );
+
+        // Setup Stargate adapter
+        uint16[] memory stgSupportedChains = new uint16[](1);
+        uint32[] memory stgLzEids = new uint32[](1);
+        stgSupportedChains[0] = DEST_CHAIN_ID;
+        stgLzEids[0] = ARB_LZ_EID;
+
+        stargateAdapter = new StargateAdapter(
+            address(registry), // _crossChainRegistry
+            address(accessManager), // _accessManager
+            LZ_ENDPOINT_MAINNET, // _lzEndpoint
+            address(0xdead) // _harborCommand - using mock address for testing
+        );
+
+        // Register adapters with router
+        vm.startPrank(governor);
+        bridgeRouter.registerAdapter(address(layerZeroAdapter));
+        bridgeRouter.registerAdapter(address(stargateAdapter));
+
+        // Configure Stargate adapter endpoints and relationships
+        stargateAdapter.setEndpointId(DEST_CHAIN_ID, ARB_LZ_EID);
+        stargateAdapter.setEndpointId(uint16(block.chainid), ARB_LZ_EID);
+
+        // Initialize USDC
+        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+
+        // Deploy mock Stargate contract
+        mockStargate = new MockStargateV2(
+            address(usdc),
+            MockStargateV2.StargateType.Pool
+        );
+
+        // Add USDC as supported asset for Stargate adapter
+        stargateAdapter.addSupportedAsset(address(usdc), address(mockStargate));
+
+        // Set up peer for Arbitrum chain (LayerZero)
+        bytes32 peerAddressBytes32 = bytes32(uint256(uint160(ARB_PROXY)));
+        layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
+
+        // Activate the read channel for state reading operations
+        uint32 READ_CHANNEL_ID = 4294967295;
+        layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
+
+        // Register cross-chain relationships in registry
+        registry.registerCrossChainRelationship(
+            address(stargateAdapter),
+            ARB_PROXY,
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            registry.ADAPTER_PEER()
+        );
+        vm.stopPrank();
+
+        // Create Ark with bridge configuration
+        ArkParams memory params = ArkParams({
+            name: "TestArk",
+            details: "TestArk details",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            asset: address(usdc),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
+        });
+
+        // Create CrossChainArk with the proper CrossChainConfigManager
+        ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
+
+        // Register the ark-proxy relationship
+        vm.startPrank(governor);
+        registry.registerCrossChainRelationship(
+            address(ark),
+            ARB_PROXY,
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            keccak256("ARK_FLEET")
+        );
+
+        // Add ark as queue manager
+        bridgeQueue.addQueueManager(address(ark));
+
+        // Setup permissions
+        accessManager.grantCommanderRole(address(ark), commander);
+        accessManager.grantKeeperRole(address(ark), commander);
+        vm.stopPrank();
+
+        // Register fleet commander
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
     }
 
     function setupBridgeContracts() internal {
@@ -89,18 +246,24 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         layerZeroAdapter = new LayerZeroAdapter(
             LZ_ENDPOINT_MAINNET,
-            address(bridgeRouter),
+            address(registry),
+            address(accessManager),
             supportedChains,
             lzEids,
             governor
         );
 
         // Setup Stargate adapter
+        uint16[] memory stgSupportedChains = new uint16[](1);
+        uint32[] memory stgLzEids = new uint32[](1);
+        stgSupportedChains[0] = DEST_CHAIN_ID;
+        stgLzEids[0] = ARB_LZ_EID;
+
         stargateAdapter = new StargateAdapter(
-            address(bridgeRouter),
-            governor,
-            LZ_ENDPOINT_MAINNET,
-            address(0xdead) // Mock HarborCommand address for testing
+            address(registry), // _crossChainRegistry
+            address(accessManager), // _accessManager
+            LZ_ENDPOINT_MAINNET, // _lzEndpoint
+            address(0xdead) // _harborCommand - using mock address for testing
         );
 
         // Register adapters with router
@@ -108,13 +271,18 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.registerAdapter(address(layerZeroAdapter));
         bridgeRouter.registerAdapter(address(stargateAdapter));
 
-        // Configure Stargate adapter
-        stargateAdapter.addSupportedChain(DEST_CHAIN_ID, ARB_LZ_EID, ARB_PROXY);
-        stargateAdapter.addSupportedChain(
-            uint16(block.chainid),
-            ARB_LZ_EID,
-            address(stargateAdapter)
-        ); // Add current chain (mainnet)
+        // Configure Stargate adapter endpoints and relationships
+        stargateAdapter.setEndpointId(DEST_CHAIN_ID, ARB_LZ_EID);
+        stargateAdapter.setEndpointId(uint16(block.chainid), ARB_LZ_EID);
+
+        // Register cross-chain relationships in registry
+        registry.registerCrossChainRelationship(
+            address(stargateAdapter),
+            ARB_PROXY,
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            registry.ADAPTER_PEER()
+        );
 
         // Initialize USDC
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -144,21 +312,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             SOURCE_CHAIN_ID // Use mainnet chain ID, not destination
         );
 
-        // Deploy CrossChainConfigManager
-        crossChainConfigManager = new CrossChainConfigManager(
-            address(accessManager)
-        );
-
-        // Initialize the CrossChainConfigManager with the bridge components
+        // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        CrossChainConfigManagerParams
-            memory configParams = CrossChainConfigManagerParams({
-                bridgeQueue: address(bridgeQueue),
-                bridgeRouter: address(bridgeRouter),
-                crossChainRegistry: address(registry),
-                defaultGasLimit: 200000
-            });
-        crossChainConfigManager.initializeCrossChainConfiguration(configParams);
+        registry.initializeBridgeConfiguration(
+            address(bridgeQueue),
+            address(bridgeRouter),
+            200000 // defaultGasLimit
+        );
         vm.stopPrank();
 
         // Create Ark with bridge configuration
@@ -166,7 +326,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             name: "TestArk",
             details: "TestArk details",
             accessManager: address(accessManager),
-            configurationManager: address(configurationManager),
+            configurationManager: address(registry),
             asset: address(usdc),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
@@ -176,11 +336,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         });
 
         // Create CrossChainArk with the proper CrossChainConfigManager
-        ark = new CrossChainArk(
-            address(crossChainConfigManager),
-            DEST_CHAIN_ID,
-            params
-        );
+        ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
 
         // Register the ark-proxy relationship with CORRECT chain IDs
         vm.prank(governor);

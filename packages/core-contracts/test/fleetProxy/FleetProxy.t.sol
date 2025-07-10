@@ -6,8 +6,6 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
-import {CrossChainConfigManager} from "@summerfi/chain-bridge/router/CrossChainConfigManager.sol";
-import {CrossChainConfigManagerParams} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManager.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
@@ -58,7 +56,6 @@ contract CrossChainFleetProxyTest is Test {
     address public pauser = address(3);
     ConfigurationManager public configurationManager;
     Raft public raft;
-    CrossChainConfigManager public crossChainConfigManager;
     CrossChainRegistry public registry;
 
     function setUp() public {
@@ -114,27 +111,19 @@ contract CrossChainFleetProxyTest is Test {
             DEST_CHAIN_ID // current chain ID
         );
 
-        // Deploy CrossChainConfigManager
-        crossChainConfigManager = new CrossChainConfigManager(
-            address(accessManager)
-        );
-
-        // Initialize the CrossChainConfigManager with the bridge components
+        // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        CrossChainConfigManagerParams
-            memory configParams = CrossChainConfigManagerParams({
-                bridgeQueue: address(mockBridgeQueue),
-                bridgeRouter: address(mockBridgeRouter),
-                crossChainRegistry: address(registry), // Now registry is properly instantiated
-                defaultGasLimit: 200000
-            });
-        crossChainConfigManager.initializeCrossChainConfiguration(configParams);
+        registry.initializeBridgeConfiguration(
+            address(mockBridgeQueue),
+            address(mockBridgeRouter),
+            200000 // defaultGasLimit
+        );
         vm.stopPrank();
 
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(
             address(accessManager),
-            address(crossChainConfigManager),
+            address(registry),
             address(fleetCommanderMock)
         );
 

@@ -12,8 +12,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
-import {CrossChainConfigManager} from "@summerfi/chain-bridge/router/CrossChainConfigManager.sol";
-import {CrossChainConfigManagerParams} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManager.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -27,7 +25,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
     MockBridgeQueue queue;
     MockBridgeRouter router;
     CrossChainRegistry registry;
-    CrossChainConfigManager crossChainConfigManager;
     address proxy = address(0x5);
     uint16 constant SOURCE_CHAIN_ID = 1; // Current chain (mainnet)
     uint16 constant TARGET_CHAIN_ID = 1234; // Target chain (satellite)
@@ -46,21 +43,13 @@ contract CrossChainArkTest is Test, ArkTestBase {
             SOURCE_CHAIN_ID // Current chain ID
         );
 
-        // Deploy CrossChainConfigManager
-        crossChainConfigManager = new CrossChainConfigManager(
-            address(accessManager)
-        );
-
-        // Initialize the CrossChainConfigManager with the bridge components
+        // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        CrossChainConfigManagerParams
-            memory configParams = CrossChainConfigManagerParams({
-                bridgeQueue: address(queue),
-                bridgeRouter: address(router),
-                crossChainRegistry: address(registry),
-                defaultGasLimit: 200000
-            });
-        crossChainConfigManager.initializeCrossChainConfiguration(configParams);
+        registry.initializeBridgeConfiguration(
+            address(queue),
+            address(router),
+            200000 // defaultGasLimit
+        );
         vm.stopPrank();
 
         ArkParams memory params = ArkParams({
@@ -87,11 +76,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         });
 
         // Create CrossChainArk with the proper CrossChainConfigManager
-        ark = new CrossChainArk(
-            address(crossChainConfigManager),
-            TARGET_CHAIN_ID,
-            params
-        );
+        ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
 
         // Register the ark-proxy relationship in the registry
         vm.prank(governor);
@@ -369,7 +354,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         });
 
         CrossChainArk arkWithoutProxy = new CrossChainArk(
-            address(crossChainConfigManager),
+            address(registry),
             TARGET_CHAIN_ID,
             params
         );
