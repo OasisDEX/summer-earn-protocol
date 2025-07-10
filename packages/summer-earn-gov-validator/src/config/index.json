@@ -28,7 +28,7 @@
           "address": "0xAd30bc7E40f13d88EDa608A5729d28151FcAA374"
         },
         "raft": {
-          "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
+          "address": "0x95107E3C932865733e8feCF971e9051DA62FE59A"
         },
         "configurationManager": {
           "address": "0x8ae7fbAeCfBDb21c28b1854272BB7A3a813e2A66"
@@ -201,7 +201,7 @@
           "address": "0xBeB68a57dF8eD3CDAE8629C7c6E497eB1b6b1C47"
         },
         "raft": {
-          "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
+          "address": "0x2E6FBcefA0480cF9f7920d98804A9BD72e1eFEc9"
         },
         "configurationManager": {
           "address": "0x8ae7fbAeCfBDb21c28b1854272BB7A3a813e2A66"
@@ -368,7 +368,7 @@
           "address": "0x2d1A2637c3E0c80f31A91d0b6dbC5a107988a401"
         },
         "raft": {
-          "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
+          "address": "0xB8BBC85cEE0ea08Cf35B63c23bfE95fA444C5F07"
         },
         "configurationManager": {
           "address": "0x8ae7fbAeCfBDb21c28b1854272BB7A3a813e2A66"
@@ -639,7 +639,7 @@
           "address": "0xa689599c43C30e20153D2A9eD3d263fb72853E6c"
         },
         "raft": {
-          "address": "0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204"
+          "address": "0xd03414b3E3463DDC471555850F6BdD5322b97d60"
         },
         "configurationManager": {
           "address": "0xDff0fc7bFa32Fb536807820FB3Be6C9828463e32"
