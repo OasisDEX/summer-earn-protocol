@@ -56,5 +56,7 @@
   "AdmiralsQuartersModule_20250506T105651491#AdmiralsQuarters": "0x16160Cd5C54dE1CaBa7C567C6D232c1A9D514515",
   "BummerLazyVault_WETH_Origin_weth_8453_gov#OriginSuperOETHArk": "0x1Fd588A01a04307AaF486cDe7568c057048a03EE",
   "LazyVault_LowerRisk_WETH_Origin_weth_8453_gov#OriginSuperOETHArk": "0xD9755f1541103333132E2C90C67f7e513060dc0e",
-  "LazyVault_LowerRisk_WETH_MorphoVault_weth_Seamless_WETH_8453#MorphoVaultArk": "0x7D3607937Fac84AA6d41beb67E252098E52EcD6b"
+  "LazyVault_LowerRisk_WETH_MorphoVault_weth_Seamless_WETH_8453#MorphoVaultArk": "0x7D3607937Fac84AA6d41beb67E252098E52EcD6b",
+  "RaftModule_20250710T095848280#DutchAuctionLibrary": "0x9601dd0D943a61c3031EBb9e5098A2e1F3446A43",
+  "RaftModule_20250710T095848280#Raft": "0x95107E3C932865733e8feCF971e9051DA62FE59A"
 }
