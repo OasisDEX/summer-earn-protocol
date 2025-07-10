@@ -4,7 +4,6 @@ pragma solidity ^0.8.26;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {IFleetDepositAdapter} from "../interfaces/IFleetDepositAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -1099,34 +1098,6 @@ contract StargateAdapter is
             sourceAsset,
             uint16(sourceChainId)
         );
-
-        if (!success) {
-            // Queue for automatic recovery back to origin chain
-            address bridgeQueueAddr = IBridgeRouter(bridgeRouter).bridgeQueue();
-
-            // Approve bridge queue to spend the tokens
-            IERC20(receivedAsset).approve(bridgeQueueAddr, amountLD);
-
-            bytes32 recoveryQueueId = IBridgeQueue(bridgeQueueAddr)
-                .queueTransferAssets(
-                    uint16(sourceChainId),
-                    receivedAsset,
-                    amountLD,
-                    originator // Send back to original user
-                );
-
-            emit FailedComposeQueuedForRecovery(
-                operationId,
-                recoveryQueueId,
-                receivedAsset,
-                amountLD,
-                originator,
-                uint16(sourceChainId)
-            );
-
-            // Don't revert - assets are queued for recovery
-            return;
-        }
 
         emit ComposedAssetHandled(
             operationId,

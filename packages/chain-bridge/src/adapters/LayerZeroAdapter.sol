@@ -574,7 +574,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
     function readState(
         bytes32 operationId,
         uint16 srcChainId,
-        uint16 dstChainId,
+        uint16 destinationChainId,
         address dstContract,
         bytes4 selector,
         bytes calldata readParams,
@@ -588,7 +588,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
         // Get the LayerZero EID for destination chain
-        uint32 lzDstEid = _getLayerZeroEid(dstChainId);
+        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
         // Check if enough value was sent if specified in adapter options
         if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
@@ -629,7 +629,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         emit ReadRequestInitiated(
             operationId,
             srcChainId,
-            dstChainId,
+            destinationChainId,
             dstContract,
             selector
         );

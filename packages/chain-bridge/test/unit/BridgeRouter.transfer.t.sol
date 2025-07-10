@@ -4,18 +4,15 @@ pragma solidity ^0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {IBridgeQueue} from "../../src/interfaces/IBridgeQueue.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 contract BridgeRouterTransferTest is Test {
     BridgeRouter public router;
-    BridgeQueue public bridgeQueue;
     MockAdapter public mockAdapter;
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
@@ -24,6 +21,8 @@ contract BridgeRouterTransferTest is Test {
     address public governor = address(0x1);
     address public user = address(0x3);
     address public keeper = address(0x4);
+    // todo: authorize the caller when method available ( uthorized to call bridge router)
+    address public authorizedCaller = address(0x5);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
@@ -39,21 +38,10 @@ contract BridgeRouterTransferTest is Test {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
 
-        // Deploy BridgeQueue first
-        // Make the user the queue manager
-        bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0), // Router address set later
-            user // queueManager
-        );
-
         vm.startPrank(governor);
 
         // Deploy router, linking it to the queue
-        router = new BridgeRouter(address(accessManager), address(bridgeQueue));
-
-        // Set the router address in the queue
-        bridgeQueue.setBridgeRouter(address(router));
+        router = new BridgeRouter(address(accessManager));
 
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
@@ -66,16 +54,13 @@ contract BridgeRouterTransferTest is Test {
         router.registerAdapter(address(mockAdapter));
 
         // Mint tokens for testing
-        token.mint(user, 10000e18);
+        token.mint(keeper, 10000e18);
 
         // Fund keeper for execution
         vm.deal(keeper, 1 ether);
 
         // Fund router for adapter calls
         vm.deal(address(router), 10 ether);
-
-        // Fund queue for router calls
-        vm.deal(address(bridgeQueue), 10 ether);
 
         vm.stopPrank();
     }
@@ -85,9 +70,6 @@ contract BridgeRouterTransferTest is Test {
     function testSend() public {
         // User initiates
         vm.startPrank(user);
-
-        // Approve tokens for the bridge queue
-        token.approve(address(bridgeQueue), TRANSFER_AMOUNT);
 
         // Create bridge options
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
@@ -116,79 +98,31 @@ contract BridgeRouterTransferTest is Test {
         // Verify the specified adapter matches what we provided
         assertEq(specifiedAdapter, address(mockAdapter));
 
-        // Queue the transfer via BridgeQueue (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueTransferAssets(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            user
-        );
-
-        // Verify queue status
-        assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.QUEUED)
-        );
-
         vm.stopPrank(); // User stops queueing
 
         // Keeper executes (PAYS THE FEE)
         vm.startPrank(keeper);
-        // Mock the router.quote call again as it happens during execution now
-        vm.expectCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(token),
-                TRANSFER_AMOUNT,
-                options, // Make sure options are correct
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            )
-        );
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(token),
-                TRANSFER_AMOUNT,
-                options,
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            ),
-            abi.encode(nativeFee, uint256(0), specifiedAdapter) // Mock return for execution quote
-        );
-        // Mock the executeTransferAssets call
-        vm.expectCall(
-            address(router),
-            nativeFee, // Expect msg.value to be the fee
-            abi.encodeWithSelector(IBridgeRouter.executeTransferAssets.selector) // Simplified check for now
-        );
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockOperationId", queueId)
-        ); // Mock expected ID
-        vm.mockCall(
-            address(router),
-            nativeFee,
-            abi.encodeWithSelector(
-                IBridgeRouter.executeTransferAssets.selector
-            ), // Need exact match if testing params
-            abi.encode(expectedOperationId) // Mock return value
-        );
-
+        // approve tokens for transfer
+        token.approve(address(router), TRANSFER_AMOUNT);
         // Execute with value - Fixed: added options parameter
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{
-            value: nativeFee
-        }(queueId, options);
+        bytes32 operationId = router.executeTransferAssets{value: nativeFee}(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                recipient: user,
+                originator: user,
+                keeper: address(keeper),
+                options: options
+            })
+        );
         vm.stopPrank();
 
-        // Verify queue status updated post-execution
+        // Verify bridge opeariotn status updated post-execution
         assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
+            uint256(router.getOperationStatus(operationId)),
             uint256(BridgeTypes.OperationStatus.SENT)
         );
-        // Verify queue maps operationId
-        assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
 
         // Verify transfer was initiated in router
         // Note: Router state is mocked here, real state is in BridgeQueue now primarily
@@ -197,43 +131,11 @@ contract BridgeRouterTransferTest is Test {
         //     uint256(BridgeTypes.OperationStatus.PENDING)
         // );
         // assertEq(router.operationToAdapter(operationId), specifiedAdapter); // Check correct adapter used
-        assertEq(operationId, expectedOperationId, "Operation ID mismatch"); // Check returned ID
-    }
-
-    function testSendInvalidParams() public {
-        // User initiates
-        vm.startPrank(user);
-
-        // Approve tokens for the bridge queue
-        token.approve(address(bridgeQueue), TRANSFER_AMOUNT * 2); // Approve more for multiple queues
-
-        // Queue transfer with zero amount - should revert with InvalidParams
-        // Fixed: removed options parameter
-        vm.expectRevert(IBridgeQueue.InvalidParams.selector);
-        bridgeQueue.queueTransferAssets(
-            DEST_CHAIN_ID,
-            address(token),
-            0, // Zero amount
-            user
-        );
-
-        // Queue transfer with zero recipient - should revert with InvalidParams
-        vm.expectRevert(IBridgeQueue.InvalidParams.selector);
-        bridgeQueue.queueTransferAssets(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            address(0)
-        );
-
-        vm.stopPrank();
+        // assertEq(operationId, expectedOperationId, "Operation ID mismatch"); // Check returned ID
     }
 
     function testSendNoSuitableAdapter() public {
         vm.startPrank(user);
-
-        // Approve tokens for the bridge queue (though it won't get that far)
-        token.approve(address(bridgeQueue), TRANSFER_AMOUNT);
 
         // Create bridge options
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
@@ -262,67 +164,12 @@ contract BridgeRouterTransferTest is Test {
         vm.stopPrank();
     }
 
-    function testUpdateTransferStatus() public {
-        bytes32 operationId;
-
-        // User queues (NO VALUE)
-        vm.startPrank(user);
-        token.approve(address(bridgeQueue), TRANSFER_AMOUNT);
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter),
-            adapterParams: adapterParams
-        });
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-        bytes32 queueId = bridgeQueue.queueTransferAssets(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            user
-        );
-        vm.stopPrank();
-
-        // Keeper executes (PAYS FEE)
-        vm.startPrank(keeper);
-        // Execute the operation - let it run normally without mocking
-        operationId = bridgeQueue.executeQueuedOperation{value: nativeFee}(
-            queueId,
-            options
-        );
-        vm.stopPrank();
-
-        // Update status from adapter
-        vm.prank(address(mockAdapter));
-        router.updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
-
-        // Verify status was updated
-        assertEq(
-            uint256(router.operationStatuses(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT)
-        );
-    }
-
     function testUpdateTransferStatusUnauthorized() public {
         bytes32 operationId; // Declare operationId
 
         // User queues (NO VALUE)
         vm.startPrank(user);
-        token.approve(address(bridgeQueue), TRANSFER_AMOUNT);
+        token.approve(address(router), TRANSFER_AMOUNT);
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
                 gasLimit: 500000,
@@ -341,21 +188,25 @@ contract BridgeRouterTransferTest is Test {
                 options,
                 BridgeTypes.OperationType.TRANSFER_ASSET
             );
-        bytes32 queueId = bridgeQueue.queueTransferAssets(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            user
-        );
+
         vm.stopPrank();
 
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
+        // approve tokens for transfer
 
+        token.approve(address(router), TRANSFER_AMOUNT);
         // Execute the operation - let it run normally without mocking
-        operationId = bridgeQueue.executeQueuedOperation{value: nativeFee}(
-            queueId,
-            options
+        operationId = router.executeTransferAssets{value: nativeFee}(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                recipient: user,
+                originator: user,
+                keeper: address(keeper),
+                options: options
+            })
         );
         vm.stopPrank();
 
@@ -561,16 +412,16 @@ contract BridgeRouterTransferTest is Test {
 
     function testDirectExecuteTransferAssets() public {
         // Setup tokens
-        vm.startPrank(user);
-        token.approve(address(bridgeQueue), TRANSFER_AMOUNT);
+        vm.startPrank(keeper);
+        token.approve(address(authorizedCaller), TRANSFER_AMOUNT);
         vm.stopPrank();
 
         // Transfer tokens to BridgeQueue first
-        vm.prank(user);
-        token.transfer(address(bridgeQueue), TRANSFER_AMOUNT);
+        vm.prank(keeper);
+        token.transfer(authorizedCaller, TRANSFER_AMOUNT);
 
         // Approve BridgeRouter to spend BridgeQueue's tokens
-        vm.prank(address(bridgeQueue));
+        vm.prank(address(authorizedCaller));
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
@@ -597,17 +448,20 @@ contract BridgeRouterTransferTest is Test {
         );
 
         // Call executeTransferAssets directly from BridgeQueue
-        vm.startPrank(address(bridgeQueue));
+        vm.startPrank(address(authorizedCaller));
 
         // Check ETH balances before the call
-        console.log("BridgeQueue ETH balance:", address(bridgeQueue).balance);
+        console.log(
+            "BridgeQueue ETH balance:",
+            address(authorizedCaller).balance
+        );
         console.log("BridgeRouter ETH balance:", address(router).balance);
         console.log("Required native fee:", nativeFee);
 
         // Check token balances and approvals
         console.log(
             "BridgeQueue token balance:",
-            token.balanceOf(address(bridgeQueue))
+            token.balanceOf(address(authorizedCaller))
         );
         console.log(
             "BridgeRouter token balance:",
@@ -615,7 +469,7 @@ contract BridgeRouterTransferTest is Test {
         );
         console.log(
             "BridgeQueue approval to Router:",
-            token.allowance(address(bridgeQueue), address(router))
+            token.allowance(address(authorizedCaller), address(router))
         );
 
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
@@ -625,7 +479,7 @@ contract BridgeRouterTransferTest is Test {
                 amount: TRANSFER_AMOUNT,
                 recipient: user,
                 originator: user,
-                keeper: address(bridgeQueue),
+                keeper: address(authorizedCaller),
                 options: options
             });
 
@@ -674,10 +528,10 @@ contract BridgeRouterTransferTest is Test {
 
     function testMinimalExecuteTransferAssets() public {
         // Minimal setup - just call executeTransferAssets directly
-        vm.startPrank(address(bridgeQueue));
+        vm.startPrank(address(authorizedCaller));
 
         // Give BridgeQueue some tokens
-        token.mint(address(bridgeQueue), 100);
+        token.mint(address(authorizedCaller), 100);
 
         // IMPORTANT: Approve BridgeRouter to spend BridgeQueue's tokens
         token.approve(address(router), 100);
@@ -690,7 +544,7 @@ contract BridgeRouterTransferTest is Test {
                 amount: 100,
                 recipient: user,
                 originator: user,
-                keeper: address(bridgeQueue),
+                keeper: address(authorizedCaller),
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({

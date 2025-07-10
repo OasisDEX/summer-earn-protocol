@@ -127,10 +127,8 @@ interface IBridgeRouter is IERC165 {
     error UnsupportedAdapterOperation();
     /// @notice Thrown when there are insufficient native funds in the router
     error InsufficientBalance();
-    /// @notice Error for calls not originating from the configured BridgeQueue
-    error OnlyBridgeQueue();
-    /// @notice Error thrown when an invalid bridge queue address is provided
-    error InvalidBridgeQueue();
+    /// @notice Error for calls not originating from the authorized caller
+    error OnlyAuthorized();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
@@ -289,12 +287,6 @@ interface IBridgeRouter is IERC165 {
         uint16 chainId
     ) external view returns (address routerAddress);
 
-    /**
-     * @notice Get the configured address of the BridgeQueue contract
-     * @return The address of the BridgeQueue
-     */
-    function bridgeQueue() external view returns (address);
-
     /*//////////////////////////////////////////////////////////////
                          GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -324,13 +316,6 @@ interface IBridgeRouter is IERC165 {
      * @dev Governor role required.
      */
     function unpause() external;
-
-    /**
-     * @notice Set the BridgeQueue address
-     * @param _newBridgeQueue The new BridgeQueue address
-     * @dev Governor role required.
-     */
-    function setBridgeQueue(address _newBridgeQueue) external;
 
     /**
      * @notice Manually recover/update the status of an operation if automated flow failed

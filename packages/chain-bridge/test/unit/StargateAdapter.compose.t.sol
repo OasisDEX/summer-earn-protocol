@@ -772,10 +772,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         MockFleetProxy mockFleetCommander = new MockFleetProxy(address(tokenB));
         mockFleetCommander.setShouldRevert(true); // Make receiveMessageWithAssets fail
 
-        // Add the adapter as a queue manager so it can queue recovery operations
-        vm.prank(address(0x0000000000000000000000000000000000000001)); // ECRecover (governor)
-        bridgeQueueB.addQueueManager(address(adapterB));
-
         // Create REGULAR asset transfer message (NOT fleet deposit message)
         // This will route to _handleAssetTransferMessage which has recovery mechanism
         bytes memory customComposeMessage = abi.encode(

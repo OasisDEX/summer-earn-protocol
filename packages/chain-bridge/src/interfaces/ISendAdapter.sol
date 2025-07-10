@@ -34,7 +34,7 @@ interface ISendAdapter {
     event ReadRequestInitiated(
         bytes32 indexed requestId,
         uint16 srcChainId,
-        uint16 dstChainId,
+        uint16 destinationChainId,
         address dstContract,
         bytes4 selector
     );
@@ -73,7 +73,7 @@ interface ISendAdapter {
      * @notice Read state from a contract on a source chain
      * @param operationId Router-provided operation ID for tracking
      * @param srcChainId ID of the source chain
-     * @param dstChainId ID of the destination chain
+     * @param destinationChainId ID of the destination chain
      * @param dstContract Address of the contract on the destination chain
      * @param selector Function selector to call
      * @param readParams Parameters for the function call
@@ -84,7 +84,7 @@ git sts     * @param adapterParams Additional adapter-specific parameters
     function readState(
         bytes32 operationId,
         uint16 srcChainId,
-        uint16 dstChainId,
+        uint16 destinationChainId,
         address dstContract,
         bytes4 selector,
         bytes calldata readParams,

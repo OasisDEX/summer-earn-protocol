@@ -39,30 +39,6 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.SENT));
     }
 
-    function testGetOperationStatusQueued() public {
-        useNetworkA();
-
-        // Setup the mapping in the router
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            testTransferId,
-            address(adapterA)
-        );
-
-        // Set operation status to queued
-        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
-            testTransferId,
-            BridgeTypes.OperationStatus.QUEUED
-        );
-
-        // Get operation status through adapter
-        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(
-            testTransferId
-        );
-
-        // Verify status matches what was set
-        assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.QUEUED));
-    }
-
     function testGetOperationStatusFailed() public {
         useNetworkA();
 

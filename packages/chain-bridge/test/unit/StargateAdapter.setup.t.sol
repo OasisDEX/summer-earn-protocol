@@ -6,7 +6,6 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
@@ -21,7 +20,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     // Chain A contracts
     StargateAdapter public adapterA;
     BridgeRouterTestHelper public routerA;
-    BridgeQueue public bridgeQueueA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
     MockStargateV2 public stargateA;
@@ -29,7 +27,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     // Chain B contracts
     StargateAdapter public adapterB;
     BridgeRouterTestHelper public routerB;
-    BridgeQueue public bridgeQueueB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
     MockStargateV2 public stargateB;
@@ -77,16 +74,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         accessManagerA = new ProtocolAccessManager(governor);
         harborCommandA = new MockHarborCommand();
-        bridgeQueueA = new BridgeQueue(
-            address(accessManagerA),
-            address(0), // Router set later
-            governor // Use governor as queue manager
-        );
-        routerA = new BridgeRouterTestHelper(
-            address(accessManagerA),
-            address(bridgeQueueA)
-        );
-        bridgeQueueA.setBridgeRouter(address(routerA));
+        routerA = new BridgeRouterTestHelper(address(accessManagerA));
         tokenA = new ERC20Mock();
 
         // Deploy mock Stargate V2 contract for chain A
@@ -113,7 +101,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
-        tokenA.mint(address(bridgeQueueA), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
 
@@ -123,16 +110,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         accessManagerB = new ProtocolAccessManager(governor);
         harborCommandB = new MockHarborCommand();
-        bridgeQueueB = new BridgeQueue(
-            address(accessManagerB),
-            address(0), // Router set later
-            governor // Use governor as queue manager
-        );
-        routerB = new BridgeRouterTestHelper(
-            address(accessManagerB),
-            address(bridgeQueueB)
-        );
-        bridgeQueueB.setBridgeRouter(address(routerB));
+        routerB = new BridgeRouterTestHelper(address(accessManagerB));
         tokenB = new ERC20Mock();
 
         // Deploy mock Stargate V2 contract for chain B
@@ -163,7 +141,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         routerB.registerAdapter(address(adapterB));
         tokenB.mint(user, 10000e18);
-        tokenB.mint(address(bridgeQueueB), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
 

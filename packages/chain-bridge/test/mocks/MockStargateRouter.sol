@@ -6,7 +6,7 @@ import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
 contract MockStargateRouter {
     // Event to log swap calls
     event SwapCalled(
-        uint16 dstChainId,
+        uint16 destinationChainId,
         uint256 srcPoolId,
         uint256 dstPoolId,
         address refundAddress,

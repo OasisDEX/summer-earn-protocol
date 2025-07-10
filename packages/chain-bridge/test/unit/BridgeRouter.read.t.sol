@@ -5,7 +5,6 @@ import {Test, console} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
@@ -15,7 +14,6 @@ import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStat
 
 contract BridgeRouterReadStateTest is Test {
     BridgeRouterTestHelper public router;
-    BridgeQueue public bridgeQueue;
     MockAdapter public mockAdapter;
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
@@ -25,6 +23,8 @@ contract BridgeRouterReadStateTest is Test {
     address public governor = address(0x1);
     address public user = address(0x2);
     address public keeper = address(0x3);
+    // todo: authorize the caller when method available ( uthorized to call bridge router)
+    address public authorizedCaller = address(0x5);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
@@ -40,23 +40,10 @@ contract BridgeRouterReadStateTest is Test {
         accessManager = new ProtocolAccessManager(governor);
         mockReceiver = new MockCrossChainReceiver();
 
-        // Deploy BridgeQueue first, making mockReceiver the queue manager
-        bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0), // Router address set later
-            address(mockReceiver) // queueManager is mockReceiver
-        );
-
         vm.startPrank(governor);
 
         // Deploy BridgeRouterTestHelper, linking it to the queue
-        router = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(bridgeQueue) // Link to queue
-        );
-
-        // Set the router address in the queue
-        bridgeQueue.setBridgeRouter(address(router));
+        router = new BridgeRouterTestHelper(address(accessManager));
 
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
@@ -116,90 +103,31 @@ contract BridgeRouterReadStateTest is Test {
         // Use specified adapter in options for queueing
         options.specifiedAdapter = specifiedAdapter;
 
-        // Queue read state (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueReadState(
-            DEST_CHAIN_ID,
-            targetContract, // Target contract on dest chain
-            targetSelector,
-            targetCalldata // Calldata for target contract
-        );
-
-        // Verify queue status
-        assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.QUEUED)
-        );
-
         vm.stopPrank(); // mockReceiver stops queueing
 
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
-        // Mock the quote call happening during execution
-        vm.expectCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0), // BridgeQueue uses address(0) for read/message quotes internally
-                0,
-                options,
-                BridgeTypes.OperationType.READ_STATE
-            )
-        );
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options,
-                BridgeTypes.OperationType.READ_STATE
-            ),
-            abi.encode(fee, uint256(0), specifiedAdapter) // Mock return for execution quote
-        );
-        // Mock the executeReadState call
-        vm.expectCall(
-            address(router),
-            fee, // Expect msg.value to be the fee
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector) // Simplified check
-        );
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockReadOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            fee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector), // Need exact match if testing params
-            abi.encode(expectedOperationId)
-        );
 
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{value: fee}(
-            queueId,
-            options
+        bytes32 operationId = router.executeReadState{value: fee}(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                dstContract: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: address(mockReceiver),
+                keeper: address(keeper),
+                options: options
+            })
         );
         vm.stopPrank();
 
         // Verify queue status updated post-execution
         assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
+            uint256(router.getOperationStatus(operationId)),
             uint256(BridgeTypes.OperationStatus.SENT) // Should be SENT as it's sent to adapter
         );
-        // Verify queue maps operationId
-        assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
-        assertEq(operationId, expectedOperationId, "Operation ID mismatch");
 
-        // Verify request was initiated in router (if checking router state)
-        // assertEq(
-        //     uint256(router.operationStatuses(operationId)),
-        //     uint256(BridgeTypes.OperationStatus.PENDING)
-        // );
-        // assertEq(router.operationToAdapter(operationId), specifiedAdapter); // Check specified adapter
-        // // Verify originator was stored correctly (should be mockReceiver)
-        // assertEq(
-        //     router.readRequestToOriginator(operationId),
-        //     address(mockReceiver)
-        // );
+        // todo: expect calls to lz endpoint to be made
     }
 
     function testDeliverReadResponse() public {
@@ -233,63 +161,23 @@ contract BridgeRouterReadStateTest is Test {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Queue read state (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueReadState(
-            DEST_CHAIN_ID,
-            targetContract,
-            targetSelector,
-            targetCalldata
-        );
         vm.stopPrank(); // mockReceiver stops queueing
 
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
-        // Mock quote and executeReadState during execution
-        vm.expectCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options,
-                BridgeTypes.OperationType.READ_STATE
-            )
-        );
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options,
-                BridgeTypes.OperationType.READ_STATE
-            ),
-            abi.encode(fee, uint256(0), address(mockAdapter))
-        );
-        vm.expectCall(
-            address(router),
-            fee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector)
-        );
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockDeliverReadOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            fee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector),
-            abi.encode(expectedOperationId)
-        );
 
-        operationId = bridgeQueue.executeQueuedOperation{value: fee}(
-            queueId,
-            options
+        operationId = router.executeReadState{value: fee}(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                dstContract: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: address(mockReceiver),
+                keeper: address(keeper),
+                options: options
+            })
         );
         vm.stopPrank();
-
-        assertEq(operationId, expectedOperationId, "Operation ID mismatch");
 
         // Set up the operation mappings using the test helper
         vm.prank(address(router));
@@ -357,58 +245,22 @@ contract BridgeRouterReadStateTest is Test {
             options, // Use options
             BridgeTypes.OperationType.READ_STATE
         );
-        // Queue read state (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueReadState(
-            DEST_CHAIN_ID,
-            targetContract,
-            targetSelector,
-            targetCalldata
-        );
+
         vm.stopPrank(); // mockReceiver stops queueing
 
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
-        // Mocks for execution...
-        vm.expectCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options, // Use options
-                BridgeTypes.OperationType.READ_STATE
-            )
-        );
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options, // Use options
-                BridgeTypes.OperationType.READ_STATE
-            ),
-            abi.encode(fee, uint256(0), address(mockAdapter))
-        );
-        vm.expectCall(
-            address(router),
-            fee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector)
-        );
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockUnauthorizedReadOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            fee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector),
-            abi.encode(expectedOperationId)
-        );
-        operationId = bridgeQueue.executeQueuedOperation{value: fee}(
-            queueId,
-            options
+
+        operationId = router.executeReadState{value: fee}(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                dstContract: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: address(mockReceiver),
+                keeper: address(keeper),
+                options: options
+            })
         );
         vm.stopPrank();
 
@@ -468,58 +320,22 @@ contract BridgeRouterReadStateTest is Test {
             options, // Use options
             BridgeTypes.OperationType.READ_STATE
         );
-        // Queue read state (NO VALUE)
-        bytes32 queueId = bridgeQueue.queueReadState(
-            DEST_CHAIN_ID,
-            targetContract,
-            targetSelector,
-            targetCalldata
-        );
+
         vm.stopPrank(); // mockReceiver stops queueing
 
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
-        // Mocks for execution...
-        vm.expectCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options, // Use options
-                BridgeTypes.OperationType.READ_STATE
-            )
-        );
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options, // Use options
-                BridgeTypes.OperationType.READ_STATE
-            ),
-            abi.encode(fee, uint256(0), address(mockAdapter))
-        );
-        vm.expectCall(
-            address(router),
-            fee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector)
-        );
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockRejectReadOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            fee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector),
-            abi.encode(expectedOperationId)
-        );
-        operationId = bridgeQueue.executeQueuedOperation{value: fee}(
-            queueId,
-            options
+
+        operationId = router.executeReadState{value: fee}(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                dstContract: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: address(mockReceiver),
+                keeper: address(keeper),
+                options: options
+            })
         );
         vm.stopPrank();
 

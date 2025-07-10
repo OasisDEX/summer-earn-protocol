@@ -3,7 +3,6 @@ pragma solidity ^0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -14,8 +13,7 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 contract LayerZeroIntegrationTest is Test {
     // Contracts
     BridgeRouter public router;
-    BridgeQueue public bridgeQueue;
-    LayerZeroAdapter public adapter;
+    LayerZeroAdapter public layerZeroAdapter;
     ProtocolAccessManager public accessManager;
 
     // Addresses
@@ -53,28 +51,16 @@ contract LayerZeroIntegrationTest is Test {
         chainIds[0] = DEST_CHAIN_ID;
         routerAddresses[0] = address(0x999); // Mock remote router address
 
-        // Deploy BridgeQueue first
-        bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0), // Temporarily 0, will be set later
-            user // Make the test user the queue manager
-        );
+        // Create router
+        router = new BridgeRouter(address(accessManager));
 
-        // Create router, passing the deployed BridgeQueue address
-        router = new BridgeRouter(address(accessManager), address(bridgeQueue));
-
-        // Now set the bridge router address in the queue
-        vm.startPrank(governor);
-        bridgeQueue.setBridgeRouter(address(router));
-        vm.stopPrank();
-
-        // Setup LZ adapter with v3 endpoint
+        // Setup LZ layerZeroAdapter with v3 endpoint
         uint16[] memory supportedChains = new uint16[](1);
         uint32[] memory lzEids = new uint32[](1);
         supportedChains[0] = DEST_CHAIN_ID;
         lzEids[0] = ARB_LZ_EID; // Use the constant instead of hardcoded value
 
-        adapter = new LayerZeroAdapter(
+        layerZeroAdapter = new LayerZeroAdapter(
             LZ_ENDPOINT_MAINNET,
             address(router),
             supportedChains,
@@ -82,18 +68,18 @@ contract LayerZeroIntegrationTest is Test {
             governor
         );
 
-        // Register adapter with router
+        // Register layerZeroAdapter with router
         vm.startPrank(governor);
-        router.registerAdapter(address(adapter));
+        router.registerAdapter(address(layerZeroAdapter));
 
         // Set up peer for Arbitrum chain
         bytes32 peerAddressBytes32 = bytes32(uint256(uint160(address(0x999))));
-        adapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
+        layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
         // Activate the read channel for state reading operations
         uint32 READ_CHANNEL_ID = 4294967295;
         // https://docs.layerzero.network/v2/deployments/read-contracts
-        adapter.activateReadChannel(READ_CHANNEL_ID);
+        layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
 
         // Configure ReadLib1002 for lzRead functionality
         address READ_LIB_1002 = 0x74F55Bc2a79A27A0bF1D1A35dB5d0Fc36b9FDB9D;
@@ -102,12 +88,12 @@ contract LayerZeroIntegrationTest is Test {
         // This assumes we're working with ILayerZeroEndpointV2 interface
         address lzEndpoint = LZ_ENDPOINT_MAINNET;
 
-        // Set send and receive libraries on the endpoint for our adapter (OApp)
+        // Set send and receive libraries on the endpoint for our layerZeroAdapter (OApp)
         // Note: We're mocking these calls since actual implementation would require properly formatted interfaces
         (bool success, ) = lzEndpoint.call(
             abi.encodeWithSignature(
                 "setSendLibrary(address,uint32,address)",
-                address(adapter), // OApp address
+                address(layerZeroAdapter), // OApp address
                 READ_CHANNEL_ID, // Read channel ID
                 READ_LIB_1002 // new library
             )
@@ -117,7 +103,7 @@ contract LayerZeroIntegrationTest is Test {
         (success, ) = lzEndpoint.call(
             abi.encodeWithSignature(
                 "setReceiveLibrary(address,uint32,address,uint256)",
-                address(adapter), // OApp address
+                address(layerZeroAdapter), // OApp address
                 READ_CHANNEL_ID, // Read channel ID
                 READ_LIB_1002, // new library
                 0
@@ -125,8 +111,8 @@ contract LayerZeroIntegrationTest is Test {
         );
         require(success, "setReceiveLibrary failed");
 
-        // Configure read channel ID (assuming adapter has this capability)
-        adapter.setReadChannel(READ_CHANNEL_ID, true);
+        // Configure read channel ID (assuming layerZeroAdapter has this capability)
+        layerZeroAdapter.setReadChannel(READ_CHANNEL_ID, true);
 
         vm.stopPrank();
 
@@ -146,7 +132,7 @@ contract LayerZeroIntegrationTest is Test {
                 options: ""
             });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter), // Specify adapter if needed
+            specifiedAdapter: address(layerZeroAdapter), // Specify layerZeroAdapter if needed
             adapterParams: adapterParams
         });
 
@@ -162,85 +148,26 @@ contract LayerZeroIntegrationTest is Test {
         // Create a test message
         bytes memory message = abi.encode("Hello, Cross-Chain World!");
 
-        // 1. Queue the operation (as user/queueManager) (NO VALUE)
-        vm.startPrank(user);
-        bytes32 queueId = bridgeQueue.queueSendMessage(
-            DEST_CHAIN_ID,
-            recipient,
-            message
-        );
-        vm.stopPrank();
-
-        // Verify queue status
-        assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.QUEUED)
-        );
-        assertTrue(bridgeQueue.getPendingQueueCount() > 0); // Check it's pending
-
-        // 2. Execute the operation (can be anyone, e.g., keeper or user) (PAYS FEE)
+        // Execute the operation (can be anyone, e.g., keeper or user) (PAYS FEE)
         vm.startPrank(keeper); // Or user
-        // Mock the quote and execute calls happening inside executeQueuedOperation
-        vm.expectCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options,
-                BridgeTypes.OperationType.MESSAGE
-            )
+        bytes32 operationId = router.executeSendMessage{value: nativeFee}(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                recipient: recipient,
+                message: message,
+                originator: user,
+                keeper: address(keeper),
+                options: options
+            })
         );
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options,
-                BridgeTypes.OperationType.MESSAGE
-            ),
-            abi.encode(nativeFee, uint256(0), address(adapter)) // Mock return for execution quote
-        );
-        vm.expectCall(
-            address(router),
-            nativeFee, // Expect msg.value to be the fee
-            abi.encodeWithSelector(IBridgeRouter.executeSendMessage.selector) // Simplified check
-        );
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockSendMsgOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            nativeFee,
-            abi.encodeWithSelector(IBridgeRouter.executeSendMessage.selector), // Need exact match if testing params
-            abi.encode(expectedOperationId)
-        );
-
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{
-            value: nativeFee
-        }(queueId, options);
         vm.stopPrank();
 
         // --- Assertions ---
         // Verify queue status updated post-execution
         assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
+            uint256(router.getOperationStatus(operationId)),
             uint256(BridgeTypes.OperationStatus.SENT)
         );
-        // Verify queue maps operationId
-        assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
-        assertEq(operationId, expectedOperationId, "Operation ID mismatch");
-
-        // Verify router status (if checking router state, which might be complex in integration)
-        // assertEq(
-        //     uint256(router.getOperationStatus(operationId)),
-        //     uint256(BridgeTypes.OperationStatus.PENDING)
-        // );
-        // // Verify adapter was assigned (if checking router state)
-        // assertEq(router.operationToAdapter(operationId), address(adapter));
     }
 
     function testReadStateViaLayerZero() public {
@@ -253,7 +180,7 @@ contract LayerZeroIntegrationTest is Test {
                 options: ""
             });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter), // Explicitly specify adapter
+            specifiedAdapter: address(layerZeroAdapter), // Explicitly specify layerZeroAdapter
             adapterParams: adapterParams
         });
 
@@ -263,94 +190,33 @@ contract LayerZeroIntegrationTest is Test {
         bytes memory callData = abi.encode(user); // Reading user balance
 
         // Now get quote for fees FOR EXECUTION
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote( // Capture specified adapter
+        (uint256 nativeFee, , address specifiedAdapter) = router.quote( // Capture specified layerZeroAdapter
                 DEST_CHAIN_ID,
                 targetContract, // Target contract used in quote
                 0,
                 options, // Use defined options
                 BridgeTypes.OperationType.READ_STATE
             );
-        // Verify the specified adapter matches what we provided
-        assertEq(specifiedAdapter, address(adapter));
+        // Verify the specified layerZeroAdapter matches what we provided
+        assertEq(specifiedAdapter, address(layerZeroAdapter));
 
-        // 1. Queue the operation (as user/queueManager) (NO VALUE)
-        vm.startPrank(user);
-        bytes32 queueId = bridgeQueue.queueReadState(
-            DEST_CHAIN_ID,
-            targetContract,
-            selector,
-            callData
-        );
-        vm.stopPrank();
-
-        // Verify queue status
-        assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.QUEUED)
-        );
-
-        // 2. Execute the operation (can be anyone) (PAYS FEE)
+        // Execute the operation (can be anyone) (PAYS FEE)
         vm.startPrank(keeper);
-        // Mock the quote and execute calls happening inside executeQueuedOperation
-        vm.expectCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0), // BridgeQueue uses address(0) for internal quote
-                0,
-                options,
-                BridgeTypes.OperationType.READ_STATE
-            )
+        bytes32 operationId = router.executeReadState{value: nativeFee}(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                dstContract: targetContract,
+                selector: selector,
+                readParams: callData,
+                originator: user,
+                keeper: address(keeper),
+                options: options
+            })
         );
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options,
-                BridgeTypes.OperationType.READ_STATE
-            ),
-            abi.encode(nativeFee, uint256(0), specifiedAdapter) // Mock return for execution quote
-        );
-        vm.expectCall(
-            address(router),
-            nativeFee, // Expect msg.value to be the fee
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector) // Simplified check
-        );
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockReadStateOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            nativeFee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector), // Need exact match if testing params
-            abi.encode(expectedOperationId)
-        );
-
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{
-            value: nativeFee
-        }(queueId, options);
-        vm.stopPrank();
-
-        // --- Assertions ---
-        // Verify queue status updated post-execution
         assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
+            uint256(router.getOperationStatus(operationId)),
             uint256(BridgeTypes.OperationStatus.SENT)
         );
-        // Verify queue maps operationId
-        assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
-        assertEq(operationId, expectedOperationId, "Operation ID mismatch");
-
-        // Verify router status (if checking router state)
-        // assertEq(
-        //     uint256(router.getOperationStatus(operationId)),
-        //     uint256(BridgeTypes.OperationStatus.PENDING)
-        // );
-        // Verify correct adapter was assigned by router/queue (if checking router state)
-        // assertEq(router.operationToAdapter(operationId), specifiedAdapter); // Check against quoted adapter
+        // todo: expect calls to lz endpoint to be made
     }
 }

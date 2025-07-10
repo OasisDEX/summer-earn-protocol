@@ -4,10 +4,8 @@ pragma solidity ^0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IBridgeQueue} from "../../src/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
 import {LayerZeroOptionsHelper} from "../../src/helpers/LayerZeroOptionsHelper.sol";
@@ -42,7 +40,6 @@ contract MockTargetContract {
 contract LayerZeroAdapterStateReadBaseForkTest is Test {
     LayerZeroAdapter public adapter;
     BridgeRouterTestHelper public router;
-    BridgeQueue public bridgeQueue;
     ProtocolAccessManager public accessManager;
     MockTargetContract public targetContract;
 
@@ -86,23 +83,8 @@ contract LayerZeroAdapterStateReadBaseForkTest is Test {
         accessManager.grantGuardianRole(guardian);
         vm.stopPrank();
 
-        // Create bridge queue first
-        bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0), // Temporarily 0, will be set later
-            user // Make the test user the queue manager
-        );
-
-        // Create router TEST HELPER, passing the deployed BridgeQueue address
-        router = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(bridgeQueue)
-        );
-
-        // Now set the bridge router address in the queue
-        vm.startPrank(governor);
-        bridgeQueue.setBridgeRouter(address(router));
-        vm.stopPrank();
+        // Create router TEST HELPER
+        router = new BridgeRouterTestHelper(address(accessManager));
 
         // Deploy mock target contract (simulates destination chain contract)
         targetContract = new MockTargetContract();

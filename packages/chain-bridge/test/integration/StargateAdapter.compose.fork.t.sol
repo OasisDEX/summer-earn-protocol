@@ -6,7 +6,7 @@ import {console} from "forge-std/console.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
+
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
@@ -68,17 +68,8 @@ contract StargateAdapterComposeForkTest is Test {
         ProtocolAccessManager accessManager = new ProtocolAccessManager(
             governor
         );
-        BridgeQueue bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0),
-            governor
-        );
 
-        routerMainnet = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(bridgeQueue)
-        );
-        bridgeQueue.setBridgeRouter(address(routerMainnet));
+        routerMainnet = new BridgeRouterTestHelper(address(accessManager));
 
         adapterMainnet = new StargateAdapter(
             address(routerMainnet),
@@ -125,17 +116,8 @@ contract StargateAdapterComposeForkTest is Test {
         ProtocolAccessManager accessManagerArb = new ProtocolAccessManager(
             governor
         );
-        BridgeQueue bridgeQueueArb = new BridgeQueue(
-            address(accessManagerArb),
-            address(0),
-            governor
-        );
 
-        routerArbitrum = new BridgeRouterTestHelper(
-            address(accessManagerArb),
-            address(bridgeQueueArb)
-        );
-        bridgeQueueArb.setBridgeRouter(address(routerArbitrum));
+        routerArbitrum = new BridgeRouterTestHelper(address(accessManagerArb));
 
         adapterArbitrum = new StargateAdapter(
             address(routerArbitrum),

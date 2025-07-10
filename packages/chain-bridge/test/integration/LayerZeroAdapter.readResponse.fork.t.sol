@@ -4,10 +4,10 @@ pragma solidity ^0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
+
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IBridgeQueue} from "../../src/interfaces/IBridgeQueue.sol";
+
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
@@ -19,7 +19,7 @@ import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 contract LayerZeroAdapterReadResponseBaseForkTest is Test {
     LayerZeroAdapter public adapter;
     BridgeRouterTestHelper public router;
-    BridgeQueue public bridgeQueue;
+
     ProtocolAccessManager public accessManager;
 
     address public governor = makeAddr("governor");
@@ -68,23 +68,8 @@ contract LayerZeroAdapterReadResponseBaseForkTest is Test {
         accessManager.grantGuardianRole(guardian);
         vm.stopPrank();
 
-        // Create bridge queue first
-        bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0), // Temporarily 0, will be set later
-            user // Make the test user the queue manager
-        );
-
-        // Create router TEST HELPER, passing the deployed BridgeQueue address
-        router = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(bridgeQueue)
-        );
-
-        // Now set the bridge router address in the queue
-        vm.startPrank(governor);
-        bridgeQueue.setBridgeRouter(address(router));
-        vm.stopPrank();
+        // Create router TEST HELPER
+        router = new BridgeRouterTestHelper(address(accessManager));
 
         // Setup supported chains configuration
         uint16[] memory supportedChains = new uint16[](2);

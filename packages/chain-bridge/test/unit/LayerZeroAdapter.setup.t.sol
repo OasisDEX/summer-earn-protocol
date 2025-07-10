@@ -7,7 +7,6 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -32,14 +31,12 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     // Chain A contracts
     LayerZeroAdapterTestHelper public adapterA;
     BridgeRouterTestHelper public routerA;
-    BridgeQueue public bridgeQueueA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
 
     // Chain B contracts
     LayerZeroAdapterTestHelper public adapterB;
     BridgeRouterTestHelper public routerB;
-    BridgeQueue public bridgeQueueB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
 
@@ -100,18 +97,9 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
         // Deploy access manager and bridge queue
         accessManagerA = new ProtocolAccessManager(governor);
-        bridgeQueueA = new BridgeQueue(
-            address(accessManagerA),
-            address(0), // Router set later
-            governor // Use governor as queue manager
-        );
 
         // Deploy router and configure
-        routerA = new BridgeRouterTestHelper(
-            address(accessManagerA),
-            address(bridgeQueueA) // Pass queue address
-        );
-        bridgeQueueA.setBridgeRouter(address(routerA));
+        routerA = new BridgeRouterTestHelper(address(accessManagerA));
 
         // Deploy token and adapter
         tokenA = new ERC20Mock();
@@ -126,7 +114,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Final configuration
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
-        tokenA.mint(address(bridgeQueueA), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
     }
@@ -147,18 +134,9 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
         // Deploy access manager and bridge queue
         accessManagerB = new ProtocolAccessManager(governor);
-        bridgeQueueB = new BridgeQueue(
-            address(accessManagerB),
-            address(0), // Router set later
-            governor // Use governor as queue manager
-        );
 
         // Deploy router and configure
-        routerB = new BridgeRouterTestHelper(
-            address(accessManagerB),
-            address(bridgeQueueB) // Pass queue address
-        );
-        bridgeQueueB.setBridgeRouter(address(routerB));
+        routerB = new BridgeRouterTestHelper(address(accessManagerB));
 
         // Deploy token and adapter
         tokenB = new ERC20Mock();
@@ -173,7 +151,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Final configuration
         routerB.registerAdapter(address(adapterB));
         tokenB.mint(user, 10000e18);
-        tokenB.mint(address(bridgeQueueB), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
     }
