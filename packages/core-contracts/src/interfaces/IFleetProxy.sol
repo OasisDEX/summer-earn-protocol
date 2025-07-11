@@ -61,6 +61,18 @@ interface IFleetProxy is ICrossChainAssetReceiver {
      */
     event MessageContentNotExpected();
 
+    /**
+     * @notice Emitted when assets are withdrawn and transferred back to source chain
+     * @param amount Amount of tokens withdrawn
+     * @param asset Address of the token withdrawn
+     * @param sourceChainId Source chain ID
+     */
+    event AssetsWithdrawnAndTransferred(
+        uint256 amount,
+        address asset,
+        uint16 sourceChainId
+    );
+
     /*//////////////////////////////////////////////////////////////
                             ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -88,6 +100,29 @@ interface IFleetProxy is ICrossChainAssetReceiver {
 
     /// @notice Error thrown when source chain is invalid
     error InvalidSourceChain();
+
+    /// @notice Error thrown when fleet contract address is invalid
+    error InvalidFleetContract();
+
+    /// @notice Error thrown when withdrawal failed
+    error WithdrawalFailed();
+
+    /// @notice Thrown when the caller is not authorized to perform the action.
+    error Unauthorized();
+
+    /// @notice Error thrown when the amount is invalid
+    error InvalidAmount();
+    /// @notice Error thrown when the recipient is invalid
+    error InvalidRecipient();
+    /// @notice Error thrown when the requestor is invalid
+    error InvalidRequestor();
+    /// @notice Error thrown when the satellite chain is invalid
+    error InvalidSatelliteChain();
+
+    /// @notice Error thrown when bridge router address is invalid
+    error InvalidBridgeRouter();
+    /// @notice Error thrown when registry address is invalid
+    error InvalidRegistry();
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS

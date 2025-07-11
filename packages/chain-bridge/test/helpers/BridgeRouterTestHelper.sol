@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title BridgeRouterTestHelper

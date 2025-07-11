@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 // Base test contract with common setup used by all Stargate adapter tests
 contract StargateAdapterSetupTest is TestHelperOz5 {
@@ -20,6 +19,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     // Chain A contracts
     StargateAdapter public adapterA;
     BridgeRouterTestHelper public routerA;
+    CrossChainRegistry public registryA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
     MockStargateV2 public stargateA;
@@ -27,6 +27,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     // Chain B contracts
     StargateAdapter public adapterB;
     BridgeRouterTestHelper public routerB;
+    CrossChainRegistry public registryB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
     MockStargateV2 public stargateB;
@@ -72,30 +73,34 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         useNetworkA();
         vm.startPrank(governor);
 
-        accessManagerA = new ProtocolAccessManager(governor);
-        harborCommandA = new MockHarborCommand();
-        routerA = new BridgeRouterTestHelper(address(accessManagerA));
+        // Initialize tokens and Stargate mocks for chain A
         tokenA = new ERC20Mock();
-
-        // Deploy mock Stargate V2 contract for chain A
         stargateA = new MockStargateV2(
             address(tokenA),
             MockStargateV2.StargateType.Pool
         );
 
-        adapterA = new StargateAdapter(
+        accessManagerA = new ProtocolAccessManager(governor);
+        harborCommandA = new MockHarborCommand();
+        routerA = new BridgeRouterTestHelper(address(accessManagerA));
+
+        // Replace configManagerA setup with registryA
+        registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
+        registryA.initializeBridgeConfiguration(
             address(routerA),
-            governor,
-            lzEndpointA, // Use real LayerZero endpoint
-            address(harborCommandA) // Use mock HarborCommand
+            400000 // defaultGasLimit
         );
 
-        adapterA.addSupportedChain(
-            CHAIN_ID_A,
-            ENDPOINT_ID_A,
-            address(adapterA)
+        // Deploy adapter with registry instead of config manager
+        adapterA = new StargateAdapter(
+            address(registryA),
+            address(accessManagerA),
+            lzEndpointA,
+            address(harborCommandA)
         );
-        // Don't add CHAIN_ID_B yet - will add after adapterB is deployed
+
+        // Set endpoint ID instead of addSupportedChain
+        adapterA.setEndpointId(CHAIN_ID_A, ENDPOINT_ID_A);
 
         adapterA.addSupportedAsset(address(tokenA), address(stargateA));
 
@@ -108,33 +113,42 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         useNetworkB();
         vm.startPrank(governor);
 
-        accessManagerB = new ProtocolAccessManager(governor);
-        harborCommandB = new MockHarborCommand();
-        routerB = new BridgeRouterTestHelper(address(accessManagerB));
+        // Initialize tokens and Stargate mocks for chain B
         tokenB = new ERC20Mock();
-
-        // Deploy mock Stargate V2 contract for chain B
         stargateB = new MockStargateV2(
             address(tokenB),
             MockStargateV2.StargateType.Pool
         );
 
-        adapterB = new StargateAdapter(
+        accessManagerB = new ProtocolAccessManager(governor);
+        harborCommandB = new MockHarborCommand();
+        routerB = new BridgeRouterTestHelper(address(accessManagerB));
+
+        // Replace configManagerB setup with registryB
+        registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
+        registryB.initializeBridgeConfiguration(
             address(routerB),
-            governor,
-            lzEndpointB, // Use real LayerZero endpoint
-            address(harborCommandB) // Use mock HarborCommand
+            400000 // defaultGasLimit
         );
 
-        adapterB.addSupportedChain(
-            CHAIN_ID_B,
-            ENDPOINT_ID_B,
-            address(adapterB)
+        // Deploy adapter with registry instead of config manager
+        adapterB = new StargateAdapter(
+            address(registryB),
+            address(accessManagerB),
+            lzEndpointB,
+            address(harborCommandB)
         );
-        adapterB.addSupportedChain(
-            CHAIN_ID_A,
-            ENDPOINT_ID_A,
-            address(adapterA)
+
+        // Set endpoint ID instead of addSupportedChain
+        adapterB.setEndpointId(CHAIN_ID_B, ENDPOINT_ID_B);
+        adapterB.setEndpointId(CHAIN_ID_A, ENDPOINT_ID_A);
+
+        // Register the cross-chain relationship between adapters
+        registryB.registerAdapterPeer(
+            address(adapterB),
+            address(adapterA),
+            CHAIN_ID_B,
+            CHAIN_ID_A
         );
 
         adapterB.addSupportedAsset(address(tokenB), address(stargateB));
@@ -144,14 +158,30 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         vm.stopPrank();
 
-        // Now add chain B support to adapter A with the correct adapter B address
+        // Back to Chain A to register the B->A relationship
         useNetworkA();
         vm.prank(governor);
-        adapterA.addSupportedChain(
-            CHAIN_ID_B,
-            ENDPOINT_ID_B,
-            address(adapterB)
+        registryA.registerAdapterPeer(
+            address(adapterA),
+            address(adapterB),
+            CHAIN_ID_A,
+            CHAIN_ID_B
         );
+
+        vm.label(address(tokenA), "Token A");
+        vm.label(address(tokenB), "Token B");
+        vm.label(address(stargateA), "Stargate A");
+        vm.label(address(stargateB), "Stargate B");
+        vm.label(address(adapterA), "Adapter A");
+        vm.label(address(adapterB), "Adapter B");
+        vm.label(address(routerA), "Router A");
+        vm.label(address(routerB), "Router B");
+        vm.label(address(registryA), "Registry A");
+        vm.label(address(registryB), "Registry B");
+        vm.label(address(harborCommandA), "Harbor Command A");
+        vm.label(address(harborCommandB), "Harbor Command B");
+        vm.label(address(accessManagerA), "Access Manager A");
+        vm.label(address(accessManagerB), "Access Manager B");
     }
 
     // Helper functions for switching networks

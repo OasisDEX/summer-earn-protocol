@@ -2,30 +2,35 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { Address } from 'viem'
 
 export default buildModule('LayerZeroAdapterModule', (m) => {
-  // Get the BridgeRouter address from parameters
-  const bridgeRouter = m.getParameter<Address>('bridgeRouter', undefined)
-
-  // Get LayerZero configuration parameters
-  const lzEndpoint = m.getParameter<Address>('lzEndpoint', undefined)
-  const chainIds = m.getParameter<number[]>('chainIds', [])
+  // Get required parameters
+  const endpoint = m.getParameter<Address>('endpoint', undefined)
+  const crossChainRegistry = m.getParameter<Address>('crossChainRegistry', undefined)
+  const accessManager = m.getParameter<Address>('accessManager', undefined)
+  const supportedChains = m.getParameter<number[]>('supportedChains', [])
   const lzEids = m.getParameter<number[]>('lzEids', [])
-  const owner = m.getParameter<Address>('owner', undefined)
+  const initialOwner = m.getParameter<Address>('initialOwner', undefined)
 
   // Validate required parameters
-  if (!bridgeRouter) throw new Error('bridgeRouter parameter is required')
-  if (!lzEndpoint) throw new Error('lzEndpoint parameter is required')
-  if (!owner) throw new Error('owner parameter is required')
+  if (!endpoint) throw new Error('endpoint parameter is required')
+  if (!crossChainRegistry) throw new Error('crossChainRegistry parameter is required')
+  if (!accessManager) throw new Error('accessManager parameter is required')
+  if (!initialOwner) throw new Error('initialOwner parameter is required')
+  if ((supportedChains as unknown as number[]).length === 0)
+    throw new Error('supportedChains parameter is required')
+  if ((lzEids as unknown as number[]).length === 0) throw new Error('lzEids parameter is required')
+  if ((supportedChains as unknown as number[]).length !== (lzEids as unknown as number[]).length)
+    throw new Error('supportedChains and lzEids must have same length')
 
-  // Deploy LayerZeroAdapter - simplified, no configuration in the module
+  // Deploy LayerZeroAdapter with all required parameters
   const layerZeroAdapter = m.contract('LayerZeroAdapter', [
-    lzEndpoint,
-    bridgeRouter,
-    chainIds,
+    endpoint,
+    crossChainRegistry,
+    accessManager,
+    supportedChains,
     lzEids,
-    owner,
+    initialOwner,
   ])
 
-  // Return the deployed contract
   return {
     layerZeroAdapter,
   }

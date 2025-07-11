@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
 import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
-import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainArk} from "../../src/interfaces/ICrossChainArk.sol";
 
 /**
  * @title StargateAdapterRecoveryTest
@@ -48,8 +43,8 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         // Deploy test wrapper
         vm.startPrank(governor);
         wrapperB = new StargateAdapterTestWrapper(
-            address(routerB),
-            governor,
+            address(registryB), // Use registry instead of router
+            address(accessManagerB), // Use access manager instead of owner
             lzEndpointB,
             address(0xdead) // Mock HarborCommand address for testing
         );

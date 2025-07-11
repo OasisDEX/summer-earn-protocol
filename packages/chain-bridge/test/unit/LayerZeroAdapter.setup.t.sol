@@ -13,6 +13,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 // Base test contract with common setup used by all LayerZero adapter tests
 contract LayerZeroAdapterSetupTest is TestHelperOz5 {
@@ -33,12 +34,14 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     BridgeRouterTestHelper public routerA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
+    CrossChainRegistry public registryA;
 
     // Chain B contracts
     LayerZeroAdapterTestHelper public adapterB;
     BridgeRouterTestHelper public routerB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
+    CrossChainRegistry public registryB;
 
     // Test wallets
     address public governor = address(0x1);
@@ -61,6 +64,9 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     // Network chain IDs for vm.chainId()
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
+
+    // Default gas limit for testing
+    uint256 public constant DEFAULT_GAS_LIMIT = 200000;
 
     function setUp() public virtual override {
         super.setUp();
@@ -95,17 +101,26 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         useNetworkA();
         vm.startPrank(governor);
 
-        // Deploy access manager and bridge queue
+        // Deploy access manager
         accessManagerA = new ProtocolAccessManager(governor);
 
         // Deploy router and configure
         routerA = new BridgeRouterTestHelper(address(accessManagerA));
 
-        // Deploy token and adapter
+        registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
+
+        // Initialize bridge configuration in registry
+        registryA.initializeBridgeConfiguration(
+            address(routerA),
+            DEFAULT_GAS_LIMIT
+        );
+
+        // Deploy token and adapter with registry
         tokenA = new ERC20Mock();
         adapterA = new LayerZeroAdapterTestHelper(
             lzEndpointA,
-            address(routerA),
+            address(registryA),
+            address(accessManagerA),
             chains,
             lzEids,
             governor
@@ -132,17 +147,27 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         useNetworkB();
         vm.startPrank(governor);
 
-        // Deploy access manager and bridge queue
+        // Deploy access manager
         accessManagerB = new ProtocolAccessManager(governor);
 
         // Deploy router and configure
         routerB = new BridgeRouterTestHelper(address(accessManagerB));
 
-        // Deploy token and adapter
+        // Deploy registry
+        registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
+
+        // Initialize bridge configuration in registry
+        registryB.initializeBridgeConfiguration(
+            address(routerB),
+            DEFAULT_GAS_LIMIT
+        );
+
+        // Deploy token and adapter with registry
         tokenB = new ERC20Mock();
         adapterB = new LayerZeroAdapterTestHelper(
             lzEndpointB,
-            address(routerB),
+            address(registryB), // Use registry instead of config manager
+            address(accessManagerB),
             chains,
             lzEids,
             governor
@@ -157,16 +182,30 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
     function _configurePeers() internal {
         // Set up peers between the two adapters
-        // First, set up Chain A's adapter to trust Chain B's adapter
-        useNetworkA();
-        vm.startPrank(governor);
-        adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
-        vm.stopPrank();
-
-        // Then, set up Chain B's adapter to trust Chain A's adapter
+        // First, set up Chain B's adapter to trust Chain A's adapter
         useNetworkB();
         vm.startPrank(governor);
+        // Set up both registry and LZ peer relationships
+        registryB.registerAdapterPeer(
+            address(adapterB),
+            address(adapterA),
+            CHAIN_ID_B,
+            CHAIN_ID_A
+        );
         adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
+        vm.stopPrank();
+
+        // Then, set up Chain A's adapter to trust Chain B's adapter
+        useNetworkA();
+        vm.startPrank(governor);
+        // Set up both registry and LZ peer relationships
+        registryA.registerAdapterPeer(
+            address(adapterA),
+            address(adapterB),
+            CHAIN_ID_A,
+            CHAIN_ID_B
+        );
+        adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
         vm.stopPrank();
     }
 
