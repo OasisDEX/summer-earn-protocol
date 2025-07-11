@@ -101,13 +101,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Verify it's in the list of supported chains (through registry relationships)
-        (
-            address[] memory targetContracts,
-            uint16[] memory targetChainIds
-        ) = registryA.getTargetsForSource(
-                address(adapterA),
-                registryA.ADAPTER_PEER()
-            );
+        (, uint16[] memory targetChainIds) = registryA.getTargetsForSource(
+            address(adapterA),
+            registryA.ADAPTER_PEER()
+        );
 
         bool found = false;
         for (uint i = 0; i < targetChainIds.length; i++) {
