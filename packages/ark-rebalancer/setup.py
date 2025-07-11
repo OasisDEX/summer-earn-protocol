@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "web3==5.31.1",
-        "requests==2.32.3",
+        "requests==2.32.4",
         "mypy==1.11.0",
         "python-dotenv==1.0.1"
     ],
