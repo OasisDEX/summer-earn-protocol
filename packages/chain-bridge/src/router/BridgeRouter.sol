@@ -128,7 +128,7 @@ contract BridgeRouter is
     function _validateReadStateParams(
         BridgeTypes.ExecuteReadStateParams calldata params
     ) internal pure {
-        if (params.originator == address(0) || params.dstContract == address(0))
+        if (params.originator == address(0) || params.destinationContract == address(0))
             revert InvalidParams();
     }
 
@@ -386,7 +386,7 @@ contract BridgeRouter is
             0, // No amount
             address(0), // No recipient for read operations
             abi.encode(
-                params.dstContract,
+                params.destinationContract,
                 params.selector,
                 params.readParams,
                 params.originator
@@ -404,7 +404,7 @@ contract BridgeRouter is
             operationId, // Pass the router-generated ID
             uint16(block.chainid),
             params.destinationChainId,
-            params.dstContract,
+            params.destinationContract,
             params.selector,
             params.readParams,
             params.keeper, // Pass keeper for refunds
@@ -414,7 +414,7 @@ contract BridgeRouter is
         emit ReadRequestInitiated(
             operationId,
             params.destinationChainId,
-            params.dstContract,
+            params.destinationContract,
             params.selector,
             params.readParams,
             specifiedAdapter

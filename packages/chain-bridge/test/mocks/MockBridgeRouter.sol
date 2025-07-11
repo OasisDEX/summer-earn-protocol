@@ -202,7 +202,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit ReadRequestInitiated(
             operationId,
             params.destinationChainId,
-            params.dstContract,
+            params.destinationContract,
             params.selector,
             params.readParams,
             MOCK_ADAPTER_ADDRESS
@@ -561,7 +561,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // Add readState function from core contracts version
     function readState(
         uint16 destinationChainId,
-        address dstContract,
+        address destinationContract,
         bytes4 selector,
         bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata
@@ -576,7 +576,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit ReadRequestInitiated(
             operationId,
             destinationChainId,
-            dstContract,
+            destinationContract,
             selector,
             readParams,
             MOCK_ADAPTER_ADDRESS

@@ -135,7 +135,7 @@ contract MockAdapter is IBridgeAdapter {
         bytes32 operationId, // Accept from router
         uint16 srcChainId,
         uint16 destinationChainId,
-        address dstContract,
+        address destinationContract,
         bytes4 selector,
         bytes calldata readParams,
         address, // keeper - not used in mock
@@ -152,7 +152,7 @@ contract MockAdapter is IBridgeAdapter {
             operationId, // Use router's ID
             srcChainId,
             destinationChainId,
-            dstContract,
+            destinationContract,
             selector,
             readParams
         );
@@ -222,7 +222,7 @@ contract MockAdapter is IBridgeAdapter {
         bytes32 requestId,
         uint16 srcChainId,
         uint16 destinationChainId,
-        address dstContract,
+        address destinationContract,
         bytes4 selector,
         bytes readParams
     );

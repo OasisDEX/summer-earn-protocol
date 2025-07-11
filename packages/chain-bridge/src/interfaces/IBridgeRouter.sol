@@ -59,7 +59,7 @@ interface IBridgeRouter is IERC165 {
     event ReadRequestInitiated(
         bytes32 indexed operationId,
         uint16 destinationChainId, // Corrected from sourceChainId for clarity
-        address dstContract,
+        address destinationContract,
         bytes4 selector,
         bytes readParams,
         address adapter

@@ -35,7 +35,7 @@ interface ISendAdapter {
         bytes32 indexed requestId,
         uint16 srcChainId,
         uint16 destinationChainId,
-        address dstContract,
+        address destinationContract,
         bytes4 selector
     );
 
@@ -74,7 +74,7 @@ interface ISendAdapter {
      * @param operationId Router-provided operation ID for tracking
      * @param srcChainId ID of the source chain
      * @param destinationChainId ID of the destination chain
-     * @param dstContract Address of the contract on the destination chain
+     * @param destinationContract Address of the contract on the destination chain
      * @param selector Function selector to call
      * @param readParams Parameters for the function call
      * @param keeper Address that should receive any refunds
@@ -85,7 +85,7 @@ git sts     * @param adapterParams Additional adapter-specific parameters
         bytes32 operationId,
         uint16 srcChainId,
         uint16 destinationChainId,
-        address dstContract,
+        address destinationContract,
         bytes4 selector,
         bytes calldata readParams,
         address keeper,

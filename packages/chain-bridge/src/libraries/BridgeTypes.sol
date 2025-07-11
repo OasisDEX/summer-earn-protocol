@@ -57,7 +57,7 @@ library BridgeTypes {
      */
     struct ExecuteReadStateParams {
         uint16 destinationChainId;
-        address dstContract;
+        address destinationContract;
         bytes4 selector;
         bytes readParams;
         address originator;

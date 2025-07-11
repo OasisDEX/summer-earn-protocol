@@ -215,7 +215,7 @@ contract BridgeRouterAdminTest is Test {
         bytes32 operationId = router.executeReadState{value: nativeFee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                dstContract: address(mockAdapter), // Use mock adapter as target contract
+                destinationContract: address(mockAdapter), // Use mock adapter as target contract
                 selector: bytes4(keccak256("test()")), // Example function selector
                 readParams: "", // Empty params
                 originator: user,

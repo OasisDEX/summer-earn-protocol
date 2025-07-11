@@ -111,7 +111,7 @@ contract BridgeRouterReadStateTest is Test {
         bytes32 operationId = router.executeReadState{value: fee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                dstContract: targetContract,
+                destinationContract: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
@@ -169,7 +169,7 @@ contract BridgeRouterReadStateTest is Test {
         operationId = router.executeReadState{value: fee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                dstContract: targetContract,
+                destinationContract: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
@@ -254,7 +254,7 @@ contract BridgeRouterReadStateTest is Test {
         operationId = router.executeReadState{value: fee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                dstContract: targetContract,
+                destinationContract: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
@@ -329,7 +329,7 @@ contract BridgeRouterReadStateTest is Test {
         operationId = router.executeReadState{value: fee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                dstContract: targetContract,
+                destinationContract: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),

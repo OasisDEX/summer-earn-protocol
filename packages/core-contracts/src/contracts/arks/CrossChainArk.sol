@@ -176,7 +176,7 @@ contract CrossChainArk is
         BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
             .ExecuteReadStateParams({
                 destinationChainId: satelliteChainId,
-                dstContract: proxyAddress,
+                destinationContract: proxyAddress,
                 selector: IFleetProxy.totalAssets.selector,
                 readParams: "",
                 originator: address(this),
@@ -276,7 +276,7 @@ contract CrossChainArk is
     function executeTransferAssets() external payable onlyKeeper {
         if (pendingTransferParams.asset == address(0))
             revert NoPendingTransferParams();
-        // todo: add more validaion
+        // todo: add more validaion or is that in the bridge router?
         config.asset.approve(
             address(bridgeRouter),
             pendingTransferParams.amount

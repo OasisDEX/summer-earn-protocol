@@ -575,7 +575,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
         bytes32 operationId,
         uint16 srcChainId,
         uint16 destinationChainId,
-        address dstContract,
+        address destinationContract,
         bytes4 selector,
         bytes calldata readParams,
         address keeper,
@@ -605,7 +605,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
                 isBlockNum: false,
                 blockNumOrTimestamp: uint64(block.timestamp),
                 confirmations: 15,
-                to: dstContract,
+                to: destinationContract,
                 callData: abi.encodePacked(selector, readParams)
             });
 
@@ -630,7 +630,7 @@ contract LayerZeroAdapter is Ownable, OAppRead, IBridgeAdapter {
             operationId,
             srcChainId,
             destinationChainId,
-            dstContract,
+            destinationContract,
             selector
         );
 

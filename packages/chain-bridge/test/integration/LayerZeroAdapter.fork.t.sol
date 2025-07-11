@@ -205,7 +205,7 @@ contract LayerZeroIntegrationTest is Test {
         bytes32 operationId = router.executeReadState{value: nativeFee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                dstContract: targetContract,
+                destinationContract: targetContract,
                 selector: selector,
                 readParams: callData,
                 originator: user,

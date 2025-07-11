@@ -359,7 +359,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         bytes32 indexed requestId,
         uint16 srcChainId,
         uint16 destinationChainId,
-        address dstContract,
+        address destinationContract,
         bytes4 selector
     );
 }
