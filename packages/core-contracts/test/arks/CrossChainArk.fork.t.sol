@@ -601,7 +601,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.deal(commander, nativeFee);
 
         // Expect TransferInitiated event from BridgeRouter
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(false, true, true, true);
         emit IBridgeRouter.TransferInitiated(
             bytes32(0), // We can't predict the operationId
             DEST_CHAIN_ID,

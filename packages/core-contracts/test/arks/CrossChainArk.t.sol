@@ -314,6 +314,192 @@ contract CrossChainArkTest is Test, ArkTestBase {
         ark.board(1000, executeTransferParams);
     }
 
+    function testBoardValidationsFailures() public {
+        uint256 amount = 1000;
+        deal(address(mockToken), address(fleetCommander), amount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+
+        // Test 1: Zero amount should revert with InvalidAmount
+        BridgeTypes.ExecuteTransferParams memory zeroAmountParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: chainId,
+                asset: address(mockToken),
+                amount: 0,
+                recipient: proxy,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory zeroAmountParams_encoded = abi.encode(zeroAmountParams);
+        
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(CrossChainArk.InvalidAmount.selector);
+        ark.board(0, zeroAmountParams_encoded);
+
+        // Test 2: Amount mismatch should revert with InvalidAmount
+        BridgeTypes.ExecuteTransferParams memory mismatchAmountParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: chainId,
+                asset: address(mockToken),
+                amount: 500, // Different from board amount
+                recipient: proxy,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory mismatchAmountParams_encoded = abi.encode(mismatchAmountParams);
+        
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(CrossChainArk.InvalidAmount.selector);
+        ark.board(1000, mismatchAmountParams_encoded); // 1000 != 500
+
+        // Test 3: Zero asset address should revert with InvalidAsset
+        BridgeTypes.ExecuteTransferParams memory zeroAssetParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: chainId,
+                asset: address(0),
+                amount: amount,
+                recipient: proxy,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory zeroAssetParams_encoded = abi.encode(zeroAssetParams);
+        
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(CrossChainArk.InvalidAsset.selector);
+        ark.board(amount, zeroAssetParams_encoded);
+
+        // Test 4: Wrong asset address should revert with InvalidAsset
+        address wrongAsset = address(0x999);
+        BridgeTypes.ExecuteTransferParams memory wrongAssetParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: chainId,
+                asset: wrongAsset,
+                amount: amount,
+                recipient: proxy,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory wrongAssetParams_encoded = abi.encode(wrongAssetParams);
+        
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(CrossChainArk.InvalidAsset.selector);
+        ark.board(amount, wrongAssetParams_encoded);
+
+        // Test 5: Wrong recipient should revert with InvalidRecipient
+        address wrongRecipient = address(0x888);
+        BridgeTypes.ExecuteTransferParams memory wrongRecipientParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: chainId,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: wrongRecipient,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory wrongRecipientParams_encoded = abi.encode(wrongRecipientParams);
+        
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(CrossChainArk.InvalidRecipient.selector);
+        ark.board(amount, wrongRecipientParams_encoded);
+
+        // Test 6: Wrong originator should revert with InvalidRequestor
+        address wrongOriginator = address(0x777);
+        BridgeTypes.ExecuteTransferParams memory wrongOriginatorParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: chainId,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: proxy,
+                originator: wrongOriginator,
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory wrongOriginatorParams_encoded = abi.encode(wrongOriginatorParams);
+        
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(CrossChainArk.InvalidRequestor.selector);
+        ark.board(amount, wrongOriginatorParams_encoded);
+
+        // Test 7: Wrong destination chain ID should revert with InvalidSatelliteChain
+        uint16 wrongChainId = 9999;
+        BridgeTypes.ExecuteTransferParams memory wrongChainParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: wrongChainId,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: proxy,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory wrongChainParams_encoded = abi.encode(wrongChainParams);
+        
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(CrossChainArk.InvalidSatelliteChain.selector);
+        ark.board(amount, wrongChainParams_encoded);
+    }
+
     function testReceiveStateReadUpdatesRemoteBalanceAndEmitsEvent() public {
         uint256 remoteBalance = 12345;
         bytes memory resultData = abi.encode(remoteBalance);
