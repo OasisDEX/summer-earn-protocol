@@ -128,8 +128,10 @@ contract BridgeRouter is
     function _validateReadStateParams(
         BridgeTypes.ExecuteReadStateParams calldata params
     ) internal pure {
-        if (params.originator == address(0) || params.destinationContract == address(0))
-            revert InvalidParams();
+        if (
+            params.originator == address(0) ||
+            params.destinationContract == address(0)
+        ) revert InvalidParams();
     }
 
     /**

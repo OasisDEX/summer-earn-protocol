@@ -340,14 +340,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 })
             });
         bytes memory zeroAmountParams_encoded = abi.encode(zeroAmountParams);
-        
+
         vm.prank(address(fleetCommander));
         vm.expectRevert(CrossChainArk.InvalidAmount.selector);
         ark.board(0, zeroAmountParams_encoded);
 
         // Test 2: Amount mismatch should revert with InvalidAmount
-        BridgeTypes.ExecuteTransferParams memory mismatchAmountParams = BridgeTypes
-            .ExecuteTransferParams({
+        BridgeTypes.ExecuteTransferParams
+            memory mismatchAmountParams = BridgeTypes.ExecuteTransferParams({
                 destinationChainId: chainId,
                 asset: address(mockToken),
                 amount: 500, // Different from board amount
@@ -364,8 +364,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                     })
                 })
             });
-        bytes memory mismatchAmountParams_encoded = abi.encode(mismatchAmountParams);
-        
+        bytes memory mismatchAmountParams_encoded = abi.encode(
+            mismatchAmountParams
+        );
+
         vm.prank(address(fleetCommander));
         vm.expectRevert(CrossChainArk.InvalidAmount.selector);
         ark.board(1000, mismatchAmountParams_encoded); // 1000 != 500
@@ -390,7 +392,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 })
             });
         bytes memory zeroAssetParams_encoded = abi.encode(zeroAssetParams);
-        
+
         vm.prank(address(fleetCommander));
         vm.expectRevert(CrossChainArk.InvalidAsset.selector);
         ark.board(amount, zeroAssetParams_encoded);
@@ -416,15 +418,15 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 })
             });
         bytes memory wrongAssetParams_encoded = abi.encode(wrongAssetParams);
-        
+
         vm.prank(address(fleetCommander));
         vm.expectRevert(CrossChainArk.InvalidAsset.selector);
         ark.board(amount, wrongAssetParams_encoded);
 
         // Test 5: Wrong recipient should revert with InvalidRecipient
         address wrongRecipient = address(0x888);
-        BridgeTypes.ExecuteTransferParams memory wrongRecipientParams = BridgeTypes
-            .ExecuteTransferParams({
+        BridgeTypes.ExecuteTransferParams
+            memory wrongRecipientParams = BridgeTypes.ExecuteTransferParams({
                 destinationChainId: chainId,
                 asset: address(mockToken),
                 amount: amount,
@@ -441,16 +443,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
                     })
                 })
             });
-        bytes memory wrongRecipientParams_encoded = abi.encode(wrongRecipientParams);
-        
+        bytes memory wrongRecipientParams_encoded = abi.encode(
+            wrongRecipientParams
+        );
+
         vm.prank(address(fleetCommander));
         vm.expectRevert(CrossChainArk.InvalidRecipient.selector);
         ark.board(amount, wrongRecipientParams_encoded);
 
         // Test 6: Wrong originator should revert with InvalidRequestor
         address wrongOriginator = address(0x777);
-        BridgeTypes.ExecuteTransferParams memory wrongOriginatorParams = BridgeTypes
-            .ExecuteTransferParams({
+        BridgeTypes.ExecuteTransferParams
+            memory wrongOriginatorParams = BridgeTypes.ExecuteTransferParams({
                 destinationChainId: chainId,
                 asset: address(mockToken),
                 amount: amount,
@@ -467,8 +471,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                     })
                 })
             });
-        bytes memory wrongOriginatorParams_encoded = abi.encode(wrongOriginatorParams);
-        
+        bytes memory wrongOriginatorParams_encoded = abi.encode(
+            wrongOriginatorParams
+        );
+
         vm.prank(address(fleetCommander));
         vm.expectRevert(CrossChainArk.InvalidRequestor.selector);
         ark.board(amount, wrongOriginatorParams_encoded);
@@ -494,7 +500,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 })
             });
         bytes memory wrongChainParams_encoded = abi.encode(wrongChainParams);
-        
+
         vm.prank(address(fleetCommander));
         vm.expectRevert(CrossChainArk.InvalidSatelliteChain.selector);
         ark.board(amount, wrongChainParams_encoded);
