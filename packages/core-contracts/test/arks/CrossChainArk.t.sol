@@ -15,6 +15,7 @@ import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 
 // Mock CrossChainRegistry for testing
 contract MockCrossChainRegistry is ICrossChainRegistry {
@@ -200,6 +201,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainArk ark;
     MockBridgeRouter router;
     MockCrossChainRegistry registry;
+    MockAdapter mockAdapter;
     address proxy = address(0x5);
     uint16 chainId = 1234;
     FleetCommander fleetCommander;
@@ -220,7 +222,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false,
+            requiresKeeperData: true,
             maxDepositPercentageOfTVL: PERCENTAGE_1
         });
 
@@ -265,6 +267,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Activate the Ark
         vm.prank(governor);
         fleetCommander.addArk(address(ark));
+
+        // Deploy mock adapter
+        mockAdapter = new MockAdapter(address(router));
+
+        // Register adapter
+        router.registerAdapter(address(mockAdapter));
     }
 
     function testConstructorSetsState() public view {
@@ -276,12 +284,34 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testBoardCallsQueueTransferAssets() public {
         // Approve Ark to spend tokens from FleetCommander
-        deal(address(mockToken), address(fleetCommander), 1000);
+
+        uint256 amount = 1000;
+        deal(address(mockToken), address(fleetCommander), amount);
         vm.prank(address(fleetCommander));
         mockToken.approve(address(ark), type(uint256).max);
 
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: chainId,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: proxy,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory executeTransferParams = abi.encode(params);
+
         vm.prank(address(fleetCommander));
-        ark.board(1000, "");
+        ark.board(1000, executeTransferParams);
     }
 
     function testReceiveStateReadUpdatesRemoteBalanceAndEmitsEvent() public {
