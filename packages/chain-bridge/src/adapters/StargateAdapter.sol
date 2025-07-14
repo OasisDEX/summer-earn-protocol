@@ -6,7 +6,6 @@ import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
-import {IFleetDepositAdapter} from "../interfaces/IFleetDepositAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
@@ -38,7 +37,6 @@ import {IHarborCommandMinimal} from "../interfaces/IHarborCommandMinimal.sol";
  */
 contract StargateAdapter is
     IBridgeAdapter,
-    IFleetDepositAdapter,
     ILayerZeroComposer,
     Nonces,
     BaseBridgeAdapter
@@ -344,80 +342,6 @@ contract StargateAdapter is
     /*//////////////////////////////////////////////////////////////
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IFleetDepositAdapter
-    function sendFleetDepositToDestinationChain(
-        uint16 dstChainId,
-        address asset,
-        uint256 amount,
-        bytes memory composeMessage,
-        BridgeTypes.AdapterParams calldata /* adapterParams */
-    )
-        external
-        payable
-        onlySupportedDestination(dstChainId)
-        nonReentrant
-        returns (bytes32 operationId)
-    {
-        // Validate inputs
-        if (amount == 0) revert InvalidFleetDepositParams();
-        if (assetToStargateContract[asset] == address(0))
-            revert UnsupportedAsset();
-
-        // Resolve peer adapter via registry
-        address actualDestinationAdapter = _peerAdapter(dstChainId);
-        if (actualDestinationAdapter == address(0)) revert UnsupportedChain();
-
-        // Transfer tokens from user to this contract
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-
-        // Generate operation ID with nonce for uniqueness
-        uint256 nonce = _useNonce(msg.sender);
-        operationId = keccak256(
-            abi.encode(msg.sender, dstChainId, amount, nonce, block.chainid)
-        );
-
-        // Extract data from compose message using the decode helper
-        BridgeTypes.FleetDepositMessageData
-            memory messageData = _decodeFleetDepositMessage(composeMessage);
-
-        // Update operation ID and re-encode message
-        messageData.operationId = operationId;
-        bytes memory updatedComposeMessage = _encodeFleetDepositMessage(
-            messageData
-        );
-
-        // Execute cross-chain transfer with compose
-        _sendFleetDepositToDestinationChain(
-            asset,
-            amount,
-            dstChainId,
-            actualDestinationAdapter,
-            updatedComposeMessage,
-            msg.value
-        );
-
-        emit FleetDepositSentToDestination(
-            operationId,
-            dstChainId,
-            msg.sender,
-            messageData.fleetCommander,
-            asset,
-            amount,
-            messageData.shareRecipient,
-            address(this)
-        );
-    }
-
-    /// @inheritdoc IFleetDepositAdapter
-    function supportsUserInitiatedFleetDeposits()
-        external
-        pure
-        override
-        returns (bool)
-    {
-        return true;
-    }
 
     /// @inheritdoc ISendAdapter
     function transferAsset(
