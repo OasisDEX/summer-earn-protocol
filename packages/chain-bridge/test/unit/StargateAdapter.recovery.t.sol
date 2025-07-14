@@ -211,7 +211,7 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         // Remove tokens from wrapper - transfer from wrapper to this test contract
         uint256 wrapperBalance = tokenB.balanceOf(address(wrapperB));
         vm.prank(address(wrapperB));
-        tokenB.transfer(address(this), wrapperBalance);
+        assertTrue(tokenB.transfer(address(this), wrapperBalance));
 
         // Verify wrapper now has 0 balance
         assertEq(tokenB.balanceOf(address(wrapperB)), 0);

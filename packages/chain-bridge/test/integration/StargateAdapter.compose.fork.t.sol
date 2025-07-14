@@ -403,11 +403,13 @@ contract StargateAdapterComposeForkTest is Test {
     }
 
     // Helper functions to call OFTComposeMsgCodec with calldata
+    /// forge-lint: disable-start(mixed-case-function)
     function getAmountLD(
         bytes calldata message
     ) external pure returns (uint256) {
         return OFTComposeMsgCodec.amountLD(message);
     }
+    /// forge-lint: disable-end(mixed-case-function)
 
     function getComposeMsg(
         bytes calldata message

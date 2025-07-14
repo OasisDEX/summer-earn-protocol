@@ -41,7 +41,9 @@ contract StargateAdapterTestWrapper is StargateAdapter {
      */
     function handleComposedMessage(
         address _from,
+        /// forge-lint: disable-start(mixed-case-variable)
         uint256 amountLD,
+        /// forge-lint: disable-end(mixed-case-variable)
         bytes memory composeMsg
     ) external {
         _handleComposedMessage(_from, amountLD, composeMsg);

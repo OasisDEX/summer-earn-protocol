@@ -71,7 +71,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // Add mapping for chain to router addresses if not already present
     mapping(uint16 => address) public chainToRouterAddress;
 
-    uint64 public DEFAULT_GAS_LIMIT = 200000; // Default value matching the real implementation
+    uint64 public defaultGasLimit = 200000; // Default value matching the real implementation
 
     // Mock-specific event
     event BridgeQueueAddressSet(address bridgeQueue); // Mock specific event

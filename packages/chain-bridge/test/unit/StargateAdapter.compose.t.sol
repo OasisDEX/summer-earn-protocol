@@ -18,10 +18,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract SimpleMockFleetCommander {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable asset;
+    IERC20 public immutable ASSET;
 
     constructor(address _asset) {
-        asset = IERC20(_asset);
+        ASSET = IERC20(_asset);
     }
 
     function deposit(
@@ -29,7 +29,7 @@ contract SimpleMockFleetCommander {
         address /* receiver */
     ) external returns (uint256) {
         // Transfer tokens from caller to this contract (like a real fleet commander would)
-        asset.safeTransferFrom(msg.sender, address(this), amount);
+        ASSET.safeTransferFrom(msg.sender, address(this), amount);
         // Return shares (1:1 ratio for simplicity)
         return amount;
     }
@@ -40,7 +40,7 @@ contract SimpleMockFleetCommander {
         bytes memory /* referralCode */
     ) external returns (uint256) {
         // Transfer tokens from caller to this contract (like a real fleet commander would)
-        asset.safeTransferFrom(msg.sender, address(this), amount);
+        ASSET.safeTransferFrom(msg.sender, address(this), amount);
         // Return shares (1:1 ratio for simplicity)
         return amount;
     }
@@ -59,6 +59,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyB;
 
     // Helper functions to call OFTComposeMsgCodec with calldata
+    /// forge-lint: disable-start(mixed-case-function)
     function getAmountLD(
         bytes calldata message
     ) external pure returns (uint256) {
@@ -70,7 +71,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     ) external pure returns (bytes memory) {
         return OFTComposeMsgCodec.composeMsg(message);
     }
-
+    /// forge-lint: disable-end(mixed-case-function)
     /**
      * @dev Internal helper to properly encode fleet deposit messages using BridgeTypes struct
      * @param fleetCommander Address of the fleet commander contract
@@ -136,6 +137,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
      * @param referralCode Optional referral code
      * @return Complete OFT-encoded message ready for lzCompose
      */
+    /// forge-lint: disable-start(mixed-case-function)
     function _createFleetDepositOFTMessage(
         address fleetCommander,
         address shareRecipient,
@@ -170,6 +172,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
                 properComposeMsg
             );
     }
+    /// forge-lint: disable-end(mixed-case-function)
 
     function setUp() public override {
         super.setUp();
@@ -260,7 +263,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Transfer tokens to router and approve
         vm.prank(user);
-        tokenA.transfer(address(routerA), 1 ether);
+        assertTrue(tokenA.transfer(address(routerA), 1 ether));
 
         vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
@@ -384,7 +387,9 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             memory realMessage = hex"0000000000066982000075e800000000000000000000000000000000000000000000000000000000004c4a45000000000000000000000000bb784b7bd9b9e2e3257c4838b798fb077d96c2350000000000000000000000001534e3d0f23d91142424a0091aab8037fac80cb8000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000000210515919236bbb71d094ca0aee8259859441555203071b0f3da4cb32e40d4118ac10000000000000000000000009d4d5ef9a4f25589cca44e1fbdec25d79f2271ea";
 
         // Parse the amount and compose message
+        /// forge-lint: disable-start(mixed-case-variable)
         uint256 amountLD = this.getAmountLD(realMessage);
+        /// forge-lint: disable-end(mixed-case-variable)
         bytes memory composeMsg = this.getComposeMsg(realMessage);
 
         console.log("Amount from OFT message:", amountLD);
@@ -401,7 +406,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             MockStargateV2.StargateType.Pool
         );
 
-        console.log("Mock Stargate token():", mockStargateFrom.token());
+        console.log("Mock Stargate token():", mockStargateFrom.TOKEN());
 
         // Setup mock fleet proxy
         MockFleetProxy realFleetProxy = new MockFleetProxy(usdcOnBase);

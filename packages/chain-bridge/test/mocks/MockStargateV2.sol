@@ -22,8 +22,8 @@ contract MockStargateV2 {
         bytes passenger;
     }
 
-    address public immutable token;
-    StargateType public immutable stargateType;
+    address public immutable TOKEN;
+    StargateType public immutable STARGATE_TYPE;
 
     // Compose message tracking
     bytes public expectedComposeMsg;
@@ -31,8 +31,8 @@ contract MockStargateV2 {
     bytes public lastComposeMsg;
 
     constructor(address _token, StargateType _stargateType) {
-        token = _token;
-        stargateType = _stargateType;
+        TOKEN = _token;
+        STARGATE_TYPE = _stargateType;
     }
 
     function setExpectedComposeMsg(bytes memory _composeMsg) external {
@@ -53,7 +53,7 @@ contract MockStargateV2 {
         )
     {
         // Transfer tokens from sender to this contract (simulating real Stargate behavior)
-        IERC20(token).safeTransferFrom(
+        IERC20(TOKEN).safeTransferFrom(
             msg.sender,
             address(this),
             _sendParam.amountLD
@@ -97,6 +97,7 @@ contract MockStargateV2 {
         msgFee = MessagingFee({nativeFee: 0.01 ether, lzTokenFee: 0});
     }
 
+    /// forge-lint: disable-next-item(mixed-case-function)
     function quoteOFT(
         SendParam calldata _sendParam
     )

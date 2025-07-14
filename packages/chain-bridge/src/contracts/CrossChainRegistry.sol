@@ -18,7 +18,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The chain ID of the current deployment
-    uint16 public immutable currentChainId;
+    uint16 private immutable CURRENT_CHAIN_ID;
 
     /// @notice Mapping from relationship key to relationship information
     /// Key: keccak256(abi.encode(sourceContract, relationshipType))
@@ -73,7 +73,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     ) ProtocolAccessManaged(_accessManager) {
         if (_currentChainId == 0) revert InvalidCurrentChainId();
 
-        currentChainId = _currentChainId;
+        CURRENT_CHAIN_ID = _currentChainId;
 
         _addRelationshipType(ADAPTER_PEER);
         _addRelationshipType(ARK_FLEET);
@@ -603,7 +603,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             revert InvalidChainRelationship(
                 relation.sourceChainId,
                 targetChainId,
-                currentChainId
+                CURRENT_CHAIN_ID
             );
         }
     }
@@ -727,6 +727,15 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /*//////////////////////////////////////////////////////////////
+                        VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ICrossChainRegistry
+    function currentChainId() external view returns (uint16) {
+        return CURRENT_CHAIN_ID;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -805,12 +814,13 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         // At least one chain must be the deployment chain
         if (
-            sourceChainId != currentChainId && targetChainId != currentChainId
+            sourceChainId != CURRENT_CHAIN_ID &&
+            targetChainId != CURRENT_CHAIN_ID
         ) {
             revert InvalidChainRelationship(
                 sourceChainId,
                 targetChainId,
-                currentChainId
+                CURRENT_CHAIN_ID
             );
         }
     }

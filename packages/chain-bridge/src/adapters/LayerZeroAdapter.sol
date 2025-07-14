@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
+/// forge-lint: disable-next-item(unused-import)
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
@@ -86,11 +87,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     );
 
     /// @notice Emitted when read DVNs are configured
+    /// forge-lint: disable-start(mixed-case-variable, mixed-case-function)
     event ReadDVNsConfigured(
         uint32 indexed readChannelId,
         address[] readDVNs,
         uint64 confirmations
     );
+    /// forge-lint: disable-end(mixed-case-variable, mixed-case-function)
 
     /// @notice Emitted when read executor is configured
     event ReadExecutorConfigured(
@@ -238,6 +241,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param executor Address of the executor for read operations
      * @dev Must be called to enable read operations with proper DVN and executor configuration
      */
+    /// forge-lint: disable-start(mixed-case-variable, mixed-case-function)
     function configureReadDVNs(
         address readLib1002Address,
         address[] memory readDVNs,
@@ -280,6 +284,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
     }
+    /// forge-lint: disable-end(mixed-case-variable, mixed-case-function)
 
     /*//////////////////////////////////////////////////////////////
                             OAPP RECEIVER
