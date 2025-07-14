@@ -544,12 +544,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Verify the mock Stargate contract is properly configured
         assertEq(
-            mockStargate.token(),
+            mockStargate.TOKEN(),
             address(usdc),
             "Mock Stargate should be configured for USDC"
         );
         assertEq(
-            uint8(mockStargate.stargateType()),
+            uint8(mockStargate.STARGATE_TYPE()),
             uint8(MockStargateV2.StargateType.Pool),
             "Mock Stargate should be Pool type"
         );

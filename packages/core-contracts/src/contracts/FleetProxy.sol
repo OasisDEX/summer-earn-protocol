@@ -216,9 +216,9 @@ contract FleetProxy is
         uint16 sourceChainId
     ) internal view returns (address arkAddress) {
         return
-            ICrossChainRegistry(crossChainRegistry).getSourceForTarget(
+            ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
                 sourceChainId,
-                ICrossChainRegistry(crossChainRegistry).currentChainId(),
+                ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
             );
@@ -233,21 +233,21 @@ contract FleetProxy is
         uint16 sourceChainId
     ) internal view returns (bool isValid) {
         try
-            ICrossChainRegistry(crossChainRegistry).getSourceForTarget(
+            ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
                 sourceChainId,
-                ICrossChainRegistry(crossChainRegistry).currentChainId(),
+                ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
             )
         returns (address ark) {
             if (ark != address(0)) {
                 try
-                    ICrossChainRegistry(crossChainRegistry)
+                    ICrossChainRegistry(crossChainRegistry())
                         .isValidCrossChainPair(
                             ark,
                             address(this),
                             sourceChainId,
-                            ICrossChainRegistry(crossChainRegistry)
+                            ICrossChainRegistry(crossChainRegistry())
                                 .currentChainId(),
                             ARK_FLEET_RELATIONSHIP
                         )
