@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import {console} from "forge-std/Test.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
+import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
@@ -10,7 +11,7 @@ import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -18,10 +19,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract SimpleMockFleetCommander {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable ASSET;
+    // forge-lint: disable-start(screaming-snake-case)
+    IERC20 public immutable asset;
+    // forge-lint: disable-end(screaming-snake-case)
 
     constructor(address _asset) {
-        ASSET = IERC20(_asset);
+        asset = IERC20(_asset);
     }
 
     function deposit(
@@ -29,7 +32,7 @@ contract SimpleMockFleetCommander {
         address /* receiver */
     ) external returns (uint256) {
         // Transfer tokens from caller to this contract (like a real fleet commander would)
-        ASSET.safeTransferFrom(msg.sender, address(this), amount);
+        asset.safeTransferFrom(msg.sender, address(this), amount);
         // Return shares (1:1 ratio for simplicity)
         return amount;
     }
@@ -40,7 +43,7 @@ contract SimpleMockFleetCommander {
         bytes memory /* referralCode */
     ) external returns (uint256) {
         // Transfer tokens from caller to this contract (like a real fleet commander would)
-        ASSET.safeTransferFrom(msg.sender, address(this), amount);
+        asset.safeTransferFrom(msg.sender, address(this), amount);
         // Return shares (1:1 ratio for simplicity)
         return amount;
     }
@@ -401,9 +404,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         address usdcOnBase = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 
         // Create a mock Stargate contract that returns the USDC address from token()
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            usdcOnBase,
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            usdcOnBase
         );
 
         console.log("Mock Stargate token():", mockStargateFrom.TOKEN());
@@ -704,9 +706,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         tokenB.mint(address(adapterB), testAmount);
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
         );
 
         // Register the mock Stargate contract in the adapter
@@ -782,9 +783,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         mockFleetCommander.setShouldRevert(true); // Make receiveMessageWithAssets fail
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
         );
 
         // Register the mock Stargate contract in the adapter
@@ -892,9 +892,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
         );
 
         // Register the mock Stargate contract in the adapter

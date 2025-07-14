@@ -146,7 +146,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Deploy mock Stargate contract
         mockStargate = new MockStargateV2(
             address(usdc),
-            MockStargateV2.StargateType.Pool
+            IStargateV2.StargateType.Pool
         );
 
         // Add USDC as supported asset for Stargate adapter
@@ -290,7 +290,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Deploy mock Stargate contract
         mockStargate = new MockStargateV2(
             address(usdc),
-            MockStargateV2.StargateType.Pool
+            IStargateV2.StargateType.Pool
         );
 
         // Add USDC as supported asset for Stargate adapter on current chain only
@@ -550,7 +550,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         assertEq(
             uint8(mockStargate.STARGATE_TYPE()),
-            uint8(MockStargateV2.StargateType.Pool),
+            uint8(IStargateV2.StargateType.Pool),
             "Mock Stargate should be Pool type"
         );
 
