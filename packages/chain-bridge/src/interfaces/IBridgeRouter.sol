@@ -175,6 +175,28 @@ interface IBridgeRouter is IERC165 {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Single entry-point for inbound asset transfers and messages
+     * @dev Called by registered adapters to deliver assets and messages to recipients.
+     *      The registry ensures recipients are valid targets.
+     *      For assets, transfers tokens and emits TransferReceived.
+     *      For messages, calls recipient and emits MessageDelivered.
+     * @param operationId Unique identifier for this cross-chain operation
+     * @param sourceChainId Chain ID where the operation originated
+     * @param asset Address of the asset being transferred (address(0) for pure messages)
+     * @param amount Amount of asset being transferred (0 for pure messages)
+     * @param recipient Address to receive the assets/message
+     * @param payload Additional data for the recipient
+     */
+    function deliver(
+        bytes32 operationId,
+        uint16 sourceChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        bytes calldata payload
+    ) external;
+
+    /**
      * @notice Update the status of an operation (called by adapters)
      * @param operationId ID of the operation to update
      * @param status New status of the operation

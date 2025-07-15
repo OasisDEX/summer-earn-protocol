@@ -61,6 +61,12 @@ contract BridgeRouterTransferTest is Test {
         // Register adapter
         router.registerAdapter(address(mockAdapter));
 
+        registry.initializeBridgeConfiguration(
+            address(router), // Set the bridge router address
+            500000 // Set a default gas limit
+        );
+        registry.registerExecutor(keeper);
+
         // Mint tokens for testing
         token.mint(keeper, 10000e18);
 

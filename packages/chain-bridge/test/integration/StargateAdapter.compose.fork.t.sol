@@ -70,16 +70,17 @@ contract StargateAdapterComposeForkTest is Test {
             governor
         );
 
-        routerMainnet = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(registryMainnet)
-        );
-
         // Deploy and initialize CrossChainRegistry for mainnet
         registryMainnet = new CrossChainRegistry(
             address(accessManager),
             CHAIN_ID_MAINNET
         );
+
+        routerMainnet = new BridgeRouterTestHelper(
+            address(accessManager),
+            address(registryMainnet)
+        );
+
         registryMainnet.initializeBridgeConfiguration(
             address(routerMainnet),
             400000 // defaultGasLimit
@@ -127,16 +128,16 @@ contract StargateAdapterComposeForkTest is Test {
             governor
         );
 
+        registryArbitrum = new CrossChainRegistry(
+            address(accessManagerArb),
+            CHAIN_ID_ARBITRUM
+        );
+
         routerArbitrum = new BridgeRouterTestHelper(
             address(accessManagerArb),
             address(registryArbitrum)
         );
 
-        // Deploy and initialize CrossChainRegistry for arbitrum
-        registryArbitrum = new CrossChainRegistry(
-            address(accessManagerArb),
-            CHAIN_ID_ARBITRUM
-        );
         registryArbitrum.initializeBridgeConfiguration(
             address(routerArbitrum),
             400000 // defaultGasLimit

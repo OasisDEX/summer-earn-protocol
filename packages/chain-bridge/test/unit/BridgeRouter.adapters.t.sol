@@ -25,6 +25,7 @@ contract BridgeRouterAdaptersTest is Test {
     address public governor = address(0x1);
     address public user = address(0x2);
     address public keeper = address(0x3);
+    address public executor = address(0x4);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
@@ -49,6 +50,12 @@ contract BridgeRouterAdaptersTest is Test {
         // Deploy router
         router = new BridgeRouter(address(accessManager), address(registry));
 
+        // Initialize bridge configuration in registry
+        registry.initializeBridgeConfiguration(
+            address(router), // Set router as bridge router
+            500000 // Default gas limit
+        );
+
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
         token = new ERC20Mock();
@@ -59,12 +66,17 @@ contract BridgeRouterAdaptersTest is Test {
         // Register adapter
         router.registerAdapter(address(mockAdapter));
 
+        registry.registerExecutor(address(mockAdapter));
+        registry.registerExecutor(executor);
+
         // Mint tokens for testing
         token.mint(governor, 10000e18);
         token.mint(keeper, 10000e18);
+        token.mint(executor, 10000e18);
 
         // Fund keeper for execution - give enough for the base fee (0.1 ETH)
         vm.deal(keeper, 1 ether);
+        vm.deal(executor, 1 ether);
 
         vm.stopPrank();
     }
@@ -196,8 +208,7 @@ contract BridgeRouterAdaptersTest is Test {
 
         vm.stopPrank(); // User stops queueing
 
-        // Execute the queued operation (can be keeper or anyone) (PAYS FEE)
-        vm.startPrank(keeper);
+        vm.startPrank(executor);
         // approve tokens for transfer
         token.approve(address(router), TRANSFER_AMOUNT);
 
@@ -208,7 +219,7 @@ contract BridgeRouterAdaptersTest is Test {
                 amount: TRANSFER_AMOUNT,
                 recipient: user,
                 originator: user,
-                keeper: address(keeper),
+                keeper: address(executor),
                 options: options
             })
         );
@@ -219,14 +230,6 @@ contract BridgeRouterAdaptersTest is Test {
             uint256(router.getOperationStatus(operationId)),
             uint256(BridgeTypes.OperationStatus.SENT) // Should be SENT as it's sent to adapter
         );
-
-        // Verify the specified adapter was used (if checking router state)
-        // assertEq(router.operationToAdapter(operationId), address(mockAdapter2));
-        // Verify router status (if checking router state)
-        // assertEq(
-        //     uint256(router.getOperationStatus(operationId)),
-        //     uint256(BridgeTypes.OperationStatus.PENDING)
-        // );
     }
 
     function testInvalidSpecifiedAdapter() public {

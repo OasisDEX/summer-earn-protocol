@@ -15,6 +15,8 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
 
 /**
  * @title BridgeRouter
@@ -672,63 +674,62 @@ contract BridgeRouter is
         uint16 sourceChainId,
         bytes calldata resultData
     ) external nonReentrant onlyRegisteredAdapter {
-        if (operationToAdapter[operationId] != msg.sender) {
+        if (operationToAdapter[operationId] != msg.sender)
             revert Unauthorized();
-        }
 
         address originator = readRequestToOriginator[operationId];
         if (originator == address(0)) revert InvalidParams();
 
-        // Try to deliver the response
-        bool delivered = false;
+        ICrossChainStateReadReceiver(originator).receiveStateRead(
+            resultData,
+            originator,
+            operationId,
+            sourceChainId
+        );
 
-        // Check if the originator implements the ICrossChainStateReadReceiver interface
-        bytes4 interfaceId = type(ICrossChainStateReadReceiver).interfaceId;
-        try
-            ICrossChainStateReadReceiver(originator).supportsInterface(
-                interfaceId
-            )
-        returns (bool supported) {
-            if (supported) {
-                try
-                    ICrossChainStateReadReceiver(originator).receiveStateRead(
-                        resultData,
-                        originator,
-                        operationId,
-                        sourceChainId
-                    )
-                {
-                    delivered = true;
-                } catch {
-                    delivered = false;
-                }
-            } else {
-                (bool success, ) = originator.call(
-                    abi.encodeWithSelector(
-                        ICrossChainStateReadReceiver.receiveStateRead.selector,
-                        resultData,
-                        originator,
-                        operationId,
-                        sourceChainId
-                    )
-                );
-                delivered = success;
-            }
-        } catch {
-            delivered = false;
-        }
+        emit ReadResponseDelivered(operationId, originator, true);
+    }
 
-        // Emit event based on delivery result
-        emit ReadResponseDelivered(operationId, originator, delivered);
+    /// @inheritdoc IBridgeRouter
+    function deliver(
+        bytes32 operationId,
+        uint16 sourceChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        bytes calldata payload
+    ) external onlyRegisteredAdapter nonReentrant {
+        // Track the handling adapter
+        requestReceivedByAdapter[operationId] = msg.sender;
 
-        // Only update status if delivery failed
-        if (!delivered) {
-            operationStatuses[operationId] = BridgeTypes.OperationStatus.FAILED;
-            emit OperationStatusUpdated(
-                operationId,
-                BridgeTypes.OperationStatus.FAILED
+        // 1. Move tokens first (if any)
+        if (asset != address(0) && amount > 0) {
+            IERC20(asset).safeTransfer(recipient, amount);
+
+            // Callback with asset payload (registry guarantees a valid target)
+            ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
+                asset,
+                amount,
+                payload,
+                sourceChainId
             );
+
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
+            return; // nothing else to emit
         }
+
+        // 2. Pure message path
+        ICrossChainMessageReceiver(recipient).receiveMessage(
+            sourceChainId,
+            payload
+        );
+        emit MessageDelivered(operationId, recipient, true);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -24,6 +24,7 @@ contract BridgeRouterAdminTest is Test {
     address public governor = address(0x1);
     address public guardian = address(0x2);
     address public user = address(0x3);
+    address public executor = address(0x5);
     address public keeper = address(0x4);
 
     // Constants for testing
@@ -51,6 +52,12 @@ contract BridgeRouterAdminTest is Test {
         // Deploy BridgeRouter
         router = new BridgeRouter(address(accessManager), address(registry));
 
+        // Initialize bridge configuration in registry
+        registry.initializeBridgeConfiguration(
+            address(router), // Set router as bridge router
+            500000 // Default gas limit
+        );
+
         // Deploy mock adapter
         mockAdapter = new MockAdapter(address(router));
         token = new ERC20Mock();
@@ -61,13 +68,19 @@ contract BridgeRouterAdminTest is Test {
         // Register adapter
         router.registerAdapter(address(mockAdapter));
 
+        // Register mockAdapter as an executor
+        registry.registerExecutor(executor);
+        registry.registerExecutor(address(mockAdapter));
+
         // Mint tokens for testing
         token.mint(governor, 10000e18);
         token.mint(guardian, 10000e18);
         token.mint(keeper, 10000e18);
+        token.mint(executor, 10000e18);
 
         // Fund keeper for execution
         vm.deal(keeper, 1 ether);
+        vm.deal(executor, 1 ether);
 
         vm.stopPrank();
     }
@@ -160,16 +173,8 @@ contract BridgeRouterAdminTest is Test {
 
         vm.stopPrank(); // User stops queueing
 
-        // Attempt to execute the queued operation (e.g., by keeper) (PAYS FEE)
-        vm.startPrank(keeper);
+        vm.startPrank(executor);
 
-        // The router's execute call should revert because it's paused.
-        // This check happens inside the BridgeQueue's executeQueuedOperation try/catch block
-        // Or, if we removed try/catch, the router call itself reverts.
-        // We need to test the PAUSE check, which is likely in the *router's* execute functions.
-        // The BridgeQueue execute will call the router, which then reverts.
-        // So the revert will originate from the router, caught by BridgeQueue (if try/catch exists)
-        // or bubble up. Let's assume the Router's Paused error is expected.
         vm.expectRevert(IBridgeRouter.Paused.selector);
         router.executeTransferAssets{value: nativeFee}(
             BridgeTypes.ExecuteTransferParams({
@@ -178,7 +183,7 @@ contract BridgeRouterAdminTest is Test {
                 amount: TRANSFER_AMOUNT,
                 recipient: user,
                 originator: user,
-                keeper: address(keeper),
+                keeper: address(executor),
                 options: options
             })
         );
@@ -209,8 +214,7 @@ contract BridgeRouterAdminTest is Test {
 
         vm.stopPrank(); // User stops queueing
 
-        // Attempt to execute the queued operation (e.g., by keeper)
-        vm.startPrank(keeper);
+        vm.startPrank(executor);
 
         // Get quote for execution
         (uint256 nativeFee, , ) = router.quote(
@@ -221,9 +225,8 @@ contract BridgeRouterAdminTest is Test {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // The router's execute call should revert because it's paused
         vm.expectRevert(IBridgeRouter.Paused.selector);
-        bytes32 operationId = router.executeReadState{value: nativeFee}(
+        router.executeReadState{value: nativeFee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
                 destinationContract: address(mockAdapter), // Use mock adapter as target contract
@@ -261,20 +264,11 @@ contract BridgeRouterAdminTest is Test {
         vm.stopPrank(); // User stops queueing
 
         // Attempt to execute the queued operation (e.g., by keeper)
-        vm.startPrank(keeper);
-
-        // Get quote for execution
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(0), // No asset
-            0, // No amount
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        vm.startPrank(executor);
 
         // The router's execute call should revert because it's paused
         vm.expectRevert(IBridgeRouter.Paused.selector);
-        bytes32 operationId = router.executeSendMessage(
+        router.executeSendMessage(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
                 recipient: user, // Send to self for testing

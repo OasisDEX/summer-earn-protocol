@@ -24,8 +24,6 @@ contract BridgeRouterReadStateTest is Test {
     address public governor = address(0x1);
     address public user = address(0x2);
     address public keeper = address(0x3);
-    // todo: authorize the caller when method available ( uthorized to call bridge router)
-    address public authorizedCaller = address(0x5);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
@@ -69,6 +67,15 @@ contract BridgeRouterReadStateTest is Test {
         // Register adapter
         router.registerAdapter(address(mockAdapter));
 
+        // Initialize bridge configuration first
+        registry.initializeBridgeConfiguration(
+            address(router), // Set the bridge router address
+            500000 // Set a default gas limit
+        );
+
+        // Now register the executor
+        registry.registerExecutor(keeper);
+
         // Mint tokens for user (if needed elsewhere)
         token.mint(user, 10000e18);
         // Fund mockReceiver (queue manager) and keeper
@@ -80,7 +87,7 @@ contract BridgeRouterReadStateTest is Test {
 
     // ---- READ STATE TESTS ----
 
-    function testReadState() public {
+    function testReadStateLOL() public {
         address targetContract = address(token); // Use a valid address for setup
         bytes4 targetSelector = bytes4(keccak256("getBalance(address)"));
         bytes memory targetCalldata = abi.encode(user);
@@ -387,19 +394,13 @@ contract BridgeRouterReadStateTest is Test {
             )
             // Do not mock a return, let it revert
         );
-
+        vm.expectRevert(bytes("Receiver rejected call"));
         router.deliverReadResponse(
             operationId,
             DEST_CHAIN_ID,
             abi.encode(uint256(100))
         );
 
-        // Verify status is FAILED (if checking router state)
-        // assertEq(
-        //     uint256(router.operationStatuses(operationId)),
-        //     uint256(BridgeTypes.OperationStatus.FAILED)
-        // );
-        // Optionally check that mockReceiver's state wasn't updated due to rejection
         assertNotEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
     }
 }

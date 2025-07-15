@@ -66,6 +66,12 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Create access manager
         accessManager = new ProtocolAccessManager(governor);
 
+        // Deploy registry
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            SOURCE_CHAIN_ID
+        );
+
         // Configure roles
         vm.startPrank(governor);
         accessManager.grantGuardianRole(guardian);
@@ -77,12 +83,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             address(registry)
         );
 
-        // Deploy registry
         vm.startPrank(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            SOURCE_CHAIN_ID
-        );
 
         // Initialize bridge configuration
         registry.initializeBridgeConfiguration(
@@ -112,6 +113,10 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Register layerZeroAdapter with bridge router
         vm.startPrank(governor);
         router.registerAdapter(address(layerZeroAdapter));
+
+        // Register layerZeroAdapter as an executor
+        registry.registerExecutor(keeper);
+
         vm.stopPrank();
     }
 

@@ -104,6 +104,9 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Deploy access manager
         accessManagerA = new ProtocolAccessManager(governor);
 
+        // Deploy registry
+        registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
+
         // Deploy router and configure
         routerA = new BridgeRouterTestHelper(
             address(accessManagerA),
@@ -152,6 +155,9 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
 
         // Deploy access manager
         accessManagerB = new ProtocolAccessManager(governor);
+
+        // Deploy registry
+        registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
 
         // Deploy router and configure
         routerB = new BridgeRouterTestHelper(

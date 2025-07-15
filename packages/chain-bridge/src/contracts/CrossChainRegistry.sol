@@ -121,14 +121,22 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
         }
 
-        // Check if target contract is already registered for this relationship type
+        // ---------------------------------------------------------------------
+        // Decide if this is a same-chain or inter-chain relationship
+        // ---------------------------------------------------------------------
+        bool isSameChain = (sourceChainId == currentChainId &&
+            targetChainId == currentChainId);
+
+        // ------------------------------------------
+        // Target-contract uniqueness (inter-chain only)
+        // ------------------------------------------
         bytes32 targetKey = _getTargetKey(
             sourceChainId,
             targetChainId,
             targetContract,
             relationshipType
         );
-        if (targetToSource[targetKey] != address(0)) {
+        if (!isSameChain && targetToSource[targetKey] != address(0)) {
             revert TargetContractAlreadyRegistered(
                 targetContract,
                 sourceChainId,
@@ -138,7 +146,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
         }
 
-        // Create the relationship
+        // ------------------
+        // Create the relation
+        // ------------------
         crossChainRelations[relationshipKey] = CrossChainRelation({
             sourceContract: sourceContract,
             targetContract: targetContract,
@@ -147,8 +157,10 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             relationshipType: relationshipType
         });
 
-        // Set reverse mapping
-        targetToSource[targetKey] = sourceContract;
+        // Reverse lookup only required for inter-chain relationships.
+        if (!isSameChain && targetToSource[targetKey] == address(0)) {
+            targetToSource[targetKey] = sourceContract;
+        }
 
         // Update tracking
         registeredSourceContracts[relationshipType].add(sourceContract);
@@ -194,14 +206,20 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             relationshipKey
         ];
 
-        // Remove reverse mapping
+        // ------------------------------------------------------------
+        // Remove reverse mapping only when it was stored (inter-chain)
+        // ------------------------------------------------------------
+        bool isSameChain = (relation.sourceChainId == currentChainId &&
+            relation.targetChainId == currentChainId);
         bytes32 targetKey = _getTargetKey(
             relation.sourceChainId,
             relation.targetChainId,
             relation.targetContract,
             relationshipType
         );
-        delete targetToSource[targetKey];
+        if (!isSameChain && targetToSource[targetKey] == sourceContract) {
+            delete targetToSource[targetKey];
+        }
 
         // Remove from sourceToTargetChains
         bytes32 sourceTrackingKey = _getSourceTrackingKey(
@@ -790,10 +808,13 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             _addRelationshipType(relationshipType);
         }
 
+        // -------------------------------------------
+        // SAME-CHAIN registration (always currentChain)
+        // -------------------------------------------
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
-            currentChainId // Use currentChainId for target since it's same-chain
+            currentChainId
         );
 
         // Check if this specific relationship already exists
@@ -802,23 +823,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 sourceContract,
                 relationshipType,
                 currentChainId
-            );
-        }
-
-        // Check if target contract is already registered for this relationship type
-        bytes32 targetKey = _getTargetKey(
-            currentChainId,
-            currentChainId,
-            targetContract,
-            relationshipType
-        );
-        if (targetToSource[targetKey] != address(0)) {
-            revert TargetContractAlreadyRegistered(
-                targetContract,
-                currentChainId,
-                currentChainId,
-                relationshipType,
-                targetToSource[targetKey]
             );
         }
 
@@ -831,8 +835,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             relationshipType: relationshipType
         });
 
-        // Set reverse mapping
-        targetToSource[targetKey] = sourceContract;
+        // NOTE: we intentionally do *not* touch targetToSource for same-chain
+        // relationships so that multiple executors can share the same router.
 
         // Update tracking
         registeredSourceContracts[relationshipType].add(sourceContract);

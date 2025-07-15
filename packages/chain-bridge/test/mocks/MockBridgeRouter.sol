@@ -304,6 +304,35 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         }
     }
 
+    function deliver(
+        bytes32 operationId,
+        uint16 sourceChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        bytes calldata payload
+    ) external {
+        // Track the handling adapter
+        operationAdapters[operationId] = msg.sender;
+
+        // 1. Move tokens first (if any)
+        if (asset != address(0) && amount > 0) {
+            IERC20(asset).safeTransfer(recipient, amount);
+
+            // Emit transfer received event
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
+        }
+
+        // Always emit message delivered event
+        emit MessageDelivered(operationId, recipient, true);
+    }
+
     function deliverReadResponse(
         bytes32 operationId,
         uint16,
