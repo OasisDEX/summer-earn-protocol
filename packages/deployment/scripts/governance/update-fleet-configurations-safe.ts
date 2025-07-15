@@ -16,7 +16,7 @@ const addresses: Record<
   }
 > = {
   base: {
-    raft: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
+    raft: '0x95107E3C932865733e8feCF971e9051DA62FE59A',
     tokens: {
       usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
       dai: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
@@ -32,10 +32,11 @@ const addresses: Record<
       gear: '0x0000000000000000000000000000000000000000',
       usdt: '0x6047828dc181963ba44974801FF68e538dA5eaF9',
       usde: '0x0000000000000000000000000000000000000000',
+      xsilo: '0x0000000000000000000000000000000000000000',
     },
   },
   mainnet: {
-    raft: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
+    raft: '0xB8BBC85cEE0ea08Cf35B63c23bfE95fA444C5F07',
     tokens: {
       usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
       weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
@@ -49,10 +50,11 @@ const addresses: Record<
       gear: '0xBa3335588D9403515223F109EdC4eB7269a9Ab5D',
       syrup: '0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66',
       sky: '0x56072C95FAA701256059aa122697B133aDEd9279',
+      xsilo: '0xdd4c6fd31ccf66e250790643947675153c221a91',
     },
   },
   sonic: {
-    raft: '0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204',
+    raft: '0xd03414b3E3463DDC471555850F6BdD5322b97d60',
     tokens: {
       usdce: '0x29219dd400f2Bf60E5a23d13Be72B486D4038894',
       dai: '0x0000000000000000000000000000000000000000',
@@ -64,10 +66,11 @@ const addresses: Record<
       ws: '0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38',
       reul: '0x0000000000000000000000000000000000000000',
       silo: '0xb098AFC30FCE67f1926e735Db6fDadFE433E61db',
+      xsilo:"0x4451765739b2D7BCe5f8BC95Beaf966c45E1Dcc9"
     },
   },
   arbitrum: {
-    raft: '0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E',
+    raft: '0x2E6FBcefA0480cF9f7920d98804A9BD72e1eFEc9',
     tokens: {
       usdc: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
       dai: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
@@ -79,6 +82,7 @@ const addresses: Record<
       reul: '0x0000000000000000000000000000000000000000',
       seam: '0x0000000000000000000000000000000000000000',
       ws: '0x0000000000000000000000000000000000000000',
+      xsilo: '0xf3775f959bc64923bd809085299dbc984d3e6c8a',
     },
   },
 }
@@ -377,6 +381,7 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'syrup':
     case 'well':
     case 'silo':
+    case 'xsilo':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -405,19 +410,20 @@ function parseAmount(amountValue: string | number, assetSymbol: string): bigint 
 
 /**
  *
- * @param percentValue Lazy Summer ocntracts use `Percentage` library where 1% == 1 WAD (1e18)
+ * @param percentValue Lazy Summer contracts use `Percentage` library where 1% == 1 WAD (1e18)
  * @returns
  */
 function parsePercentage(percentValue: string | number): bigint {
-  // If it's already a number (e.g. 0.37), multiply by 10000 to get basis points
+  // If it's already a number (e.g. 0.37), handle floating point precision issues
   if (typeof percentValue === 'number') {
-    // Fix: Round to avoid floating point precision issues
-    const basisPoints = Math.round(percentValue * 100)
-    return BigInt(basisPoints) * WAD
+    // Round to 1 decimal place to handle floating point precision issues
+    // For 0.39299999999999996, this gives us 39.3 instead of 39
+    const roundedPercent = Math.round(percentValue * 1000) 
+    return BigInt(roundedPercent) * WAD / 10n
   }
-  // If it's a string with % (legacy format), convert to basis points
+  // If it's a string with % (legacy format), convert to percentage
   const percent = parseFloat(percentValue.replace('%', ''))
-  return BigInt(BigInt(percent * 100) * WAD)
+  return BigInt(percent) * WAD
 }
 
 // Update the multiplier calculation to handle decimals correctly
@@ -453,7 +459,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
   sonic: {
     aave_v3: [Token.WS],
     euler: [Token.WS],
-    siloV2: [Token.WS, Token.SILO],
+    siloV2: [Token.WS, Token.SILO, Token.XSILO],
   },
 }
 

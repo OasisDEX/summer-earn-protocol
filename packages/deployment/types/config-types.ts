@@ -79,6 +79,7 @@ export enum Token {
   SYRUP = 'syrup',
   SILO = 'silo',
   SKY = 'sky',
+  XSILO = 'xsilo',
 }
 
 export interface BaseConfig {
