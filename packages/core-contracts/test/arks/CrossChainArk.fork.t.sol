@@ -11,6 +11,7 @@ import {BridgeRouter, IBridgeRouter} from "@summerfi/chain-bridge/router/BridgeR
 import {BridgeQueue} from "@summerfi/chain-bridge/router/BridgeQueue.sol";
 import {LayerZeroAdapter} from "@summerfi/chain-bridge/adapters/LayerZeroAdapter.sol";
 import {StargateAdapter} from "@summerfi/chain-bridge/adapters/StargateAdapter.sol";
+import {IStargateV2} from "@summerfi/chain-bridge/interfaces/IStargateV2.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -18,7 +19,7 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
-import {MockStargateV2} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
+import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
 
@@ -29,7 +30,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     LayerZeroAdapter public layerZeroAdapter;
     StargateAdapter public stargateAdapter;
     IERC20 public usdc;
-    MockStargateV2 public mockStargate;
+    MockStargateV2Pool public mockStargate;
     CrossChainRegistry public registry;
 
     // LayerZero specific constants
@@ -144,10 +145,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
         // Deploy mock Stargate contract
-        mockStargate = new MockStargateV2(
-            address(usdc),
-            IStargateV2.StargateType.Pool
-        );
+        mockStargate = new MockStargateV2Pool(address(usdc));
 
         // Add USDC as supported asset for Stargate adapter
         stargateAdapter.addSupportedAsset(address(usdc), address(mockStargate));
@@ -288,10 +286,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
         // Deploy mock Stargate contract
-        mockStargate = new MockStargateV2(
-            address(usdc),
-            IStargateV2.StargateType.Pool
-        );
+        mockStargate = new MockStargateV2Pool(address(usdc));
 
         // Add USDC as supported asset for Stargate adapter on current chain only
         // The StargateAdapter only tracks assets for the current chain
@@ -549,7 +544,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             "Mock Stargate should be configured for USDC"
         );
         assertEq(
-            uint8(mockStargate.STARGATE_TYPE()),
+            uint8(mockStargate.stargateType()),
             uint8(IStargateV2.StargateType.Pool),
             "Mock Stargate should be Pool type"
         );
