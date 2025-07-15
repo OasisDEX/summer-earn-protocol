@@ -2,7 +2,7 @@ import '@nomicfoundation/hardhat-verify'
 import { default as dotenv } from 'dotenv'
 import 'hardhat-contract-sizer'
 import { resolve } from 'path'
-// import './plugins/multiSourceCompile'
+import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
@@ -11,7 +11,9 @@ import '@nomicfoundation/hardhat-ignition-viem'
 import type { HardhatUserConfig } from 'hardhat/config'
 
 if (!process.env.API_KEY_ETHERSCAN) {
-  throw new Error('Please set your process.env.API_KEY_ETHERSCAN in a .env file ( etherscan v2 api key )')
+  throw new Error(
+    'Please set your process.env.API_KEY_ETHERSCAN in a .env file ( etherscan v2 api key )',
+  )
 }
 
 const config: HardhatUserConfig = {
@@ -22,7 +24,7 @@ const config: HardhatUserConfig = {
     strict: false,
   },
   etherscan: {
-    apiKey: process.env.API_KEY_ETHERSCAN   ,
+    apiKey: process.env.API_KEY_ETHERSCAN,
     customChains: [
       {
         network: 'sonic',
