@@ -16,6 +16,9 @@
         },
         "rewardsRedeemer": {
           "address": "0x54a2ea2B8f57D62c149ace01d7Ac1fd9A880B8dd"
+        },
+        "oazoSummerRewardsRedeemer": {
+          "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
         }
       },
       "buyAndBurn": {
@@ -189,6 +192,9 @@
         },
         "rewardsRedeemer": {
           "address": "0x54a2ea2B8f57D62c149ace01d7Ac1fd9A880B8dd"
+        },
+        "oazoSummerRewardsRedeemer": {
+          "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
         }
       },
       "buyAndBurn": {
@@ -356,6 +362,9 @@
         },
         "rewardsRedeemer": {
           "address": "0x54a2ea2B8f57D62c149ace01d7Ac1fd9A880B8dd"
+        },
+        "oazoSummerRewardsRedeemer": {
+          "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
         }
       },
       "buyAndBurn": {
@@ -627,6 +636,9 @@
         },
         "rewardsRedeemer": {
           "address": "0x08543e2B7E644C5471Cddda18e25f3aB93a16326"
+        },
+        "oazoSummerRewardsRedeemer": {
+          "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
         }
       },
       "buyAndBurn": {
