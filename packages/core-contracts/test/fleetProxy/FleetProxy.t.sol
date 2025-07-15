@@ -411,4 +411,129 @@ contract CrossChainFleetProxyTest is Test {
             })
         );
     }
+
+    function test_WithdrawAndTransfer_ValidationFailures() public {
+        // Setup: Add some assets to the fleet commander for testing
+        uint256 amount = 1000;
+        deal(address(mockToken), address(fleetCommanderMock), amount);
+
+        // Test 1: Zero amount should revert with NoAssets
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: SOURCE_CHAIN_ID,
+                asset: address(mockToken),
+                amount: 0,
+                recipient: SOURCE_ARK_ADDRESS,
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+
+        // Test 2: Invalid asset should revert with InvalidAsset
+        ERC20Mock invalidToken = new ERC20Mock();
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidAsset()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: SOURCE_CHAIN_ID,
+                asset: address(invalidToken),
+                amount: amount,
+                recipient: SOURCE_ARK_ADDRESS,
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+
+        // Test 3: Invalid originator should revert with InvalidRequestor
+        address wrongOriginator = address(0x999);
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidRequestor()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: SOURCE_CHAIN_ID,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: SOURCE_ARK_ADDRESS,
+                originator: wrongOriginator,
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+
+        // Test 4: Invalid destination chain ID should revert with InvalidSatelliteChain
+        uint16 wrongChainId = 9999;
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidSatelliteChain()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: wrongChainId,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: SOURCE_ARK_ADDRESS,
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+
+        // Test 5: Invalid recipient should revert with InvalidRecipient
+        address wrongRecipient = address(0x888);
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidRecipient()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: SOURCE_CHAIN_ID,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: wrongRecipient,
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+    }
 }

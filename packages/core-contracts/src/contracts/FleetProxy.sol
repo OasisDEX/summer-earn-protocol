@@ -48,7 +48,7 @@ contract FleetProxy is
     uint256 public inflightWithdrawals;
 
     /// @notice The source chain ID where the fleet is deployed
-    uint16 public immutable sourceChainId;
+    uint16 public immutable hubChainId;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -76,7 +76,7 @@ contract FleetProxy is
         if (_fleetContract == address(0)) revert InvalidFleetContract();
 
         fleetContract = _fleetContract;
-        sourceChainId = _sourceChainId;
+        hubChainId = _sourceChainId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -128,16 +128,18 @@ contract FleetProxy is
     function withdrawAndTransfer(
         BridgeTypes.ExecuteTransferParams calldata params
     ) external whenNotPaused nonReentrant onlyKeeper {
-        if (params.amount == 0) revert NoAssets();
-        if (params.asset != IERC4626(fleetContract).asset())
-            revert InvalidAsset();
-        if (params.recipient != address(this)) revert InvalidRecipient();
-        if (params.originator != address(this)) revert InvalidRequestor();
-        if (params.destinationChainId != sourceChainId)
-            revert InvalidSatelliteChain();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
+
         // 1. Get the asset from fleet contract
         address asset = IERC4626(fleetContract).asset();
+        if (params.amount == 0) revert NoAssets();
+
+        if (params.asset != asset) revert InvalidAsset();
+        if (params.originator != address(this)) revert InvalidRequestor();
+        if (params.destinationChainId != hubChainId)
+            revert InvalidSatelliteChain();
+        if (params.recipient != _getSourceChainArk(params.destinationChainId))
+            revert InvalidRecipient();
 
         // 2. Withdraw from fleet contract
         IFleetCommander(fleetContract).withdraw(
@@ -158,7 +160,7 @@ contract FleetProxy is
         IERC20(asset).forceApprove(address(bridgeRouter), params.amount);
 
         // 6. Get source chain ark address from registry - reverts if not found
-        address arkAddress = _getSourceChainArk(sourceChainId);
+        address arkAddress = _getSourceChainArk(hubChainId);
 
         // 7. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
         bridgeRouter.executeTransferAssets(params);
@@ -166,7 +168,7 @@ contract FleetProxy is
         emit AssetsWithdrawnAndTransferred(
             params.amount,
             params.asset,
-            sourceChainId
+            hubChainId
         );
     }
 
@@ -179,7 +181,7 @@ contract FleetProxy is
         address asset,
         uint256 amount,
         bytes calldata message,
-        uint16 sourceChainId
+        uint16 hubChainId
     ) external whenNotPaused nonReentrant {
         if (message.length == 0) {
             emit MessageContentNotExpected();
@@ -191,7 +193,7 @@ contract FleetProxy is
         }
 
         // Validate the relationship using registry
-        if (!_isValidSourceChain(sourceChainId)) {
+        if (!_isValidSourceChain(hubChainId)) {
             revert InvalidSourceChain();
         }
 
@@ -204,7 +206,7 @@ contract FleetProxy is
             revert NoAssets();
         }
 
-        _handleReceiveAssets(asset, amount, sourceChainId);
+        _handleReceiveAssets(asset, amount, hubChainId);
     }
 
     /// @inheritdoc IERC165
@@ -223,16 +225,16 @@ contract FleetProxy is
 
     /**
      * @notice Gets the source chain ark address from the registry
-     * @param sourceChainId The chain ID where the ark is deployed
+     * @param hubChainId The chain ID where the ark is deployed
      * @return arkAddress The source chain ark address
      * @dev Reverts if no valid relationship exists for the source chain
      */
     function _getSourceChainArk(
-        uint16 sourceChainId
+        uint16 hubChainId
     ) internal view returns (address arkAddress) {
         return
             ICrossChainRegistry(crossChainRegistry).getSourceForTarget(
-                sourceChainId,
+                hubChainId,
                 ICrossChainRegistry(crossChainRegistry).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
@@ -241,15 +243,15 @@ contract FleetProxy is
 
     /**
      * @notice Validates if the source chain is valid for this proxy
-     * @param sourceChainId The chain ID to validate
+     * @param hubChainId The chain ID to validate
      * @return isValid True if the source chain is valid
      */
     function _isValidSourceChain(
-        uint16 sourceChainId
+        uint16 hubChainId
     ) internal view returns (bool isValid) {
         try
             ICrossChainRegistry(crossChainRegistry).getSourceForTarget(
-                sourceChainId,
+                hubChainId,
                 ICrossChainRegistry(crossChainRegistry).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
@@ -261,7 +263,7 @@ contract FleetProxy is
                         .isValidCrossChainPair(
                             ark,
                             address(this),
-                            sourceChainId,
+                            hubChainId,
                             ICrossChainRegistry(crossChainRegistry)
                                 .currentChainId(),
                             ARK_FLEET_RELATIONSHIP
@@ -282,12 +284,12 @@ contract FleetProxy is
      * @notice Handles receiving assets from a cross-chain transfer
      * @param asset The asset address
      * @param amount The amount received
-     * @param sourceChainId The source chain ID
+     * @param hubChainId The source chain ID
      */
     function _handleReceiveAssets(
         address asset,
         uint256 amount,
-        uint16 sourceChainId
+        uint16 hubChainId
     ) internal {
         // Approve the fleet contract to take the assets
         IERC20(asset).forceApprove(fleetContract, amount);
@@ -296,6 +298,6 @@ contract FleetProxy is
         IFleetCommander(fleetContract).deposit(amount, address(this));
 
         // Emit an event for tracking
-        emit ProxyDeposit(fleetContract, asset, amount, sourceChainId);
+        emit ProxyDeposit(fleetContract, asset, amount, hubChainId);
     }
 }

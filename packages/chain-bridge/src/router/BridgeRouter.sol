@@ -18,7 +18,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
- * @dev Implements IBridgeRouter interface and manages multiple bridge adap ters.
+ * @dev Implements IBridgeRouter interface and manages multiple bridge adapters.
  *      Operations can only be initiated via the authorized executor or governance.
  */
 contract BridgeRouter is
