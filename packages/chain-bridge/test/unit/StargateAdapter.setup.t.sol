@@ -4,8 +4,6 @@ pragma solidity ^0.8.26;
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
@@ -21,7 +19,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     // Chain A contracts
     StargateAdapter public adapterA;
     BridgeRouterTestHelper public routerA;
-    BridgeQueue public bridgeQueueA;
     CrossChainRegistry public registryA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
@@ -30,7 +27,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     // Chain B contracts
     StargateAdapter public adapterB;
     BridgeRouterTestHelper public routerB;
-    BridgeQueue public bridgeQueueB;
     CrossChainRegistry public registryB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
@@ -86,21 +82,11 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         accessManagerA = new ProtocolAccessManager(governor);
         harborCommandA = new MockHarborCommand();
-        bridgeQueueA = new BridgeQueue(
-            address(accessManagerA),
-            address(0), // Router set later
-            governor // Use governor as queue manager
-        );
-        routerA = new BridgeRouterTestHelper(
-            address(accessManagerA),
-            address(bridgeQueueA)
-        );
-        bridgeQueueA.setBridgeRouter(address(routerA));
+        routerA = new BridgeRouterTestHelper(address(accessManagerA));
 
         // Replace configManagerA setup with registryA
         registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
         registryA.initializeBridgeConfiguration(
-            address(bridgeQueueA),
             address(routerA),
             400000 // defaultGasLimit
         );
@@ -120,7 +106,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
-        tokenA.mint(address(bridgeQueueA), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
 
@@ -137,21 +122,11 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         accessManagerB = new ProtocolAccessManager(governor);
         harborCommandB = new MockHarborCommand();
-        bridgeQueueB = new BridgeQueue(
-            address(accessManagerB),
-            address(0), // Router set later
-            governor // Use governor as queue manager
-        );
-        routerB = new BridgeRouterTestHelper(
-            address(accessManagerB),
-            address(bridgeQueueB)
-        );
-        bridgeQueueB.setBridgeRouter(address(routerB));
+        routerB = new BridgeRouterTestHelper(address(accessManagerB));
 
         // Replace configManagerB setup with registryB
         registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
         registryB.initializeBridgeConfiguration(
-            address(bridgeQueueB),
             address(routerB),
             400000 // defaultGasLimit
         );
@@ -180,7 +155,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         routerB.registerAdapter(address(adapterB));
         tokenB.mint(user, 10000e18);
-        tokenB.mint(address(bridgeQueueB), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
 
@@ -193,6 +167,21 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             CHAIN_ID_A,
             CHAIN_ID_B
         );
+
+        vm.label(address(tokenA), "Token A");
+        vm.label(address(tokenB), "Token B");
+        vm.label(address(stargateA), "Stargate A");
+        vm.label(address(stargateB), "Stargate B");
+        vm.label(address(adapterA), "Adapter A");
+        vm.label(address(adapterB), "Adapter B");
+        vm.label(address(routerA), "Router A");
+        vm.label(address(routerB), "Router B");
+        vm.label(address(registryA), "Registry A");
+        vm.label(address(registryB), "Registry B");
+        vm.label(address(harborCommandA), "Harbor Command A");
+        vm.label(address(harborCommandB), "Harbor Command B");
+        vm.label(address(accessManagerA), "Access Manager A");
+        vm.label(address(accessManagerB), "Access Manager B");
     }
 
     // Helper functions for switching networks

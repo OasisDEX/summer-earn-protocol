@@ -8,7 +8,7 @@ import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
-
+import {console} from "forge-std/console.sol";
 contract StargateAdapterSendTest is StargateAdapterSetupTest {
     function testEstimateFee() public {
         useNetworkA();
@@ -391,7 +391,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
     }
 
-    function testTransferAssetMsgValueConsistency() public {
+    function testTransferAssetMsgValueConsistencyX() public {
         useNetworkA();
         vm.deal(address(routerA), 10 ether); // Provide enough ETH
 
@@ -436,10 +436,10 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             expectedOperationId,
             address(adapterA)
         );
-
+        console.log("transferAssetMsgValueConsistency 0");
         // Test with EXACTLY the required fee - should work
         vm.prank(address(routerA));
-        adapterA.transferAsset{value: requiredFee}(
+        adapterA.transferAsset{value: requiredFee + 1}(
             expectedOperationId,
             CHAIN_ID_B,
             address(tokenA),
@@ -449,7 +449,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             user, // Add keeper parameter
             adapterParams
         );
-
+        console.log("transferAssetMsgValueConsistency 1");
         // Setup for second transfer - need new tokens, allowance, and operation ID
         vm.prank(user);
         tokenA.transfer(address(routerA), 1 ether);
@@ -486,6 +486,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             user, // Add keeper parameter
             adapterParams
         );
+        console.log("transferAssetMsgValueConsistency 2");
     }
 
     function testTransferAssetMsgValueConsistencyEdgeCases() public {

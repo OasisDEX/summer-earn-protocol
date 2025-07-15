@@ -37,12 +37,6 @@ interface ICrossChainRegistry {
     /// @notice Emitted when a new relationship type is added
     event RelationshipTypeAdded(bytes32 indexed relationshipType);
 
-    /// @notice Emitted when the bridge queue address is updated
-    event BridgeQueueUpdated(
-        address indexed oldBridgeQueue,
-        address indexed newBridgeQueue
-    );
-
     /// @notice Emitted when the bridge router address is updated
     event BridgeRouterUpdated(
         address indexed oldBridgeRouter,
@@ -182,9 +176,6 @@ interface ICrossChainRegistry {
                         BRIDGE CONFIG FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns the address of the bridge queue contract
-    function bridgeQueue() external view returns (address);
-
     /// @notice Returns the address of the bridge router contract
     function bridgeRouter() external view returns (address);
 
@@ -193,21 +184,13 @@ interface ICrossChainRegistry {
 
     /**
      * @notice Initializes the bridge configuration parameters
-     * @param _bridgeQueue The address of the bridge queue contract
      * @param _bridgeRouter The address of the bridge router contract
      * @param _defaultGasLimit The default gas limit for cross-chain transactions
      */
     function initializeBridgeConfiguration(
-        address _bridgeQueue,
         address _bridgeRouter,
         uint256 _defaultGasLimit
     ) external;
-
-    /**
-     * @notice Sets the bridge queue address
-     * @param newBridgeQueue The new bridge queue address
-     */
-    function setBridgeQueue(address newBridgeQueue) external;
 
     /**
      * @notice Sets the bridge router address

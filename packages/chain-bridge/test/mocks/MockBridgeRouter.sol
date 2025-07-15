@@ -73,9 +73,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     uint64 public DEFAULT_GAS_LIMIT = 200000; // Default value matching the real implementation
 
-    // Mock-specific event
-    event BridgeQueueAddressSet(address bridgeQueue); // Mock specific event
-
     // Add mapping for registered adapters
     mapping(address => bool) public registeredAdapters;
 
@@ -84,10 +81,11 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     error RefundFailed();
 
     // --- Modifiers ---
-    modifier onlyBridgeQueue() {
-        if (msg.sender != mockBridgeQueueAddress) {
-            revert CallerNotBridgeQueue();
-        }
+    modifier onlyAuthorizedExecutor() {
+        // todo: add access manager or something similar
+        // if (msg.sender != mockBridgeQueueAddress) {
+        //     revert CallerNotAuthorized();
+        // }
         _;
     }
 
@@ -203,8 +201,8 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
         emit ReadRequestInitiated(
             operationId,
-            params.dstChainId,
-            params.dstContract,
+            params.destinationChainId,
+            params.destinationContract,
             params.selector,
             params.readParams,
             MOCK_ADAPTER_ADDRESS
@@ -391,17 +389,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         operationStatuses[operationId] = status;
     }
 
-    // Using the interface methods only - remove the duplicate
-    function setBridgeQueueAddress(address _bridgeQueue) external {
-        mockBridgeQueueAddress = _bridgeQueue;
-        emit BridgeQueueAddressSet(_bridgeQueue);
-    }
-
-    function setBridgeQueue(address _newBridgeQueue) external override {
-        mockBridgeQueueAddress = _newBridgeQueue;
-        emit BridgeQueueAddressSet(_newBridgeQueue);
-    }
-
     // --- Interface Support ---
     function supportsInterface(
         bytes4 interfaceId
@@ -419,19 +406,37 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     function executeTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params
-    ) external payable override onlyBridgeQueue returns (bytes32 operationId) {
+    )
+        external
+        payable
+        override
+        onlyAuthorizedExecutor
+        returns (bytes32 operationId)
+    {
         return _executeTransferAssets(params);
     }
 
     function executeReadState(
         BridgeTypes.ExecuteReadStateParams calldata params
-    ) external payable override onlyBridgeQueue returns (bytes32 operationId) {
+    )
+        external
+        payable
+        override
+        onlyAuthorizedExecutor
+        returns (bytes32 operationId)
+    {
         return _executeReadState(params);
     }
 
     function executeSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata params
-    ) external payable override onlyBridgeQueue returns (bytes32 operationId) {
+    )
+        external
+        payable
+        override
+        onlyAuthorizedExecutor
+        returns (bytes32 operationId)
+    {
         return _executeSendMessage(params);
     }
 
@@ -555,8 +560,8 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // Add readState function from core contracts version
     function readState(
-        uint16 dstChainId,
-        address dstContract,
+        uint16 destinationChainId,
+        address destinationContract,
         bytes4 selector,
         bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata
@@ -570,8 +575,8 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
         emit ReadRequestInitiated(
             operationId,
-            dstChainId,
-            dstContract,
+            destinationChainId,
+            destinationContract,
             selector,
             readParams,
             MOCK_ADAPTER_ADDRESS

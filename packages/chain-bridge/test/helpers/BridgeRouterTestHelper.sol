@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title BridgeRouterTestHelper
@@ -15,12 +16,8 @@ contract BridgeRouterTestHelper is BridgeRouter {
     /**
      * @notice Constructor for BridgeRouterTestHelper
      * @param _accessManager Address of the access manager
-     * @param _bridgeQueue Address of the bridge queue
      */
-    constructor(
-        address _accessManager,
-        address _bridgeQueue
-    ) BridgeRouter(_accessManager, _bridgeQueue) {
+    constructor(address _accessManager) BridgeRouter(_accessManager) {
         // Initialize any test-specific state here
     }
 

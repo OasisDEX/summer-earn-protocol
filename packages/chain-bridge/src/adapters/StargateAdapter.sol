@@ -4,7 +4,6 @@ pragma solidity ^0.8.26;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-import {IBridgeQueue} from "../interfaces/IBridgeQueue.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -219,14 +218,10 @@ contract StargateAdapter is
         string reason
     );
 
-    /// @notice Emitted when a failed compose is queued for automatic recovery
-    event FailedComposeQueuedForRecovery(
-        bytes32 indexed originalOperationId,
-        bytes32 indexed recoveryQueueId,
-        address indexed asset,
-        uint256 amount,
-        address recipient,
-        uint16 originChainId
+    event ComposeCallFailed(
+        bytes32 indexed operationId,
+        address indexed fleetProxy,
+        uint16 sourceChainId
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -983,33 +978,13 @@ contract StargateAdapter is
             sourceAsset,
             uint16(sourceChainId)
         );
-
         if (!success) {
-            // Queue for automatic recovery back to origin chain
-            address bridgeQueueAddr = bridgeQueue();
-
-            // Approve bridge queue to spend the tokens
-            IERC20(receivedAsset).approve(bridgeQueueAddr, amountLD);
-
-            bytes32 recoveryQueueId = IBridgeQueue(bridgeQueueAddr)
-                .queueTransferAssets(
-                    uint16(sourceChainId),
-                    receivedAsset,
-                    amountLD,
-                    originator // Send back to original user
-                );
-
-            emit FailedComposeQueuedForRecovery(
+            // todo:what recovery mechanism to use ?
+            emit ComposeCallFailed(
                 operationId,
-                recoveryQueueId,
-                receivedAsset,
-                amountLD,
-                originator,
+                recipient,
                 uint16(sourceChainId)
             );
-
-            // Don't revert - assets are queued for recovery
-            return;
         }
 
         emit ComposedAssetHandled(

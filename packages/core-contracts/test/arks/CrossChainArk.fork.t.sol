@@ -8,7 +8,6 @@ import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.s
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {BridgeRouter, IBridgeRouter} from "@summerfi/chain-bridge/router/BridgeRouter.sol";
-import {BridgeQueue} from "@summerfi/chain-bridge/router/BridgeQueue.sol";
 import {LayerZeroAdapter} from "@summerfi/chain-bridge/adapters/LayerZeroAdapter.sol";
 import {StargateAdapter} from "@summerfi/chain-bridge/adapters/StargateAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -25,7 +24,7 @@ import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contra
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
-    BridgeQueue public bridgeQueue;
+
     LayerZeroAdapter public layerZeroAdapter;
     StargateAdapter public stargateAdapter;
     IERC20 public usdc;
@@ -54,7 +53,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Configure roles
         vm.startPrank(governor);
         accessManager.grantGuardianRole(guardian);
-        vm.stopPrank();
 
         // Deploy CrossChainRegistry first with CURRENT chain ID (mainnet = 1)
         registry = new CrossChainRegistry(
@@ -62,26 +60,11 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             SOURCE_CHAIN_ID // Use mainnet chain ID, not destination
         );
 
-        // Deploy BridgeQueue first
-        bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0), // Temporarily 0, will be set later
-            commander // Make the commander the queue manager
-        );
-
-        // Create router, passing the deployed BridgeQueue address
-        bridgeRouter = new BridgeRouter(
-            address(accessManager),
-            address(bridgeQueue)
-        );
-
-        // Set the bridge router address in the queue
-        vm.startPrank(governor);
-        bridgeQueue.setBridgeRouter(address(bridgeRouter));
+        // Create router
+        bridgeRouter = new BridgeRouter(address(accessManager));
 
         // Now that both contracts are deployed, initialize the bridge configuration
         registry.initializeBridgeConfiguration(
-            address(bridgeQueue),
             address(bridgeRouter),
             200000 // defaultGasLimit
         );
@@ -180,12 +163,17 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false,
+            requiresKeeperData: true,
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         // Create CrossChainArk with the proper CrossChainConfigManager
-        ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
+        ark = new CrossChainArk(
+            address(bridgeRouter),
+            address(registry),
+            DEST_CHAIN_ID,
+            params
+        );
 
         // Register the ark-proxy relationship
         vm.startPrank(governor);
@@ -196,9 +184,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             DEST_CHAIN_ID,
             keccak256("ARK_FLEET")
         );
-
-        // Add ark as queue manager
-        bridgeQueue.addQueueManager(address(ark));
 
         // Setup permissions
         accessManager.grantCommanderRole(address(ark), commander);
@@ -220,23 +205,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         accessManager.grantGuardianRole(guardian);
         vm.stopPrank();
 
-        // Deploy BridgeQueue
-        bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0), // Temporarily 0, will be set later
-            commander // Make the commander the queue manager
-        );
-
-        // Create router, passing the deployed BridgeQueue address
-        bridgeRouter = new BridgeRouter(
-            address(accessManager),
-            address(bridgeQueue)
-        );
-
-        // Set the bridge router address in the queue
-        vm.startPrank(governor);
-        bridgeQueue.setBridgeRouter(address(bridgeRouter));
-        vm.stopPrank();
+        // Create router directly
+        bridgeRouter = new BridgeRouter(address(accessManager));
 
         // Setup LayerZero adapter
         uint16[] memory supportedChains = new uint16[](1);
@@ -315,7 +285,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
         registry.initializeBridgeConfiguration(
-            address(bridgeQueue),
             address(bridgeRouter),
             200000 // defaultGasLimit
         );
@@ -331,12 +300,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false,
+            requiresKeeperData: true,
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        // Create CrossChainArk with the proper CrossChainConfigManager
-        ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
+        ark = new CrossChainArk(
+            address(bridgeRouter),
+            address(registry),
+            DEST_CHAIN_ID,
+            params
+        );
 
         // Register the ark-proxy relationship with CORRECT chain IDs
         vm.prank(governor);
@@ -347,11 +320,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             DEST_CHAIN_ID, // Target: Arbitrum (42161)
             keccak256("ARK_FLEET")
         );
-
-        // Add ark as queue manager
-        vm.startPrank(governor);
-        bridgeQueue.addQueueManager(address(ark));
-        vm.stopPrank();
 
         // Permissioning
         vm.startPrank(governor);
@@ -371,87 +339,156 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.prank(commander);
         usdc.approve(address(ark), amount);
 
+        // Create executeTransferParams for the board call
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(usdc),
+                amount: amount,
+                recipient: ARB_PROXY,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(stargateAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory executeTransferParams = abi.encode(params);
+
         // Expect the Boarded event to be emitted
         vm.expectEmit();
         emit Boarded(commander, address(usdc), amount);
 
-        // Act
+        // Act - Board the assets (this stores pending transfer params)
         vm.prank(commander);
-        ark.board(amount, bytes(""));
+        ark.board(amount, executeTransferParams);
 
-        // Assert
-        // Get the first pending queue ID (should be the one created by the board call)
-        bytes32 queueId = bridgeQueue.getPendingQueueIdAtIndex(0);
+        // Assert - Verify the pending transfer params were stored correctly
         (
             uint16 destinationChainId,
             address asset,
-            uint256 queuedAmount,
+            uint256 storedAmount,
             address recipient,
             address originator,
-            bytes32 operationId
-        ) = bridgeQueue.queuedTransfers(queueId);
+            address keeper, // options struct components
 
-        // Verify all the queued transfer parameters
+        ) = ark.pendingTransferParams();
+
         assertEq(
             destinationChainId,
             DEST_CHAIN_ID,
             "Incorrect destination chain ID"
         );
         assertEq(asset, address(usdc), "Incorrect asset address");
-        assertEq(queuedAmount, amount, "Incorrect queued amount");
+        assertEq(storedAmount, amount, "Incorrect stored amount");
         assertEq(recipient, ARB_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
+        assertEq(keeper, commander, "Incorrect keeper address");
+
+        // Verify assets were transferred to ark
         assertEq(
-            operationId,
-            bytes32(0),
-            "Operation ID should be zero initially"
+            usdc.balanceOf(commander),
+            0,
+            "Commander should have no USDC after boarding"
+        );
+        assertEq(
+            usdc.balanceOf(address(ark)),
+            amount,
+            "Ark should hold the USDC"
         );
     }
 
     function test_ReadState_CrossChain() public {
-        // First board some assets
-        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
-        deal(address(usdc), commander, amount);
+        // Setup: Give ark some local balance and inflight assets
+        uint256 localAmount = 500 * 10 ** 6; // 500 USDC local
+        uint256 inflightAmount = 200 * 10 ** 6; // 200 USDC in flight
+        deal(address(usdc), address(ark), localAmount);
+
+        // Set some inflight assets
+        vm.prank(address(bridgeRouter));
+        ark.updateInflightAssets(inflightAmount);
+
+        // Verify initial state
+        assertEq(ark.totalAssets(), localAmount + inflightAmount);
+        assertEq(ark.lastRemoteAssetBalance(), 0);
+
+        // Request remote asset balance update directly
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            adapterParams: BridgeTypes.AdapterParams({
+                gasLimit: 700000,
+                msgValue: 0,
+                calldataSize: 0,
+                options: ""
+            })
+        });
+
+        // Get quote for the read operation
+        (uint256 nativeFee, , ) = bridgeRouter.quote(
+            DEST_CHAIN_ID,
+            address(0), // No asset for read
+            0, // No amount for read
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        vm.deal(commander, nativeFee);
+
+        // Execute the read request directly
         vm.prank(commander);
-        usdc.approve(address(ark), amount);
-        vm.prank(commander);
-        ark.board(amount, bytes(""));
+        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
+            value: nativeFee
+        }(options);
+
+        // Verify operation was created
+        assertTrue(
+            operationId != bytes32(0),
+            "Operation ID should be non-zero"
+        );
 
         // Mock the remote balance response
         uint256 remoteBalance = 1000 * 10 ** 6;
         bytes memory resultData = abi.encode(remoteBalance);
-        bytes32 requestId = keccak256(
-            abi.encode(
-                DEST_CHAIN_ID,
-                address(usdc),
-                bytes4(keccak256("balanceOf(address)")),
-                abi.encode(ARB_PROXY),
-                block.timestamp,
-                address(ark)
-            )
+
+        // Expect events to be emitted
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
+            remoteBalance,
+            operationId
         );
 
-        // Mock the router's notifyMessageReceived function
-        vm.mockCall(
-            address(bridgeRouter),
-            abi.encodeWithSelector(bridgeRouter.notifyMessageReceived.selector),
-            abi.encode()
-        );
+        vm.expectEmit(true, true, true, true);
+        emit IInflightAssetTracking.InflightAssetsUpdated(0);
 
-        // Simulate receiving the state read response
+        // Simulate receiving the state read response from the router
         vm.prank(address(bridgeRouter));
         ark.receiveStateRead(
             resultData,
             address(ark),
-            requestId,
+            operationId,
             DEST_CHAIN_ID
         );
 
-        // Assert that the remote balance was updated
+        // Assert that the remote balance was updated and inflight assets reset
+        assertEq(
+            ark.lastRemoteAssetBalance(),
+            remoteBalance,
+            "Remote balance should be updated"
+        );
+        assertEq(
+            ark.inflightAssets(),
+            0,
+            "Inflight assets should be reset to 0"
+        );
         assertEq(
             ark.totalAssets(),
-            amount + remoteBalance,
-            "Total assets should include both local and remote balances"
+            localAmount + remoteBalance, // localAmount + remoteBalance + 0 inflight
+            "Total assets should include local and remote balances"
         );
     }
 
@@ -474,17 +511,34 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             "Ark should start with no USDC"
         );
 
-        // Board the assets - this should queue them
-        vm.prank(commander);
-        ark.board(amount, bytes(""));
+        // Create executeTransferParams for the board call
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(stargateAdapter),
+            adapterParams: BridgeTypes.AdapterParams({
+                gasLimit: 200000,
+                msgValue: 0,
+                calldataSize: 0,
+                options: ""
+            })
+        });
 
-        // Verify assets are queued and transferred to ark
-        bytes32 queueId = bridgeQueue.getPendingQueueIdAtIndex(0);
-        assertEq(
-            uint8(bridgeQueue.queueIdToStatus(queueId)),
-            uint8(BridgeTypes.OperationStatus.QUEUED),
-            "Operation should be queued"
-        );
+        BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(usdc),
+                amount: amount,
+                recipient: ARB_PROXY,
+                originator: address(ark),
+                keeper: commander,
+                options: options
+            });
+        bytes memory executeTransferParams = abi.encode(transferParams);
+
+        // Board the assets - this stores pending transfer params
+        vm.prank(commander);
+        ark.board(amount, executeTransferParams);
+
+        // Verify assets were transferred to ark and pending params stored
         assertEq(
             usdc.balanceOf(commander),
             0,
@@ -496,15 +550,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             "Ark should hold the USDC"
         );
 
-        // === STEP 2: Verify Queue Details ===
+        // === STEP 2: Verify Pending Transfer Params ===
         (
             uint16 destinationChainId,
             address asset,
-            uint256 queuedAmount,
+            uint256 storedAmount,
             address recipient,
             address originator,
+            address keeper, // options struct
 
-        ) = bridgeQueue.queuedTransfers(queueId);
+        ) = ark.pendingTransferParams();
 
         assertEq(
             destinationChainId,
@@ -512,25 +567,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             "Incorrect destination chain ID"
         );
         assertEq(asset, address(usdc), "Incorrect asset address");
-        assertEq(queuedAmount, amount, "Incorrect queued amount");
+        assertEq(storedAmount, amount, "Incorrect stored amount");
         assertEq(recipient, ARB_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
+        assertEq(keeper, commander, "Incorrect keeper address");
 
-        // === STEP 3: Keeper Executes Queued Operation ===
-        address keeper = makeAddr("keeper");
-        vm.deal(keeper, 10 ether); // Give keeper ETH for fees
-
-        // Get quote for execution using Stargate adapter
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(stargateAdapter),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 200000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            })
-        });
-
+        // === STEP 3: Get Quote and Execute Transfer ===
         (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter.quote(
             DEST_CHAIN_ID,
             address(usdc),
@@ -554,66 +596,31 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             "Mock Stargate should be Pool type"
         );
 
-        // === STEP 4: Execute and Verify Stargate Interaction ===
+        // === STEP 4: Execute Transfer Directly via Ark ===
         uint256 preExecutionBalance = usdc.balanceOf(address(ark));
+        vm.deal(commander, nativeFee);
 
-        // Keeper executes the queued operation
-        vm.prank(keeper);
-        bytes32 executedOperationId = bridgeQueue.executeQueuedOperation{
-            value: nativeFee
-        }(queueId, options);
+        // Expect TransferInitiated event from BridgeRouter
+        vm.expectEmit(false, true, true, true);
+        emit IBridgeRouter.TransferInitiated(
+            bytes32(0), // We can't predict the operationId
+            DEST_CHAIN_ID,
+            address(usdc),
+            amount,
+            ARB_PROXY,
+            address(stargateAdapter)
+        );
+
+        // Execute the transfer directly
+        vm.prank(commander);
+        ark.executeTransferAssets{value: nativeFee}();
 
         // === STEP 5: Verify Execution Results ===
-        // Check that operation status changed to SENT
-        assertEq(
-            uint8(bridgeQueue.queueIdToStatus(queueId)),
-            uint8(BridgeTypes.OperationStatus.SENT),
-            "Operation should be marked as SENT"
-        );
-
-        // Verify operation ID mapping
-        assertEq(
-            bridgeQueue.operationIdToQueueId(executedOperationId),
-            queueId,
-            "Operation ID should map back to queue ID"
-        );
-
-        // Verify pending queue is empty
-        assertEq(
-            bridgeQueue.getPendingQueueCount(),
-            0,
-            "Pending queue should be empty after execution"
-        );
-
-        // Verify token flow: tokens should have moved from ark to the adapter/stargate
+        // Verify token flow: tokens should have moved from ark
         assertLt(
             usdc.balanceOf(address(ark)),
             preExecutionBalance,
             "Ark balance should decrease after execution"
-        );
-
-        // === STEP 6: Verify Cross-Chain Transfer State ===
-        // The operation should be tracked and marked as SENT
-        assertEq(
-            uint8(bridgeRouter.getOperationStatus(executedOperationId)),
-            uint8(BridgeTypes.OperationStatus.SENT),
-            "Final operation status should be SENT"
-        );
-
-        // Verify the operation was processed by the correct adapter
-        assertTrue(
-            executedOperationId != bytes32(0),
-            "Operation ID should be non-zero"
-        );
-
-        // === STEP 7: Integration Test Success Verification ===
-        emit log_named_bytes32("Executed Operation ID", executedOperationId);
-        emit log_named_uint("Native Fee Paid", nativeFee);
-        emit log_named_address("Keeper", keeper);
-        emit log_named_uint("Amount Transferred", amount);
-        emit log_named_address("Destination", ARB_PROXY);
-        emit log_string(
-            "SUCCESS: Full integration test completed - CrossChain Ark -> Bridge Queue -> Stargate Adapter"
         );
 
         // Verify that the transfer was successful by checking the mock Stargate contract received the tokens
@@ -630,6 +637,23 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             0,
             "StargateAdapter should not hold tokens after transfer to Stargate"
         );
+
+        // Verify pending transfer params were cleared
+        (uint16 clearedChainId, , , , , , ) = ark.pendingTransferParams();
+        assertEq(
+            clearedChainId,
+            0,
+            "Pending transfer params should be cleared"
+        );
+
+        // === STEP 6: Integration Test Success Verification ===
+        emit log_named_uint("Native Fee Paid", nativeFee);
+        emit log_named_address("Keeper", commander);
+        emit log_named_uint("Amount Transferred", amount);
+        emit log_named_address("Destination", ARB_PROXY);
+        emit log_string(
+            "SUCCESS: Full integration test completed - CrossChain Ark -> BridgeRouter -> Stargate Adapter"
+        );
     }
 
     // Event declaration for the event we expect from StargateAdapter
@@ -643,13 +667,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
     function test_FullReadStateIntegration_LayerZeroToCrossChainArk() public {
         // This test simulates the complete read state flow:
-        // 1. CrossChainArk requests remote asset balance update
-        // 2. Keeper executes the queued read operation via BridgeRouter
-        // 3. BridgeRouter calls LayerZeroAdapter to send the read request
-        // 4. Mock LayerZero response comes back to LayerZeroAdapter
-        // 5. LayerZeroAdapter calls BridgeRouter.deliverReadResponse
-        // 6. BridgeRouter calls CrossChainArk.receiveStateRead
-        // 7. CrossChainArk updates its state and emits events
+        // 1. CrossChainArk requests remote asset balance update directly
+        // 2. BridgeRouter calls LayerZeroAdapter to send the read request
+        // 3. Mock LayerZero response comes back to LayerZeroAdapter
+        // 4. LayerZeroAdapter calls BridgeRouter.deliverReadResponse
+        // 5. BridgeRouter calls CrossChainArk.receiveStateRead
+        // 6. CrossChainArk updates its state and emits events
 
         // === STEP 1: Setup initial state ===
         uint256 initialLocalBalance = 500 * 10 ** 6; // 500 USDC local
@@ -671,22 +694,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertEq(ark.lastRemoteAssetBalance(), 0);
         assertEq(ark.inflightAssets(), initialInflightAssets);
 
-        // === STEP 2: CrossChainArk requests remote balance update ===
-        vm.prank(commander); // Commander acts as keeper
-        bytes32 queueId = ark.requestRemoteAssetBalanceUpdate();
-
-        // Verify queue was created
-        assertTrue(queueId != bytes32(0));
-        assertEq(
-            uint8(bridgeQueue.queueIdToStatus(queueId)),
-            uint8(BridgeTypes.OperationStatus.QUEUED)
-        );
-
-        // === STEP 3: Keeper executes the queued read operation ===
-        address keeper = makeAddr("keeper");
-        vm.deal(keeper, 10 ether);
-
-        // Create bridge options for LayerZero adapter
+        // === STEP 2: Create bridge options for LayerZero adapter ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
             adapterParams: BridgeTypes.AdapterParams({
@@ -707,19 +715,19 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
+        vm.deal(commander, nativeFee);
 
-        // Execute the queued read operation
-        vm.prank(keeper);
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{
+        // === STEP 3: CrossChainArk requests remote balance update directly ===
+        vm.prank(commander); // Commander acts as keeper
+        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
             value: nativeFee
-        }(queueId, options);
+        }(options);
 
-        // Verify operation was executed
-        assertEq(
-            uint8(bridgeQueue.queueIdToStatus(queueId)),
-            uint8(BridgeTypes.OperationStatus.SENT)
+        // Verify operation was created
+        assertTrue(
+            operationId != bytes32(0),
+            "Operation ID should be non-zero"
         );
-        assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
 
         // === STEP 4: Simulate LayerZero response delivery ===
         // The response should contain the encoded remote balance
@@ -769,13 +777,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // === STEP 7: Verify integration completed successfully ===
         emit log_named_bytes32("Operation ID", operationId);
-        emit log_named_bytes32("Queue ID", queueId);
         emit log_named_uint("Initial Local Balance", initialLocalBalance);
         emit log_named_uint("Initial Inflight Assets", initialInflightAssets);
         emit log_named_uint("Mock Remote Balance", mockRemoteBalance);
         emit log_named_uint("Final Total Assets", ark.totalAssets());
         emit log_string(
-            "SUCCESS: Complete read state integration test passed - CrossChainArk -> BridgeQueue -> BridgeRouter -> LayerZeroAdapter -> Response -> CrossChainArk"
+            "SUCCESS: Complete read state integration test passed - CrossChainArk -> BridgeRouter -> LayerZeroAdapter -> Response -> CrossChainArk"
         );
     }
 
@@ -789,14 +796,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.prank(address(bridgeRouter));
         ark.updateInflightAssets(initialInflight);
 
-        // === STEP 1: Request remote balance update ===
-        vm.prank(commander);
-        bytes32 queueId = ark.requestRemoteAssetBalanceUpdate();
-
-        // === STEP 2: Execute queued operation ===
-        address keeper = makeAddr("keeper");
-        vm.deal(keeper, 1 ether);
-
+        // === STEP 1: Request remote balance update directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
             adapterParams: BridgeTypes.AdapterParams({
@@ -815,9 +815,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        vm.prank(keeper);
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{value: fee}(
-            queueId,
+        vm.deal(commander, fee);
+
+        vm.prank(commander);
+        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{value: fee}(
             options
         );
 
@@ -952,15 +953,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertEq(ark.lastRemoteAssetBalance(), 0);
         assertEq(ark.inflightAssets(), initialInflightAssets);
 
-        // === STEP 2: CrossChainArk requests remote balance update ===
-        vm.prank(commander); // Commander acts as keeper
-        bytes32 queueId = ark.requestRemoteAssetBalanceUpdate();
-
-        // === STEP 3: Keeper executes the queued read operation ===
-        address keeper = makeAddr("keeper");
-        vm.deal(keeper, 10 ether);
-
-        // Create bridge options for LayerZero adapter
+        // === STEP 2: Create bridge options for LayerZero adapter ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
             adapterParams: BridgeTypes.AdapterParams({
@@ -981,17 +974,18 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
+        vm.deal(commander, nativeFee);
 
-        // Execute the queued read operation - this will call LayerZeroAdapter.readState
-        vm.prank(keeper);
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{
+        // === STEP 3: CrossChainArk requests remote balance update directly ===
+        vm.prank(commander); // Commander acts as keeper
+        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
             value: nativeFee
-        }(queueId, options);
+        }(options);
 
-        // Verify operation was executed and is now SENT
-        assertEq(
-            uint8(bridgeQueue.queueIdToStatus(queueId)),
-            uint8(BridgeTypes.OperationStatus.SENT)
+        // Verify operation was created
+        assertTrue(
+            operationId != bytes32(0),
+            "Operation ID should be non-zero"
         );
 
         // === STEP 4: Simulate LayerZero calling _lzReceive on the adapter ===
@@ -1094,7 +1088,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // === STEP 7: Verify integration completed successfully ===
         emit log_named_bytes32("Operation ID", operationId);
-        emit log_named_bytes32("Queue ID", queueId);
         emit log_named_bytes32("Mock LayerZero GUID", mockGuid);
         emit log_named_uint("Initial Local Balance", initialLocalBalance);
         emit log_named_uint("Initial Inflight Assets", initialInflightAssets);
@@ -1112,13 +1105,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         uint256 mockRemoteBalance = 1337 * 10 ** 6; // 1337 USDC
 
-        // === STEP 1: Setup and execute a read request ===
-        vm.prank(commander);
-        bytes32 queueId = ark.requestRemoteAssetBalanceUpdate();
-
-        address keeper = makeAddr("keeper");
-        vm.deal(keeper, 1 ether);
-
+        // === STEP 1: Setup and execute a read request directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
             adapterParams: BridgeTypes.AdapterParams({
@@ -1137,9 +1124,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             BridgeTypes.OperationType.READ_STATE
         );
 
-        vm.prank(keeper);
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{value: fee}(
-            queueId,
+        vm.deal(commander, fee);
+
+        vm.prank(commander);
+        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{value: fee}(
             options
         );
 

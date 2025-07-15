@@ -8,12 +8,12 @@ import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
 /**
  * @title LayerZeroAdapter Read Response Fork Test (Base)
- * @dev Fork test to verify LayerZero adapter read response handling functionality using existing mocks
+ * @dev Fork test to verify LayerZero layerZeroAdapter read response handling functionality using existing mocks
  */
 contract LayerZeroAdapterReadResponseBaseForkTest is
     LayerZeroAdapterForkSetupTest
 {
-    // Events from LayerZero adapter
+    // Events from LayerZero layerZeroAdapter
     event ReadResponseDelivered(bytes32 indexed operationId, bytes payload);
     event ReadOperationNotFound(bytes32 indexed guid, string reason);
     event RelayFailed(bytes32 indexed operationId, bytes reason);
@@ -34,8 +34,8 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             BridgeTypes.OperationStatus.SENT
         );
 
-        // Associate the operation with the adapter (required for authorization)
-        router.setOperationToAdapter(operationId, address(adapter));
+        // Associate the operation with the layerZeroAdapter (required for authorization)
+        router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
         // Set the read request originator (required for deliverReadResponse)
         router.setReadRequestOriginator(operationId, user);
@@ -46,17 +46,17 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         // Create origin for read response (srcEid > READ_CHANNEL_THRESHOLD indicates read response)
         Origin memory origin = Origin({
             srcEid: READ_CHANNEL_THRESHOLD + 1, // Indicates this is a read response
-            sender: bytes32(uint256(uint160(address(adapter)))), // Peer adapter address
+            sender: bytes32(uint256(uint160(address(layerZeroAdapter)))), // Peer layerZeroAdapter address
             nonce: 1
         });
 
         // Expect the RelayFailed event (since user is not a contract that implements the interface)
-        vm.expectEmit(true, false, false, true, address(adapter));
+        vm.expectEmit(true, false, false, true, address(layerZeroAdapter));
         emit RelayFailed(operationId, "");
 
         // Simulate receiving the read response through LayerZero
         vm.prank(LZ_ENDPOINT_BASE); // Only the LZ endpoint can call lzReceive
-        adapter.lzReceive(origin, guid, responseData, address(0), "");
+        layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 
         console.log("[SUCCESS] Read response handled successfully");
     }
@@ -74,17 +74,23 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         // Create origin for read response
         Origin memory origin = Origin({
             srcEid: READ_CHANNEL_THRESHOLD + 1,
-            sender: bytes32(uint256(uint160(address(adapter)))),
+            sender: bytes32(uint256(uint160(address(layerZeroAdapter)))),
             nonce: 1
         });
 
         // Expect the ReadOperationNotFound event
-        vm.expectEmit(true, false, false, true, address(adapter));
+        vm.expectEmit(true, false, false, true, address(layerZeroAdapter));
         emit ReadOperationNotFound(unknownGuid, "No operationId found");
 
         // Simulate receiving read response with unknown GUID
         vm.prank(LZ_ENDPOINT_BASE);
-        adapter.lzReceive(origin, unknownGuid, responseData, address(0), "");
+        layerZeroAdapter.lzReceive(
+            origin,
+            unknownGuid,
+            responseData,
+            address(0),
+            ""
+        );
 
         console.log("[SUCCESS] Unknown operation ID handled gracefully");
     }
@@ -99,8 +105,8 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         bytes32 guid = keccak256(abi.encodePacked("test_guid_2"));
         bytes memory responseData = abi.encode(uint256(54321), "failure_test");
 
-        // Associate the operation with the adapter (required for authorization)
-        router.setOperationToAdapter(operationId, address(adapter));
+        // Associate the operation with the layerZeroAdapter (required for authorization)
+        router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
         // Set the read request originator (required for deliverReadResponse)
         router.setReadRequestOriginator(operationId, user);
@@ -114,17 +120,17 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         // Create origin for read response
         Origin memory origin = Origin({
             srcEid: READ_CHANNEL_THRESHOLD + 1,
-            sender: bytes32(uint256(uint160(address(adapter)))),
+            sender: bytes32(uint256(uint160(address(layerZeroAdapter)))),
             nonce: 1
         });
 
         // Expect the RelayFailed event due to delivery failure
-        vm.expectEmit(true, false, false, false, address(adapter));
+        vm.expectEmit(true, false, false, false, address(layerZeroAdapter));
         emit RelayFailed(operationId, "");
 
         // Simulate receiving the read response - should handle delivery failure gracefully
         vm.prank(LZ_ENDPOINT_BASE);
-        adapter.lzReceive(origin, guid, responseData, address(0), "");
+        layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 
         // Reset router behavior
         router.setShouldRevert(false);
@@ -137,7 +143,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             "=== Testing Read Channel Threshold Boundary Conditions ==="
         );
 
-        // Test that adapter recognizes read channel threshold correctly
+        // Test that layerZeroAdapter recognizes read channel threshold correctly
         console.log("Read channel threshold:", READ_CHANNEL_THRESHOLD);
         console.log("Read channel ID:", READ_CHANNEL_ID);
 
@@ -154,7 +160,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         console.log("At threshold EID:", atThreshold);
         console.log("Above threshold EID:", aboveThreshold);
 
-        // The actual threshold check logic is internal to the adapter
+        // The actual threshold check logic is internal to the layerZeroAdapter
         // This test verifies the configuration is correct for boundary detection
         assertTrue(
             atThreshold < aboveThreshold,
@@ -191,15 +197,15 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             "ReadLib1002 should have code"
         );
 
-        // Verify adapter configuration
-        console.log("Adapter read channel:", adapter.readChannelId());
+        // Verify layerZeroAdapter configuration
+        console.log("Adapter read channel:", layerZeroAdapter.readChannelId());
         assertEq(
-            adapter.readChannelId(),
+            layerZeroAdapter.readChannelId(),
             READ_CHANNEL_ID,
             "Read channel should be configured"
         );
 
-        // Test that adapter recognizes read channel threshold correctly
+        // Test that layerZeroAdapter recognizes read channel threshold correctly
         console.log("Read channel threshold:", READ_CHANNEL_THRESHOLD);
         assertTrue(
             READ_CHANNEL_THRESHOLD < READ_CHANNEL_ID,
@@ -230,8 +236,11 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 BridgeTypes.OperationStatus.SENT
             );
 
-            // Associate the operation with the adapter (required for authorization)
-            router.setOperationToAdapter(operationIds[i], address(adapter));
+            // Associate the operation with the layerZeroAdapter (required for authorization)
+            router.setOperationToAdapter(
+                operationIds[i],
+                address(layerZeroAdapter)
+            );
 
             // Set the read request originator (required for deliverReadResponse)
             router.setReadRequestOriginator(operationIds[i], user);
@@ -246,16 +255,22 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
 
             Origin memory origin = Origin({
                 srcEid: READ_CHANNEL_THRESHOLD + 1,
-                sender: bytes32(uint256(uint160(address(adapter)))),
+                sender: bytes32(uint256(uint160(address(layerZeroAdapter)))),
                 nonce: uint64(i + 1)
             });
 
             // Expect the RelayFailed event for each response (since user is not a contract)
-            vm.expectEmit(true, false, false, true, address(adapter));
+            vm.expectEmit(true, false, false, true, address(layerZeroAdapter));
             emit RelayFailed(operationIds[i], "");
 
             vm.prank(LZ_ENDPOINT_BASE);
-            adapter.lzReceive(origin, guids[i], responseData, address(0), "");
+            layerZeroAdapter.lzReceive(
+                origin,
+                guids[i],
+                responseData,
+                address(0),
+                ""
+            );
         }
 
         console.log("[SUCCESS] Multiple read responses handled successfully");

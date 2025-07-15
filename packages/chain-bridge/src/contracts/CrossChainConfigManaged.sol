@@ -24,11 +24,6 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
     }
 
     /// @inheritdoc ICrossChainConfigManaged
-    function bridgeQueue() public view virtual returns (address) {
-        return ICrossChainRegistry(crossChainRegistry).bridgeQueue();
-    }
-
-    /// @inheritdoc ICrossChainConfigManaged
     function bridgeRouter() public view virtual returns (address) {
         return ICrossChainRegistry(crossChainRegistry).bridgeRouter();
     }

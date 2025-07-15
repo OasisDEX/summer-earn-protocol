@@ -9,7 +9,6 @@ import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
-import {MockBridgeQueue} from "@summerfi/chain-bridge-test/mocks/MockBridgeQueue.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkParams} from "../../src/contracts/Ark.sol";
@@ -17,12 +16,8 @@ import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import {FleetProxy, IFleetProxy} from "../../src/contracts/FleetProxy.sol";
-import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
-import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
-import {IArk} from "../../src/interfaces/IArk.sol";
-import {IArkConfigProvider} from "../../src/interfaces/IArkConfigProvider.sol";
+import {FleetProxy} from "../../src/contracts/FleetProxy.sol";
+import {IFleetProxy} from "../../src/interfaces/IFleetProxy.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 
 uint16 constant DEST_CHAIN_ID = 42161;
@@ -44,7 +39,6 @@ contract CrossChainFleetProxyTest is Test {
     // Mocks
     ERC20Mock public mockToken;
     MockBridgeRouter public mockBridgeRouter;
-    MockBridgeQueue public mockBridgeQueue;
     ProtocolAccessManager public accessManager;
     MockAdapter public mockAdapter;
     ArkMock public bufferArkMock;
@@ -62,7 +56,6 @@ contract CrossChainFleetProxyTest is Test {
         // Deploy mocks
         mockToken = new ERC20Mock();
         mockBridgeRouter = new MockBridgeRouter();
-        mockBridgeQueue = new MockBridgeQueue();
         accessManager = new ProtocolAccessManager(governor);
         mockAdapter = new MockAdapter(address(mockBridgeRouter));
         mockBridgeRouter.registerAdapter(address(mockAdapter));
@@ -114,7 +107,6 @@ contract CrossChainFleetProxyTest is Test {
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
         registry.initializeBridgeConfiguration(
-            address(mockBridgeQueue),
             address(mockBridgeRouter),
             200000 // defaultGasLimit
         );
@@ -123,8 +115,10 @@ contract CrossChainFleetProxyTest is Test {
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(
             address(accessManager),
+            address(mockBridgeRouter),
             address(registry),
-            address(fleetCommanderMock)
+            address(fleetCommanderMock),
+            SOURCE_CHAIN_ID
         );
 
         // Register the ark-proxy relationship in the registry
@@ -151,7 +145,6 @@ contract CrossChainFleetProxyTest is Test {
     function test_Constructor() public view {
         // Test all constructor values are properly initialized
         assertEq(address(proxy.bridgeRouter()), address(mockBridgeRouter));
-        assertEq(address(proxy.bridgeQueue()), address(mockBridgeQueue));
         assertEq(address(proxy.crossChainRegistry()), address(registry));
         assertEq(proxy.fleetContract(), address(fleetCommanderMock));
         // Verify registry relationship works
@@ -195,7 +188,25 @@ contract CrossChainFleetProxyTest is Test {
         // Try withdrawAndTransfer while paused
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        proxy.withdrawAndTransfer(100, SOURCE_CHAIN_ID);
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(mockToken),
+                amount: 100,
+                recipient: address(proxy),
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
 
         // Non-governor can't unpause
         vm.prank(guardian);
@@ -380,6 +391,149 @@ contract CrossChainFleetProxyTest is Test {
         // Try to withdraw and transfer with zero amount
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
-        proxy.withdrawAndTransfer(0, SOURCE_CHAIN_ID);
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(mockToken),
+                amount: 0,
+                recipient: address(proxy),
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+    }
+
+    function test_WithdrawAndTransfer_ValidationFailures() public {
+        // Setup: Add some assets to the fleet commander for testing
+        uint256 amount = 1000;
+        deal(address(mockToken), address(fleetCommanderMock), amount);
+
+        // Test 1: Zero amount should revert with NoAssets
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: SOURCE_CHAIN_ID,
+                asset: address(mockToken),
+                amount: 0,
+                recipient: SOURCE_ARK_ADDRESS,
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+
+        // Test 2: Invalid asset should revert with InvalidAsset
+        ERC20Mock invalidToken = new ERC20Mock();
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidAsset()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: SOURCE_CHAIN_ID,
+                asset: address(invalidToken),
+                amount: amount,
+                recipient: SOURCE_ARK_ADDRESS,
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+
+        // Test 3: Invalid originator should revert with InvalidRequestor
+        address wrongOriginator = address(0x999);
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidRequestor()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: SOURCE_CHAIN_ID,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: SOURCE_ARK_ADDRESS,
+                originator: wrongOriginator,
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+
+        // Test 4: Invalid destination chain ID should revert with InvalidSatelliteChain
+        uint16 wrongChainId = 9999;
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidSatelliteChain()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: wrongChainId,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: SOURCE_ARK_ADDRESS,
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
+
+        // Test 5: Invalid recipient should revert with InvalidRecipient
+        address wrongRecipient = address(0x888);
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidRecipient()"));
+        proxy.withdrawAndTransfer(
+            BridgeTypes.ExecuteTransferParams({
+                destinationChainId: SOURCE_CHAIN_ID,
+                asset: address(mockToken),
+                amount: amount,
+                recipient: wrongRecipient,
+                originator: address(proxy),
+                keeper: address(governor),
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 100000,
+                        calldataSize: 100,
+                        msgValue: 0,
+                        options: ""
+                    })
+                })
+            })
+        );
     }
 }

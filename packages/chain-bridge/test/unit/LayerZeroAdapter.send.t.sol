@@ -357,8 +357,8 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     event ReadRequestInitiated(
         bytes32 indexed requestId,
         uint16 srcChainId,
-        uint16 dstChainId,
-        address dstContract,
+        uint16 destinationChainId,
+        address destinationContract,
         bytes4 selector
     );
 }

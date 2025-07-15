@@ -6,7 +6,6 @@ import {console} from "forge-std/console.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
@@ -70,17 +69,8 @@ contract StargateAdapterComposeForkTest is Test {
         ProtocolAccessManager accessManager = new ProtocolAccessManager(
             governor
         );
-        BridgeQueue bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0),
-            governor
-        );
 
-        routerMainnet = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(bridgeQueue)
-        );
-        bridgeQueue.setBridgeRouter(address(routerMainnet));
+        routerMainnet = new BridgeRouterTestHelper(address(accessManager));
 
         // Deploy and initialize CrossChainRegistry for mainnet
         registryMainnet = new CrossChainRegistry(
@@ -88,7 +78,6 @@ contract StargateAdapterComposeForkTest is Test {
             CHAIN_ID_MAINNET
         );
         registryMainnet.initializeBridgeConfiguration(
-            address(bridgeQueue),
             address(routerMainnet),
             400000 // defaultGasLimit
         );
@@ -134,17 +123,8 @@ contract StargateAdapterComposeForkTest is Test {
         ProtocolAccessManager accessManagerArb = new ProtocolAccessManager(
             governor
         );
-        BridgeQueue bridgeQueueArb = new BridgeQueue(
-            address(accessManagerArb),
-            address(0),
-            governor
-        );
 
-        routerArbitrum = new BridgeRouterTestHelper(
-            address(accessManagerArb),
-            address(bridgeQueueArb)
-        );
-        bridgeQueueArb.setBridgeRouter(address(routerArbitrum));
+        routerArbitrum = new BridgeRouterTestHelper(address(accessManagerArb));
 
         // Deploy and initialize CrossChainRegistry for arbitrum
         registryArbitrum = new CrossChainRegistry(
@@ -152,7 +132,6 @@ contract StargateAdapterComposeForkTest is Test {
             CHAIN_ID_ARBITRUM
         );
         registryArbitrum.initializeBridgeConfiguration(
-            address(bridgeQueueArb),
             address(routerArbitrum),
             400000 // defaultGasLimit
         );

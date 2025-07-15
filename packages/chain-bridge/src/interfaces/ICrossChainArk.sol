@@ -45,6 +45,18 @@ interface ICrossChainArk is IInflightAssetTracking {
     /// @notice Thrown when the provided asset address is invalid.
     error InvalidAsset();
 
+    /// @notice Thrown when the provided amount is invalid.
+    error InvalidAmount();
+
+    /// @notice Thrown when the provided bridge router address is invalid.
+    error InvalidBridgeRouter();
+
+    /// @notice Thrown when the provided cross chain registry address is invalid.
+    error InvalidCrossChainRegistry();
+
+    /// @notice Thrown when there are no pending transfer params.
+    error NoPendingTransferParams();
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
