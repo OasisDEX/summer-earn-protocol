@@ -2,13 +2,13 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {SummerRewardsRedeemerOwanable} from "../src/contracts/SummerRewardsRedeemerOwanable.sol";
+import {SummerRewardsRedeemerOwnable} from "../src/contracts/SummerRewardsRedeemerOwnable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {console} from "forge-std/console.sol";
 
 contract RewardsRedeemerOwnableTest is Test {
-    SummerRewardsRedeemerOwanable public redeemer;
+    SummerRewardsRedeemerOwnable public redeemer;
     ERC20Mock public rewardsToken;
 
     address public owner;
@@ -46,7 +46,7 @@ contract RewardsRedeemerOwnableTest is Test {
         rewardsToken = new ERC20Mock();
 
         // Deploy redeemer
-        redeemer = new SummerRewardsRedeemerOwanable(
+        redeemer = new SummerRewardsRedeemerOwnable(
             address(rewardsToken),
             owner
         );
@@ -98,7 +98,7 @@ contract RewardsRedeemerOwnableTest is Test {
         vm.expectRevert(
             abi.encodeWithSignature("InvalidRewardsToken(address)", address(0))
         );
-        new SummerRewardsRedeemerOwanable(address(0), owner);
+        new SummerRewardsRedeemerOwnable(address(0), owner);
     }
 
     function test_AddRoot() public {

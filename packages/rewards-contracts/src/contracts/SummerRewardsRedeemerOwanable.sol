@@ -11,7 +11,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @author Summer.fi
  * @notice Implementation of ISummerRewardsRedeemer
  */
-contract SummerRewardsRedeemerOwanable is ISummerRewardsRedeemer, Ownable {
+contract SummerRewardsRedeemerOwnable is ISummerRewardsRedeemer, Ownable {
     using BitMaps for BitMaps.BitMap;
     using SafeERC20 for IERC20;
 
