@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -19,6 +20,7 @@ contract BridgeRouterAdaptersTest is Test {
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
     ProtocolAccessManager public accessManager;
+    CrossChainRegistry public registry;
 
     address public governor = address(0x1);
     address public user = address(0x2);
@@ -26,16 +28,26 @@ contract BridgeRouterAdaptersTest is Test {
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
+    uint16 public immutable CURRENT_CHAIN_ID;
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
+
+    constructor() {
+        CURRENT_CHAIN_ID = uint16(block.chainid);
+    }
 
     function setUp() public {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
 
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            CURRENT_CHAIN_ID
+        );
+
         vm.startPrank(governor);
 
         // Deploy router
-        router = new BridgeRouter(address(accessManager));
+        router = new BridgeRouter(address(accessManager), address(registry));
 
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));

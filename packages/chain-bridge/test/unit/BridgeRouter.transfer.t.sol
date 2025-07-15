@@ -10,6 +10,7 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 contract BridgeRouterTransferTest is Test {
     BridgeRouter public router;
@@ -17,6 +18,7 @@ contract BridgeRouterTransferTest is Test {
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
     ProtocolAccessManager public accessManager;
+    CrossChainRegistry public registry;
 
     address public governor = address(0x1);
     address public user = address(0x3);
@@ -26,6 +28,7 @@ contract BridgeRouterTransferTest is Test {
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
+    uint16 public CURRENT_CHAIN_ID = uint16(block.chainid);
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
 
     // Add these constants to each test file
@@ -38,10 +41,15 @@ contract BridgeRouterTransferTest is Test {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
 
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            CURRENT_CHAIN_ID
+        );
+
         vm.startPrank(governor);
 
         // Deploy router, linking it to the queue
-        router = new BridgeRouter(address(accessManager));
+        router = new BridgeRouter(address(accessManager), address(registry));
 
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));

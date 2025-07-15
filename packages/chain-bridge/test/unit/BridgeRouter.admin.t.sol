@@ -11,6 +11,7 @@ import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 contract BridgeRouterAdminTest is Test {
     BridgeRouter public router;
@@ -18,6 +19,7 @@ contract BridgeRouterAdminTest is Test {
     MockAdapter public mockAdapter;
     ERC20Mock public token;
     ProtocolAccessManager public accessManager;
+    CrossChainRegistry public registry;
 
     address public governor = address(0x1);
     address public guardian = address(0x2);
@@ -26,19 +28,28 @@ contract BridgeRouterAdminTest is Test {
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
+    uint16 public immutable CURRENT_CHAIN_ID;
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
+    constructor() {
+        CURRENT_CHAIN_ID = uint16(block.chainid);
+    }
+
     function setUp() public {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            CURRENT_CHAIN_ID
+        );
 
         vm.startPrank(governor);
         accessManager.grantGuardianRole(guardian);
 
         // Deploy BridgeRouter
-        router = new BridgeRouter(address(accessManager));
+        router = new BridgeRouter(address(accessManager), address(registry));
 
         // Deploy mock adapter
         mockAdapter = new MockAdapter(address(router));

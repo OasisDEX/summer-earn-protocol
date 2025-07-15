@@ -127,8 +127,8 @@ interface IBridgeRouter is IERC165 {
     error UnsupportedAdapterOperation();
     /// @notice Thrown when there are insufficient native funds in the router
     error InsufficientBalance();
-    /// @notice Error for calls not originating from the authorized caller
-    error OnlyAuthorized();
+    /// @notice Error for calls not originating from the authorized executor
+    error OnlyAuthorizedExecutor();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS

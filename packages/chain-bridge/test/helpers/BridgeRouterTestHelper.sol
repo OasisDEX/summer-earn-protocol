@@ -16,8 +16,12 @@ contract BridgeRouterTestHelper is BridgeRouter {
     /**
      * @notice Constructor for BridgeRouterTestHelper
      * @param _accessManager Address of the access manager
+     * @param _registry Address of the registry
      */
-    constructor(address _accessManager) BridgeRouter(_accessManager) {
+    constructor(
+        address _accessManager,
+        address _registry
+    ) BridgeRouter(_accessManager, _registry) {
         // Initialize any test-specific state here
     }
 

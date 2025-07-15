@@ -10,6 +10,7 @@ import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 contract BridgeRouterReadStateTest is Test {
     BridgeRouterTestHelper public router;
@@ -18,6 +19,7 @@ contract BridgeRouterReadStateTest is Test {
     ERC20Mock public token;
     ProtocolAccessManager public accessManager;
     MockCrossChainReceiver public mockReceiver;
+    CrossChainRegistry public registry;
 
     address public governor = address(0x1);
     address public user = address(0x2);
@@ -27,6 +29,7 @@ contract BridgeRouterReadStateTest is Test {
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
+    uint16 public immutable CURRENT_CHAIN_ID;
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
 
     uint8 constant OPTION_TYPE_EXECUTOR = 1;
@@ -34,15 +37,27 @@ contract BridgeRouterReadStateTest is Test {
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 5;
 
+    constructor() {
+        CURRENT_CHAIN_ID = uint16(block.chainid);
+    }
+
     function setUp() public {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
         mockReceiver = new MockCrossChainReceiver();
 
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            CURRENT_CHAIN_ID
+        );
+
         vm.startPrank(governor);
 
         // Deploy BridgeRouterTestHelper, linking it to the queue
-        router = new BridgeRouterTestHelper(address(accessManager));
+        router = new BridgeRouterTestHelper(
+            address(accessManager),
+            address(registry)
+        );
 
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));

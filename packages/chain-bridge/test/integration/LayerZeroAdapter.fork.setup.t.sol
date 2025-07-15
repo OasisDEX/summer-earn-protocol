@@ -72,7 +72,10 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         vm.stopPrank();
 
         // Create router TEST HELPER, passing the deployed BridgeQueue address
-        router = new BridgeRouterTestHelper(address(accessManager));
+        router = new BridgeRouterTestHelper(
+            address(accessManager),
+            address(registry)
+        );
 
         // Deploy registry
         vm.startPrank(governor);

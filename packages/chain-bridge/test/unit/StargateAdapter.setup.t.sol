@@ -82,7 +82,10 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         accessManagerA = new ProtocolAccessManager(governor);
         harborCommandA = new MockHarborCommand();
-        routerA = new BridgeRouterTestHelper(address(accessManagerA));
+        routerA = new BridgeRouterTestHelper(
+            address(accessManagerA),
+            address(registryA)
+        );
 
         // Replace configManagerA setup with registryA
         registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
@@ -122,7 +125,10 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         accessManagerB = new ProtocolAccessManager(governor);
         harborCommandB = new MockHarborCommand();
-        routerB = new BridgeRouterTestHelper(address(accessManagerB));
+        routerB = new BridgeRouterTestHelper(
+            address(accessManagerB),
+            address(registryB)
+        );
 
         // Replace configManagerB setup with registryB
         registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);

@@ -14,6 +14,7 @@ import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadRe
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 
 /**
  * @title BridgeRouter
@@ -60,6 +61,9 @@ contract BridgeRouter is
     mapping(uint16 chainId => address routerAddress)
         public chainToRouterAddress;
 
+    /// @notice Reference to the cross-chain registry
+    ICrossChainRegistry public immutable registry;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -67,8 +71,15 @@ contract BridgeRouter is
     /**
      * @notice Initializes the BridgeRouter contract
      * @param accessManager Address of the ProtocolAccessManager contract
+     * @param _registry Address of the CrossChainRegistry contract
      */
-    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
+    constructor(
+        address accessManager,
+        address _registry
+    ) ProtocolAccessManaged(accessManager) {
+        if (_registry == address(0)) revert InvalidParams();
+        registry = ICrossChainRegistry(_registry);
+    }
 
     /*//////////////////////////////////////////////////////////////
                         MODIFIERS
@@ -84,11 +95,19 @@ contract BridgeRouter is
     }
 
     /**
-     * @dev Modifier ensuring the caller (`msg.sender`) is the configured `authorizedExecutor`.
-     * Reverts with `OnlyAuthorizedExecutor` if the caller is not the `authorizedExecutor` address.
+     * @dev Modifier ensuring the caller (`msg.sender`) is registered as an executor in the registry.
+     * Reverts with `OnlyAuthorizedExecutor` if the caller is not registered.
      */
     modifier onlyAuthorizedExecutor() {
-        // todo: add authorized executor check
+        if (
+            !registry.isValidCrossChainPair(
+                msg.sender,
+                address(this), // BridgeRouter
+                registry.currentChainId(),
+                registry.currentChainId(),
+                registry.EXECUTOR()
+            )
+        ) revert OnlyAuthorizedExecutor();
         _;
     }
 

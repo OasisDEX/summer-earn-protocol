@@ -54,7 +54,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Constants for relationship types
     bytes32 public constant ADAPTER_PEER = keccak256("ADAPTER_PEER");
     bytes32 public constant ARK_FLEET = keccak256("ARK_FLEET");
-    bytes32 public constant EXECUTOR = keccak256("EXECUTOR"); // New constant
+    bytes32 public constant EXECUTOR = keccak256("EXECUTOR");
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR

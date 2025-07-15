@@ -140,6 +140,10 @@ interface ICrossChainRegistry {
     /// @return bytes32 value of keccak256("ARK_FLEET")
     function ARK_FLEET() external pure returns (bytes32);
 
+    /// @notice Returns the constant for executor relationship type
+    /// @return bytes32 value of keccak256("EXECUTOR")
+    function EXECUTOR() external pure returns (bytes32);
+
     /*//////////////////////////////////////////////////////////////
                             CORE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
