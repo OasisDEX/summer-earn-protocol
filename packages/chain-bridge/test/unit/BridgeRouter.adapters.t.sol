@@ -12,75 +12,9 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 
-contract BridgeRouterAdaptersTest is Test {
-    BridgeRouter public router;
-
-    MockAdapter public mockAdapter;
-    MockAdapter public mockAdapter2;
-    ERC20Mock public token;
-    ProtocolAccessManager public accessManager;
-    CrossChainRegistry public registry;
-
-    address public governor = address(0x1);
-    address public user = address(0x2);
-    address public keeper = address(0x3);
-    address public executor = address(0x4);
-
-    // Constants for testing
-    uint16 public constant DEST_CHAIN_ID = 10; // Optimism
-    uint16 public immutable CURRENT_CHAIN_ID;
-    uint256 public constant TRANSFER_AMOUNT = 1000e18;
-
-    constructor() {
-        CURRENT_CHAIN_ID = uint16(block.chainid);
-    }
-
-    function setUp() public {
-        // Deploy access manager and set up roles
-        accessManager = new ProtocolAccessManager(governor);
-
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
-
-        vm.startPrank(governor);
-
-        // Deploy router
-        router = new BridgeRouter(address(accessManager), address(registry));
-
-        // Initialize bridge configuration in registry
-        registry.initializeBridgeConfiguration(
-            address(router), // Set router as bridge router
-            500000 // Default gas limit
-        );
-
-        mockAdapter = new MockAdapter(address(router));
-        mockAdapter2 = new MockAdapter(address(router));
-        token = new ERC20Mock();
-
-        // Setup mock adapter
-        mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-
-        // Register adapter
-        router.registerAdapter(address(mockAdapter));
-
-        registry.registerExecutor(address(mockAdapter));
-        registry.registerExecutor(executor);
-
-        // Mint tokens for testing
-        token.mint(governor, 10000e18);
-        token.mint(keeper, 10000e18);
-        token.mint(executor, 10000e18);
-
-        // Fund keeper for execution - give enough for the base fee (0.1 ETH)
-        vm.deal(keeper, 1 ether);
-        vm.deal(executor, 1 ether);
-
-        vm.stopPrank();
-    }
-
+contract BridgeRouterAdaptersTest is BridgeRouterSetup {
     // ---- ADAPTER MANAGEMENT TESTS ----
 
     function testRegisterAdapter() public {

@@ -1,62 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
 import {ICrossChainMessageReceiver} from "../../src/interfaces/ICrossChainMessageReceiver.sol";
+import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 
-contract BridgeRouterDeliverTest is Test {
-    BridgeRouterTestHelper public router;
-    MockAdapter public mockAdapter;
-    MockAdapter public mockAdapter2;
-    ERC20Mock public token;
-    ProtocolAccessManager public accessManager;
-    MockCrossChainReceiver public mockReceiver;
-    CrossChainRegistry public registry;
-
-    address public constant governor = address(0x1);
-
-    // Constants
-    uint16 public constant SOURCE_CHAIN_ID = 111;
+contract BridgeRouterDeliverTest is BridgeRouterSetup {
     uint256 public constant AMOUNT = 500e18;
-
-    function setUp() public {
-        /* ----------------------------- infrastructure ---------------------------- */
-        accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            uint16(block.chainid)
-        );
-
-        vm.startPrank(governor);
-        router = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(registry)
-        );
-
-        /* -------------------------------- adapters ------------------------------- */
-        mockAdapter = new MockAdapter(address(router));
-        mockAdapter.setSupportedChain(SOURCE_CHAIN_ID, true);
-        router.registerAdapter(address(mockAdapter));
-
-        mockAdapter2 = new MockAdapter(address(router)); // unregistered
-
-        /* ------------------------------ test assets ------------------------------ */
-        token = new ERC20Mock();
-        mockReceiver = new MockCrossChainReceiver();
-
-        // Fund router so it can forward tokens in `deliver`
-        token.mint(address(router), AMOUNT);
-
-        vm.stopPrank();
-    }
 
     /* -------------------------------------------------------------------------- */
     /*                               success paths                                */

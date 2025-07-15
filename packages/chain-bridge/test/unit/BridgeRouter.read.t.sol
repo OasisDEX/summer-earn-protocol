@@ -4,87 +4,11 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 
-contract BridgeRouterReadStateTest is Test {
-    BridgeRouterTestHelper public router;
-    MockAdapter public mockAdapter;
-    MockAdapter public mockAdapter2;
-    ERC20Mock public token;
-    ProtocolAccessManager public accessManager;
-    MockCrossChainReceiver public mockReceiver;
-    CrossChainRegistry public registry;
-
-    address public governor = address(0x1);
-    address public user = address(0x2);
-    address public keeper = address(0x3);
-
-    // Constants for testing
-    uint16 public constant DEST_CHAIN_ID = 10; // Optimism
-    uint16 public immutable CURRENT_CHAIN_ID;
-    uint256 public constant TRANSFER_AMOUNT = 1000e18;
-
-    uint8 constant OPTION_TYPE_EXECUTOR = 1;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 5;
-
-    constructor() {
-        CURRENT_CHAIN_ID = uint16(block.chainid);
-    }
-
-    function setUp() public {
-        // Deploy access manager and set up roles
-        accessManager = new ProtocolAccessManager(governor);
-        mockReceiver = new MockCrossChainReceiver();
-
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
-
-        vm.startPrank(governor);
-
-        // Deploy BridgeRouterTestHelper, linking it to the queue
-        router = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(registry)
-        );
-
-        mockAdapter = new MockAdapter(address(router));
-        mockAdapter2 = new MockAdapter(address(router));
-        token = new ERC20Mock();
-
-        // Setup mock adapter
-        mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-
-        // Register adapter
-        router.registerAdapter(address(mockAdapter));
-
-        // Initialize bridge configuration first
-        registry.initializeBridgeConfiguration(
-            address(router), // Set the bridge router address
-            500000 // Set a default gas limit
-        );
-
-        // Now register the executor
-        registry.registerExecutor(keeper);
-
-        // Mint tokens for user (if needed elsewhere)
-        token.mint(user, 10000e18);
-        // Fund mockReceiver (queue manager) and keeper
-        vm.deal(address(mockReceiver), 10 ether);
-        vm.deal(keeper, 1 ether);
-
-        vm.stopPrank();
-    }
-
+contract BridgeRouterReadStateTest is BridgeRouterSetup {
     // ---- READ STATE TESTS ----
 
     function testReadStateLOL() public {

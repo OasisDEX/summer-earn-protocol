@@ -6,85 +6,12 @@ import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 
-contract BridgeRouterAdminTest is Test {
-    BridgeRouter public router;
-
-    MockAdapter public mockAdapter;
-    ERC20Mock public token;
-    ProtocolAccessManager public accessManager;
-    CrossChainRegistry public registry;
-
-    address public governor = address(0x1);
-    address public guardian = address(0x2);
-    address public user = address(0x3);
-    address public executor = address(0x5);
-    address public keeper = address(0x4);
-
-    // Constants for testing
-    uint16 public constant DEST_CHAIN_ID = 10; // Optimism
-    uint16 public immutable CURRENT_CHAIN_ID;
-    uint256 public constant TRANSFER_AMOUNT = 1000e18;
-    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
-    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-
-    constructor() {
-        CURRENT_CHAIN_ID = uint16(block.chainid);
-    }
-
-    function setUp() public {
-        // Deploy access manager and set up roles
-        accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
-
-        vm.startPrank(governor);
-        accessManager.grantGuardianRole(guardian);
-
-        // Deploy BridgeRouter
-        router = new BridgeRouter(address(accessManager), address(registry));
-
-        // Initialize bridge configuration in registry
-        registry.initializeBridgeConfiguration(
-            address(router), // Set router as bridge router
-            500000 // Default gas limit
-        );
-
-        // Deploy mock adapter
-        mockAdapter = new MockAdapter(address(router));
-        token = new ERC20Mock();
-
-        // Setup mock adapter
-        mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-
-        // Register adapter
-        router.registerAdapter(address(mockAdapter));
-
-        // Register mockAdapter as an executor
-        registry.registerExecutor(executor);
-        registry.registerExecutor(address(mockAdapter));
-
-        // Mint tokens for testing
-        token.mint(governor, 10000e18);
-        token.mint(guardian, 10000e18);
-        token.mint(keeper, 10000e18);
-        token.mint(executor, 10000e18);
-
-        // Fund keeper for execution
-        vm.deal(keeper, 1 ether);
-        vm.deal(executor, 1 ether);
-
-        vm.stopPrank();
-    }
-
+contract BridgeRouterAdminTest is BridgeRouterSetup {
     // ---- ADMIN FUNCTION TESTS ----
 
     function testPauseByGovernor() public {
