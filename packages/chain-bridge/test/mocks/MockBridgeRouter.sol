@@ -310,7 +310,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         address asset,
         uint256 amount,
         address recipient,
-        bytes calldata payload
+        bytes calldata
     ) external {
         // Track the handling adapter
         operationAdapters[operationId] = msg.sender;

@@ -61,13 +61,19 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Create router
-        bridgeRouter = new BridgeRouter(address(accessManager));
+        bridgeRouter = new BridgeRouter(
+            address(accessManager),
+            address(registry)
+        );
 
         // Now that both contracts are deployed, initialize the bridge configuration
         registry.initializeBridgeConfiguration(
             address(bridgeRouter),
             200000 // defaultGasLimit
         );
+
+        // Register the BridgeRouter as an executor
+        registry.registerExecutor(address(bridgeRouter));
         vm.stopPrank();
 
         // ------------------------------------------------------------------
@@ -188,6 +194,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Setup permissions
         accessManager.grantCommanderRole(address(ark), commander);
         accessManager.grantKeeperRole(address(ark), commander);
+        // Grant keeper role to the dedicated keeper address used in tests
+        accessManager.grantKeeperRole(address(ark), keeper);
+        registry.registerExecutor(address(ark));
         vm.stopPrank();
 
         // Register fleet commander
@@ -206,7 +215,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.stopPrank();
 
         // Create router directly
-        bridgeRouter = new BridgeRouter(address(accessManager));
+        bridgeRouter = new BridgeRouter(
+            address(accessManager),
+            address(registry)
+        );
 
         // Setup LayerZero adapter
         uint16[] memory supportedChains = new uint16[](1);
@@ -325,6 +337,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.startPrank(governor);
         accessManager.grantCommanderRole(address(ark), commander);
         accessManager.grantKeeperRole(address(ark), commander); // Grant keeper role to commander
+        // Grant keeper role to the dedicated keeper address used in tests
+        accessManager.grantKeeperRole(address(ark), keeper);
         vm.stopPrank();
 
         vm.startPrank(commander);
@@ -977,7 +991,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.deal(commander, nativeFee);
 
         // === STEP 3: CrossChainArk requests remote balance update directly ===
-        vm.prank(commander); // Commander acts as keeper
+        vm.prank(keeper);
         bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
             value: nativeFee
         }(options);

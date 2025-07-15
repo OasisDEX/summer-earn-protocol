@@ -159,11 +159,23 @@ contract FleetProxy is
         // 5. Approve the bridge router to transfer the assets
         IERC20(asset).forceApprove(address(bridgeRouter), params.amount);
 
-        // 6. Get source chain ark address from registry - reverts if not found
-        address arkAddress = _getSourceChainArk(hubChainId);
+        // 6. Get source-chain Ark address from the registry – reverts if not found
+        address arkAddress = _getSourceChainArk(params.destinationChainId);
 
-        // 7. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
-        bridgeRouter.executeTransferAssets(params);
+        // 7. Build a new ExecuteTransferParams struct with the correct Ark recipient
+        BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: params.destinationChainId,
+                asset: params.asset,
+                amount: params.amount,
+                recipient: arkAddress,
+                originator: params.originator,
+                keeper: params.keeper,
+                options: params.options
+            });
+
+        // 8. Queue the cross-chain transfer back to the Ark on the hub chain
+        bridgeRouter.executeTransferAssets(transferParams);
 
         emit AssetsWithdrawnAndTransferred(
             params.amount,
@@ -181,7 +193,7 @@ contract FleetProxy is
         address asset,
         uint256 amount,
         bytes calldata message,
-        uint16 hubChainId
+        uint16 _hubChainId
     ) external whenNotPaused nonReentrant {
         if (message.length == 0) {
             emit MessageContentNotExpected();
@@ -193,7 +205,7 @@ contract FleetProxy is
         }
 
         // Validate the relationship using registry
-        if (!_isValidSourceChain(hubChainId)) {
+        if (!_isValidSourceChain(_hubChainId)) {
             revert InvalidSourceChain();
         }
 
@@ -206,7 +218,7 @@ contract FleetProxy is
             revert NoAssets();
         }
 
-        _handleReceiveAssets(asset, amount, hubChainId);
+        _handleReceiveAssets(asset, amount, _hubChainId);
     }
 
     /// @inheritdoc IERC165
@@ -225,16 +237,16 @@ contract FleetProxy is
 
     /**
      * @notice Gets the source chain ark address from the registry
-     * @param hubChainId The chain ID where the ark is deployed
+     * @param _hubChainId The chain ID where the ark is deployed
      * @return arkAddress The source chain ark address
      * @dev Reverts if no valid relationship exists for the source chain
      */
     function _getSourceChainArk(
-        uint16 hubChainId
+        uint16 _hubChainId
     ) internal view returns (address arkAddress) {
         return
             ICrossChainRegistry(crossChainRegistry).getSourceForTarget(
-                hubChainId,
+                _hubChainId,
                 ICrossChainRegistry(crossChainRegistry).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
@@ -243,15 +255,15 @@ contract FleetProxy is
 
     /**
      * @notice Validates if the source chain is valid for this proxy
-     * @param hubChainId The chain ID to validate
+     * @param _hubChainId The chain ID to validate
      * @return isValid True if the source chain is valid
      */
     function _isValidSourceChain(
-        uint16 hubChainId
+        uint16 _hubChainId
     ) internal view returns (bool isValid) {
         try
             ICrossChainRegistry(crossChainRegistry).getSourceForTarget(
-                hubChainId,
+                _hubChainId,
                 ICrossChainRegistry(crossChainRegistry).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
@@ -284,12 +296,12 @@ contract FleetProxy is
      * @notice Handles receiving assets from a cross-chain transfer
      * @param asset The asset address
      * @param amount The amount received
-     * @param hubChainId The source chain ID
+     * @param _hubChainId The source chain ID
      */
     function _handleReceiveAssets(
         address asset,
         uint256 amount,
-        uint16 hubChainId
+        uint16 _hubChainId
     ) internal {
         // Approve the fleet contract to take the assets
         IERC20(asset).forceApprove(fleetContract, amount);
@@ -298,6 +310,6 @@ contract FleetProxy is
         IFleetCommander(fleetContract).deposit(amount, address(this));
 
         // Emit an event for tracking
-        emit ProxyDeposit(fleetContract, asset, amount, hubChainId);
+        emit ProxyDeposit(fleetContract, asset, amount, _hubChainId);
     }
 }
