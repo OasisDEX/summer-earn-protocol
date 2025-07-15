@@ -26,6 +26,9 @@ contract CrossChainRegistryTest is Test {
     uint16 public constant TARGET_CHAIN_ID = 42161;
 
     bytes32 public constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
+    bytes32 public constant EXECUTOR_RELATIONSHIP = keccak256("EXECUTOR");
+
+    address public executor = makeAddr("executor");
 
     event CrossChainRelationshipRegistered(
         address indexed sourceContract,
@@ -195,16 +198,10 @@ contract CrossChainRegistryTest is Test {
         );
     }
 
-    function test_registerCrossChainRelationship_revertSameChainRelationship()
+    function test_registerCrossChainRelationship_sameChainRelationship()
         public
     {
         vm.prank(governor);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.SameChainRelationship.selector,
-                CURRENT_CHAIN_ID
-            )
-        );
         registry.registerCrossChainRelationship(
             ark1,
             proxy1,
@@ -1055,5 +1052,114 @@ contract CrossChainRegistryTest is Test {
         vm.expectRevert(ICrossChainRegistry.InvalidCurrentChainId.selector);
         new CrossChainRegistry(address(accessManager), 0);
         vm.stopPrank();
+    }
+
+    /*─────────────────────────────────────────────────────────────────
+        SOURCE-CHAIN RELATIONSHIP TESTS
+─────────────────────────────────────────────────────────────────*/
+    function test_registerSourceChainRelationship() public {
+        bytes32 LOCAL_REL = keccak256("LOCAL_REL");
+        address src = makeAddr("localSrc");
+        address dst = makeAddr("localDst");
+
+        vm.expectEmit(true, true, true, true);
+        emit CrossChainRelationshipRegistered(
+            src,
+            dst,
+            CURRENT_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            LOCAL_REL
+        );
+
+        vm.prank(governor);
+        registry.registerSourceChainRelationship(src, dst, LOCAL_REL);
+
+        (address target, uint16 chainId) = registry.getTargetForSource(
+            src,
+            LOCAL_REL
+        );
+        assertEq(target, dst);
+        assertEq(chainId, CURRENT_CHAIN_ID);
+
+        assertTrue(
+            registry.isValidCrossChainPair(
+                src,
+                dst,
+                CURRENT_CHAIN_ID,
+                CURRENT_CHAIN_ID,
+                LOCAL_REL
+            )
+        );
+    }
+
+    function test_registerSourceChainRelationship_onlyGovernor() public {
+        bytes32 LOCAL_REL = keccak256("LOCAL_REL_2");
+        vm.prank(user);
+        vm.expectRevert();
+        registry.registerSourceChainRelationship(
+            makeAddr("src2"),
+            makeAddr("dst2"),
+            LOCAL_REL
+        );
+    }
+
+    /*─────────────────────────────────────────────────────────────────
+                            EXECUTOR TESTS
+─────────────────────────────────────────────────────────────────*/
+    function test_registerExecutor_andAuthorization() public {
+        _initializeBridgeConfig(); // sets non-zero bridgeRouter
+
+        vm.expectEmit(true, true, true, true);
+        emit CrossChainRelationshipRegistered(
+            keeper,
+            mockBridgeRouter,
+            CURRENT_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            EXECUTOR_RELATIONSHIP
+        );
+
+        vm.prank(governor);
+        registry.registerExecutor(keeper);
+
+        assertTrue(registry.isAuthorizedExecutor(keeper));
+        assertTrue(
+            registry.isValidCrossChainPair(
+                keeper,
+                mockBridgeRouter,
+                CURRENT_CHAIN_ID,
+                CURRENT_CHAIN_ID,
+                EXECUTOR_RELATIONSHIP
+            )
+        );
+    }
+
+    function test_registerExecutor_onlyGovernor() public {
+        _initializeBridgeConfig();
+        vm.prank(user);
+        vm.expectRevert();
+        registry.registerExecutor(keeper);
+    }
+
+    function test_registerExecutor_revertWhenBridgeRouterUnset() public {
+        // bridgeRouter is address(0) before initialise
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainRegistry.InvalidTargetContract.selector,
+                address(0)
+            )
+        );
+        registry.registerExecutor(keeper);
+    }
+
+    function test_removeExecutor() public {
+        _initializeBridgeConfig();
+        vm.prank(governor);
+        registry.registerExecutor(keeper);
+
+        vm.prank(governor);
+        registry.removeExecutor(keeper);
+
+        assertFalse(registry.isAuthorizedExecutor(keeper));
     }
 }
