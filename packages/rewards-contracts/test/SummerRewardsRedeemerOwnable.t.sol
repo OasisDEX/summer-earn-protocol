@@ -42,7 +42,7 @@ contract RewardsRedeemerOwnableTest is Test {
         alice = makeAddr("alice");
         bob = makeAddr("bob");
 
-        // Deploy mock token 
+        // Deploy mock token
         rewardsToken = new ERC20Mock();
 
         // Deploy redeemer
