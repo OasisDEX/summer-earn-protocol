@@ -1,5 +1,6 @@
 {
   "chainId": "8453",
+  "contractAddress":"0x54a2ea2B8f57D62c149ace01d7Ac1fd9A880B8dd",
   "distributionId": "1",
   "merkleRoot": "0x71fb227d798d4d4830b011d4e8f94b03d11e2346c4c4e0858c9df3bcc9724593",
   "totalAmount": "40099778295041480582674130",
