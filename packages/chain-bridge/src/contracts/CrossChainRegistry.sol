@@ -121,15 +121,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
         }
 
-        // ---------------------------------------------------------------------
         // Decide if this is a same-chain or inter-chain relationship
-        // ---------------------------------------------------------------------
         bool isSameChain = (sourceChainId == currentChainId &&
             targetChainId == currentChainId);
 
-        // ------------------------------------------
         // Target-contract uniqueness (inter-chain only)
-        // ------------------------------------------
         bytes32 targetKey = _getTargetKey(
             sourceChainId,
             targetChainId,
@@ -146,9 +142,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
         }
 
-        // ------------------
         // Create the relation
-        // ------------------
         crossChainRelations[relationshipKey] = CrossChainRelation({
             sourceContract: sourceContract,
             targetContract: targetContract,
@@ -206,9 +200,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             relationshipKey
         ];
 
-        // ------------------------------------------------------------
         // Remove reverse mapping only when it was stored (inter-chain)
-        // ------------------------------------------------------------
         bool isSameChain = (relation.sourceChainId == currentChainId &&
             relation.targetChainId == currentChainId);
         bytes32 targetKey = _getTargetKey(
@@ -803,9 +795,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             _addRelationshipType(relationshipType);
         }
 
-        // -------------------------------------------
-        // SAME-CHAIN registration (always currentChain)
-        // -------------------------------------------
+        // Same-chain registration (always currentChain)
         bytes32 relationshipKey = _getRelationshipKey(
             sourceContract,
             relationshipType,
@@ -829,9 +819,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             targetChainId: currentChainId,
             relationshipType: relationshipType
         });
-
-        // NOTE: we intentionally do *not* touch targetToSource for same-chain
-        // relationships so that multiple executors can share the same router.
 
         // Update tracking
         registeredSourceContracts[relationshipType].add(sourceContract);
@@ -899,8 +886,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 currentChainId
             );
         }
-
-        // Allow same-chain relationships (removed the SameChainRelationship check)
     }
 
     /**
