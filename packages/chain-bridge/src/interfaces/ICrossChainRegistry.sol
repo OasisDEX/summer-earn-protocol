@@ -176,6 +176,18 @@ interface ICrossChainRegistry {
         uint16 targetChainId
     ) external;
 
+    /**
+     * @notice Register a relationship between two contracts on the same chain
+     * @param sourceContract The source contract address
+     * @param targetContract The target contract address
+     * @param relationshipType The relationship type
+     */
+    function registerSourceChainRelationship(
+        address sourceContract,
+        address targetContract,
+        bytes32 relationshipType
+    ) external;
+
     /*//////////////////////////////////////////////////////////////
                         BRIDGE CONFIG FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -460,4 +472,29 @@ interface ICrossChainRegistry {
         external
         view
         returns (address[] memory fleetProxies, uint16[] memory fleetChainIds);
+
+    /*//////////////////////////////////////////////////////////////
+                            EXECUTOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register an executor for the bridge router
+     * @param executor The address of the executor to register
+     */
+    function registerExecutor(address executor) external;
+
+    /**
+     * @notice Remove an executor from the bridge router
+     * @param executor The address of the executor to remove
+     */
+    function removeExecutor(address executor) external;
+
+    /**
+     * @notice Check if an address is an authorized executor
+     * @param executor The address to check
+     * @return True if the address is an authorized executor
+     */
+    function isAuthorizedExecutor(
+        address executor
+    ) external view returns (bool);
 }

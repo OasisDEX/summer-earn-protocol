@@ -785,12 +785,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         }
     }
 
-    /**
-     * @notice Register a relationship between two contracts on the same chain
-     * @param sourceContract The source contract address
-     * @param targetContract The target contract address
-     * @param relationshipType The relationship type
-     */
+    /// @inheritdoc ICrossChainRegistry
     function registerSourceChainRelationship(
         address sourceContract,
         address targetContract,
@@ -857,27 +852,17 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         );
     }
 
-    /**
-     * @notice Register an executor for the bridge router
-     * @param executor The address of the executor to register
-     */
+    /// @inheritdoc ICrossChainRegistry
     function registerExecutor(address executor) external onlyGovernor {
         registerSourceChainRelationship(executor, bridgeRouter, EXECUTOR);
     }
 
-    /**
-     * @notice Remove an executor from the bridge router
-     * @param executor The address of the executor to remove
-     */
+    /// @inheritdoc ICrossChainRegistry
     function removeExecutor(address executor) external onlyGovernor {
         unregisterCrossChainRelationship(executor, EXECUTOR, currentChainId);
     }
 
-    /**
-     * @notice Check if an address is an authorized executor
-     * @param executor The address to check
-     * @return True if the address is an authorized executor
-     */
+    /// @inheritdoc ICrossChainRegistry
     function isAuthorizedExecutor(
         address executor
     ) external view returns (bool) {
