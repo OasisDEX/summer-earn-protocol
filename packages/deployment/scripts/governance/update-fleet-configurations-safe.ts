@@ -66,7 +66,7 @@ const addresses: Record<
       ws: '0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38',
       reul: '0x0000000000000000000000000000000000000000',
       silo: '0xb098AFC30FCE67f1926e735Db6fDadFE433E61db',
-      xsilo:"0x4451765739b2D7BCe5f8BC95Beaf966c45E1Dcc9"
+      xsilo: '0x4451765739b2D7BCe5f8BC95Beaf966c45E1Dcc9',
     },
   },
   arbitrum: {
@@ -418,8 +418,8 @@ function parsePercentage(percentValue: string | number): bigint {
   if (typeof percentValue === 'number') {
     // Round to 1 decimal place to handle floating point precision issues
     // For 0.39299999999999996, this gives us 39.3 instead of 39
-    const roundedPercent = Math.round(percentValue * 1000) 
-    return BigInt(roundedPercent) * WAD / 10n
+    const roundedPercent = Math.round(percentValue * 1000)
+    return (BigInt(roundedPercent) * WAD) / 10n
   }
   // If it's a string with % (legacy format), convert to percentage
   const percent = parseFloat(percentValue.replace('%', ''))

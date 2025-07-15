@@ -1,5 +1,7 @@
 {
   "network": "base",
   "raft-address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E",
-  "raft-start-block": 25773578
+  "raft-start-block": 25773578,
+  "raft-2-address": "0x95107E3C932865733e8feCF971e9051DA62FE59A",
+  "raft-2-start-block": 25773578
 }

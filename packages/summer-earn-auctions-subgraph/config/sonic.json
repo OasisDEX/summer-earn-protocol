@@ -1,5 +1,7 @@
 {
   "network": "sonic-mainnet",
   "raft-address": "0x6E6b9CB3BA753337ab91BC5A1dbAD83b8F05e204",
-  "raft-start-block": 14240205
+  "raft-start-block": 14240205,
+  "raft-2-address": "0xd03414b3E3463DDC471555850F6BdD5322b97d60",
+  "raft-2-start-block": 14240205
 }
