@@ -1,25 +1,24 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { TestHelperOz5 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
-import { Test, console } from "forge-std/Test.sol";
+import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import { LayerZeroAdapter } from "../../src/adapters/LayerZeroAdapter.sol";
+import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 
-import { CrossChainRegistry } from "../../src/contracts/CrossChainRegistry.sol";
-import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
-import { BridgeRouterTestHelper } from "../helpers/BridgeRouterTestHelper.sol";
-import { LayerZeroAdapterTestHelper } from "../helpers/LayerZeroAdapterTestHelper.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 
-import { Origin } from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import { OptionsBuilder } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ERC20Mock } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import { ProtocolAccessManager } from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 // Base test contract with common setup used by all LayerZero adapter tests
 contract LayerZeroAdapterSetupTest is TestHelperOz5 {
-
     using OptionsBuilder for bytes;
 
     // LayerZero option type constants
@@ -111,17 +110,28 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
 
         // Deploy router and configure
-        routerA = new BridgeRouterTestHelper(address(accessManagerA), address(registryA));
+        routerA = new BridgeRouterTestHelper(
+            address(accessManagerA),
+            address(registryA)
+        );
 
         registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
 
         // Initialize bridge configuration in registry
-        registryA.initializeBridgeConfiguration(address(routerA), DEFAULT_GAS_LIMIT);
+        registryA.initializeBridgeConfiguration(
+            address(routerA),
+            DEFAULT_GAS_LIMIT
+        );
 
         // Deploy token and adapter with registry
         tokenA = new ERC20Mock();
         adapterA = new LayerZeroAdapterTestHelper(
-            lzEndpointA, address(registryA), address(accessManagerA), chains, lzEids, governor
+            lzEndpointA,
+            address(registryA),
+            address(accessManagerA),
+            chains,
+            lzEids,
+            governor
         );
 
         // Final configuration
@@ -152,13 +162,19 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
 
         // Deploy router and configure
-        routerB = new BridgeRouterTestHelper(address(accessManagerB), address(registryB));
+        routerB = new BridgeRouterTestHelper(
+            address(accessManagerB),
+            address(registryB)
+        );
 
         // Deploy registry
         registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
 
         // Initialize bridge configuration in registry
-        registryB.initializeBridgeConfiguration(address(routerB), DEFAULT_GAS_LIMIT);
+        registryB.initializeBridgeConfiguration(
+            address(routerB),
+            DEFAULT_GAS_LIMIT
+        );
 
         // Deploy token and adapter with registry
         tokenB = new ERC20Mock();
@@ -184,7 +200,12 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         useNetworkB();
         vm.startPrank(governor);
         // Set up both registry and LZ peer relationships
-        registryB.registerAdapterPeer(address(adapterB), address(adapterA), CHAIN_ID_B, CHAIN_ID_A);
+        registryB.registerAdapterPeer(
+            address(adapterB),
+            address(adapterA),
+            CHAIN_ID_B,
+            CHAIN_ID_A
+        );
         adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
         vm.stopPrank();
 
@@ -192,7 +213,12 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         useNetworkA();
         vm.startPrank(governor);
         // Set up both registry and LZ peer relationships
-        registryA.registerAdapterPeer(address(adapterA), address(adapterB), CHAIN_ID_A, CHAIN_ID_B);
+        registryA.registerAdapterPeer(
+            address(adapterA),
+            address(adapterB),
+            CHAIN_ID_A,
+            CHAIN_ID_B
+        );
         adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
         vm.stopPrank();
     }
@@ -210,6 +236,5 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.chainId(NETWORK_B_CHAIN_ID);
     }
 
-    function testSkipper() public { }
-
+    function testSkipper() public {}
 }

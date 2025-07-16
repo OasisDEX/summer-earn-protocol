@@ -1,27 +1,35 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { BridgeTypes } from "../libraries/BridgeTypes.sol";
-import { ISendAdapter } from "./ISendAdapter.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {ISendAdapter} from "./ISendAdapter.sol";
 
 /**
  * @title IBridgeAdapter
  * @notice Core interface for bridge adapters with shared functionality
  */
 interface IBridgeAdapter is ISendAdapter {
-
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when a transfer is received through the adapter
-    event TransferReceived(bytes32 indexed transferId, address asset, uint256 amount, address recipient);
+    event TransferReceived(
+        bytes32 indexed transferId,
+        address asset,
+        uint256 amount,
+        address recipient
+    );
 
     /// @notice Emitted when a read operation is not found through the adapter
     event ReadOperationNotFound(bytes32 indexed guid, string reason);
 
     /// @notice Emitted when a message is delivered through the adapter
-    event MessageDelivered(bytes32 indexed messageId, address recipient, bool delivered);
+    event MessageDelivered(
+        bytes32 indexed messageId,
+        address recipient,
+        bool delivered
+    );
 
     /// @notice Emitted when a read response is delivered through the adapter
     event ReadResponseDelivered(bytes32 indexed requestId, bytes response);
@@ -76,21 +84,21 @@ interface IBridgeAdapter is ISendAdapter {
         uint256 amount,
         BridgeTypes.AdapterParams calldata adapterParams,
         BridgeTypes.OperationType operationType
-    )
-        external
-        view
-        returns (uint256 nativeFee, uint256 tokenFee);
+    ) external view returns (uint256 nativeFee, uint256 tokenFee);
 
     /**
      * @notice Get the status of a transfer
      */
-    function getOperationStatus(bytes32 operationId) external view returns (BridgeTypes.OperationStatus);
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view returns (BridgeTypes.OperationStatus);
 
     /**
      * @notice Check if an adapter supports a specific operation type
      * @param operationType Type of operation to check support for
      * @return Whether the adapter supports the operation type
      */
-    function supportsOperation(BridgeTypes.OperationType operationType) external view returns (bool);
-
+    function supportsOperation(
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool);
 }

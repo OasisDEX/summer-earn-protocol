@@ -1,23 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {
-    MessagingFee,
-    MessagingReceipt,
-    OFTFeeDetail,
-    OFTLimit,
-    OFTReceipt,
-    SendParam
-} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {MessagingFee, MessagingReceipt, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title MockStargateV2
  * @notice Mock implementation of Stargate V2 interface for testing
  */
 contract MockStargateV2 {
-
     using SafeERC20 for IERC20;
 
     enum StargateType {
@@ -54,10 +46,18 @@ contract MockStargateV2 {
     )
         external
         payable
-        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt, Ticket memory ticket)
+        returns (
+            MessagingReceipt memory msgReceipt,
+            OFTReceipt memory oftReceipt,
+            Ticket memory ticket
+        )
     {
         // Transfer tokens from sender to this contract (simulating real Stargate behavior)
-        IERC20(token).safeTransferFrom(msg.sender, address(this), _sendParam.amountLD);
+        IERC20(token).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _sendParam.amountLD
+        );
 
         // Store the compose message for verification
         if (_sendParam.composeMsg.length > 0) {
@@ -66,30 +66,50 @@ contract MockStargateV2 {
 
             // Check if compose message matches expected (if set)
             if (expectedComposeMsg.length > 0) {
-                require(keccak256(_sendParam.composeMsg) == keccak256(expectedComposeMsg), "Compose message mismatch");
+                require(
+                    keccak256(_sendParam.composeMsg) ==
+                        keccak256(expectedComposeMsg),
+                    "Compose message mismatch"
+                );
             }
         }
 
         // Mock implementation - just return mock structs
-        msgReceipt = MessagingReceipt({ guid: bytes32(uint256(1)), nonce: 1, fee: _fee });
+        msgReceipt = MessagingReceipt({
+            guid: bytes32(uint256(1)),
+            nonce: 1,
+            fee: _fee
+        });
 
-        oftReceipt = OFTReceipt({ amountSentLD: _sendParam.amountLD, amountReceivedLD: _sendParam.amountLD });
+        oftReceipt = OFTReceipt({
+            amountSentLD: _sendParam.amountLD,
+            amountReceivedLD: _sendParam.amountLD
+        });
 
-        ticket = Ticket({ ticketId: 1, passenger: "" });
+        ticket = Ticket({ticketId: 1, passenger: ""});
     }
 
-    function quoteSend(SendParam calldata, bool) external pure returns (MessagingFee memory msgFee) {
+    function quoteSend(
+        SendParam calldata,
+        bool
+    ) external pure returns (MessagingFee memory msgFee) {
         // Return a mock fee
-        msgFee = MessagingFee({ nativeFee: 0.01 ether, lzTokenFee: 0 });
+        msgFee = MessagingFee({nativeFee: 0.01 ether, lzTokenFee: 0});
     }
 
-    function quoteOFT(SendParam calldata _sendParam)
+    function quoteOFT(
+        SendParam calldata _sendParam
+    )
         external
         pure
-        returns (OFTLimit memory limit, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory oftReceipt)
+        returns (
+            OFTLimit memory limit,
+            OFTFeeDetail[] memory oftFeeDetails,
+            OFTReceipt memory oftReceipt
+        )
     {
         // Mock implementation with correct return types
-        limit = OFTLimit({ minAmountLD: 1, maxAmountLD: type(uint256).max });
+        limit = OFTLimit({minAmountLD: 1, maxAmountLD: type(uint256).max});
 
         oftFeeDetails = new OFTFeeDetail[](1);
         oftFeeDetails[0] = OFTFeeDetail({
@@ -100,9 +120,8 @@ contract MockStargateV2 {
         oftReceipt = OFTReceipt({
             amountSentLD: _sendParam.amountLD,
             amountReceivedLD: _sendParam.amountLD // In real scenario, this would be less due to fees
-         });
+        });
     }
 
-    function testSkipper() public { }
-
+    function testSkipper() public {}
 }

@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { CrossChainRegistry } from "../../src/contracts/CrossChainRegistry.sol";
-import { IBridgeAdapter } from "../../src/interfaces/IBridgeAdapter.sol";
-import { IBridgeRouter } from "../../src/interfaces/IBridgeRouter.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
-import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
-import { BridgeRouter } from "../../src/router/BridgeRouter.sol";
-import { Test, console } from "forge-std/Test.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import { MockAdapter } from "../mocks/MockAdapter.sol";
+import {MockAdapter} from "../mocks/MockAdapter.sol";
 
-import { BridgeRouterSetup } from "./BridgeRouter.setup.t.sol";
-import { ERC20Mock } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import { ProtocolAccessManager } from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import { IAccessControlErrors } from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 contract BridgeRouterAdaptersTest is BridgeRouterSetup {
-
     // ---- ADAPTER MANAGEMENT TESTS ----
 
     function testRegisterAdapter() public {
@@ -35,7 +34,12 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Should revert when non-governor tries to register adapter
-        vm.expectRevert(abi.encodeWithSelector(IAccessControlErrors.CallerIsNotGovernor.selector, user));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
         router.registerAdapter(address(mockAdapter2));
 
         vm.stopPrank();
@@ -66,7 +70,12 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Should revert when non-governor tries to remove adapter
-        vm.expectRevert(abi.encodeWithSelector(IAccessControlErrors.CallerIsNotGovernor.selector, user));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
         router.removeAdapter(address(mockAdapter));
 
         vm.stopPrank();
@@ -111,15 +120,26 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Create bridge options with specified adapter
-        BridgeTypes.AdapterParams memory adapterParams =
-            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
 
-        BridgeTypes.BridgeOptions memory options =
-            BridgeTypes.BridgeOptions({ specifiedAdapter: address(mockAdapter2), adapterParams: adapterParams });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter2),
+            adapterParams: adapterParams
+        });
 
         // Get the required fee first (using router.quote) FOR EXECUTION
-        (uint256 nativeFee,,) = router.quote(
-            DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options, BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, , ) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         vm.stopPrank(); // User stops queueing
@@ -128,7 +148,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         // approve tokens for transfer
         token.approve(address(router), TRANSFER_AMOUNT);
 
-        bytes32 operationId = router.executeTransferAssets{ value: nativeFee }(
+        bytes32 operationId = router.executeTransferAssets{value: nativeFee}(
             BridgeTypes.ExecuteTransferParams({
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
@@ -152,8 +172,13 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Create bridge options with invalid adapter
-        BridgeTypes.AdapterParams memory adapterParams =
-            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0x123), // Unregistered adapter
@@ -163,7 +188,13 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         // Get the required fee first. This quote call should revert.
         // The check happens in the router during quoting.
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.quote(DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options, BridgeTypes.OperationType.TRANSFER_ASSET);
+        router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
 
         // Since quote reverts, queueing would also fail if it depends on a valid quote,
         // or the execution would fail if the check is deferred.
@@ -188,24 +219,41 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
 
         // Create adapter params for testing
-        BridgeTypes.AdapterParams memory adapterParams =
-            BridgeTypes.AdapterParams({ gasLimit: 0, calldataSize: 0, msgValue: 0, options: "" });
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 0,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
 
         // Test 1: Valid adapter that supports everything
-        BridgeTypes.BridgeOptions memory validOptions =
-            BridgeTypes.BridgeOptions({ specifiedAdapter: address(mockAdapter), adapterParams: adapterParams });
+        BridgeTypes.BridgeOptions memory validOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                adapterParams: adapterParams
+            });
 
-        (,, address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, validOptions, BridgeTypes.OperationType.TRANSFER_ASSET
+        (, , address specifiedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            validOptions,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        assertEq(specifiedAdapter, address(mockAdapter), "Should return the specified valid adapter");
+        assertEq(
+            specifiedAdapter,
+            address(mockAdapter),
+            "Should return the specified valid adapter"
+        );
 
         // Test 2: Adapter that doesn't support the chain - should fail at estimateFee level
-        BridgeTypes.BridgeOptions memory invalidChainOptions = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(unsupportedChainAdapter),
-            adapterParams: adapterParams
-        });
+        BridgeTypes.BridgeOptions memory invalidChainOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(unsupportedChainAdapter),
+                adapterParams: adapterParams
+            });
 
         vm.expectRevert(); // Will revert with UnsupportedChain from estimateFee
         router.quote(
@@ -217,8 +265,11 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         );
 
         // Test 3: Unregistered adapter
-        BridgeTypes.BridgeOptions memory unregisteredOptions =
-            BridgeTypes.BridgeOptions({ specifiedAdapter: address(0x999), adapterParams: adapterParams });
+        BridgeTypes.BridgeOptions memory unregisteredOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(0x999),
+                adapterParams: adapterParams
+            });
 
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.quote(
@@ -230,22 +281,35 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         );
 
         // Test 4: No adapter specified
-        BridgeTypes.BridgeOptions memory noAdapterOptions =
-            BridgeTypes.BridgeOptions({ specifiedAdapter: address(0), adapterParams: adapterParams });
+        BridgeTypes.BridgeOptions memory noAdapterOptions = BridgeTypes
+            .BridgeOptions({
+                specifiedAdapter: address(0),
+                adapterParams: adapterParams
+            });
 
         vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
         router.quote(
-            DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, noAdapterOptions, BridgeTypes.OperationType.TRANSFER_ASSET
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            noAdapterOptions,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Test 5: Valid adapter with different token (MockAdapter supports any token)
         ERC20Mock newToken = new ERC20Mock();
-        (,, address specifiedAdapterForNewToken) = router.quote(
-            DEST_CHAIN_ID, address(newToken), TRANSFER_AMOUNT, validOptions, BridgeTypes.OperationType.TRANSFER_ASSET
+        (, , address specifiedAdapterForNewToken) = router.quote(
+            DEST_CHAIN_ID,
+            address(newToken),
+            TRANSFER_AMOUNT,
+            validOptions,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         assertEq(
-            specifiedAdapterForNewToken, address(mockAdapter), "Should return specified adapter for any supported token"
+            specifiedAdapterForNewToken,
+            address(mockAdapter),
+            "Should return specified adapter for any supported token"
         );
     }
 
@@ -253,8 +317,13 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
 
     function testQuote() public view {
         // Create bridge options with explicit adapter
-        BridgeTypes.AdapterParams memory adapterParams =
-            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
@@ -262,8 +331,12 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         });
 
         // Get quote
-        (uint256 nativeFee,, address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options, BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Verify quote
@@ -273,8 +346,13 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
 
     function testQuoteNoSuitableAdapter() public {
         // Create bridge options with no adapter specified
-        BridgeTypes.AdapterParams memory adapterParams =
-            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // No adapter specified
@@ -283,7 +361,12 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
 
         // Should revert when no adapter is specified
         vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
-        router.quote(DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options, BridgeTypes.OperationType.TRANSFER_ASSET);
+        router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
     }
-
 }

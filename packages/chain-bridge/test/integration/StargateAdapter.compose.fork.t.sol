@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import { StargateAdapter } from "../../src/adapters/StargateAdapter.sol";
+import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
-import { CrossChainRegistry } from "../../src/contracts/CrossChainRegistry.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
-import { IBridgeAdapter } from "../../src/interfaces/IBridgeAdapter.sol";
-import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
-import { BridgeRouterTestHelper } from "../helpers/BridgeRouterTestHelper.sol";
-import { MockFleetProxy } from "../mocks/MockFleetProxy.sol";
-import { MockStargateV2 } from "../mocks/MockStargateV2.sol";
-import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import { ProtocolAccessManager } from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import { Test } from "forge-std/Test.sol";
-import { console } from "forge-std/console.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
+import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {Test} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title StargateAdapterComposeForkTest
@@ -21,10 +21,11 @@ import { console } from "forge-std/console.sol";
  * @dev These tests focus on LayerZero compose functionality without requiring real Stargate V2 contracts
  */
 contract StargateAdapterComposeForkTest is Test {
-
     // Mainnet contract addresses
-    address constant LAYERZERO_ENDPOINT_MAINNET = 0x1a44076050125825900e736c501f859c50fE728c;
-    address constant LAYERZERO_ENDPOINT_ARBITRUM = 0x1a44076050125825900e736c501f859c50fE728c;
+    address constant LAYERZERO_ENDPOINT_MAINNET =
+        0x1a44076050125825900e736c501f859c50fE728c;
+    address constant LAYERZERO_ENDPOINT_ARBITRUM =
+        0x1a44076050125825900e736c501f859c50fE728c;
 
     // USDC addresses
     address constant USDC_MAINNET = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -67,12 +68,20 @@ contract StargateAdapterComposeForkTest is Test {
 
         // Deploy mainnet contracts
         vm.startPrank(governor);
-        ProtocolAccessManager accessManager = new ProtocolAccessManager(governor);
+        ProtocolAccessManager accessManager = new ProtocolAccessManager(
+            governor
+        );
 
         // Deploy and initialize CrossChainRegistry for mainnet
-        registryMainnet = new CrossChainRegistry(address(accessManager), CHAIN_ID_MAINNET);
+        registryMainnet = new CrossChainRegistry(
+            address(accessManager),
+            CHAIN_ID_MAINNET
+        );
 
-        routerMainnet = new BridgeRouterTestHelper(address(accessManager), address(registryMainnet));
+        routerMainnet = new BridgeRouterTestHelper(
+            address(accessManager),
+            address(registryMainnet)
+        );
 
         registryMainnet.initializeBridgeConfiguration(
             address(routerMainnet),
@@ -91,10 +100,16 @@ contract StargateAdapterComposeForkTest is Test {
         // Don't add CHAIN_ID_ARBITRUM yet - will add after arbitrum adapter is deployed
 
         // Deploy mock Stargate contract for mainnet USDC
-        mockStargateMainnet = new MockStargateV2(USDC_MAINNET, MockStargateV2.StargateType.Pool);
+        mockStargateMainnet = new MockStargateV2(
+            USDC_MAINNET,
+            MockStargateV2.StargateType.Pool
+        );
 
         // Add asset support for USDC on mainnet
-        adapterMainnet.addSupportedAsset(USDC_MAINNET, address(mockStargateMainnet));
+        adapterMainnet.addSupportedAsset(
+            USDC_MAINNET,
+            address(mockStargateMainnet)
+        );
 
         routerMainnet.registerAdapter(address(adapterMainnet));
         vm.stopPrank();
@@ -111,11 +126,19 @@ contract StargateAdapterComposeForkTest is Test {
         // Deploy Arbitrum contracts
         vm.startPrank(governor);
 
-        ProtocolAccessManager accessManagerArb = new ProtocolAccessManager(governor);
+        ProtocolAccessManager accessManagerArb = new ProtocolAccessManager(
+            governor
+        );
 
-        registryArbitrum = new CrossChainRegistry(address(accessManagerArb), CHAIN_ID_ARBITRUM);
+        registryArbitrum = new CrossChainRegistry(
+            address(accessManagerArb),
+            CHAIN_ID_ARBITRUM
+        );
 
-        routerArbitrum = new BridgeRouterTestHelper(address(accessManagerArb), address(registryArbitrum));
+        routerArbitrum = new BridgeRouterTestHelper(
+            address(accessManagerArb),
+            address(registryArbitrum)
+        );
 
         registryArbitrum.initializeBridgeConfiguration(
             address(routerArbitrum),
@@ -139,10 +162,16 @@ contract StargateAdapterComposeForkTest is Test {
         fleetProxyArbitrum = new MockFleetProxy(USDC_ARBITRUM);
 
         // Deploy mock Stargate contract for Arbitrum USDC
-        mockStargateArbitrum = new MockStargateV2(USDC_ARBITRUM, MockStargateV2.StargateType.Pool);
+        mockStargateArbitrum = new MockStargateV2(
+            USDC_ARBITRUM,
+            MockStargateV2.StargateType.Pool
+        );
 
         // Add asset support for USDC on Arbitrum
-        adapterArbitrum.addSupportedAsset(USDC_ARBITRUM, address(mockStargateArbitrum));
+        adapterArbitrum.addSupportedAsset(
+            USDC_ARBITRUM,
+            address(mockStargateArbitrum)
+        );
 
         vm.stopPrank();
 
@@ -152,7 +181,10 @@ contract StargateAdapterComposeForkTest is Test {
 
         adapterMainnet.setEndpointId(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
         registryMainnet.registerAdapterPeer(
-            address(adapterMainnet), address(adapterArbitrum), CHAIN_ID_MAINNET, CHAIN_ID_ARBITRUM
+            address(adapterMainnet),
+            address(adapterArbitrum),
+            CHAIN_ID_MAINNET,
+            CHAIN_ID_ARBITRUM
         );
 
         vm.stopPrank();
@@ -179,15 +211,23 @@ contract StargateAdapterComposeForkTest is Test {
         // Test 0 uses default from registry
         vm.prank(governor);
         adapterMainnet.setComposeGasLimit(0);
-        assertEq(adapterMainnet.composeGasLimit(), registryMainnet.defaultGasLimit());
+        assertEq(
+            adapterMainnet.composeGasLimit(),
+            registryMainnet.defaultGasLimit()
+        );
     }
 
     function testUnauthorizedLzCompose() public {
         vm.selectFork(1); // Arbitrum fork
 
         // Create our custom compose message
-        bytes memory customComposeMessage =
-            abi.encode(address(fleetProxyArbitrum), 1000e6, uint256(CHAIN_ID_MAINNET), bytes32("test-operation"), user);
+        bytes memory customComposeMessage = abi.encode(
+            address(fleetProxyArbitrum),
+            1000e6,
+            uint256(CHAIN_ID_MAINNET),
+            bytes32("test-operation"),
+            user
+        );
 
         // Create the OFT-encoded compose message
         bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
@@ -209,8 +249,13 @@ contract StargateAdapterComposeForkTest is Test {
             ""
         );
 
-        (bool success, bytes memory returnData) = address(adapterArbitrum).call(callData);
-        assertFalse(success, "lzCompose call should fail for unauthorized caller");
+        (bool success, bytes memory returnData) = address(adapterArbitrum).call(
+            callData
+        );
+        assertFalse(
+            success,
+            "lzCompose call should fail for unauthorized caller"
+        );
 
         // Check that it reverted with Unauthorized error
         bytes4 unauthorizedSelector = IBridgeAdapter.Unauthorized.selector;
@@ -221,7 +266,11 @@ contract StargateAdapterComposeForkTest is Test {
         assembly {
             actualSelector := mload(add(returnData, 0x20))
         }
-        assertEq(actualSelector, unauthorizedSelector, "Should revert with Unauthorized");
+        assertEq(
+            actualSelector,
+            unauthorizedSelector,
+            "Should revert with Unauthorized"
+        );
     }
 
     function testComposeMessageEncoding() public view {
@@ -233,7 +282,14 @@ contract StargateAdapterComposeForkTest is Test {
         uint16 sourceChainId = CHAIN_ID_MAINNET;
         address originator = user;
 
-        bytes memory encoded = abi.encode(fleetProxy, asset, amount, sourceChainId, operationId, originator);
+        bytes memory encoded = abi.encode(
+            fleetProxy,
+            asset,
+            amount,
+            sourceChainId,
+            operationId,
+            originator
+        );
 
         // Decode and verify
         (
@@ -243,7 +299,10 @@ contract StargateAdapterComposeForkTest is Test {
             uint16 decodedSourceChainId,
             bytes32 decodedOperationId,
             address decodedOriginator
-        ) = abi.decode(encoded, (address, address, uint256, uint16, bytes32, address));
+        ) = abi.decode(
+                encoded,
+                (address, address, uint256, uint16, bytes32, address)
+            );
 
         assertEq(decodedFleetProxy, fleetProxy);
         assertEq(decodedAsset, asset);
@@ -258,13 +317,22 @@ contract StargateAdapterComposeForkTest is Test {
 
         // Test that adapter is properly configured
         assertTrue(
-            adapterMainnet.REGISTRY().getAdapterPeer(address(adapterMainnet), CHAIN_ID_ARBITRUM) != address(0),
+            adapterMainnet.REGISTRY().getAdapterPeer(
+                address(adapterMainnet),
+                CHAIN_ID_ARBITRUM
+            ) != address(0),
             "Arbitrum should be supported"
         );
 
         // Test endpoint ID mapping
-        assertEq(adapterMainnet.getEndpointId(CHAIN_ID_MAINNET), LZ_EID_MAINNET);
-        assertEq(adapterMainnet.getEndpointId(CHAIN_ID_ARBITRUM), LZ_EID_ARBITRUM);
+        assertEq(
+            adapterMainnet.getEndpointId(CHAIN_ID_MAINNET),
+            LZ_EID_MAINNET
+        );
+        assertEq(
+            adapterMainnet.getEndpointId(CHAIN_ID_ARBITRUM),
+            LZ_EID_ARBITRUM
+        );
     }
 
     function testComposeGasLimitFlexibility() public {
@@ -292,12 +360,24 @@ contract StargateAdapterComposeForkTest is Test {
         uint256 amount = 1000e6;
 
         // Create our custom compose message (what we want to pass to the FleetProxy)
-        bytes memory customComposeMessage =
-            abi.encode(address(fleetProxyArbitrum), USDC_ARBITRUM, amount, uint256(CHAIN_ID_MAINNET), operationId, user);
+        bytes memory customComposeMessage = abi.encode(
+            address(fleetProxyArbitrum),
+            USDC_ARBITRUM,
+            amount,
+            uint256(CHAIN_ID_MAINNET),
+            operationId,
+            user
+        );
 
-        console.log("Custom compose message length:", customComposeMessage.length);
+        console.log(
+            "Custom compose message length:",
+            customComposeMessage.length
+        );
         console.log("Expected minimum length: 192");
-        console.log("Custom message is valid:", customComposeMessage.length >= 192);
+        console.log(
+            "Custom message is valid:",
+            customComposeMessage.length >= 192
+        );
 
         // Create the OFT-encoded compose message
         bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
@@ -311,11 +391,15 @@ contract StargateAdapterComposeForkTest is Test {
     }
 
     // Helper functions to call OFTComposeMsgCodec with calldata
-    function getAmountLD(bytes calldata message) external pure returns (uint256) {
+    function getAmountLD(
+        bytes calldata message
+    ) external pure returns (uint256) {
         return OFTComposeMsgCodec.amountLD(message);
     }
 
-    function getComposeMsg(bytes calldata message) external pure returns (bytes memory) {
+    function getComposeMsg(
+        bytes calldata message
+    ) external pure returns (bytes memory) {
         return OFTComposeMsgCodec.composeMsg(message);
     }
 
@@ -331,27 +415,43 @@ contract StargateAdapterComposeForkTest is Test {
         vm.selectFork(0); // Mainnet
 
         // This test specifically checks that msg.value is preserved through internal function calls
-        BridgeTypes.AdapterParams memory adapterParams =
-            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
+        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
+            .AdapterParams({
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            });
 
         uint256 amount = 1000e6;
         uint256 providedFee = 2 ether; // Generous amount
 
         // Mock the internal flow by calling estimateFee multiple times
         // to ensure consistent results
-        (uint256 fee1,) = adapterMainnet.estimateFee(
-            CHAIN_ID_ARBITRUM, USDC_MAINNET, amount, adapterParams, BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 fee1, ) = adapterMainnet.estimateFee(
+            CHAIN_ID_ARBITRUM,
+            USDC_MAINNET,
+            amount,
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        (uint256 fee2,) = adapterMainnet.estimateFee(
-            CHAIN_ID_ARBITRUM, USDC_MAINNET, amount, adapterParams, BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 fee2, ) = adapterMainnet.estimateFee(
+            CHAIN_ID_ARBITRUM,
+            USDC_MAINNET,
+            amount,
+            adapterParams,
+            BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Fees should be consistent between calls
         assertEq(fee1, fee2, "Fee estimation should be consistent");
 
         // Provided fee should be much larger than estimated
-        assertGt(providedFee, fee1 * 10, "Provided fee should be much larger than estimated");
+        assertGt(
+            providedFee,
+            fee1 * 10,
+            "Provided fee should be much larger than estimated"
+        );
     }
-
 }

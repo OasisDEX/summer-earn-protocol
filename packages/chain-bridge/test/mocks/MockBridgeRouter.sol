@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28; // Using Test contract for cheatcodes like makeAddr if needed
 
-import { IBridgeRouter } from "../../src/interfaces/IBridgeRouter.sol";
-import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
-import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Test } from "forge-std/Test.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Test} from "forge-std/Test.sol";
 
 /**
  * @title MockBridgeRouter
  * @notice Mock implementation of IBridgeRouter for testing purposes.
  */
 contract MockBridgeRouter is Test, IBridgeRouter {
-
     using SafeERC20 for IERC20;
 
     // --- Mock State ---
@@ -50,9 +49,18 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // Mock-specific events (Added from core contracts version)
     event MockTransferAssets(
-        bytes32 operationId, uint16 destinationChainId, address asset, uint256 amount, address recipient
+        bytes32 operationId,
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient
     );
-    event MockSendMessage(bytes32 operationId, uint16 destinationChainId, address recipient, bytes message);
+    event MockSendMessage(
+        bytes32 operationId,
+        uint16 destinationChainId,
+        address recipient,
+        bytes message
+    );
 
     mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
     mapping(bytes32 => address) public operationOriginators; // Track who requested via queue
@@ -96,7 +104,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         shouldRevert = _shouldRevert;
     }
 
-    function setMockOperationStatus(bytes32 _operationId, BridgeTypes.OperationStatus _status) external {
+    function setMockOperationStatus(
+        bytes32 _operationId,
+        BridgeTypes.OperationStatus _status
+    ) external {
         operationStatuses[_operationId] = _status;
         emit OperationStatusUpdated(_operationId, _status); // Simulate update
     }
@@ -116,10 +127,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // --- Main Functions ---
 
     function quote(
-        uint16, /* destinationChainId */
-        address, /* asset */
-        uint256, /* amount */
-        BridgeTypes.BridgeOptions calldata, /* options */
+        uint16 /* destinationChainId */,
+        address /* asset */,
+        uint256 /* amount */,
+        BridgeTypes.BridgeOptions calldata /* options */,
         BridgeTypes.OperationType /* operationType */
     )
         external
@@ -135,10 +146,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // --- Internal Execution Functions (Helper for external calls) ---
     // Updated to accept the struct, although called by the external funcs below
 
-    function _executeTransferAssets(BridgeTypes.ExecuteTransferParams calldata params)
-        internal
-        returns (bytes32 operationId)
-    {
+    function _executeTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) internal returns (bytes32 operationId) {
         if (shouldRevert) {
             revert("MockRouter: Execution failed");
         }
@@ -150,29 +160,40 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         operationBaseFeesPaid[operationId] = msg.value; // Track base fee received
 
         // Simulate token transfer from queue (already approved)
-        IERC20(params.asset).safeTransferFrom(msg.sender, address(this), params.amount); // Pull from queue
+        IERC20(params.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            params.amount
+        ); // Pull from queue
         // Keep tokens in the router for testing purposes
         // In a real scenario, this would transfer to the adapter or burn/lock
 
         emit TransferInitiated(
-            operationId, params.destinationChainId, params.asset, params.amount, params.recipient, MOCK_ADAPTER_ADDRESS
+            operationId,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.recipient,
+            MOCK_ADAPTER_ADDRESS
         );
-        emit OperationStatusUpdated(operationId, BridgeTypes.OperationStatus.SENT);
+        emit OperationStatusUpdated(
+            operationId,
+            BridgeTypes.OperationStatus.SENT
+        );
 
         // Refund any excess native fee to the keeper
         uint256 baseFee = 0.1 ether; // Base fee from quote
         if (msg.value > baseFee) {
-            (bool success,) = msg.sender.call{ value: msg.value - baseFee }("");
+            (bool success, ) = msg.sender.call{value: msg.value - baseFee}("");
             if (!success) revert RefundFailed();
         }
 
         return operationId;
     }
 
-    function _executeReadState(BridgeTypes.ExecuteReadStateParams calldata params)
-        internal
-        returns (bytes32 operationId)
-    {
+    function _executeReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params
+    ) internal returns (bytes32 operationId) {
         operationId = keccak256(abi.encodePacked("read", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
@@ -187,35 +208,45 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             params.readParams,
             MOCK_ADAPTER_ADDRESS
         );
-        emit OperationStatusUpdated(operationId, BridgeTypes.OperationStatus.SENT);
+        emit OperationStatusUpdated(
+            operationId,
+            BridgeTypes.OperationStatus.SENT
+        );
 
         // Refund any excess native fee to the keeper
         uint256 baseFee = 0.1 ether; // Base fee from quote
         if (msg.value > baseFee) {
-            (bool success,) = msg.sender.call{ value: msg.value - baseFee }("");
+            (bool success, ) = msg.sender.call{value: msg.value - baseFee}("");
             if (!success) revert RefundFailed();
         }
 
         return operationId;
     }
 
-    function _executeSendMessage(BridgeTypes.ExecuteSendMessageParams calldata params)
-        internal
-        returns (bytes32 operationId)
-    {
+    function _executeSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    ) internal returns (bytes32 operationId) {
         operationId = keccak256(abi.encodePacked("message", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
         operationBaseFeesPaid[operationId] = msg.value;
 
-        emit MessageInitiated(operationId, params.destinationChainId, params.recipient, MOCK_ADAPTER_ADDRESS);
-        emit OperationStatusUpdated(operationId, BridgeTypes.OperationStatus.SENT);
+        emit MessageInitiated(
+            operationId,
+            params.destinationChainId,
+            params.recipient,
+            MOCK_ADAPTER_ADDRESS
+        );
+        emit OperationStatusUpdated(
+            operationId,
+            BridgeTypes.OperationStatus.SENT
+        );
 
         // Refund any excess native fee to the keeper
         uint256 baseFee = 0.1 ether; // Base fee from quote
         if (msg.value > baseFee) {
-            (bool success,) = msg.sender.call{ value: msg.value - baseFee }("");
+            (bool success, ) = msg.sender.call{value: msg.value - baseFee}("");
             if (!success) revert RefundFailed();
         }
 
@@ -224,7 +255,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // --- Adapter Callbacks ---
     // These are simplified, just updating status. Real adapters would call these.
-    function updateOperationStatus(bytes32 operationId, BridgeTypes.OperationStatus status) external override {
+    function updateOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external override {
         // In real scenario, would check msg.sender is the expected adapter (operationAdapters[operationId])
         if (operationAdapters[operationId] == address(0)) {
             // If no adapter stored (e.g., direct call in test)
@@ -239,10 +273,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         bytes32 requestId,
         address recipient,
         BridgeTypes.OperationStatus status
-    )
-        external
-        override
-    {
+    ) external override {
         // require(msg.sender == MOCK_ADAPTER_ADDRESS, "Mock: Unauthorized adapter"); // Example check
         operationStatuses[requestId] = status;
         emit OperationStatusUpdated(requestId, status);
@@ -257,15 +288,18 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint256 amount,
         address recipient,
         uint16 sourceChainId
-    )
-        external
-        override
-    {
+    ) external override {
         // require(msg.sender == MOCK_ADAPTER_ADDRESS, "Mock: Unauthorized adapter"); // Example check
         // Emit events for tracking
         emit MessageDelivered(operationId, recipient, true);
         if (asset != address(0) && amount > 0) {
-            emit TransferReceived(operationId, asset, amount, recipient, sourceChainId);
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
             // Simulate receiving asset from adapter
             // If testing asset flow end-to-end, adapter mock would need minting/transfer ability
         }
@@ -278,9 +312,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint256 amount,
         address recipient,
         bytes calldata
-    )
-        external
-    {
+    ) external {
         // Track the handling adapter
         operationAdapters[operationId] = msg.sender;
 
@@ -289,14 +321,24 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             IERC20(asset).safeTransfer(recipient, amount);
 
             // Emit transfer received event
-            emit TransferReceived(operationId, asset, amount, recipient, sourceChainId);
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
         }
 
         // Always emit message delivered event
         emit MessageDelivered(operationId, recipient, true);
     }
 
-    function deliverReadResponse(bytes32 operationId, uint16, bytes calldata) external {
+    function deliverReadResponse(
+        bytes32 operationId,
+        uint16,
+        bytes calldata
+    ) external {
         // require(msg.sender == operationAdapters[operationId], "Mock: Unauthorized adapter");
         address originator = operationOriginators[operationId];
         // Simulate attempting to call originator - for tests, just update status & emit
@@ -307,13 +349,18 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         } else {
             // Update status to FAILED if delivery failed
             operationStatuses[operationId] = BridgeTypes.OperationStatus.FAILED;
-            emit OperationStatusUpdated(operationId, BridgeTypes.OperationStatus.FAILED);
+            emit OperationStatusUpdated(
+                operationId,
+                BridgeTypes.OperationStatus.FAILED
+            );
             emit ReadResponseDelivered(operationId, originator, delivered);
         }
     }
 
     // --- View Functions ---
-    function getOperationStatus(bytes32 operationId) external view returns (BridgeTypes.OperationStatus) {
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view returns (BridgeTypes.OperationStatus) {
         return operationStatuses[operationId];
     }
 
@@ -351,33 +398,45 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockPaused = false;
     }
 
-    function setChainRouterAddress(uint16 _chainId, address _routerAddress) external override {
+    function setChainRouterAddress(
+        uint16 _chainId,
+        address _routerAddress
+    ) external override {
         chainToRouterAddress[_chainId] = _routerAddress; // Store in mock
         emit ChainRouterAddressUpdated(_chainId, _routerAddress);
     }
 
     function recoverFunds(address recipient, uint256 amount) external override {
-        (bool s,) = payable(recipient).call{ value: amount }("");
+        (bool s, ) = payable(recipient).call{value: amount}("");
         require(s);
         emit RouterFundsRecovered(recipient, amount);
     }
 
-    function recoverOperationStatus(bytes32 operationId, BridgeTypes.OperationStatus status) external {
+    function recoverOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external {
         operationStatuses[operationId] = status;
     }
 
     // --- Interface Support ---
-    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
-        return interfaceId == type(IBridgeRouter).interfaceId || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure returns (bool) {
+        return
+            interfaceId == type(IBridgeRouter).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
     }
 
     // --- Receive Ether ---
-    receive() external payable { }
-    fallback() external payable { }
+    receive() external payable {}
+    fallback() external payable {}
 
     // --- External Execute Functions (Matching IBridgeRouter) ---
 
-    function executeTransferAssets(BridgeTypes.ExecuteTransferParams calldata params)
+    function executeTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params
+    )
         external
         payable
         override
@@ -387,7 +446,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         return _executeTransferAssets(params);
     }
 
-    function executeReadState(BridgeTypes.ExecuteReadStateParams calldata params)
+    function executeReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params
+    )
         external
         payable
         override
@@ -397,7 +458,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         return _executeReadState(params);
     }
 
-    function executeSendMessage(BridgeTypes.ExecuteSendMessageParams calldata params)
+    function executeSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    )
         external
         payable
         override
@@ -428,26 +491,40 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint256 amount,
         address recipient,
         BridgeTypes.BridgeOptions calldata
-    )
-        external
-        payable
-        returns (bytes32)
-    {
+    ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
         if (shouldRevert) revert TransferFailed();
 
         // Record the call
         transferCalls.push(
-            TransferCall({ destinationChainId: destinationChainId, asset: asset, amount: amount, recipient: recipient })
+            TransferCall({
+                destinationChainId: destinationChainId,
+                asset: asset,
+                amount: amount,
+                recipient: recipient
+            })
         );
 
         bytes32 operationId = nextTransferId;
         operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
 
-        emit TransferInitiated(operationId, destinationChainId, asset, amount, recipient, MOCK_ADAPTER_ADDRESS);
+        emit TransferInitiated(
+            operationId,
+            destinationChainId,
+            asset,
+            amount,
+            recipient,
+            MOCK_ADAPTER_ADDRESS
+        );
 
-        emit MockTransferAssets(operationId, destinationChainId, asset, amount, recipient);
+        emit MockTransferAssets(
+            operationId,
+            destinationChainId,
+            asset,
+            amount,
+            recipient
+        );
 
         return operationId;
     }
@@ -458,26 +535,36 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         address recipient,
         bytes calldata message,
         BridgeTypes.BridgeOptions calldata
-    )
-        external
-        payable
-        returns (bytes32)
-    {
+    ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
         if (shouldRevert) revert ReceiverRejectedCall();
 
         // Record the call
         messageCalls.push(
-            MessageCall({ destinationChainId: destinationChainId, recipient: recipient, message: message })
+            MessageCall({
+                destinationChainId: destinationChainId,
+                recipient: recipient,
+                message: message
+            })
         );
 
         bytes32 operationId = nextMessageId;
         operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
 
-        emit MessageInitiated(operationId, destinationChainId, recipient, MOCK_ADAPTER_ADDRESS);
+        emit MessageInitiated(
+            operationId,
+            destinationChainId,
+            recipient,
+            MOCK_ADAPTER_ADDRESS
+        );
 
-        emit MockSendMessage(operationId, destinationChainId, recipient, message);
+        emit MockSendMessage(
+            operationId,
+            destinationChainId,
+            recipient,
+            message
+        );
 
         return operationId;
     }
@@ -491,9 +578,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         bool _shouldRevert,
         uint256 _mockFee,
         address
-    )
-        external
-    {
+    ) external {
         nextTransferId = _nextTransferId;
         nextMessageId = _nextMessageId;
         nextReadId = _nextReadId;
@@ -510,11 +595,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         bytes4 selector,
         bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata
-    )
-        external
-        payable
-        returns (bytes32)
-    {
+    ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
         if (shouldRevert) revert ReceiverRejectedCall();
 
@@ -523,12 +604,16 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
 
         emit ReadRequestInitiated(
-            operationId, destinationChainId, destinationContract, selector, readParams, MOCK_ADAPTER_ADDRESS
+            operationId,
+            destinationChainId,
+            destinationContract,
+            selector,
+            readParams,
+            MOCK_ADAPTER_ADDRESS
         );
 
         return operationId;
     }
 
-    function testSkipper() public { }
-
+    function testSkipper() public {}
 }

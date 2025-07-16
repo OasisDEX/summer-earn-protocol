@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import { StargateAdapter } from "../../src/adapters/StargateAdapter.sol";
+import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
-import { MockFleetProxy } from "../mocks/MockFleetProxy.sol";
-import { MockStargateV2 } from "../mocks/MockStargateV2.sol";
-import { StargateAdapterSetupTest } from "./StargateAdapter.setup.t.sol";
-import { StargateAdapterTestWrapper } from "./StargateAdapterTestWrapper.sol";
+import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
+import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
+import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 
 /**
  * @title StargateAdapterRecoveryTest
  * @notice Simple test suite for StargateAdapter recovery functionality
  */
 contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
-
     StargateAdapterTestWrapper public wrapperB;
     MockFleetProxy public fleetProxy;
     MockStargateV2 public mockStargate;
@@ -31,7 +30,11 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         string reason
     );
 
-    event TokensRecovered(address indexed asset, uint256 amount, address indexed recipient);
+    event TokensRecovered(
+        address indexed asset,
+        uint256 amount,
+        address indexed recipient
+    );
 
     function setUp() public override {
         super.setUp();
@@ -50,7 +53,10 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
 
         // Deploy mock contracts
         fleetProxy = new MockFleetProxy(address(tokenB));
-        mockStargate = new MockStargateV2(address(tokenB), MockStargateV2.StargateType.Pool);
+        mockStargate = new MockStargateV2(
+            address(tokenB),
+            MockStargateV2.StargateType.Pool
+        );
 
         // Mint tokens to wrapper for testing
         tokenB.mint(address(wrapperB), TEST_AMOUNT * 5);
@@ -92,7 +98,9 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         assertEq(failedOps[0], TEST_OPERATION_ID);
 
         // Check details
-        StargateAdapter.FailedCompose memory failed = wrapperB.getFailedCompose(TEST_OPERATION_ID);
+        StargateAdapter.FailedCompose memory failed = wrapperB.getFailedCompose(
+            TEST_OPERATION_ID
+        );
         assertEq(failed.asset, address(tokenB));
         assertEq(failed.amount, TEST_AMOUNT);
         assertEq(failed.intendedRecipient, address(fleetProxy));
@@ -179,13 +187,26 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
     function testRecoverFailedComposesUnauthorized() public {
         vm.expectRevert(); // Should revert with Ownable error
         vm.prank(user);
-        wrapperB.manualRecovery(address(tokenB), 0, address(0x9999), bytes32(0), false, "");
+        wrapperB.manualRecovery(
+            address(tokenB),
+            0,
+            address(0x9999),
+            bytes32(0),
+            false,
+            ""
+        );
     }
 
     function testRecoverFailedComposesInsufficientBalance() public {
         // Add a failed operation
         wrapperB.addTestFailedCompose(
-            TEST_OPERATION_ID, address(tokenB), TEST_AMOUNT, address(fleetProxy), TEST_ORIGINATOR, CHAIN_ID_A, true
+            TEST_OPERATION_ID,
+            address(tokenB),
+            TEST_AMOUNT,
+            address(fleetProxy),
+            TEST_ORIGINATOR,
+            CHAIN_ID_A,
+            true
         );
 
         // Remove tokens from wrapper - transfer from wrapper to this test contract
@@ -199,7 +220,14 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         // Try to recover manually - should revert with InsufficientBalance
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("InsufficientBalance()"));
-        wrapperB.manualRecovery(address(tokenB), TEST_AMOUNT, address(fleetProxy), TEST_OPERATION_ID, false, "");
+        wrapperB.manualRecovery(
+            address(tokenB),
+            TEST_AMOUNT,
+            address(fleetProxy),
+            TEST_OPERATION_ID,
+            false,
+            ""
+        );
 
         // Operation should still be in failed list since recovery failed
         assertEq(wrapperB.getFailedOperations().length, 1);
@@ -232,7 +260,13 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
     function testManualRecoveryWithOperationIdClearing() public {
         // Add a failed operation first
         wrapperB.addTestFailedCompose(
-            TEST_OPERATION_ID, address(tokenB), TEST_AMOUNT, address(fleetProxy), TEST_ORIGINATOR, CHAIN_ID_A, true
+            TEST_OPERATION_ID,
+            address(tokenB),
+            TEST_AMOUNT,
+            address(fleetProxy),
+            TEST_ORIGINATOR,
+            CHAIN_ID_A,
+            true
         );
 
         address recipient = address(0x9999);
@@ -248,7 +282,9 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         );
 
         // Check operation was cleared
-        StargateAdapter.FailedCompose memory failed = wrapperB.getFailedCompose(TEST_OPERATION_ID);
+        StargateAdapter.FailedCompose memory failed = wrapperB.getFailedCompose(
+            TEST_OPERATION_ID
+        );
         assertEq(failed.asset, address(0)); // Should be cleared
     }
 
@@ -288,7 +324,9 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
     }
 
     function testGetFailedComposeNonExistent() public view {
-        StargateAdapter.FailedCompose memory failed = wrapperB.getFailedCompose(bytes32("nonexistent"));
+        StargateAdapter.FailedCompose memory failed = wrapperB.getFailedCompose(
+            bytes32("nonexistent")
+        );
         assertEq(failed.asset, address(0));
         assertEq(failed.amount, 0);
     }
@@ -297,5 +335,4 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         uint256 balance = wrapperB.getAdapterBalance(address(tokenB));
         assertEq(balance, TEST_AMOUNT * 5);
     }
-
 }

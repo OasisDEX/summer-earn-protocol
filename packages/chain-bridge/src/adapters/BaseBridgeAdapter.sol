@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import { CrossChainConfigManaged } from "../contracts/CrossChainConfigManaged.sol";
-import { ICrossChainRegistry } from "../interfaces/ICrossChainRegistry.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { ProtocolAccessManaged } from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
+import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
-abstract contract BaseBridgeAdapter is CrossChainConfigManaged, ReentrancyGuard, ProtocolAccessManaged {
-
+abstract contract BaseBridgeAdapter is
+    CrossChainConfigManaged,
+    ReentrancyGuard,
+    ProtocolAccessManaged
+{
     /// @notice Error thrown when destination chain is not supported
     error UnsupportedDestinationChain(uint16 chainId);
 
@@ -27,10 +30,7 @@ abstract contract BaseBridgeAdapter is CrossChainConfigManaged, ReentrancyGuard,
     constructor(
         address _registry,
         address _accessManager
-    )
-        CrossChainConfigManaged(_registry)
-        ProtocolAccessManaged(_accessManager)
-    {
+    ) CrossChainConfigManaged(_registry) ProtocolAccessManaged(_accessManager) {
         REGISTRY = ICrossChainRegistry(_registry);
         if (block.chainid > type(uint16).max) {
             revert ChainIdTooLarge(block.chainid);
@@ -46,7 +46,14 @@ abstract contract BaseBridgeAdapter is CrossChainConfigManaged, ReentrancyGuard,
     }
 
     modifier onlyTrustedSource(address srcAdapter, uint16 srcChain) {
-        if (!REGISTRY.isValidAdapterPeer(srcAdapter, address(this), srcChain, THIS_CHAIN)) {
+        if (
+            !REGISTRY.isValidAdapterPeer(
+                srcAdapter,
+                address(this),
+                srcChain,
+                THIS_CHAIN
+            )
+        ) {
             revert UntrustedSourceAdapter(srcAdapter, srcChain);
         }
         _;
@@ -55,13 +62,19 @@ abstract contract BaseBridgeAdapter is CrossChainConfigManaged, ReentrancyGuard,
     /**
      * @notice Get the list of supported chains
      */
-    function getSupportedChains() external view returns (uint16[] memory chains) {
-        (, uint16[] memory targetChainIds) = REGISTRY.getTargetsForSource(address(this), REGISTRY.ADAPTER_PEER());
+    function getSupportedChains()
+        external
+        view
+        returns (uint16[] memory chains)
+    {
+        (, uint16[] memory targetChainIds) = REGISTRY.getTargetsForSource(
+            address(this),
+            REGISTRY.ADAPTER_PEER()
+        );
         return targetChainIds;
     }
 
     function _peerAdapter(uint16 dstChain) internal view returns (address) {
         return REGISTRY.getAdapterPeer(address(this), dstChain);
     }
-
 }

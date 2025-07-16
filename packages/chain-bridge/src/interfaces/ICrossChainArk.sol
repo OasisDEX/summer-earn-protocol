@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-import { IInflightAssetTracking } from "./IInflightAssetTracking.sol";
+import {IInflightAssetTracking} from "./IInflightAssetTracking.sol";
 
 /**
  * @title ICrossChainArk
@@ -11,7 +11,6 @@ import { IInflightAssetTracking } from "./IInflightAssetTracking.sol";
  * @dev Extends IInflightAssetTracking for consistent inflight asset management
  */
 interface ICrossChainArk is IInflightAssetTracking {
-
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -66,9 +65,16 @@ interface ICrossChainArk is IInflightAssetTracking {
     event RemoteAssetBalanceUpdated(uint256 newBalance, bytes32 requestId);
 
     /// @notice Emitted when assets are received from another chain
-    event AssetsReceived(address indexed token, uint256 amount, uint16 sourceChainId);
+    event AssetsReceived(
+        address indexed token,
+        uint256 amount,
+        uint16 sourceChainId
+    );
 
     /// @notice Emitted when a remote asset balance update is requested
-    event RemoteAssetBalanceUpdateRequested(bytes32 indexed queueId, uint16 targetChainId, address targetProxy);
-
+    event RemoteAssetBalanceUpdateRequested(
+        bytes32 indexed queueId,
+        uint16 targetChainId,
+        address targetProxy
+    );
 }

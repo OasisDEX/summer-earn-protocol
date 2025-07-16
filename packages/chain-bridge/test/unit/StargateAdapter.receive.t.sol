@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { StargateAdapter } from "../../src/adapters/StargateAdapter.sol";
+import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
-import { IBridgeAdapter } from "../../src/interfaces/IBridgeAdapter.sol";
-import { IBridgeRouter } from "../../src/interfaces/IBridgeRouter.sol";
-import { ICrossChainRegistry } from "../../src/interfaces/ICrossChainRegistry.sol";
-import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
-import { BridgeRouterTestHelper } from "../helpers/BridgeRouterTestHelper.sol";
-import { StargateAdapterSetupTest } from "./StargateAdapter.setup.t.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 
 contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
-
     bytes32 testTransferId = bytes32(uint256(12345));
 
     /*//////////////////////////////////////////////////////////////
@@ -22,13 +21,21 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // First, setup the mapping in the router to allow the adapter to update this operation
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(testTransferId, address(adapterA));
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            testTransferId,
+            address(adapterA)
+        );
 
         // Now setup a mock operation status in the router using the test helper
-        BridgeRouterTestHelper(address(routerA)).setOperationStatus(testTransferId, BridgeTypes.OperationStatus.SENT);
+        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
+            testTransferId,
+            BridgeTypes.OperationStatus.SENT
+        );
 
         // Get operation status through adapter
-        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(testTransferId);
+        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(
+            testTransferId
+        );
 
         // Verify status matches what was set
         assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.SENT));
@@ -38,13 +45,21 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Setup the mapping in the router
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(testTransferId, address(adapterA));
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
+            testTransferId,
+            address(adapterA)
+        );
 
         // Set operation status to failed
-        BridgeRouterTestHelper(address(routerA)).setOperationStatus(testTransferId, BridgeTypes.OperationStatus.FAILED);
+        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
+            testTransferId,
+            BridgeTypes.OperationStatus.FAILED
+        );
 
         // Get operation status through adapter
-        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(testTransferId);
+        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(
+            testTransferId
+        );
 
         // Verify status matches what was set
         assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.FAILED));
@@ -119,5 +134,4 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         // Should use default gas limit from registry
         assertEq(adapterA.composeGasLimit(), registryA.defaultGasLimit());
     }
-
 }

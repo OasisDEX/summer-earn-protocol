@@ -7,7 +7,6 @@ pragma solidity 0.8.28;
  * @dev Provides centralized management of cross-chain relationships with support for multiple relationship types
  */
 interface ICrossChainRegistry {
-
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -39,10 +38,16 @@ interface ICrossChainRegistry {
     event RelationshipTypeAdded(bytes32 indexed relationshipType);
 
     /// @notice Emitted when the bridge router address is updated
-    event BridgeRouterUpdated(address indexed oldBridgeRouter, address indexed newBridgeRouter);
+    event BridgeRouterUpdated(
+        address indexed oldBridgeRouter,
+        address indexed newBridgeRouter
+    );
 
     /// @notice Emitted when the default gas limit is updated
-    event DefaultGasLimitUpdated(uint256 oldDefaultGasLimit, uint256 newDefaultGasLimit);
+    event DefaultGasLimitUpdated(
+        uint256 oldDefaultGasLimit,
+        uint256 newDefaultGasLimit
+    );
 
     /// @notice Emitted when a cross-chain relationship is registered
     event CrossChainRelationshipRegistered(
@@ -79,10 +84,18 @@ interface ICrossChainRegistry {
     error AddressZero();
 
     /// @notice Thrown when trying to register a relationship that already exists
-    error RelationshipAlreadyExists(address sourceContract, bytes32 relationshipType, uint16 targetChainId);
+    error RelationshipAlreadyExists(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    );
 
     /// @notice Thrown when trying to access a relationship that doesn't exist
-    error RelationshipDoesNotExist(address sourceContract, bytes32 relationshipType, uint16 targetChainId);
+    error RelationshipDoesNotExist(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    );
 
     /// @notice Thrown when an invalid source contract address is provided
     error InvalidSourceContract(address sourceContract);
@@ -97,7 +110,11 @@ interface ICrossChainRegistry {
     error SameChainRelationship(uint16 chainId);
 
     /// @notice Thrown when neither source nor target chain matches the deployment chain
-    error InvalidChainRelationship(uint16 sourceChainId, uint16 targetChainId, uint16 deploymentChainId);
+    error InvalidChainRelationship(
+        uint16 sourceChainId,
+        uint16 targetChainId,
+        uint16 deploymentChainId
+    );
 
     /// @notice Thrown when an invalid relationship type is provided
     error InvalidRelationshipType(bytes32 relationshipType);
@@ -145,8 +162,7 @@ interface ICrossChainRegistry {
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    )
-        external;
+    ) external;
 
     /**
      * @notice Unregister an existing cross-chain relationship
@@ -158,8 +174,7 @@ interface ICrossChainRegistry {
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
-    )
-        external;
+    ) external;
 
     /**
      * @notice Register a relationship between two contracts on the same chain
@@ -171,8 +186,7 @@ interface ICrossChainRegistry {
         address sourceContract,
         address targetContract,
         bytes32 relationshipType
-    )
-        external;
+    ) external;
 
     /*//////////////////////////////////////////////////////////////
                         BRIDGE CONFIG FUNCTIONS
@@ -189,7 +203,10 @@ interface ICrossChainRegistry {
      * @param _bridgeRouter The address of the bridge router contract
      * @param _defaultGasLimit The default gas limit for cross-chain transactions
      */
-    function initializeBridgeConfiguration(address _bridgeRouter, uint256 _defaultGasLimit) external;
+    function initializeBridgeConfiguration(
+        address _bridgeRouter,
+        uint256 _defaultGasLimit
+    ) external;
 
     /**
      * @notice Sets the bridge router address
@@ -218,10 +235,7 @@ interface ICrossChainRegistry {
     function getTargetForSource(
         address sourceContract,
         bytes32 relationshipType
-    )
-        external
-        view
-        returns (address targetContract, uint16 targetChainId);
+    ) external view returns (address targetContract, uint16 targetChainId);
 
     /**
      * @notice Get all target contracts and chains for a given source contract and relationship type
@@ -236,7 +250,10 @@ interface ICrossChainRegistry {
     )
         external
         view
-        returns (address[] memory targetContracts, uint16[] memory targetChainIds);
+        returns (
+            address[] memory targetContracts,
+            uint16[] memory targetChainIds
+        );
 
     /**
      * @notice Get the source contract address for a given target contract and relationship type
@@ -251,10 +268,7 @@ interface ICrossChainRegistry {
         uint16 targetChainId,
         address targetContract,
         bytes32 relationshipType
-    )
-        external
-        view
-        returns (address sourceContract);
+    ) external view returns (address sourceContract);
 
     /**
      * @notice Check if a source-target contract pair is valid for a given relationship type
@@ -271,10 +285,7 @@ interface ICrossChainRegistry {
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
-    )
-        external
-        view
-        returns (bool isValid);
+    ) external view returns (bool isValid);
 
     /**
      * @notice Get the full relationship details
@@ -287,10 +298,7 @@ interface ICrossChainRegistry {
     function getRelationship(
         address sourceContract,
         bytes32 relationshipType
-    )
-        external
-        view
-        returns (CrossChainRelation memory relation);
+    ) external view returns (CrossChainRelation memory relation);
 
     /**
      * @notice Get the full relationship details for a specific target chain
@@ -303,10 +311,7 @@ interface ICrossChainRegistry {
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
-    )
-        external
-        view
-        returns (CrossChainRelation memory relation);
+    ) external view returns (CrossChainRelation memory relation);
 
     /*//////////////////////////////////////////////////////////////
                         ENUMERATION FUNCTIONS
@@ -317,10 +322,9 @@ interface ICrossChainRegistry {
      * @param relationshipType The type of relationship
      * @return sourceContracts Array of registered source contract addresses
      */
-    function getRegisteredSourceContracts(bytes32 relationshipType)
-        external
-        view
-        returns (address[] memory sourceContracts);
+    function getRegisteredSourceContracts(
+        bytes32 relationshipType
+    ) external view returns (address[] memory sourceContracts);
 
     /**
      * @notice Check if a source contract is registered for a specific relationship type
@@ -331,23 +335,25 @@ interface ICrossChainRegistry {
     function isSourceContractRegistered(
         address sourceContract,
         bytes32 relationshipType
-    )
-        external
-        view
-        returns (bool isRegistered);
+    ) external view returns (bool isRegistered);
 
     /**
      * @notice Get the total number of registered relationships for a specific type
      * @param relationshipType The type of relationship
      * @return count The number of registered relationships
      */
-    function getRelationshipCount(bytes32 relationshipType) external view returns (uint256 count);
+    function getRelationshipCount(
+        bytes32 relationshipType
+    ) external view returns (uint256 count);
 
     /**
      * @notice Get all supported relationship types
      * @return relationshipTypes Array of supported relationship type hashes
      */
-    function getSupportedRelationshipTypes() external view returns (bytes32[] memory relationshipTypes);
+    function getSupportedRelationshipTypes()
+        external
+        view
+        returns (bytes32[] memory relationshipTypes);
 
     /**
      * @notice Get the current chain ID
@@ -371,8 +377,7 @@ interface ICrossChainRegistry {
         address targetAdapter,
         uint16 sourceChainId,
         uint16 targetChainId
-    )
-        external;
+    ) external;
 
     /**
      * @notice Get the peer adapter address for a given source adapter and target chain
@@ -383,10 +388,7 @@ interface ICrossChainRegistry {
     function getAdapterPeer(
         address sourceAdapter,
         uint16 targetChainId
-    )
-        external
-        view
-        returns (address targetAdapter);
+    ) external view returns (address targetAdapter);
 
     /**
      * @notice Check if two adapters are registered as valid peers
@@ -401,10 +403,7 @@ interface ICrossChainRegistry {
         address targetAdapter,
         uint16 sourceChainId,
         uint16 targetChainId
-    )
-        external
-        view
-        returns (bool);
+    ) external view returns (bool);
 
     /*//////////////////////////////////////////////////////////////
                         ARK/FLEET CONVENIENCE
@@ -417,7 +416,12 @@ interface ICrossChainRegistry {
      * @param arkChainId Chain ID where the Ark is deployed
      * @param fleetChainId Chain ID where the Fleet is deployed
      */
-    function registerArkFleet(address arkProxy, address fleetProxy, uint16 arkChainId, uint16 fleetChainId) external;
+    function registerArkFleet(
+        address arkProxy,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external;
 
     /**
      * @notice Get the Fleet proxy address for a given Ark proxy
@@ -425,7 +429,9 @@ interface ICrossChainRegistry {
      * @return fleetProxy Address of the Fleet proxy
      * @return fleetChainId Chain ID where the Fleet is deployed
      */
-    function getFleetForArk(address arkProxy) external view returns (address fleetProxy, uint16 fleetChainId);
+    function getFleetForArk(
+        address arkProxy
+    ) external view returns (address fleetProxy, uint16 fleetChainId);
 
     /**
      * @notice Get the Ark proxy address for a given Fleet proxy and chain IDs
@@ -438,10 +444,7 @@ interface ICrossChainRegistry {
         address fleetProxy,
         uint16 arkChainId,
         uint16 fleetChainId
-    )
-        external
-        view
-        returns (address arkProxy);
+    ) external view returns (address arkProxy);
 
     /**
      * @notice Check if an Ark and Fleet are properly registered
@@ -456,10 +459,7 @@ interface ICrossChainRegistry {
         address fleetProxy,
         uint16 arkChainId,
         uint16 fleetChainId
-    )
-        external
-        view
-        returns (bool);
+    ) external view returns (bool);
 
     /**
      * @notice Get all Fleets registered for a given Ark
@@ -467,7 +467,9 @@ interface ICrossChainRegistry {
      * @return fleetProxies Array of Fleet proxy addresses
      * @return fleetChainIds Array of chain IDs where the Fleets are deployed
      */
-    function getAllFleetsForArk(address arkProxy)
+    function getAllFleetsForArk(
+        address arkProxy
+    )
         external
         view
         returns (address[] memory fleetProxies, uint16[] memory fleetChainIds);
@@ -493,6 +495,7 @@ interface ICrossChainRegistry {
      * @param executor The address to check
      * @return True if the address is an authorized executor
      */
-    function isAuthorizedExecutor(address executor) external view returns (bool);
-
+    function isAuthorizedExecutor(
+        address executor
+    ) external view returns (bool);
 }

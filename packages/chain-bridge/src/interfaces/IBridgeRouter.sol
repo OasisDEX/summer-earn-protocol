@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { BridgeTypes } from "../libraries/BridgeTypes.sol";
-import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
  * @title IBridgeRouter
@@ -12,7 +12,6 @@ import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
  *      User-initiated operations are intended to go through the BridgeQueue.
  */
 interface IBridgeRouter is IERC165 {
-
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -35,11 +34,17 @@ interface IBridgeRouter is IERC165 {
 
     /// @notice Emitted when a message is initiated by the BridgeQueue
     event MessageInitiated(
-        bytes32 indexed operationId, uint16 destinationChainId, address indexed recipient, address adapter
+        bytes32 indexed operationId,
+        uint16 destinationChainId,
+        address indexed recipient,
+        address adapter
     );
 
     /// @notice Emitted when an operation status is updated
-    event OperationStatusUpdated(bytes32 indexed operationId, BridgeTypes.OperationStatus status);
+    event OperationStatusUpdated(
+        bytes32 indexed operationId,
+        BridgeTypes.OperationStatus status
+    );
 
     /// @notice Emitted when a transfer is received on the destination chain
     event TransferReceived(
@@ -51,7 +56,8 @@ interface IBridgeRouter is IERC165 {
     );
 
     /// @notice Emitted when a read request is initiated by the BridgeQueue
-    event ReadRequestInitiated( // Corrected from sourceChainId for clarity
+    event ReadRequestInitiated(
+        // Corrected from sourceChainId for clarity
         bytes32 indexed operationId,
         uint16 destinationChainId,
         address destinationContract,
@@ -61,13 +67,24 @@ interface IBridgeRouter is IERC165 {
     );
 
     /// @notice Emitted when a read response is delivered to the requester
-    event ReadResponseDelivered(bytes32 indexed operationId, address recipient, bool delivered);
+    event ReadResponseDelivered(
+        bytes32 indexed operationId,
+        address recipient,
+        bool delivered
+    );
 
     /// @notice Emitted when a message is delivered to its recipient
-    event MessageDelivered(bytes32 indexed operationId, address recipient, bool delivered);
+    event MessageDelivered(
+        bytes32 indexed operationId,
+        address recipient,
+        bool delivered
+    );
 
     /// @notice Emitted when a chain's router address is updated
-    event ChainRouterAddressUpdated(uint16 indexed chainId, address routerAddress);
+    event ChainRouterAddressUpdated(
+        uint16 indexed chainId,
+        address routerAddress
+    );
 
     /// @notice Emitted when funds are recovered from the router by governance
     event RouterFundsRecovered(address indexed recipient, uint256 amount);
@@ -126,10 +143,9 @@ interface IBridgeRouter is IERC165 {
      * @param params Struct containing all parameters for the transfer execution.
      * @return operationId Unique operation ID.
      */
-    function executeTransferAssets(BridgeTypes.ExecuteTransferParams calldata params)
-        external
-        payable
-        returns (bytes32 operationId);
+    function executeTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) external payable returns (bytes32 operationId);
 
     /**
      * @notice Execute state read initiated by the BridgeQueue.
@@ -140,10 +156,9 @@ interface IBridgeRouter is IERC165 {
      * @param params Struct containing all parameters for the state read execution.
      * @return operationId Unique operation ID.
      */
-    function executeReadState(BridgeTypes.ExecuteReadStateParams calldata params)
-        external
-        payable
-        returns (bytes32 operationId);
+    function executeReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params
+    ) external payable returns (bytes32 operationId);
 
     /**
      * @notice Execute message send initiated by the BridgeQueue.
@@ -153,10 +168,9 @@ interface IBridgeRouter is IERC165 {
      * @param params Struct containing all parameters for the message send execution.
      * @return operationId Unique operation ID.
      */
-    function executeSendMessage(BridgeTypes.ExecuteSendMessageParams calldata params)
-        external
-        payable
-        returns (bytes32 operationId);
+    function executeSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    ) external payable returns (bytes32 operationId);
 
     /*//////////////////////////////////////////////////////////////
                         ADAPTER CALLBACK FUNCTIONS
@@ -182,8 +196,7 @@ interface IBridgeRouter is IERC165 {
         uint256 amount,
         address recipient,
         bytes calldata payload
-    )
-        external;
+    ) external;
 
     /**
      * @notice Update the status of an operation (called by adapters)
@@ -192,7 +205,10 @@ interface IBridgeRouter is IERC165 {
      * @dev Called by the adapter handling the operation on the source chain. Requires caller ==
      * operationToAdapter[operationId].
      */
-    function updateOperationStatus(bytes32 operationId, BridgeTypes.OperationStatus status) external;
+    function updateOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus status
+    ) external;
 
     /**
      * @notice Update the status of a received message/transfer (called by adapters)
@@ -201,7 +217,11 @@ interface IBridgeRouter is IERC165 {
      * @param status New status of the received request (e.g., DELIVERED, FAILED)
      * @dev Called by the adapter on the destination chain after attempting delivery. Only adapter can call.
      */
-    function updateReceiveStatus(bytes32 requestId, address recipient, BridgeTypes.OperationStatus status) external;
+    function updateReceiveStatus(
+        bytes32 requestId,
+        address recipient,
+        BridgeTypes.OperationStatus status
+    ) external;
 
     /**
      * @notice Notify the router that a message or transfer has arrived (called by adapters)
@@ -219,8 +239,7 @@ interface IBridgeRouter is IERC165 {
         uint256 amount,
         address recipient,
         uint16 sourceChainId
-    )
-        external;
+    ) external;
 
     /**
      * @notice Deliver read response data (called by adapters)
@@ -231,7 +250,11 @@ interface IBridgeRouter is IERC165 {
      *      Attempts to forward the result to the original requester. Requires caller ==
      * operationToAdapter[operationId].
      */
-    function deliverReadResponse(bytes32 operationId, uint16 sourceChainId, bytes calldata resultData) external;
+    function deliverReadResponse(
+        bytes32 operationId,
+        uint16 sourceChainId,
+        bytes calldata resultData
+    ) external;
 
     /*//////////////////////////////////////////////////////////////
                            VIEW FUNCTIONS
@@ -264,7 +287,9 @@ interface IBridgeRouter is IERC165 {
      * @param operationId ID of the operation
      * @return Status of the operation
      */
-    function getOperationStatus(bytes32 operationId) external view returns (BridgeTypes.OperationStatus);
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view returns (BridgeTypes.OperationStatus);
 
     /**
      * @notice Get all registered adapters
@@ -284,7 +309,9 @@ interface IBridgeRouter is IERC165 {
      * @param chainId The chain ID
      * @return routerAddress The configured router address for that chain
      */
-    function chainToRouterAddress(uint16 chainId) external view returns (address routerAddress);
+    function chainToRouterAddress(
+        uint16 chainId
+    ) external view returns (address routerAddress);
 
     /*//////////////////////////////////////////////////////////////
                          GOVERNANCE FUNCTIONS
@@ -325,8 +352,7 @@ interface IBridgeRouter is IERC165 {
     function recoverOperationStatus(
         bytes32 operationId,
         BridgeTypes.OperationStatus newStatus // Renamed param
-    )
-        external;
+    ) external;
 
     /**
      * @notice Set the known BridgeRouter address for another chain (used for confirmations)
@@ -334,7 +360,10 @@ interface IBridgeRouter is IERC165 {
      * @param routerAddress Address of the BridgeRouter contract on that chain
      * @dev Governor role required.
      */
-    function setChainRouterAddress(uint16 chainId, address routerAddress) external;
+    function setChainRouterAddress(
+        uint16 chainId,
+        address routerAddress
+    ) external;
 
     /**
      * @notice Withdraw accumulated native tokens (e.g., from fee margins) from the router
@@ -343,5 +372,4 @@ interface IBridgeRouter is IERC165 {
      * @dev Governor role required. This is the standard governance rescue mechanism for native tokens.
      */
     function recoverFunds(address recipient, uint256 amount) external;
-
 }

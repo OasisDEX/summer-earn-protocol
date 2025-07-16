@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { BridgeTypes } from "../libraries/BridgeTypes.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
  * @title ISendAdapter
@@ -9,18 +9,26 @@ import { BridgeTypes } from "../libraries/BridgeTypes.sol";
  * @dev This interface defines methods for initiating various cross-chain operations
  */
 interface ISendAdapter {
-
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when a transfer is initiated through the adapter
     event TransferInitiated(
-        bytes32 indexed transferId, uint16 destinationChainId, address asset, uint256 amount, address recipient
+        bytes32 indexed transferId,
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        address recipient
     );
 
     /// @notice Emitted when a message is initiated through the adapter
-    event MessageInitiated(bytes32 indexed messageId, uint16 destinationChainId, address recipient, bytes message);
+    event MessageInitiated(
+        bytes32 indexed messageId,
+        uint16 destinationChainId,
+        address recipient,
+        bytes message
+    );
 
     /// @notice Emitted when a read request is initiated through the adapter
     event ReadRequestInitiated(
@@ -59,9 +67,7 @@ interface ISendAdapter {
         address originator,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    )
-        external
-        payable;
+    ) external payable;
 
     /**
      * @notice Read state from a contract on a source chain
@@ -84,9 +90,7 @@ interface ISendAdapter {
         bytes calldata readParams,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    )
-        external
-        payable;
+    ) external payable;
 
     /**
      * @notice Send a general message to a destination chain
@@ -105,8 +109,5 @@ interface ISendAdapter {
         bytes calldata message,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    )
-        external
-        payable;
-
+    ) external payable;
 }

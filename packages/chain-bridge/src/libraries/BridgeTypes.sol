@@ -6,14 +6,12 @@ pragma solidity ^0.8.28;
  * @notice Library of types used by the bridge contracts
  */
 library BridgeTypes {
-
     /**
      * @notice Status of a cross-chain transfer
      */
     enum OperationStatus {
         SENT, // Operation has been sent to the destination chain
         FAILED // Operation has failed
-
     }
 
     /**
@@ -83,7 +81,8 @@ library BridgeTypes {
      * @notice User fleet deposit message type identifier
      * @dev Used to identify user-initiated fleet deposit compose messages in cross-chain transfers
      */
-    bytes32 public constant USER_FLEET_DEPOSIT_TYPE = keccak256("USER_FLEET_DEPOSIT");
+    bytes32 public constant USER_FLEET_DEPOSIT_TYPE =
+        keccak256("USER_FLEET_DEPOSIT");
 
     /**
      * @notice Fleet deposit message data for cross-chain fleet deposits
@@ -107,5 +106,4 @@ library BridgeTypes {
         /// @notice Optional referral code for tracking deposit attribution
         bytes referralCode;
     }
-
 }

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { ICrossChainAssetReceiver } from "../../src/interfaces/ICrossChainAssetReceiver.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract MockFleetProxy is ICrossChainAssetReceiver {
-
     address public immutable asset;
     bool public receivedAssets;
     address public lastAsset;
@@ -27,10 +26,7 @@ contract MockFleetProxy is ICrossChainAssetReceiver {
         uint256 _amount,
         bytes calldata _message,
         uint16 _sourceChainId
-    )
-        external
-        override
-    {
+    ) external override {
         if (shouldRevert) {
             revert("MockFleetProxy: forced revert");
         }
@@ -42,10 +38,13 @@ contract MockFleetProxy is ICrossChainAssetReceiver {
         lastSourceChainId = _sourceChainId;
     }
 
-    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-        return interfaceId == type(ICrossChainAssetReceiver).interfaceId || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure override returns (bool) {
+        return
+            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
     }
 
-    function testSkipper() public { }
-
+    function testSkipper() public {}
 }

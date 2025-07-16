@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { LayerZeroAdapter } from "../../src/adapters/LayerZeroAdapter.sol";
+import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 
-import { IBridgeRouter } from "../../src/interfaces/IBridgeRouter.sol";
-import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
-import { BridgeRouterTestHelper } from "../../test/helpers/BridgeRouterTestHelper.sol";
-import { MockCrossChainReceiver } from "../../test/mocks/MockCrossChainReceiver.sol";
-import { LayerZeroAdapterSetupTest } from "./LayerZeroAdapter.setup.t.sol";
-import { Origin } from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import { console } from "forge-std/console.sol";
+import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
+import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
+import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
+import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+import {console} from "forge-std/console.sol";
 
 contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
-
     // Add a MockCrossChainReceiver instance
     MockCrossChainReceiver public mockReceiver;
 
@@ -27,15 +26,24 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
     /// @param messageType The type of message (2 for STATE_READ, 3 for GENERAL_MESSAGE)
     /// @param transferId The transfer ID to include in the payload
     /// @return payload The encoded payload bytes
-    function _createPayload(uint16 messageType, bytes32 transferId) internal pure returns (bytes memory payload) {
+    function _createPayload(
+        uint16 messageType,
+        bytes32 transferId
+    ) internal pure returns (bytes memory payload) {
         if (messageType == 2) {
             // STATE_READ
             // Format for state read message
-            payload = abi.encodePacked(messageType, abi.encode(transferId, bytes("Read data payload")));
+            payload = abi.encodePacked(
+                messageType,
+                abi.encode(transferId, bytes("Read data payload"))
+            );
         } else if (messageType == 3) {
             // GENERAL_MESSAGE
             // Format for general message
-            payload = abi.encodePacked(messageType, abi.encode("General message payload"));
+            payload = abi.encodePacked(
+                messageType,
+                abi.encode("General message payload")
+            );
         } else {
             // Unknown message type
             revert("Unknown message type");
@@ -48,11 +56,13 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         address srcAdapter,
         address dstAdapter,
         uint16 messageType // Add messageType parameter
-    )
-        internal
-    {
+    ) internal {
         // For receive tests, we need to simulate LZ message execution properly
-        Origin memory origin = Origin({ srcEid: srcEid, sender: addressToBytes32(srcAdapter), nonce: 1 });
+        Origin memory origin = Origin({
+            srcEid: srcEid,
+            sender: addressToBytes32(srcAdapter),
+            nonce: 1
+        });
 
         // Get the message from the endpoint or create a default one
         bytes memory payload;
@@ -71,7 +81,13 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             );
 
             // Call the adapter directly with the origin indicating it's a read response
-            adapterA.lzReceiveTest(origin, transferId, payload, srcAdapter, bytes(""));
+            adapterA.lzReceiveTest(
+                origin,
+                transferId,
+                payload,
+                srcAdapter,
+                bytes("")
+            );
             return;
         }
 
@@ -80,7 +96,15 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         if (address(dstAdapter) == address(adapterA)) {
             payload = _createPayload(messageType, transferId);
 
-            try adapterA.lzReceiveTest(origin, transferId, payload, srcAdapter, bytes("")) {
+            try
+                adapterA.lzReceiveTest(
+                    origin,
+                    transferId,
+                    payload,
+                    srcAdapter,
+                    bytes("")
+                )
+            {
                 console.log("Message executed successfully on Chain A");
             } catch Error(string memory reason) {
                 console.log("Execution failed on Chain A with reason:");
@@ -94,7 +118,15 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             // Create a properly formatted payload for asset transfer
             payload = _createPayload(messageType, transferId);
 
-            try adapterB.lzReceiveTest(origin, transferId, payload, srcAdapter, bytes("")) {
+            try
+                adapterB.lzReceiveTest(
+                    origin,
+                    transferId,
+                    payload,
+                    srcAdapter,
+                    bytes("")
+                )
+            {
                 console.log("Message executed successfully on Chain B");
             } catch Error(string memory reason) {
                 console.log("Execution failed on Chain B with reason:");
@@ -118,10 +150,16 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         routerA.setReadRequestOriginator(operationId, address(mockReceiver));
 
         // Set the initial status using the test helper
-        BridgeRouterTestHelper(address(routerA)).setOperationStatus(operationId, BridgeTypes.OperationStatus.SENT);
+        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
+            operationId,
+            BridgeTypes.OperationStatus.SENT
+        );
 
         // Verify SENT status on chain A
-        assertEq(uint256(routerA.operationStatuses(operationId)), uint256(BridgeTypes.OperationStatus.SENT));
+        assertEq(
+            uint256(routerA.operationStatuses(operationId)),
+            uint256(BridgeTypes.OperationStatus.SENT)
+        );
 
         // Create read response payload
         uint256 mockReadValue = 123456; // Mock balance value
@@ -141,13 +179,24 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
 
         adapterA.setLzMessageToOperationId(guid, operationId);
         // Call lzReceiveTest with the proper parameters
-        adapterA.lzReceiveTest(origin, guid, payload, address(adapterB), bytes(""));
+        adapterA.lzReceiveTest(
+            origin,
+            guid,
+            payload,
+            address(adapterB),
+            bytes("")
+        );
 
         // Verify the request status is now SENT (since we only have QUEUED, SENT, and FAILED)
-        assertEq(uint256(routerA.operationStatuses(operationId)), uint256(BridgeTypes.OperationStatus.SENT));
+        assertEq(
+            uint256(routerA.operationStatuses(operationId)),
+            uint256(BridgeTypes.OperationStatus.SENT)
+        );
 
         // Verify the mock receiver received the correct data
-        assertEq(abi.decode(mockReceiver.lastReceivedData(), (uint256)), mockReadValue);
+        assertEq(
+            abi.decode(mockReceiver.lastReceivedData(), (uint256)),
+            mockReadValue
+        );
     }
-
 }

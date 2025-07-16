@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { IBridgeAdapter } from "../interfaces/IBridgeAdapter.sol";
-import { IBridgeRouter } from "../interfaces/IBridgeRouter.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 
-import { ICrossChainAssetReceiver } from "../interfaces/ICrossChainAssetReceiver.sol";
-import { ICrossChainMessageReceiver } from "../interfaces/ICrossChainMessageReceiver.sol";
-import { ICrossChainRegistry } from "../interfaces/ICrossChainRegistry.sol";
-import { ICrossChainStateReadReceiver } from "../interfaces/ICrossChainStateReadReceiver.sol";
-import { IInflightAssetTracking } from "../interfaces/IInflightAssetTracking.sol";
-import { ISendAdapter } from "../interfaces/ISendAdapter.sol";
-import { BridgeTypes } from "../libraries/BridgeTypes.sol";
+import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
+import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
+import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
+import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
-import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { Nonces } from "@openzeppelin/contracts/utils/Nonces.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import { ProtocolAccessManaged } from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 /**
  * @title BridgeRouter
@@ -27,8 +27,12 @@ import { ProtocolAccessManaged } from "@summerfi/access-contracts/contracts/Prot
  * @dev Implements IBridgeRouter interface and manages multiple bridge adapters.
  *      Operations can only be initiated via the authorized executor or governance.
  */
-contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, Nonces {
-
+contract BridgeRouter is
+    IBridgeRouter,
+    ProtocolAccessManaged,
+    ReentrancyGuard,
+    Nonces
+{
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -40,22 +44,27 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     EnumerableSet.AddressSet private adapters;
 
     /// @notice Mapping of operation IDs to their current status
-    mapping(bytes32 operationId => BridgeTypes.OperationStatus status) public operationStatuses;
+    mapping(bytes32 operationId => BridgeTypes.OperationStatus status)
+        public operationStatuses;
 
     /// @notice Mapping of operation IDs to the adapter that processed them
-    mapping(bytes32 operationId => address adapterAddress) public operationToAdapter;
+    mapping(bytes32 operationId => address adapterAddress)
+        public operationToAdapter;
 
     /// @notice Mapping of request IDs to the adapter that processed them
-    mapping(bytes32 requestId => address receivingAdapter) public requestReceivedByAdapter;
+    mapping(bytes32 requestId => address receivingAdapter)
+        public requestReceivedByAdapter;
 
     /// @notice Mapping to track read request originators
-    mapping(bytes32 requestId => address originator) public readRequestToOriginator;
+    mapping(bytes32 requestId => address originator)
+        public readRequestToOriginator;
 
     /// @notice Pause state of the router
     bool public paused;
 
     /// @notice Mapping of chain IDs to their BridgeRouter addresses
-    mapping(uint16 chainId => address routerAddress) public chainToRouterAddress;
+    mapping(uint16 chainId => address routerAddress)
+        public chainToRouterAddress;
 
     /// @notice Reference to the cross-chain registry
     ICrossChainRegistry public immutable registry;
@@ -69,7 +78,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
      * @param accessManager Address of the ProtocolAccessManager contract
      * @param _registry Address of the CrossChainRegistry contract
      */
-    constructor(address accessManager, address _registry) ProtocolAccessManaged(accessManager) {
+    constructor(
+        address accessManager,
+        address _registry
+    ) ProtocolAccessManaged(accessManager) {
         if (_registry == address(0)) revert InvalidParams();
         registry = ICrossChainRegistry(_registry);
     }
@@ -93,9 +105,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
      */
     modifier onlyAuthorizedExecutor() {
         if (
-            ! // BridgeRouter
+            !// BridgeRouter
             registry.isValidCrossChainPair(
-                msg.sender, address(this), registry.currentChainId(), registry.currentChainId(), registry.EXECUTOR()
+                msg.sender,
+                address(this),
+                registry.currentChainId(),
+                registry.currentChainId(),
+                registry.EXECUTOR()
             )
         ) revert OnlyAuthorizedExecutor();
         _;
@@ -118,10 +134,14 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
      * @dev Internal function to validate transfer parameters
      * @param params Parameters to validate
      */
-    function _validateTransferParams(BridgeTypes.ExecuteTransferParams calldata params) internal pure {
+    function _validateTransferParams(
+        BridgeTypes.ExecuteTransferParams calldata params
+    ) internal pure {
         if (
-            params.amount == 0 || params.recipient == address(0) || params.originator == address(0)
-                || params.asset == address(0)
+            params.amount == 0 ||
+            params.recipient == address(0) ||
+            params.originator == address(0) ||
+            params.asset == address(0)
         ) revert InvalidParams();
     }
 
@@ -129,15 +149,22 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
      * @dev Internal function to validate read state parameters
      * @param params Parameters to validate
      */
-    function _validateReadStateParams(BridgeTypes.ExecuteReadStateParams calldata params) internal pure {
-        if (params.originator == address(0) || params.destinationContract == address(0)) revert InvalidParams();
+    function _validateReadStateParams(
+        BridgeTypes.ExecuteReadStateParams calldata params
+    ) internal pure {
+        if (
+            params.originator == address(0) ||
+            params.destinationContract == address(0)
+        ) revert InvalidParams();
     }
 
     /**
      * @dev Internal function to validate send message parameters
      * @param params Parameters to validate
      */
-    function _validateSendMessageParams(BridgeTypes.ExecuteSendMessageParams calldata params) internal pure {
+    function _validateSendMessageParams(
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    ) internal pure {
         if (params.recipient == address(0) || params.originator == address(0)) {
             revert InvalidParams();
         }
@@ -151,10 +178,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     function _validateAdapterSupportsOperation(
         address adapter,
         BridgeTypes.OperationType operationType
-    )
-        internal
-        view
-    {
+    ) internal view {
         if (adapter == address(0)) revert NoSuitableAdapter();
         if (!IBridgeAdapter(adapter).supportsOperation(operationType)) {
             revert UnsupportedAdapterOperation();
@@ -166,7 +190,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
      * @param providedFee The fee provided with the transaction
      * @param requiredFee The required fee for the operation
      */
-    function _validateFee(uint256 providedFee, uint256 requiredFee) internal pure {
+    function _validateFee(
+        uint256 providedFee,
+        uint256 requiredFee
+    ) internal pure {
         if (providedFee < requiredFee) revert InsufficientFee();
     }
 
@@ -177,7 +204,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
      */
     function _refund(address recipient, uint256 amount) internal {
         if (amount > 0) {
-            (bool success,) = recipient.call{ value: amount }("");
+            (bool success, ) = recipient.call{value: amount}("");
             if (!success) revert TransferFailed();
         }
     }
@@ -199,16 +226,20 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         uint256 amount,
         address recipient,
         bytes memory additionalData
-    )
-        internal
-        returns (bytes32 operationId)
-    {
+    ) internal returns (bytes32 operationId) {
         // Use nonce for better uniqueness and collision resistance
         uint256 currentNonce = _useNonce(address(this));
 
         operationId = keccak256(
             abi.encode(
-                block.chainid, destinationChainId, asset, amount, recipient, additionalData, currentNonce, operationType
+                block.chainid,
+                destinationChainId,
+                asset,
+                amount,
+                recipient,
+                additionalData,
+                currentNonce,
+                operationType
             )
         );
 
@@ -223,7 +254,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
      * @param baseFee The base fee amount to buffer
      * @return bufferedFee The fee with 1% buffer applied
      */
-    function _applyFeeBuffer(uint256 baseFee) internal pure returns (uint256 bufferedFee) {
+    function _applyFeeBuffer(
+        uint256 baseFee
+    ) internal pure returns (uint256 bufferedFee) {
         // Add 1% buffer to account for fee volatility
         return (baseFee * 101) / 100;
     }
@@ -235,7 +268,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     /**
      * @inheritdoc IBridgeRouter
      */
-    function executeTransferAssets(BridgeTypes.ExecuteTransferParams calldata params)
+    function executeTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params
+    )
         external
         payable
         onlyAuthorizedExecutor
@@ -246,7 +281,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         _validateTransferParams(params);
 
         // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee,, address specifiedAdapter) = _quote(
+        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
             params.destinationChainId,
             params.asset,
             params.amount,
@@ -260,7 +295,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
 
-        _validateAdapterSupportsOperation(specifiedAdapter, BridgeTypes.OperationType.TRANSFER_ASSET);
+        _validateAdapterSupportsOperation(
+            specifiedAdapter,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
 
         // Pull tokens from authorized executor to Router first
         IERC20(params.asset).safeTransferFrom(
@@ -275,12 +313,16 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         // Notify originator that assets are now officially in-flight
         // Attempt to call updateInflightAssets if the originator supports it
         if (params.originator.code.length > 0) {
-            try IERC165(params.originator).supportsInterface(type(IInflightAssetTracking).interfaceId) returns (
-                bool supported
-            ) {
+            try
+                IERC165(params.originator).supportsInterface(
+                    type(IInflightAssetTracking).interfaceId
+                )
+            returns (bool supported) {
                 if (supported) {
-                    try IInflightAssetTracking(params.originator).updateInflightAssets(params.amount) { }
-                    catch {
+                    try
+                        IInflightAssetTracking(params.originator)
+                            .updateInflightAssets(params.amount)
+                    {} catch {
                         // Ignore failures in updateInflightAssets
                     }
                 }
@@ -303,7 +345,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         operationToAdapter[operationId] = specifiedAdapter;
 
         // Call adapter with the full msg.value
-        ISendAdapter(specifiedAdapter).transferAsset{ value: bufferedFee }(
+        ISendAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.asset,
@@ -315,7 +357,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         );
 
         emit TransferInitiated(
-            operationId, params.destinationChainId, params.asset, params.amount, params.recipient, specifiedAdapter
+            operationId,
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.recipient,
+            specifiedAdapter
         );
 
         // No refund needed - adapter will handle refunding excess back through the chain
@@ -326,7 +373,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     /**
      * @inheritdoc IBridgeRouter
      */
-    function executeReadState(BridgeTypes.ExecuteReadStateParams calldata params)
+    function executeReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params
+    )
         external
         payable
         onlyAuthorizedExecutor
@@ -337,7 +386,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         _validateReadStateParams(params);
 
         // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee,, address specifiedAdapter) = _quote(
+        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
             params.destinationChainId,
             address(0), // No asset
             0, // No amount
@@ -351,7 +400,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
 
-        _validateAdapterSupportsOperation(specifiedAdapter, BridgeTypes.OperationType.READ_STATE);
+        _validateAdapterSupportsOperation(
+            specifiedAdapter,
+            BridgeTypes.OperationType.READ_STATE
+        );
 
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
@@ -360,7 +412,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
             address(0), // No asset
             0, // No amount
             address(0), // No recipient for read operations
-            abi.encode(params.destinationContract, params.selector, params.readParams, params.originator)
+            abi.encode(
+                params.destinationContract,
+                params.selector,
+                params.readParams,
+                params.originator
+            )
         );
 
         // Set operation to adapter mapping BEFORE the adapter call
@@ -370,7 +427,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         readRequestToOriginator[operationId] = params.originator;
 
         // Call adapter with the full msg.value
-        ISendAdapter(specifiedAdapter).readState{ value: bufferedFee }(
+        ISendAdapter(specifiedAdapter).readState{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             uint16(block.chainid),
             params.destinationChainId,
@@ -398,7 +455,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     /**
      * @inheritdoc IBridgeRouter
      */
-    function executeSendMessage(BridgeTypes.ExecuteSendMessageParams calldata params)
+    function executeSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params
+    )
         external
         payable
         onlyAuthorizedExecutor
@@ -409,7 +468,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         _validateSendMessageParams(params);
 
         // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee,, address specifiedAdapter) = _quote(
+        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
             params.destinationChainId,
             address(0), // No asset
             0, // No amount
@@ -423,7 +482,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
 
-        _validateAdapterSupportsOperation(specifiedAdapter, BridgeTypes.OperationType.MESSAGE);
+        _validateAdapterSupportsOperation(
+            specifiedAdapter,
+            BridgeTypes.OperationType.MESSAGE
+        );
 
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
@@ -438,7 +500,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         operationToAdapter[operationId] = specifiedAdapter;
 
         // Call adapter with the full msg.value
-        ISendAdapter(specifiedAdapter).sendMessage{ value: bufferedFee }(
+        ISendAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.recipient,
@@ -447,7 +509,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
             params.options.adapterParams
         );
 
-        emit MessageInitiated(operationId, params.destinationChainId, params.recipient, specifiedAdapter);
+        emit MessageInitiated(
+            operationId,
+            params.destinationChainId,
+            params.recipient,
+            specifiedAdapter
+        );
 
         // No refund needed - adapter will handle refunding excess back through the chain
 
@@ -496,7 +563,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
 
         // Get base fee from the specified adapter
         (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter).estimateFee(
-            destinationChainId, asset, amount, options.adapterParams, operationType
+            destinationChainId,
+            asset,
+            amount,
+            options.adapterParams,
+            operationType
         );
 
         return (nativeFee, tokenFee, specifiedAdapter);
@@ -515,8 +586,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         // Get the base fee from internal quote
-        (uint256 baseFee, uint256 baseTokenFee, address adapter) =
-            _quote(destinationChainId, asset, amount, options, operationType);
+        (uint256 baseFee, uint256 baseTokenFee, address adapter) = _quote(
+            destinationChainId,
+            asset,
+            amount,
+            options,
+            operationType
+        );
 
         // Apply fee buffer to account for fee volatility
         uint256 bufferedNativeFee = _applyFeeBuffer(baseFee);
@@ -532,10 +608,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     function updateOperationStatus(
         bytes32 operationId,
         BridgeTypes.OperationStatus status
-    )
-        external
-        onlyRegisteredAdapter
-    {
+    ) external onlyRegisteredAdapter {
         if (operationToAdapter[operationId] != msg.sender) {
             revert Unauthorized();
         }
@@ -545,8 +618,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
             operationStatuses[operationId] = status;
             emit OperationStatusUpdated(operationId, status);
         } else if (
-            status == BridgeTypes.OperationStatus.FAILED
-                && operationStatuses[operationId] == BridgeTypes.OperationStatus.SENT
+            status == BridgeTypes.OperationStatus.FAILED &&
+            operationStatuses[operationId] == BridgeTypes.OperationStatus.SENT
         ) {
             operationStatuses[operationId] = status;
             emit OperationStatusUpdated(operationId, status);
@@ -558,10 +631,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         bytes32 requestId,
         address recipient,
         BridgeTypes.OperationStatus status
-    )
-        external
-        onlyRegisteredAdapter
-    {
+    ) external onlyRegisteredAdapter {
         requestReceivedByAdapter[requestId] = msg.sender;
 
         // Only update status if it's a failure
@@ -571,7 +641,11 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         }
 
         // Always emit delivery event
-        emit MessageDelivered(requestId, recipient, status != BridgeTypes.OperationStatus.FAILED);
+        emit MessageDelivered(
+            requestId,
+            recipient,
+            status != BridgeTypes.OperationStatus.FAILED
+        );
     }
 
     /// @inheritdoc IBridgeRouter
@@ -581,10 +655,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         uint256 amount,
         address recipient,
         uint16 sourceChainId
-    )
-        external
-        onlyRegisteredAdapter
-    {
+    ) external onlyRegisteredAdapter {
         // Store which adapter received this request
         requestReceivedByAdapter[operationId] = msg.sender;
 
@@ -593,7 +664,13 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
 
         // If this is a transfer, emit the transfer event
         if (asset != address(0) && amount > 0) {
-            emit TransferReceived(operationId, asset, amount, recipient, sourceChainId);
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
         }
     }
 
@@ -602,11 +679,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         bytes32 operationId,
         uint16 sourceChainId,
         bytes calldata resultData
-    )
-        external
-        nonReentrant
-        onlyRegisteredAdapter
-    {
+    ) external nonReentrant onlyRegisteredAdapter {
         if (operationToAdapter[operationId] != msg.sender) {
             revert Unauthorized();
         }
@@ -614,7 +687,12 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         address originator = readRequestToOriginator[operationId];
         if (originator == address(0)) revert InvalidParams();
 
-        ICrossChainStateReadReceiver(originator).receiveStateRead(resultData, originator, operationId, sourceChainId);
+        ICrossChainStateReadReceiver(originator).receiveStateRead(
+            resultData,
+            originator,
+            operationId,
+            sourceChainId
+        );
 
         emit ReadResponseDelivered(operationId, originator, true);
     }
@@ -627,11 +705,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
         uint256 amount,
         address recipient,
         bytes calldata payload
-    )
-        external
-        onlyRegisteredAdapter
-        nonReentrant
-    {
+    ) external onlyRegisteredAdapter nonReentrant {
         // Track the handling adapter
         requestReceivedByAdapter[operationId] = msg.sender;
 
@@ -640,14 +714,28 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
             IERC20(asset).safeTransfer(recipient, amount);
 
             // Callback with asset payload (registry guarantees a valid target)
-            ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(asset, amount, payload, sourceChainId);
+            ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
+                asset,
+                amount,
+                payload,
+                sourceChainId
+            );
 
-            emit TransferReceived(operationId, asset, amount, recipient, sourceChainId);
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
             return; // nothing else to emit
         }
 
         // 2. Pure message path
-        ICrossChainMessageReceiver(recipient).receiveMessage(sourceChainId, payload);
+        ICrossChainMessageReceiver(recipient).receiveMessage(
+            sourceChainId,
+            payload
+        );
         emit MessageDelivered(operationId, recipient, true);
     }
 
@@ -666,7 +754,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     }
 
     /// @inheritdoc IBridgeRouter
-    function getOperationStatus(bytes32 operationId) external view returns (BridgeTypes.OperationStatus) {
+    function getOperationStatus(
+        bytes32 operationId
+    ) external view returns (BridgeTypes.OperationStatus) {
         return operationStatuses[operationId];
     }
 
@@ -701,24 +791,33 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     }
 
     /// @inheritdoc IBridgeRouter
-    function recoverFunds(address recipient, uint256 amount) external onlyGovernor nonReentrant {
+    function recoverFunds(
+        address recipient,
+        uint256 amount
+    ) external onlyGovernor nonReentrant {
         if (recipient == address(0)) revert InvalidParams();
         if (address(this).balance < amount) revert InsufficientBalance();
 
-        (bool success,) = recipient.call{ value: amount }("");
+        (bool success, ) = recipient.call{value: amount}("");
         if (!success) revert TransferFailed();
 
         emit RouterFundsRecovered(recipient, amount);
     }
 
     /// @inheritdoc IBridgeRouter
-    function setChainRouterAddress(uint16 chainId, address routerAddress) external onlyGovernor {
+    function setChainRouterAddress(
+        uint16 chainId,
+        address routerAddress
+    ) external onlyGovernor {
         chainToRouterAddress[chainId] = routerAddress;
         emit ChainRouterAddressUpdated(chainId, routerAddress);
     }
 
     /// @inheritdoc IBridgeRouter
-    function recoverOperationStatus(bytes32 operationId, BridgeTypes.OperationStatus newStatus) external onlyGovernor {
+    function recoverOperationStatus(
+        bytes32 operationId,
+        BridgeTypes.OperationStatus newStatus
+    ) external onlyGovernor {
         // Update the operation status
         operationStatuses[operationId] = newStatus;
 
@@ -727,8 +826,10 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged, ReentrancyGuard, 
     }
 
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
-        return (interfaceId == type(IBridgeRouter).interfaceId || interfaceId == type(IERC165).interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure returns (bool) {
+        return (interfaceId == type(IBridgeRouter).interfaceId ||
+            interfaceId == type(IERC165).interfaceId);
     }
-
 }

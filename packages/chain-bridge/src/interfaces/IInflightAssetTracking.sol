@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 /**
  * @title IInflightAssetTracking
@@ -9,7 +9,6 @@ import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
  * @dev Implements method to track assets that are currently being bridged cross-chain
  */
 interface IInflightAssetTracking is IERC165 {
-
     /**
      * @notice Updates the inflight assets amount when a bridge operation is executed
      * @param amount Amount of assets that are now in-flight
@@ -22,5 +21,4 @@ interface IInflightAssetTracking is IERC165 {
      * @param amount The new amount of in-flight assets
      */
     event InflightAssetsUpdated(uint256 amount);
-
 }

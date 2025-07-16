@@ -7,7 +7,6 @@ pragma solidity ^0.8.28;
  * @dev Based on the mainnet deployment at 0x8731d54E9D02c286767d56ac03e8037C07e01e98
  */
 interface IStargateRouter {
-
     /**
      * @notice Parameters for LayerZero transactions
      * @param dstGasForCall Gas to use for the function call on destination
@@ -42,9 +41,7 @@ interface IStargateRouter {
         lzTxObj memory _lzTxParams,
         bytes calldata _to,
         bytes calldata _payload
-    )
-        external
-        payable;
+    ) external payable;
 
     /**
      * @notice Quote the LayerZero fee for a Stargate operation
@@ -62,10 +59,7 @@ interface IStargateRouter {
         bytes calldata _toAddress,
         bytes calldata _transferAndCallPayload,
         lzTxObj memory _lzTxParams
-    )
-        external
-        view
-        returns (uint256 nativeFee, uint256 zroFee);
+    ) external view returns (uint256 nativeFee, uint256 zroFee);
 
     /**
      * @notice Add liquidity to a Stargate pool
@@ -73,7 +67,11 @@ interface IStargateRouter {
      * @param _amountLD Amount to add in local decimals
      * @param _to Address to receive LP tokens
      */
-    function addLiquidity(uint256 _poolId, uint256 _amountLD, address _to) external;
+    function addLiquidity(
+        uint256 _poolId,
+        uint256 _amountLD,
+        address _to
+    ) external;
 
     /**
      * @notice Instantly redeem LP tokens for underlying tokens locally
@@ -86,9 +84,7 @@ interface IStargateRouter {
         uint16 _srcPoolId,
         uint256 _amountLP,
         address _to
-    )
-        external
-        returns (uint256 amountSD);
+    ) external returns (uint256 amountSD);
 
     /**
      * @notice Redeem LP tokens remotely (cross-chain)
@@ -112,9 +108,7 @@ interface IStargateRouter {
         lzTxObj memory _lzTxParams,
         bytes calldata _to,
         bytes calldata _payload
-    )
-        external
-        payable;
+    ) external payable;
 
     /**
      * @notice Create a new Stargate pool
@@ -134,8 +128,7 @@ interface IStargateRouter {
         string calldata _name,
         string calldata _symbol,
         address _router
-    )
-        external;
+    ) external;
 
     /**
      * @notice Send tokens that were accidentally sent to the router
@@ -151,5 +144,4 @@ interface IStargateRouter {
      * @return Pool address
      */
     function getPool(uint256 _poolId) external view returns (address);
-
 }

@@ -1,24 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import { StargateAdapter } from "../../src/adapters/StargateAdapter.sol";
+import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
-import { IBridgeAdapter } from "../../src/interfaces/IBridgeAdapter.sol";
-import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
-import { MockStargateV2 } from "../mocks/MockStargateV2.sol";
-import { StargateAdapterSetupTest } from "./StargateAdapter.setup.t.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ERC20Mock } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
-
     /*//////////////////////////////////////////////////////////////
                           ADAPTER FEATURES TESTS
     //////////////////////////////////////////////////////////////*/
 
     function testGetSupportedChains() public view {
         // Get chains through registry relationships
-        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(address(adapterA), registryA.ADAPTER_PEER());
+        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
+            address(adapterA),
+            registryA.ADAPTER_PEER()
+        );
 
         assertEq(supportedChains.length, 1);
         assertEq(supportedChains[0], CHAIN_ID_B);
@@ -26,7 +28,12 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
     function testSupportsChain() public {
         assertTrue(
-            registryA.isValidAdapterPeer(address(adapterA), address(adapterB), CHAIN_ID_A, CHAIN_ID_B),
+            registryA.isValidAdapterPeer(
+                address(adapterA),
+                address(adapterB),
+                CHAIN_ID_A,
+                CHAIN_ID_B
+            ),
             "Chain B should be supported"
         );
 
@@ -37,9 +44,15 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
     function testFeatureSupport() public view {
         // StargateAdapter supports asset transfers but not messaging or state reads
-        assertTrue(adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET));
-        assertFalse(adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE));
-        assertFalse(adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE));
+        assertTrue(
+            adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
+        assertFalse(
+            adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
+        );
+        assertFalse(
+            adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -59,13 +72,22 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.startPrank(governor);
 
         // First unregister the existing peer relationship for CHAIN_ID_B
-        registryA.unregisterCrossChainRelationship(address(adapterA), registryA.ADAPTER_PEER(), CHAIN_ID_B);
+        registryA.unregisterCrossChainRelationship(
+            address(adapterA),
+            registryA.ADAPTER_PEER(),
+            CHAIN_ID_B
+        );
 
         // Set the endpoint ID
         adapterA.setEndpointId(newChainId, newEndpointId);
 
         // Register the peer relationship in the registry
-        registryA.registerAdapterPeer(address(adapterA), mockArbitrumAdapter, CHAIN_ID_A, newChainId);
+        registryA.registerAdapterPeer(
+            address(adapterA),
+            mockArbitrumAdapter,
+            CHAIN_ID_A,
+            newChainId
+        );
 
         vm.stopPrank();
 
@@ -80,7 +102,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Verify it's in the list of supported chains (through registry relationships)
-        (, uint16[] memory targetChainIds) = registryA.getTargetsForSource(address(adapterA), registryA.ADAPTER_PEER());
+        (, uint16[] memory targetChainIds) = registryA.getTargetsForSource(
+            address(adapterA),
+            registryA.ADAPTER_PEER()
+        );
 
         bool found = false;
         for (uint256 i = 0; i < targetChainIds.length; i++) {
@@ -99,14 +124,23 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         ERC20Mock newToken = new ERC20Mock();
 
         // Create a proper mock Stargate contract
-        MockStargateV2 mockStargateContract = new MockStargateV2(address(newToken), MockStargateV2.StargateType.Pool);
+        MockStargateV2 mockStargateContract = new MockStargateV2(
+            address(newToken),
+            MockStargateV2.StargateType.Pool
+        );
 
         // Add the new token as supported asset
         vm.prank(governor);
-        adapterA.addSupportedAsset(address(newToken), address(mockStargateContract));
+        adapterA.addSupportedAsset(
+            address(newToken),
+            address(mockStargateContract)
+        );
 
         // Verify the asset was added
-        assertEq(adapterA.assetToStargateContract(address(newToken)), address(mockStargateContract));
+        assertEq(
+            adapterA.assetToStargateContract(address(newToken)),
+            address(mockStargateContract)
+        );
 
         // Check the asset directly:
         assertTrue(adapterA.isAssetSupported(CHAIN_ID_A, address(newToken)));
@@ -116,14 +150,23 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Create a proper mock Stargate contract
-        MockStargateV2 newStargateContract = new MockStargateV2(address(tokenA), MockStargateV2.StargateType.OFT);
+        MockStargateV2 newStargateContract = new MockStargateV2(
+            address(tokenA),
+            MockStargateV2.StargateType.OFT
+        );
 
         // Add the same asset again (should update Stargate contract but not add duplicate)
         vm.prank(governor);
-        adapterA.addSupportedAsset(address(tokenA), address(newStargateContract));
+        adapterA.addSupportedAsset(
+            address(tokenA),
+            address(newStargateContract)
+        );
 
         // Verify the Stargate contract was updated
-        assertEq(adapterA.assetToStargateContract(address(tokenA)), address(newStargateContract));
+        assertEq(
+            adapterA.assetToStargateContract(address(tokenA)),
+            address(newStargateContract)
+        );
 
         // Check the asset directly:
         assertTrue(adapterA.isAssetSupported(CHAIN_ID_A, address(tokenA)));
@@ -133,7 +176,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Create a proper mock Stargate contract for this test
-        MockStargateV2 mockStargateContract = new MockStargateV2(address(tokenA), MockStargateV2.StargateType.Pool);
+        MockStargateV2 mockStargateContract = new MockStargateV2(
+            address(tokenA),
+            MockStargateV2.StargateType.Pool
+        );
 
         // Try to add address(0) as an asset
         vm.prank(governor);
@@ -194,14 +240,31 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Verify all operation IDs are unique
-        assertTrue(operationId1 != operationId2, "Operation IDs 1 and 2 should be different");
-        assertTrue(operationId2 != operationId3, "Operation IDs 2 and 3 should be different");
-        assertTrue(operationId1 != operationId3, "Operation IDs 1 and 3 should be different");
+        assertTrue(
+            operationId1 != operationId2,
+            "Operation IDs 1 and 2 should be different"
+        );
+        assertTrue(
+            operationId2 != operationId3,
+            "Operation IDs 2 and 3 should be different"
+        );
+        assertTrue(
+            operationId1 != operationId3,
+            "Operation IDs 1 and 3 should be different"
+        );
 
         // Test that different users have independent nonces
         address otherUser = makeAddr("otherUser");
-        assertEq(adapterA.nonces(testUser), 0, "testUser nonce should start at 0");
-        assertEq(adapterA.nonces(otherUser), 0, "otherUser nonce should start at 0");
+        assertEq(
+            adapterA.nonces(testUser),
+            0,
+            "testUser nonce should start at 0"
+        );
+        assertEq(
+            adapterA.nonces(otherUser),
+            0,
+            "otherUser nonce should start at 0"
+        );
 
         // Test with different users having same parameters but different nonces
         bytes32 testUserOpId = keccak256(
@@ -226,7 +289,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Different users should generate different operation IDs even with same nonce
         // because the user address is part of the hash
-        assertTrue(testUserOpId != otherUserOpId, "Different users should generate different operation IDs");
+        assertTrue(
+            testUserOpId != otherUserOpId,
+            "Different users should generate different operation IDs"
+        );
     }
 
     function testNonceIncrementForDifferentUsers() public {
@@ -245,7 +311,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Test that each user has independent nonce space
         // Even without calling functions, we can verify the nonce getter works
-        assertTrue(adapterA.nonces(user1) == adapterA.nonces(user2), "Both users should start with same nonce");
+        assertTrue(
+            adapterA.nonces(user1) == adapterA.nonces(user2),
+            "Both users should start with same nonce"
+        );
 
         // Verify the nonce function is working and users are independent
         assertEq(adapterA.nonces(user1), 0, "User1 should have nonce 0");
@@ -253,7 +322,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Test edge case: very large address still returns 0 for initial nonce
         address maxAddr = address(type(uint160).max);
-        assertEq(adapterA.nonces(maxAddr), 0, "Even max address should have nonce 0 initially");
+        assertEq(
+            adapterA.nonces(maxAddr),
+            0,
+            "Even max address should have nonce 0 initially"
+        );
     }
-
 }

@@ -6,7 +6,6 @@ pragma solidity ^0.8.28;
  * @notice Interface for receiving cross-chain messages through Stargate
  */
 interface IStargateReceiver {
-
     /**
      * @notice Called by Stargate router when tokens are received from another chain
      * @param _chainId Source chain ID in Stargate format
@@ -23,7 +22,5 @@ interface IStargateReceiver {
         address _token,
         uint256 _amount,
         bytes memory _payload
-    )
-        external;
-
+    ) external;
 }

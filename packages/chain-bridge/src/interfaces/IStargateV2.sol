@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {
-    MessagingFee,
-    MessagingReceipt,
-    OFTFeeDetail,
-    OFTLimit,
-    OFTReceipt,
-    SendParam
-} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {MessagingFee, MessagingReceipt, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title IStargateV2
@@ -16,7 +9,6 @@ import {
  * @dev Based on LayerZero V2 OFT standard with Stargate extensions
  */
 interface IStargateV2 {
-
     enum StargateType {
         Pool,
         OFT
@@ -34,23 +26,29 @@ interface IStargateV2 {
     )
         external
         payable
-        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt, Ticket memory ticket);
+        returns (
+            MessagingReceipt memory msgReceipt,
+            OFTReceipt memory oftReceipt,
+            Ticket memory ticket
+        );
 
     function quoteSend(
         SendParam calldata _sendParam,
         bool _payInLzToken
+    ) external view returns (MessagingFee memory msgFee);
+
+    function quoteOFT(
+        SendParam calldata _sendParam
     )
         external
         view
-        returns (MessagingFee memory msgFee);
-
-    function quoteOFT(SendParam calldata _sendParam)
-        external
-        view
-        returns (OFTLimit memory limit, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory oftReceipt);
+        returns (
+            OFTLimit memory limit,
+            OFTFeeDetail[] memory oftFeeDetails,
+            OFTReceipt memory oftReceipt
+        );
 
     function stargateType() external pure returns (StargateType);
 
     function token() external view returns (address);
-
 }
