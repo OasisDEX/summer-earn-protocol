@@ -10,13 +10,14 @@ import { formatAmount } from './utils'
 
 export function getOrCreateAuction(
   auctionId: BigInt,
+  raft: Address,
   ark: Address = Address.zero(),
   rewardToken: Address = Address.zero(),
   startTimestamp: BigInt = BigInt.fromI32(0),
 ): Auction {
-  let auction = Auction.load(auctionId.toString())
+  let auction = Auction.load(raft.toHexString() + '-' + auctionId.toString())
   if (!auction && ark != Address.zero() && rewardToken != Address.zero()) {
-    auction = new Auction(auctionId.toString())
+    auction = new Auction(raft.toHexString() + '-' + auctionId.toString())
     auction.startTimestamp = startTimestamp
     updateAuction(auction, ark, rewardToken)
   }

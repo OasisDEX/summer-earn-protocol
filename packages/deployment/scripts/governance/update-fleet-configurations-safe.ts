@@ -452,7 +452,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     gearbox: [Token.GEAR],
   },
   base: {
-    morpho: [Token.MORPHO],
+    morpho: [Token.MORPHO, Token.WELL],
     euler: [Token.REUL],
     moonwell: [Token.WELL],
   },
@@ -554,6 +554,12 @@ async function handleSingleRewardToken(
   chain: SupportedChain,
   arkConfig: ArkConfig,
 ) {
+  if (rewardTokenSymbol === 'well' && !arkConfig.arkSymbol.includes('moonwell')) {
+    console.log(
+      `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it does not support moonwell`,
+    )
+    return []
+  }
   if (rewardTokenSymbol === 'seam' && !arkConfig.arkSymbol.includes('seam')) {
     console.log(
       `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it does not support seam`,
