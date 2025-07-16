@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";

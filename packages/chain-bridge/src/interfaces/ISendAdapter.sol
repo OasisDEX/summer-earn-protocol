@@ -78,7 +78,7 @@ interface ISendAdapter {
      * @param selector Function selector to call
      * @param readParams Parameters for the function call
      * @param keeper Address that should receive any refunds
-     * git sts     * @param adapterParams Additional adapter-specific parameters
+     * @param adapterParams Additional adapter-specific parameters
      * @dev Initiates a cross-chain state read operation
      */
     function readState(

@@ -47,3 +47,6 @@ mainnet = { key = "${API_KEY_ETHERSCAN}" }
 arbitrum = { key = "${API_KEY_ARBISCAN}" }
 base = { key = "${API_KEY_BASESCAN}" }
 sonic = { key = "${API_KEY_SONICSCAN}" }
+
+[lint]
+exclude_lints = ["asm-keccak256"]

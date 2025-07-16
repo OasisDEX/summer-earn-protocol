@@ -13,6 +13,7 @@ interface IStargateRouter {
      * @param dstNativeAmount Amount of native asset to send to destination recipient
      * @param dstNativeAddr Address on destination to receive native tokens
      */
+    /// forge-lint: disable-next-item(pascal-case-struct)
     struct lzTxObj {
         uint256 dstGasForCall;
         uint256 dstNativeAmount;
@@ -31,6 +32,7 @@ interface IStargateRouter {
      * @param _to Address bytes on destination to receive tokens
      * @param _payload Additional payload to send to destination
      */
+    /// forge-lint: disable-start(mixed-case-variable)
     function swap(
         uint16 _dstChainId,
         uint256 _srcPoolId,
@@ -42,6 +44,7 @@ interface IStargateRouter {
         bytes calldata _to,
         bytes calldata _payload
     ) external payable;
+    /// forge-lint: disable-end(mixed-case-variable)
 
     /**
      * @notice Quote the LayerZero fee for a Stargate operation
@@ -67,11 +70,13 @@ interface IStargateRouter {
      * @param _amountLD Amount to add in local decimals
      * @param _to Address to receive LP tokens
      */
+    /// forge-lint: disable-start(mixed-case-variable)
     function addLiquidity(
         uint256 _poolId,
         uint256 _amountLD,
         address _to
     ) external;
+    /// forge-lint: disable-end(mixed-case-variable)
 
     /**
      * @notice Instantly redeem LP tokens for underlying tokens locally
@@ -80,11 +85,13 @@ interface IStargateRouter {
      * @param _to Address to receive underlying tokens
      * @return amountSD Amount of underlying tokens received in shared decimals
      */
+    /// forge-lint: disable-start(mixed-case-variable)
     function instantRedeemLocal(
         uint16 _srcPoolId,
         uint256 _amountLP,
         address _to
     ) external returns (uint256 amountSD);
+    /// forge-lint: disable-end(mixed-case-variable)
 
     /**
      * @notice Redeem LP tokens remotely (cross-chain)
@@ -98,6 +105,7 @@ interface IStargateRouter {
      * @param _to Recipient address bytes
      * @param _payload Additional payload
      */
+    /// forge-lint: disable-start(mixed-case-variable)
     function redeemRemote(
         uint16 _dstChainId,
         uint256 _srcPoolId,
@@ -109,7 +117,7 @@ interface IStargateRouter {
         bytes calldata _to,
         bytes calldata _payload
     ) external payable;
-
+    /// forge-lint: disable-end(mixed-case-variable)
     /**
      * @notice Create a new Stargate pool
      * @param _poolId Pool ID to create

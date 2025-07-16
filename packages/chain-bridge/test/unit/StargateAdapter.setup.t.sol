@@ -2,14 +2,16 @@
 pragma solidity ^0.8.26;
 
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
 import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
+import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 // Base test contract with common setup used by all Stargate adapter tests
 contract StargateAdapterSetupTest is TestHelperOz5 {
@@ -23,7 +25,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     CrossChainRegistry public registryA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
-    MockStargateV2 public stargateA;
+    MockStargateV2Pool public stargateA;
 
     // Chain B contracts
     StargateAdapter public adapterB;
@@ -31,7 +33,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
     CrossChainRegistry public registryB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
-    MockStargateV2 public stargateB;
+    MockStargateV2Pool public stargateB;
 
     // Test wallets
     address public governor = address(0x1);
@@ -76,10 +78,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         // Initialize tokens and Stargate mocks for chain A
         tokenA = new ERC20Mock();
-        stargateA = new MockStargateV2(
-            address(tokenA),
-            MockStargateV2.StargateType.Pool
-        );
+        stargateA = new MockStargateV2Pool(address(tokenA));
 
         accessManagerA = new ProtocolAccessManager(governor);
         registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
@@ -120,10 +119,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         // Initialize tokens and Stargate mocks for chain B
         tokenB = new ERC20Mock();
-        stargateB = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
-        );
+        stargateB = new MockStargateV2Pool(address(tokenB));
 
         accessManagerB = new ProtocolAccessManager(governor);
         registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);

@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 

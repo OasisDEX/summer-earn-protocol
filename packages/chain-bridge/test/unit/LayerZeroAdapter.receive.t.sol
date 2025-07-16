@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
-
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
 import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
@@ -11,6 +9,8 @@ import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.so
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {console} from "forge-std/console.sol";
+import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
+import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
 
 contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
     // Add a MockCrossChainReceiver instance

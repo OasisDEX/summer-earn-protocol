@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
+import {Test} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
+import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
@@ -9,7 +12,8 @@ import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
-import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {Test} from "forge-std/Test.sol";
@@ -46,8 +50,8 @@ contract StargateAdapterComposeForkTest is Test {
     CrossChainRegistry registryMainnet;
     CrossChainRegistry registryArbitrum;
     MockFleetProxy fleetProxyArbitrum;
-    MockStargateV2 mockStargateMainnet;
-    MockStargateV2 mockStargateArbitrum;
+    MockStargateV2Pool mockStargateMainnet;
+    MockStargateV2Pool mockStargateArbitrum;
 
     address user = address(0x123);
     address governor = address(0x456);
@@ -100,10 +104,7 @@ contract StargateAdapterComposeForkTest is Test {
         // Don't add CHAIN_ID_ARBITRUM yet - will add after arbitrum adapter is deployed
 
         // Deploy mock Stargate contract for mainnet USDC
-        mockStargateMainnet = new MockStargateV2(
-            USDC_MAINNET,
-            MockStargateV2.StargateType.Pool
-        );
+        mockStargateMainnet = new MockStargateV2Pool(USDC_MAINNET);
 
         // Add asset support for USDC on mainnet
         adapterMainnet.addSupportedAsset(
@@ -162,10 +163,7 @@ contract StargateAdapterComposeForkTest is Test {
         fleetProxyArbitrum = new MockFleetProxy(USDC_ARBITRUM);
 
         // Deploy mock Stargate contract for Arbitrum USDC
-        mockStargateArbitrum = new MockStargateV2(
-            USDC_ARBITRUM,
-            MockStargateV2.StargateType.Pool
-        );
+        mockStargateArbitrum = new MockStargateV2Pool(USDC_ARBITRUM);
 
         // Add asset support for USDC on Arbitrum
         adapterArbitrum.addSupportedAsset(
@@ -391,11 +389,13 @@ contract StargateAdapterComposeForkTest is Test {
     }
 
     // Helper functions to call OFTComposeMsgCodec with calldata
+    /// forge-lint: disable-start(mixed-case-function)
     function getAmountLD(
         bytes calldata message
     ) external pure returns (uint256) {
         return OFTComposeMsgCodec.amountLD(message);
     }
+    /// forge-lint: disable-end(mixed-case-function)
 
     function getComposeMsg(
         bytes calldata message

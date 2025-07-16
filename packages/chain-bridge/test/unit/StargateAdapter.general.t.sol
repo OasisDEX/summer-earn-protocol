@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 
 contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -124,9 +122,8 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         ERC20Mock newToken = new ERC20Mock();
 
         // Create a proper mock Stargate contract
-        MockStargateV2 mockStargateContract = new MockStargateV2(
-            address(newToken),
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateContract = new MockStargateV2Pool(
+            address(newToken)
         );
 
         // Add the new token as supported asset
@@ -150,9 +147,8 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Create a proper mock Stargate contract
-        MockStargateV2 newStargateContract = new MockStargateV2(
-            address(tokenA),
-            MockStargateV2.StargateType.OFT
+        MockStargateV2Pool newStargateContract = new MockStargateV2Pool(
+            address(tokenA)
         );
 
         // Add the same asset again (should update Stargate contract but not add duplicate)
@@ -176,9 +172,8 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Create a proper mock Stargate contract for this test
-        MockStargateV2 mockStargateContract = new MockStargateV2(
-            address(tokenA),
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateContract = new MockStargateV2Pool(
+            address(tokenA)
         );
 
         // Try to add address(0) as an asset

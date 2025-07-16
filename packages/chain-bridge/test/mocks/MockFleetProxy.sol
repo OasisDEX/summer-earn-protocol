@@ -5,7 +5,7 @@ import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetRec
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract MockFleetProxy is ICrossChainAssetReceiver {
-    address public immutable asset;
+    address public immutable ASSET;
     bool public receivedAssets;
     address public lastAsset;
     uint256 public lastAmount;
@@ -14,7 +14,7 @@ contract MockFleetProxy is ICrossChainAssetReceiver {
     bool public shouldRevert;
 
     constructor(address _asset) {
-        asset = _asset;
+        ASSET = _asset;
     }
 
     function setShouldRevert(bool _shouldRevert) external {

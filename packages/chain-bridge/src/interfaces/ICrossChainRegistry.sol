@@ -132,6 +132,7 @@ interface ICrossChainRegistry {
                             CONSTANTS GETTERS
     //////////////////////////////////////////////////////////////*/
 
+    /// forge-lint: disable-start(mixed-case-function)
     /// @notice Returns the constant for adapter peer relationship type
     /// @return bytes32 value of keccak256("ADAPTER_PEER")
     function ADAPTER_PEER() external pure returns (bytes32);
@@ -139,6 +140,7 @@ interface ICrossChainRegistry {
     /// @notice Returns the constant for ark fleet relationship type
     /// @return bytes32 value of keccak256("ARK_FLEET")
     function ARK_FLEET() external pure returns (bytes32);
+    /// forge-lint: disable-end(mixed-case-function)
 
     /// @notice Returns the constant for executor relationship type
     /// @return bytes32 value of keccak256("EXECUTOR")
