@@ -136,7 +136,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Step 4: Configure DVNs AND executor together (must be sorted alphabetically)
         /// forge-lint: disable-start(mixed-case-variable)
         address[] memory readDVNs = new address[](1);
-        readDVNs[0] = readDVN;
+        readDVNs[0] = readDvn;
         layerZeroAdapter.configureReadDVNs(
             readLib1002,
             readDVNs,
