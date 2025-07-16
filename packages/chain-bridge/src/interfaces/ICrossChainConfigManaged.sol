@@ -6,6 +6,7 @@ pragma solidity ^0.8.28;
  * @notice Interface for contracts that need to read from the CrossChainConfigManager
  */
 interface ICrossChainConfigManaged {
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -25,4 +26,5 @@ interface ICrossChainConfigManaged {
 
     /// @notice Returns the default gas limit for cross-chain operations
     function defaultGasLimit() external view returns (uint256);
+
 }

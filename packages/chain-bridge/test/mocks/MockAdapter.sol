@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {console} from "forge-std/console.sol";
+import { IBridgeAdapter } from "../../src/interfaces/IBridgeAdapter.sol";
+
+import { IBridgeRouter } from "../../src/interfaces/IBridgeRouter.sol";
+import { ISendAdapter } from "../../src/interfaces/ISendAdapter.sol";
+import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { console } from "forge-std/console.sol";
 
 contract MockAdapter is IBridgeAdapter {
+
     using SafeERC20 for IERC20;
 
     address public bridgeRouter;
@@ -52,11 +55,7 @@ contract MockAdapter is IBridgeAdapter {
     ReceivedMessage[] public receivedMessages;
 
     // Add MessageRelayed event from core-contracts version
-    event MessageRelayed(
-        bytes32 messageId,
-        address recipient,
-        uint16 sourceChainId
-    );
+    event MessageRelayed(bytes32 messageId, address recipient, uint16 sourceChainId);
 
     constructor(address _bridgeRouter) {
         bridgeRouter = _bridgeRouter;
@@ -86,10 +85,7 @@ contract MockAdapter is IBridgeAdapter {
     }
 
     // Add helper function to configure supported operations
-    function setSupportedOperation(
-        BridgeTypes.OperationType operationType,
-        bool supported
-    ) external {
+    function setSupportedOperation(BridgeTypes.OperationType operationType, bool supported) external {
         supportedOperations[operationType] = supported;
     }
 
@@ -103,7 +99,10 @@ contract MockAdapter is IBridgeAdapter {
         address originator,
         address, // Accept keeper parameter from router
         BridgeTypes.AdapterParams calldata
-    ) external payable {
+    )
+        external
+        payable
+    {
         // Check caller is bridge router
         if (msg.sender != bridgeRouter) {
             revert Unauthorized();
@@ -140,7 +139,10 @@ contract MockAdapter is IBridgeAdapter {
         bytes calldata readParams,
         address, // keeper - not used in mock
         BridgeTypes.AdapterParams calldata
-    ) external payable {
+    )
+        external
+        payable
+    {
         // Check caller is bridge router
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
@@ -167,7 +169,11 @@ contract MockAdapter is IBridgeAdapter {
         uint256,
         BridgeTypes.AdapterParams calldata,
         BridgeTypes.OperationType
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee)
+    {
         // Check if chain is supported
         if (!supportedChains[destinationChainId]) {
             revert UnsupportedChain();
@@ -179,9 +185,7 @@ contract MockAdapter is IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view override returns (BridgeTypes.OperationStatus) {
+    function getOperationStatus(bytes32 operationId) external view override returns (BridgeTypes.OperationStatus) {
         return operationStatuses[operationId];
     }
 
@@ -190,17 +194,11 @@ contract MockAdapter is IBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
-        BridgeTypes.OperationType operationType
-    ) external view returns (bool) {
+    function supportsOperation(BridgeTypes.OperationType operationType) external view returns (bool) {
         return supportedOperations[operationType];
     }
 
-    event ActionComposed(
-        bytes32 indexed transferId,
-        uint16 destinationChainId,
-        uint256 actionCount
-    );
+    event ActionComposed(bytes32 indexed transferId, uint16 destinationChainId, uint256 actionCount);
 
     event MockTransferInitiated(
         bytes32 transferId,
@@ -228,7 +226,10 @@ contract MockAdapter is IBridgeAdapter {
         bytes calldata message,
         address, // keeper - not used in mock
         BridgeTypes.AdapterParams calldata
-    ) external payable {
+    )
+        external
+        payable
+    {
         // Check caller is bridge router
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
@@ -246,12 +247,7 @@ contract MockAdapter is IBridgeAdapter {
         // No return value needed
     }
 
-    event MockMessageInitiated(
-        bytes32 messageId,
-        uint16 destinationChainId,
-        address recipient,
-        bytes message
-    );
+    event MockMessageInitiated(bytes32 messageId, uint16 destinationChainId, address recipient, bytes message);
 
     // Add simulateMessageReceived function from core-contracts version
     function simulateMessageReceived(
@@ -259,15 +255,12 @@ contract MockAdapter is IBridgeAdapter {
         address sender,
         uint16 sourceChainId,
         bytes32 messageId
-    ) external {
+    )
+        external
+    {
         // Store the received message
         receivedMessages.push(
-            ReceivedMessage({
-                message: message,
-                sender: sender,
-                sourceChainId: sourceChainId,
-                messageId: messageId
-            })
+            ReceivedMessage({ message: message, sender: sender, sourceChainId: sourceChainId, messageId: messageId })
         );
 
         // Notify the bridge router about the received message
@@ -292,15 +285,19 @@ contract MockAdapter is IBridgeAdapter {
     function transferAssetMinimal(
         bytes32 operationId,
         uint16 destinationChainId,
-        address /* asset */,
-        address /* recipient */,
-        uint256 /* amount */,
+        address, /* asset */
+        address, /* recipient */
+        uint256, /* amount */
         address /* originator */
-    ) external payable {
+    )
+        external
+        payable
+    {
         console.log("transferAssetMinimal called successfully");
         console.log("operationId:", uint256(operationId));
         console.log("destinationChainId:", destinationChainId);
     }
 
-    function testSkipper() public {}
+    function testSkipper() public { }
+
 }

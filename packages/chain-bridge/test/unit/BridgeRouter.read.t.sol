@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {Test} from "forge-std/Test.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
-import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
+import { IBridgeRouter } from "../../src/interfaces/IBridgeRouter.sol";
+
+import { ICrossChainStateReadReceiver } from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
+import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
+import { MockAdapter } from "../mocks/MockAdapter.sol";
+import { BridgeRouterSetup } from "./BridgeRouter.setup.t.sol";
+import { Test } from "forge-std/Test.sol";
 
 contract BridgeRouterReadStateTest is BridgeRouterSetup {
+
     // ---- READ STATE TESTS ----
 
     function testReadStateLOL() public {
@@ -20,13 +22,8 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 100, msgValue: 0, options: "" });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
@@ -34,7 +31,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , address specifiedAdapter) = router.quote(
+        (uint256 fee,, address specifiedAdapter) = router.quote(
             DEST_CHAIN_ID,
             targetContract, // Use target contract in quote
             0,
@@ -53,7 +50,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
 
-        bytes32 operationId = router.executeReadState{value: fee}(
+        bytes32 operationId = router.executeReadState{ value: fee }(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
                 destinationContract: targetContract,
@@ -85,33 +82,22 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 100, msgValue: 0, options: "" });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Specify adapter
             adapterParams: adapterParams
         });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            targetContract,
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
-        );
+        (uint256 fee,,) = router.quote(DEST_CHAIN_ID, targetContract, 0, options, BridgeTypes.OperationType.READ_STATE);
 
         vm.stopPrank(); // mockReceiver stops queueing
 
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
 
-        operationId = router.executeReadState{value: fee}(
+        operationId = router.executeReadState{ value: fee }(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
                 destinationContract: targetContract,
@@ -129,10 +115,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         router.setOperationToAdapter(operationId, address(mockAdapter));
         router.setReadRequestOriginator(operationId, address(mockReceiver));
         // Set initial status to SENT
-        router.setOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
+        router.setOperationStatus(operationId, BridgeTypes.OperationStatus.SENT);
 
         // Now deliver the response from the adapter
         vm.prank(address(mockAdapter));
@@ -147,11 +130,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 DEST_CHAIN_ID // sourceChainId
             )
         );
-        router.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            abi.encode(uint256(100))
-        );
+        router.deliverReadResponse(operationId, DEST_CHAIN_ID, abi.encode(uint256(100)));
 
         // Verify that the mockReceiver received the data
         assertEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
@@ -170,20 +149,15 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // mockReceiver (queueManager) queues the operation (NO VALUE)
         vm.startPrank(address(mockReceiver));
         // Create bridge options inside prank
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 100, msgValue: 0, options: "" });
         options = BridgeTypes.BridgeOptions({ // Initialize options here
-                specifiedAdapter: address(mockAdapter), // Specify adapter
-                adapterParams: adapterParams
-            });
+            specifiedAdapter: address(mockAdapter), // Specify adapter
+            adapterParams: adapterParams
+        });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , ) = router.quote(
+        (uint256 fee,,) = router.quote(
             DEST_CHAIN_ID,
             targetContract,
             0,
@@ -196,7 +170,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
 
-        operationId = router.executeReadState{value: fee}(
+        operationId = router.executeReadState{ value: fee }(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
                 destinationContract: targetContract,
@@ -212,11 +186,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // Test case 1: Non-adapter trying to deliver response
         vm.prank(address(0x999)); // Random non-adapter address
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            abi.encode(uint256(100))
-        );
+        router.deliverReadResponse(operationId, DEST_CHAIN_ID, abi.encode(uint256(100)));
 
         // Register second adapter
         vm.prank(governor);
@@ -225,11 +195,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // Test case 2: Different adapter trying to deliver response
         vm.prank(address(mockAdapter2));
         vm.expectRevert(IBridgeRouter.Unauthorized.selector);
-        router.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            abi.encode(uint256(100))
-        );
+        router.deliverReadResponse(operationId, DEST_CHAIN_ID, abi.encode(uint256(100)));
     }
 
     function testDeliverReadResponseReceiverRejects() public {
@@ -245,20 +211,15 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // mockReceiver (queueManager) queues the operation (NO VALUE)
         vm.startPrank(address(mockReceiver));
         // Create bridge options inside prank
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 100, msgValue: 0, options: "" });
         options = BridgeTypes.BridgeOptions({ // Initialize options here
-                specifiedAdapter: address(mockAdapter), // Specify adapter
-                adapterParams: adapterParams
-            });
+            specifiedAdapter: address(mockAdapter), // Specify adapter
+            adapterParams: adapterParams
+        });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , ) = router.quote(
+        (uint256 fee,,) = router.quote(
             DEST_CHAIN_ID,
             targetContract,
             0,
@@ -271,7 +232,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // Keeper executes (PAYS FEE)
         vm.startPrank(keeper);
 
-        operationId = router.executeReadState{value: fee}(
+        operationId = router.executeReadState{ value: fee }(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
                 destinationContract: targetContract,
@@ -289,10 +250,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         router.setOperationToAdapter(operationId, address(mockAdapter));
         router.setReadRequestOriginator(operationId, address(mockReceiver));
         // Set initial status to SENT
-        router.setOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
+        router.setOperationStatus(operationId, BridgeTypes.OperationStatus.SENT);
 
         // Attempt to deliver the response
         vm.prank(address(mockAdapter));
@@ -300,10 +258,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.expectCall(
             address(router),
             abi.encodeWithSelector(
-                IBridgeRouter.deliverReadResponse.selector,
-                operationId,
-                DEST_CHAIN_ID,
-                abi.encode(uint256(100))
+                IBridgeRouter.deliverReadResponse.selector, operationId, DEST_CHAIN_ID, abi.encode(uint256(100))
             )
         );
         // Expect the call to the receiver, which will revert
@@ -316,15 +271,13 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 operationId, // operationId
                 DEST_CHAIN_ID // sourceChainId
             )
-            // Do not mock a return, let it revert
         );
+        // Do not mock a return, let it revert
+
         vm.expectRevert(bytes("Receiver rejected call"));
-        router.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            abi.encode(uint256(100))
-        );
+        router.deliverReadResponse(operationId, DEST_CHAIN_ID, abi.encode(uint256(100)));
 
         assertNotEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
     }
+
 }

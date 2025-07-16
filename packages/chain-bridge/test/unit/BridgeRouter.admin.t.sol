@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {Test} from "forge-std/Test.sol";
-import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import { IBridgeAdapter } from "../../src/interfaces/IBridgeAdapter.sol";
+import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
+import { BridgeRouter } from "../../src/router/BridgeRouter.sol";
+import { Test } from "forge-std/Test.sol";
 
-import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
+import { IBridgeRouter } from "../../src/interfaces/IBridgeRouter.sol";
+import { MockAdapter } from "../mocks/MockAdapter.sol";
+import { BridgeRouterSetup } from "./BridgeRouter.setup.t.sol";
+import { IAccessControlErrors } from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 contract BridgeRouterAdminTest is BridgeRouterSetup {
+
     // ---- ADMIN FUNCTION TESTS ----
 
     function testPauseByGovernor() public {
@@ -38,12 +39,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         assertTrue(router.paused());
 
         // Guardian cannot unpause
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControlErrors.CallerIsNotGovernor.selector,
-                guardian
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IAccessControlErrors.CallerIsNotGovernor.selector, guardian));
         router.unpause();
 
         vm.stopPrank();
@@ -53,12 +49,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Should revert when non-guardian/governor tries to pause
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControlErrors.CallerIsNotGuardianOrGovernor.selector,
-                user
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IAccessControlErrors.CallerIsNotGuardianOrGovernor.selector, user));
         router.pause();
 
         vm.stopPrank();
@@ -72,13 +63,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         // User attempts to queue (NO VALUE)
         vm.startPrank(user);
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
@@ -86,12 +72,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         });
 
         // Get fee estimate first (for keeper execution)
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee,, address specifiedAdapter) = router.quote(
+            DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options, BridgeTypes.OperationType.TRANSFER_ASSET
         );
         // vm.deal(user, nativeFee); // REMOVED: User no longer pays
 
@@ -103,7 +85,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(executor);
 
         vm.expectRevert(IBridgeRouter.Paused.selector);
-        router.executeTransferAssets{value: nativeFee}(
+        router.executeTransferAssets{ value: nativeFee }(
             BridgeTypes.ExecuteTransferParams({
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
@@ -126,13 +108,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
@@ -144,7 +121,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(executor);
 
         // Get quote for execution
-        (uint256 nativeFee, , ) = router.quote(
+        (uint256 nativeFee,,) = router.quote(
             DEST_CHAIN_ID,
             address(0), // No asset
             0, // No amount
@@ -153,7 +130,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         );
 
         vm.expectRevert(IBridgeRouter.Paused.selector);
-        router.executeReadState{value: nativeFee}(
+        router.executeReadState{ value: nativeFee }(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
                 destinationContract: address(mockAdapter), // Use mock adapter as target contract
@@ -176,13 +153,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
@@ -207,4 +179,5 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         );
         vm.stopPrank();
     }
+
 }

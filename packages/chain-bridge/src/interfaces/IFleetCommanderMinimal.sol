@@ -7,6 +7,7 @@ pragma solidity ^0.8.28;
  * @dev Contains only the essential methods needed for bridge operations
  */
 interface IFleetCommanderMinimal {
+
     /**
      * @notice Deposits assets to the FleetCommander with referral code
      * @param assets Amount of assets to deposit
@@ -14,11 +15,7 @@ interface IFleetCommanderMinimal {
      * @param referralCode Referral code for tracking
      * @return shares Amount of shares minted
      */
-    function deposit(
-        uint256 assets,
-        address receiver,
-        bytes memory referralCode
-    ) external returns (uint256 shares);
+    function deposit(uint256 assets, address receiver, bytes memory referralCode) external returns (uint256 shares);
 
     /**
      * @notice Deposits assets to the FleetCommander without referral code
@@ -26,10 +23,7 @@ interface IFleetCommanderMinimal {
      * @param receiver Address to receive the shares
      * @return shares Amount of shares minted
      */
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) external returns (uint256 shares);
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares);
 
     /**
      * @notice Returns the underlying asset of this FleetCommander
@@ -43,4 +37,5 @@ interface IFleetCommanderMinimal {
      * @return Maximum deposit amount
      */
     function maxDeposit(address owner) external view returns (uint256);
+
 }

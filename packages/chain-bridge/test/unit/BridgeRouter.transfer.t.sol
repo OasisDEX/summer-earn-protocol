@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
+import { IBridgeAdapter } from "../../src/interfaces/IBridgeAdapter.sol";
+import { IBridgeRouter } from "../../src/interfaces/IBridgeRouter.sol";
+import { ISendAdapter } from "../../src/interfaces/ISendAdapter.sol";
+import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
+import { BridgeRouter } from "../../src/router/BridgeRouter.sol";
+import { MockAdapter } from "../mocks/MockAdapter.sol";
+import { BridgeRouterSetup } from "./BridgeRouter.setup.t.sol";
+import { Test, console } from "forge-std/Test.sol";
 
 contract BridgeRouterTransferTest is BridgeRouterSetup {
+
     // Additional addresses specific to transfer tests
     address public authorizedCaller = address(0x5);
 
@@ -27,13 +28,8 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
@@ -41,12 +37,8 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         });
 
         // Get a quote first to determine the required fee FOR EXECUTION
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee,, address specifiedAdapter) = router.quote(
+            DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options, BridgeTypes.OperationType.TRANSFER_ASSET
         );
         // vm.deal(user, nativeFee); // REMOVED: User no longer pays fee
 
@@ -60,7 +52,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // approve tokens for transfer
         token.approve(address(router), TRANSFER_AMOUNT);
         // Execute with value - Fixed: added options parameter
-        bytes32 operationId = router.executeTransferAssets{value: nativeFee}(
+        bytes32 operationId = router.executeTransferAssets{ value: nativeFee }(
             BridgeTypes.ExecuteTransferParams({
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
@@ -74,10 +66,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         vm.stopPrank();
 
         // Verify bridge opeariotn status updated post-execution
-        assertEq(
-            uint256(router.getOperationStatus(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT)
-        );
+        assertEq(uint256(router.getOperationStatus(operationId)), uint256(BridgeTypes.OperationStatus.SENT));
 
         // Verify transfer was initiated in router
         // Note: Router state is mocked here, real state is in BridgeQueue now primarily
@@ -93,13 +82,8 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0), // No adapter specified
@@ -125,24 +109,12 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // User queues (NO VALUE)
         vm.startPrank(user);
         token.approve(address(router), TRANSFER_AMOUNT);
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter),
-            adapterParams: adapterParams
-        });
-        (uint256 nativeFee, , ) = router.quote( // Quote needed for keeper execution
-                DEST_CHAIN_ID,
-                address(token),
-                TRANSFER_AMOUNT,
-                options,
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            );
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
+        BridgeTypes.BridgeOptions memory options =
+            BridgeTypes.BridgeOptions({ specifiedAdapter: address(mockAdapter), adapterParams: adapterParams });
+        (uint256 nativeFee,,) = router.quote( // Quote needed for keeper execution
+        DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options, BridgeTypes.OperationType.TRANSFER_ASSET);
 
         vm.stopPrank();
 
@@ -152,7 +124,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
 
         token.approve(address(router), TRANSFER_AMOUNT);
         // Execute the operation - let it run normally without mocking
-        operationId = router.executeTransferAssets{value: nativeFee}(
+        operationId = router.executeTransferAssets{ value: nativeFee }(
             BridgeTypes.ExecuteTransferParams({
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
@@ -168,10 +140,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // Should revert when non-adapter tries to update status
         vm.prank(user); // Use user address (or any other non-adapter)
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
+        router.updateOperationStatus(operationId, BridgeTypes.OperationStatus.SENT);
 
         // Register second adapter and configure it to support the chain
         vm.startPrank(governor);
@@ -182,10 +151,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // Should revert when wrong adapter tries to deliver response
         vm.prank(address(mockAdapter2));
         vm.expectRevert(IBridgeRouter.Unauthorized.selector);
-        router.updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
+        router.updateOperationStatus(operationId, BridgeTypes.OperationStatus.SENT);
     }
 
     function testDebugMockAdapter() public {
@@ -197,9 +163,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         console.log("MockAdapter supports chain 10:", supportsChain10);
 
         // Check if adapter supports TRANSFER_ASSET operation
-        bool supportsTransfer = mockAdapter.supportsOperation(
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
+        bool supportsTransfer = mockAdapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET);
         console.log("MockAdapter supports TRANSFER_ASSET:", supportsTransfer);
 
         // Check bridge router address
@@ -208,20 +172,13 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         console.log("Actual router address:", address(router));
 
         // Test interface casting with IBridgeAdapter
-        try
-            IBridgeAdapter(address(mockAdapter)).estimateFee(
-                DEST_CHAIN_ID,
-                address(token),
-                1000e18,
-                BridgeTypes.AdapterParams({
-                    gasLimit: 500000,
-                    calldataSize: 0,
-                    msgValue: 0,
-                    options: ""
-                }),
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            )
-        returns (uint256 nativeFee, uint256) {
+        try IBridgeAdapter(address(mockAdapter)).estimateFee(
+            DEST_CHAIN_ID,
+            address(token),
+            1000e18,
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" }),
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        ) returns (uint256 nativeFee, uint256) {
             console.log("IBridgeAdapter cast works, nativeFee:", nativeFee);
         } catch {
             console.log("IBridgeAdapter cast failed");
@@ -246,10 +203,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
 
         // Check balances and approvals
         console.log("Router token balance:", token.balanceOf(address(router)));
-        console.log(
-            "Router approval to MockAdapter:",
-            token.allowance(address(router), address(mockAdapter))
-        );
+        console.log("Router approval to MockAdapter:", token.allowance(address(router), address(mockAdapter)));
 
         // Test if basic function calls work
         try mockAdapter.testFunction() returns (bool result) {
@@ -259,106 +213,65 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         }
 
         // Try calling transferAsset with simple parameters
-        BridgeTypes.AdapterParams memory simpleParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 0,
-                calldataSize: 0,
-                msgValue: 0,
-                options: "0x"
-            });
+        BridgeTypes.AdapterParams memory simpleParams =
+            BridgeTypes.AdapterParams({ gasLimit: 0, calldataSize: 0, msgValue: 0, options: "0x" });
 
-        try
-            mockAdapter.transferAsset{value: 0.1 ether}(
-                bytes32("test"),
-                DEST_CHAIN_ID,
-                address(token),
-                user,
-                1,
-                user,
-                user, // Add keeper parameter
-                simpleParams
-            )
-        {
+        try mockAdapter.transferAsset{ value: 0.1 ether }(
+            bytes32("test"),
+            DEST_CHAIN_ID,
+            address(token),
+            user,
+            1,
+            user,
+            user, // Add keeper parameter
+            simpleParams
+        ) {
             console.log("Simple transferAsset call succeeded");
         } catch Error(string memory reason) {
-            console.log(
-                "Simple transferAsset call failed with reason:",
-                reason
-            );
+            console.log("Simple transferAsset call failed with reason:", reason);
         } catch (bytes memory lowLevelData) {
             console.log("Simple transferAsset call failed with low level data");
             console.logBytes(lowLevelData);
         }
 
         // Try with explicit gas limit
-        try
-            mockAdapter.transferAsset{value: 0.1 ether, gas: 500000}(
-                bytes32("test"),
-                DEST_CHAIN_ID,
-                address(token),
-                user,
-                1,
-                user,
-                user, // Add keeper parameter
-                simpleParams
-            )
-        {
+        try mockAdapter.transferAsset{ value: 0.1 ether, gas: 500000 }(
+            bytes32("test"),
+            DEST_CHAIN_ID,
+            address(token),
+            user,
+            1,
+            user,
+            user, // Add keeper parameter
+            simpleParams
+        ) {
             console.log("High gas transferAsset call succeeded");
         } catch Error(string memory reason) {
-            console.log(
-                "High gas transferAsset call failed with reason:",
-                reason
-            );
+            console.log("High gas transferAsset call failed with reason:", reason);
         } catch (bytes memory lowLevelData) {
-            console.log(
-                "High gas transferAsset call failed with low level data"
-            );
+            console.log("High gas transferAsset call failed with low level data");
             console.logBytes(lowLevelData);
         }
 
         // Try the minimal version
-        try
-            mockAdapter.transferAssetMinimal{value: 0.1 ether}(
-                bytes32("test"),
-                DEST_CHAIN_ID,
-                address(token),
-                user,
-                1,
-                user
-            )
-        {
+        try mockAdapter.transferAssetMinimal{ value: 0.1 ether }(
+            bytes32("test"), DEST_CHAIN_ID, address(token), user, 1, user
+        ) {
             console.log("transferAssetMinimal call succeeded");
         } catch Error(string memory reason) {
-            console.log(
-                "transferAssetMinimal call failed with reason:",
-                reason
-            );
+            console.log("transferAssetMinimal call failed with reason:", reason);
         } catch (bytes memory lowLevelData) {
             console.log("transferAssetMinimal call failed with low level data");
             console.logBytes(lowLevelData);
         }
 
         // Try without payable value
-        try
-            mockAdapter.transferAssetMinimal(
-                bytes32("test"),
-                DEST_CHAIN_ID,
-                address(token),
-                user,
-                1,
-                user
-            )
-        {
+        try mockAdapter.transferAssetMinimal(bytes32("test"), DEST_CHAIN_ID, address(token), user, 1, user) {
             console.log("transferAssetMinimal (no value) call succeeded");
         } catch Error(string memory reason) {
-            console.log(
-                "transferAssetMinimal (no value) call failed with reason:",
-                reason
-            );
+            console.log("transferAssetMinimal (no value) call failed with reason:", reason);
         } catch (bytes memory lowLevelData) {
-            console.log(
-                "transferAssetMinimal (no value) call failed with low level data"
-            );
+            console.log("transferAssetMinimal (no value) call failed with low level data");
             console.logBytes(lowLevelData);
         }
 
@@ -380,101 +293,59 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
 
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter),
-            adapterParams: adapterParams
-        });
+        BridgeTypes.BridgeOptions memory options =
+            BridgeTypes.BridgeOptions({ specifiedAdapter: address(mockAdapter), adapterParams: adapterParams });
 
         // Get quote
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee,,) = router.quote(
+            DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options, BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Call executeTransferAssets directly from BridgeQueue
         vm.startPrank(address(authorizedCaller));
 
         // Check ETH balances before the call
-        console.log(
-            "BridgeQueue ETH balance:",
-            address(authorizedCaller).balance
-        );
+        console.log("BridgeQueue ETH balance:", address(authorizedCaller).balance);
         console.log("BridgeRouter ETH balance:", address(router).balance);
         console.log("Required native fee:", nativeFee);
 
         // Check token balances and approvals
-        console.log(
-            "BridgeQueue token balance:",
-            token.balanceOf(address(authorizedCaller))
-        );
-        console.log(
-            "BridgeRouter token balance:",
-            token.balanceOf(address(router))
-        );
-        console.log(
-            "BridgeQueue approval to Router:",
-            token.allowance(address(authorizedCaller), address(router))
-        );
+        console.log("BridgeQueue token balance:", token.balanceOf(address(authorizedCaller)));
+        console.log("BridgeRouter token balance:", token.balanceOf(address(router)));
+        console.log("BridgeQueue approval to Router:", token.allowance(address(authorizedCaller), address(router)));
 
-        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
-            .ExecuteTransferParams({
-                destinationChainId: DEST_CHAIN_ID,
-                asset: address(token),
-                amount: TRANSFER_AMOUNT,
-                recipient: user,
-                originator: user,
-                keeper: address(authorizedCaller),
-                options: options
-            });
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes.ExecuteTransferParams({
+            destinationChainId: DEST_CHAIN_ID,
+            asset: address(token),
+            amount: TRANSFER_AMOUNT,
+            recipient: user,
+            originator: user,
+            keeper: address(authorizedCaller),
+            options: options
+        });
 
         console.log("About to call executeTransferAssets...");
 
         // Debug: Check if adapter supports the operation and chain
         console.log(
             "MockAdapter supports TRANSFER_ASSET:",
-            mockAdapter.supportsOperation(
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            )
+            mockAdapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
-        console.log(
-            "MockAdapter supports chain 10:",
-            mockAdapter.supportsChain(DEST_CHAIN_ID)
-        );
-        console.log(
-            "MockAdapter is valid adapter:",
-            router.isValidAdapter(address(mockAdapter))
-        );
+        console.log("MockAdapter supports chain 10:", mockAdapter.supportsChain(DEST_CHAIN_ID));
+        console.log("MockAdapter is valid adapter:", router.isValidAdapter(address(mockAdapter)));
         console.log("MockAdapter address:", address(mockAdapter));
-        console.log(
-            "Specified adapter in params:",
-            params.options.specifiedAdapter
-        );
+        console.log("Specified adapter in params:", params.options.specifiedAdapter);
 
-        try router.executeTransferAssets{value: nativeFee}(params) returns (
-            bytes32 operationId
-        ) {
+        try router.executeTransferAssets{ value: nativeFee }(params) returns (bytes32 operationId) {
             console.log("Direct executeTransferAssets succeeded");
             console.log("Operation ID:", uint256(operationId));
         } catch Error(string memory reason) {
-            console.log(
-                "Direct executeTransferAssets failed with reason:",
-                reason
-            );
+            console.log("Direct executeTransferAssets failed with reason:", reason);
         } catch (bytes memory lowLevelData) {
-            console.log(
-                "Direct executeTransferAssets failed with low level data"
-            );
+            console.log("Direct executeTransferAssets failed with low level data");
             console.logBytes(lowLevelData);
         }
 
@@ -492,51 +363,32 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         token.approve(address(router), 100);
 
         // Create minimal params
-        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
-            .ExecuteTransferParams({
-                destinationChainId: DEST_CHAIN_ID,
-                asset: address(token),
-                amount: 100,
-                recipient: user,
-                originator: user,
-                keeper: address(authorizedCaller),
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 500000,
-                        calldataSize: 0,
-                        msgValue: 0,
-                        options: ""
-                    })
-                })
-            });
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes.ExecuteTransferParams({
+            destinationChainId: DEST_CHAIN_ID,
+            asset: address(token),
+            amount: 100,
+            recipient: user,
+            originator: user,
+            keeper: address(authorizedCaller),
+            options: BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                adapterParams: BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" })
+            })
+        });
 
         console.log("About to call executeTransferAssets...");
 
         // Debug: Check if adapter supports the operation and chain
         console.log(
             "MockAdapter supports TRANSFER_ASSET:",
-            mockAdapter.supportsOperation(
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            )
+            mockAdapter.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
-        console.log(
-            "MockAdapter supports chain 10:",
-            mockAdapter.supportsChain(DEST_CHAIN_ID)
-        );
-        console.log(
-            "MockAdapter is valid adapter:",
-            router.isValidAdapter(address(mockAdapter))
-        );
+        console.log("MockAdapter supports chain 10:", mockAdapter.supportsChain(DEST_CHAIN_ID));
+        console.log("MockAdapter is valid adapter:", router.isValidAdapter(address(mockAdapter)));
         console.log("MockAdapter address:", address(mockAdapter));
-        console.log(
-            "Specified adapter in params:",
-            params.options.specifiedAdapter
-        );
+        console.log("Specified adapter in params:", params.options.specifiedAdapter);
 
-        try router.executeTransferAssets{value: 0.1 ether}(params) returns (
-            bytes32 operationId
-        ) {
+        try router.executeTransferAssets{ value: 0.1 ether }(params) returns (bytes32 operationId) {
             console.log("executeTransferAssets succeeded!");
             console.log("Operation ID:", uint256(operationId));
         } catch Error(string memory reason) {
@@ -551,17 +403,13 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
             console.log("executeTransferAssets (no value) succeeded!");
             console.log("Operation ID:", uint256(operationId));
         } catch Error(string memory reason) {
-            console.log(
-                "executeTransferAssets (no value) failed with reason:",
-                reason
-            );
+            console.log("executeTransferAssets (no value) failed with reason:", reason);
         } catch (bytes memory lowLevelData) {
-            console.log(
-                "executeTransferAssets (no value) failed with low level data"
-            );
+            console.log("executeTransferAssets (no value) failed with low level data");
             console.logBytes(lowLevelData);
         }
 
         vm.stopPrank();
     }
+
 }

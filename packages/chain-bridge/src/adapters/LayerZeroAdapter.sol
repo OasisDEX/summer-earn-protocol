@@ -1,23 +1,30 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
-import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
-import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
-import {ReadCodecV1, EVMCallRequestV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
-import {MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
-import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
-import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
-import {BaseBridgeAdapter} from "./BaseBridgeAdapter.sol";
+import { LayerZeroOptionsHelper } from "../helpers/LayerZeroOptionsHelper.sol";
+import { IBridgeAdapter } from "../interfaces/IBridgeAdapter.sol";
+import { IBridgeRouter } from "../interfaces/IBridgeRouter.sol";
+
+import { ICrossChainMessageReceiver } from "../interfaces/ICrossChainMessageReceiver.sol";
+import { ISendAdapter } from "../interfaces/ISendAdapter.sol";
+import { BridgeTypes } from "../libraries/BridgeTypes.sol";
+
+import { BaseBridgeAdapter } from "./BaseBridgeAdapter.sol";
+import { ReadLibConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
+import {
+    MessagingFee as EndpointFee,
+    MessagingReceipt
+} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import { SetConfigParam } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import { Origin } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import { OAppRead } from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
+import { EVMCallRequestV1, ReadCodecV1 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -25,6 +32,7 @@ import {BaseBridgeAdapter} from "./BaseBridgeAdapter.sol";
  * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OAppRead standard
  */
 contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
+
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -80,24 +88,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     // Note: Errors are inherited from IBridgeAdapter interface
 
     /// @notice Emitted when read libraries are configured
-    event ReadLibrariesConfigured(
-        address indexed readLib1002,
-        uint32 indexed readChannelId
-    );
+    event ReadLibrariesConfigured(address indexed readLib1002, uint32 indexed readChannelId);
 
     /// @notice Emitted when read DVNs are configured
-    event ReadDVNsConfigured(
-        uint32 indexed readChannelId,
-        address[] readDVNs,
-        uint64 confirmations
-    );
+    event ReadDVNsConfigured(uint32 indexed readChannelId, address[] readDVNs, uint64 confirmations);
 
     /// @notice Emitted when read executor is configured
-    event ReadExecutorConfigured(
-        uint32 indexed readChannelId,
-        address indexed executor,
-        uint32 maxMessageSize
-    );
+    event ReadExecutorConfigured(uint32 indexed readChannelId, address indexed executor, uint32 maxMessageSize);
 
     // Note: Other events are inherited from IBridgeAdapter and ISendAdapter interfaces
 
@@ -129,7 +126,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();
 
         // Setup chain ID mappings
-        for (uint i = 0; i < _supportedChains.length; i++) {
+        for (uint256 i = 0; i < _supportedChains.length; i++) {
             chainToLzEid[_supportedChains[i]] = _lzEids[i];
             lzEidToChain[_lzEids[i]] = _supportedChains[i];
             _supportedChainIds.add(_supportedChains[i]);
@@ -140,12 +137,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         minGasLimits[GENERAL_MESSAGE] = 700000;
 
         // Initialize operation type to message type mapping
-        operationToMessageType[
-            BridgeTypes.OperationType.MESSAGE
-        ] = GENERAL_MESSAGE;
-        operationToMessageType[
-            BridgeTypes.OperationType.READ_STATE
-        ] = STATE_READ;
+        operationToMessageType[BridgeTypes.OperationType.MESSAGE] = GENERAL_MESSAGE;
+        operationToMessageType[BridgeTypes.OperationType.READ_STATE] = STATE_READ;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -158,10 +151,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param gasLimit New minimum gas limit value
      * @dev Can only be called by the contract owner
      */
-    function setMinGasLimit(
-        uint16 msgType,
-        uint128 gasLimit
-    ) external onlyOwner {
+    function setMinGasLimit(uint16 msgType, uint128 gasLimit) external onlyOwner {
         minGasLimits[msgType] = gasLimit;
     }
 
@@ -181,10 +171,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param lzEid LayerZero endpoint ID for the chain
      * @dev Can only be called by the contract owner
      */
-    function addSupportedChain(
-        uint16 chainId,
-        uint32 lzEid
-    ) external onlyOwner {
+    function addSupportedChain(uint16 chainId, uint32 lzEid) external onlyOwner {
         chainToLzEid[chainId] = lzEid;
         lzEidToChain[lzEid] = chainId;
         _supportedChainIds.add(chainId);
@@ -207,25 +194,14 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param readLib1002Address Address of the ReadLib1002 contract
      * @dev Must be called to enable read operations
      */
-    function configureReadLibraries(
-        address readLib1002Address
-    ) external onlyOwner {
+    function configureReadLibraries(address readLib1002Address) external onlyOwner {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
         // Set send library for read channel
-        endpoint.setSendLibrary(
-            address(this),
-            readChannelId,
-            readLib1002Address
-        );
+        endpoint.setSendLibrary(address(this), readChannelId, readLib1002Address);
 
         // Set receive library for read channel
-        endpoint.setReceiveLibrary(
-            address(this),
-            readChannelId,
-            readLib1002Address,
-            0
-        );
+        endpoint.setReceiveLibrary(address(this), readChannelId, readLib1002Address, 0);
 
         emit ReadLibrariesConfigured(readLib1002Address, readChannelId);
     }
@@ -243,14 +219,17 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         address[] memory readDVNs,
         uint64 confirmations,
         address executor
-    ) external onlyOwner {
+    )
+        external
+        onlyOwner
+    {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
         if (readDVNs.length == 0) revert InvalidParams();
         if (readLib1002Address == address(0)) revert InvalidParams();
         if (executor == address(0)) revert InvalidParams();
 
         // Verify DVNs are sorted (required by LayerZero)
-        for (uint i = 1; i < readDVNs.length; i++) {
+        for (uint256 i = 1; i < readDVNs.length; i++) {
             if (readDVNs[i] <= readDVNs[i - 1]) revert InvalidParams(); // Must be sorted
         }
 
@@ -299,7 +278,10 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes calldata _payload,
         address,
         bytes calldata
-    ) internal override {
+    )
+        internal
+        override
+    {
         // Extract message type from the first 2 bytes if available
         uint16 messageType = GENERAL_MESSAGE; // Default to GENERAL_MESSAGE
         bytes memory actualPayload = _payload;
@@ -323,8 +305,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (messageType == GENERAL_MESSAGE) {
             // IMPORTANT: Use actualPayload here instead of _payload
             // This ensures we decode only the message data without the message type prefix
-            (bytes memory message, address recipient, bytes32 messageId) = abi
-                .decode(actualPayload, (bytes, address, bytes32));
+            (bytes memory message, address recipient, bytes32 messageId) =
+                abi.decode(actualPayload, (bytes, address, bytes32));
 
             _handleGeneralMessage(message, recipient, messageId, srcChainId);
         } else {
@@ -344,30 +326,21 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         address recipient,
         bytes32 messageId,
         uint16 srcChainId
-    ) internal {
+    )
+        internal
+    {
         bool delivered = false;
         bytes4 interfaceId = type(ICrossChainMessageReceiver).interfaceId;
-        try
-            ICrossChainMessageReceiver(recipient).supportsInterface(interfaceId)
-        returns (bool supported) {
+        try ICrossChainMessageReceiver(recipient).supportsInterface(interfaceId) returns (bool supported) {
             if (supported) {
-                try
-                    ICrossChainMessageReceiver(recipient).receiveMessage(
-                        srcChainId,
-                        message
-                    )
-                {
+                try ICrossChainMessageReceiver(recipient).receiveMessage(srcChainId, message) {
                     delivered = true;
                 } catch (bytes memory reason) {
                     emit RelayFailed(messageId, reason);
                 }
             } else {
-                (bool success, ) = recipient.call(
-                    abi.encodeWithSelector(
-                        ICrossChainMessageReceiver.receiveMessage.selector,
-                        srcChainId,
-                        message
-                    )
+                (bool success,) = recipient.call(
+                    abi.encodeWithSelector(ICrossChainMessageReceiver.receiveMessage.selector, srcChainId, message)
                 );
                 if (success) {
                     delivered = true;
@@ -392,11 +365,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             emit MessageDelivered(messageId, recipient, delivered);
         } else {
             // Update status to FAILED if delivery failed
-            _updateReceiveStatus(
-                messageId,
-                recipient,
-                BridgeTypes.OperationStatus.FAILED
-            );
+            _updateReceiveStatus(messageId, recipient, BridgeTypes.OperationStatus.FAILED);
         }
     }
 
@@ -406,11 +375,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Response payload
      */
-    function _handleReadResponse(
-        Origin calldata _origin,
-        bytes32 _guid,
-        bytes calldata _payload
-    ) internal {
+    function _handleReadResponse(Origin calldata _origin, bytes32 _guid, bytes calldata _payload) internal {
         // Extract requestId from the guid mapping
         bytes32 operationId = lzMessageToOperationId[_guid];
         if (operationId == bytes32(0)) {
@@ -423,20 +388,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint16 srcChainId = lzEidToChain[_origin.srcEid];
 
         // Forward the result to the bridge router
-        try
-            IBridgeRouter(bridgeRouter()).deliverReadResponse(
-                operationId,
-                srcChainId,
-                _payload
-            )
-        {
+        try IBridgeRouter(bridgeRouter()).deliverReadResponse(operationId, srcChainId, _payload) {
             emit ReadResponseDelivered(operationId, _payload);
         } catch (bytes memory reason) {
             // Mark as failed if delivery fails
-            _updateOperationStatus(
-                operationId,
-                BridgeTypes.OperationStatus.FAILED
-            );
+            _updateOperationStatus(operationId, BridgeTypes.OperationStatus.FAILED);
             emit RelayFailed(operationId, reason);
         }
     }
@@ -455,7 +411,10 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         address,
         address, // keeper - not used by LayerZero adapter
         BridgeTypes.AdapterParams calldata
-    ) external payable {
+    )
+        external
+        payable
+    {
         // This adapter doesn't support asset transfers directly
         // It should never be called for this purpose due to capability flags
         revert OperationNotSupported();
@@ -468,7 +427,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint256,
         BridgeTypes.AdapterParams calldata adapterParams,
         BridgeTypes.OperationType operationType
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee)
+    {
         // Convert destinationChainId to LayerZero EID
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
@@ -497,13 +460,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             payload = ReadCodecV1.encode(0, readRequests);
         } else {
             // For GENERAL_MESSAGE, use same encoding format as sendMessage
-            bytes memory dummyMessage = abi.encode(
-                "dummy message for fee estimation"
-            );
-            payload = abi.encodePacked(
-                uint16(GENERAL_MESSAGE),
-                abi.encode(dummyMessage, address(0), bytes32(0))
-            );
+            bytes memory dummyMessage = abi.encode("dummy message for fee estimation");
+            payload = abi.encodePacked(uint16(GENERAL_MESSAGE), abi.encode(dummyMessage, address(0), bytes32(0)));
         }
 
         options = _prepareOptions(adapterParams, messageType);
@@ -515,12 +473,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             if (readChannelId == 0) revert ReadChannelNotConfigured();
 
-            EndpointFee memory fee = _quote(
-                readChannelId,
-                payload,
-                options,
-                false
-            );
+            EndpointFee memory fee = _quote(readChannelId, payload, options, false);
             return (fee.nativeFee, fee.lzTokenFee);
         } else {
             EndpointFee memory fee = _quote(dstEid, payload, options, false);
@@ -529,9 +482,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view override returns (BridgeTypes.OperationStatus) {
+    function getOperationStatus(bytes32 operationId) external view override returns (BridgeTypes.OperationStatus) {
         return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
     }
 
@@ -545,7 +496,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes calldata readParams,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable nonReentrant {
+    )
+        external
+        payable
+        nonReentrant
+    {
         // Only BridgeRouter should call this
         if (msg.sender != bridgeRouter()) revert Unauthorized();
 
@@ -578,32 +533,18 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             bytes memory cmd = ReadCodecV1.encode(0, readRequests);
             bytes memory options = _prepareOptions(adapterParams, STATE_READ);
 
-            MessagingReceipt memory receipt = _lzSend(
-                readChannelId,
-                cmd,
-                options,
-                EndpointFee(msg.value, 0),
-                payable(keeper)
-            );
+            MessagingReceipt memory receipt =
+                _lzSend(readChannelId, cmd, options, EndpointFee(msg.value, 0), payable(keeper));
             guid = receipt.guid;
         }
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[guid] = operationId;
 
-        emit ReadRequestInitiated(
-            operationId,
-            srcChainId,
-            destinationChainId,
-            destinationContract,
-            selector
-        );
+        emit ReadRequestInitiated(operationId, srcChainId, destinationChainId, destinationContract, selector);
 
         // Set initial status as SENT
-        IBridgeRouter(bridgeRouter()).updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
+        IBridgeRouter(bridgeRouter()).updateOperationStatus(operationId, BridgeTypes.OperationStatus.SENT);
     }
 
     /// @inheritdoc ISendAdapter
@@ -614,7 +555,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes calldata message,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable nonReentrant {
+    )
+        external
+        payable
+        nonReentrant
+    {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter()) revert Unauthorized();
 
@@ -637,24 +582,14 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // Send message through OApp's _lzSend
         // Use tx.origin as refund address since that's the keeper who initiated the transaction
-        MessagingReceipt memory receipt = _lzSend(
-            lzDstEid,
-            payload,
-            options,
-            EndpointFee(msg.value, 0),
-            payable(keeper)
-        );
+        MessagingReceipt memory receipt =
+            _lzSend(lzDstEid, payload, options, EndpointFee(msg.value, 0), payable(keeper));
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[receipt.guid] = operationId;
 
         // Emit event for message initiation
-        emit MessageInitiated(
-            operationId,
-            destinationChainId,
-            recipient,
-            message
-        );
+        emit MessageInitiated(operationId, destinationChainId, recipient, message);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -666,9 +601,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param chainId Standard chain ID
      * @return lzEid LayerZero endpoint ID
      */
-    function _getLayerZeroEid(
-        uint16 chainId
-    ) internal view returns (uint32 lzEid) {
+    function _getLayerZeroEid(uint16 chainId) internal view returns (uint32 lzEid) {
         // Get the LayerZero EID from our mapping
         lzEid = chainToLzEid[chainId];
 
@@ -689,28 +622,22 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function _prepareOptions(
         BridgeTypes.AdapterParams memory adapterParams,
         uint16 msgType
-    ) internal view returns (bytes memory) {
+    )
+        internal
+        view
+        returns (bytes memory)
+    {
         // Get minimum gas limit for this message type
         uint128 minimumGas = minGasLimits[msgType];
 
         // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = adapterParams.gasLimit < minimumGas
-            ? minimumGas
-            : uint128(adapterParams.gasLimit);
+        uint128 gasLimit = adapterParams.gasLimit < minimumGas ? minimumGas : uint128(adapterParams.gasLimit);
 
         // Use the helper to create messaging options with minimum gas limit enforcement
         if (msgType == STATE_READ) {
-            return
-                LayerZeroOptionsHelper.createLzReadOptions(
-                    adapterParams,
-                    gasLimit
-                );
+            return LayerZeroOptionsHelper.createLzReadOptions(adapterParams, gasLimit);
         } else {
-            return
-                LayerZeroOptionsHelper.createMessagingOptions(
-                    adapterParams,
-                    gasLimit
-                );
+            return LayerZeroOptionsHelper.createMessagingOptions(adapterParams, gasLimit);
         }
     }
 
@@ -725,7 +652,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint32 _dstEid,
         uint16 _msgType,
         bytes memory _payload
-    ) public view returns (uint256 requiredFee) {
+    )
+        public
+        view
+        returns (uint256 requiredFee)
+    {
         // Get minimum gas limit for this message type
         uint128 minimumGas = minGasLimits[_msgType];
 
@@ -733,26 +664,19 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes memory options;
         {
             // Create params in limited scope
-            BridgeTypes.AdapterParams memory params = BridgeTypes
-                .AdapterParams({
-                    gasLimit: uint64(minimumGas),
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: bytes("")
-                });
+            BridgeTypes.AdapterParams memory params = BridgeTypes.AdapterParams({
+                gasLimit: uint64(minimumGas),
+                msgValue: 0,
+                calldataSize: 0,
+                options: bytes("")
+            });
 
             if (_msgType == STATE_READ) {
                 // For state read, create read options with minimum gas
-                options = LayerZeroOptionsHelper.createLzReadOptions(
-                    params,
-                    minimumGas
-                );
+                options = LayerZeroOptionsHelper.createLzReadOptions(params, minimumGas);
             } else {
                 // For standard messaging, create messaging options with minimum gas
-                options = LayerZeroOptionsHelper.createMessagingOptions(
-                    params,
-                    minimumGas
-                );
+                options = LayerZeroOptionsHelper.createMessagingOptions(params, minimumGas);
             }
         }
 
@@ -766,9 +690,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param _lzEid LayerZero endpoint ID
      * @return chainId Standard chain ID used by our system
      */
-    function _getLzChainId(
-        uint32 _lzEid
-    ) internal view returns (uint16 chainId) {
+    function _getLzChainId(uint32 _lzEid) internal view returns (uint16 chainId) {
         // Get the chain ID from our mapping
         chainId = lzEidToChain[_lzEid];
 
@@ -781,13 +703,10 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function supportsOperation(
-        BridgeTypes.OperationType operationType
-    ) external pure override returns (bool) {
+    function supportsOperation(BridgeTypes.OperationType operationType) external pure override returns (bool) {
         // LayerZero supports messaging and state reading operations, but not asset transfer
         return
-            operationType == BridgeTypes.OperationType.MESSAGE ||
-            operationType == BridgeTypes.OperationType.READ_STATE;
+            operationType == BridgeTypes.OperationType.MESSAGE || operationType == BridgeTypes.OperationType.READ_STATE;
     }
 
     /**
@@ -795,14 +714,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param operationId ID of the operation to update
      * @param status New status to set
      */
-    function _updateOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) internal {
-        IBridgeRouter(bridgeRouter()).updateOperationStatus(
-            operationId,
-            status
-        );
+    function _updateOperationStatus(bytes32 operationId, BridgeTypes.OperationStatus status) internal {
+        IBridgeRouter(bridgeRouter()).updateOperationStatus(operationId, status);
     }
 
     /**
@@ -811,15 +724,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param recipient Address of the message recipient (only needed for COMPLETED status)
      * @param status New status to set
      */
-    function _updateReceiveStatus(
-        bytes32 requestId,
-        address recipient,
-        BridgeTypes.OperationStatus status
-    ) internal {
-        IBridgeRouter(bridgeRouter()).updateReceiveStatus(
-            requestId,
-            recipient,
-            status
-        );
+    function _updateReceiveStatus(bytes32 requestId, address recipient, BridgeTypes.OperationStatus status) internal {
+        IBridgeRouter(bridgeRouter()).updateReceiveStatus(requestId, recipient, status);
     }
+
 }

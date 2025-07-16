@@ -60,8 +60,6 @@ jobs:
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
           SONIC_RPC_URL: ${{ secrets.SONIC_RPC_URL }}
-      - name: Lint
-        run: pnpm lint
 
       - name: Format
         run: pnpm format

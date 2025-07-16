@@ -1,21 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {console} from "forge-std/Test.sol";
-import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
-import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import {MockStargateV2} from "../mocks/MockStargateV2.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { StargateAdapter } from "../../src/adapters/StargateAdapter.sol";
+
+import { IBridgeAdapter } from "../../src/interfaces/IBridgeAdapter.sol";
+import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
+
+import { BridgeRouterTestHelper } from "../helpers/BridgeRouterTestHelper.sol";
+import { MockFleetProxy } from "../mocks/MockFleetProxy.sol";
+
+import { MockStargateV2 } from "../mocks/MockStargateV2.sol";
+import { StargateAdapterSetupTest } from "./StargateAdapter.setup.t.sol";
+import { StargateAdapterTestWrapper } from "./StargateAdapterTestWrapper.sol";
+import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { console } from "forge-std/Test.sol";
 
 // Simple mock fleet commander that actually transfers tokens
 contract SimpleMockFleetCommander {
+
     using SafeERC20 for IERC20;
 
     IERC20 public immutable asset;
@@ -24,10 +29,7 @@ contract SimpleMockFleetCommander {
         asset = IERC20(_asset);
     }
 
-    function deposit(
-        uint256 amount,
-        address /* receiver */
-    ) external returns (uint256) {
+    function deposit(uint256 amount, address /* receiver */ ) external returns (uint256) {
         // Transfer tokens from caller to this contract (like a real fleet commander would)
         asset.safeTransferFrom(msg.sender, address(this), amount);
         // Return shares (1:1 ratio for simplicity)
@@ -36,38 +38,37 @@ contract SimpleMockFleetCommander {
 
     function deposit(
         uint256 amount,
-        address /* receiver */,
+        address, /* receiver */
         bytes memory /* referralCode */
-    ) external returns (uint256) {
+    )
+        external
+        returns (uint256)
+    {
         // Transfer tokens from caller to this contract (like a real fleet commander would)
         asset.safeTransferFrom(msg.sender, address(this), amount);
         // Return shares (1:1 ratio for simplicity)
         return amount;
     }
 
-    function maxDeposit(
-        address /* depositor */
-    ) external pure returns (uint256) {
+    function maxDeposit(address /* depositor */ ) external pure returns (uint256) {
         return type(uint256).max;
     }
 
-    function testSkipper() public {}
+    function testSkipper() public { }
+
 }
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
+
     MockFleetProxy public fleetProxyA;
     MockFleetProxy public fleetProxyB;
 
     // Helper functions to call OFTComposeMsgCodec with calldata
-    function getAmountLD(
-        bytes calldata message
-    ) external pure returns (uint256) {
+    function getAmountLD(bytes calldata message) external pure returns (uint256) {
         return OFTComposeMsgCodec.amountLD(message);
     }
 
-    function getComposeMsg(
-        bytes calldata message
-    ) external pure returns (bytes memory) {
+    function getComposeMsg(bytes calldata message) external pure returns (bytes memory) {
         return OFTComposeMsgCodec.composeMsg(message);
     }
 
@@ -90,18 +91,21 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes32 operationId,
         address originalUser,
         bytes memory referralCode
-    ) internal pure returns (bytes memory) {
-        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes
-            .FleetDepositMessageData({
-                fleetCommander: fleetCommander,
-                shareRecipient: shareRecipient,
-                asset: asset,
-                amount: amount,
-                sourceChainId: CHAIN_ID_A,
-                operationId: operationId,
-                originalUser: originalUser,
-                referralCode: referralCode
-            });
+    )
+        internal
+        pure
+        returns (bytes memory)
+    {
+        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes.FleetDepositMessageData({
+            fleetCommander: fleetCommander,
+            shareRecipient: shareRecipient,
+            asset: asset,
+            amount: amount,
+            sourceChainId: CHAIN_ID_A,
+            operationId: operationId,
+            originalUser: originalUser,
+            referralCode: referralCode
+        });
 
         return abi.encode(BridgeTypes.USER_FLEET_DEPOSIT_TYPE, messageData);
     }
@@ -113,16 +117,13 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
      * @param message The encoded fleet deposit message
      * @return Properly formatted compose message with composeFrom prefix
      */
-    function _addComposeFromPrefix(
-        bytes memory message
-    ) internal view returns (bytes memory) {
+    function _addComposeFromPrefix(bytes memory message) internal view returns (bytes memory) {
         // Add composeFrom prefix - Stargate will strip this out and pass the rest to lzCompose
         // The destination adapter needs to know which source adapter sent the message
-        return
-            abi.encodePacked(
-                bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter address
-                message
-            );
+        return abi.encodePacked(
+            bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter address
+            message
+        );
     }
 
     /**
@@ -144,31 +145,21 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes32 operationId,
         address originalUser,
         bytes memory referralCode
-    ) internal view returns (bytes memory) {
+    )
+        internal
+        view
+        returns (bytes memory)
+    {
         // Step 1: Encode the fleet deposit message
         bytes memory fleetDepositMessage = _encodeFleetDepositMessage(
-            fleetCommander,
-            shareRecipient,
-            asset,
-            amount,
-            operationId,
-            originalUser,
-            referralCode
+            fleetCommander, shareRecipient, asset, amount, operationId, originalUser, referralCode
         );
 
         // Step 2: Add the composeFrom prefix (gets stripped by Stargate)
-        bytes memory properComposeMsg = _addComposeFromPrefix(
-            fleetDepositMessage
-        );
+        bytes memory properComposeMsg = _addComposeFromPrefix(fleetDepositMessage);
 
         // Step 3: Create OFT encoded message
-        return
-            OFTComposeMsgCodec.encode(
-                uint64(1),
-                uint32(CHAIN_ID_A),
-                amount,
-                properComposeMsg
-            );
+        return OFTComposeMsgCodec.encode(uint64(1), uint32(CHAIN_ID_A), amount, properComposeMsg);
     }
 
     function setUp() public override {
@@ -209,13 +200,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         useNetworkB();
 
         // Create custom compose message (5 parameters, no fleet proxy)
-        bytes memory customComposeMessage = abi.encode(
-            address(tokenB),
-            1 ether,
-            CHAIN_ID_A,
-            bytes32("test-operation"),
-            user
-        );
+        bytes memory customComposeMessage =
+            abi.encode(address(tokenB), 1 ether, CHAIN_ID_A, bytes32("test-operation"), user);
 
         // Create OFT-encoded message (like Stargate would send)
         bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
@@ -227,13 +213,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Should revert when called by non-endpoint
         vm.expectRevert(IBridgeAdapter.Unauthorized.selector);
-        adapterB.lzCompose(
-            address(adapterA),
-            bytes32("test-guid"),
-            oftEncodedMessage,
-            address(0),
-            ""
-        );
+        adapterB.lzCompose(address(adapterA), bytes32("test-guid"), oftEncodedMessage, address(0), "");
     }
 
     function testTransferAssetWithCompose() public {
@@ -241,21 +221,12 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.deal(address(routerA), 1 ether);
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, calldataSize: 0, msgValue: 0, options: "" });
 
         // Estimate fee
-        (uint256 nativeFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            adapterParams,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee,) = adapterA.estimateFee(
+            CHAIN_ID_B, address(tokenA), 1 ether, adapterParams, BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
         // Transfer tokens to router and approve
@@ -279,10 +250,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Setup router
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
+        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(expectedOperationId, address(adapterA));
 
         // Mock Stargate to expect compose message
         bytes memory expectedComposeMsg = abi.encode(
@@ -298,7 +266,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Execute transfer
         vm.prank(address(routerA));
-        adapterA.transferAsset{value: nativeFee}(
+        adapterA.transferAsset{ value: nativeFee }(
             expectedOperationId,
             CHAIN_ID_B,
             address(tokenA),
@@ -359,29 +327,20 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         useNetworkB();
 
         // Invalid message (wrong encoding)
-        bytes memory invalidMessage = abi.encode(
-            address(fleetProxyB),
-            address(tokenB)
-            // Missing required fields
-        );
+        bytes memory invalidMessage = abi.encode(address(fleetProxyB), address(tokenB));
+        // Missing required fields
 
         vm.expectRevert(); // Should revert on decode
         vm.prank(lzEndpointB);
-        adapterB.lzCompose(
-            address(adapterA),
-            bytes32("test-guid"),
-            invalidMessage,
-            address(0),
-            ""
-        );
+        adapterB.lzCompose(address(adapterA), bytes32("test-guid"), invalidMessage, address(0), "");
     }
 
     function testLzComposeWithRealMessage() public {
         useNetworkB();
 
         // The actual message from your example
-        bytes
-            memory realMessage = hex"0000000000066982000075e800000000000000000000000000000000000000000000000000000000004c4a45000000000000000000000000bb784b7bd9b9e2e3257c4838b798fb077d96c2350000000000000000000000001534e3d0f23d91142424a0091aab8037fac80cb8000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000000210515919236bbb71d094ca0aee8259859441555203071b0f3da4cb32e40d4118ac10000000000000000000000009d4d5ef9a4f25589cca44e1fbdec25d79f2271ea";
+        bytes memory realMessage =
+            hex"0000000000066982000075e800000000000000000000000000000000000000000000000000000000004c4a45000000000000000000000000bb784b7bd9b9e2e3257c4838b798fb077d96c2350000000000000000000000001534e3d0f23d91142424a0091aab8037fac80cb8000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000000210515919236bbb71d094ca0aee8259859441555203071b0f3da4cb32e40d4118ac10000000000000000000000009d4d5ef9a4f25589cca44e1fbdec25d79f2271ea";
 
         // Parse the amount and compose message
         uint256 amountLD = this.getAmountLD(realMessage);
@@ -396,10 +355,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         address usdcOnBase = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 
         // Create a mock Stargate contract that returns the USDC address from token()
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            usdcOnBase,
-            MockStargateV2.StargateType.Pool
-        );
+        MockStargateV2 mockStargateFrom = new MockStargateV2(usdcOnBase, MockStargateV2.StargateType.Pool);
 
         console.log("Mock Stargate token():", mockStargateFrom.token());
 
@@ -409,18 +365,10 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         realFleetProxy = MockFleetProxy(expectedFleetProxy);
 
         // Mock asset behavior - ensure the balance check will pass
+        vm.mockCall(usdcOnBase, abi.encodeWithSignature("balanceOf(address)", address(adapterB)), abi.encode(amountLD));
         vm.mockCall(
             usdcOnBase,
-            abi.encodeWithSignature("balanceOf(address)", address(adapterB)),
-            abi.encode(amountLD)
-        );
-        vm.mockCall(
-            usdcOnBase,
-            abi.encodeWithSignature(
-                "transfer(address,uint256)",
-                expectedFleetProxy,
-                amountLD
-            ),
+            abi.encodeWithSignature("transfer(address,uint256)", expectedFleetProxy, amountLD),
             abi.encode(true)
         );
 
@@ -428,19 +376,13 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Test the lzCompose call - use the mock Stargate contract as _from
         vm.prank(lzEndpointB);
-        try
-            adapterB.lzCompose(
-                address(mockStargateFrom), // Use mock Stargate contract
-                bytes32(
-                    uint256(
-                        0x0000000000066982000075e800000000000000000000000000000000000000
-                    )
-                ),
-                realMessage,
-                address(0),
-                hex""
-            )
-        {
+        try adapterB.lzCompose(
+            address(mockStargateFrom), // Use mock Stargate contract
+            bytes32(uint256(0x0000000000066982000075e800000000000000000000000000000000000000)),
+            realMessage,
+            address(0),
+            hex""
+        ) {
             // If successful, verify the fleet proxy was called
             console.log("lzCompose executed successfully");
 
@@ -451,18 +393,14 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
             // Let's be more specific about the failure for now
             // This message structure might not match our current expectations
-            console.log(
-                "Test marked as informational - message format needs adjustment"
-            );
+            console.log("Test marked as informational - message format needs adjustment");
             vm.skip(true); // Skip this test for now
         } catch (bytes memory lowLevelData) {
             console.log("lzCompose failed with low-level error");
             console.logBytes(lowLevelData);
 
             // Let's be more specific about the failure for now
-            console.log(
-                "Test marked as informational - message format needs adjustment"
-            );
+            console.log("Test marked as informational - message format needs adjustment");
             vm.skip(true); // Skip this test for now
         }
     }
@@ -481,12 +419,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             user // originator
         );
 
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            customComposeMessage
-        );
+        bytes memory oftEncodedMessage =
+            OFTComposeMsgCodec.encode(uint64(1), uint32(CHAIN_ID_A), testAmount, customComposeMessage);
 
         // Don't mint tokens to adapter - should cause insufficient balance
         assertEq(tokenB.balanceOf(address(adapterB)), 0);
@@ -494,13 +428,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Should revert with InsufficientBalance - but contract emits event first
         vm.prank(lzEndpointB);
         vm.expectRevert(); // Just expect any revert for now
-        adapterB.lzCompose(
-            address(adapterA),
-            bytes32("test-guid"),
-            oftEncodedMessage,
-            address(0),
-            hex""
-        );
+        adapterB.lzCompose(address(adapterA), bytes32("test-guid"), oftEncodedMessage, address(0), hex"");
     }
 
     function testLzComposeInvalidDecodedParams() public {
@@ -518,12 +446,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             user // originator
         );
 
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            customComposeMessage
-        );
+        bytes memory oftEncodedMessage =
+            OFTComposeMsgCodec.encode(uint64(1), uint32(CHAIN_ID_A), testAmount, customComposeMessage);
 
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
@@ -531,13 +455,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Should revert with InvalidParams due to zero address fleet proxy
         vm.prank(lzEndpointB);
         vm.expectRevert(); // Just expect any revert for now
-        adapterB.lzCompose(
-            address(adapterA),
-            bytes32("test-guid"),
-            oftEncodedMessage,
-            address(0),
-            hex""
-        );
+        adapterB.lzCompose(address(adapterA), bytes32("test-guid"), oftEncodedMessage, address(0), hex"");
     }
 
     function testLzComposeFleetProxyRevert() public {
@@ -557,12 +475,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             user // originator
         );
 
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            customComposeMessage
-        );
+        bytes memory oftEncodedMessage =
+            OFTComposeMsgCodec.encode(uint64(1), uint32(CHAIN_ID_A), testAmount, customComposeMessage);
 
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
@@ -570,32 +484,21 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // The contract implementation handles fleet proxy reverts gracefully
         // It should not revert the entire transaction, but might emit an event
         vm.prank(lzEndpointB);
-        try
-            adapterB.lzCompose(
-                address(adapterA),
-                bytes32("test-guid"),
-                oftEncodedMessage,
-                address(0),
-                hex""
-            )
-        {
+        try adapterB.lzCompose(address(adapterA), bytes32("test-guid"), oftEncodedMessage, address(0), hex"") {
             // If it succeeds, tokens should still be transferred out
             assertEq(tokenB.balanceOf(address(adapterB)), 0);
         } catch {
             // If the whole function reverts due to fleet proxy failure,
             // that's also acceptable behavior for now
             // The key is that we tested the edge case
-            assertTrue(
-                true,
-                "Fleet proxy revert caused full transaction revert"
-            );
+            assertTrue(true, "Fleet proxy revert caused full transaction revert");
         }
     }
 
     function testDecodeRealMessageFleetProxy() public view {
         // The actual message from your example
-        bytes
-            memory realMessage = hex"0000000000066982000075e800000000000000000000000000000000000000000000000000000000004c4a45000000000000000000000000bb784b7bd9b9e2e3257c4838b798fb077d96c2350000000000000000000000001534e3d0f23d91142424a0091aab8037fac80cb8000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000000210515919236bbb71d094ca0aee8259859441555203071b0f3da4cb32e40d4118ac10000000000000000000000009d4d5ef9a4f25589cca44e1fbdec25d79f2271ea";
+        bytes memory realMessage =
+            hex"0000000000066982000075e800000000000000000000000000000000000000000000000000000000004c4a45000000000000000000000000bb784b7bd9b9e2e3257c4838b798fb077d96c2350000000000000000000000001534e3d0f23d91142424a0091aab8037fac80cb8000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000000210515919236bbb71d094ca0aee8259859441555203071b0f3da4cb32e40d4118ac10000000000000000000000009d4d5ef9a4f25589cca44e1fbdec25d79f2271ea";
 
         // Parse the compose message using helper functions
         bytes memory composeMsg = this.getComposeMsg(realMessage);
@@ -615,20 +518,12 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         console.log("=== FLEET PROXY EXTRACTION ===");
         console.log("First parameter (fleet proxy):", extractedFleetProxy);
-        console.log(
-            "Expected fleet proxy:",
-            0x1534e3D0f23D91142424A0091aab8037fac80CB8
-        );
+        console.log("Expected fleet proxy:", 0x1534e3D0f23D91142424A0091aab8037fac80CB8);
 
         // Verify this matches your expected fleet proxy
-        assertEq(
-            extractedFleetProxy,
-            0x1534e3D0f23D91142424A0091aab8037fac80CB8
-        );
+        assertEq(extractedFleetProxy, 0x1534e3D0f23D91142424A0091aab8037fac80CB8);
 
-        console.log(
-            "SUCCESS: Fleet proxy correctly extracted as first parameter!"
-        );
+        console.log("SUCCESS: Fleet proxy correctly extracted as first parameter!");
     }
 
     function testUserLedFleetDepositFlow() public {
@@ -643,11 +538,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Create a mock fleet commander that will revert deposits
         address mockFleetCommander = makeAddr("mockFleetCommander");
-        vm.mockCall(
-            mockFleetCommander,
-            abi.encodeWithSignature("asset()"),
-            abi.encode(address(tokenB))
-        );
+        vm.mockCall(mockFleetCommander, abi.encodeWithSignature("asset()"), abi.encode(address(tokenB)));
         vm.mockCall(
             mockFleetCommander,
             abi.encodeWithSignature("maxDeposit(address)", address(adapterB)),
@@ -655,31 +546,23 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
         vm.mockCallRevert(
             mockFleetCommander,
-            abi.encodeWithSignature(
-                "deposit(uint256,address)",
-                testAmount,
-                testUser
-            ),
+            abi.encodeWithSignature("deposit(uint256,address)", testAmount, testUser),
             "Fleet deposit failed"
         );
 
         // Create fleet deposit compose message where originalUser == shareRecipient (user-led)
-        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes
-            .FleetDepositMessageData({
-                fleetCommander: mockFleetCommander,
-                shareRecipient: testUser,
-                asset: address(tokenB),
-                amount: testAmount,
-                sourceChainId: CHAIN_ID_A,
-                operationId: testOperationId,
-                originalUser: testUser,
-                referralCode: bytes("")
-            });
+        BridgeTypes.FleetDepositMessageData memory messageData = BridgeTypes.FleetDepositMessageData({
+            fleetCommander: mockFleetCommander,
+            shareRecipient: testUser,
+            asset: address(tokenB),
+            amount: testAmount,
+            sourceChainId: CHAIN_ID_A,
+            operationId: testOperationId,
+            originalUser: testUser,
+            referralCode: bytes("")
+        });
 
-        bytes memory actualFleetDepositMessage = abi.encode(
-            BridgeTypes.USER_FLEET_DEPOSIT_TYPE,
-            messageData
-        );
+        bytes memory actualFleetDepositMessage = abi.encode(BridgeTypes.USER_FLEET_DEPOSIT_TYPE, messageData);
 
         // Properly format for OFT encoding: [composeFrom][actualMessage]
         bytes memory properComposeMsg = abi.encodePacked(
@@ -688,21 +571,14 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Remove destinationAdapter parameter from the call
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            properComposeMsg
-        );
+        bytes memory oftEncodedMessage =
+            OFTComposeMsgCodec.encode(uint64(1), uint32(CHAIN_ID_A), testAmount, properComposeMsg);
 
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
-        );
+        MockStargateV2 mockStargateFrom = new MockStargateV2(address(tokenB), MockStargateV2.StargateType.Pool);
 
         // Register the mock Stargate contract in the adapter
         vm.prank(governor);
@@ -711,13 +587,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Expect the UserRefundIssued event
         vm.expectEmit(true, true, true, true);
         emit StargateAdapter.UserRefundIssued(
-            testOperationId,
-            address(tokenB),
-            testAmount,
-            testUser,
-            testUser,
-            CHAIN_ID_A,
-            "Fleet deposit failed"
+            testOperationId, address(tokenB), testAmount, testUser, testUser, CHAIN_ID_A, "Fleet deposit failed"
         );
 
         // Expect the CrossChainFleetDepositFailed event
@@ -742,26 +612,14 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Verify user received the tokens directly
         uint256 userBalanceAfter = tokenB.balanceOf(testUser);
-        assertEq(
-            userBalanceAfter,
-            userBalanceBefore + testAmount,
-            "User should receive tokens directly"
-        );
+        assertEq(userBalanceAfter, userBalanceBefore + testAmount, "User should receive tokens directly");
 
         // Verify adapter balance is zero (tokens were used for deposit)
-        assertEq(
-            tokenB.balanceOf(address(adapterB)),
-            0,
-            "Adapter should not hold any tokens after successful deposit"
-        );
+        assertEq(tokenB.balanceOf(address(adapterB)), 0, "Adapter should not hold any tokens after successful deposit");
 
         // Verify no failed compose record was created (user-led transactions don't create recovery records)
         bytes32[] memory failedOps = adapterB.getFailedOperations();
-        assertEq(
-            failedOps.length,
-            0,
-            "No failed operations should be recorded for user-led transactions"
-        );
+        assertEq(failedOps.length, 0, "No failed operations should be recorded for user-led transactions");
     }
 
     function testSystemTransactionPartialFailureWithRecovery() public {
@@ -777,10 +635,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         mockFleetCommander.setShouldRevert(true); // Make receiveMessageWithAssets fail
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
-        );
+        MockStargateV2 mockStargateFrom = new MockStargateV2(address(tokenB), MockStargateV2.StargateType.Pool);
         // Register the mock Stargate contract in the adapter
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
@@ -797,10 +652,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            _addComposeFromPrefix(customComposeMessage)
+            uint64(1), uint32(CHAIN_ID_A), testAmount, _addComposeFromPrefix(customComposeMessage)
         );
 
         // Mint tokens to adapter
@@ -808,30 +660,16 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Record balances before
         uint256 userBalanceBefore = tokenB.balanceOf(testUser);
-        uint256 systemRecipientBalanceBefore = tokenB.balanceOf(
-            systemRecipient
-        );
-        uint256 fleetCommanderBalanceBefore = tokenB.balanceOf(
-            address(mockFleetCommander)
-        );
+        uint256 systemRecipientBalanceBefore = tokenB.balanceOf(systemRecipient);
+        uint256 fleetCommanderBalanceBefore = tokenB.balanceOf(address(mockFleetCommander));
 
         // Expect the ComposeCallFailed event
         vm.expectEmit(true, false, true, true); // Don't check recoveryQueueId since it's generated
-        emit StargateAdapter.ComposeCallFailed(
-            testOperationId,
-            address(mockFleetCommander),
-            CHAIN_ID_A
-        );
+        emit StargateAdapter.ComposeCallFailed(testOperationId, address(mockFleetCommander), CHAIN_ID_A);
 
         // Execute lzCompose with proper mock Stargate contract
         vm.prank(lzEndpointB);
-        adapterB.lzCompose(
-            address(mockStargateFrom),
-            bytes32("test-guid"),
-            oftEncodedMessage,
-            address(0),
-            hex""
-        );
+        adapterB.lzCompose(address(mockStargateFrom), bytes32("test-guid"), oftEncodedMessage, address(0), hex"");
 
         // Verify neither user nor system recipient received tokens directly
         assertEq(
@@ -845,7 +683,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             "System recipient should not receive tokens when deposit fails"
         );
 
-        // Verify fleet commander received the tokens (they were transferred before the receiveMessageWithAssets call failed)
+        // Verify fleet commander received the tokens (they were transferred before the receiveMessageWithAssets call
+        // failed)
         assertEq(
             tokenB.balanceOf(address(mockFleetCommander)),
             fleetCommanderBalanceBefore + testAmount,
@@ -853,11 +692,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Verify adapter balance is zero (tokens were used)
-        assertEq(
-            tokenB.balanceOf(address(adapterB)),
-            0,
-            "Adapter should not hold any tokens after transfer"
-        );
+        assertEq(tokenB.balanceOf(address(adapterB)), 0, "Adapter should not hold any tokens after transfer");
     }
 
     function testUserLedFleetDepositSuccessFlow() public {
@@ -868,21 +703,13 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes32 testOperationId = keccak256("user-led-success-operation");
 
         // Create a mock fleet commander that will succeed and actually transfer tokens
-        SimpleMockFleetCommander mockFleetCommander = new SimpleMockFleetCommander(
-                address(tokenB)
-            );
+        SimpleMockFleetCommander mockFleetCommander = new SimpleMockFleetCommander(address(tokenB));
 
         // Register the fleet commander as active in harbor command
-        harborCommandB.setActiveFleetCommander(
-            address(mockFleetCommander),
-            true
-        );
+        harborCommandB.setActiveFleetCommander(address(mockFleetCommander), true);
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
-        );
+        MockStargateV2 mockStargateFrom = new MockStargateV2(address(tokenB), MockStargateV2.StargateType.Pool);
 
         // Register the mock Stargate contract in the adapter
         vm.prank(governor);
@@ -917,37 +744,19 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Expect the ComposedAssetHandled event
         vm.expectEmit(true, true, true, true);
         emit StargateAdapter.ComposedAssetHandled(
-            testOperationId,
-            address(mockFleetCommander),
-            address(tokenB),
-            testAmount,
-            CHAIN_ID_A
+            testOperationId, address(mockFleetCommander), address(tokenB), testAmount, CHAIN_ID_A
         );
 
         // Execute lzCompose
         vm.prank(lzEndpointB);
-        adapterB.lzCompose(
-            address(mockStargateFrom),
-            bytes32("test-guid"),
-            oftEncodedMessage,
-            address(0),
-            hex""
-        );
+        adapterB.lzCompose(address(mockStargateFrom), bytes32("test-guid"), oftEncodedMessage, address(0), hex"");
 
         // Verify adapter balance is zero (tokens were used for deposit)
-        assertEq(
-            tokenB.balanceOf(address(adapterB)),
-            0,
-            "Adapter should not hold any tokens after successful deposit"
-        );
+        assertEq(tokenB.balanceOf(address(adapterB)), 0, "Adapter should not hold any tokens after successful deposit");
 
         // Verify no failed compose record was created
         bytes32[] memory failedOps = adapterB.getFailedOperations();
-        assertEq(
-            failedOps.length,
-            0,
-            "No failed operations should be recorded for successful deposits"
-        );
+        assertEq(failedOps.length, 0, "No failed operations should be recorded for successful deposits");
     }
 
     function testUserRefundDirectly() public {
@@ -962,11 +771,11 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Call the _handleUserLedFailure function directly using a wrapper
         StargateAdapterTestWrapper wrapperAdapter = new StargateAdapterTestWrapper(
-                address(registryB),
-                address(accessManagerB),
-                address(lzEndpointB),
-                address(0xdead) // Mock HarborCommand address for testing
-            );
+            address(registryB),
+            address(accessManagerB),
+            address(lzEndpointB),
+            address(0xdead) // Mock HarborCommand address for testing
+        );
 
         // Transfer tokens to wrapper for test
         tokenB.mint(address(wrapperAdapter), testAmount);
@@ -974,13 +783,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Expect the UserRefundIssued event from the wrapper instance
         vm.expectEmit(true, true, true, true);
         emit StargateAdapter.UserRefundIssued(
-            testOperationId,
-            address(tokenB),
-            testAmount,
-            testUser,
-            testUser,
-            CHAIN_ID_A,
-            "Fleet deposit failed"
+            testOperationId, address(tokenB), testAmount, testUser, testUser, CHAIN_ID_A, "Fleet deposit failed"
         );
 
         // Expect the CrossChainFleetDepositFailed event from the wrapper instance
@@ -995,20 +798,12 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Call the function directly
         wrapperAdapter.testHandleUserLedFailure(
-            address(tokenB),
-            testAmount,
-            testUser,
-            testOperationId,
-            testUser,
-            CHAIN_ID_A
+            address(tokenB), testAmount, testUser, testOperationId, testUser, CHAIN_ID_A
         );
 
         // Verify user received the tokens directly
         uint256 userBalanceAfter = tokenB.balanceOf(testUser);
-        assertEq(
-            userBalanceAfter,
-            userBalanceBefore + testAmount,
-            "User should receive tokens directly"
-        );
+        assertEq(userBalanceAfter, userBalanceBefore + testAmount, "User should receive tokens directly");
     }
+
 }

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {Test} from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
+import { BridgeRouterTestHelper } from "../helpers/BridgeRouterTestHelper.sol";
+import { MockAdapter } from "../mocks/MockAdapter.sol";
+import { MockCrossChainReceiver } from "../mocks/MockCrossChainReceiver.sol";
 
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import { CrossChainRegistry } from "../../src/contracts/CrossChainRegistry.sol";
+import { ProtocolAccessManager } from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import { ERC20Mock } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 /**
  * @title BridgeRouterSetup
@@ -19,6 +19,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
  *         and simply call `super.setUp()` inside their own `setUp()` method.
  */
 contract BridgeRouterSetup is Test {
+
     /* ────────────────  Core contracts & mocks  ──────────────── */
     BridgeRouterTestHelper public router;
     ProtocolAccessManager public accessManager;
@@ -40,10 +41,10 @@ contract BridgeRouterSetup is Test {
     uint16 public immutable CURRENT_CHAIN_ID = uint16(block.chainid);
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism in tests
     uint16 public constant SOURCE_CHAIN_ID = 111; // Arbitrary test chain
-    uint256 public constant DEFAULT_GAS_LIMIT = 500_000;
+    uint256 public constant DEFAULT_GAS_LIMIT = 500000;
 
     uint256 public constant INITIAL_ROUTER_BALANCE = 500 ether; // asset tests
-    uint256 public constant TRANSFER_AMOUNT = 1_000 ether;
+    uint256 public constant TRANSFER_AMOUNT = 1000 ether;
 
     /* -------------------------------------------------------------------------- */
     /*                                  set-up                                    */
@@ -52,18 +53,12 @@ contract BridgeRouterSetup is Test {
     function setUp() public virtual {
         /* --------- Access manager & registry --------- */
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
+        registry = new CrossChainRegistry(address(accessManager), CURRENT_CHAIN_ID);
 
         /* --------- BridgeRouter (test helper) --------- */
         vm.startPrank(governor);
 
-        router = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(registry)
-        );
+        router = new BridgeRouterTestHelper(address(accessManager), address(registry));
 
         /* --------- Mock adapters --------- */
         mockAdapter = new MockAdapter(address(router));
@@ -75,10 +70,7 @@ contract BridgeRouterSetup is Test {
         router.registerAdapter(address(mockAdapter));
 
         /* --------- Registry initialisation --------- */
-        registry.initializeBridgeConfiguration(
-            address(router),
-            DEFAULT_GAS_LIMIT
-        );
+        registry.initializeBridgeConfiguration(address(router), DEFAULT_GAS_LIMIT);
 
         // Executors / keepers used by various tests
         registry.registerExecutor(keeper);
@@ -96,11 +88,11 @@ contract BridgeRouterSetup is Test {
         token.mint(address(router), INITIAL_ROUTER_BALANCE);
 
         // General balances for users / keepers
-        token.mint(governor, 10_000 ether);
-        token.mint(guardian, 10_000 ether);
-        token.mint(user, 10_000 ether);
-        token.mint(keeper, 10_000 ether);
-        token.mint(executor, 10_000 ether);
+        token.mint(governor, 10000 ether);
+        token.mint(guardian, 10000 ether);
+        token.mint(user, 10000 ether);
+        token.mint(keeper, 10000 ether);
+        token.mint(executor, 10000 ether);
 
         vm.deal(keeper, 1 ether);
         vm.deal(executor, 1 ether);
@@ -108,4 +100,5 @@ contract BridgeRouterSetup is Test {
 
         vm.stopPrank();
     }
+
 }

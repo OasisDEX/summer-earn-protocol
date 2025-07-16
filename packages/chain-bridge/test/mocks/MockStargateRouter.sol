@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {IStargateRouter} from "../../src/interfaces/IStargateRouter.sol";
+import { IStargateRouter } from "../../src/interfaces/IStargateRouter.sol";
 
 contract MockStargateRouter {
+
     // Event to log swap calls
     event SwapCalled(
         uint16 destinationChainId,
@@ -30,7 +31,11 @@ contract MockStargateRouter {
         IStargateRouter.lzTxObj memory _lzTxParams,
         bytes calldata _to,
         bytes calldata _payload
-    ) external payable returns (uint256) {
+    )
+        external
+        payable
+        returns (uint256)
+    {
         // Log the call
         emit SwapCalled(
             _dstChainId,
@@ -57,7 +62,11 @@ contract MockStargateRouter {
         bytes calldata,
         bytes calldata _payload,
         IStargateRouter.lzTxObj memory _lzTxParams
-    ) external pure returns (uint256 _fee, uint256 _payloadSize) {
+    )
+        external
+        pure
+        returns (uint256 _fee, uint256 _payloadSize)
+    {
         // Return sensible mock values
         // Fee should be related to gas and payload size
         uint256 baseGasFee = 0.01 ether;
@@ -67,5 +76,6 @@ contract MockStargateRouter {
         return (baseGasFee + gasComponent + payloadComponent, _payload.length);
     }
 
-    function testSkipper() public {}
+    function testSkipper() public { }
+
 }

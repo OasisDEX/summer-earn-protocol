@@ -1,26 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
-import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import { LayerZeroAdapter } from "../../src/adapters/LayerZeroAdapter.sol";
+
+import { ICrossChainRegistry } from "../../src/interfaces/ICrossChainRegistry.sol";
+import { BridgeTypes } from "../../src/libraries/BridgeTypes.sol";
+import { LayerZeroAdapterSetupTest } from "./LayerZeroAdapter.setup.t.sol";
+
+import { Origin } from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
+
     // Implement the executeMessage helper function required by the abstract base test
-    function executeMessage(
-        uint32 srcEid,
-        address srcAdapter,
-        address dstAdapter
-    ) internal {
+    function executeMessage(uint32 srcEid, address srcAdapter, address dstAdapter) internal {
         // Implementation for general tests
-        Origin memory origin = Origin({
-            srcEid: srcEid,
-            sender: addressToBytes32(srcAdapter),
-            nonce: 1
-        });
+        Origin memory origin = Origin({ srcEid: srcEid, sender: addressToBytes32(srcAdapter), nonce: 1 });
 
         if (address(dstAdapter) == address(adapterA)) {
             adapterA.lzReceiveTest(
@@ -47,10 +42,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function testGetSupportedChains() public view {
         // Get chains through registry relationships
-        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
-            address(adapterA),
-            registryA.ADAPTER_PEER()
-        );
+        (, uint16[] memory supportedChains) = registryA.getTargetsForSource(address(adapterA), registryA.ADAPTER_PEER());
 
         assertEq(supportedChains.length, 1);
         assertEq(supportedChains[0], CHAIN_ID_B);
@@ -59,16 +51,13 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     function testSupportsChain() public {
         // First check still works
         assertTrue(
-            adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_B) !=
-                address(0),
+            adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_B) != address(0),
             "Chain B should be supported"
         );
 
         // Expect revert with InvalidChainRelationship error
 
-        ICrossChainRegistry registryA = ICrossChainRegistry(
-            address(adapterA.REGISTRY())
-        );
+        ICrossChainRegistry registryA = ICrossChainRegistry(address(adapterA.REGISTRY()));
         vm.expectRevert(
             abi.encodeWithSelector(
                 ICrossChainRegistry.InvalidChainRelationship.selector,
@@ -83,10 +72,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     // Update test for UnsupportedMessageType error since type 5 is now COMPOSE
     function testUnsupportedMessageType() public {
         // Create a message with an unsupported type (9 - which doesn't exist)
-        bytes memory invalidPayload = abi.encodePacked(
-            uint16(9),
-            bytes("test payload")
-        );
+        bytes memory invalidPayload = abi.encodePacked(uint16(9), bytes("test payload"));
 
         // Create origin data
         Origin memory origin = Origin({
@@ -116,17 +102,10 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         adapterA.setMinGasLimit(adapterA.GENERAL_MESSAGE(), 1000000);
 
         // Create a simple payload for testing
-        bytes memory payload = abi.encodePacked(
-            uint16(adapterA.GENERAL_MESSAGE()),
-            bytes("test payload")
-        );
+        bytes memory payload = abi.encodePacked(uint16(adapterA.GENERAL_MESSAGE()), bytes("test payload"));
 
         // Get required fee directly from adapter
-        uint256 requiredFee = adapterA.getRequiredFee(
-            LZ_EID_B,
-            adapterA.GENERAL_MESSAGE(),
-            payload
-        );
+        uint256 requiredFee = adapterA.getRequiredFee(LZ_EID_B, adapterA.GENERAL_MESSAGE(), payload);
 
         // Fee should be non-zero
         assertTrue(requiredFee > 0);
@@ -143,12 +122,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
         // Try to set minGasLimit as unauthorized address
         vm.prank(address(2));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                address(2)
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(2)));
 
         // Actually call the function that should revert
         adapterA.setMinGasLimit(messageType, 600000);
@@ -158,13 +132,8 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
 
         // Create adapter params with a specific gas limit
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: bytes("")
-            });
+        BridgeTypes.AdapterParams memory adapterParams =
+            BridgeTypes.AdapterParams({ gasLimit: 500000, msgValue: 0, calldataSize: 0, options: bytes("") });
 
         // Call estimateFee directly on the adapter
         (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateFee(
@@ -190,39 +159,27 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         adapterA.setMinGasLimit(adapterA.GENERAL_MESSAGE(), minGasLimit);
 
         // Create adapter params with a lower gas limit than the minimum
-        BridgeTypes.AdapterParams memory lowerParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000, // Lower than our minimum
-                msgValue: 0,
-                calldataSize: 0,
-                options: bytes("")
-            });
+        BridgeTypes.AdapterParams memory lowerParams = BridgeTypes.AdapterParams({
+            gasLimit: 500000, // Lower than our minimum
+            msgValue: 0,
+            calldataSize: 0,
+            options: bytes("")
+        });
 
         // Create adapter params with a higher gas limit than the minimum
-        BridgeTypes.AdapterParams memory higherParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 1500000, // Higher than our minimum
-                msgValue: 0,
-                calldataSize: 0,
-                options: bytes("")
-            });
+        BridgeTypes.AdapterParams memory higherParams = BridgeTypes.AdapterParams({
+            gasLimit: 1500000, // Higher than our minimum
+            msgValue: 0,
+            calldataSize: 0,
+            options: bytes("")
+        });
 
         // Estimate fees directly with adapter for both cases
-        (uint256 lowerFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(0),
-            0,
-            lowerParams,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        (uint256 lowerFee,) =
+            adapterA.estimateFee(CHAIN_ID_B, address(0), 0, lowerParams, BridgeTypes.OperationType.MESSAGE);
 
-        (uint256 higherFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(0),
-            0,
-            higherParams,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        (uint256 higherFee,) =
+            adapterA.estimateFee(CHAIN_ID_B, address(0), 0, higherParams, BridgeTypes.OperationType.MESSAGE);
 
         // Higher gas limit should result in a higher fee
         assertTrue(higherFee > lowerFee);
@@ -232,14 +189,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
 
     function testSupportsFeatures() public view {
         // Test capability flags directly on adapter
-        assertTrue(
-            adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
-        );
-        assertTrue(
-            adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE)
-        );
-        assertFalse(
-            adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
-        );
+        assertTrue(adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE));
+        assertTrue(adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE));
+        assertFalse(adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET));
     }
+
 }

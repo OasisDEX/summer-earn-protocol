@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {ICrossChainConfigManaged} from "../interfaces/ICrossChainConfigManaged.sol";
-import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import { ICrossChainConfigManaged } from "../interfaces/ICrossChainConfigManaged.sol";
+import { ICrossChainRegistry } from "../interfaces/ICrossChainRegistry.sol";
 
 /**
  * @title CrossChainConfigManaged
@@ -10,6 +10,7 @@ import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
  * @custom:see ICrossChainConfigManaged
  */
 abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
+
     address public immutable crossChainRegistry;
 
     /**
@@ -35,4 +36,5 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
 
     /// @notice Error thrown when CrossChainRegistry address is zero
     error CrossChainRegistryZeroAddress();
+
 }

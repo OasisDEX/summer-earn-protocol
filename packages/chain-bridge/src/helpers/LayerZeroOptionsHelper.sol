@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import { BridgeTypes } from "../libraries/BridgeTypes.sol";
+import { OptionsBuilder } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 /**
  * @title LayerZeroOptionsHelper
@@ -10,6 +10,7 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
  * @dev Provides consistent methods for creating options for different LayerZero operations
  */
 library LayerZeroOptionsHelper {
+
     using OptionsBuilder for bytes;
 
     /**
@@ -21,13 +22,15 @@ library LayerZeroOptionsHelper {
     function createMessagingOptions(
         BridgeTypes.AdapterParams memory adapterParams,
         uint128 minGasLimit
-    ) internal pure returns (bytes memory) {
+    )
+        internal
+        pure
+        returns (bytes memory)
+    {
         bytes memory options;
 
         // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
-            ? minGasLimit
-            : adapterParams.gasLimit;
+        uint128 gasLimit = adapterParams.gasLimit < minGasLimit ? minGasLimit : adapterParams.gasLimit;
 
         // Use provided msgValue
         uint128 msgValue = adapterParams.msgValue;
@@ -42,12 +45,7 @@ library LayerZeroOptionsHelper {
         }
 
         // Add our LzReceive option to the existing or new options
-        return
-            OptionsBuilder.addExecutorLzReceiveOption(
-                options,
-                gasLimit,
-                msgValue
-            );
+        return OptionsBuilder.addExecutorLzReceiveOption(options, gasLimit, msgValue);
     }
 
     /**
@@ -59,13 +57,15 @@ library LayerZeroOptionsHelper {
     function createLzReadOptions(
         BridgeTypes.AdapterParams memory adapterParams,
         uint128 minGasLimit
-    ) internal pure returns (bytes memory) {
+    )
+        internal
+        pure
+        returns (bytes memory)
+    {
         bytes memory options;
 
         // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
-            ? minGasLimit
-            : adapterParams.gasLimit;
+        uint128 gasLimit = adapterParams.gasLimit < minGasLimit ? minGasLimit : adapterParams.gasLimit;
 
         // Start with user-provided options or create new empty options
         if (adapterParams.options.length > 0) {
@@ -76,18 +76,18 @@ library LayerZeroOptionsHelper {
 
         // For lzRead operations, we need to provide a reasonable calldata size estimate
         // If not provided in adapterParams, use a default reasonable size
-        uint32 calldataSize = adapterParams.calldataSize > 0
-            ? uint32(adapterParams.calldataSize)
-            : 1024; // Default to 1KB for read responses
+        uint32 calldataSize = adapterParams.calldataSize > 0 ? uint32(adapterParams.calldataSize) : 1024; // Default to
+            // 1KB for read responses
 
         // Add our LzRead option to the existing or new options
-        return
-            OptionsBuilder.addExecutorLzReadOption(
-                options,
-                gasLimit,
-                calldataSize, // ✅ Use proper calldata size (uint32)
-                adapterParams.msgValue
-            );
+        return OptionsBuilder.addExecutorLzReadOption(
+            options,
+            gasLimit,
+            calldataSize, // ✅ Use proper calldata size (uint32)
+            adapterParams.msgValue
+        );
     }
-    function testSkipper() public {}
+
+    function testSkipper() public { }
+
 }
