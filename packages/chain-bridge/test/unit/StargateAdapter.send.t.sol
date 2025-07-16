@@ -116,7 +116,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         // Transfer tokens to the router and approve the adapter
         // This simulates the router having received tokens from the user
         vm.prank(user);
-        tokenA.transfer(address(routerA), 1 ether);
+        assertTrue(tokenA.transfer(address(routerA), 1 ether));
 
         vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
@@ -307,7 +307,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         // Transfer tokens to the router and approve the adapter
         // This simulates the router having received tokens from the user
         vm.prank(user);
-        tokenA.transfer(address(routerA), 1 ether);
+        assertTrue(tokenA.transfer(address(routerA), 1 ether));
 
         vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
@@ -415,7 +415,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Transfer tokens to the router and approve the adapter
         vm.prank(user);
-        tokenA.transfer(address(routerA), 1 ether);
+        assertTrue(tokenA.transfer(address(routerA), 1 ether));
         vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
 
@@ -452,7 +452,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         console.log("transferAssetMsgValueConsistency 1");
         // Setup for second transfer - need new tokens, allowance, and operation ID
         vm.prank(user);
-        tokenA.transfer(address(routerA), 1 ether);
+        assertTrue(tokenA.transfer(address(routerA), 1 ether));
         vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
 
@@ -511,7 +511,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
 
         vm.prank(user);
-        tokenA.transfer(address(routerA), 1 ether);
+        assertTrue(tokenA.transfer(address(routerA), 1 ether));
         vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
 

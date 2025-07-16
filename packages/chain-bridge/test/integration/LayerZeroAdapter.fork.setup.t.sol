@@ -119,7 +119,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         uint32 readChannelId = READ_CHANNEL_ID;
         address readLib1002 = READ_LIB_1002_BASE;
         address executor = EXECUTOR_BASE;
-        address readDVN = READ_DVN_BASE;
+        address readDvn = READ_DVN_BASE;
         uint64 confirmations = 15;
         uint128 minGasLimit = 300000;
 
@@ -134,8 +134,9 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         layerZeroAdapter.configureReadLibraries(readLib1002);
 
         // Step 4: Configure DVNs AND executor together (must be sorted alphabetically)
+        /// forge-lint: disable-start(mixed-case-variable)
         address[] memory readDVNs = new address[](1);
-        readDVNs[0] = readDVN;
+        readDVNs[0] = readDvn;
         layerZeroAdapter.configureReadDVNs(
             readLib1002,
             readDVNs,

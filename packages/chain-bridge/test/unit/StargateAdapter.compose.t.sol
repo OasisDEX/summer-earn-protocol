@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import {console} from "forge-std/Test.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
+import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
@@ -10,7 +11,7 @@ import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -18,7 +19,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract SimpleMockFleetCommander {
     using SafeERC20 for IERC20;
 
+    // forge-lint: disable-start(screaming-snake-case)
     IERC20 public immutable asset;
+    // forge-lint: disable-end(screaming-snake-case)
 
     constructor(address _asset) {
         asset = IERC20(_asset);
@@ -59,6 +62,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyB;
 
     // Helper functions to call OFTComposeMsgCodec with calldata
+    /// forge-lint: disable-start(mixed-case-function)
     function getAmountLD(
         bytes calldata message
     ) external pure returns (uint256) {
@@ -70,7 +74,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     ) external pure returns (bytes memory) {
         return OFTComposeMsgCodec.composeMsg(message);
     }
-
+    /// forge-lint: disable-end(mixed-case-function)
     /**
      * @dev Internal helper to properly encode fleet deposit messages using BridgeTypes struct
      * @param fleetCommander Address of the fleet commander contract
@@ -136,6 +140,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
      * @param referralCode Optional referral code
      * @return Complete OFT-encoded message ready for lzCompose
      */
+    /// forge-lint: disable-start(mixed-case-function)
     function _createFleetDepositOFTMessage(
         address fleetCommander,
         address shareRecipient,
@@ -170,6 +175,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
                 properComposeMsg
             );
     }
+    /// forge-lint: disable-end(mixed-case-function)
 
     function setUp() public override {
         super.setUp();
@@ -260,7 +266,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Transfer tokens to router and approve
         vm.prank(user);
-        tokenA.transfer(address(routerA), 1 ether);
+        assertTrue(tokenA.transfer(address(routerA), 1 ether));
 
         vm.prank(address(routerA));
         tokenA.approve(address(adapterA), 1 ether);
@@ -384,7 +390,9 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             memory realMessage = hex"0000000000066982000075e800000000000000000000000000000000000000000000000000000000004c4a45000000000000000000000000bb784b7bd9b9e2e3257c4838b798fb077d96c2350000000000000000000000001534e3d0f23d91142424a0091aab8037fac80cb8000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000000210515919236bbb71d094ca0aee8259859441555203071b0f3da4cb32e40d4118ac10000000000000000000000009d4d5ef9a4f25589cca44e1fbdec25d79f2271ea";
 
         // Parse the amount and compose message
+        /// forge-lint: disable-start(mixed-case-variable)
         uint256 amountLD = this.getAmountLD(realMessage);
+        /// forge-lint: disable-end(mixed-case-variable)
         bytes memory composeMsg = this.getComposeMsg(realMessage);
 
         console.log("Amount from OFT message:", amountLD);
@@ -396,12 +404,11 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         address usdcOnBase = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 
         // Create a mock Stargate contract that returns the USDC address from token()
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            usdcOnBase,
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            usdcOnBase
         );
 
-        console.log("Mock Stargate token():", mockStargateFrom.token());
+        console.log("Mock Stargate token():", mockStargateFrom.TOKEN());
 
         // Setup mock fleet proxy
         MockFleetProxy realFleetProxy = new MockFleetProxy(usdcOnBase);
@@ -699,9 +706,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         tokenB.mint(address(adapterB), testAmount);
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
         );
 
         // Register the mock Stargate contract in the adapter
@@ -777,9 +783,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         mockFleetCommander.setShouldRevert(true); // Make receiveMessageWithAssets fail
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
         );
         // Register the mock Stargate contract in the adapter
         vm.prank(governor);
@@ -879,9 +884,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Create and register the mock Stargate contract
-        MockStargateV2 mockStargateFrom = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
         );
 
         // Register the mock Stargate contract in the adapter

@@ -37,6 +37,7 @@ interface IStargateV2 {
         bool _payInLzToken
     ) external view returns (MessagingFee memory msgFee);
 
+    /// forge-lint: disable-next-item(mixed-case-function)
     function quoteOFT(
         SendParam calldata _sendParam
     )

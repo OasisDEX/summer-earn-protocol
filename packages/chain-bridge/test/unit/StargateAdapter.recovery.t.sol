@@ -3,9 +3,10 @@ pragma solidity ^0.8.26;
 
 import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
+import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
-import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 
 /**
  * @title StargateAdapterRecoveryTest
@@ -14,7 +15,7 @@ import {MockStargateV2} from "../mocks/MockStargateV2.sol";
 contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
     StargateAdapterTestWrapper public wrapperB;
     MockFleetProxy public fleetProxy;
-    MockStargateV2 public mockStargate;
+    MockStargateV2Pool public mockStargate;
 
     bytes32 public constant TEST_OPERATION_ID = bytes32("test-operation-id");
     address public constant TEST_ORIGINATOR = address(0x1234);
@@ -52,10 +53,7 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
 
         // Deploy mock contracts
         fleetProxy = new MockFleetProxy(address(tokenB));
-        mockStargate = new MockStargateV2(
-            address(tokenB),
-            MockStargateV2.StargateType.Pool
-        );
+        mockStargate = new MockStargateV2Pool(address(tokenB));
 
         // Mint tokens to wrapper for testing
         tokenB.mint(address(wrapperB), TEST_AMOUNT * 5);
@@ -211,7 +209,7 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
         // Remove tokens from wrapper - transfer from wrapper to this test contract
         uint256 wrapperBalance = tokenB.balanceOf(address(wrapperB));
         vm.prank(address(wrapperB));
-        tokenB.transfer(address(this), wrapperBalance);
+        assertTrue(tokenB.transfer(address(this), wrapperBalance));
 
         // Verify wrapper now has 0 balance
         assertEq(tokenB.balanceOf(address(wrapperB)), 0);
