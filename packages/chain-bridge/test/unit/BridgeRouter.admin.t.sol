@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
@@ -11,6 +11,31 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+
+// Contract that rejects ETH transfers
+contract RejectETH {
+    receive() external payable {
+        revert("Transfer rejected");
+    }
+}
+
+// Reentrancy attack contract
+contract ReentrancyAttacker {
+    BridgeRouter public router;
+    uint256 public callCount;
+
+    constructor(BridgeRouter _router) {
+        router = _router;
+    }
+
+    receive() external payable {
+        callCount++;
+        if (callCount == 1) {
+            // Try to reenter
+            router.recoverFunds(address(this), 1 ether);
+        }
+    }
+}
 
 contract BridgeRouterAdminTest is BridgeRouterSetup {
     // ---- ADMIN FUNCTION TESTS ----
@@ -207,5 +232,229 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             })
         );
         vm.stopPrank();
+    }
+
+    // ---- RECOVER FUNDS TESTS ----
+
+    function testRecoverFunds_Success() public {
+        // Fund the router contract
+        uint256 fundAmount = 5 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Record initial balances
+        uint256 initialRouterBalance = address(router).balance;
+        uint256 initialGovernorBalance = governor.balance;
+        uint256 recoverAmount = 2 ether;
+
+        // Governor recovers funds
+        vm.startPrank(governor);
+
+        // Expect event emission
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterFundsRecovered(governor, recoverAmount);
+
+        router.recoverFunds(governor, recoverAmount);
+        vm.stopPrank();
+
+        // Verify balances
+        assertEq(address(router).balance, initialRouterBalance - recoverAmount);
+        assertEq(governor.balance, initialGovernorBalance + recoverAmount);
+    }
+
+    function testRecoverFunds_AccessControl() public {
+        // Fund the router contract
+        uint256 fundAmount = 5 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Non-governor tries to recover funds
+        vm.startPrank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
+        router.recoverFunds(user, 1 ether);
+        vm.stopPrank();
+
+        // Guardian tries to recover funds
+        vm.startPrank(guardian);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                guardian
+            )
+        );
+        router.recoverFunds(guardian, 1 ether);
+        vm.stopPrank();
+    }
+
+    function testRecoverFunds_InvalidRecipient() public {
+        // Fund the router contract
+        uint256 fundAmount = 5 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Governor tries to recover funds to zero address
+        vm.startPrank(governor);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.recoverFunds(address(0), 1 ether);
+        vm.stopPrank();
+    }
+
+    function testRecoverFunds_InsufficientBalance() public {
+        // Fund the router contract with a small amount
+        uint256 fundAmount = 1 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Governor tries to recover more than available
+        vm.startPrank(governor);
+        vm.expectRevert(IBridgeRouter.InsufficientBalance.selector);
+        router.recoverFunds(governor, 2 ether);
+        vm.stopPrank();
+    }
+
+    function testRecoverFunds_TransferFailed() public {
+        // Fund the router contract
+        uint256 fundAmount = 5 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Deploy a contract that rejects ETH transfers
+        RejectETH rejectContract = new RejectETH();
+
+        // Governor tries to recover funds to the reject contract
+        vm.startPrank(governor);
+        vm.expectRevert(IBridgeRouter.TransferFailed.selector);
+        router.recoverFunds(address(rejectContract), 1 ether);
+        vm.stopPrank();
+    }
+
+    function testRecoverFunds_ZeroAmount() public {
+        // Fund the router contract
+        uint256 fundAmount = 5 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Record initial balances
+        uint256 initialRouterBalance = address(router).balance;
+        uint256 initialGovernorBalance = governor.balance;
+
+        // Governor recovers zero amount (should succeed)
+        vm.startPrank(governor);
+
+        // Expect event emission
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterFundsRecovered(governor, 0);
+
+        router.recoverFunds(governor, 0);
+        vm.stopPrank();
+
+        // Verify balances remain unchanged
+        assertEq(address(router).balance, initialRouterBalance);
+        assertEq(governor.balance, initialGovernorBalance);
+    }
+
+    function testRecoverFunds_ExactBalance() public {
+        // Fund the router contract
+        uint256 fundAmount = 3 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Record initial balances
+        uint256 initialGovernorBalance = governor.balance;
+
+        // Governor recovers exact amount
+        vm.startPrank(governor);
+
+        // Expect event emission
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterFundsRecovered(governor, fundAmount);
+
+        router.recoverFunds(governor, fundAmount);
+        vm.stopPrank();
+
+        // Verify balances
+        assertEq(address(router).balance, 0);
+        assertEq(governor.balance, initialGovernorBalance + fundAmount);
+    }
+
+    function testRecoverFunds_ReentrancyProtection() public {
+        // Fund the router contract
+        uint256 fundAmount = 5 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Deploy reentrancy attack contract
+        ReentrancyAttacker attacker = new ReentrancyAttacker(router);
+
+        // Governor tries to recover funds to the attacker contract
+        vm.startPrank(governor);
+        vm.expectRevert(IBridgeRouter.TransferFailed.selector); // Should revert due to reentrancy guard
+        router.recoverFunds(address(attacker), 1 ether);
+        vm.stopPrank();
+
+        // Verify the attack was prevented
+        // reentrancy guard reverted
+        assertEq(attacker.callCount(), 0);
+        assertEq(address(router).balance, fundAmount);
+    }
+
+    function testRecoverFunds_MultipleRecoveries() public {
+        // Fund the router contract
+        uint256 fundAmount = 10 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Record initial balances
+        uint256 initialGovernorBalance = governor.balance;
+
+        vm.startPrank(governor);
+
+        // First recovery
+        uint256 firstAmount = 3 ether;
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterFundsRecovered(governor, firstAmount);
+        router.recoverFunds(governor, firstAmount);
+
+        // Second recovery
+        uint256 secondAmount = 2 ether;
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterFundsRecovered(governor, secondAmount);
+        router.recoverFunds(governor, secondAmount);
+
+        vm.stopPrank();
+
+        // Verify final balances
+        assertEq(
+            address(router).balance,
+            fundAmount - firstAmount - secondAmount
+        );
+        assertEq(
+            governor.balance,
+            initialGovernorBalance + firstAmount + secondAmount
+        );
+    }
+
+    function testRecoverFunds_ToExternalAccount() public {
+        // Fund the router contract
+        uint256 fundAmount = 5 ether;
+        vm.deal(address(router), fundAmount);
+
+        // Create external account
+        address externalAccount = address(0x12345);
+        uint256 initialExternalBalance = externalAccount.balance;
+        uint256 recoverAmount = 2 ether;
+
+        // Governor recovers funds to external account
+        vm.startPrank(governor);
+
+        // Expect event emission
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterFundsRecovered(externalAccount, recoverAmount);
+
+        router.recoverFunds(externalAccount, recoverAmount);
+        vm.stopPrank();
+
+        // Verify balances
+        assertEq(address(router).balance, fundAmount - recoverAmount);
+        assertEq(
+            externalAccount.balance,
+            initialExternalBalance + recoverAmount
+        );
     }
 }

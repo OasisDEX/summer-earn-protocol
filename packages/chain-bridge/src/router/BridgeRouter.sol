@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
@@ -780,7 +780,7 @@ contract BridgeRouter is
     function recoverFunds(
         address recipient,
         uint256 amount
-    ) external onlyGovernor nonReentrant {
+    ) external nonReentrant onlyGovernor {
         if (recipient == address(0)) revert InvalidParams();
         if (address(this).balance < amount) revert InsufficientBalance();
 

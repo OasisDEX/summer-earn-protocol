@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
@@ -273,4 +273,6 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             "Operation mapping should be set correctly"
         );
     }
+
+    function testSkipper() public {}
 }
