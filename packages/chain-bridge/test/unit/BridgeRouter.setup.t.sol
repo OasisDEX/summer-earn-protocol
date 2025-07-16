@@ -30,11 +30,13 @@ contract BridgeRouterSetup is Test {
     ERC20Mock public token;
 
     /* ────────────────  Test actors  ──────────────── */
+    /// forge-lint: disable-start(screaming-snake-case-const)
     address public constant governor = address(0x1);
     address public constant guardian = address(0x2);
     address public constant user = address(0x3);
     address public constant keeper = address(0x4);
     address public constant executor = address(0x5);
+    /// forge-lint: disable-end(screaming-snake-case-const)
 
     /* ────────────────  Chain / value constants  ──────────────── */
     uint16 public immutable CURRENT_CHAIN_ID = uint16(block.chainid);

@@ -5,10 +5,8 @@ import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 
 contract BridgeRouterTransferTest is BridgeRouterSetup {
     // Additional addresses specific to transfer tests
@@ -373,7 +371,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
 
         // Transfer tokens to BridgeQueue first
         vm.prank(keeper);
-        token.transfer(authorizedCaller, TRANSFER_AMOUNT);
+        assertTrue(token.transfer(authorizedCaller, TRANSFER_AMOUNT));
 
         // Approve BridgeRouter to spend BridgeQueue's tokens
         vm.prank(address(authorizedCaller));

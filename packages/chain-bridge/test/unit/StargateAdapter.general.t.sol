@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";

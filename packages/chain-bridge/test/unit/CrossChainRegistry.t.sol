@@ -1058,7 +1058,7 @@ contract CrossChainRegistryTest is Test {
         SOURCE-CHAIN RELATIONSHIP TESTS
     ─────────────────────────────────────────────────────────────────*/
     function test_registerSourceChainRelationship() public {
-        bytes32 LOCAL_REL = keccak256("LOCAL_REL");
+        bytes32 localRelationship = keccak256("LOCAL_REL");
         address src = makeAddr("localSrc");
         address dst = makeAddr("localDst");
 
@@ -1068,7 +1068,7 @@ contract CrossChainRegistryTest is Test {
             dst,
             CURRENT_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            LOCAL_REL
+            localRelationship
         );
 
         vm.prank(governor);
@@ -1077,12 +1077,12 @@ contract CrossChainRegistryTest is Test {
             dst,
             CURRENT_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            LOCAL_REL
+            localRelationship
         );
 
         (address target, uint16 chainId) = registry.getTargetForSource(
             src,
-            LOCAL_REL
+            localRelationship
         );
         assertEq(target, dst);
         assertEq(chainId, CURRENT_CHAIN_ID);
@@ -1093,13 +1093,13 @@ contract CrossChainRegistryTest is Test {
                 dst,
                 CURRENT_CHAIN_ID,
                 CURRENT_CHAIN_ID,
-                LOCAL_REL
+                localRelationship
             )
         );
     }
 
     function test_registerSourceChainRelationship_onlyGovernor() public {
-        bytes32 LOCAL_REL = keccak256("LOCAL_REL_2");
+        bytes32 localRelationship = keccak256("LOCAL_REL_2");
         vm.prank(user);
         vm.expectRevert();
         registry.registerRelationship(
@@ -1107,7 +1107,7 @@ contract CrossChainRegistryTest is Test {
             makeAddr("dst2"),
             CURRENT_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            LOCAL_REL
+            localRelationship
         );
     }
 

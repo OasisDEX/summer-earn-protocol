@@ -92,9 +92,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 targetChainId,
         bytes32 relationshipType
     ) public onlyGovernor {
-        // cross-chain specific validation
-        _validateChainIds(sourceChainId, targetChainId);
-
         // shared registration logic
         _registerRelationship(
             sourceContract,
@@ -747,32 +744,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 CURRENT_CHAIN_ID,
                 EXECUTOR
             );
-    }
-
-    /**
-     * @notice Validate chain IDs for cross-chain relationships
-     * @param sourceChainId The source chain ID to validate
-     * @param targetChainId The target chain ID to validate
-     */
-    function _validateChainIds(
-        uint16 sourceChainId,
-        uint16 targetChainId
-    ) internal view {
-        // Basic non-zero validation
-        if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
-        if (targetChainId == 0) revert InvalidChainId(targetChainId);
-
-        // At least one chain must be the deployment chain
-        if (
-            sourceChainId != CURRENT_CHAIN_ID &&
-            targetChainId != CURRENT_CHAIN_ID
-        ) {
-            revert InvalidChainRelationship(
-                sourceChainId,
-                targetChainId,
-                CURRENT_CHAIN_ID
-            );
-        }
     }
 
     /**

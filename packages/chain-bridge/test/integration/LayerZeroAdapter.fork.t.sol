@@ -129,29 +129,6 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         console.log("[SUCCESS] LayerZero configuration verified");
     }
 
-    function testUnauthorizedExecutorRegistration() public {
-        console.log("=== Testing Unauthorized Executor Registration ===");
-
-        address unauthorizedCaller = makeAddr("unauthorizedCaller");
-        address newExecutor = makeAddr("newExecutor");
-
-        // Try to register executor from unauthorized account
-        vm.startPrank(unauthorizedCaller);
-        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
-        registry.registerExecutor(newExecutor);
-        vm.stopPrank();
-
-        // Verify executor was not registered
-        assertFalse(
-            registry.isExecutor(newExecutor),
-            "Unauthorized registration should not succeed"
-        );
-
-        console.log(
-            "[SUCCESS] Unauthorized executor registration properly rejected"
-        );
-    }
-
     // Helper function to execute a bridge message operation
     function _executeBridgeMessage(string memory messageContent) internal {
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes

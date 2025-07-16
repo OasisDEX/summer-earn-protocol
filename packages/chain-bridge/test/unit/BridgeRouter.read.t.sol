@@ -5,9 +5,7 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
 import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
-import {Test} from "forge-std/Test.sol";
 
 contract BridgeRouterReadStateTest is BridgeRouterSetup {
     // ---- READ STATE TESTS ----

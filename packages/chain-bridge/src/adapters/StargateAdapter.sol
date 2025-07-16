@@ -2,11 +2,11 @@
 pragma solidity ^0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-/// forge-lint: disable-next-item(unused-import)
+/// forge-lint: disable-start(unused-import)
 import {IBridgeAdapter, ISendAdapter} from "../interfaces/IBridgeAdapter.sol";
+/// forge-lint: disable-end(unused-import)
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
-import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";

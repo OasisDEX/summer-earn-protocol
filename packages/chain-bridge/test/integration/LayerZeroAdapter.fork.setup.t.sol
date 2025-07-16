@@ -152,6 +152,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             confirmations,
             executor
         );
+        /// forge-lint: disable-end(mixed-case-variable)
 
         // Step 5: Set up peer for cross-chain communication to Arbitrum
         bytes32 peerAddressBytes32 = bytes32(

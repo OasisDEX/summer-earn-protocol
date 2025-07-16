@@ -2,7 +2,6 @@
 pragma solidity ^0.8.26;
 
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
@@ -20,9 +19,9 @@ import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 contract SimpleMockFleetCommander {
     using SafeERC20 for IERC20;
 
-    // forge-lint: disable-start(screaming-snake-case)
+    /// forge-lint: disable-start(screaming-snake-case-immutable)
     IERC20 public immutable asset;
-    // forge-lint: disable-end(screaming-snake-case)
+    /// forge-lint: disable-end(screaming-snake-case-immutable)
 
     constructor(address _asset) {
         asset = IERC20(_asset);

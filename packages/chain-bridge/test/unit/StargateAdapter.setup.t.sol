@@ -2,7 +2,6 @@
 pragma solidity ^0.8.26;
 
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";

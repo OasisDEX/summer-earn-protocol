@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-/// forge-lint: disable-next-item(unused-import)
+/// forge-lint: disable-start(unused-import)
 import {IBridgeAdapter, ISendAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+/// forge-lint: disable-end(unused-import)
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";

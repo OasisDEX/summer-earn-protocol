@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
