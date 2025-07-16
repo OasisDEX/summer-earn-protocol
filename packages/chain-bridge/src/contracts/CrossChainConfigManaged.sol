@@ -38,6 +38,14 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
         return CROSS_CHAIN_REGISTRY;
     }
 
+    /// @inheritdoc ICrossChainConfigManaged
+    function isExecutor(address executor) public view virtual returns (bool) {
+        return
+            ICrossChainRegistry(CROSS_CHAIN_REGISTRY).isAuthorizedExecutor(
+                executor
+            );
+    }
+
     /// @notice Error thrown when CrossChainRegistry address is zero
     error CrossChainRegistryZeroAddress();
 }

@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 
 contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
     bytes32 testTransferId = bytes32(uint256(12345));

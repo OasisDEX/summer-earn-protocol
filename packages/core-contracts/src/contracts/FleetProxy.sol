@@ -159,10 +159,7 @@ contract FleetProxy is
         // 5. Approve the bridge router to transfer the assets
         IERC20(asset).forceApprove(address(bridgeRouter), params.amount);
 
-        // 6. Get source chain ark address from registry - reverts if not found
-        address arkAddress = _getSourceChainArk(hubChainId);
-
-        // 7. Use BridgeQueue to queue a transfer of assets back to source chain's CrossChainArk
+        // 6. Queue the cross-chain transfer back to the Ark on the hub chain
         bridgeRouter.executeTransferAssets(params);
 
         emit AssetsWithdrawnAndTransferred(
@@ -181,7 +178,7 @@ contract FleetProxy is
         address asset,
         uint256 amount,
         bytes calldata message,
-        uint16 hubChainId
+        uint16 _hubChainId
     ) external whenNotPaused nonReentrant {
         if (message.length == 0) {
             emit MessageContentNotExpected();
@@ -193,7 +190,7 @@ contract FleetProxy is
         }
 
         // Validate the relationship using registry
-        if (!_isValidSourceChain(hubChainId)) {
+        if (!_isValidSourceChain(_hubChainId)) {
             revert InvalidSourceChain();
         }
 
@@ -206,7 +203,7 @@ contract FleetProxy is
             revert NoAssets();
         }
 
-        _handleReceiveAssets(asset, amount, hubChainId);
+        _handleReceiveAssets(asset, amount, _hubChainId);
     }
 
     /// @inheritdoc IERC165
@@ -225,12 +222,12 @@ contract FleetProxy is
 
     /**
      * @notice Gets the source chain ark address from the registry
-     * @param hubChainId The chain ID where the ark is deployed
+     * @param _hubChainId The chain ID where the ark is deployed
      * @return arkAddress The source chain ark address
      * @dev Reverts if no valid relationship exists for the source chain
      */
     function _getSourceChainArk(
-        uint16 hubChainId
+        uint16 _hubChainId
     ) internal view returns (address arkAddress) {
         return
             ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(

@@ -123,7 +123,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Register the ark-proxy relationship in the registry
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             SOURCE_ARK_ADDRESS,
             address(proxy),
             SOURCE_CHAIN_ID,

@@ -5,11 +5,9 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 
 import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 // Base test contract with common setup used by all LayerZero adapter tests
@@ -101,8 +99,14 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Deploy access manager
         accessManagerA = new ProtocolAccessManager(governor);
 
+        // Deploy registry
+        registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
+
         // Deploy router and configure
-        routerA = new BridgeRouterTestHelper(address(accessManagerA));
+        routerA = new BridgeRouterTestHelper(
+            address(accessManagerA),
+            address(registryA)
+        );
 
         registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
 
@@ -147,8 +151,14 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Deploy access manager
         accessManagerB = new ProtocolAccessManager(governor);
 
+        // Deploy registry
+        registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
+
         // Deploy router and configure
-        routerB = new BridgeRouterTestHelper(address(accessManagerB));
+        routerB = new BridgeRouterTestHelper(
+            address(accessManagerB),
+            address(registryB)
+        );
 
         // Deploy registry
         registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);

@@ -1,69 +1,22 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
+import {console} from "forge-std/Test.sol";
 
-contract BridgeRouterTransferTest is Test {
-    BridgeRouter public router;
-    MockAdapter public mockAdapter;
-    MockAdapter public mockAdapter2;
-    ERC20Mock public token;
-    ProtocolAccessManager public accessManager;
-
-    address public governor = address(0x1);
-    address public user = address(0x3);
-    address public keeper = address(0x4);
-    // todo: authorize the caller when method available ( uthorized to call bridge router)
+contract BridgeRouterTransferTest is BridgeRouterSetup {
+    // Additional addresses specific to transfer tests
     address public authorizedCaller = address(0x5);
 
-    // Constants for testing
-    uint16 public constant DEST_CHAIN_ID = 10; // Optimism
-    uint256 public constant TRANSFER_AMOUNT = 1000e18;
-
-    // Add these constants to each test file
+    // Executor option type constants
     uint8 constant OPTION_TYPE_EXECUTOR = 1;
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
     uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 5;
-
-    function setUp() public {
-        // Deploy access manager and set up roles
-        accessManager = new ProtocolAccessManager(governor);
-
-        vm.startPrank(governor);
-
-        // Deploy router, linking it to the queue
-        router = new BridgeRouter(address(accessManager));
-
-        mockAdapter = new MockAdapter(address(router));
-        mockAdapter2 = new MockAdapter(address(router));
-        token = new ERC20Mock();
-
-        // Configure mock adapter to support chain 10 and the token
-        mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-
-        // Register adapter
-        router.registerAdapter(address(mockAdapter));
-
-        // Mint tokens for testing
-        token.mint(keeper, 10000e18);
-
-        // Fund keeper for execution
-        vm.deal(keeper, 1 ether);
-
-        // Fund router for adapter calls
-        vm.deal(address(router), 10 ether);
-
-        vm.stopPrank();
-    }
 
     // ---- TRANSFER ASSET TESTS ----
 
@@ -418,7 +371,7 @@ contract BridgeRouterTransferTest is Test {
 
         // Transfer tokens to BridgeQueue first
         vm.prank(keeper);
-        token.transfer(authorizedCaller, TRANSFER_AMOUNT);
+        assertTrue(token.transfer(authorizedCaller, TRANSFER_AMOUNT));
 
         // Approve BridgeRouter to spend BridgeQueue's tokens
         vm.prank(address(authorizedCaller));

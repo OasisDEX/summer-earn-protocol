@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
+
+import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     // Implement the executeMessage helper function required by the abstract base test
@@ -49,7 +51,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         // Get chains through registry relationships
         (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
             address(adapterA),
-            registryA.ADAPTER_PEER()
+            registryA.PEER()
         );
 
         assertEq(supportedChains.length, 1);

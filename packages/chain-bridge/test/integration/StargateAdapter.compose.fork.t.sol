@@ -3,16 +3,20 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
+
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {Test} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title StargateAdapterComposeForkTest
@@ -51,7 +55,7 @@ contract StargateAdapterComposeForkTest is Test {
     address user = address(0x123);
     address governor = address(0x456);
 
-    uint256 public constant FORK_BLOCK = 22_145_762;
+    uint256 public constant FORK_BLOCK = 22145762;
 
     function setUp() public {
         // Skip if no RPC URL is available
@@ -71,13 +75,17 @@ contract StargateAdapterComposeForkTest is Test {
             governor
         );
 
-        routerMainnet = new BridgeRouterTestHelper(address(accessManager));
-
         // Deploy and initialize CrossChainRegistry for mainnet
         registryMainnet = new CrossChainRegistry(
             address(accessManager),
             CHAIN_ID_MAINNET
         );
+
+        routerMainnet = new BridgeRouterTestHelper(
+            address(accessManager),
+            address(registryMainnet)
+        );
+
         registryMainnet.initializeBridgeConfiguration(
             address(routerMainnet),
             400000 // defaultGasLimit
@@ -122,13 +130,16 @@ contract StargateAdapterComposeForkTest is Test {
             governor
         );
 
-        routerArbitrum = new BridgeRouterTestHelper(address(accessManagerArb));
-
-        // Deploy and initialize CrossChainRegistry for arbitrum
         registryArbitrum = new CrossChainRegistry(
             address(accessManagerArb),
             CHAIN_ID_ARBITRUM
         );
+
+        routerArbitrum = new BridgeRouterTestHelper(
+            address(accessManagerArb),
+            address(registryArbitrum)
+        );
+
         registryArbitrum.initializeBridgeConfiguration(
             address(routerArbitrum),
             400000 // defaultGasLimit

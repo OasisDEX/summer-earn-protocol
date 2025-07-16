@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
-import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
+
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {Test} from "forge-std/Test.sol";
 
 /**
  * @title LayerZeroAdapter Fork Test Setup
@@ -51,7 +52,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
     uint256 public constant DEFAULT_GAS_LIMIT = 400000;
 
     // Use a recent Base block (slightly earlier than latest for RPC stability)
-    uint256 public constant FORK_BLOCK = 31_600_000;
+    uint256 public constant FORK_BLOCK = 31600000;
 
     function setUp() public virtual {
         // Fork Base mainnet
@@ -66,20 +67,24 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Create access manager
         accessManager = new ProtocolAccessManager(governor);
 
+        // Deploy registry
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            SOURCE_CHAIN_ID
+        );
+
         // Configure roles
         vm.startPrank(governor);
         accessManager.grantGuardianRole(guardian);
         vm.stopPrank();
 
         // Create router TEST HELPER, passing the deployed BridgeQueue address
-        router = new BridgeRouterTestHelper(address(accessManager));
-
-        // Deploy registry
-        vm.startPrank(governor);
-        registry = new CrossChainRegistry(
+        router = new BridgeRouterTestHelper(
             address(accessManager),
-            SOURCE_CHAIN_ID
+            address(registry)
         );
+
+        vm.startPrank(governor);
 
         // Initialize bridge configuration
         registry.initializeBridgeConfiguration(
@@ -109,6 +114,10 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Register layerZeroAdapter with bridge router
         vm.startPrank(governor);
         router.registerAdapter(address(layerZeroAdapter));
+
+        // Register layerZeroAdapter as an executor
+        registry.registerExecutor(keeper);
+
         vm.stopPrank();
     }
 
@@ -143,6 +152,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             confirmations,
             executor
         );
+        /// forge-lint: disable-end(mixed-case-variable)
 
         // Step 5: Set up peer for cross-chain communication to Arbitrum
         bytes32 peerAddressBytes32 = bytes32(

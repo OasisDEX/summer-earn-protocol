@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {console} from "forge-std/Test.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {console} from "forge-std/Test.sol";
+import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
 // Simple mock fleet commander that actually transfers tokens
 contract SimpleMockFleetCommander {
     using SafeERC20 for IERC20;
 
-    // forge-lint: disable-start(screaming-snake-case)
+    /// forge-lint: disable-start(screaming-snake-case-immutable)
     IERC20 public immutable asset;
-    // forge-lint: disable-end(screaming-snake-case)
+    /// forge-lint: disable-end(screaming-snake-case-immutable)
 
     constructor(address _asset) {
         asset = IERC20(_asset);
@@ -368,8 +368,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes memory invalidMessage = abi.encode(
             address(fleetProxyB),
             address(tokenB)
-            // Missing required fields
         );
+        // Missing required fields
 
         vm.expectRevert(); // Should revert on decode
         vm.prank(lzEndpointB);
@@ -850,7 +850,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             "System recipient should not receive tokens when deposit fails"
         );
 
-        // Verify fleet commander received the tokens (they were transferred before the receiveMessageWithAssets call failed)
+        // Verify fleet commander received the tokens (they were transferred before the receiveMessageWithAssets call
+        // failed)
         assertEq(
             tokenB.balanceOf(address(mockFleetCommander)),
             fleetCommanderBalanceBefore + testAmount,

@@ -1,19 +1,25 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
+
+import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
+import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
+import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
+import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
-import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
-import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 
 /**
  * @title BridgeRouter
@@ -25,7 +31,8 @@ contract BridgeRouter is
     IBridgeRouter,
     ProtocolAccessManaged,
     ReentrancyGuard,
-    Nonces
+    Nonces,
+    CrossChainConfigManaged
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -67,8 +74,12 @@ contract BridgeRouter is
     /**
      * @notice Initializes the BridgeRouter contract
      * @param accessManager Address of the ProtocolAccessManager contract
+     * @param _registry Address of the CrossChainRegistry contract
      */
-    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
+    constructor(
+        address accessManager,
+        address _registry
+    ) ProtocolAccessManaged(accessManager) CrossChainConfigManaged(_registry) {}
 
     /*//////////////////////////////////////////////////////////////
                         MODIFIERS
@@ -84,11 +95,11 @@ contract BridgeRouter is
     }
 
     /**
-     * @dev Modifier ensuring the caller (`msg.sender`) is the configured `authorizedExecutor`.
-     * Reverts with `OnlyAuthorizedExecutor` if the caller is not the `authorizedExecutor` address.
+     * @dev Modifier ensuring the caller (`msg.sender`) is registered as an executor in the registry.
+     * Reverts with `OnlyAuthorizedExecutor` if the caller is not registered.
      */
     modifier onlyAuthorizedExecutor() {
-        // todo: add authorized executor check
+        if (!isExecutor(msg.sender)) revert OnlyAuthorizedExecutor();
         _;
     }
 
@@ -140,8 +151,9 @@ contract BridgeRouter is
     function _validateSendMessageParams(
         BridgeTypes.ExecuteSendMessageParams calldata params
     ) internal pure {
-        if (params.recipient == address(0) || params.originator == address(0))
+        if (params.recipient == address(0) || params.originator == address(0)) {
             revert InvalidParams();
+        }
     }
 
     /**
@@ -583,8 +595,9 @@ contract BridgeRouter is
         bytes32 operationId,
         BridgeTypes.OperationStatus status
     ) external onlyRegisteredAdapter {
-        if (operationToAdapter[operationId] != msg.sender)
+        if (operationToAdapter[operationId] != msg.sender) {
             revert Unauthorized();
+        }
 
         // Allow transitions from QUEUED to SENT, or from SENT to FAILED
         if (status == BridgeTypes.OperationStatus.SENT) {
@@ -660,56 +673,56 @@ contract BridgeRouter is
         address originator = readRequestToOriginator[operationId];
         if (originator == address(0)) revert InvalidParams();
 
-        // Try to deliver the response
-        bool delivered = false;
+        ICrossChainStateReadReceiver(originator).receiveStateRead(
+            resultData,
+            originator,
+            operationId,
+            sourceChainId
+        );
 
-        // Check if the originator implements the ICrossChainStateReadReceiver interface
-        bytes4 interfaceId = type(ICrossChainStateReadReceiver).interfaceId;
-        try
-            ICrossChainStateReadReceiver(originator).supportsInterface(
-                interfaceId
-            )
-        returns (bool supported) {
-            if (supported) {
-                try
-                    ICrossChainStateReadReceiver(originator).receiveStateRead(
-                        resultData,
-                        originator,
-                        operationId,
-                        sourceChainId
-                    )
-                {
-                    delivered = true;
-                } catch {
-                    delivered = false;
-                }
-            } else {
-                (bool success, ) = originator.call(
-                    abi.encodeWithSelector(
-                        ICrossChainStateReadReceiver.receiveStateRead.selector,
-                        resultData,
-                        originator,
-                        operationId,
-                        sourceChainId
-                    )
-                );
-                delivered = success;
-            }
-        } catch {
-            delivered = false;
-        }
+        emit ReadResponseDelivered(operationId, originator, true);
+    }
 
-        // Emit event based on delivery result
-        emit ReadResponseDelivered(operationId, originator, delivered);
+    /// @inheritdoc IBridgeRouter
+    function deliver(
+        bytes32 operationId,
+        uint16 sourceChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        bytes calldata payload
+    ) external onlyRegisteredAdapter nonReentrant {
+        // Track the handling adapter
+        requestReceivedByAdapter[operationId] = msg.sender;
 
-        // Only update status if delivery failed
-        if (!delivered) {
-            operationStatuses[operationId] = BridgeTypes.OperationStatus.FAILED;
-            emit OperationStatusUpdated(
-                operationId,
-                BridgeTypes.OperationStatus.FAILED
+        // 1. Move tokens first (if any)
+        if (asset != address(0) && amount > 0) {
+            IERC20(asset).safeTransfer(recipient, amount);
+
+            // Callback with asset payload (registry guarantees a valid target)
+            ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
+                asset,
+                amount,
+                payload,
+                sourceChainId
             );
+
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
+            return; // nothing else to emit
         }
+
+        // 2. Pure message path
+        ICrossChainMessageReceiver(recipient).receiveMessage(
+            sourceChainId,
+            payload
+        );
+        emit MessageDelivered(operationId, recipient, true);
     }
 
     /*//////////////////////////////////////////////////////////////

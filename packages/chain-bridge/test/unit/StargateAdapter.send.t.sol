@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
+
 import {console} from "forge-std/console.sol";
+
 contract StargateAdapterSendTest is StargateAdapterSetupTest {
     function testEstimateFee() public {
         useNetworkA();

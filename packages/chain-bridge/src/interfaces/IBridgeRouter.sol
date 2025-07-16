@@ -57,8 +57,9 @@ interface IBridgeRouter is IERC165 {
 
     /// @notice Emitted when a read request is initiated by the BridgeQueue
     event ReadRequestInitiated(
+        // Corrected from sourceChainId for clarity
         bytes32 indexed operationId,
-        uint16 destinationChainId, // Corrected from sourceChainId for clarity
+        uint16 destinationChainId,
         address destinationContract,
         bytes4 selector,
         bytes readParams,
@@ -127,8 +128,8 @@ interface IBridgeRouter is IERC165 {
     error UnsupportedAdapterOperation();
     /// @notice Thrown when there are insufficient native funds in the router
     error InsufficientBalance();
-    /// @notice Error for calls not originating from the authorized caller
-    error OnlyAuthorized();
+    /// @notice Error for calls not originating from the authorized executor
+    error OnlyAuthorizedExecutor();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
@@ -150,7 +151,8 @@ interface IBridgeRouter is IERC165 {
      * @notice Execute state read initiated by the BridgeQueue.
      * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
      *      Expects `msg.value` to cover the *base* fee required by the adapter.
-     *      The `originator` parameter represents the original requester; the implementation determines how the response is routed (e.g., back to the originator, or potentially to the BridgeQueue itself depending on the design).
+     *      The `originator` parameter represents the original requester; the implementation determines how the response
+     * is routed (e.g., back to the originator, or potentially to the BridgeQueue itself depending on the design).
      * @param params Struct containing all parameters for the state read execution.
      * @return operationId Unique operation ID.
      */
@@ -175,10 +177,33 @@ interface IBridgeRouter is IERC165 {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Single entry-point for inbound asset transfers and messages
+     * @dev Called by registered adapters to deliver assets and messages to recipients.
+     *      The registry ensures recipients are valid targets.
+     *      For assets, transfers tokens and emits TransferReceived.
+     *      For messages, calls recipient and emits MessageDelivered.
+     * @param operationId Unique identifier for this cross-chain operation
+     * @param sourceChainId Chain ID where the operation originated
+     * @param asset Address of the asset being transferred (address(0) for pure messages)
+     * @param amount Amount of asset being transferred (0 for pure messages)
+     * @param recipient Address to receive the assets/message
+     * @param payload Additional data for the recipient
+     */
+    function deliver(
+        bytes32 operationId,
+        uint16 sourceChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        bytes calldata payload
+    ) external;
+
+    /**
      * @notice Update the status of an operation (called by adapters)
      * @param operationId ID of the operation to update
      * @param status New status of the operation
-     * @dev Called by the adapter handling the operation on the source chain. Requires caller == operationToAdapter[operationId].
+     * @dev Called by the adapter handling the operation on the source chain. Requires caller ==
+     * operationToAdapter[operationId].
      */
     function updateOperationStatus(
         bytes32 operationId,
@@ -222,7 +247,8 @@ interface IBridgeRouter is IERC165 {
      * @param sourceChainId ID of the chain where the data was read from
      * @param resultData The data returned from the destination chain read
      * @dev Called by adapter on the source chain upon receiving the response.
-     *      Attempts to forward the result to the original requester. Requires caller == operationToAdapter[operationId].
+     *      Attempts to forward the result to the original requester. Requires caller ==
+     * operationToAdapter[operationId].
      */
     function deliverReadResponse(
         bytes32 operationId,

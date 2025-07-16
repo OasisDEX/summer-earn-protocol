@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.28;
+pragma solidity ^0.8.28;
 
-import {Test} from "forge-std/Test.sol"; // Using Test contract for cheatcodes like makeAddr if needed
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {Test} from "forge-std/Test.sol";
 
 /**
  * @title MockBridgeRouter
@@ -302,6 +303,35 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             // Simulate receiving asset from adapter
             // If testing asset flow end-to-end, adapter mock would need minting/transfer ability
         }
+    }
+
+    function deliver(
+        bytes32 operationId,
+        uint16 sourceChainId,
+        address asset,
+        uint256 amount,
+        address recipient,
+        bytes calldata
+    ) external {
+        // Track the handling adapter
+        operationAdapters[operationId] = msg.sender;
+
+        // 1. Move tokens first (if any)
+        if (asset != address(0) && amount > 0) {
+            IERC20(asset).safeTransfer(recipient, amount);
+
+            // Emit transfer received event
+            emit TransferReceived(
+                operationId,
+                asset,
+                amount,
+                recipient,
+                sourceChainId
+            );
+        }
+
+        // Always emit message delivered event
+        emit MessageDelivered(operationId, recipient, true);
     }
 
     function deliverReadResponse(

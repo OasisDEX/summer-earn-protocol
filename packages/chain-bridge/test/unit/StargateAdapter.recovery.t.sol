@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
+import {StargateAdapterTestWrapper} from "./StargateAdapterTestWrapper.sol";
 
 /**
  * @title StargateAdapterRecoveryTest

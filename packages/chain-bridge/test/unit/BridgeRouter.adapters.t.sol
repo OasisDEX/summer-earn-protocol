@@ -1,61 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
-import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+
+import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
-contract BridgeRouterAdaptersTest is Test {
-    BridgeRouter public router;
-
-    MockAdapter public mockAdapter;
-    MockAdapter public mockAdapter2;
-    ERC20Mock public token;
-    ProtocolAccessManager public accessManager;
-
-    address public governor = address(0x1);
-    address public user = address(0x2);
-    address public keeper = address(0x3);
-
-    // Constants for testing
-    uint16 public constant DEST_CHAIN_ID = 10; // Optimism
-    uint256 public constant TRANSFER_AMOUNT = 1000e18;
-
-    function setUp() public {
-        // Deploy access manager and set up roles
-        accessManager = new ProtocolAccessManager(governor);
-
-        vm.startPrank(governor);
-
-        // Deploy router
-        router = new BridgeRouter(address(accessManager));
-
-        mockAdapter = new MockAdapter(address(router));
-        mockAdapter2 = new MockAdapter(address(router));
-        token = new ERC20Mock();
-
-        // Setup mock adapter
-        mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-
-        // Register adapter
-        router.registerAdapter(address(mockAdapter));
-
-        // Mint tokens for testing
-        token.mint(governor, 10000e18);
-        token.mint(keeper, 10000e18);
-
-        // Fund keeper for execution - give enough for the base fee (0.1 ETH)
-        vm.deal(keeper, 1 ether);
-
-        vm.stopPrank();
-    }
-
+contract BridgeRouterAdaptersTest is BridgeRouterSetup {
     // ---- ADAPTER MANAGEMENT TESTS ----
 
     function testRegisterAdapter() public {
@@ -183,8 +138,7 @@ contract BridgeRouterAdaptersTest is Test {
 
         vm.stopPrank(); // User stops queueing
 
-        // Execute the queued operation (can be keeper or anyone) (PAYS FEE)
-        vm.startPrank(keeper);
+        vm.startPrank(executor);
         // approve tokens for transfer
         token.approve(address(router), TRANSFER_AMOUNT);
 
@@ -195,7 +149,7 @@ contract BridgeRouterAdaptersTest is Test {
                 amount: TRANSFER_AMOUNT,
                 recipient: user,
                 originator: user,
-                keeper: address(keeper),
+                keeper: address(executor),
                 options: options
             })
         );
@@ -206,14 +160,6 @@ contract BridgeRouterAdaptersTest is Test {
             uint256(router.getOperationStatus(operationId)),
             uint256(BridgeTypes.OperationStatus.SENT) // Should be SENT as it's sent to adapter
         );
-
-        // Verify the specified adapter was used (if checking router state)
-        // assertEq(router.operationToAdapter(operationId), address(mockAdapter2));
-        // Verify router status (if checking router state)
-        // assertEq(
-        //     uint256(router.getOperationStatus(operationId)),
-        //     uint256(BridgeTypes.OperationStatus.PENDING)
-        // );
     }
 
     function testInvalidSpecifiedAdapter() public {

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 /**
  * @title LayerZeroOptionsHelper
@@ -78,7 +78,8 @@ library LayerZeroOptionsHelper {
         // If not provided in adapterParams, use a default reasonable size
         uint32 calldataSize = adapterParams.calldataSize > 0
             ? uint32(adapterParams.calldataSize)
-            : 1024; // Default to 1KB for read responses
+            : 1024; // Default to
+        // 1KB for read responses
 
         // Add our LzRead option to the existing or new options
         return
@@ -89,5 +90,6 @@ library LayerZeroOptionsHelper {
                 adapterParams.msgValue
             );
     }
+
     function testSkipper() public {}
 }

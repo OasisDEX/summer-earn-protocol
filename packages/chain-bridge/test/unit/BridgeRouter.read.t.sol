@@ -1,71 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {MockAdapter} from "../mocks/MockAdapter.sol";
-import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+
 import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 
-contract BridgeRouterReadStateTest is Test {
-    BridgeRouterTestHelper public router;
-    MockAdapter public mockAdapter;
-    MockAdapter public mockAdapter2;
-    ERC20Mock public token;
-    ProtocolAccessManager public accessManager;
-    MockCrossChainReceiver public mockReceiver;
-
-    address public governor = address(0x1);
-    address public user = address(0x2);
-    address public keeper = address(0x3);
-    // todo: authorize the caller when method available ( uthorized to call bridge router)
-    address public authorizedCaller = address(0x5);
-
-    // Constants for testing
-    uint16 public constant DEST_CHAIN_ID = 10; // Optimism
-    uint256 public constant TRANSFER_AMOUNT = 1000e18;
-
-    uint8 constant OPTION_TYPE_EXECUTOR = 1;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 5;
-
-    function setUp() public {
-        // Deploy access manager and set up roles
-        accessManager = new ProtocolAccessManager(governor);
-        mockReceiver = new MockCrossChainReceiver();
-
-        vm.startPrank(governor);
-
-        // Deploy BridgeRouterTestHelper, linking it to the queue
-        router = new BridgeRouterTestHelper(address(accessManager));
-
-        mockAdapter = new MockAdapter(address(router));
-        mockAdapter2 = new MockAdapter(address(router));
-        token = new ERC20Mock();
-
-        // Setup mock adapter
-        mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
-
-        // Register adapter
-        router.registerAdapter(address(mockAdapter));
-
-        // Mint tokens for user (if needed elsewhere)
-        token.mint(user, 10000e18);
-        // Fund mockReceiver (queue manager) and keeper
-        vm.deal(address(mockReceiver), 10 ether);
-        vm.deal(keeper, 1 ether);
-
-        vm.stopPrank();
-    }
-
+contract BridgeRouterReadStateTest is BridgeRouterSetup {
     // ---- READ STATE TESTS ----
 
-    function testReadState() public {
+    function testReadStateLOL() public {
         address targetContract = address(token); // Use a valid address for setup
         bytes4 targetSelector = bytes4(keccak256("getBalance(address)"));
         bytes memory targetCalldata = abi.encode(user);
@@ -370,21 +315,16 @@ contract BridgeRouterReadStateTest is Test {
                 operationId, // operationId
                 DEST_CHAIN_ID // sourceChainId
             )
-            // Do not mock a return, let it revert
         );
+        // Do not mock a return, let it revert
 
+        vm.expectRevert(bytes("Receiver rejected call"));
         router.deliverReadResponse(
             operationId,
             DEST_CHAIN_ID,
             abi.encode(uint256(100))
         );
 
-        // Verify status is FAILED (if checking router state)
-        // assertEq(
-        //     uint256(router.operationStatuses(operationId)),
-        //     uint256(BridgeTypes.OperationStatus.FAILED)
-        // );
-        // Optionally check that mockReceiver's state wasn't updated due to rejection
         assertNotEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
     }
 }

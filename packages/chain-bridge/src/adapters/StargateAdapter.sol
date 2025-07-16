@@ -2,33 +2,29 @@
 pragma solidity ^0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-/// forge-lint: disable-next-item(unused-import)
+/// forge-lint: disable-start(unused-import)
 import {IBridgeAdapter, ISendAdapter} from "../interfaces/IBridgeAdapter.sol";
+/// forge-lint: disable-end(unused-import)
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
-import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-import {BaseBridgeAdapter} from "../adapters/BaseBridgeAdapter.sol";
-
-// Import CrossChain Ark interface for proper detection
+import {BaseBridgeAdapter} from "./BaseBridgeAdapter.sol";
 import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
-
-// Stargate V2 interfaces - based on LayerZero V2 OFT standard
-import {SendParam, MessagingFee, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
-// Add LayerZero composability imports
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
-// Import interfaces
 import {IFleetCommanderMinimal} from "../interfaces/IFleetCommanderMinimal.sol";
+import {IHarborCommandMinimal} from "../interfaces/IHarborCommandMinimal.sol";
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
-import {IHarborCommandMinimal} from "../interfaces/IHarborCommandMinimal.sol";
 
 /**
  * @title StargateAdapter
@@ -318,8 +314,9 @@ contract StargateAdapter is
         address asset,
         address stargateContract
     ) external onlyGovernor {
-        if (asset == address(0) || stargateContract == address(0))
+        if (asset == address(0) || stargateContract == address(0)) {
             revert InvalidParams();
+        }
 
         // Verify this is a valid Stargate V2 contract (only for current chain)
         try IStargateV2(stargateContract).stargateType() returns (
@@ -361,8 +358,9 @@ contract StargateAdapter is
         if (destinationAdapter == address(0)) revert UnsupportedChain();
 
         // Check if asset is supported on current chain
-        if (assetToStargateContract[asset] == address(0))
+        if (assetToStargateContract[asset] == address(0)) {
             revert UnsupportedAsset();
+        }
 
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[asset];

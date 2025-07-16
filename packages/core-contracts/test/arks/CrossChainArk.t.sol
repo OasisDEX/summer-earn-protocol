@@ -81,7 +81,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Register the ark-proxy relationship in the registry
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             address(ark),
             proxy,
             SOURCE_CHAIN_ID,

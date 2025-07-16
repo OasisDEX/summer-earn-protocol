@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {console} from "forge-std/console.sol";
+import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 
 /**
  * @title BridgeRouterTestHelper
@@ -16,8 +15,13 @@ contract BridgeRouterTestHelper is BridgeRouter {
     /**
      * @notice Constructor for BridgeRouterTestHelper
      * @param _accessManager Address of the access manager
+     * @param _registry Address of the registry
      */
-    constructor(address _accessManager) BridgeRouter(_accessManager) {
+
+    constructor(
+        address _accessManager,
+        address _registry
+    ) BridgeRouter(_accessManager, _registry) {
         // Initialize any test-specific state here
     }
 

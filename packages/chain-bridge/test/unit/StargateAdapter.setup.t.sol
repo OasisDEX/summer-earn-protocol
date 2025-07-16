@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
+import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
+import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
+import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
@@ -79,8 +80,12 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         stargateA = new MockStargateV2Pool(address(tokenA));
 
         accessManagerA = new ProtocolAccessManager(governor);
+        registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
         harborCommandA = new MockHarborCommand();
-        routerA = new BridgeRouterTestHelper(address(accessManagerA));
+        routerA = new BridgeRouterTestHelper(
+            address(accessManagerA),
+            address(registryA)
+        );
 
         // Replace configManagerA setup with registryA
         registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
@@ -116,8 +121,12 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         stargateB = new MockStargateV2Pool(address(tokenB));
 
         accessManagerB = new ProtocolAccessManager(governor);
+        registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
         harborCommandB = new MockHarborCommand();
-        routerB = new BridgeRouterTestHelper(address(accessManagerB));
+        routerB = new BridgeRouterTestHelper(
+            address(accessManagerB),
+            address(registryB)
+        );
 
         // Replace configManagerB setup with registryB
         registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);

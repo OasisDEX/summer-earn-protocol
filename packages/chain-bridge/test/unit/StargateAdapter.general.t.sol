@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
-import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
@@ -17,7 +16,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Get chains through registry relationships
         (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
             address(adapterA),
-            registryA.ADAPTER_PEER()
+            registryA.PEER()
         );
 
         assertEq(supportedChains.length, 1);
@@ -70,9 +69,9 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.startPrank(governor);
 
         // First unregister the existing peer relationship for CHAIN_ID_B
-        registryA.unregisterCrossChainRelationship(
+        registryA.unregisterRelationship(
             address(adapterA),
-            registryA.ADAPTER_PEER(),
+            registryA.PEER(),
             CHAIN_ID_B
         );
 
@@ -102,11 +101,11 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Verify it's in the list of supported chains (through registry relationships)
         (, uint16[] memory targetChainIds) = registryA.getTargetsForSource(
             address(adapterA),
-            registryA.ADAPTER_PEER()
+            registryA.PEER()
         );
 
         bool found = false;
-        for (uint i = 0; i < targetChainIds.length; i++) {
+        for (uint256 i = 0; i < targetChainIds.length; i++) {
             if (targetChainIds[i] == newChainId) {
                 found = true;
                 break;
