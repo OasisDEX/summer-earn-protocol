@@ -51,7 +51,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         // Get chains through registry relationships
         (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
             address(adapterA),
-            registryA.ADAPTER_PEER()
+            registryA.PEER()
         );
 
         assertEq(supportedChains.length, 1);

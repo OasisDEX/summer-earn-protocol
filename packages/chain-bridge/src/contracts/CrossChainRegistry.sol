@@ -53,7 +53,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     uint256 public defaultGasLimit;
 
     /// @notice Constants for relationship types
-    bytes32 public constant ADAPTER_PEER = keccak256("ADAPTER_PEER");
+    bytes32 public constant PEER = keccak256("PEER");
     bytes32 public constant ARK_FLEET = keccak256("ARK_FLEET");
     bytes32 public constant EXECUTOR = keccak256("EXECUTOR");
 
@@ -74,7 +74,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         CURRENT_CHAIN_ID = _currentChainId;
 
-        _addRelationshipType(ADAPTER_PEER);
+        _addRelationshipType(PEER);
         _addRelationshipType(ARK_FLEET);
 
         emit RegistryInitialized(_currentChainId);
@@ -85,92 +85,18 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainRegistry
-    function registerCrossChainRelationship(
+    function registerRelationship(
         address sourceContract,
         address targetContract,
         uint16 sourceChainId,
         uint16 targetChainId,
         bytes32 relationshipType
     ) public onlyGovernor {
-        if (sourceContract == address(0)) {
-            revert InvalidSourceContract(sourceContract);
-        }
-        if (targetContract == address(0)) {
-            revert InvalidTargetContract(targetContract);
-        }
-        if (relationshipType == bytes32(0)) {
-            revert InvalidRelationshipType(relationshipType);
-        }
-
-        // Enhanced chain ID validation
+        // cross-chain specific validation
         _validateChainIds(sourceChainId, targetChainId);
 
-        // Add relationship type if not already supported
-        if (!relationshipTypeSupported[relationshipType]) {
-            _addRelationshipType(relationshipType);
-        }
-
-        bytes32 relationshipKey = _getRelationshipKey(
-            sourceContract,
-            relationshipType,
-            targetChainId
-        );
-
-        // Check if this specific relationship already exists
-        if (crossChainRelations[relationshipKey].sourceContract != address(0)) {
-            revert RelationshipAlreadyExists(
-                sourceContract,
-                relationshipType,
-                targetChainId
-            );
-        }
-
-        // Decide if this is a same-chain or inter-chain relationship
-        bool isSameChain = (sourceChainId == currentChainId &&
-            targetChainId == currentChainId);
-
-        // Target-contract uniqueness (inter-chain only)
-        bytes32 targetKey = _getTargetKey(
-            sourceChainId,
-            targetChainId,
-            targetContract,
-            relationshipType
-        );
-        if (!isSameChain && targetToSource[targetKey] != address(0)) {
-            revert TargetContractAlreadyRegistered(
-                targetContract,
-                sourceChainId,
-                targetChainId,
-                relationshipType,
-                targetToSource[targetKey]
-            );
-        }
-
-        // Create the relation
-        crossChainRelations[relationshipKey] = CrossChainRelation({
-            sourceContract: sourceContract,
-            targetContract: targetContract,
-            sourceChainId: sourceChainId,
-            targetChainId: targetChainId,
-            relationshipType: relationshipType
-        });
-
-        // Reverse lookup only required for inter-chain relationships.
-        if (!isSameChain && targetToSource[targetKey] == address(0)) {
-            targetToSource[targetKey] = sourceContract;
-        }
-
-        // Update tracking
-        registeredSourceContracts[relationshipType].add(sourceContract);
-
-        // Update sourceToTargetChains
-        bytes32 sourceTrackingKey = _getSourceTrackingKey(
-            sourceContract,
-            relationshipType
-        );
-        sourceToTargetChains[sourceTrackingKey].push(targetChainId);
-
-        emit CrossChainRelationshipRegistered(
+        // shared registration logic
+        _registerRelationship(
             sourceContract,
             targetContract,
             sourceChainId,
@@ -180,7 +106,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function unregisterCrossChainRelationship(
+    function unregisterRelationship(
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
@@ -205,15 +131,18 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         ];
 
         // Remove reverse mapping only when it was stored (inter-chain)
-        bool isSameChain = (relation.sourceChainId == currentChainId &&
-            relation.targetChainId == currentChainId);
+        bool sameChain = _isSameChain(
+            relation.sourceChainId,
+            relation.targetChainId
+        );
         bytes32 targetKey = _getTargetKey(
             relation.sourceChainId,
             relation.targetChainId,
             relation.targetContract,
             relationshipType
         );
-        if (!isSameChain && targetToSource[targetKey] == sourceContract) {
+
+        if (!sameChain && targetToSource[targetKey] == sourceContract) {
             delete targetToSource[targetKey];
         }
 
@@ -246,6 +175,22 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             relation.targetChainId,
             relationshipType
         );
+    }
+
+    /// @inheritdoc ICrossChainRegistry
+    function registerExecutor(address executor) external onlyGovernor {
+        _registerRelationship(
+            executor,
+            bridgeRouter,
+            CURRENT_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            EXECUTOR
+        );
+    }
+
+    /// @inheritdoc ICrossChainRegistry
+    function removeExecutor(address executor) external onlyGovernor {
+        unregisterRelationship(executor, EXECUTOR, CURRENT_CHAIN_ID);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -565,12 +510,12 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 sourceChainId,
         uint16 targetChainId
     ) external onlyGovernor {
-        registerCrossChainRelationship(
+        registerRelationship(
             sourceAdapter,
             targetAdapter,
             sourceChainId,
             targetChainId,
-            ADAPTER_PEER
+            PEER
         );
     }
 
@@ -584,12 +529,12 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceAdapter,
         uint16 targetChainId
     ) external view returns (address targetAdapter) {
-        (targetAdapter, ) = getTargetForSource(sourceAdapter, ADAPTER_PEER);
+        (targetAdapter, ) = getTargetForSource(sourceAdapter, PEER);
 
         // Validate the target chain matches
         bytes32 relationshipKey = _getRelationshipKey(
             sourceAdapter,
-            ADAPTER_PEER,
+            PEER,
             targetChainId
         );
         CrossChainRelation memory relation = crossChainRelations[
@@ -624,7 +569,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 targetAdapter,
                 sourceChainId,
                 targetChainId,
-                ADAPTER_PEER
+                PEER
             );
     }
 
@@ -645,7 +590,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 arkChainId,
         uint16 fleetChainId
     ) external onlyGovernor {
-        registerCrossChainRelationship(
+        registerRelationship(
             arkProxy,
             fleetProxy,
             arkChainId,
@@ -791,81 +736,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /// @inheritdoc ICrossChainRegistry
-    function registerSourceChainRelationship(
-        address sourceContract,
-        address targetContract,
-        bytes32 relationshipType
-    ) public onlyGovernor {
-        if (sourceContract == address(0)) {
-            revert InvalidSourceContract(sourceContract);
-        }
-        if (targetContract == address(0)) {
-            revert InvalidTargetContract(targetContract);
-        }
-        if (relationshipType == bytes32(0)) {
-            revert InvalidRelationshipType(relationshipType);
-        }
-
-        // Add relationship type if not already supported
-        if (!relationshipTypeSupported[relationshipType]) {
-            _addRelationshipType(relationshipType);
-        }
-
-        // Same-chain registration (always currentChain)
-        bytes32 relationshipKey = _getRelationshipKey(
-            sourceContract,
-            relationshipType,
-            currentChainId
-        );
-
-        // Check if this specific relationship already exists
-        if (crossChainRelations[relationshipKey].sourceContract != address(0)) {
-            revert RelationshipAlreadyExists(
-                sourceContract,
-                relationshipType,
-                currentChainId
-            );
-        }
-
-        // Create the relationship
-        crossChainRelations[relationshipKey] = CrossChainRelation({
-            sourceContract: sourceContract,
-            targetContract: targetContract,
-            sourceChainId: currentChainId,
-            targetChainId: currentChainId,
-            relationshipType: relationshipType
-        });
-
-        // Update tracking
-        registeredSourceContracts[relationshipType].add(sourceContract);
-
-        // Update sourceToTargetChains
-        bytes32 sourceTrackingKey = _getSourceTrackingKey(
-            sourceContract,
-            relationshipType
-        );
-        sourceToTargetChains[sourceTrackingKey].push(currentChainId);
-
-        emit CrossChainRelationshipRegistered(
-            sourceContract,
-            targetContract,
-            currentChainId,
-            currentChainId,
-            relationshipType
-        );
-    }
-
-    /// @inheritdoc ICrossChainRegistry
-    function registerExecutor(address executor) external onlyGovernor {
-        registerSourceChainRelationship(executor, bridgeRouter, EXECUTOR);
-    }
-
-    /// @inheritdoc ICrossChainRegistry
-    function removeExecutor(address executor) external onlyGovernor {
-        unregisterCrossChainRelationship(executor, EXECUTOR, currentChainId);
-    }
-
-    /// @inheritdoc ICrossChainRegistry
     function isAuthorizedExecutor(
         address executor
     ) external view returns (bool) {
@@ -873,8 +743,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             isValidCrossChainPair(
                 executor,
                 bridgeRouter,
-                currentChainId,
-                currentChainId,
+                CURRENT_CHAIN_ID,
+                CURRENT_CHAIN_ID,
                 EXECUTOR
             );
     }
@@ -916,5 +786,118 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         bytes32 relationshipType
     ) internal pure returns (bytes32 key) {
         return keccak256(abi.encode(sourceContract, relationshipType));
+    }
+
+    /**
+     * @notice Shortcut to determine if both contracts live on the deployment chain
+     */
+    function _isSameChain(
+        uint16 sourceChainId,
+        uint16 targetChainId
+    ) internal view returns (bool) {
+        return
+            sourceChainId == CURRENT_CHAIN_ID &&
+            targetChainId == CURRENT_CHAIN_ID;
+    }
+
+    /**
+     * @dev Common registration implementation used by both public entry points.
+     *      Performs basic parameter validation and handles registration logic.
+     */
+    function _registerRelationship(
+        address sourceContract,
+        address targetContract,
+        uint16 sourceChainId,
+        uint16 targetChainId,
+        bytes32 relationshipType
+    ) internal {
+        if (sourceChainId == 0) revert InvalidChainId(sourceChainId);
+        if (targetChainId == 0) revert InvalidChainId(targetChainId);
+        if (
+            sourceChainId != CURRENT_CHAIN_ID &&
+            targetChainId != CURRENT_CHAIN_ID
+        ) {
+            revert InvalidChainRelationship(
+                sourceChainId,
+                targetChainId,
+                CURRENT_CHAIN_ID
+            );
+        }
+
+        // basic parameter validation
+        if (sourceContract == address(0))
+            revert InvalidSourceContract(sourceContract);
+        if (targetContract == address(0))
+            revert InvalidTargetContract(targetContract);
+        if (relationshipType == bytes32(0))
+            revert InvalidRelationshipType(relationshipType);
+
+        // add relationship type if new
+        if (!relationshipTypeSupported[relationshipType]) {
+            _addRelationshipType(relationshipType);
+        }
+
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType,
+            targetChainId
+        );
+
+        // uniqueness check
+        if (crossChainRelations[relationshipKey].sourceContract != address(0)) {
+            revert RelationshipAlreadyExists(
+                sourceContract,
+                relationshipType,
+                targetChainId
+            );
+        }
+
+        bool sameChain = _isSameChain(sourceChainId, targetChainId);
+
+        // inter-chain reverse-lookup uniqueness
+        if (!sameChain) {
+            bytes32 targetKey = _getTargetKey(
+                sourceChainId,
+                targetChainId,
+                targetContract,
+                relationshipType
+            );
+            if (targetToSource[targetKey] != address(0)) {
+                revert TargetContractAlreadyRegistered(
+                    targetContract,
+                    sourceChainId,
+                    targetChainId,
+                    relationshipType,
+                    targetToSource[targetKey]
+                );
+            }
+            targetToSource[targetKey] = sourceContract;
+        }
+
+        // store the relation
+        crossChainRelations[relationshipKey] = CrossChainRelation({
+            sourceContract: sourceContract,
+            targetContract: targetContract,
+            sourceChainId: sourceChainId,
+            targetChainId: targetChainId,
+            relationshipType: relationshipType
+        });
+
+        // tracking helpers
+        registeredSourceContracts[relationshipType].add(sourceContract);
+
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+            sourceContract,
+            relationshipType
+        );
+        sourceToTargetChains[sourceTrackingKey].push(targetChainId);
+
+        emit CrossChainRelationshipRegistered(
+            sourceContract,
+            targetContract,
+            sourceChainId,
+            targetChainId,
+            relationshipType
+        );
     }
 }

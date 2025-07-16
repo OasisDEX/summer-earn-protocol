@@ -148,12 +148,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
 
         // Register cross-chain relationships in registry
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             address(stargateAdapter),
             ARB_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            registry.ADAPTER_PEER()
+            registry.PEER()
         );
         vm.stopPrank();
 
@@ -181,7 +181,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Register the ark-proxy relationship
         vm.startPrank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             address(ark),
             ARB_PROXY,
             SOURCE_CHAIN_ID,
@@ -256,12 +256,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         stargateAdapter.setEndpointId(uint16(block.chainid), ARB_LZ_EID);
 
         // Register cross-chain relationships in registry
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             address(stargateAdapter),
             ARB_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            registry.ADAPTER_PEER()
+            registry.PEER()
         );
 
         // Initialize USDC
@@ -320,7 +320,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Register the ark-proxy relationship with CORRECT chain IDs
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             address(ark),
             ARB_PROXY,
             SOURCE_CHAIN_ID, // Source: Mainnet (1)

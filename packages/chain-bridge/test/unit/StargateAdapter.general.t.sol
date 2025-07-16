@@ -17,7 +17,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Get chains through registry relationships
         (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
             address(adapterA),
-            registryA.ADAPTER_PEER()
+            registryA.PEER()
         );
 
         assertEq(supportedChains.length, 1);
@@ -70,9 +70,9 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         vm.startPrank(governor);
 
         // First unregister the existing peer relationship for CHAIN_ID_B
-        registryA.unregisterCrossChainRelationship(
+        registryA.unregisterRelationship(
             address(adapterA),
-            registryA.ADAPTER_PEER(),
+            registryA.PEER(),
             CHAIN_ID_B
         );
 
@@ -102,7 +102,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Verify it's in the list of supported chains (through registry relationships)
         (, uint16[] memory targetChainIds) = registryA.getTargetsForSource(
             address(adapterA),
-            registryA.ADAPTER_PEER()
+            registryA.PEER()
         );
 
         bool found = false;

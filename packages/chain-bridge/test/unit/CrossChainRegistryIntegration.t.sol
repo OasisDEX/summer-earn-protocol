@@ -73,7 +73,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             arkAddress,
             proxyAddress,
             CURRENT_CHAIN_ID,
@@ -117,7 +117,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         uint16 differentTargetChain = 10; // Optimism
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             arkAddress,
             proxyAddress,
             differentSourceChain,
@@ -166,7 +166,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Register ark with two different relationship types
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             arkAddress,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -175,7 +175,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             arkAddress,
             proxy2,
             CURRENT_CHAIN_ID,
@@ -231,7 +231,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Register two relationships
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -240,7 +240,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark2,
             proxy2,
             CURRENT_CHAIN_ID,
@@ -261,7 +261,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(
+        registry.unregisterRelationship(
             ark1,
             ARK_FLEET_RELATIONSHIP,
             TARGET_CHAIN_ID
@@ -312,7 +312,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Register same source-target pair with different types
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             arkAddress,
             proxyAddress,
             CURRENT_CHAIN_ID,
@@ -321,7 +321,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             arkAddress,
             proxyAddress,
             CURRENT_CHAIN_ID,
@@ -355,11 +355,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Unregister one type
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(
-            arkAddress,
-            type1,
-            TARGET_CHAIN_ID
-        );
+        registry.unregisterRelationship(arkAddress, type1, TARGET_CHAIN_ID);
 
         // Should only affect the specific type
         assertFalse(registry.isSourceContractRegistered(arkAddress, type1));
@@ -374,7 +370,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
         assertEq(supportedTypes.length, 2);
-        assertEq(supportedTypes[0], keccak256("ADAPTER_PEER"));
+        assertEq(supportedTypes[0], keccak256("PEER"));
         assertEq(supportedTypes[1], keccak256("ARK_FLEET"));
 
         // Add a new relationship type by using it
@@ -383,7 +379,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         address proxyAddress = makeAddr("proxy");
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             arkAddress,
             proxyAddress,
             CURRENT_CHAIN_ID,

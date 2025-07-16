@@ -272,7 +272,7 @@ Critical security requirement: Registry state must be identical across all chain
 
 ```solidity
 // Must execute on ALL participating chains
-crossChainRegistry.registerCrossChainRelationship(
+crossChainRegistry.registerRelationship(
     arkAddress,      // Same ark address
     proxyAddress,    // Same proxy address
     sourceChainId,   // Same source chain
@@ -296,7 +296,7 @@ crossChainRegistry.registerCrossChainRelationship(
 
 ```solidity
 // Unregister compromised relationship (reverts future operations immediately)
-crossChainRegistry.unregisterCrossChainRelationship(
+crossChainRegistry.unregisterRelationship(
     compromisedArk, 
     keccak256("ARK_FLEET"), 
     targetChainId
@@ -310,7 +310,7 @@ fleetProxy.pause();  // Guardian can execute
 
 ```solidity
 // After investigation, re-register if safe
-crossChainRegistry.registerCrossChainRelationship(
+crossChainRegistry.registerRelationship(
     arkAddress,
     proxyAddress, 
     sourceChainId,

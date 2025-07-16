@@ -6,7 +6,6 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
 import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
-import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
@@ -20,6 +19,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 
 /**
  * @title BridgeRouter
@@ -31,7 +31,8 @@ contract BridgeRouter is
     IBridgeRouter,
     ProtocolAccessManaged,
     ReentrancyGuard,
-    Nonces
+    Nonces,
+    CrossChainConfigManaged
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -66,9 +67,6 @@ contract BridgeRouter is
     mapping(uint16 chainId => address routerAddress)
         public chainToRouterAddress;
 
-    /// @notice Reference to the cross-chain registry
-    ICrossChainRegistry public immutable registry;
-
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -81,10 +79,7 @@ contract BridgeRouter is
     constructor(
         address accessManager,
         address _registry
-    ) ProtocolAccessManaged(accessManager) {
-        if (_registry == address(0)) revert InvalidParams();
-        registry = ICrossChainRegistry(_registry);
-    }
+    ) ProtocolAccessManaged(accessManager) CrossChainConfigManaged(_registry) {}
 
     /*//////////////////////////////////////////////////////////////
                         MODIFIERS
@@ -104,16 +99,7 @@ contract BridgeRouter is
      * Reverts with `OnlyAuthorizedExecutor` if the caller is not registered.
      */
     modifier onlyAuthorizedExecutor() {
-        if (
-            !// BridgeRouter
-            registry.isValidCrossChainPair(
-                msg.sender,
-                address(this),
-                registry.currentChainId(),
-                registry.currentChainId(),
-                registry.EXECUTOR()
-            )
-        ) revert OnlyAuthorizedExecutor();
+        if (!isExecutor(msg.sender)) revert OnlyAuthorizedExecutor();
         _;
     }
 

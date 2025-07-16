@@ -11,8 +11,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 // Base test contract with common setup used by all LayerZero adapter tests
 contract LayerZeroAdapterSetupTest is TestHelperOz5 {

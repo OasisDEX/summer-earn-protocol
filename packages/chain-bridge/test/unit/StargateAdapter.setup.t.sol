@@ -5,7 +5,7 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 import {IStargateV2} from "../../src/interfaces/IStargateV2.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {MockHarborCommand} from "../mocks/MockHarborCommand.sol";
-import {MockStargateV2} from "../mocks/MockStargateV2.sol";
+import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";

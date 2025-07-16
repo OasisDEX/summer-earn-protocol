@@ -250,99 +250,16 @@ contract SiloManagedVaultArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 amount2 = 200e18;
         uint256 amount3 = 300e18;
 
-        {
-            // Create mock incentive controllers
-            address controller1 = makeAddr("controller1");
-            address controller2 = makeAddr("controller2");
-            address controller3 = makeAddr("controller3");
-
-            // Mock the incentives module to return our controllers
-            address[] memory controllers = new address[](3);
-            controllers[0] = controller1;
-            controllers[1] = controller2;
-            controllers[2] = controller3;
-
-            // Mock claimRewards for each controller
-            AccruedRewards[] memory rewards1 = new AccruedRewards[](2);
-            rewards1[0] = AccruedRewards({
-                rewardToken: address(rewardToken1),
-                programId: bytes32("programId1"),
-                amount: amount1
-            });
-            rewards1[1] = AccruedRewards({
-                rewardToken: address(rewardToken2),
-                programId: bytes32("programId2"),
-                amount: amount2
-            });
-
-            AccruedRewards[] memory rewards2 = new AccruedRewards[](1);
-            rewards2[0] = AccruedRewards({
-                rewardToken: address(rewardToken2),
-                programId: bytes32("programId2"),
-                amount: amount2
-            });
-
-            AccruedRewards[] memory rewards3 = new AccruedRewards[](3);
-            rewards3[0] = AccruedRewards({
-                rewardToken: address(rewardToken3),
-                programId: bytes32("programId3"),
-                amount: amount3
-            });
-            rewards3[1] = AccruedRewards({
-                rewardToken: address(rewardToken1),
-                programId: bytes32("programId1"),
-                amount: amount1
-            });
-            rewards3[2] = AccruedRewards({
-                rewardToken: address(rewardToken2),
-                programId: bytes32("programId2"),
-                amount: amount2
-            });
-
-            vm.mockCall(
-                controller1,
-                abi.encodeWithSelector(
-                    ISiloIncentivesController.claimRewards.selector,
-                    address(ark)
-                ),
-                abi.encode(rewards1)
-            );
-
-            vm.mockCall(
-                controller2,
-                abi.encodeWithSelector(
-                    ISiloIncentivesController.claimRewards.selector,
-                    address(ark)
-                ),
-                abi.encode(rewards2)
-            );
-
-            vm.mockCall(
-                controller3,
-                abi.encodeWithSelector(
-                    ISiloIncentivesController.claimRewards.selector,
-                    address(ark)
-                ),
-                abi.encode(rewards3)
-            );
-
-            // Mock the INCENTIVES_MODULE() call to return a mock address
-            address mockIncentivesModule = makeAddr("incentivesModule");
-            vm.mockCall(
-                VAULT_ADDRESS,
-                abi.encodeWithSelector(ISiloVault.INCENTIVES_MODULE.selector),
-                abi.encode(mockIncentivesModule)
-            );
-
-            // Mock getNotificationReceivers to return our controllers
-            vm.mockCall(
-                mockIncentivesModule,
-                abi.encodeWithSelector(
-                    ISiloVaultIncentivesModule.getNotificationReceivers.selector
-                ),
-                abi.encode(controllers)
-            );
-        }
+        // keep the local-variable stack shallow – all the heavy mocking
+        // is done inside this helper
+        _setupIncentiveControllerMocks(
+            rewardToken1,
+            rewardToken2,
+            rewardToken3,
+            amount1,
+            amount2,
+            amount3
+        );
 
         deal(address(rewardToken1), address(ark), 2 * amount1);
         deal(address(rewardToken2), address(ark), 3 * amount2);
@@ -409,5 +326,137 @@ contract SiloManagedVaultArkTestFork is Test, IArkEvents, ArkTestBase {
             amount3,
             "Token3 should be transferred to raft"
         );
+    }
+
+    /* --------------------------------------------------------------------- */
+    /*                                Helpers                                */
+    /* --------------------------------------------------------------------- */
+
+    function _setupIncentiveControllerMocks(
+        MockERC20 rewardToken1,
+        MockERC20 rewardToken2,
+        MockERC20 rewardToken3,
+        uint256 amount1,
+        uint256 amount2,
+        uint256 amount3
+    ) internal {
+        // 1: three dummy controllers
+        address controller1 = makeAddr("controller1");
+        address controller2 = makeAddr("controller2");
+        address controller3 = makeAddr("controller3");
+
+        // 2: return-value blobs
+        _mockClaim(
+            controller1,
+            _buildRewards(
+                new address[](2),
+                new uint256[](2),
+                address(rewardToken1),
+                address(rewardToken2),
+                amount1,
+                amount2
+            )
+        );
+        _mockClaim(
+            controller2,
+            _buildRewards(
+                new address[](1),
+                new uint256[](1),
+                address(rewardToken2),
+                address(rewardToken2), // ignored
+                amount2,
+                0
+            )
+        );
+        _mockClaim(
+            controller3,
+            _buildRewards3(
+                address(rewardToken3),
+                address(rewardToken1),
+                address(rewardToken2),
+                amount3,
+                amount1,
+                amount2
+            )
+        );
+
+        // 3: incentives-module plumbing
+        address mockModule = makeAddr("incentivesModule");
+        vm.mockCall(
+            VAULT_ADDRESS,
+            abi.encodeWithSelector(ISiloVault.INCENTIVES_MODULE.selector),
+            abi.encode(mockModule)
+        );
+
+        address[] memory ctrls = new address[](3);
+        ctrls[0] = controller1;
+        ctrls[1] = controller2;
+        ctrls[2] = controller3;
+
+        vm.mockCall(
+            mockModule,
+            abi.encodeWithSelector(
+                ISiloVaultIncentivesModule.getNotificationReceivers.selector
+            ),
+            abi.encode(ctrls)
+        );
+    }
+
+    /* ---------- small helpers = zero live stack after each call ---------- */
+
+    function _mockClaim(
+        address controller,
+        AccruedRewards[] memory rewards
+    ) internal {
+        // calldata & returndata prepared outside to keep stack shallow
+        bytes memory data = abi.encodeWithSelector(
+            ISiloIncentivesController.claimRewards.selector,
+            address(ark)
+        );
+        bytes memory ret = abi.encode(rewards);
+        vm.mockCall(controller, data, ret);
+    }
+
+    function _buildRewards(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address t0,
+        address t1,
+        uint256 a0,
+        uint256 a1
+    ) internal pure returns (AccruedRewards[] memory r) {
+        tokens[0] = t0;
+        amounts[0] = a0;
+        if (tokens.length > 1) {
+            tokens[1] = t1;
+            amounts[1] = a1;
+        }
+        r = new AccruedRewards[](tokens.length);
+        for (uint256 i; i < tokens.length; ++i) {
+            r[i] = AccruedRewards({
+                rewardToken: tokens[i],
+                programId: bytes32(uint256(i + 1)),
+                amount: amounts[i]
+            });
+        }
+    }
+
+    function _buildRewards3(
+        address t0,
+        address t1,
+        address t2,
+        uint256 a0,
+        uint256 a1,
+        uint256 a2
+    ) internal pure returns (AccruedRewards[] memory r) {
+        address[] memory ts = new address[](3);
+        uint256[] memory amountsArr = new uint256[](3);
+        ts[0] = t0;
+        amountsArr[0] = a0;
+        ts[1] = t1;
+        amountsArr[1] = a1;
+        ts[2] = t2;
+        amountsArr[2] = a2;
+        return _buildRewards(ts, amountsArr, t0, t1, a0, a1);
     }
 }

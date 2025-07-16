@@ -100,7 +100,7 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -153,7 +153,7 @@ contract CrossChainRegistryTest is Test {
                 address(0)
             )
         );
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             address(0),
             proxy1,
             CURRENT_CHAIN_ID,
@@ -172,7 +172,7 @@ contract CrossChainRegistryTest is Test {
                 address(0)
             )
         );
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             address(0),
             CURRENT_CHAIN_ID,
@@ -189,7 +189,7 @@ contract CrossChainRegistryTest is Test {
                 0
             )
         );
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             0,
@@ -202,7 +202,7 @@ contract CrossChainRegistryTest is Test {
         public
     {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -226,7 +226,7 @@ contract CrossChainRegistryTest is Test {
                 CURRENT_CHAIN_ID
             )
         );
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             otherChain1,
@@ -241,7 +241,7 @@ contract CrossChainRegistryTest is Test {
         uint16 otherChain = 137; // Polygon
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             otherChain,
@@ -260,7 +260,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_registerCrossChainRelationship_revertAlreadyExists() public {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -277,7 +277,7 @@ contract CrossChainRegistryTest is Test {
                 TARGET_CHAIN_ID
             )
         );
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -290,7 +290,7 @@ contract CrossChainRegistryTest is Test {
         public
     {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -309,7 +309,7 @@ contract CrossChainRegistryTest is Test {
                 ark1
             )
         );
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark2,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -321,7 +321,7 @@ contract CrossChainRegistryTest is Test {
     function test_registerCrossChainRelationship_onlyGovernor() public {
         vm.prank(user);
         vm.expectRevert();
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -333,7 +333,7 @@ contract CrossChainRegistryTest is Test {
     function test_unregisterCrossChainRelationship() public {
         // First register
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -351,7 +351,7 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(
+        registry.unregisterRelationship(
             ark1,
             ARK_FLEET_RELATIONSHIP,
             TARGET_CHAIN_ID
@@ -385,7 +385,7 @@ contract CrossChainRegistryTest is Test {
                 TARGET_CHAIN_ID
             )
         );
-        registry.unregisterCrossChainRelationship(
+        registry.unregisterRelationship(
             ark1,
             ARK_FLEET_RELATIONSHIP,
             TARGET_CHAIN_ID
@@ -394,7 +394,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_unregisterCrossChainRelationship_onlyGovernor() public {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -404,7 +404,7 @@ contract CrossChainRegistryTest is Test {
 
         vm.prank(user);
         vm.expectRevert();
-        registry.unregisterCrossChainRelationship(
+        registry.unregisterRelationship(
             ark1,
             ARK_FLEET_RELATIONSHIP,
             TARGET_CHAIN_ID
@@ -413,7 +413,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_getTargetForSource() public {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -443,7 +443,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_getSourceForTarget() public {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -490,7 +490,7 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -560,7 +560,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_multipleRegistrations() public {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -569,7 +569,7 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark2,
             proxy2,
             CURRENT_CHAIN_ID,
@@ -578,7 +578,7 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark3,
             proxy3,
             CURRENT_CHAIN_ID,
@@ -673,7 +673,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_unregisterOneOfMultiple() public {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -682,7 +682,7 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark2,
             proxy2,
             CURRENT_CHAIN_ID,
@@ -691,7 +691,7 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(
+        registry.unregisterRelationship(
             ark1,
             ARK_FLEET_RELATIONSHIP,
             TARGET_CHAIN_ID
@@ -708,7 +708,7 @@ contract CrossChainRegistryTest is Test {
 
     function test_reregisterAfterUnregister() public {
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -717,14 +717,14 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.unregisterCrossChainRelationship(
+        registry.unregisterRelationship(
             ark1,
             ARK_FLEET_RELATIONSHIP,
             TARGET_CHAIN_ID
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy2,
             CURRENT_CHAIN_ID,
@@ -742,10 +742,10 @@ contract CrossChainRegistryTest is Test {
 
     function test_multipleRelationshipTypes() public {
         bytes32 arkFleetType = keccak256("ARK_FLEET");
-        bytes32 bridgeType = keccak256("ADAPTER_PEER");
+        bytes32 bridgeType = keccak256("PEER");
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy1,
             CURRENT_CHAIN_ID,
@@ -754,7 +754,7 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerCrossChainRelationship(
+        registry.registerRelationship(
             ark1,
             proxy2,
             CURRENT_CHAIN_ID,
@@ -1020,7 +1020,7 @@ contract CrossChainRegistryTest is Test {
         assertEq(registry.defaultGasLimit(), 0);
         assertFalse(registry.bridgeConfigInitialized());
 
-        // Test that both ADAPTER_PEER and ARK_FLEET relationship types are supported by default
+        // Test that both PEER and ARK_FLEET relationship types are supported by default
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
         assertEq(supportedTypes.length, 2);
@@ -1030,7 +1030,7 @@ contract CrossChainRegistryTest is Test {
         bool hasArkFleet = false;
 
         for (uint256 i = 0; i < supportedTypes.length; i++) {
-            if (supportedTypes[i] == keccak256("ADAPTER_PEER")) {
+            if (supportedTypes[i] == keccak256("PEER")) {
                 hasAdapterPeer = true;
             } else if (supportedTypes[i] == ARK_FLEET_RELATIONSHIP) {
                 hasArkFleet = true;
@@ -1072,7 +1072,13 @@ contract CrossChainRegistryTest is Test {
         );
 
         vm.prank(governor);
-        registry.registerSourceChainRelationship(src, dst, LOCAL_REL);
+        registry.registerRelationship(
+            src,
+            dst,
+            CURRENT_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            LOCAL_REL
+        );
 
         (address target, uint16 chainId) = registry.getTargetForSource(
             src,
@@ -1096,9 +1102,11 @@ contract CrossChainRegistryTest is Test {
         bytes32 LOCAL_REL = keccak256("LOCAL_REL_2");
         vm.prank(user);
         vm.expectRevert();
-        registry.registerSourceChainRelationship(
+        registry.registerRelationship(
             makeAddr("src2"),
             makeAddr("dst2"),
+            CURRENT_CHAIN_ID,
+            CURRENT_CHAIN_ID,
             LOCAL_REL
         );
     }

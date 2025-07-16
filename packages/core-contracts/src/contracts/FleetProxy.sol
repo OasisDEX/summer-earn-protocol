@@ -159,23 +159,8 @@ contract FleetProxy is
         // 5. Approve the bridge router to transfer the assets
         IERC20(asset).forceApprove(address(bridgeRouter), params.amount);
 
-        // 6. Get source-chain Ark address from the registry – reverts if not found
-        address arkAddress = _getSourceChainArk(params.destinationChainId);
-
-        // 7. Build a new ExecuteTransferParams struct with the correct Ark recipient
-        BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
-            .ExecuteTransferParams({
-                destinationChainId: params.destinationChainId,
-                asset: params.asset,
-                amount: params.amount,
-                recipient: arkAddress,
-                originator: params.originator,
-                keeper: params.keeper,
-                options: params.options
-            });
-
-        // 8. Queue the cross-chain transfer back to the Ark on the hub chain
-        bridgeRouter.executeTransferAssets(transferParams);
+        // 6. Queue the cross-chain transfer back to the Ark on the hub chain
+        bridgeRouter.executeTransferAssets(params);
 
         emit AssetsWithdrawnAndTransferred(
             params.amount,

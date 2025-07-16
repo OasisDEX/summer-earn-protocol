@@ -69,7 +69,7 @@ abstract contract BaseBridgeAdapter is
     {
         (, uint16[] memory targetChainIds) = REGISTRY.getTargetsForSource(
             address(this),
-            REGISTRY.ADAPTER_PEER()
+            REGISTRY.PEER()
         );
         return targetChainIds;
     }

@@ -134,31 +134,31 @@ interface ICrossChainRegistry {
 
     /// forge-lint: disable-start(mixed-case-function)
     /// @notice Returns the constant for adapter peer relationship type
-    /// @return bytes32 value of keccak256("ADAPTER_PEER")
-    function ADAPTER_PEER() external pure returns (bytes32);
+    /// @return bytes32 value of keccak256("PEER")
+    function PEER() external pure returns (bytes32);
 
     /// @notice Returns the constant for ark fleet relationship type
     /// @return bytes32 value of keccak256("ARK_FLEET")
     function ARK_FLEET() external pure returns (bytes32);
-    /// forge-lint: disable-end(mixed-case-function)
 
     /// @notice Returns the constant for executor relationship type
     /// @return bytes32 value of keccak256("EXECUTOR")
     function EXECUTOR() external pure returns (bytes32);
+    /// forge-lint: disable-end(mixed-case-function)
 
     /*//////////////////////////////////////////////////////////////
                             CORE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Register a new cross-chain relationship
+     * @notice Register a new relationship
      * @param sourceContract The address of the source contract
      * @param targetContract The address of the target contract
      * @param sourceChainId The chain ID where the source contract is deployed
      * @param targetChainId The chain ID where the target contract is deployed
      * @param relationshipType The type of relationship
      */
-    function registerCrossChainRelationship(
+    function registerRelationship(
         address sourceContract,
         address targetContract,
         uint16 sourceChainId,
@@ -167,27 +167,15 @@ interface ICrossChainRegistry {
     ) external;
 
     /**
-     * @notice Unregister an existing cross-chain relationship
+     * @notice Unregister an existing relationship
      * @param sourceContract The address of the source contract
      * @param relationshipType The type of relationship
      * @param targetChainId The target chain ID to identify the specific relationship
      */
-    function unregisterCrossChainRelationship(
+    function unregisterRelationship(
         address sourceContract,
         bytes32 relationshipType,
         uint16 targetChainId
-    ) external;
-
-    /**
-     * @notice Register a relationship between two contracts on the same chain
-     * @param sourceContract The source contract address
-     * @param targetContract The target contract address
-     * @param relationshipType The relationship type
-     */
-    function registerSourceChainRelationship(
-        address sourceContract,
-        address targetContract,
-        bytes32 relationshipType
     ) external;
 
     /*//////////////////////////////////////////////////////////////
