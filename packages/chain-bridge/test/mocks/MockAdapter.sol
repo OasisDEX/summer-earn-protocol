@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 /// forge-lint: disable-next-item(unused-import)
 import {IBridgeAdapter, ISendAdapter} from "../../src/interfaces/IBridgeAdapter.sol";

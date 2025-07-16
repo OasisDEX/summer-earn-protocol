@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol"; // Using Test contract for cheatcodes like makeAddr if needed
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";

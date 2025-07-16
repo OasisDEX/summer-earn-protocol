@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import {ICrossChainConfigManaged} from "../interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
