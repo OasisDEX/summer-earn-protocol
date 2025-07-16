@@ -5,7 +5,6 @@ import "../Ark.sol";
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
 import {ICrossChainStateReadReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainStateReadReceiver.sol";
-import {IBridgeQueue} from "@summerfi/chain-bridge/interfaces/IBridgeQueue.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
@@ -43,22 +42,29 @@ contract CrossChainArk is
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
 
+    /// @notice Pending transfer params for the cross-chain transfer
+    BridgeTypes.ExecuteTransferParams public pendingTransferParams;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Constructor to set up the CrossChainArk
-     * @param _crossChainConfigManager Address of the CrossChainConfigManager contract
+     * @param _bridgeRouter Address of the BridgeRouter contract
+     * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address _crossChainConfigManager,
+        address _bridgeRouter,
+        address _crossChainRegistry,
         uint16 _satelliteChainId,
         ArkParams memory _params
-    ) Ark(_params) CrossChainConfigManaged(_crossChainConfigManager) {
+    ) Ark(_params) CrossChainConfigManaged(_crossChainRegistry) {
+        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
+
         satelliteChainId = _satelliteChainId;
     }
 
@@ -78,8 +84,8 @@ contract CrossChainArk is
     /// @notice Updates the inflight assets amount when a bridge operation is executed
     /// @param amount Amount of assets that are now in-flight
     function updateInflightAssets(uint256 amount) external {
-        // Only the bridge queue or router should be able to call this
-        if (msg.sender != bridgeQueue() && msg.sender != bridgeRouter()) {
+        // Only the bridge router should be able to call this
+        if (msg.sender != bridgeRouter()) {
             revert Unauthorized();
         }
 
@@ -91,24 +97,27 @@ contract CrossChainArk is
     /// @dev Can be called by keeper or governor to queue a cross-chain state read.
     /// The actual execution (with fees and options) will be done separately by a keeper calling
     /// BridgeQueue.executeQueuedOperation()
-    /// @return queueId The ID of the queued state read operation
-    function requestRemoteAssetBalanceUpdate()
-        external
-        onlyKeeper
-        returns (bytes32 queueId)
-    {
+    /// @return operationId The ID of the queued state read operation
+    function requestRemoteAssetBalanceUpdate(
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable onlyKeeper returns (bytes32 operationId) {
         address proxyAddress = _getTargetProxy();
-
-        // Queue a state read to get the total assets from the FleetProxy on the satellite chain
-        queueId = IBridgeQueue(bridgeQueue()).queueReadState(
-            satelliteChainId,
-            proxyAddress,
-            IFleetProxy.totalAssets.selector,
-            ""
-        );
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: satelliteChainId,
+                destinationContract: proxyAddress,
+                selector: IFleetProxy.totalAssets.selector,
+                readParams: "",
+                originator: address(this),
+                keeper: msg.sender,
+                options: options
+            });
+        operationId = IBridgeRouter(bridgeRouter()).executeReadState{
+            value: msg.value
+        }(params);
 
         emit RemoteAssetBalanceUpdateRequested(
-            queueId,
+            operationId,
             satelliteChainId,
             proxyAddress
         );
@@ -173,18 +182,57 @@ contract CrossChainArk is
      * @param amount Amount of tokens to transfer
      * @dev This function queues a cross-chain transfer to the target proxy using the registry
      */
-    function _board(uint256 amount, bytes calldata) internal override {
+    function _board(
+        uint256 amount,
+        bytes calldata executeTransferParams
+    ) internal override {
         address proxyAddress = _getTargetProxy();
 
-        // Approve BridgeQueue to spend tokens
-        config.asset.approve(bridgeQueue(), amount);
-
-        IBridgeQueue(bridgeQueue()).queueTransferAssets(
-            satelliteChainId,
-            address(config.asset),
-            amount,
-            proxyAddress
+        BridgeTypes.ExecuteTransferParams memory params = abi.decode(
+            executeTransferParams,
+            (BridgeTypes.ExecuteTransferParams)
         );
+        if (amount == 0) revert InvalidAmount();
+        if (amount != params.amount) revert InvalidAmount();
+        if (params.asset == address(0)) revert InvalidAsset();
+        if (params.asset != address(config.asset)) revert InvalidAsset();
+        if (params.recipient != proxyAddress) revert InvalidRecipient();
+        if (params.originator != address(this)) revert InvalidRequestor();
+        if (params.destinationChainId != satelliteChainId)
+            revert InvalidSatelliteChain();
+
+        pendingTransferParams = params;
+    }
+
+    function executeTransferAssets() external payable onlyKeeper {
+        if (pendingTransferParams.asset == address(0))
+            revert NoPendingTransferParams();
+        // todo: add more validaion or is that in the bridge router?
+        IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
+        config.asset.approve(
+            address(bridgeRouter),
+            pendingTransferParams.amount
+        );
+        bridgeRouter.executeTransferAssets{value: msg.value}(
+            pendingTransferParams
+        );
+        pendingTransferParams = BridgeTypes.ExecuteTransferParams({
+            destinationChainId: 0,
+            asset: address(0),
+            amount: 0,
+            recipient: address(0),
+            originator: address(0),
+            keeper: address(0),
+            options: BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(0),
+                adapterParams: BridgeTypes.AdapterParams({
+                    gasLimit: 0,
+                    calldataSize: 0,
+                    msgValue: 0,
+                    options: bytes("")
+                })
+            })
+        });
     }
 
     /**

@@ -4,21 +4,19 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 /**
  * @title LayerZeroAdapter Fork Test Setup
- * @notice Base setup for LayerZero adapter fork tests with proper CrossChainRegistry integration
+ * @notice Base setup for LayerZero layerZeroAdapter fork tests with proper CrossChainRegistry integration
  * @dev Provides common setup functionality for all LayerZero fork tests
  */
 abstract contract LayerZeroAdapterForkSetupTest is Test {
     // Contracts
-    LayerZeroAdapterTestHelper public adapter;
+    LayerZeroAdapterTestHelper public layerZeroAdapter;
     BridgeRouterTestHelper public router;
-    BridgeQueue public bridgeQueue;
     CrossChainRegistry public registry;
     ProtocolAccessManager public accessManager;
 
@@ -73,23 +71,8 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         accessManager.grantGuardianRole(guardian);
         vm.stopPrank();
 
-        // Create bridge queue first (without router initially)
-        bridgeQueue = new BridgeQueue(
-            address(accessManager),
-            address(0), // Temporarily 0, will be set later
-            user // Make the test user the queue manager
-        );
-
         // Create router TEST HELPER, passing the deployed BridgeQueue address
-        router = new BridgeRouterTestHelper(
-            address(accessManager),
-            address(bridgeQueue)
-        );
-
-        // Now set the bridge router address in the queue
-        vm.startPrank(governor);
-        bridgeQueue.setBridgeRouter(address(router));
-        vm.stopPrank();
+        router = new BridgeRouterTestHelper(address(accessManager));
 
         // Deploy registry
         vm.startPrank(governor);
@@ -100,7 +83,6 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
 
         // Initialize bridge configuration
         registry.initializeBridgeConfiguration(
-            address(bridgeQueue),
             address(router),
             DEFAULT_GAS_LIMIT
         );
@@ -114,8 +96,8 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         lzEids[0] = BASE_LZ_EID; // Base LZ EID
         lzEids[1] = ARB_LZ_EID; // Arbitrum LZ EID
 
-        // Deploy LayerZero adapter TEST HELPER with CrossChainConfigManager
-        adapter = new LayerZeroAdapterTestHelper(
+        // Deploy LayerZero layerZeroAdapter TEST HELPER with CrossChainConfigManager
+        layerZeroAdapter = new LayerZeroAdapterTestHelper(
             LZ_ENDPOINT_BASE,
             address(registry), // Use registry for cross-chain configuration
             address(accessManager),
@@ -124,9 +106,9 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             governor
         );
 
-        // Register adapter with bridge router
+        // Register layerZeroAdapter with bridge router
         vm.startPrank(governor);
-        router.registerAdapter(address(adapter));
+        router.registerAdapter(address(layerZeroAdapter));
         vm.stopPrank();
     }
 
@@ -142,21 +124,20 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         uint128 minGasLimit = 300000;
 
         // Step 1: Activate read channel
-        adapter.activateReadChannel(readChannelId);
+        layerZeroAdapter.activateReadChannel(readChannelId);
 
         // Step 2: Set minimum gas limits for STATE_READ (2) and GENERAL_MESSAGE (3)
-        adapter.setMinGasLimit(2, minGasLimit); // STATE_READ
-        adapter.setMinGasLimit(3, minGasLimit); // GENERAL_MESSAGE
+        layerZeroAdapter.setMinGasLimit(2, minGasLimit); // STATE_READ
+        layerZeroAdapter.setMinGasLimit(3, minGasLimit); // GENERAL_MESSAGE
 
         // Step 3: Configure read libraries (ReadLib1002)
-        adapter.configureReadLibraries(readLib1002);
+        layerZeroAdapter.configureReadLibraries(readLib1002);
 
         // Step 4: Configure DVNs AND executor together (must be sorted alphabetically)
         /// forge-lint: disable-start(mixed-case-variable)
         address[] memory readDVNs = new address[](1);
-        /// forge-lint: disable-end(mixed-case-variable)
-        readDVNs[0] = readDvn;
-        adapter.configureReadDVNs(
+        readDVNs[0] = readDVN;
+        layerZeroAdapter.configureReadDVNs(
             readLib1002,
             readDVNs,
             confirmations,
@@ -165,20 +146,23 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
 
         // Step 5: Set up peer for cross-chain communication to Arbitrum
         bytes32 peerAddressBytes32 = bytes32(
-            uint256(uint160(address(adapter)))
+            uint256(uint160(address(layerZeroAdapter)))
         );
-        adapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
+        layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
         // Step 6: Set up peer for read response channel (needed for lzReceive to work)
-        adapter.setPeer(READ_CHANNEL_THRESHOLD + 1, peerAddressBytes32);
+        layerZeroAdapter.setPeer(
+            READ_CHANNEL_THRESHOLD + 1,
+            peerAddressBytes32
+        );
 
         // Step 7: Set up peer for threshold boundary test (exactly at threshold)
-        adapter.setPeer(READ_CHANNEL_THRESHOLD, peerAddressBytes32);
+        layerZeroAdapter.setPeer(READ_CHANNEL_THRESHOLD, peerAddressBytes32);
 
-        // Register the adapter peer relationship in the registry
+        // Register the layerZeroAdapter peer relationship in the registry
         registry.registerAdapterPeer(
-            address(adapter), // source adapter
-            address(adapter), // target adapter (same address since it's a mirror setup)
+            address(layerZeroAdapter), // source layerZeroAdapter
+            address(layerZeroAdapter), // target layerZeroAdapter (same address since it's a mirror setup)
             SOURCE_CHAIN_ID, // Base chain ID (8453)
             DEST_CHAIN_ID // Arbitrum chain ID (42161)
         );
@@ -194,58 +178,55 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         vm.deal(address(router), 5 ether);
     }
 
-    // Helper function to check adapter configuration
+    // Helper function to check layerZeroAdapter configuration
     function _verifyAdapterConfiguration() internal view {
-        // Test that adapter is properly configured
+        // Test that layerZeroAdapter is properly configured
         assertTrue(
-            adapter.REGISTRY().getAdapterPeer(
-                address(adapter),
+            layerZeroAdapter.REGISTRY().getAdapterPeer(
+                address(layerZeroAdapter),
                 DEST_CHAIN_ID
             ) != address(0),
             "Destination chain not supported"
         );
         assertTrue(
-            adapter.supportsOperation(BridgeTypes.OperationType.READ_STATE),
+            layerZeroAdapter.supportsOperation(
+                BridgeTypes.OperationType.READ_STATE
+            ),
             "Read state operation not supported"
         );
         assertTrue(
-            router.isValidAdapter(address(adapter)),
+            router.isValidAdapter(address(layerZeroAdapter)),
             "Adapter not registered with router"
         );
 
         // Test LayerZero EID mapping
         assertEq(
-            adapter.chainToLzEid(DEST_CHAIN_ID),
+            layerZeroAdapter.chainToLzEid(DEST_CHAIN_ID),
             ARB_LZ_EID,
             "Chain to LZ EID mapping incorrect"
         );
         assertEq(
-            adapter.lzEidToChain(ARB_LZ_EID),
+            layerZeroAdapter.lzEidToChain(ARB_LZ_EID),
             DEST_CHAIN_ID,
             "LZ EID to chain mapping incorrect"
         );
 
         // Test read channel configuration
         assertEq(
-            adapter.readChannelId(),
+            layerZeroAdapter.readChannelId(),
             READ_CHANNEL_ID,
             "Read channel ID not configured"
         );
 
         // Test CrossChainRegistry integration
         assertEq(
-            adapter.bridgeRouter(),
+            layerZeroAdapter.bridgeRouter(),
             address(router),
             "Bridge router not accessible through registry"
         );
-        assertEq(
-            adapter.bridgeQueue(),
-            address(bridgeQueue),
-            "Bridge queue not accessible through registry"
-        );
     }
 
-    // Helper function to deploy a fresh unconfigured adapter for negative tests
+    // Helper function to deploy a fresh unconfigured layerZeroAdapter for negative tests
     function _deployUnconfiguredAdapter()
         internal
         returns (LayerZeroAdapterTestHelper)
@@ -274,11 +255,11 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
     // Helper function to set operation mapping for testing (now uses test helper)
     function _setOperationMapping(bytes32 guid, bytes32 operationId) internal {
         // Use the test helper's direct setter instead of storage manipulation
-        adapter.setLzMessageToOperationId(guid, operationId);
+        layerZeroAdapter.setLzMessageToOperationId(guid, operationId);
 
         // Verify it was set correctly
         assertEq(
-            adapter.lzMessageToOperationId(guid),
+            layerZeroAdapter.lzMessageToOperationId(guid),
             operationId,
             "Operation mapping should be set correctly"
         );

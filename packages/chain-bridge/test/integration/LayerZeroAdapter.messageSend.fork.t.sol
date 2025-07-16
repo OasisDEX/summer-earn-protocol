@@ -8,7 +8,7 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
 /**
  * @title LayerZero Message Send Fork Test
- * @dev Core tests for LayerZero adapter message sending functionality
+ * @dev Core tests for LayerZero layerZeroAdapter message sending functionality
  */
 contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
     function setUp() public override {
@@ -31,7 +31,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
                 options: ""
             });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
+            specifiedAdapter: address(layerZeroAdapter),
             adapterParams: adapterParams
         });
 
@@ -46,59 +46,26 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
 
         bytes memory message = abi.encode("Hello Cross-Chain!");
 
-        // 1. Queue the operation
-        vm.startPrank(user);
-        bytes32 queueId = bridgeQueue.queueSendMessage(
-            DEST_CHAIN_ID,
-            keeper,
-            message
-        );
-        vm.stopPrank();
-
-        // Verify queued status
-        assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
-            uint256(BridgeTypes.OperationStatus.QUEUED)
-        );
-
         // 2. Execute the operation
         vm.startPrank(keeper);
 
-        // Mock router behavior
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options,
-                BridgeTypes.OperationType.MESSAGE
-            ),
-            abi.encode(nativeFee, uint256(0), address(adapter))
+        bytes32 operationId = router.executeSendMessage{value: nativeFee}(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                recipient: user,
+                message: message,
+                originator: user,
+                keeper: address(keeper),
+                options: options
+            })
         );
-
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockSendMsgOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            nativeFee,
-            abi.encodeWithSelector(IBridgeRouter.executeSendMessage.selector),
-            abi.encode(expectedOperationId)
-        );
-
-        bytes32 operationId = bridgeQueue.executeQueuedOperation{
-            value: nativeFee
-        }(queueId, options);
         vm.stopPrank();
 
         // Verify final state
         assertEq(
-            uint256(bridgeQueue.queueIdToStatus(queueId)),
+            uint256(router.getOperationStatus(operationId)),
             uint256(BridgeTypes.OperationStatus.SENT)
         );
-        assertEq(bridgeQueue.operationIdToQueueId(operationId), queueId);
 
         console.log("[SUCCESS] Message sent via queue successfully");
     }
@@ -117,7 +84,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
                 options: ""
             });
 
-        (uint256 nativeFee, ) = adapter.estimateFee(
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(0),
             0,
@@ -126,11 +93,11 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         );
 
         // Set up operation mapping
-        router.setOperationToAdapter(operationId, address(adapter));
+        router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
-        // Call adapter through router context (authorized)
+        // Call layerZeroAdapter through router context (authorized)
         vm.startPrank(address(router));
-        adapter.sendMessage{value: nativeFee}(
+        layerZeroAdapter.sendMessage{value: nativeFee}(
             operationId,
             DEST_CHAIN_ID,
             keeper, // recipient
@@ -140,7 +107,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         );
         vm.stopPrank();
 
-        console.log("[SUCCESS] Direct adapter call completed");
+        console.log("[SUCCESS] Direct layerZeroAdapter call completed");
     }
 
     function testUnauthorizedAdapterCall() public {
@@ -160,7 +127,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         // Direct call should fail (not from router)
         vm.startPrank(user);
         vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
-        adapter.sendMessage{value: 1 ether}(
+        layerZeroAdapter.sendMessage{value: 1 ether}(
             operationId,
             DEST_CHAIN_ID,
             keeper,
@@ -184,7 +151,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
                 options: ""
             });
 
-        (uint256 nativeFee, uint256 tokenFee) = adapter.estimateFee(
+        (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(0),
             0,

@@ -110,6 +110,20 @@ interface IFleetProxy is ICrossChainAssetReceiver {
     /// @notice Thrown when the caller is not authorized to perform the action.
     error Unauthorized();
 
+    /// @notice Error thrown when the amount is invalid
+    error InvalidAmount();
+    /// @notice Error thrown when the recipient is invalid
+    error InvalidRecipient();
+    /// @notice Error thrown when the requestor is invalid
+    error InvalidRequestor();
+    /// @notice Error thrown when the satellite chain is invalid
+    error InvalidSatelliteChain();
+
+    /// @notice Error thrown when bridge router address is invalid
+    error InvalidBridgeRouter();
+    /// @notice Error thrown when registry address is invalid
+    error InvalidRegistry();
+
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/

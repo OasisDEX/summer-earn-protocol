@@ -10,7 +10,6 @@ library BridgeTypes {
      * @notice Status of a cross-chain transfer
      */
     enum OperationStatus {
-        QUEUED, // Only used in BridgeQueue
         SENT, // Operation has been sent to the destination chain
         FAILED // Operation has failed
     }
@@ -57,8 +56,8 @@ library BridgeTypes {
      * @notice Parameters for executeReadState
      */
     struct ExecuteReadStateParams {
-        uint16 dstChainId;
-        address dstContract;
+        uint16 destinationChainId;
+        address destinationContract;
         bytes4 selector;
         bytes readParams;
         address originator;

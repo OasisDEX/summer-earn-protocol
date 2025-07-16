@@ -5,11 +5,12 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 
 import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
-import {BridgeQueue} from "../../src/router/BridgeQueue.sol";
-import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
 // Base test contract with common setup used by all LayerZero adapter tests
 contract LayerZeroAdapterSetupTest is TestHelperOz5 {
@@ -28,18 +29,16 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     // Chain A contracts
     LayerZeroAdapterTestHelper public adapterA;
     BridgeRouterTestHelper public routerA;
-    BridgeQueue public bridgeQueueA;
-    CrossChainRegistry public registryA;
     ERC20Mock public tokenA;
     ProtocolAccessManager public accessManagerA;
+    CrossChainRegistry public registryA;
 
     // Chain B contracts
     LayerZeroAdapterTestHelper public adapterB;
     BridgeRouterTestHelper public routerB;
-    BridgeQueue public bridgeQueueB;
-    CrossChainRegistry public registryB;
     ERC20Mock public tokenB;
     ProtocolAccessManager public accessManagerB;
+    CrossChainRegistry public registryB;
 
     // Test wallets
     address public governor = address(0x1);
@@ -102,28 +101,13 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Deploy access manager
         accessManagerA = new ProtocolAccessManager(governor);
 
-        // Deploy CrossChainRegistry instead of ConfigManager
+        // Deploy router and configure
+        routerA = new BridgeRouterTestHelper(address(accessManagerA));
+
         registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
-
-        // Deploy bridge queue (without router initially)
-        bridgeQueueA = new BridgeQueue(
-            address(accessManagerA),
-            address(0), // Router set later
-            governor // Use governor as queue manager
-        );
-
-        // Deploy router
-        routerA = new BridgeRouterTestHelper(
-            address(accessManagerA),
-            address(bridgeQueueA) // Pass queue address
-        );
-
-        // Set bridge router in queue
-        bridgeQueueA.setBridgeRouter(address(routerA));
 
         // Initialize bridge configuration in registry
         registryA.initializeBridgeConfiguration(
-            address(bridgeQueueA),
             address(routerA),
             DEFAULT_GAS_LIMIT
         );
@@ -132,7 +116,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         tokenA = new ERC20Mock();
         adapterA = new LayerZeroAdapterTestHelper(
             lzEndpointA,
-            address(registryA), // Use registry instead of config manager
+            address(registryA),
             address(accessManagerA),
             chains,
             lzEids,
@@ -142,7 +126,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Final configuration
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
-        tokenA.mint(address(bridgeQueueA), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
     }
@@ -164,28 +147,14 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Deploy access manager
         accessManagerB = new ProtocolAccessManager(governor);
 
-        // Deploy CrossChainRegistry instead of ConfigManager
+        // Deploy router and configure
+        routerB = new BridgeRouterTestHelper(address(accessManagerB));
+
+        // Deploy registry
         registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
-
-        // Deploy bridge queue (without router initially)
-        bridgeQueueB = new BridgeQueue(
-            address(accessManagerB),
-            address(0), // Router set later
-            governor // Use governor as queue manager
-        );
-
-        // Deploy router
-        routerB = new BridgeRouterTestHelper(
-            address(accessManagerB),
-            address(bridgeQueueB) // Pass queue address
-        );
-
-        // Set bridge router in queue
-        bridgeQueueB.setBridgeRouter(address(routerB));
 
         // Initialize bridge configuration in registry
         registryB.initializeBridgeConfiguration(
-            address(bridgeQueueB),
             address(routerB),
             DEFAULT_GAS_LIMIT
         );
@@ -204,7 +173,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Final configuration
         routerB.registerAdapter(address(adapterB));
         tokenB.mint(user, 10000e18);
-        tokenB.mint(address(bridgeQueueB), 10000e18); // Mint to queue for transfers
 
         vm.stopPrank();
     }

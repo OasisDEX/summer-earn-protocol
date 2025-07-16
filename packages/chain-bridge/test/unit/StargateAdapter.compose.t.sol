@@ -786,14 +786,9 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
             address(tokenB)
         );
-
         // Register the mock Stargate contract in the adapter
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
-
-        // Add the adapter as a queue manager so it can queue recovery operations
-        vm.prank(address(0x0000000000000000000000000000000000000001)); // ECRecover (governor)
-        bridgeQueueB.addQueueManager(address(adapterB));
 
         // Create REGULAR asset transfer message (NOT fleet deposit message)
         // This will route to _handleAssetTransferMessage which has recovery mechanism
@@ -825,21 +820,18 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(mockFleetCommander)
         );
 
-        // Expect the FailedComposeQueuedForRecovery event
+        // Expect the ComposeCallFailed event
         vm.expectEmit(true, false, true, true); // Don't check recoveryQueueId since it's generated
-        emit StargateAdapter.FailedComposeQueuedForRecovery(
+        emit StargateAdapter.ComposeCallFailed(
             testOperationId,
-            bytes32(0), // recoveryQueueId - don't check this specific value
-            address(tokenB),
-            testAmount,
-            testUser, // originator - tokens should be queued back to original user
+            address(mockFleetCommander),
             CHAIN_ID_A
         );
 
         // Execute lzCompose with proper mock Stargate contract
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            address(mockStargateFrom), // Use actual mock contract instead of random address
+            address(mockStargateFrom),
             bytes32("test-guid"),
             oftEncodedMessage,
             address(0),

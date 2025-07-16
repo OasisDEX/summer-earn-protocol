@@ -29,7 +29,7 @@ contract MockTargetContract {
 
 /**
  * @title LayerZeroAdapter State Read Fork Test (Base)
- * @dev Fork test to verify LayerZero adapter state read functionality on Base mainnet
+ * @dev Fork test to verify LayerZero layerZeroAdapter state read functionality on Base mainnet
  */
 contract LayerZeroAdapterStateReadBaseForkTest is
     LayerZeroAdapterForkSetupTest
@@ -56,7 +56,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
                 options: ""
             });
 
-        (uint256 nativeFee, uint256 tokenFee) = adapter.estimateFee(
+        (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
@@ -89,7 +89,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
                 options: ""
             });
 
-        (uint256 nativeFee, ) = adapter.estimateFee(
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
@@ -104,13 +104,16 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             "Insufficient balance for operation"
         );
 
-        // Set up the operation-to-adapter mapping for testing
-        router.setOperationToAdapter(currentOperationId, address(adapter));
+        // Set up the operation-to-layerZeroAdapter mapping for testing
+        router.setOperationToAdapter(
+            currentOperationId,
+            address(layerZeroAdapter)
+        );
 
         // Set bridge router as the sender to bypass access control
         vm.startPrank(address(router));
 
-        adapter.readState{value: nativeFee}(
+        layerZeroAdapter.readState{value: nativeFee}(
             currentOperationId,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
@@ -139,7 +142,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
                 options: ""
             });
 
-        (uint256 nativeFee, ) = adapter.estimateFee(
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
@@ -150,7 +153,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         // Try to send with insufficient fee from bridge router
         vm.startPrank(address(router));
         vm.expectRevert(); // Should revert due to insufficient fee
-        adapter.readState{value: nativeFee / 2}(
+        layerZeroAdapter.readState{value: nativeFee / 2}(
             currentOperationId,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
@@ -182,7 +185,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         // Try to call readState directly (not through bridge router)
         vm.startPrank(user);
         vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
-        adapter.readState{value: 1 ether}(
+        layerZeroAdapter.readState{value: 1 ether}(
             currentOperationId,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
@@ -213,7 +216,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
                 options: ""
             });
 
-        (uint256 nativeFee, ) = adapter.estimateFee(
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
@@ -221,11 +224,14 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Set up the operation-to-adapter mapping for testing
-        router.setOperationToAdapter(currentOperationId, address(adapter));
+        // Set up the operation-to-layerZeroAdapter mapping for testing
+        router.setOperationToAdapter(
+            currentOperationId,
+            address(layerZeroAdapter)
+        );
 
         vm.startPrank(address(router));
-        adapter.readState{value: nativeFee}(
+        layerZeroAdapter.readState{value: nativeFee}(
             currentOperationId,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
@@ -260,7 +266,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         // Should revert with UnsupportedChain error
         vm.startPrank(address(router));
         vm.expectRevert(abi.encodeWithSignature("UnsupportedChain()"));
-        adapter.readState{value: 1 ether}(
+        layerZeroAdapter.readState{value: 1 ether}(
             currentOperationId,
             SOURCE_CHAIN_ID,
             unsupportedChainId,
@@ -274,7 +280,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
     }
 
     function testReadChannelNotConfigured() public {
-        // Deploy new adapter without read channel configuration
+        // Deploy new layerZeroAdapter without read channel configuration
         LayerZeroAdapter unconfiguredAdapter = _deployUnconfiguredAdapter();
 
         bytes32 currentOperationId = keccak256(
@@ -315,7 +321,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             ""
         );
 
-        // Create EVMCallRequestV1 array exactly like the adapter does
+        // Create EVMCallRequestV1 array exactly like the layerZeroAdapter does
         EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
         readRequests[0] = EVMCallRequestV1({
             appRequestLabel: 1,
@@ -327,12 +333,12 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             callData: targetCallData
         });
 
-        // Encode using ReadCodecV1.encode exactly like the adapter does
+        // Encode using ReadCodecV1.encode exactly like the layerZeroAdapter does
         bytes memory payload = ReadCodecV1.encode(0, readRequests);
 
-        uint256 requiredFee = adapter.getRequiredFee(
+        uint256 requiredFee = layerZeroAdapter.getRequiredFee(
             READ_CHANNEL_ID, // Use read channel ID for state reads
-            adapter.STATE_READ(), // STATE_READ = 2
+            layerZeroAdapter.STATE_READ(), // STATE_READ = 2
             payload
         );
 
@@ -341,7 +347,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
     }
 
     function testLayerZeroEndpointIntegration() public {
-        // Test that the adapter can successfully interact with the real LayerZero endpoint
+        // Test that the layerZeroAdapter can successfully interact with the real LayerZero endpoint
         bytes32 currentOperationId = keccak256(
             abi.encodePacked("test_lz_integration", block.timestamp)
         );
@@ -357,7 +363,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
                 options: ""
             });
 
-        (uint256 nativeFee, ) = adapter.estimateFee(
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
@@ -365,8 +371,11 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Set up the operation-to-adapter mapping for testing
-        router.setOperationToAdapter(currentOperationId, address(adapter));
+        // Set up the operation-to-layerZeroAdapter mapping for testing
+        router.setOperationToAdapter(
+            currentOperationId,
+            address(layerZeroAdapter)
+        );
 
         // This test verifies that the real LayerZero endpoint accepts our read request
         // Even though we can't complete the cross-chain flow in a fork test,
@@ -375,7 +384,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
 
         // The transaction should not revert if properly configured
         try
-            adapter.readState{value: nativeFee}(
+            layerZeroAdapter.readState{value: nativeFee}(
                 currentOperationId,
                 SOURCE_CHAIN_ID,
                 DEST_CHAIN_ID,
@@ -418,7 +427,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
                 options: ""
             });
 
-        (uint256 nativeFee, ) = adapter.estimateFee(
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
@@ -426,21 +435,24 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             BridgeTypes.OperationType.READ_STATE
         );
 
-        // Verify that the adapter's read channel configuration is correct
+        // Verify that the layerZeroAdapter's read channel configuration is correct
         assertEq(
-            adapter.readChannelId(),
+            layerZeroAdapter.readChannelId(),
             READ_CHANNEL_ID,
             "Read channel not properly configured"
         );
 
-        // Set up the operation-to-adapter mapping for testing
-        router.setOperationToAdapter(currentOperationId, address(adapter));
+        // Set up the operation-to-layerZeroAdapter mapping for testing
+        router.setOperationToAdapter(
+            currentOperationId,
+            address(layerZeroAdapter)
+        );
 
         // Execute read state to verify ReadLib configuration
         vm.startPrank(address(router));
 
         // This should not revert if ReadLib1002 is properly configured
-        adapter.readState{value: nativeFee}(
+        layerZeroAdapter.readState{value: nativeFee}(
             currentOperationId,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,

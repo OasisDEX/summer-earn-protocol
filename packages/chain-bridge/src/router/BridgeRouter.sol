@@ -19,7 +19,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
  * @dev Implements IBridgeRouter interface and manages multiple bridge adapters.
- *      Operations can only be initiated via the BridgeQueue or governance.
+ *      Operations can only be initiated via the authorized executor or governance.
  */
 contract BridgeRouter is
     IBridgeRouter,
@@ -60,9 +60,6 @@ contract BridgeRouter is
     mapping(uint16 chainId => address routerAddress)
         public chainToRouterAddress;
 
-    /// @notice Address of the associated BridgeQueue
-    address public bridgeQueue;
-
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -70,15 +67,8 @@ contract BridgeRouter is
     /**
      * @notice Initializes the BridgeRouter contract
      * @param accessManager Address of the ProtocolAccessManager contract
-     * @param _bridgeQueue Address of the BridgeQueue contract
      */
-    constructor(
-        address accessManager,
-        address _bridgeQueue
-    ) ProtocolAccessManaged(accessManager) {
-        bridgeQueue = _bridgeQueue;
-        emit BridgeQueueUpdated(_bridgeQueue);
-    }
+    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                         MODIFIERS
@@ -94,11 +84,11 @@ contract BridgeRouter is
     }
 
     /**
-     * @dev Modifier ensuring the caller (`msg.sender`) is the configured `bridgeQueue`.
-     * Reverts with `OnlyBridgeQueue` if the caller is not the `bridgeQueue` address.
+     * @dev Modifier ensuring the caller (`msg.sender`) is the configured `authorizedExecutor`.
+     * Reverts with `OnlyAuthorizedExecutor` if the caller is not the `authorizedExecutor` address.
      */
-    modifier onlyBridgeQueue() {
-        if (msg.sender != bridgeQueue) revert OnlyBridgeQueue();
+    modifier onlyAuthorizedExecutor() {
+        // todo: add authorized executor check
         _;
     }
 
@@ -137,8 +127,10 @@ contract BridgeRouter is
     function _validateReadStateParams(
         BridgeTypes.ExecuteReadStateParams calldata params
     ) internal pure {
-        if (params.originator == address(0) || params.dstContract == address(0))
-            revert InvalidParams();
+        if (
+            params.originator == address(0) ||
+            params.destinationContract == address(0)
+        ) revert InvalidParams();
     }
 
     /**
@@ -225,8 +217,8 @@ contract BridgeRouter is
             )
         );
 
-        // Set initial status to QUEUED
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.QUEUED;
+        // // Set initial status to QUEUED
+        // operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
 
         return operationId;
     }
@@ -255,7 +247,7 @@ contract BridgeRouter is
     )
         external
         payable
-        onlyBridgeQueue
+        onlyAuthorizedExecutor
         whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
@@ -274,7 +266,7 @@ contract BridgeRouter is
         // Apply fee buffer to account for fee volatility
         uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
 
-        // Validate fee provided by BridgeQueue against buffered fee
+        // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
 
         _validateAdapterSupportsOperation(
@@ -282,9 +274,9 @@ contract BridgeRouter is
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        // Pull tokens from BridgeQueue to Router first
+        // Pull tokens from authorized executor to Router first
         IERC20(params.asset).safeTransferFrom(
-            bridgeQueue, // BridgeQueue approved us
+            msg.sender, // authorized executor approved us
             address(this), // Transfer to Router
             params.amount
         );
@@ -360,7 +352,7 @@ contract BridgeRouter is
     )
         external
         payable
-        onlyBridgeQueue
+        onlyAuthorizedExecutor
         whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
@@ -369,7 +361,7 @@ contract BridgeRouter is
 
         // Get required base fee and specified adapter (no multiplier)
         (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
-            params.dstChainId,
+            params.destinationChainId,
             address(0), // No asset
             0, // No amount
             params.options,
@@ -379,7 +371,7 @@ contract BridgeRouter is
         // Apply fee buffer to account for fee volatility
         uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
 
-        // Validate fee provided by BridgeQueue against buffered fee
+        // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
 
         _validateAdapterSupportsOperation(
@@ -390,12 +382,12 @@ contract BridgeRouter is
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
             BridgeTypes.OperationType.READ_STATE,
-            params.dstChainId,
+            params.destinationChainId,
             address(0), // No asset
             0, // No amount
             address(0), // No recipient for read operations
             abi.encode(
-                params.dstContract,
+                params.destinationContract,
                 params.selector,
                 params.readParams,
                 params.originator
@@ -412,8 +404,8 @@ contract BridgeRouter is
         ISendAdapter(specifiedAdapter).readState{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             uint16(block.chainid),
-            params.dstChainId,
-            params.dstContract,
+            params.destinationChainId,
+            params.destinationContract,
             params.selector,
             params.readParams,
             params.keeper, // Pass keeper for refunds
@@ -422,8 +414,8 @@ contract BridgeRouter is
 
         emit ReadRequestInitiated(
             operationId,
-            params.dstChainId,
-            params.dstContract,
+            params.destinationChainId,
+            params.destinationContract,
             params.selector,
             params.readParams,
             specifiedAdapter
@@ -442,7 +434,7 @@ contract BridgeRouter is
     )
         external
         payable
-        onlyBridgeQueue
+        onlyAuthorizedExecutor
         whenNotPaused
         nonReentrant
         returns (bytes32 operationId)
@@ -461,7 +453,7 @@ contract BridgeRouter is
         // Apply fee buffer to account for fee volatility
         uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
 
-        // Validate fee provided by BridgeQueue against buffered fee
+        // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
 
         _validateAdapterSupportsOperation(
@@ -595,10 +587,7 @@ contract BridgeRouter is
             revert Unauthorized();
 
         // Allow transitions from QUEUED to SENT, or from SENT to FAILED
-        if (
-            status == BridgeTypes.OperationStatus.SENT &&
-            operationStatuses[operationId] == BridgeTypes.OperationStatus.QUEUED
-        ) {
+        if (status == BridgeTypes.OperationStatus.SENT) {
             operationStatuses[operationId] = status;
             emit OperationStatusUpdated(operationId, status);
         } else if (
@@ -815,13 +804,5 @@ contract BridgeRouter is
     ) external pure returns (bool) {
         return (interfaceId == type(IBridgeRouter).interfaceId ||
             interfaceId == type(IERC165).interfaceId);
-    }
-
-    /// @notice Sets the BridgeQueue address. Can only be called by governance.
-    /// @param _newBridgeQueue The new BridgeQueue address
-    function setBridgeQueue(address _newBridgeQueue) external onlyGovernor {
-        if (_newBridgeQueue == address(0)) revert InvalidBridgeQueue();
-        bridgeQueue = _newBridgeQueue;
-        emit BridgeQueueUpdated(_newBridgeQueue);
     }
 }

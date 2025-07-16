@@ -544,8 +544,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function readState(
         bytes32 operationId,
         uint16 srcChainId,
-        uint16 dstChainId,
-        address dstContract,
+        uint16 destinationChainId,
+        address destinationContract,
         bytes4 selector,
         bytes calldata readParams,
         address keeper,
@@ -558,7 +558,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
         // Get the LayerZero EID for destination chain
-        uint32 lzDstEid = _getLayerZeroEid(dstChainId);
+        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
         // Check if enough value was sent if specified in adapter options
         if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
@@ -575,7 +575,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                 isBlockNum: false,
                 blockNumOrTimestamp: uint64(block.timestamp),
                 confirmations: 15,
-                to: dstContract,
+                to: destinationContract,
                 callData: abi.encodePacked(selector, readParams)
             });
 
@@ -599,8 +599,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         emit ReadRequestInitiated(
             operationId,
             srcChainId,
-            dstChainId,
-            dstContract,
+            destinationChainId,
+            destinationContract,
             selector
         );
 

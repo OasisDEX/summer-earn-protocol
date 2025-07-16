@@ -134,8 +134,8 @@ contract MockAdapter is IBridgeAdapter {
     function readState(
         bytes32 operationId, // Accept from router
         uint16 srcChainId,
-        uint16 dstChainId,
-        address dstContract,
+        uint16 destinationChainId,
+        address destinationContract,
         bytes4 selector,
         bytes calldata readParams,
         address, // keeper - not used in mock
@@ -145,14 +145,14 @@ contract MockAdapter is IBridgeAdapter {
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
         // Verify chain is supported
-        if (!this.supportsChain(dstChainId)) revert UnsupportedChain();
+        if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
 
         // Use the provided operation ID (don't generate our own)
         emit MockReadInitiated(
             operationId, // Use router's ID
             srcChainId,
-            dstChainId,
-            dstContract,
+            destinationChainId,
+            destinationContract,
             selector,
             readParams
         );
@@ -214,8 +214,8 @@ contract MockAdapter is IBridgeAdapter {
     event MockReadInitiated(
         bytes32 requestId,
         uint16 srcChainId,
-        uint16 dstChainId,
-        address dstContract,
+        uint16 destinationChainId,
+        address destinationContract,
         bytes4 selector,
         bytes readParams
     );

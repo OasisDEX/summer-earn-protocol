@@ -799,17 +799,12 @@ contract CrossChainRegistryTest is Test {
 
     function test_bridgeConfigInitialState() public view {
         assertFalse(registry.bridgeConfigInitialized());
-        assertEq(registry.bridgeQueue(), address(0));
         assertEq(registry.bridgeRouter(), address(0));
         assertEq(registry.defaultGasLimit(), 0);
     }
 
     function test_initializeBridgeConfiguration() public {
         vm.startPrank(governor);
-
-        // Expect events to be emitted
-        vm.expectEmit(true, true, false, true);
-        emit BridgeQueueUpdated(address(0), mockBridgeQueue);
 
         vm.expectEmit(true, true, false, true);
         emit BridgeRouterUpdated(address(0), mockBridgeRouter);
@@ -818,14 +813,12 @@ contract CrossChainRegistryTest is Test {
         emit DefaultGasLimitUpdated(0, DEFAULT_GAS_LIMIT);
 
         registry.initializeBridgeConfiguration(
-            mockBridgeQueue,
             mockBridgeRouter,
             DEFAULT_GAS_LIMIT
         );
 
         // Verify state
         assertTrue(registry.bridgeConfigInitialized());
-        assertEq(registry.bridgeQueue(), mockBridgeQueue);
         assertEq(registry.bridgeRouter(), mockBridgeRouter);
         assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
 
@@ -838,7 +831,6 @@ contract CrossChainRegistryTest is Test {
         vm.startPrank(governor);
 
         registry.initializeBridgeConfiguration(
-            mockBridgeQueue,
             mockBridgeRouter,
             DEFAULT_GAS_LIMIT
         );
@@ -847,7 +839,6 @@ contract CrossChainRegistryTest is Test {
             ICrossChainRegistry.BridgeConfigAlreadyInitialized.selector
         );
         registry.initializeBridgeConfiguration(
-            mockBridgeQueue,
             mockBridgeRouter,
             DEFAULT_GAS_LIMIT
         );
@@ -859,17 +850,6 @@ contract CrossChainRegistryTest is Test {
         vm.prank(user);
         vm.expectRevert();
         registry.initializeBridgeConfiguration(
-            mockBridgeQueue,
-            mockBridgeRouter,
-            DEFAULT_GAS_LIMIT
-        );
-    }
-
-    function test_initializeBridgeConfiguration_revertZeroBridgeQueue() public {
-        vm.prank(governor);
-        vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
-        registry.initializeBridgeConfiguration(
-            address(0),
             mockBridgeRouter,
             DEFAULT_GAS_LIMIT
         );
@@ -880,51 +860,13 @@ contract CrossChainRegistryTest is Test {
     {
         vm.prank(governor);
         vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
-        registry.initializeBridgeConfiguration(
-            mockBridgeQueue,
-            address(0),
-            DEFAULT_GAS_LIMIT
-        );
+        registry.initializeBridgeConfiguration(address(0), DEFAULT_GAS_LIMIT);
     }
 
     function test_initializeBridgeConfiguration_revertZeroGasLimit() public {
         vm.prank(governor);
         vm.expectRevert(ICrossChainRegistry.InvalidGasLimit.selector);
-        registry.initializeBridgeConfiguration(
-            mockBridgeQueue,
-            mockBridgeRouter,
-            0
-        );
-    }
-
-    function test_setBridgeQueue() public {
-        _initializeBridgeConfig();
-
-        vm.startPrank(governor);
-
-        vm.expectEmit(true, true, false, true);
-        emit BridgeQueueUpdated(mockBridgeQueue, newMockBridgeQueue);
-
-        registry.setBridgeQueue(newMockBridgeQueue);
-        assertEq(registry.bridgeQueue(), newMockBridgeQueue);
-
-        vm.stopPrank();
-    }
-
-    function test_setBridgeQueue_revertUnauthorized() public {
-        _initializeBridgeConfig();
-
-        vm.prank(user);
-        vm.expectRevert();
-        registry.setBridgeQueue(newMockBridgeQueue);
-    }
-
-    function test_setBridgeQueue_revertZeroAddress() public {
-        _initializeBridgeConfig();
-
-        vm.prank(governor);
-        vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
-        registry.setBridgeQueue(address(0));
+        registry.initializeBridgeConfiguration(mockBridgeRouter, 0);
     }
 
     function test_setBridgeRouter() public {
@@ -993,28 +935,10 @@ contract CrossChainRegistryTest is Test {
         vm.startPrank(guardian);
 
         vm.expectRevert();
-        registry.setBridgeQueue(newMockBridgeQueue);
-
-        vm.expectRevert();
         registry.setBridgeRouter(newMockBridgeRouter);
 
         vm.expectRevert();
         registry.setDefaultGasLimit(NEW_GAS_LIMIT);
-
-        vm.stopPrank();
-    }
-
-    function test_setSameValueBridgeQueue() public {
-        _initializeBridgeConfig();
-
-        vm.startPrank(governor);
-
-        // Setting the same value should still emit event
-        vm.expectEmit(true, true, false, true);
-        emit BridgeQueueUpdated(mockBridgeQueue, mockBridgeQueue);
-
-        registry.setBridgeQueue(mockBridgeQueue);
-        assertEq(registry.bridgeQueue(), mockBridgeQueue);
 
         vm.stopPrank();
     }
@@ -1045,22 +969,6 @@ contract CrossChainRegistryTest is Test {
 
         registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
         assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
-
-        vm.stopPrank();
-    }
-
-    function test_multipleUpdatesBridgeQueue() public {
-        _initializeBridgeConfig();
-
-        vm.startPrank(governor);
-
-        // First update
-        registry.setBridgeQueue(newMockBridgeQueue);
-        assertEq(registry.bridgeQueue(), newMockBridgeQueue);
-
-        // Second update back to original
-        registry.setBridgeQueue(mockBridgeQueue);
-        assertEq(registry.bridgeQueue(), mockBridgeQueue);
 
         vm.stopPrank();
     }
@@ -1104,7 +1012,6 @@ contract CrossChainRegistryTest is Test {
     function _initializeBridgeConfig() internal {
         vm.prank(governor);
         registry.initializeBridgeConfiguration(
-            mockBridgeQueue,
             mockBridgeRouter,
             DEFAULT_GAS_LIMIT
         );
@@ -1112,7 +1019,6 @@ contract CrossChainRegistryTest is Test {
 
     function test_constructor() public view {
         // Test initial state after constructor
-        assertEq(registry.bridgeQueue(), address(0));
         assertEq(registry.bridgeRouter(), address(0));
         assertEq(registry.defaultGasLimit(), 0);
         assertFalse(registry.bridgeConfigInitialized());

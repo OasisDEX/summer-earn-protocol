@@ -24,8 +24,8 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
     function testFullBridgeWorkflow() public {
         console.log("=== Testing Full Bridge Workflow ===");
 
-        // Test complete workflow: queue → execute → verify
-        // This demonstrates the integration between BridgeQueue, Router, and Adapter
+        // Test complete workflow: execute → verify
+        // This demonstrates the integration between Router, and Adapter
 
         _executeBridgeMessage("Integration workflow test");
         _executeBridgeStateRead();
@@ -33,67 +33,19 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         console.log("[SUCCESS] Full workflow completed successfully");
     }
 
-    function testConcurrentOperationsQueuing() public {
-        console.log("=== Testing Concurrent Operations ===");
-
-        // Test multiple operations can be queued concurrently
-        bytes32[] memory queueIds = new bytes32[](3);
-
-        vm.startPrank(user);
-
-        // Queue different types of operations
-        queueIds[0] = bridgeQueue.queueSendMessage(
-            DEST_CHAIN_ID,
-            keeper,
-            abi.encode("Message 1")
-        );
-
-        queueIds[1] = bridgeQueue.queueReadState(
-            DEST_CHAIN_ID,
-            keeper,
-            bytes4(keccak256("balanceOf(address)")),
-            abi.encode(user)
-        );
-
-        queueIds[2] = bridgeQueue.queueSendMessage(
-            DEST_CHAIN_ID,
-            keeper,
-            abi.encode("Message 2")
-        );
-
-        vm.stopPrank();
-
-        // Verify all are queued
-        for (uint i = 0; i < queueIds.length; i++) {
-            assertEq(
-                uint256(bridgeQueue.queueIdToStatus(queueIds[i])),
-                uint256(BridgeTypes.OperationStatus.QUEUED)
-            );
-        }
-
-        assertEq(bridgeQueue.getPendingQueueCount(), 3);
-
-        console.log("[SUCCESS] Multiple operations queued successfully");
-    }
-
     function testCrossChainConfigManagerIntegration() public view {
         console.log("=== Testing CrossChainConfigManager Integration ===");
 
-        // Verify adapter integrates properly with config manager
+        // Verify layerZeroAdapter integrates properly with config manager
         assertEq(
-            adapter.bridgeRouter(),
+            layerZeroAdapter.bridgeRouter(),
             address(router),
             "Bridge router should be accessible through config manager"
         );
-        assertEq(
-            adapter.bridgeQueue(),
-            address(bridgeQueue),
-            "Bridge queue should be accessible through config manager"
-        );
 
         assertTrue(
-            adapter.REGISTRY().getAdapterPeer(
-                address(adapter),
+            layerZeroAdapter.REGISTRY().getAdapterPeer(
+                address(layerZeroAdapter),
                 DEST_CHAIN_ID
             ) != address(0),
             "Should support destination chain through config"
@@ -105,13 +57,13 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
     function testAuthorizationAndPermissions() public {
         console.log("=== Testing Authorization ===");
 
-        // Verify adapter registration
+        // Verify layerZeroAdapter registration
         assertTrue(
-            router.isValidAdapter(address(adapter)),
+            router.isValidAdapter(address(layerZeroAdapter)),
             "Adapter should be registered with router"
         );
 
-        // Test unauthorized direct adapter call fails
+        // Test unauthorized direct layerZeroAdapter call fails
         bytes32 testOperationId = keccak256("unauthorized_test");
         bytes memory message = abi.encode("Unauthorized test");
 
@@ -125,7 +77,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
 
         vm.startPrank(user);
         vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
-        adapter.sendMessage{value: 1 ether}(
+        layerZeroAdapter.sendMessage{value: 1 ether}(
             testOperationId,
             DEST_CHAIN_ID,
             keeper,
@@ -149,25 +101,29 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
 
         // Verify read channel configuration
         assertEq(
-            adapter.readChannelId(),
+            layerZeroAdapter.readChannelId(),
             READ_CHANNEL_ID,
             "Read channel should be configured"
         );
 
         // Verify chain mapping
         assertEq(
-            adapter.chainToLzEid(DEST_CHAIN_ID),
+            layerZeroAdapter.chainToLzEid(DEST_CHAIN_ID),
             ARB_LZ_EID,
             "Chain to LZ EID mapping should be correct"
         );
 
         // Verify operation support
         assertTrue(
-            adapter.supportsOperation(BridgeTypes.OperationType.MESSAGE),
+            layerZeroAdapter.supportsOperation(
+                BridgeTypes.OperationType.MESSAGE
+            ),
             "Should support MESSAGE operations"
         );
         assertTrue(
-            adapter.supportsOperation(BridgeTypes.OperationType.READ_STATE),
+            layerZeroAdapter.supportsOperation(
+                BridgeTypes.OperationType.READ_STATE
+            ),
             "Should support READ_STATE operations"
         );
 
@@ -184,20 +140,11 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
                 options: ""
             });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
+            specifiedAdapter: address(layerZeroAdapter), // Specify layerZeroAdapter if needed
             adapterParams: adapterParams
         });
 
         bytes memory message = abi.encode(messageContent);
-
-        vm.startPrank(user);
-        bytes32 queueId = bridgeQueue.queueSendMessage(
-            DEST_CHAIN_ID,
-            keeper,
-            message
-        );
-        vm.stopPrank();
-
         (uint256 nativeFee, , ) = router.quote(
             DEST_CHAIN_ID,
             address(0),
@@ -205,34 +152,26 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             options,
             BridgeTypes.OperationType.MESSAGE
         );
-
-        // Mock router calls
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options,
-                BridgeTypes.OperationType.MESSAGE
-            ),
-            abi.encode(nativeFee, uint256(0), address(adapter))
+        // Execute the operation (can be anyone, e.g., keeper or user) (PAYS FEE)
+        vm.startPrank(keeper); // Or user
+        bytes32 operationId = router.executeSendMessage{value: nativeFee}(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                recipient: user,
+                message: message,
+                originator: user,
+                keeper: address(keeper),
+                options: options
+            })
         );
-
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockSendMsgOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            nativeFee,
-            abi.encodeWithSelector(IBridgeRouter.executeSendMessage.selector),
-            abi.encode(expectedOperationId)
-        );
-
-        vm.startPrank(keeper);
-        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId, options);
         vm.stopPrank();
+
+        // --- Assertions ---
+        // Verify queue status updated post-execution
+        assertEq(
+            uint256(router.getOperationStatus(operationId)),
+            uint256(BridgeTypes.OperationStatus.SENT)
+        );
     }
 
     // Helper function to execute a bridge state read operation
@@ -245,53 +184,42 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
                 options: ""
             });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapter),
+            specifiedAdapter: address(layerZeroAdapter), // Explicitly specify layerZeroAdapter
             adapterParams: adapterParams
         });
 
-        vm.startPrank(user);
-        bytes32 queueId = bridgeQueue.queueReadState(
-            DEST_CHAIN_ID,
-            keeper,
-            bytes4(keccak256("balanceOf(address)")),
-            abi.encode(user)
-        );
-        vm.stopPrank();
+        bytes4 selector = bytes4(keccak256("balanceOf(address)"));
+        bytes memory callData = abi.encode(user); // Reading user balance
 
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
-        );
-
-        // Mock router calls
-        vm.mockCall(
-            address(router),
-            abi.encodeWithSelector(
-                IBridgeRouter.quote.selector,
+        // Now get quote for fees FOR EXECUTION
+        (uint256 nativeFee, , address specifiedAdapter) = router.quote( // Capture specified layerZeroAdapter
                 DEST_CHAIN_ID,
                 address(0),
                 0,
-                options,
+                options, // Use defined options
                 BridgeTypes.OperationType.READ_STATE
-            ),
-            abi.encode(nativeFee, uint256(0), address(adapter))
-        );
+            );
+        // Verify the specified layerZeroAdapter matches what we provided
+        assertEq(specifiedAdapter, address(layerZeroAdapter));
 
-        bytes32 expectedOperationId = keccak256(
-            abi.encodePacked("mockReadStateOpId", queueId)
-        );
-        vm.mockCall(
-            address(router),
-            nativeFee,
-            abi.encodeWithSelector(IBridgeRouter.executeReadState.selector),
-            abi.encode(expectedOperationId)
-        );
-
+        // Execute the operation (can be anyone) (PAYS FEE)
         vm.startPrank(keeper);
-        bridgeQueue.executeQueuedOperation{value: nativeFee}(queueId, options);
-        vm.stopPrank();
+        bytes32 operationId = router.executeReadState{value: nativeFee}(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                // todo: fix this
+                destinationContract: address(1),
+                selector: selector,
+                readParams: callData,
+                originator: user,
+                keeper: address(keeper),
+                options: options
+            })
+        );
+        assertEq(
+            uint256(router.getOperationStatus(operationId)),
+            uint256(BridgeTypes.OperationStatus.SENT)
+        );
+        // todo: expect calls to lz endpoint to be made
     }
 }

@@ -45,9 +45,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Flag to track if bridge configuration has been initialized
     bool public bridgeConfigInitialized;
 
-    /// @notice The bridge queue contract address
-    address public bridgeQueue;
-
     /// @notice The bridge router contract address
     address public bridgeRouter;
 
@@ -242,12 +239,10 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
     /**
      * @notice Initializes the bridge configuration parameters
-     * @param _bridgeQueue The address of the bridge queue contract
      * @param _bridgeRouter The address of the bridge router contract
      * @param _defaultGasLimit The default gas limit for cross-chain transactions
      */
     function initializeBridgeConfiguration(
-        address _bridgeQueue,
         address _bridgeRouter,
         uint256 _defaultGasLimit
     ) external onlyGovernor {
@@ -255,7 +250,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             revert BridgeConfigAlreadyInitialized();
         }
 
-        if (_bridgeQueue == address(0) || _bridgeRouter == address(0)) {
+        if (_bridgeRouter == address(0)) {
             revert AddressZero();
         }
 
@@ -263,27 +258,13 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             revert InvalidGasLimit();
         }
 
-        bridgeQueue = _bridgeQueue;
         bridgeRouter = _bridgeRouter;
         defaultGasLimit = _defaultGasLimit;
 
-        emit BridgeQueueUpdated(address(0), _bridgeQueue);
         emit BridgeRouterUpdated(address(0), _bridgeRouter);
         emit DefaultGasLimitUpdated(0, _defaultGasLimit);
 
         bridgeConfigInitialized = true;
-    }
-
-    /**
-     * @notice Updates the bridge queue address
-     * @param newBridgeQueue The new bridge queue address
-     */
-    function setBridgeQueue(address newBridgeQueue) external onlyGovernor {
-        if (newBridgeQueue == address(0)) {
-            revert AddressZero();
-        }
-        emit BridgeQueueUpdated(bridgeQueue, newBridgeQueue);
-        bridgeQueue = newBridgeQueue;
     }
 
     /**

@@ -17,9 +17,6 @@ interface ICrossChainConfigManaged {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Returns the address of the bridge queue contract
-    function bridgeQueue() external view returns (address);
-
     /// @notice Returns the address of the bridge router contract
     function bridgeRouter() external view returns (address);
 
