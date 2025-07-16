@@ -767,7 +767,7 @@ contract BridgeRouter is
     function recoverFunds(
         address recipient,
         uint256 amount
-    ) external onlyGovernor nonReentrant {
+    ) external nonReentrant onlyGovernor {
         if (recipient == address(0)) revert InvalidParams();
         if (address(this).balance < amount) revert InsufficientBalance();
 
