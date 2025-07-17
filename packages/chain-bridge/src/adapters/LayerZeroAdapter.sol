@@ -7,7 +7,6 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 /// forge-lint: disable-next-item(unused-import)
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
 import {BaseBridgeAdapter} from "./BaseBridgeAdapter.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
 import {MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
@@ -332,59 +331,14 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes32 messageId,
         uint16 srcChainId
     ) internal {
-        bool delivered = false;
-        bytes4 interfaceId = type(ICrossChainMessageReceiver).interfaceId;
-        try
-            ICrossChainMessageReceiver(recipient).supportsInterface(interfaceId)
-        returns (bool supported) {
-            if (supported) {
-                try
-                    ICrossChainMessageReceiver(recipient).receiveMessage(
-                        srcChainId,
-                        message
-                    )
-                {
-                    delivered = true;
-                } catch (bytes memory reason) {
-                    emit RelayFailed(messageId, reason);
-                }
-            } else {
-                (bool success, ) = recipient.call(
-                    abi.encodeWithSelector(
-                        ICrossChainMessageReceiver.receiveMessage.selector,
-                        srcChainId,
-                        message
-                    )
-                );
-                if (success) {
-                    delivered = true;
-                } else {
-                    emit RelayFailed(messageId, "Call failed");
-                }
-            }
-        } catch (bytes memory reason) {
-            emit RelayFailed(messageId, reason);
-        }
-
-        // Only call notifyMessageReceived if the delivery was successful
-        if (delivered) {
-            IBridgeRouter(bridgeRouter()).notifyMessageReceived(
-                messageId,
-                address(0), // No asset for general message
-                0, // No amount for general message
-                recipient,
-                srcChainId
-            );
-            // Emit event for message delivery
-            emit MessageDelivered(messageId, recipient, delivered);
-        } else {
-            // Update status to FAILED if delivery failed
-            _updateReceiveStatus(
-                messageId,
-                recipient,
-                BridgeTypes.OperationStatus.FAILED
-            );
-        }
+        IBridgeRouter(bridgeRouter()).deliver(
+            messageId,
+            srcChainId,
+            address(0), // no asset
+            0, // no amount
+            recipient,
+            message
+        );
     }
 
     /**
