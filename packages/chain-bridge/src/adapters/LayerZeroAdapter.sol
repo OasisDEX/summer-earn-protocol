@@ -50,9 +50,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Message type for general message
     uint16 public constant GENERAL_MESSAGE = 3;
 
-    /// @notice Mapping of message types to their minimum gas limits
-    mapping(uint16 msgType => uint128 minGasLimit) public minGasLimits;
-
     /// @notice Read channel identifier for lzRead operations
     uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Used to identify responses
 
@@ -140,10 +137,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             _supportedChainIds.add(_supportedChains[i]);
         }
 
-        // Initialize default minimum gas limits
-        minGasLimits[STATE_READ] = 700000;
-        minGasLimits[GENERAL_MESSAGE] = 700000;
-
         // Initialize operation type to message type mapping
         operationToMessageType[
             BridgeTypes.OperationType.MESSAGE
@@ -158,24 +151,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Sets the minimum gas limit for a specific message type
-     * @param msgType Message type to set minimum gas for
-     * @param gasLimit New minimum gas limit value
-     * @dev Can only be called by the contract owner
-     */
-    function setMinGasLimit(
-        uint16 msgType,
-        uint128 gasLimit
-    ) external onlyOwner {
-        minGasLimits[msgType] = gasLimit;
-    }
-
-    /**
      * @notice Activates a read channel for state reading operations
      * @param _readChannelId The ID of the read channel to activate
      * @dev Can only be called by the contract owner
      */
-    function activateReadChannel(uint32 _readChannelId) external onlyOwner {
+    function activateReadChannel(uint32 _readChannelId) external onlyGovernor {
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
     }
@@ -189,7 +169,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function addSupportedChain(
         uint16 chainId,
         uint32 lzEid
-    ) external onlyOwner {
+    ) external onlyGovernor {
         chainToLzEid[chainId] = lzEid;
         lzEidToChain[lzEid] = chainId;
         _supportedChainIds.add(chainId);
@@ -200,7 +180,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param chainId Chain ID to remove
      * @dev Can only be called by the contract owner
      */
-    function removeSupportedChain(uint16 chainId) external onlyOwner {
+    function removeSupportedChain(uint16 chainId) external onlyGovernor {
         uint32 lzEid = chainToLzEid[chainId];
         delete chainToLzEid[chainId];
         delete lzEidToChain[lzEid];
@@ -214,7 +194,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      */
     function configureReadLibraries(
         address readLib1002Address
-    ) external onlyOwner {
+    ) external onlyGovernor {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
         // Set send library for read channel
@@ -249,7 +229,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         address[] memory readDVNs,
         uint64 confirmations,
         address executor
-    ) external onlyOwner {
+    ) external onlyGovernor {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
         if (readDVNs.length == 0) revert InvalidParams();
         if (readLib1002Address == address(0)) revert InvalidParams();
@@ -697,13 +677,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         BridgeTypes.AdapterParams memory adapterParams,
         uint16 msgType
     ) internal view returns (bytes memory) {
-        // Get minimum gas limit for this message type
-        uint128 minimumGas = minGasLimits[msgType];
-
-        // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = adapterParams.gasLimit < minimumGas
-            ? minimumGas
-            : uint128(adapterParams.gasLimit);
+        uint128 gasLimit = adapterParams.gasLimit > 0
+            ? uint128(adapterParams.gasLimit)
+            : uint128(defaultGasLimit());
 
         // Use the helper to create messaging options with minimum gas limit enforcement
         if (msgType == STATE_READ) {
@@ -733,16 +709,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint16 _msgType,
         bytes memory _payload
     ) public view returns (uint256 requiredFee) {
-        // Get minimum gas limit for this message type
-        uint128 minimumGas = minGasLimits[_msgType];
-
         // Create default options with minimum - use scoping to avoid stack too deep
         bytes memory options;
         {
             // Create params in limited scope
             BridgeTypes.AdapterParams memory params = BridgeTypes
                 .AdapterParams({
-                    gasLimit: uint64(minimumGas),
+                    gasLimit: uint64(defaultGasLimit()),
                     msgValue: 0,
                     calldataSize: 0,
                     options: bytes("")
@@ -752,13 +725,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                 // For state read, create read options with minimum gas
                 options = LayerZeroOptionsHelper.createLzReadOptions(
                     params,
-                    minimumGas
+                    uint128(defaultGasLimit())
                 );
             } else {
                 // For standard messaging, create messaging options with minimum gas
                 options = LayerZeroOptionsHelper.createMessagingOptions(
                     params,
-                    minimumGas
+                    uint128(defaultGasLimit())
                 );
             }
         }

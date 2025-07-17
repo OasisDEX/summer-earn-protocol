@@ -130,14 +130,9 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         address executor = EXECUTOR_BASE;
         address readDvn = READ_DVN_BASE;
         uint64 confirmations = 15;
-        uint128 minGasLimit = 300000;
 
         // Step 1: Activate read channel
         layerZeroAdapter.activateReadChannel(readChannelId);
-
-        // Step 2: Set minimum gas limits for STATE_READ (2) and GENERAL_MESSAGE (3)
-        layerZeroAdapter.setMinGasLimit(2, minGasLimit); // STATE_READ
-        layerZeroAdapter.setMinGasLimit(3, minGasLimit); // GENERAL_MESSAGE
 
         // Step 3: Configure read libraries (ReadLib1002)
         layerZeroAdapter.configureReadLibraries(readLib1002);
