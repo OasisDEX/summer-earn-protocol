@@ -119,15 +119,4 @@ contract StargateAdapterReceiveTest is StargateAdapterSetupTest {
         assertEq(adapterGasLimit, registryGasLimit);
         assertEq(adapterGasLimit, 400000); // From setup
     }
-
-    function testComposeGasLimitUsesDefault() public {
-        useNetworkA();
-
-        // Set compose gas limit to 0 to test fallback to default
-        vm.prank(governor);
-        adapterA.setComposeGasLimit(0);
-
-        // Should use default gas limit from registry
-        assertEq(adapterA.composeGasLimit(), registryA.defaultGasLimit());
-    }
 }

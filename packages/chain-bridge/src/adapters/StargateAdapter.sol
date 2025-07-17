@@ -8,12 +8,10 @@ import {IBridgeAdapter, ISendAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {BaseBridgeAdapter} from "./BaseBridgeAdapter.sol";
-import {ICrossChainArk} from "../interfaces/ICrossChainArk.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
@@ -21,8 +19,6 @@ import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/in
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
-import {IFleetCommanderMinimal} from "../interfaces/IFleetCommanderMinimal.sol";
-import {IHarborCommandMinimal} from "../interfaces/IHarborCommandMinimal.sol";
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
 
@@ -115,9 +111,6 @@ contract StargateAdapter is
     /// @notice Default transport mode (true = taxi, false = bus)
     /// @dev Taxi mode is required for composability - bus mode does not support compose
     bool public defaultUseTaxi = true;
-
-    /// @notice Gas limit for compose execution on destination
-    uint256 public composeGasLimit = 400000;
 
     /// @notice Maximum slippage tolerance (10% = 1000 basis points)
     uint256 public constant MAX_SLIPPAGE_BPS = 1000;
@@ -259,22 +252,6 @@ contract StargateAdapter is
     }
 
     /**
-     * @notice Sets the gas limit for compose execution
-     * @param _composeGasLimit New gas limit for compose execution (0 uses default from config manager)
-     */
-    function setComposeGasLimit(
-        uint256 _composeGasLimit
-    ) external onlyGovernor {
-        if (_composeGasLimit == 0) {
-            composeGasLimit = defaultGasLimit();
-        } else {
-            composeGasLimit = _composeGasLimit;
-        }
-
-        emit ComposeGasLimitUpdated(composeGasLimit);
-    }
-
-    /**
      * @notice Sets the slippage tolerance for fallback minimum amount calculation
      * @param _slippageBps New slippage tolerance in basis points (e.g., 50 = 0.5%)
      */
@@ -406,53 +383,6 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Send fleet deposit to destination chain using Stargate
-     */
-    function _sendFleetDepositToDestinationChain(
-        address asset,
-        uint256 amount,
-        uint16 destinationChainId,
-        address destinationAdapter,
-        bytes memory composeMsg,
-        uint256 providedFee
-    ) internal {
-        address stargateContract = assetToStargateContract[asset];
-        IStargateV2 stargate = IStargateV2(stargateContract);
-
-        // Approve Stargate contract to spend the tokens
-        IERC20(asset).approve(stargateContract, 0);
-        IERC20(asset).approve(stargateContract, amount);
-
-        // Build SendParam for fleet deposit
-        SendParam memory sendParam = _buildFleetDepositSendParam(
-            destinationChainId,
-            destinationAdapter,
-            amount,
-            composeMsg
-        );
-
-        // Update minAmountLD based on quote
-        _updateMinAmount(stargate, sendParam, amount);
-
-        // Execute transfer
-        _performTransfer(
-            stargate,
-            sendParam,
-            TransferParams({
-                stargateContract: stargateContract,
-                destinationChainId: destinationChainId,
-                asset: asset,
-                recipient: destinationAdapter,
-                amount: amount,
-                originator: msg.sender,
-                keeper: msg.sender,
-                operationId: bytes32(0) // Will be in compose message
-            }),
-            providedFee
-        );
-    }
-
-    /**
      * @dev Execute the actual sendToken call
      */
     function _executeSendToken(
@@ -490,35 +420,6 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Build SendParam struct for fleet deposits
-     */
-    function _buildFleetDepositSendParam(
-        uint16 destinationChainId,
-        address destinationAdapter,
-        uint256 amount,
-        bytes memory composeMsg
-    ) internal view returns (SendParam memory) {
-        // Always use taxi mode for compose functionality
-        bytes memory oftCmd = OftCmdHelper.taxi();
-
-        // Add compose options for fleet deposit
-        bytes memory extraOptions = OptionsBuilder
-            .newOptions()
-            .addExecutorLzComposeOption(0, uint128(composeGasLimit), 0);
-
-        return
-            SendParam({
-                dstEid: chainToEndpointId[destinationChainId],
-                to: destinationAdapter.toBytes32(),
-                amountLD: amount,
-                minAmountLD: amount,
-                extraOptions: extraOptions,
-                composeMsg: composeMsg,
-                oftCmd: oftCmd
-            });
-    }
-
-    /**
      * @dev Build SendParam struct
      */
     function _buildSendParam(
@@ -535,7 +436,7 @@ contract StargateAdapter is
         bytes memory extraOptions = composeMsg.length > 0
             ? OptionsBuilder.newOptions().addExecutorLzComposeOption(
                 0,
-                uint128(composeGasLimit),
+                uint128(defaultGasLimit()),
                 0
             )
             : bytes("");
@@ -676,7 +577,7 @@ contract StargateAdapter is
         // Use compose gas limit from adapter params if provided, otherwise use default
         uint256 gasLimit = adapterParams.gasLimit > 0
             ? adapterParams.gasLimit
-            : composeGasLimit;
+            : defaultGasLimit();
 
         // Always include compose options in fee estimation
         bytes memory extraOptions = OptionsBuilder
@@ -837,32 +738,6 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Decode fleet deposit compose message
-     * @param composeMessage The encoded compose message
-     * @return Decoded message data
-     */
-    function _decodeFleetDepositMessage(
-        bytes memory composeMessage
-    ) internal pure returns (BridgeTypes.FleetDepositMessageData memory) {
-        (, BridgeTypes.FleetDepositMessageData memory messageData) = abi.decode(
-            composeMessage,
-            (bytes32, BridgeTypes.FleetDepositMessageData)
-        );
-        return messageData;
-    }
-
-    /**
-     * @dev Encode fleet deposit compose message
-     * @param data The message data to encode
-     * @return Encoded compose message
-     */
-    function _encodeFleetDepositMessage(
-        BridgeTypes.FleetDepositMessageData memory data
-    ) internal pure returns (bytes memory) {
-        return abi.encode(BridgeTypes.USER_FLEET_DEPOSIT_TYPE, data);
-    }
-
-    /**
      * @dev Internal function to handle the composed message logic - EXTENDED for Fleet Deposits
      */
     function _handleComposedMessage(
@@ -873,62 +748,7 @@ contract StargateAdapter is
         // Get the received asset from the Stargate contract
         address receivedAsset = IStargateV2(_from).token();
 
-        // Read the message type from the first parameter of the compose message
-        bytes32 messageType;
-        assembly {
-            messageType := mload(add(composeMsg, 0x20))
-        }
-
-        if (messageType == BridgeTypes.USER_FLEET_DEPOSIT_TYPE) {
-            _handleUserFleetDepositMessage(amount, composeMsg, receivedAsset);
-        } else {
-            _handleAssetTransferMessage(amount, composeMsg, receivedAsset);
-        }
-    }
-
-    /**
-     * @dev Handle user fleet deposit compose messages
-     */
-    function _handleUserFleetDepositMessage(
-        uint256 amount,
-        bytes memory composeMsg,
-        address receivedAsset
-    ) internal {
-        // Decode user message from FleetDepositManager
-        BridgeTypes.FleetDepositMessageData
-            memory messageData = _decodeFleetDepositMessage(composeMsg);
-
-        // Try fleet deposit
-        bool success = _tryDepositToFleetCommander(
-            messageData.fleetCommander,
-            receivedAsset,
-            amount,
-            messageData.shareRecipient,
-            messageData.referralCode,
-            messageData.operationId,
-            uint16(messageData.sourceChainId)
-        );
-
-        if (!success) {
-            // User-initiated: ALWAYS send to shareRecipient
-            _handleUserInitiatedFailure(
-                receivedAsset,
-                amount,
-                messageData.shareRecipient,
-                messageData.operationId,
-                messageData.originalUser,
-                uint16(messageData.sourceChainId)
-            );
-            return;
-        }
-
-        emit ComposedAssetHandled(
-            messageData.operationId,
-            messageData.fleetCommander,
-            receivedAsset,
-            amount,
-            uint16(messageData.sourceChainId)
-        );
+        _handleAssetTransferMessage(amount, composeMsg, receivedAsset);
     }
 
     /**
@@ -942,7 +762,7 @@ contract StargateAdapter is
         // Decode the compose message
         (
             address recipient,
-            address sourceAsset,
+            address sourceAsset, // unused amount param in composeMsg
             ,
             uint256 sourceChainId,
             bytes32 operationId,
@@ -952,239 +772,28 @@ contract StargateAdapter is
                 (address, address, uint256, uint256, bytes32, address)
             );
 
-        // Basic validation - fail fast
-        if (
-            receivedAsset == address(0) ||
-            recipient == address(0) ||
-            amount == 0
-        ) {
-            revert InvalidParams();
-        }
+        // -----------------------------------------------------------------
+        // 1. Forward the tokens the adapter just received to the router
+        // -----------------------------------------------------------------
+        IERC20(receivedAsset).safeTransfer(bridgeRouter(), amount);
 
-        // Check adapter balance
-        uint256 adapterBalance = IERC20(receivedAsset).balanceOf(address(this));
-        if (adapterBalance < amount) {
-            revert InsufficientBalance();
-        }
+        // -----------------------------------------------------------------
+        // 2. Build the payload the end-recipient expects
+        //    (same shape as before, just without the token/amount fields)
+        // -----------------------------------------------------------------
+        bytes memory payload = abi.encode(operationId, originator, sourceAsset);
 
-        // Try to deliver assets - if it fails, hold them for governance recovery
-        bool success = _tryDeliverAssets(
-            recipient,
+        // -----------------------------------------------------------------
+        // 3. Let the BridgeRouter finish the delivery
+        // -----------------------------------------------------------------
+        IBridgeRouter(bridgeRouter()).deliver(
+            operationId,
+            uint16(sourceChainId),
             receivedAsset,
             amount,
-            operationId,
-            originator,
-            sourceAsset,
-            uint16(sourceChainId)
-        );
-        if (!success) {
-            // todo:what recovery mechanism to use ?
-            emit ComposeCallFailed(
-                operationId,
-                recipient,
-                uint16(sourceChainId)
-            );
-        }
-
-        emit ComposedAssetHandled(
-            operationId,
             recipient,
-            receivedAsset,
-            amount,
-            uint16(sourceChainId)
+            payload
         );
-    }
-
-    /**
-     * @dev Try to deposit assets to FleetCommander without reverting on failure
-     */
-    function _tryDepositToFleetCommander(
-        address fleetCommander,
-        address asset,
-        uint256 amount,
-        address shareRecipient,
-        bytes memory referralCode,
-        bytes32 operationId,
-        uint16 sourceChainId
-    ) internal returns (bool success) {
-        // Validate FleetCommander is active through HarborCommand
-        if (
-            !IHarborCommandMinimal(HARBOR_COMMAND).activeFleetCommanders(
-                fleetCommander
-            )
-        ) {
-            emit CrossChainFleetDepositFailed(
-                operationId,
-                fleetCommander,
-                asset,
-                amount,
-                "FleetCommander not active"
-            );
-            return false;
-        }
-
-        // Validate FleetCommander supports the asset
-        address fleetAsset = IFleetCommanderMinimal(fleetCommander).asset();
-        if (fleetAsset != asset) {
-            emit CrossChainFleetDepositFailed(
-                operationId,
-                fleetCommander,
-                asset,
-                amount,
-                "Asset mismatch"
-            );
-            return false;
-        }
-
-        // Check deposit limits
-        uint256 maxDeposit = IFleetCommanderMinimal(fleetCommander).maxDeposit(
-            address(this)
-        );
-        if (amount > maxDeposit) {
-            emit CrossChainFleetDepositFailed(
-                operationId,
-                fleetCommander,
-                asset,
-                amount,
-                "Exceeds max deposit"
-            );
-            return false;
-        }
-
-        // Approve FleetCommander to spend tokens
-        IERC20(asset).approve(fleetCommander, amount);
-
-        // Deposit to FleetCommander using helper methods
-        uint256 shares;
-        bool depositSuccess;
-
-        if (referralCode.length > 0) {
-            (depositSuccess, shares) = _executeFleetDepositWithReferral(
-                fleetCommander,
-                amount,
-                shareRecipient,
-                referralCode
-            );
-            if (!depositSuccess) {
-                emit CrossChainFleetDepositFailed(
-                    operationId,
-                    fleetCommander,
-                    asset,
-                    amount,
-                    "Deposit with referral failed"
-                );
-                return false;
-            }
-        } else {
-            (depositSuccess, shares) = _executeFleetDepositWithoutReferral(
-                fleetCommander,
-                amount,
-                shareRecipient
-            );
-            if (!depositSuccess) {
-                emit CrossChainFleetDepositFailed(
-                    operationId,
-                    fleetCommander,
-                    asset,
-                    amount,
-                    "Deposit failed"
-                );
-                return false;
-            }
-        }
-
-        if (depositSuccess) {
-            emit CrossChainFleetDepositCompleted(
-                operationId,
-                fleetCommander,
-                shareRecipient,
-                asset,
-                amount,
-                shares,
-                sourceChainId
-            );
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @dev Try to deliver assets to recipient without reverting on failure
-     */
-    function _tryDeliverAssets(
-        address recipient,
-        address asset,
-        uint256 amount,
-        bytes32 operationId,
-        address originator,
-        address sourceAsset,
-        uint16 sourceChainId
-    ) internal returns (bool success) {
-        // Transfer tokens first
-        IERC20(asset).safeTransfer(recipient, amount);
-
-        // Try to call recipient - return false if it fails
-        try
-            ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
-                asset,
-                amount,
-                abi.encode(operationId, originator, sourceAsset),
-                sourceChainId
-            )
-        {
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    /**
-     * @dev Validates that a fleet commander is active through HarborCommand
-     * @param fleetCommander Address of the fleet commander to validate
-     * @dev Reverts with InvalidFleetCommander if fleet commander is not active
-     */
-    function _validateFleetCommander(address fleetCommander) internal view {
-        if (
-            !IHarborCommandMinimal(HARBOR_COMMAND).activeFleetCommanders(
-                fleetCommander
-            )
-        ) {
-            revert InvalidFleetCommander();
-        }
-    }
-
-    /**
-     * @dev Check if an address is a FleetProxy (vs CrossChainArk)
-     * @dev This helps determine the recovery strategy
-     * @dev FleetProxy: supports ICrossChainAssetReceiver but NOT ICrossChainArk
-     * @dev CrossChainArk: supports both ICrossChainAssetReceiver AND ICrossChainArk
-     */
-    function _isFleetProxy(address recipient) internal view returns (bool) {
-        // If it supports ICrossChainArk, it's a CrossChainArk, not a FleetProxy
-        try
-            IERC165(recipient).supportsInterface(
-                type(ICrossChainArk).interfaceId
-            )
-        returns (bool supportsArk) {
-            if (supportsArk) {
-                return false; // It's a CrossChainArk
-            }
-        } catch {
-            // If we can't check, assume it's not a CrossChainArk
-        }
-
-        // Check if it supports ICrossChainAssetReceiver (both FleetProxy and CrossChainArk do)
-        // But we already ruled out CrossChainArk above, so if it supports this, it's likely a FleetProxy
-        try
-            IERC165(recipient).supportsInterface(
-                type(ICrossChainAssetReceiver).interfaceId
-            )
-        returns (bool supportsReceiver) {
-            return supportsReceiver;
-        } catch {
-            return false; // Can't determine, assume not a FleetProxy
-        }
     }
 
     /**
@@ -1282,93 +891,5 @@ contract StargateAdapter is
      */
     function getAdapterBalance(address asset) external view returns (uint256) {
         return IERC20(asset).balanceOf(address(this));
-    }
-
-    /**
-     * @dev Execute fleet deposit with referral code
-     * @param fleetCommander Address of the fleet commander
-     * @param amount Amount to deposit
-     * @param shareRecipient Address to receive the shares
-     * @param referralCode Referral code for the deposit
-     * @return success Whether the deposit succeeded
-     * @return shares Number of shares received (0 if failed)
-     */
-    function _executeFleetDepositWithReferral(
-        address fleetCommander,
-        uint256 amount,
-        address shareRecipient,
-        bytes memory referralCode
-    ) internal returns (bool success, uint256 shares) {
-        try
-            IFleetCommanderMinimal(fleetCommander).deposit(
-                amount,
-                shareRecipient,
-                referralCode
-            )
-        returns (uint256 _shares) {
-            return (true, _shares);
-        } catch {
-            return (false, 0);
-        }
-    }
-
-    /**
-     * @dev Execute fleet deposit without referral code
-     * @param fleetCommander Address of the fleet commander
-     * @param amount Amount to deposit
-     * @param shareRecipient Address to receive the shares
-     * @return success Whether the deposit succeeded
-     * @return shares Number of shares received (0 if failed)
-     */
-    function _executeFleetDepositWithoutReferral(
-        address fleetCommander,
-        uint256 amount,
-        address shareRecipient
-    ) internal returns (bool success, uint256 shares) {
-        try
-            IFleetCommanderMinimal(fleetCommander).deposit(
-                amount,
-                shareRecipient
-            )
-        returns (uint256 _shares) {
-            return (true, _shares);
-        } catch {
-            return (false, 0);
-        }
-    }
-
-    /**
-     * @dev Handle failure for user-initiated transactions - send assets to shareRecipient
-     */
-    function _handleUserInitiatedFailure(
-        address asset,
-        uint256 amount,
-        address shareRecipient,
-        bytes32 operationId,
-        address originalUser,
-        uint16 sourceChainId
-    ) internal {
-        // Send assets directly to the shareRecipient on destination chain
-        IERC20(asset).safeTransfer(shareRecipient, amount);
-
-        // Emit UserRefundIssued event
-        emit UserRefundIssued(
-            operationId,
-            asset,
-            amount,
-            shareRecipient,
-            originalUser,
-            sourceChainId,
-            "Fleet deposit failed"
-        );
-
-        // Emit CrossChainFleetDepositFailed event with address(0) for user refunds
-        emit CrossChainFleetDepositFailed(
-            operationId,
-            address(0), // fleetCommander set to address(0) for user refunds
-            asset,
-            amount,
-            "Fleet deposit failed - assets sent to user"
-        );
     }
 }
