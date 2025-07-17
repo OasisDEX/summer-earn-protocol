@@ -33,6 +33,7 @@ const AUCTIONS_QUERY = `
       decayType
       duration
       isFinalized
+      raft
     }
   }
 `

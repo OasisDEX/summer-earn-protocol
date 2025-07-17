@@ -31,6 +31,7 @@ const FINISHED_AUCTIONS_QUERY = `
       tokensLeft
       tokensLeftNormalized
       isFinalized
+      raft
       purchases {
         id
         buyer {

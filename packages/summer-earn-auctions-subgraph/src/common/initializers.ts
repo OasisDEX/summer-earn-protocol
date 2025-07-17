@@ -1,6 +1,7 @@
 import { Address, BigInt } from '@graphprotocol/graph-ts'
 import { ERC20 as ERC20Contract } from '../../generated/HarborCommand/ERC20'
 import { Ark as ArkContract } from '../../generated/Raft/Ark'
+import { Raft as RaftContract } from '../../generated/Raft/Raft'
 import { Account, Ark, ArkAuctionParameters, Auction, Token } from '../../generated/schema'
 import { addresses, services } from './addressProvider'
 import * as constants from './constants'
@@ -19,6 +20,7 @@ export function getOrCreateAuction(
   if (!auction && ark != Address.zero() && rewardToken != Address.zero()) {
     auction = new Auction(raft.toHexString() + '-' + auctionId.toString())
     auction.startTimestamp = startTimestamp
+    auction.raft = raft.toHexString()
     updateAuction(auction, ark, rewardToken)
   }
   return auction!
@@ -26,7 +28,9 @@ export function getOrCreateAuction(
 
 export function updateAuction(auction: Auction, ark: Address, rewardToken: Address): void {
   const autionParams = getOrCreateArkAuctionParameters(ark, rewardToken)
-  const auctionState = services.raft.try_auctions(ark, rewardToken)
+
+  const raftContract = RaftContract.bind(Address.fromString(auction.raft))
+  const auctionState = raftContract.try_auctions(ark, rewardToken)
   const state = auctionState.value.getState()
 
   const rewardTokenEntity = getOrCreateToken(rewardToken)
