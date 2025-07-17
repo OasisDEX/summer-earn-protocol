@@ -42,7 +42,7 @@ contract FleetProxy is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The address of the Fleet contract that this proxy covers
-    address public immutable fleetContract;
+    address public immutable fleetAddress;
 
     /// @notice Amount of withdrawal assets currently in-flight (being bridged back)
     uint256 public inflightWithdrawals;
@@ -59,13 +59,13 @@ contract FleetProxy is
      * @param _accessManager Address of the access manager
      * @param _bridgeRouter Address of the bridge router
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
-     * @param _fleetContract Address of the Fleet contract this proxy covers
+     * @param _fleetAddress Address of the Fleet contract this proxy covers
      */
     constructor(
         address _accessManager,
         address _bridgeRouter,
         address _crossChainRegistry,
-        address _fleetContract,
+        address _fleetAddress,
         uint16 _sourceChainId
     )
         ProtocolAccessManaged(_accessManager)
@@ -73,9 +73,9 @@ contract FleetProxy is
     {
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
-        if (_fleetContract == address(0)) revert InvalidFleetContract();
+        if (_fleetAddress == address(0)) revert InvalidFleetContract();
 
-        fleetContract = _fleetContract;
+        fleetAddress = _fleetAddress;
         hubChainId = _sourceChainId;
     }
 
@@ -91,7 +91,7 @@ contract FleetProxy is
     /// @inheritdoc IFleetProxy
     function totalAssets() external view returns (uint256) {
         return
-            IFleetCommander(fleetContract).totalAssets() + inflightWithdrawals;
+            IFleetCommander(fleetAddress).totalAssets() + inflightWithdrawals;
     }
 
     /// @inheritdoc IFleetProxy
@@ -131,7 +131,7 @@ contract FleetProxy is
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
 
         // 1. Get the asset from fleet contract
-        address asset = IERC4626(fleetContract).asset();
+        address asset = IERC4626(fleetAddress).asset();
         if (params.amount == 0) revert NoAssets();
 
         if (params.asset != asset) revert InvalidAsset();
@@ -142,7 +142,7 @@ contract FleetProxy is
             revert InvalidRecipient();
 
         // 2. Withdraw from fleet contract
-        IFleetCommander(fleetContract).withdraw(
+        IFleetCommander(fleetAddress).withdraw(
             params.amount,
             address(this),
             address(this)
@@ -195,7 +195,7 @@ contract FleetProxy is
         }
 
         // Check if the asset matches the fleet's asset
-        if (asset != IERC4626(fleetContract).asset()) {
+        if (asset != IERC4626(fleetAddress).asset()) {
             revert InvalidAsset();
         }
 
@@ -289,12 +289,12 @@ contract FleetProxy is
         uint16 _hubChainId
     ) internal {
         // Approve the fleet contract to take the assets
-        IERC20(asset).forceApprove(fleetContract, amount);
+        IERC20(asset).forceApprove(fleetAddress, amount);
 
         // Deposit the assets into the fleet contract
-        IFleetCommander(fleetContract).deposit(amount, address(this));
+        IFleetCommander(fleetAddress).deposit(amount, address(this));
 
         // Emit an event for tracking
-        emit ProxyDeposit(fleetContract, asset, amount, _hubChainId);
+        emit ProxyDeposit(fleetAddress, asset, amount, _hubChainId);
     }
 }
