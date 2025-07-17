@@ -455,9 +455,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         // Convert destinationChainId to LayerZero EID
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
-        // Look up the message type from the mapping
-        uint16 messageType = uint16(operationType);
-
         if (!supportsOperation(operationType)) revert OperationNotSupported();
 
         // Create appropriate payload based on message type
