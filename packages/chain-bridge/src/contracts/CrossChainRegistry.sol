@@ -648,22 +648,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
     }
 
-    /**
-     * @notice Get all Fleets registered for a given Ark
-     * @param arkProxy Address of the Ark proxy
-     * @return fleetProxies Array of Fleet proxy addresses
-     * @return fleetChainIds Array of chain IDs where the Fleets are deployed
-     */
-    function getAllFleetsForArk(
-        address arkProxy
-    )
-        external
-        view
-        returns (address[] memory fleetProxies, uint16[] memory fleetChainIds)
-    {
-        return getTargetsForSource(arkProxy, ARK_FLEET);
-    }
-
     /*//////////////////////////////////////////////////////////////
                         VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

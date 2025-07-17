@@ -9,7 +9,6 @@ import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {console} from "forge-std/console.sol";
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
 import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
 

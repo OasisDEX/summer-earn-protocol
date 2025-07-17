@@ -10,6 +10,7 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {console} from "forge-std/console.sol";
+import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 
 contract MockAdapter is IBridgeAdapter {
     using SafeERC20 for IERC20;
@@ -108,7 +109,7 @@ contract MockAdapter is IBridgeAdapter {
     ) external payable {
         // Check caller is bridge router
         if (msg.sender != bridgeRouter) {
-            revert Unauthorized();
+            revert BaseBridgeAdapter.Unauthorized();
         }
 
         // Verify chain and asset are supported
@@ -144,7 +145,7 @@ contract MockAdapter is IBridgeAdapter {
         BridgeTypes.AdapterParams calldata
     ) external payable {
         // Check caller is bridge router
-        if (msg.sender != bridgeRouter) revert Unauthorized();
+        if (msg.sender != bridgeRouter) revert BaseBridgeAdapter.Unauthorized();
 
         // Verify chain is supported
         if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
@@ -232,7 +233,7 @@ contract MockAdapter is IBridgeAdapter {
         BridgeTypes.AdapterParams calldata
     ) external payable {
         // Check caller is bridge router
-        if (msg.sender != bridgeRouter) revert Unauthorized();
+        if (msg.sender != bridgeRouter) revert BaseBridgeAdapter.Unauthorized();
 
         // Verify chain is supported
         if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();

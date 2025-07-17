@@ -451,19 +451,6 @@ interface ICrossChainRegistry {
         uint16 fleetChainId
     ) external view returns (bool);
 
-    /**
-     * @notice Get all Fleets registered for a given Ark
-     * @param arkProxy Address of the Ark proxy
-     * @return fleetProxies Array of Fleet proxy addresses
-     * @return fleetChainIds Array of chain IDs where the Fleets are deployed
-     */
-    function getAllFleetsForArk(
-        address arkProxy
-    )
-        external
-        view
-        returns (address[] memory fleetProxies, uint16[] memory fleetChainIds);
-
     /*//////////////////////////////////////////////////////////////
                             EXECUTOR FUNCTIONS
     //////////////////////////////////////////////////////////////*/

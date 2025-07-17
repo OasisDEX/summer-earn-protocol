@@ -7,9 +7,9 @@ import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 import {console} from "forge-std/Test.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyA;
@@ -104,7 +104,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // Should revert when called by non-endpoint
-        vm.expectRevert(IBridgeAdapter.Unauthorized.selector);
+        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),

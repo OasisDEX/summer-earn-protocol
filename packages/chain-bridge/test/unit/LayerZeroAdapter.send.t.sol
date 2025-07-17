@@ -8,6 +8,7 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     using OptionsBuilder for bytes;
@@ -225,7 +226,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         // Should revert with Unauthorized since only the router can call sendMessage
         vm.expectRevert(
-            abi.encodeWithSelector(IBridgeAdapter.Unauthorized.selector)
+            abi.encodeWithSelector(BaseBridgeAdapter.Unauthorized.selector)
         );
 
         adapterA.sendMessage{value: 0.1 ether}(

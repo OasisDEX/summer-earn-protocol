@@ -323,12 +323,14 @@ contract StargateAdapter is
         address originator,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable onlySupportedDestination(dstChainId) nonReentrant {
-        // Store msg.value early
+    )
+        external
+        payable
+        onlySupportedDestination(dstChainId)
+        onlyRouter
+        nonReentrant
+    {
         uint256 providedFee = msg.value;
-
-        // Only the BridgeRouter should call this function
-        if (msg.sender != bridgeRouter()) revert Unauthorized();
 
         // Resolve destination adapter via registry
         address destinationAdapter = _peerAdapter(dstChainId);

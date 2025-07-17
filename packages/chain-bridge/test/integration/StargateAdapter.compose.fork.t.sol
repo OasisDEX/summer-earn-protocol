@@ -10,9 +10,9 @@ import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 
 /**
  * @title StargateAdapterComposeForkTest
@@ -224,7 +224,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Check that it reverted with Unauthorized error
-        bytes4 unauthorizedSelector = IBridgeAdapter.Unauthorized.selector;
+        bytes4 unauthorizedSelector = BaseBridgeAdapter.Unauthorized.selector;
 
         // The return data should contain the revert reason
         assertTrue(returnData.length >= 4, "Should have revert data");

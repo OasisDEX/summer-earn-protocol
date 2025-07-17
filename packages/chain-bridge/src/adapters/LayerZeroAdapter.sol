@@ -389,14 +389,14 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @inheritdoc ISendAdapter
     function transferAsset(
         bytes32, // operationId - not used by LayerZero adapter
-        uint16,
+        uint16 destinationChainId,
         address,
         address,
         uint256,
         address,
         address, // keeper - not used by LayerZero adapter
         BridgeTypes.AdapterParams calldata
-    ) external payable {
+    ) external payable onlySupportedDestination(destinationChainId) {
         // This adapter doesn't support asset transfers directly
         // It should never be called for this purpose due to capability flags
         revert OperationNotSupported();
@@ -409,7 +409,12 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint256,
         BridgeTypes.AdapterParams calldata adapterParams,
         BridgeTypes.OperationType operationType
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+    )
+        external
+        view
+        onlySupportedDestination(destinationChainId)
+        returns (uint256 nativeFee, uint256 tokenFee)
+    {
         // Convert destinationChainId to LayerZero EID
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
@@ -486,10 +491,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes calldata readParams,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable nonReentrant {
-        // Only BridgeRouter should call this
-        if (msg.sender != bridgeRouter()) revert Unauthorized();
-
+    )
+        external
+        payable
+        onlySupportedDestination(destinationChainId)
+        onlyRouter
+        nonReentrant
+    {
         // Ensure a read channel has been configured
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
@@ -555,10 +563,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes calldata message,
         address keeper,
         BridgeTypes.AdapterParams calldata adapterParams
-    ) external payable nonReentrant {
-        // Only the BridgeRouter should call this function
-        if (msg.sender != bridgeRouter()) revert Unauthorized();
-
+    )
+        external
+        payable
+        onlySupportedDestination(destinationChainId)
+        onlyRouter
+        nonReentrant
+    {
         // Get the LayerZero EID for destination chain
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 

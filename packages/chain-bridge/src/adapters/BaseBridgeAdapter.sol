@@ -20,6 +20,9 @@ abstract contract BaseBridgeAdapter is
     /// @notice Error thrown when chain ID exceeds uint16 max value
     error ChainIdTooLarge(uint256 chainId);
 
+    /// @notice Thrown when a call is made by an unauthorized address
+    error Unauthorized();
+
     ICrossChainRegistry public immutable REGISTRY;
     uint16 public immutable THIS_CHAIN;
 
@@ -56,6 +59,11 @@ abstract contract BaseBridgeAdapter is
         ) {
             revert UntrustedSourceAdapter(srcAdapter, srcChain);
         }
+        _;
+    }
+
+    modifier onlyRouter() {
+        if (msg.sender != bridgeRouter()) revert Unauthorized();
         _;
     }
 
