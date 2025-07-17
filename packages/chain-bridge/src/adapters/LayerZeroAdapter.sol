@@ -298,6 +298,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         }
 
         // Check if this is a response from a read channel
+        // srcEid - Read Channel ID for Read operations -
+        // https://docs.layerzero.network/v2/developers/evm/lzread/overview#hybrid-messaging--read
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
             _handleReadResponse(_origin, _guid, _payload);
             return;

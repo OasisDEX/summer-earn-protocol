@@ -11,38 +11,6 @@ import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
-    // Implement the executeMessage helper function required by the abstract base test
-    function executeMessage(
-        uint32 srcEid,
-        address srcAdapter,
-        address dstAdapter
-    ) internal {
-        // Implementation for general tests
-        Origin memory origin = Origin({
-            srcEid: srcEid,
-            sender: addressToBytes32(srcAdapter),
-            nonce: 1
-        });
-
-        if (address(dstAdapter) == address(adapterA)) {
-            adapterA.lzReceiveTest(
-                origin,
-                bytes32(uint256(1)), // requestId
-                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with LZ_GENERAL_MESSAGE type
-                srcAdapter,
-                bytes("")
-            );
-        } else if (address(dstAdapter) == address(adapterB)) {
-            adapterB.lzReceiveTest(
-                origin,
-                bytes32(uint256(1)), // requestId
-                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with LZ_GENERAL_MESSAGE type
-                srcAdapter,
-                bytes("")
-            );
-        }
-    }
-
     /*//////////////////////////////////////////////////////////////
                           ADAPTER FEATURES TESTS
     //////////////////////////////////////////////////////////////*/
@@ -114,7 +82,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
         vm.startPrank(governor);
 
-        // Set minimum gas limit for LZ_GENERAL_MESSAGE with a high value
+        // Set minimum gas limit
         adapterA.setMinGasLimit(1000000);
 
         // Create a simple payload for testing
@@ -186,9 +154,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
         vm.startPrank(governor);
 
-        // Set a high minimum gas limit for LZ_GENERAL_MESSAGE
-        uint128 minGasLimit = 1000000;
-        adapterA.setMinGasLimit(minGasLimit);
+        adapterA.setMinGasLimit(1000000);
 
         // Create adapter params with a lower gas limit than the minimum
         BridgeTypes.AdapterParams memory lowerParams = BridgeTypes

@@ -9,16 +9,7 @@ import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {console} from "forge-std/Test.sol";
 
 contract BridgeRouterTransferTest is BridgeRouterSetup {
-    // Additional addresses specific to transfer tests
     address public authorizedCaller = address(0x5);
-
-    // Executor option type constants
-    uint8 constant OPTION_TYPE_EXECUTOR = 1;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
-    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 5;
-
-    // ---- TRANSFER ASSET TESTS ----
 
     function testSend() public {
         // User initiates
