@@ -110,4 +110,6 @@ contract BridgeRouterSetup is Test {
 
         vm.stopPrank();
     }
+
+    function testSkip() public {}
 }

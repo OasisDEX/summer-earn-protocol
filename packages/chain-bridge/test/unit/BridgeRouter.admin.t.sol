@@ -14,6 +14,8 @@ contract RejectETH {
     receive() external payable {
         revert("Transfer rejected");
     }
+
+    function testSkip() public {}
 }
 
 // Reentrancy attack contract
@@ -32,6 +34,8 @@ contract ReentrancyAttacker {
             router.recoverFunds(address(this), 1 ether);
         }
     }
+
+    function testSkip() public {}
 }
 
 contract BridgeRouterAdminTest is BridgeRouterSetup {
