@@ -44,20 +44,14 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Inverse mapping of LayerZero chain IDs to our chain IDs
     mapping(uint32 lzEid => uint16 chainId) public lzEidToChain;
 
-    /// @notice Message type for state read
-    uint16 public constant STATE_READ = 2;
-
-    /// @notice Message type for general message
-    uint16 public constant GENERAL_MESSAGE = 3;
-
-    /// @notice Mapping of message types to their minimum gas limits
-    mapping(uint16 msgType => uint128 minGasLimit) public minGasLimits;
-
     /// @notice Read channel identifier for lzRead operations
     uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Used to identify responses
 
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
+
+    /// @notice Minimum gas limit for operations
+    uint128 public minGasLimit;
 
     /// @notice Thrown when insufficient fee is provided for a layerzero operation
     error InsufficientFeeForOptions(uint256 required, uint256 provided);
@@ -73,9 +67,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
     /// @notice Thrown when a message receiver rejects the call
     error ReceiverRejectedCall();
-
-    /// @notice Mapping of operation types to message types
-    mapping(BridgeTypes.OperationType => uint16) private operationToMessageType;
 
     /// @notice Use EnumerableSet for storage
     EnumerableSet.UintSet private _supportedChainIds;
@@ -139,18 +130,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             lzEidToChain[_lzEids[i]] = _supportedChains[i];
             _supportedChainIds.add(_supportedChains[i]);
         }
-
-        // Initialize default minimum gas limits
-        minGasLimits[STATE_READ] = 700000;
-        minGasLimits[GENERAL_MESSAGE] = 700000;
-
-        // Initialize operation type to message type mapping
-        operationToMessageType[
-            BridgeTypes.OperationType.MESSAGE
-        ] = GENERAL_MESSAGE;
-        operationToMessageType[
-            BridgeTypes.OperationType.READ_STATE
-        ] = STATE_READ;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -158,16 +137,12 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Sets the minimum gas limit for a specific message type
-     * @param msgType Message type to set minimum gas for
+     * @notice Sets the minimum gas limit for all message types
      * @param gasLimit New minimum gas limit value
      * @dev Can only be called by the contract owner
      */
-    function setMinGasLimit(
-        uint16 msgType,
-        uint128 gasLimit
-    ) external onlyOwner {
-        minGasLimits[msgType] = gasLimit;
+    function setMinGasLimit(uint128 gasLimit) external onlyOwner {
+        minGasLimit = gasLimit;
     }
 
     /**
@@ -286,6 +261,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
     }
+
     /// forge-lint: disable-end(mixed-case-variable, mixed-case-function)
 
     /*//////////////////////////////////////////////////////////////
@@ -308,12 +284,16 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes calldata
     ) internal override {
         // Extract message type from the first 2 bytes if available
-        uint16 messageType = GENERAL_MESSAGE; // Default to GENERAL_MESSAGE
+        BridgeTypes.OperationType operationType = BridgeTypes
+            .OperationType
+            .MESSAGE; // Default to BridgeTypes.OperationType.MESSAGE
         bytes memory actualPayload = _payload;
 
         // If the payload starts with a uint16 message type marker
         if (_payload.length >= 2) {
-            messageType = uint16(bytes2(_payload)); // Takes first 2 bytes
+            operationType = BridgeTypes.OperationType(
+                uint8(uint16(bytes2(_payload)))
+            ); // Takes first 2 bytes
             actualPayload = _payload[2:]; // Creates slice starting at index 2
         }
 
@@ -321,13 +301,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
             _handleReadResponse(_origin, _guid, _payload);
             return;
-        }
-
-        // Get the source chain ID from the origin
-        uint16 srcChainId = lzEidToChain[_origin.srcEid];
-
-        // Process based on message type
-        if (messageType == GENERAL_MESSAGE) {
+        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            // Get the source chain ID from the origin
+            uint16 srcChainId = lzEidToChain[_origin.srcEid];
             // IMPORTANT: Use actualPayload here instead of _payload
             // This ensures we decode only the message data without the message type prefix
             (bytes memory message, address recipient, bytes32 messageId) = abi
@@ -480,15 +456,15 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
         // Look up the message type from the mapping
-        uint16 messageType = operationToMessageType[operationType];
+        uint16 messageType = uint16(operationType);
 
-        if (messageType == 0) revert OperationNotSupported();
+        if (!supportsOperation(operationType)) revert OperationNotSupported();
 
         // Create appropriate payload based on message type
         bytes memory payload;
         bytes memory options;
 
-        if (messageType == STATE_READ) {
+        if (operationType == BridgeTypes.OperationType.READ_STATE) {
             // Construct a READ payload identical to readState implementation
             EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
             readRequests[0] = EVMCallRequestV1({
@@ -503,17 +479,17 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
             payload = ReadCodecV1.encode(0, readRequests);
         } else {
-            // For GENERAL_MESSAGE, use same encoding format as sendMessage
+            // For BridgeTypes.OperationType.MESSAGE, use same encoding format as sendMessage
             bytes memory dummyMessage = abi.encode(
                 "dummy message for fee estimation"
             );
             payload = abi.encodePacked(
-                uint16(GENERAL_MESSAGE),
+                uint16(BridgeTypes.OperationType.MESSAGE),
                 abi.encode(dummyMessage, address(0), bytes32(0))
             );
         }
 
-        options = _prepareOptions(adapterParams, messageType);
+        options = _prepareOptions(adapterParams, operationType);
 
         // Quote should use the same destination target as real message
         uint32 dstEid = lzDstEid;
@@ -583,7 +559,10 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
             // Encode and send
             bytes memory cmd = ReadCodecV1.encode(0, readRequests);
-            bytes memory options = _prepareOptions(adapterParams, STATE_READ);
+            bytes memory options = _prepareOptions(
+                adapterParams,
+                BridgeTypes.OperationType.READ_STATE
+            );
 
             MessagingReceipt memory receipt = _lzSend(
                 readChannelId,
@@ -633,14 +612,17 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
         }
 
-        // Encode payload for LayerZero with GENERAL_MESSAGE message type
+        // Encode payload for LayerZero with BridgeTypes.OperationType.MESSAGE message type
         bytes memory payload = abi.encodePacked(
-            uint16(GENERAL_MESSAGE), // GENERAL_MESSAGE message type
+            uint16(BridgeTypes.OperationType.MESSAGE), // BridgeTypes.OperationType.MESSAGE message type
             abi.encode(message, recipient, operationId)
         );
 
         // Create options with appropriate gas limit
-        bytes memory options = _prepareOptions(adapterParams, GENERAL_MESSAGE);
+        bytes memory options = _prepareOptions(
+            adapterParams,
+            BridgeTypes.OperationType.MESSAGE
+        );
 
         // Send message through OApp's _lzSend
         // Use tx.origin as refund address since that's the keeper who initiated the transaction
@@ -690,23 +672,20 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /**
      * @notice Creates options with gas limit at least as high as the configured minimum
      * @param adapterParams User-provided adapter parameters
-     * @param msgType The message type being sent
+     * @param operationType The operation type being sent
      * @return options The prepared options with appropriate minimum gas limits
      */
     function _prepareOptions(
         BridgeTypes.AdapterParams memory adapterParams,
-        uint16 msgType
+        BridgeTypes.OperationType operationType
     ) internal view returns (bytes memory) {
-        // Get minimum gas limit for this message type
-        uint128 minimumGas = minGasLimits[msgType];
-
         // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = adapterParams.gasLimit < minimumGas
-            ? minimumGas
+        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
+            ? minGasLimit
             : uint128(adapterParams.gasLimit);
 
         // Use the helper to create messaging options with minimum gas limit enforcement
-        if (msgType == STATE_READ) {
+        if (operationType == BridgeTypes.OperationType.READ_STATE) {
             return
                 LayerZeroOptionsHelper.createLzReadOptions(
                     adapterParams,
@@ -724,41 +703,38 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /**
      * @notice Calculate required fees based on minimum gas limits
      * @param _dstEid Destination endpoint ID
-     * @param _msgType Message type
+     * @param operationType Operation type
      * @param _payload Message payload
      * @return requiredFee Minimum fee required for operation
      */
     function getRequiredFee(
         uint32 _dstEid,
-        uint16 _msgType,
+        BridgeTypes.OperationType operationType,
         bytes memory _payload
     ) public view returns (uint256 requiredFee) {
-        // Get minimum gas limit for this message type
-        uint128 minimumGas = minGasLimits[_msgType];
-
         // Create default options with minimum - use scoping to avoid stack too deep
         bytes memory options;
         {
             // Create params in limited scope
             BridgeTypes.AdapterParams memory params = BridgeTypes
                 .AdapterParams({
-                    gasLimit: uint64(minimumGas),
+                    gasLimit: uint64(minGasLimit),
                     msgValue: 0,
                     calldataSize: 0,
                     options: bytes("")
                 });
 
-            if (_msgType == STATE_READ) {
+            if (operationType == BridgeTypes.OperationType.READ_STATE) {
                 // For state read, create read options with minimum gas
                 options = LayerZeroOptionsHelper.createLzReadOptions(
                     params,
-                    minimumGas
+                    minGasLimit
                 );
             } else {
                 // For standard messaging, create messaging options with minimum gas
                 options = LayerZeroOptionsHelper.createMessagingOptions(
                     params,
-                    minimumGas
+                    minGasLimit
                 );
             }
         }
@@ -790,7 +766,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @inheritdoc IBridgeAdapter
     function supportsOperation(
         BridgeTypes.OperationType operationType
-    ) external pure override returns (bool) {
+    ) public pure override returns (bool) {
         // LayerZero supports messaging and state reading operations, but not asset transfer
         return
             operationType == BridgeTypes.OperationType.MESSAGE ||

@@ -28,7 +28,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             adapterA.lzReceiveTest(
                 origin,
                 bytes32(uint256(1)), // requestId
-                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with GENERAL_MESSAGE type
+                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with LZ_GENERAL_MESSAGE type
                 srcAdapter,
                 bytes("")
             );
@@ -36,7 +36,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             adapterB.lzReceiveTest(
                 origin,
                 bytes32(uint256(1)), // requestId
-                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with GENERAL_MESSAGE type
+                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with LZ_GENERAL_MESSAGE type
                 srcAdapter,
                 bytes("")
             );
@@ -86,7 +86,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     function testUnsupportedMessageType() public {
         // Create a message with an unsupported type (9 - which doesn't exist)
         bytes memory invalidPayload = abi.encodePacked(
-            uint16(9),
+            uint16(2),
             bytes("test payload")
         );
 
@@ -114,19 +114,19 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
         vm.startPrank(governor);
 
-        // Set minimum gas limit for GENERAL_MESSAGE with a high value
-        adapterA.setMinGasLimit(adapterA.GENERAL_MESSAGE(), 1000000);
+        // Set minimum gas limit for LZ_GENERAL_MESSAGE with a high value
+        adapterA.setMinGasLimit(1000000);
 
         // Create a simple payload for testing
         bytes memory payload = abi.encodePacked(
-            uint16(adapterA.GENERAL_MESSAGE()),
+            uint16(BridgeTypes.OperationType.MESSAGE),
             bytes("test payload")
         );
 
         // Get required fee directly from adapter
         uint256 requiredFee = adapterA.getRequiredFee(
             LZ_EID_B,
-            adapterA.GENERAL_MESSAGE(),
+            BridgeTypes.OperationType.MESSAGE,
             payload
         );
 
@@ -140,8 +140,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
 
         // Check current value
-        uint16 messageType = adapterA.GENERAL_MESSAGE();
-        assertEq(adapterA.minGasLimits(messageType), 700000);
+        assertEq(adapterA.minGasLimit(), 700000);
 
         // Try to set minGasLimit as unauthorized address
         vm.prank(address(2));
@@ -153,7 +152,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         );
 
         // Actually call the function that should revert
-        adapterA.setMinGasLimit(messageType, 600000);
+        adapterA.setMinGasLimit(600000);
     }
 
     function testAdapterDirectEstimateFee() public {
@@ -187,9 +186,9 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
         vm.startPrank(governor);
 
-        // Set a high minimum gas limit for GENERAL_MESSAGE
+        // Set a high minimum gas limit for LZ_GENERAL_MESSAGE
         uint128 minGasLimit = 1000000;
-        adapterA.setMinGasLimit(adapterA.GENERAL_MESSAGE(), minGasLimit);
+        adapterA.setMinGasLimit(minGasLimit);
 
         // Create adapter params with a lower gas limit than the minimum
         BridgeTypes.AdapterParams memory lowerParams = BridgeTypes

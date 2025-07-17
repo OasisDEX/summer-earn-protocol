@@ -23,7 +23,7 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
     }
 
     /// @dev Creates a payload for standard messages based on message type and transfer ID
-    /// @param messageType The type of message (2 for STATE_READ, 3 for GENERAL_MESSAGE)
+    /// @param messageType The type of message (2 for LZ_READ_STATE, 3 for LZ_GENERAL_MESSAGE)
     /// @param transferId The transfer ID to include in the payload
     /// @return payload The encoded payload bytes
     function _createPayload(
@@ -31,14 +31,14 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         bytes32 transferId
     ) internal pure returns (bytes memory payload) {
         if (messageType == 2) {
-            // STATE_READ
+            // LZ_READ_STATE
             // Format for state read message
             payload = abi.encodePacked(
                 messageType,
                 abi.encode(transferId, bytes("Read data payload"))
             );
         } else if (messageType == 3) {
-            // GENERAL_MESSAGE
+            // LZ_GENERAL_MESSAGE
             // Format for general message
             payload = abi.encodePacked(
                 messageType,

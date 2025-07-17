@@ -135,9 +135,8 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Step 1: Activate read channel
         layerZeroAdapter.activateReadChannel(readChannelId);
 
-        // Step 2: Set minimum gas limits for STATE_READ (2) and GENERAL_MESSAGE (3)
-        layerZeroAdapter.setMinGasLimit(2, minGasLimit); // STATE_READ
-        layerZeroAdapter.setMinGasLimit(3, minGasLimit); // GENERAL_MESSAGE
+        // Step 2: Set minimum gas limit
+        layerZeroAdapter.setMinGasLimit(minGasLimit);
 
         // Step 3: Configure read libraries (ReadLib1002)
         layerZeroAdapter.configureReadLibraries(readLib1002);

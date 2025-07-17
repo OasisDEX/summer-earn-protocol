@@ -130,6 +130,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Final configuration
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
+        adapterA.setMinGasLimit(700000);
 
         vm.stopPrank();
     }
@@ -183,6 +184,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         // Final configuration
         routerB.registerAdapter(address(adapterB));
         tokenB.mint(user, 10000e18);
+        adapterB.setMinGasLimit(700000);
 
         vm.stopPrank();
     }
