@@ -52,6 +52,10 @@ contract CrossChainFleetProxyTest is Test {
     Raft public raft;
     CrossChainRegistry public registry;
 
+    // Define separate target proxies for each adapter
+    address public constant ARB_STARGATE_PROXY = address(0x999); // Mock Stargate proxy address on Arbitrum
+    address public constant ARB_LAYERZERO_PROXY = address(0x998); // Mock LayerZero proxy address on Arbitrum
+
     function setUp() public {
         // Deploy mocks
         mockToken = new ERC20Mock();
@@ -110,7 +114,6 @@ contract CrossChainFleetProxyTest is Test {
             address(mockBridgeRouter),
             200000 // defaultGasLimit
         );
-        vm.stopPrank();
 
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(
@@ -121,8 +124,25 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID
         );
 
-        // Register the ark-proxy relationship in the registry
-        vm.prank(governor);
+        // Register cross-chain relationships in registry
+        registry.registerRelationship(
+            address(bufferArkMock), // Use the ArkMock as the source
+            ARB_STARGATE_PROXY, // Different target for Stargate
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            registry.PEER()
+        );
+
+        // Register LayerZero adapter with different target
+        registry.registerRelationship(
+            address(mockAdapter), // Use the mockAdapter as the source
+            ARB_LAYERZERO_PROXY, // Different target for LayerZero
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            registry.PEER()
+        );
+
+        // Register the ark-proxy relationship
         registry.registerRelationship(
             SOURCE_ARK_ADDRESS,
             address(proxy),
@@ -131,13 +151,10 @@ contract CrossChainFleetProxyTest is Test {
             keccak256("ARK_FLEET")
         );
 
-        vm.startPrank(governor);
         accessManager.grantKeeperRole(address(proxy), governor);
-        vm.stopPrank();
 
-        // Register the mock adapter with the bridge router
-        vm.prank(governor);
         mockBridgeRouter.registerAdapter(address(mockAdapter));
+        vm.stopPrank();
     }
 
     //----------------- Constructor Tests -----------------//
@@ -147,6 +164,7 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(address(proxy.bridgeRouter()), address(mockBridgeRouter));
         assertEq(address(proxy.crossChainRegistry()), address(registry));
         assertEq(proxy.fleetContract(), address(fleetCommanderMock));
+
         // Verify registry relationship works
         address arkFromRegistry = registry.getSourceForTarget(
             SOURCE_CHAIN_ID,

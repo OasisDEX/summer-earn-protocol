@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {CrossChainArk} from "../../src/contracts/arks/CrossChainArk.sol";
-import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -15,7 +14,6 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
-import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
@@ -38,7 +36,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     uint16 public constant SOURCE_CHAIN_ID = 1; // Mainnet (where the test runs)
     uint16 public constant DEST_CHAIN_ID = 42161; // Arbitrum
     uint32 public constant ARB_LZ_EID = 30110; // LayerZero v2 EID for Arbitrum One
-    address public constant ARB_PROXY = address(0x999); // Mock proxy address on Arbitrum
+    address public constant ARB_STARGATE_PROXY = address(0x999); // Mock Stargate proxy address on Arbitrum
+    address public constant ARB_LAYERZERO_PROXY = address(0x888); // Mock LayerZero proxy address on Arbitrum
 
     uint256 public constant FORK_BLOCK = 22_145_762;
 
@@ -140,7 +139,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         stargateAdapter.addSupportedAsset(address(usdc), address(mockStargate));
 
         // Set up peer for Arbitrum chain (LayerZero)
-        bytes32 peerAddressBytes32 = bytes32(uint256(uint160(ARB_PROXY)));
+        bytes32 peerAddressBytes32 = bytes32(
+            uint256(uint160(ARB_STARGATE_PROXY))
+        );
         layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
         // Activate the read channel for state reading operations
@@ -150,11 +151,23 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Register cross-chain relationships in registry
         registry.registerRelationship(
             address(stargateAdapter),
-            ARB_PROXY,
+            ARB_STARGATE_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
             registry.PEER()
         );
+
+        // Register LayerZero adapter with different proxy address
+        registry.registerRelationship(
+            address(layerZeroAdapter),
+            ARB_LAYERZERO_PROXY,
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            registry.PEER()
+        );
+
+        // Register the BridgeRouter as an executor
+
         vm.stopPrank();
 
         // Create Ark with bridge configuration
@@ -179,11 +192,11 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             params
         );
 
-        // Register the ark-proxy relationship
+        // Register the ark-proxy relationship - use Stargate proxy since that's for asset transfers
         vm.startPrank(governor);
         registry.registerRelationship(
             address(ark),
-            ARB_PROXY,
+            ARB_STARGATE_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
             keccak256("ARK_FLEET")
@@ -203,144 +216,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.stopPrank();
     }
 
-    function setupBridgeContracts() internal {
-        // Create access manager
-        accessManager = new ProtocolAccessManager(governor);
-
-        // Configure roles
-        vm.startPrank(governor);
-        accessManager.grantGuardianRole(guardian);
-        vm.stopPrank();
-
-        // Create router directly
-        bridgeRouter = new BridgeRouter(
-            address(accessManager),
-            address(registry)
-        );
-
-        // Setup LayerZero adapter
-        uint16[] memory supportedChains = new uint16[](1);
-        uint32[] memory lzEids = new uint32[](1);
-        supportedChains[0] = DEST_CHAIN_ID;
-        lzEids[0] = ARB_LZ_EID;
-
-        layerZeroAdapter = new LayerZeroAdapter(
-            LZ_ENDPOINT_MAINNET,
-            address(registry),
-            address(accessManager),
-            supportedChains,
-            lzEids,
-            governor
-        );
-
-        // Setup Stargate adapter
-        uint16[] memory stgSupportedChains = new uint16[](1);
-        uint32[] memory stgLzEids = new uint32[](1);
-        stgSupportedChains[0] = DEST_CHAIN_ID;
-        stgLzEids[0] = ARB_LZ_EID;
-
-        stargateAdapter = new StargateAdapter(
-            address(registry), // _crossChainRegistry
-            address(accessManager), // _accessManager
-            LZ_ENDPOINT_MAINNET, // _lzEndpoint
-            address(0xdead) // _harborCommand - using mock address for testing
-        );
-
-        // Register adapters with router
-        vm.startPrank(governor);
-        bridgeRouter.registerAdapter(address(layerZeroAdapter));
-        bridgeRouter.registerAdapter(address(stargateAdapter));
-
-        // Configure Stargate adapter endpoints and relationships
-        stargateAdapter.setEndpointId(DEST_CHAIN_ID, ARB_LZ_EID);
-        stargateAdapter.setEndpointId(uint16(block.chainid), ARB_LZ_EID);
-
-        // Register cross-chain relationships in registry
-        registry.registerRelationship(
-            address(stargateAdapter),
-            ARB_PROXY,
-            SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            registry.PEER()
-        );
-
-        // Initialize USDC
-        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-
-        // Deploy mock Stargate contract
-        mockStargate = new MockStargateV2Pool(address(usdc));
-
-        // Add USDC as supported asset for Stargate adapter on current chain only
-        // The StargateAdapter only tracks assets for the current chain
-        stargateAdapter.addSupportedAsset(address(usdc), address(mockStargate));
-
-        // Set up peer for Arbitrum chain (LayerZero)
-        bytes32 peerAddressBytes32 = bytes32(uint256(uint160(ARB_PROXY)));
-        layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
-
-        // Activate the read channel for state reading operations
-        uint32 READ_CHANNEL_ID = 4294967295;
-        layerZeroAdapter.activateReadChannel(READ_CHANNEL_ID);
-        vm.stopPrank();
-
-        // Deploy CrossChainRegistry with CURRENT chain ID (mainnet = 1)
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            SOURCE_CHAIN_ID // Use mainnet chain ID, not destination
-        );
-
-        // Initialize the bridge configuration in the registry
-        vm.startPrank(governor);
-        registry.initializeBridgeConfiguration(
-            address(bridgeRouter),
-            200000 // defaultGasLimit
-        );
-        vm.stopPrank();
-
-        // Create Ark with bridge configuration
-        ArkParams memory params = ArkParams({
-            name: "TestArk",
-            details: "TestArk details",
-            accessManager: address(accessManager),
-            configurationManager: address(registry),
-            asset: address(usdc),
-            depositCap: type(uint256).max,
-            maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true,
-            maxDepositPercentageOfTVL: PERCENTAGE_100
-        });
-
-        ark = new CrossChainArk(
-            address(bridgeRouter),
-            address(registry),
-            DEST_CHAIN_ID,
-            params
-        );
-
-        // Register the ark-proxy relationship with CORRECT chain IDs
-        vm.prank(governor);
-        registry.registerRelationship(
-            address(ark),
-            ARB_PROXY,
-            SOURCE_CHAIN_ID, // Source: Mainnet (1)
-            DEST_CHAIN_ID, // Target: Arbitrum (42161)
-            keccak256("ARK_FLEET")
-        );
-
-        // Permissioning
-        vm.startPrank(governor);
-        accessManager.grantCommanderRole(address(ark), commander);
-        accessManager.grantKeeperRole(address(ark), commander); // Grant keeper role to commander
-        // Grant keeper role to the dedicated keeper address used in tests
-        accessManager.grantKeeperRole(address(ark), keeper);
-        vm.stopPrank();
-
-        vm.startPrank(commander);
-        ark.registerFleetCommander();
-        vm.stopPrank();
-    }
-
     function test_Board_CrossChain() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 6; // 1000 USDC
@@ -354,7 +229,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(usdc),
                 amount: amount,
-                recipient: ARB_PROXY,
+                recipient: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
                 originator: address(ark),
                 keeper: commander,
                 options: BridgeTypes.BridgeOptions({
@@ -395,7 +270,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         assertEq(asset, address(usdc), "Incorrect asset address");
         assertEq(storedAmount, amount, "Incorrect stored amount");
-        assertEq(recipient, ARB_PROXY, "Incorrect recipient address");
+        assertEq(recipient, ARB_STARGATE_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
         assertEq(keeper, commander, "Incorrect keeper address");
 
@@ -536,7 +411,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(usdc),
                 amount: amount,
-                recipient: ARB_PROXY,
+                recipient: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
                 originator: address(ark),
                 keeper: commander,
                 options: options
@@ -577,7 +452,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         assertEq(asset, address(usdc), "Incorrect asset address");
         assertEq(storedAmount, amount, "Incorrect stored amount");
-        assertEq(recipient, ARB_PROXY, "Incorrect recipient address");
+        assertEq(recipient, ARB_STARGATE_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
         assertEq(keeper, commander, "Incorrect keeper address");
 
@@ -616,7 +491,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             DEST_CHAIN_ID,
             address(usdc),
             amount,
-            ARB_PROXY,
+            ARB_STARGATE_PROXY,
             address(stargateAdapter)
         );
 
@@ -659,7 +534,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         emit log_named_uint("Native Fee Paid", nativeFee);
         emit log_named_address("Keeper", commander);
         emit log_named_uint("Amount Transferred", amount);
-        emit log_named_address("Destination", ARB_PROXY);
+        emit log_named_address("Destination", ARB_STARGATE_PROXY);
         emit log_string(
             "SUCCESS: Full integration test completed - CrossChain Ark -> BridgeRouter -> Stargate Adapter"
         );
@@ -1025,7 +900,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create the Origin struct that LayerZero would pass to _lzReceive
         Origin memory origin = Origin({
             srcEid: readResponseEid,
-            sender: bytes32(uint256(uint160(ARB_PROXY))), // Mock sender
+            sender: bytes32(uint256(uint160(ARB_STARGATE_PROXY))), // Mock sender
             nonce: 1
         });
 

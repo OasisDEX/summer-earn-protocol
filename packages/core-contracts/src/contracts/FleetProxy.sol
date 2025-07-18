@@ -231,7 +231,7 @@ contract FleetProxy is
     ) internal view returns (address arkAddress) {
         return
             ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
-                hubChainId,
+                _hubChainId,
                 ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP
