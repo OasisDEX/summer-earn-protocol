@@ -105,10 +105,11 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         );
 
         // Verify the mock receiver received the correct data
-        assertEq(
-            abi.decode(mockReceiver.lastReceivedData(), (uint256)),
-            mockReadValue
+        BridgeTypes.ReadResponse memory response = abi.decode(
+            mockReceiver.lastReceivedData(),
+            (BridgeTypes.ReadResponse)
         );
+        assertEq(abi.decode(response.data, (uint256)), mockReadValue);
     }
 
     function testGeneralMessageDelivery() public {

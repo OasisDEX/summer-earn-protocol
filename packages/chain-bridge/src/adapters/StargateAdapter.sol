@@ -395,22 +395,22 @@ contract StargateAdapter is
     ) internal {
         IStargateV2 stargate = IStargateV2(params.stargateContract);
 
-        // Create compose message - ensure consistent encoding with lzCompose decoder
-        bytes memory composeMsg = abi.encode(
-            params.recipient, // FleetProxy address
-            params.asset, // Asset being transferred
-            params.amount, // Amount being transferred
-            block.chainid, // Source chain ID (use block.chainid directly, not uint256())
-            params.operationId, // Operation ID
-            params.originator // Original sender
-        );
+        BridgeTypes.AssetTransferMessage memory atm = BridgeTypes
+            .AssetTransferMessage({
+                recipient: params.recipient,
+                asset: params.asset,
+                amount: params.amount,
+                sourceChainId: block.chainid,
+                operationId: params.operationId,
+                originator: params.originator
+            });
 
         // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
         SendParam memory sendParam = _buildSendParam(
             params.destinationChainId,
             destinationAdapter,
             params.amount,
-            composeMsg, // Just the custom message
+            abi.encode(atm),
             adapterParams
         );
 
@@ -762,17 +762,10 @@ contract StargateAdapter is
         address receivedAsset
     ) internal {
         // Decode the compose message
-        (
-            address recipient,
-            address sourceAsset, // unused amount param in composeMsg
-            ,
-            uint256 sourceChainId,
-            bytes32 operationId,
-            address originator
-        ) = abi.decode(
-                composeMsg,
-                (address, address, uint256, uint256, bytes32, address)
-            );
+        BridgeTypes.AssetTransferMessage memory atm = abi.decode(
+            composeMsg,
+            (BridgeTypes.AssetTransferMessage)
+        );
 
         // -----------------------------------------------------------------
         // 1. Forward the tokens the adapter just received to the router
@@ -784,9 +777,9 @@ contract StargateAdapter is
         //    (same shape as before, just without the token/amount fields)
         // -----------------------------------------------------------------
         BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
-            operationId: operationId,
-            originator: originator,
-            sourceAsset: sourceAsset
+            operationId: atm.operationId,
+            originator: atm.originator,
+            sourceAsset: atm.asset
         });
         bytes memory payload = abi.encode(dp);
 
@@ -794,11 +787,11 @@ contract StargateAdapter is
         // 3. Let the BridgeRouter finish the delivery
         // -----------------------------------------------------------------
         IBridgeRouter(bridgeRouter()).deliver(
-            operationId,
-            uint16(sourceChainId),
+            atm.operationId,
+            uint16(atm.sourceChainId),
             receivedAsset,
             amount,
-            recipient,
+            atm.recipient,
             payload
         );
     }

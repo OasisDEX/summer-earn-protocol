@@ -62,7 +62,20 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
     constructor(
         address _registry,
         address _accessManager
-    ) BaseBridgeAdapter(_registry, _accessManager) {}
+    ) BaseBridgeAdapter(_registry, _accessManager) {
+        // Initialize operation type to message type mapping (for consistency)
+        operationToMessageType[BridgeTypes.OperationType.MESSAGE] = 1; // Mock message type
+        operationToMessageType[BridgeTypes.OperationType.READ_STATE] = 2; // Mock read type
+        operationToMessageType[BridgeTypes.OperationType.TRANSFER_ASSET] = 3; // Mock transfer type
+
+        // Initialize default supported chain for testing
+        supportedChains[111] = true; // SOURCE_CHAIN_ID from tests
+
+        // Initialize default supported operations
+        supportedOperations[BridgeTypes.OperationType.MESSAGE] = true;
+        supportedOperations[BridgeTypes.OperationType.READ_STATE] = true;
+        supportedOperations[BridgeTypes.OperationType.TRANSFER_ASSET] = true;
+    }
 
     // Add helper function to set fee multiplier
     function setFeeMultiplier(uint256 _multiplier) external {

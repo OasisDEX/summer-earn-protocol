@@ -6,7 +6,6 @@ import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";

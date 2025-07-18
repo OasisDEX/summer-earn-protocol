@@ -68,8 +68,14 @@ contract BridgeRouterSetup is Test {
         );
 
         /* --------- Mock adapters --------- */
-        mockAdapter = new MockAdapter(address(router));
-        mockAdapter2 = new MockAdapter(address(router)); // left un-registered
+        mockAdapter = new MockAdapter(
+            address(registry),
+            address(accessManager)
+        );
+        mockAdapter2 = new MockAdapter(
+            address(registry),
+            address(accessManager)
+        ); // left un-registered
 
         mockAdapter.setSupportedChain(SOURCE_CHAIN_ID, true);
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
