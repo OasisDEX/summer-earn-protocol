@@ -1,11 +1,11 @@
 # Chain Bridge System
 
-This directory contains the implementation of a modular cross-chain bridge system that enables secure asset transfers and message passing between different blockchains. The system is designed around a queue-based architecture where the `BridgeQueue` handles user interactions and adapter selection, while the `BridgeRouter` executes operations.
+This directory contains the implementation of a modular cross-chain bridge system that enables secure asset transfers and message passing between blockchains. The **BridgeRouter** is the single entry point for users; each pending operation is represented by a **CrossChainArk** token until it is finalised on the destination chain.
 
 ## Core Components
 
 - **BridgeRouter**: Central execution contract that coordinates cross-chain operations
-- **BridgeQueue**: User-facing contract that handles queuing, adapter selection, and fee management
+- **CrossChainArk**: ERC-721 token that tracks a pending cross-chain operation (the system’s only “queue”)
 - **Bridge Adapters**: Protocol-specific implementations (LayerZero, Stargate, etc.)
 - **CrossChainReceiver**: Interface for contracts that need to receive cross-chain data
 
@@ -15,27 +15,24 @@ This directory contains the implementation of a modular cross-chain bridge syste
 
 ```mermaid
 graph LR
-    A[User/Application] --> B[BridgeQueue]
-    B --> C[Adapter Selection]
-    C --> D[BridgeRouter]
-    D --> E[BridgeAdapter]
-    E -->|Cross Chain| F[Destination Adapter]
-    F --> G[Recipient]
+    A[User / App] --> B[BridgeRouter]
+    B --> C[Sending Adapter]
+    C -->|Cross-Chain| D[Receiving Adapter]
+    D --> E[BridgeRouter (dest)]
+    E --> F[Recipient]
 ```
 
 ### Role Separation
 
-1. **BridgeQueue**: 
-   - Handles user interactions
-   - Manages adapter selection logic
-   - Collects fees and manages refunds
-   - Queues operations for execution
+1. **BridgeRouter**  
+   - Accepts user operations and mints a CrossChainArk to the caller  
+   - Forwards the call and full fee to the selected adapter  
+   - On the destination chain, receives the callback from the adapter and forwards the payload to the recipient  
+   - Tracks operation status across chains
 
-2. **BridgeRouter**:
-   - Executes operations initiated by BridgeQueue
-   - Manages adapter registry and callbacks
-   - Handles cross-chain message coordination
-   - Tracks operation status
+2. **Bridge Adapters**  
+   - Implement chain-specific messaging / bridging  
+   - Call back to the BridgeRouter for status updates and final delivery
 
 ## Cross-Chain Operations
 
@@ -136,15 +133,11 @@ Adapters must implement:
 
 ### Adapter Callbacks
 
-Adapters call back to the router to:
-- Update operation status (`updateOperationStatus`)
-- Notify of received messages (`notifyMessageReceived`) 
-- Update receive status (`updateReceiveStatus`)
-- Deliver read responses (`deliverReadResponse`)
+Adapters always return to the router first; the router then delivers the message (or assets) to the final recipient contract.
 
 ## Security Considerations
 
-- **Access Control**: Only BridgeQueue can initiate operations
+- **Access Control**: All bridge operations must be initiated via BridgeRouter
 - **Adapter Registry**: Only governance can add/remove adapters
 - **Pause Mechanism**: Guardian and governance can pause; only governance can unpause
 - **Status Progression**: Status updates are validated and controlled
@@ -154,13 +147,13 @@ Adapters call back to the router to:
 
 ## Integration Guide
 
-### For Users/Applications
+### For Users / Applications
 
-Interact with the `BridgeQueue` contract (not directly with BridgeRouter):
+Interact directly with the `BridgeRouter` contract:
 
 ```solidity
-// Example: Transfer assets cross-chain
-bridgeQueue.transferAssets{value: estimatedFee}(
+// Example: transfer assets cross-chain
+bridgeRouter.executeTransferAssets{value: estimatedFee}(
     destinationChainId,
     asset,
     amount,
