@@ -206,7 +206,10 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         router.registerAdapter(address(mockAdapter2));
 
         // Create an adapter that doesn't support the chain
-        MockAdapter unsupportedChainAdapter = new MockAdapter(address(router));
+        MockAdapter unsupportedChainAdapter = new MockAdapter(
+            address(registry),
+            address(accessManager)
+        );
         unsupportedChainAdapter.setSupportedChain(DEST_CHAIN_ID, false);
         router.registerAdapter(address(unsupportedChainAdapter));
 

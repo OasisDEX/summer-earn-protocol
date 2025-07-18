@@ -23,20 +23,6 @@ contract StargateAdapterTestWrapper is StargateAdapter {
     {}
 
     /**
-     * @notice Exposes the internal _isFleetProxy method for testing
-     */
-    function isFleetProxy(address recipient) external view returns (bool) {
-        return _isFleetProxy(recipient);
-    }
-
-    /**
-     * @notice Exposes the internal _validateFleetCommander method for testing
-     */
-    function validateFleetCommander(address fleetCommander) external view {
-        _validateFleetCommander(fleetCommander);
-    }
-
-    /**
      * @notice Exposes the internal _handleComposedMessage method for testing
      */
     function handleComposedMessage(
@@ -73,26 +59,5 @@ contract StargateAdapterTestWrapper is StargateAdapter {
         });
 
         failedOperationIds.push(operationId);
-    }
-
-    /**
-     * @notice Test function to call _handleUserLedFailure directly
-     */
-    function testHandleUserLedFailure(
-        address asset,
-        uint256 amount,
-        address user,
-        bytes32 operationId,
-        address originalUser,
-        uint16 sourceChainId
-    ) external {
-        _handleUserInitiatedFailure(
-            asset,
-            amount,
-            user,
-            operationId,
-            originalUser,
-            sourceChainId
-        );
     }
 }

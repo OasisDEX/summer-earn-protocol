@@ -2,21 +2,16 @@
 pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
-import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
+import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 
 /**
  * @title StargateAdapterComposeForkTest
@@ -187,33 +182,6 @@ contract StargateAdapterComposeForkTest is Test {
         vm.stopPrank();
     }
 
-    function testComposeGasLimitConfiguration() public {
-        vm.selectFork(0); // Mainnet
-
-        // Test setting valid gas limits (no bounds checking)
-        vm.prank(governor);
-        adapterMainnet.setComposeGasLimit(200000);
-        assertEq(adapterMainnet.composeGasLimit(), 200000);
-
-        // Test flexibility - low values work
-        vm.prank(governor);
-        adapterMainnet.setComposeGasLimit(50000);
-        assertEq(adapterMainnet.composeGasLimit(), 50000);
-
-        // Test flexibility - high values work
-        vm.prank(governor);
-        adapterMainnet.setComposeGasLimit(1500000);
-        assertEq(adapterMainnet.composeGasLimit(), 1500000);
-
-        // Test 0 uses default from registry
-        vm.prank(governor);
-        adapterMainnet.setComposeGasLimit(0);
-        assertEq(
-            adapterMainnet.composeGasLimit(),
-            registryMainnet.defaultGasLimit()
-        );
-    }
-
     function testUnauthorizedLzCompose() public {
         vm.selectFork(1); // Arbitrum fork
 
@@ -255,7 +223,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Check that it reverted with Unauthorized error
-        bytes4 unauthorizedSelector = IBridgeAdapter.Unauthorized.selector;
+        bytes4 unauthorizedSelector = BaseBridgeAdapter.Unauthorized.selector;
 
         // The return data should contain the revert reason
         assertTrue(returnData.length >= 4, "Should have revert data");
@@ -329,128 +297,6 @@ contract StargateAdapterComposeForkTest is Test {
         assertEq(
             adapterMainnet.getEndpointId(CHAIN_ID_ARBITRUM),
             LZ_EID_ARBITRUM
-        );
-    }
-
-    function testComposeGasLimitFlexibility() public {
-        vm.selectFork(0); // Mainnet
-
-        uint256 currentGasLimit = adapterMainnet.composeGasLimit();
-
-        // Test that any positive value works
-        vm.prank(governor);
-        adapterMainnet.setComposeGasLimit(100000);
-        assertEq(adapterMainnet.composeGasLimit(), 100000);
-
-        vm.prank(governor);
-        adapterMainnet.setComposeGasLimit(2000000);
-        assertEq(adapterMainnet.composeGasLimit(), 2000000);
-
-        // Restore original for other tests
-        vm.prank(governor);
-        adapterMainnet.setComposeGasLimit(currentGasLimit);
-    }
-
-    function testDebugMessageLengths() public view {
-        // Setup test data
-        bytes32 operationId = keccak256("test-operation");
-        uint256 amount = 1000e6;
-
-        // Create our custom compose message (what we want to pass to the FleetProxy)
-        bytes memory customComposeMessage = abi.encode(
-            address(fleetProxyArbitrum),
-            USDC_ARBITRUM,
-            amount,
-            uint256(CHAIN_ID_MAINNET),
-            operationId,
-            user
-        );
-
-        console.log(
-            "Custom compose message length:",
-            customComposeMessage.length
-        );
-        console.log("Expected minimum length: 192");
-        console.log(
-            "Custom message is valid:",
-            customComposeMessage.length >= 192
-        );
-
-        // Create the OFT-encoded compose message
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1), // nonce
-            uint32(LZ_EID_MAINNET), // source endpoint ID
-            amount, // amount in local decimals
-            customComposeMessage // No adapter address wrapping
-        );
-
-        console.log("OFT encoded message length:", oftEncodedMessage.length);
-    }
-
-    // Helper functions to call OFTComposeMsgCodec with calldata
-    /// forge-lint: disable-start(mixed-case-function)
-    function getAmountLD(
-        bytes calldata message
-    ) external pure returns (uint256) {
-        return OFTComposeMsgCodec.amountLD(message);
-    }
-    /// forge-lint: disable-end(mixed-case-function)
-
-    function getComposeMsg(
-        bytes calldata message
-    ) external pure returns (bytes memory) {
-        return OFTComposeMsgCodec.composeMsg(message);
-    }
-
-    function testRealStargateFeeConsistency() public {
-        vm.selectFork(0); // Mainnet
-
-        // Skip this test - it requires actual Stargate V2 contracts which may not be available
-        // The test setup uses mock contracts, so we'll skip the "real" Stargate test
-        vm.skip(true);
-    }
-
-    function testMsgValueThroughInternalCalls() public {
-        vm.selectFork(0); // Mainnet
-
-        // This test specifically checks that msg.value is preserved through internal function calls
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
-
-        uint256 amount = 1000e6;
-        uint256 providedFee = 2 ether; // Generous amount
-
-        // Mock the internal flow by calling estimateFee multiple times
-        // to ensure consistent results
-        (uint256 fee1, ) = adapterMainnet.estimateFee(
-            CHAIN_ID_ARBITRUM,
-            USDC_MAINNET,
-            amount,
-            adapterParams,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-
-        (uint256 fee2, ) = adapterMainnet.estimateFee(
-            CHAIN_ID_ARBITRUM,
-            USDC_MAINNET,
-            amount,
-            adapterParams,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-
-        // Fees should be consistent between calls
-        assertEq(fee1, fee2, "Fee estimation should be consistent");
-
-        // Provided fee should be much larger than estimated
-        assertGt(
-            providedFee,
-            fee1 * 10,
-            "Provided fee should be much larger than estimated"
         );
     }
 }

@@ -44,9 +44,6 @@ interface IBridgeAdapter is ISendAdapter {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when a call is made by an unauthorized address
-    error Unauthorized();
-
     /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
     error InsufficientMsgValue(uint128 required, uint256 provided);
 

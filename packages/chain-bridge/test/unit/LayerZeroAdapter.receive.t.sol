@@ -3,12 +3,12 @@ pragma solidity 0.8.28;
 
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
 import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {console} from "forge-std/console.sol";
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
 import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
 
@@ -47,95 +47,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         } else {
             // Unknown message type
             revert("Unknown message type");
-        }
-    }
-
-    // Modify the executeMessage function to accept a message type parameter
-    function executeMessage(
-        uint32 srcEid,
-        address srcAdapter,
-        address dstAdapter,
-        uint16 messageType // Add messageType parameter
-    ) internal {
-        // For receive tests, we need to simulate LZ message execution properly
-        Origin memory origin = Origin({
-            srcEid: srcEid,
-            sender: addressToBytes32(srcAdapter),
-            nonce: 1
-        });
-
-        // Get the message from the endpoint or create a default one
-        bytes memory payload;
-        bytes32 transferId = bytes32(uint256(1)); // Use a consistent transferId
-
-        // Special handling for read responses
-        if (srcEid > adapterA.READ_CHANNEL_THRESHOLD()) {
-            // For read responses, we need different handling
-            uint256 mockReadValue = 123456; // Mock balance value
-            bytes memory responseData = abi.encode(mockReadValue);
-
-            // Use the provided message type
-            payload = abi.encodePacked(
-                messageType, // Use the provided message type
-                responseData
-            );
-
-            // Call the adapter directly with the origin indicating it's a read response
-            adapterA.lzReceiveTest(
-                origin,
-                transferId,
-                payload,
-                srcAdapter,
-                bytes("")
-            );
-            return;
-        }
-
-        // Standard message handling for non-read messages
-        // Use the appropriate test helper based on the destination
-        if (address(dstAdapter) == address(adapterA)) {
-            payload = _createPayload(messageType, transferId);
-
-            try
-                adapterA.lzReceiveTest(
-                    origin,
-                    transferId,
-                    payload,
-                    srcAdapter,
-                    bytes("")
-                )
-            {
-                console.log("Message executed successfully on Chain A");
-            } catch Error(string memory reason) {
-                console.log("Execution failed on Chain A with reason:");
-                console.log(reason);
-                revert(reason);
-            } catch (bytes memory) {
-                console.log("Execution failed on Chain A with no reason");
-                revert("Execution failed on Chain A with no reason");
-            }
-        } else if (address(dstAdapter) == address(adapterB)) {
-            // Create a properly formatted payload for asset transfer
-            payload = _createPayload(messageType, transferId);
-
-            try
-                adapterB.lzReceiveTest(
-                    origin,
-                    transferId,
-                    payload,
-                    srcAdapter,
-                    bytes("")
-                )
-            {
-                console.log("Message executed successfully on Chain B");
-            } catch Error(string memory reason) {
-                console.log("Execution failed on Chain B with reason:");
-                console.log(reason);
-                revert(reason);
-            } catch (bytes memory) {
-                console.log("Execution failed on Chain B with no reason");
-                revert("Execution failed on Chain B with no reason");
-            }
         }
     }
 
@@ -194,9 +105,47 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         );
 
         // Verify the mock receiver received the correct data
-        assertEq(
-            abi.decode(mockReceiver.lastReceivedData(), (uint256)),
-            mockReadValue
+        BridgeTypes.ReadResponse memory response = abi.decode(
+            mockReceiver.lastReceivedData(),
+            (BridgeTypes.ReadResponse)
+        );
+        assertEq(abi.decode(response.data, (uint256)), mockReadValue);
+    }
+
+    function testGeneralMessageDelivery() public {
+        bytes32 messageId = bytes32(uint256(1));
+        bytes memory message = "test message";
+        address recipient = address(mockReceiver);
+
+        // Create origin data
+        Origin memory origin = Origin({
+            srcEid: LZ_EID_B,
+            sender: addressToBytes32(address(adapterB)),
+            nonce: 1
+        });
+
+        // Create payload with GENERAL_MESSAGE type
+        bytes memory payload = abi.encodePacked(
+            uint16(3), // GENERAL_MESSAGE type
+            abi.encode(message, recipient, messageId)
+        );
+
+        // Mock expectations for BridgeRouter.deliver call
+        vm.expectCall(
+            address(routerA),
+            abi.encodeCall(
+                IBridgeRouter.deliver,
+                (messageId, CHAIN_ID_B, address(0), 0, recipient, message)
+            )
+        );
+
+        // Execute the message
+        adapterA.lzReceiveTest(
+            origin,
+            messageId,
+            payload,
+            address(adapterB),
+            bytes("")
         );
     }
 }

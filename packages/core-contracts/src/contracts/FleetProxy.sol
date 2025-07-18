@@ -180,7 +180,12 @@ contract FleetProxy is
         bytes calldata message,
         uint16 _hubChainId
     ) external whenNotPaused nonReentrant {
-        if (message.length == 0) {
+        BridgeTypes.DeliverPayload memory dp = abi.decode(
+            message,
+            (BridgeTypes.DeliverPayload)
+        );
+
+        if (dp.operationId == bytes32(0)) {
             emit MessageContentNotExpected();
         }
 
@@ -231,7 +236,7 @@ contract FleetProxy is
     ) internal view returns (address arkAddress) {
         return
             ICrossChainRegistry(crossChainRegistry()).getSourceForTarget(
-                hubChainId,
+                _hubChainId,
                 ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
                 ARK_FLEET_RELATIONSHIP

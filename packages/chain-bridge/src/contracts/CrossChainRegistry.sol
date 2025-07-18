@@ -49,7 +49,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice The bridge router contract address
     address public bridgeRouter;
 
-    /// @notice The default gas limit for cross-chain transactions
+    /// @notice The gas limit for cross-chain messages
     uint256 public defaultGasLimit;
 
     /// @notice Constants for relationship types
@@ -237,8 +237,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /**
-     * @notice Updates the default gas limit
-     * @param newDefaultGasLimit The new default gas limit
+     * @notice Updates the message gas limit
+     * @param newDefaultGasLimit The new message gas limit
      */
     function setDefaultGasLimit(
         uint256 newDefaultGasLimit
@@ -646,22 +646,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 fleetChainId,
                 ARK_FLEET
             );
-    }
-
-    /**
-     * @notice Get all Fleets registered for a given Ark
-     * @param arkProxy Address of the Ark proxy
-     * @return fleetProxies Array of Fleet proxy addresses
-     * @return fleetChainIds Array of chain IDs where the Fleets are deployed
-     */
-    function getAllFleetsForArk(
-        address arkProxy
-    )
-        external
-        view
-        returns (address[] memory fleetProxies, uint16[] memory fleetChainIds)
-    {
-        return getTargetsForSource(arkProxy, ARK_FLEET);
     }
 
     /*//////////////////////////////////////////////////////////////
