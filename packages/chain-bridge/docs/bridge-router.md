@@ -1,4 +1,4 @@
-# Chain Bridge System
+# Bridge Router System
 
 This directory contains the implementation of a modular cross-chain bridge system that enables secure asset transfers and message passing between blockchains. The **BridgeRouter** is the single entry point for users; each pending operation is represented by a **CrossChainArk** token until it is finalised on the destination chain.
 

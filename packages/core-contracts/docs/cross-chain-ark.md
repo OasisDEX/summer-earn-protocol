@@ -1,4 +1,4 @@
-# Cross-Chain Ark Technical Architecture
+# Cross-Chain Ark Architecture
 
 This document describes the security and validation mechanisms for Summer's Cross-Chain Ark system, focusing on how the CrossChainRegistry, CrossChainArk, and FleetProxy contracts coordinate to ensure secure cross-chain operations.
 
@@ -45,19 +45,28 @@ When CrossChainArk needs to perform operations:
 
 ```mermaid
 sequenceDiagram
+    participant User as User/FleetCommander
     participant Ark as CrossChainArk
     participant Reg as CrossChainRegistry
-    participant Queue as BridgeQueue
+    participant Router as BridgeRouter
+    participant Keeper as Keeper
     
-    Ark->>Ark: _board(amount) called
+    User->>Ark: board(amount, executeTransferParams)
     Ark->>Reg: getRelationshipByTarget(address(this), ARK_FLEET_RELATIONSHIP, satelliteChainId)
     alt Valid Relationship
         Reg-->>Ark: CrossChainRelation{targetContract, targetChainId, ...}
-        Ark->>Queue: queueTransferAssets(targetChain, asset, amount, proxy)
+        Ark->>Ark: Store pendingTransferParams
+        Ark-->>User: ✅ Boarding Complete (params stored)
     else Invalid Relationship
-        Reg-->>Ark: revert RelationshipDoesNotExist(sourceContract, relationshipType, targetChainId)
-        Ark->>Ark: Transaction reverted
+        Reg-->>Ark: revert RelationshipDoesNotExist(...)
+        Ark-->>User: ❌ Transaction Reverted
     end
+    
+    Note over Keeper: Separate keeper-driven execution
+    Keeper->>Ark: executeTransferAssets{value: nativeFee}()
+    Ark->>Router: executeTransferAssets(pendingTransferParams)
+    Router->>Router: Execute cross-chain transfer
+    Ark->>Ark: Clear pendingTransferParams
 ```
 
 **Direct Registry Call**:
@@ -71,11 +80,22 @@ function _getTargetProxy() internal view returns (address proxyAddress) {
     return relation.targetContract;
 }
 
-function _board(uint256 amount, bytes calldata) internal override {
+function _board(uint256 amount, bytes calldata executeTransferParams) internal override {
     address proxyAddress = _getTargetProxy(); // Reverts if no relationship
     
-    config.asset.approve(address(bridgeQueue), amount);
-    bridgeQueue.queueTransferAssets(satelliteChainId, address(config.asset), amount, proxyAddress);
+    // Validate and store params instead of executing immediately
+    BridgeTypes.ExecuteTransferParams memory params = abi.decode(
+        executeTransferParams, (BridgeTypes.ExecuteTransferParams)
+    );
+    // ... validation ...
+    pendingTransferParams = params; // Store for later execution
+}
+
+function executeTransferAssets() external payable onlyKeeper {
+    IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
+    config.asset.approve(address(bridgeRouter), pendingTransferParams.amount);
+    bridgeRouter.executeTransferAssets{value: msg.value}(pendingTransferParams);
+    // Clear pending params after execution
 }
 ```
 
@@ -204,10 +224,22 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver {
         return relation.targetContract;
     }
     
-    function _board(uint256 amount, bytes calldata) internal override {
+    function _board(uint256 amount, bytes calldata executeTransferParams) internal override {
         address proxyAddress = _getTargetProxy(); // Direct call - reverts if no relationship
-        config.asset.approve(address(bridgeQueue), amount);
-        bridgeQueue.queueTransferAssets(satelliteChainId, address(config.asset), amount, proxyAddress);
+        
+        // Validate and store params instead of executing immediately
+        BridgeTypes.ExecuteTransferParams memory params = abi.decode(
+            executeTransferParams, (BridgeTypes.ExecuteTransferParams)
+        );
+        // ... validation ...
+        pendingTransferParams = params; // Store for later execution
+    }
+    
+    function executeTransferAssets() external payable onlyKeeper {
+        IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
+        config.asset.approve(address(bridgeRouter), pendingTransferParams.amount);
+        bridgeRouter.executeTransferAssets{value: msg.value}(pendingTransferParams);
+        // Clear pending params after execution
     }
     
     function requestRemoteAssetBalanceUpdate() external onlyKeeper returns (bytes32 queueId) {
