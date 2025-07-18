@@ -783,7 +783,12 @@ contract StargateAdapter is
         // 2. Build the payload the end-recipient expects
         //    (same shape as before, just without the token/amount fields)
         // -----------------------------------------------------------------
-        bytes memory payload = abi.encode(operationId, originator, sourceAsset);
+        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
+            operationId: operationId,
+            originator: originator,
+            sourceAsset: sourceAsset
+        });
+        bytes memory payload = abi.encode(dp);
 
         // -----------------------------------------------------------------
         // 3. Let the BridgeRouter finish the delivery

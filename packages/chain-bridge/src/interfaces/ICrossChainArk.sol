@@ -55,6 +55,9 @@ interface ICrossChainArk is IInflightAssetTracking {
     /// @notice Thrown when there are no pending transfer params.
     error NoPendingTransferParams();
 
+    /// @notice Emitted when a message is not expected
+    event MessageContentNotExpected();
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/

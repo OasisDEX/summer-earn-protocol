@@ -298,7 +298,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // Check if this is a response from a read channel
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
-            _handleReadResponse(_origin, _guid, _payload);
+            _handleReadResponse(
+                _origin,
+                _guid,
+                abi.encode(BridgeTypes.ReadResponse({data: _payload}))
+            );
             return;
         }
 
@@ -350,7 +354,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function _handleReadResponse(
         Origin calldata _origin,
         bytes32 _guid,
-        bytes calldata _payload
+        bytes memory _payload
     ) internal {
         // Extract requestId from the guid mapping
         bytes32 operationId = lzMessageToOperationId[_guid];

@@ -31,6 +31,21 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     BridgeTypes.BridgeOptions defaultOptions;
 
+    /*//////////////////////////////////////////////////////////////
+                              HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Wraps a uint256 in BridgeTypes.ReadResponse so that
+    ///      CrossChainArk.receiveStateRead can decode it.
+    function _encodeReadResponse(
+        uint256 balance
+    ) internal pure returns (bytes memory) {
+        BridgeTypes.ReadResponse memory rr = BridgeTypes.ReadResponse({
+            data: abi.encode(balance)
+        });
+        return abi.encode(rr);
+    }
+
     function setUp() public {
         initializeCoreContracts();
         router = new MockBridgeRouter();
@@ -106,7 +121,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
         fleetCommander.addArk(address(ark));
 
         // Deploy mock adapter
-        mockAdapter = new MockAdapter(address(router));
+        mockAdapter = new MockAdapter(
+            address(registry),
+            address(accessManager)
+        );
 
         // Register adapter
         router.registerAdapter(address(mockAdapter));
@@ -345,7 +363,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadUpdatesRemoteBalanceAndEmitsEvent() public {
         uint256 remoteBalance = 12345;
-        bytes memory resultData = abi.encode(remoteBalance);
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("test-request");
         uint16 sourceChain = TARGET_CHAIN_ID;
 
@@ -364,14 +382,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function testReceiveMessageWithAssets() public {
         address tokenAddress = address(mockToken);
         uint256 amount = 500;
-        bytes memory message = "";
+        bytes memory message = _buildEmptyPayload();
         uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Track initial state
         uint256 initialRemoteBalance = 1000;
 
         // Set initial remote balance
-        bytes memory resultData = abi.encode(initialRemoteBalance);
+        bytes memory resultData = _encodeReadResponse(initialRemoteBalance);
         bytes32 requestId = keccak256("test-request");
         vm.prank(address(router));
         ark.receiveStateRead(resultData, address(ark), requestId, sourceChain);
@@ -402,7 +420,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadWithCorrectParameterOrder() public {
         uint256 remoteBalance = 54321;
-        bytes memory resultData = abi.encode(remoteBalance);
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("parameter-order-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
 
@@ -423,7 +441,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadResetsInflightAssets() public {
         uint256 remoteBalance = 2000;
-        bytes memory resultData = abi.encode(remoteBalance);
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("inflight-reset-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
 
@@ -453,7 +471,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadUnauthorizedCaller() public {
         uint256 remoteBalance = 1000;
-        bytes memory resultData = abi.encode(remoteBalance);
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("unauthorized-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
 
@@ -465,7 +483,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadInvalidSourceChain() public {
         uint256 remoteBalance = 1000;
-        bytes memory resultData = abi.encode(remoteBalance);
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("wrong-chain-test");
         uint16 wrongSourceChain = 9999;
 
@@ -482,7 +500,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadInvalidRequestor() public {
         uint256 remoteBalance = 1000;
-        bytes memory resultData = abi.encode(remoteBalance);
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("wrong-requestor-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
 
@@ -519,7 +537,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         deal(address(mockToken), address(ark), localBalance);
 
         // Setup remote balance via state read
-        bytes memory resultData = abi.encode(remoteBalance);
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("total-assets-test");
         vm.prank(address(router));
         ark.receiveStateRead(
@@ -598,7 +616,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // This test simulates what would happen when BridgeRouter calls deliverReadResponse
         // and that results in CrossChainArk.receiveStateRead being called
         uint256 remoteBalance = 7777;
-        bytes memory resultData = abi.encode(remoteBalance);
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 operationId = keccak256("delivery-flow-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
 
@@ -648,5 +666,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
             ark.supportsInterface(bytes4(0xffffffff)),
             "Should not support random interface"
         );
+    }
+
+    function _buildEmptyPayload() internal pure returns (bytes memory) {
+        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
+            operationId: bytes32(0),
+            originator: address(0),
+            sourceAsset: address(0)
+        });
+        return abi.encode(dp);
     }
 }

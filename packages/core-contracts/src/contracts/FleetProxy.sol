@@ -180,7 +180,12 @@ contract FleetProxy is
         bytes calldata message,
         uint16 _hubChainId
     ) external whenNotPaused nonReentrant {
-        if (message.length == 0) {
+        BridgeTypes.DeliverPayload memory dp = abi.decode(
+            message,
+            (BridgeTypes.DeliverPayload)
+        );
+
+        if (dp.operationId == bytes32(0)) {
             emit MessageContentNotExpected();
         }
 

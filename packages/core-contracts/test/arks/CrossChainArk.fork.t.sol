@@ -30,6 +30,21 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     MockStargateV2Pool public mockStargate;
     CrossChainRegistry public registry;
 
+    /*//////////////////////////////////////////////////////////////
+                              HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Wraps a uint256 in BridgeTypes.ReadResponse so that
+    ///      CrossChainArk.receiveStateRead can decode it.
+    function _encodeReadResponse(
+        uint256 balance
+    ) internal pure returns (bytes memory) {
+        BridgeTypes.ReadResponse memory rr = BridgeTypes.ReadResponse({
+            data: abi.encode(balance)
+        });
+        return abi.encode(rr);
+    }
+
     // LayerZero specific constants
     address public constant LZ_ENDPOINT_MAINNET =
         0x1a44076050125825900e736c501f859c50fE728c;
@@ -336,8 +351,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Mock the remote balance response
-        uint256 remoteBalance = 1000 * 10 ** 6;
-        bytes memory resultData = abi.encode(remoteBalance);
+        uint256 remoteBalance = 1_000 * 1e6;
+        bytes memory resultData = _encodeReadResponse(remoteBalance);
 
         // Expect events to be emitted
         vm.expectEmit(true, true, true, true);
@@ -615,7 +630,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // === STEP 4: Simulate LayerZero response delivery ===
         // The response should contain the encoded remote balance
-        bytes memory mockResponseData = abi.encode(mockRemoteBalance);
+        bytes memory mockResponseData = _encodeReadResponse(mockRemoteBalance);
 
         // === STEP 5: Simulate BridgeRouter.deliverReadResponse ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
@@ -707,7 +722,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // === STEP 3: Test error handling scenarios ===
-        bytes memory responseData = abi.encode(mockRemoteBalance);
+        bytes memory responseData = _encodeReadResponse(mockRemoteBalance);
 
         // Test 1: Unauthorized adapter trying to deliver response
         address fakeAdapter = makeAddr("fake-adapter");
@@ -759,7 +774,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Test parameter validation in the CrossChainArk.receiveStateRead method
 
         uint256 mockRemoteBalance = 1500 * 10 ** 6;
-        bytes memory responseData = abi.encode(mockRemoteBalance);
+        bytes memory responseData = _encodeReadResponse(mockRemoteBalance);
         bytes32 operationId = keccak256("test-validation");
 
         // Test 1: Unauthorized caller (not BridgeRouter)
@@ -895,7 +910,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint32 readResponseEid = layerZeroAdapter.READ_CHANNEL_THRESHOLD() + 1;
 
         // Create the response payload (encoded remote balance)
-        bytes memory responsePayload = abi.encode(mockRemoteBalance);
+        bytes memory responsePayload = _encodeReadResponse(mockRemoteBalance);
 
         // Create the Origin struct that LayerZero would pass to _lzReceive
         Origin memory origin = Origin({
@@ -1016,7 +1031,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // === STEP 2: Test LayerZero adapter's response handling directly ===
-        bytes memory responseData = abi.encode(mockRemoteBalance);
+        bytes memory responseData = _encodeReadResponse(mockRemoteBalance);
 
         // Test the adapter's deliverReadResponse path
         vm.expectEmit(true, true, true, true);

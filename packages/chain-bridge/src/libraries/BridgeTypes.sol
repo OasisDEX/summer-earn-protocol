@@ -76,4 +76,22 @@ library BridgeTypes {
         address keeper; // Add keeper field for refunds
         BridgeOptions options;
     }
+
+    struct DeliverPayload {
+        bytes32 operationId; // cross-chain operation ID
+        address originator; // original msg.sender on the source chain
+        address sourceAsset; // token the user supplied on the source chain
+    }
+
+    /**
+     * @notice Generic wrapper for a cross-chain state–read response
+     * @dev Keeps result bytes in a typed container so every contract
+     *      that consumes the response can simply:
+     *          BridgeTypes.ReadResponse memory r =
+     *              abi.decode(resultData, (BridgeTypes.ReadResponse));
+     *      and then decode `r.data` to whatever concrete type it expects.
+     */
+    struct ReadResponse {
+        bytes data; // ABI-encoded return data of the read call
+    }
 }
