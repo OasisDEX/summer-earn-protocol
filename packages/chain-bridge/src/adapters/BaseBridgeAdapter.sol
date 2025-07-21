@@ -23,6 +23,9 @@ abstract contract BaseBridgeAdapter is
     /// @notice Thrown when a call is made by an unauthorized address
     error Unauthorized();
 
+    /// @notice Error thrown when the message is invalid
+    error InvalidMessage();
+
     ICrossChainRegistry public immutable REGISTRY;
     uint16 public immutable THIS_CHAIN;
 
@@ -49,16 +52,7 @@ abstract contract BaseBridgeAdapter is
     }
 
     modifier onlyTrustedSource(address srcAdapter, uint16 srcChain) {
-        if (
-            !REGISTRY.isValidAdapterPeer(
-                srcAdapter,
-                address(this),
-                srcChain,
-                THIS_CHAIN
-            )
-        ) {
-            revert UntrustedSourceAdapter(srcAdapter, srcChain);
-        }
+        _assertTrustedSource(srcAdapter, srcChain);
         _;
     }
 
@@ -84,5 +78,22 @@ abstract contract BaseBridgeAdapter is
 
     function _peerAdapter(uint16 dstChain) internal view returns (address) {
         return REGISTRY.getAdapterPeer(address(this), dstChain);
+    }
+
+    /// @dev Reverts if `srcAdapter` is **not** the registry-declared peer for `srcChain`.
+    function _assertTrustedSource(
+        address srcAdapter,
+        uint16 srcChain
+    ) internal view {
+        if (
+            !REGISTRY.isValidAdapterPeer(
+                srcAdapter,
+                address(this), // <-- this adapter (dst)
+                srcChain,
+                THIS_CHAIN
+            )
+        ) {
+            revert UntrustedSourceAdapter(srcAdapter, srcChain);
+        }
     }
 }

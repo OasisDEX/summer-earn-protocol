@@ -17,7 +17,7 @@ import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@laye
 
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+import {TaxiCodec} from "@stargatefinance/stg-evm-v2/src/libs/TaxiCodec.sol";
 
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
@@ -693,25 +693,75 @@ contract StargateAdapter is
      */
     function lzCompose(
         address _from,
-        bytes32,
+        bytes32, // guid
         bytes calldata _message,
-        address,
-        bytes calldata
+        address, // caller
+        bytes calldata // extraData
     ) external payable override nonReentrant {
         // Verify caller is LayerZero endpoint
-        if (msg.sender != LZ_ENDPOINT) {
-            revert Unauthorized();
-        }
+        if (msg.sender != LZ_ENDPOINT) revert Unauthorized();
 
-        // Validate the Stargate pool contract
+        // Validate the Stargate pool contract (reverts if un-trusted)
         _validateStargatePool(_from);
 
-        // Extract the amount and compose message from OFT encoding
-        uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        bytes memory composeMsg = OFTComposeMsgCodec.composeMsg(_message);
+        // ---------------------------------------------------------------
+        // 1. Taxi header must be present
+        // ---------------------------------------------------------------
+        if (!TaxiCodec.isTaxi(_message)) revert InvalidMessage();
+        /// forge-lint: disable-start(mixed-case-variable)
+        // msg layout: <type><assetId><receiver><amountSD><bytes32 sender><composeMsg>
+        (, , uint64 amtSD, bytes memory taxiPayload) = TaxiCodec.decodeTaxi(
+            _message
+        );
+        /// forge-lint: disable-end(mixed-case-variable)
 
-        // Decode compose message and handle the rest
-        _handleComposedMessage(_from, amount, composeMsg);
+        bytes32 packedSender;
+        bytes memory composeMsg;
+
+        assembly {
+            // Extract first 32 bytes as sender
+            packedSender := mload(add(taxiPayload, 0x20))
+
+            // Calculate length of remaining data
+            let composeMsgLength := sub(mload(taxiPayload), 32)
+
+            // Allocate memory for composeMsg
+            composeMsg := mload(0x40)
+            mstore(composeMsg, composeMsgLength)
+
+            // Copy the data starting from byte 32
+            let src := add(add(taxiPayload, 0x20), 32)
+            let dst := add(composeMsg, 0x20)
+
+            // Copy data in 32-byte chunks
+            for {
+                let i := 0
+            } lt(i, composeMsgLength) {
+                i := add(i, 32)
+            } {
+                mstore(add(dst, i), mload(add(src, i)))
+            }
+
+            // Update free memory pointer
+            mstore(0x40, add(add(composeMsg, 0x20), composeMsgLength))
+        }
+
+        address srcSender = address(uint160(uint256(packedSender)));
+
+        // ---------------------------------------------------------------
+        // 2. Verify peer adapter relationship
+        // ---------------------------------------------------------------
+        BridgeTypes.AssetTransferMessage memory atm = abi.decode(
+            composeMsg,
+            (BridgeTypes.AssetTransferMessage)
+        );
+
+        _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
+
+        // ---------------------------------------------------------------
+        // 3. Continue normal handling
+        // ---------------------------------------------------------------
+        _handleComposedMessage(_from, amtSD, composeMsg);
     }
 
     /**
