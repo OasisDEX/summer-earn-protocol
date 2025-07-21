@@ -5,7 +5,7 @@ This directory contains the implementation of a modular cross-chain bridge syste
 ## Core Components
 
 - **BridgeRouter**: Central execution contract that coordinates cross-chain operations
-- **CrossChainArk**: ERC-721 token that tracks a pending cross-chain operation (the system’s only “queue”)
+- **CrossChainArk**: Tracks assets held in a protocol on a neighbouring chain. Tracks a pending cross-chain operation (the system’s only “queue”)
 - **Bridge Adapters**: Protocol-specific implementations (LayerZero, Stargate, etc.)
 - **CrossChainReceiver**: Interface for contracts that need to receive cross-chain data
 
