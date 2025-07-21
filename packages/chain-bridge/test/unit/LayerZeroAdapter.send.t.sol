@@ -95,7 +95,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         // Create a test message to send cross-chain
         bytes memory message = abi.encode("Hello from Chain A!");
 
-        // Create adapter params with appropriate gas limit for GENERAL_MESSAGE
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({
                 gasLimit: 500000,
@@ -178,9 +177,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             nonce: 1
         });
 
-        // Format the payload as GENERAL_MESSAGE type with recipient info
+        // Format the payload as MESSAGE type with recipient info
         bytes memory payload = abi.encodePacked(
-            uint16(adapterA.GENERAL_MESSAGE()),
+            uint16(BridgeTypes.OperationType.MESSAGE),
             abi.encode(message, address(mockReceiver), operationId)
         );
 

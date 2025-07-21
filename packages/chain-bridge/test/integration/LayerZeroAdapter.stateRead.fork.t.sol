@@ -306,7 +306,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
 
         uint256 requiredFee = layerZeroAdapter.getRequiredFee(
             READ_CHANNEL_ID, // Use read channel ID for state reads
-            layerZeroAdapter.STATE_READ(), // STATE_READ = 2
+            BridgeTypes.OperationType.READ_STATE,
             payload
         );
 

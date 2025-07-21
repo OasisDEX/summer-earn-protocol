@@ -22,34 +22,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         mockReceiver = new MockCrossChainReceiver();
     }
 
-    /// @dev Creates a payload for standard messages based on message type and transfer ID
-    /// @param messageType The type of message (2 for STATE_READ, 3 for GENERAL_MESSAGE)
-    /// @param transferId The transfer ID to include in the payload
-    /// @return payload The encoded payload bytes
-    function _createPayload(
-        uint16 messageType,
-        bytes32 transferId
-    ) internal pure returns (bytes memory payload) {
-        if (messageType == 2) {
-            // STATE_READ
-            // Format for state read message
-            payload = abi.encodePacked(
-                messageType,
-                abi.encode(transferId, bytes("Read data payload"))
-            );
-        } else if (messageType == 3) {
-            // GENERAL_MESSAGE
-            // Format for general message
-            payload = abi.encodePacked(
-                messageType,
-                abi.encode("General message payload")
-            );
-        } else {
-            // Unknown message type
-            revert("Unknown message type");
-        }
-    }
-
     function testStateRead() public {
         // Create a operationId that we'll use for both sending and receiving
         bytes32 operationId = bytes32(uint256(1));
@@ -126,7 +98,7 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
 
         // Create payload with GENERAL_MESSAGE type
         bytes memory payload = abi.encodePacked(
-            uint16(3), // GENERAL_MESSAGE type
+            uint16(BridgeTypes.OperationType.MESSAGE), // GENERAL_MESSAGE type
             abi.encode(message, recipient, messageId)
         );
 

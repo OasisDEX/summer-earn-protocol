@@ -10,38 +10,6 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
-    // Implement the executeMessage helper function required by the abstract base test
-    function executeMessage(
-        uint32 srcEid,
-        address srcAdapter,
-        address dstAdapter
-    ) internal {
-        // Implementation for general tests
-        Origin memory origin = Origin({
-            srcEid: srcEid,
-            sender: addressToBytes32(srcAdapter),
-            nonce: 1
-        });
-
-        if (address(dstAdapter) == address(adapterA)) {
-            adapterA.lzReceiveTest(
-                origin,
-                bytes32(uint256(1)), // requestId
-                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with GENERAL_MESSAGE type
-                srcAdapter,
-                bytes("")
-            );
-        } else if (address(dstAdapter) == address(adapterB)) {
-            adapterB.lzReceiveTest(
-                origin,
-                bytes32(uint256(1)), // requestId
-                abi.encodePacked(uint16(3), "test payload"), // Simple transfer payload with GENERAL_MESSAGE type
-                srcAdapter,
-                bytes("")
-            );
-        }
-    }
-
     /*//////////////////////////////////////////////////////////////
                           ADAPTER FEATURES TESTS
     //////////////////////////////////////////////////////////////*/
@@ -85,7 +53,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     function testUnsupportedMessageType() public {
         // Create a message with an unsupported type (9 - which doesn't exist)
         bytes memory invalidPayload = abi.encodePacked(
-            uint16(9),
+            uint16(2),
             bytes("test payload")
         );
 
