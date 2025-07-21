@@ -193,7 +193,7 @@ contract CrossChainFleetProxyTest is Test {
         // Test all constructor values are properly initialized
         assertEq(address(proxy.bridgeRouter()), address(mockBridgeRouter));
         assertEq(address(proxy.crossChainRegistry()), address(registry));
-        assertEq(proxy.fleetContract(), address(fleetCommanderMock));
+        assertEq(proxy.fleetAddress(), address(fleetCommanderMock));
 
         // Verify registry relationship works
         address arkFromRegistry = registry.getSourceForTarget(
