@@ -264,6 +264,10 @@ contract BridgeRouter is
         nonReentrant
         returns (bytes32 operationId)
     {
+        _validateAdapterSupportsOperation(
+            params.options.specifiedAdapter,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
         _validateTransferParams(params);
 
         // Get required base fee and specified adapter (no multiplier)
@@ -280,11 +284,6 @@ contract BridgeRouter is
 
         // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
-
-        _validateAdapterSupportsOperation(
-            specifiedAdapter,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
 
         // Pull tokens from authorized executor to Router first
         IERC20(params.asset).safeTransferFrom(
@@ -369,6 +368,10 @@ contract BridgeRouter is
         nonReentrant
         returns (bytes32 operationId)
     {
+        _validateAdapterSupportsOperation(
+            params.options.specifiedAdapter,
+            BridgeTypes.OperationType.READ_STATE
+        );
         _validateReadStateParams(params);
 
         // Get required base fee and specified adapter (no multiplier)
@@ -385,11 +388,6 @@ contract BridgeRouter is
 
         // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
-
-        _validateAdapterSupportsOperation(
-            specifiedAdapter,
-            BridgeTypes.OperationType.READ_STATE
-        );
 
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
@@ -451,6 +449,10 @@ contract BridgeRouter is
         nonReentrant
         returns (bytes32 operationId)
     {
+        _validateAdapterSupportsOperation(
+            params.options.specifiedAdapter,
+            BridgeTypes.OperationType.MESSAGE
+        );
         _validateSendMessageParams(params);
 
         // Get required base fee and specified adapter (no multiplier)
@@ -467,11 +469,6 @@ contract BridgeRouter is
 
         // Validate fee provided by authorized executor against buffered fee
         _validateFee(msg.value, bufferedFee);
-
-        _validateAdapterSupportsOperation(
-            specifiedAdapter,
-            BridgeTypes.OperationType.MESSAGE
-        );
 
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
@@ -544,8 +541,6 @@ contract BridgeRouter is
                 revert UnknownAdapter();
             }
         }
-
-        _validateAdapterSupportsOperation(specifiedAdapter, operationType);
 
         // Get base fee from the specified adapter
         (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter).estimateFee(
