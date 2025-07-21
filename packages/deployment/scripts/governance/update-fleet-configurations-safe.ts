@@ -51,6 +51,7 @@ const addresses: Record<
       syrup: '0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66',
       sky: '0x56072C95FAA701256059aa122697B133aDEd9279',
       xsilo: '0xdd4c6fd31ccf66e250790643947675153c221a91',
+      silo: '0xF0B2dd79324A66d2108C961d680F7616E1486bB0',
     },
   },
   sonic: {
@@ -450,6 +451,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     morpho: [Token.MORPHO, Token.SYRUP],
     euler: [Token.REUL],
     gearbox: [Token.GEAR],
+    siloV2: [Token.SILO, Token.XSILO],
   },
   base: {
     morpho: [Token.MORPHO, Token.WELL],
