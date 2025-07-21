@@ -404,7 +404,58 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
     }
 
-    function testSystemTransactionPartialFailureWithRecovery() public {
+    function testLzComposeInvalidMessageNotTaxi() public {
+        useNetworkB();
+
+        // Create a mock Stargate pool first so it passes pool validation
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        // Create a message that's NOT a taxi message (will fail TaxiCodec.isTaxi check)
+        bytes memory invalidTaxiMessage = hex"00"; // Not a valid taxi header
+
+        // Should revert with TaxiCodec_InvalidMessage when TaxiCodec.isTaxi fails
+        vm.expectRevert("TaxiCodec_InvalidMessage()");
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            address(mockStargateFrom), // Use valid Stargate pool so it passes pool validation
+            bytes32("test-guid"),
+            invalidTaxiMessage,
+            address(0),
+            hex""
+        );
+    }
+
+    function testLzComposeInvalidMessageMalformedTaxi() public {
+        useNetworkB();
+
+        // Create a mock Stargate pool first so it passes pool validation
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        // Create a message that starts like a taxi but is malformed
+        // Taxi should start with 0x01 but have insufficient data
+        bytes memory malformedTaxiMessage = hex"010001"; // Too short to be valid
+
+        // Should revert with InvalidMessage or during taxi decoding
+        vm.expectRevert();
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            address(mockStargateFrom), // Use valid Stargate pool
+            bytes32("test-guid"),
+            malformedTaxiMessage,
+            address(0),
+            hex""
+        );
+    }
+
+    function testSystemTransactionFailureTokensHeld() public {
         useNetworkB();
 
         uint256 testAmount = 1 ether;
@@ -464,11 +515,11 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // ───────────────────────────  post-conditions  ───────────────────────────────
-        // When the call reverts, the adapter keeps all tokens
+        // When the call reverts, the adapter keeps all tokens (no recovery mechanism triggered)
         assertEq(
             tokenB.balanceOf(address(adapterB)),
             testAmount,
-            "adapter should hold all tokens after revert"
+            "adapter should hold all tokens when downstream call fails"
         );
 
         assertEq(
@@ -477,7 +528,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             "router should have no tokens after revert"
         );
 
-        // 3. Recipient got nothing because the downstream call reverted
+        // Recipient got nothing because the downstream call reverted
         assertEq(
             tokenB.balanceOf(address(mockFleetCommander)),
             fleetCommanderBalanceBefore,

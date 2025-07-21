@@ -701,7 +701,7 @@ contract StargateAdapter is
         // Verify caller is LayerZero endpoint
         if (msg.sender != LZ_ENDPOINT) revert Unauthorized();
 
-        // Validate the Stargate pool contract (reverts if un-trusted)
+        // Validate the Stargate pool contract
         _validateStargatePool(_from);
 
         // ---------------------------------------------------------------
@@ -715,8 +715,37 @@ contract StargateAdapter is
         );
         /// forge-lint: disable-end(mixed-case-variable)
 
+        // Extract sender and compose message from taxi payload
+        (address srcSender, bytes memory composeMsg) = _extractTaxiPayload(
+            taxiPayload
+        );
+
+        // ---------------------------------------------------------------
+        // 2. Verify peer adapter relationship
+        // ---------------------------------------------------------------
+        BridgeTypes.AssetTransferMessage memory atm = abi.decode(
+            composeMsg,
+            (BridgeTypes.AssetTransferMessage)
+        );
+
+        _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
+
+        // ---------------------------------------------------------------
+        // 3. Continue normal handling
+        // ---------------------------------------------------------------
+        _handleComposedMessage(_from, amtSD, composeMsg);
+    }
+
+    /**
+     * @dev Extracts sender address and compose message from taxi payload
+     * @param taxiPayload Raw payload from taxi message containing sender + composeMsg
+     * @return srcSender The address of the source adapter that sent the message
+     * @return composeMsg The composed message data
+     */
+    function _extractTaxiPayload(
+        bytes memory taxiPayload
+    ) internal pure returns (address srcSender, bytes memory composeMsg) {
         bytes32 packedSender;
-        bytes memory composeMsg;
 
         assembly {
             // Extract first 32 bytes as sender
@@ -746,22 +775,7 @@ contract StargateAdapter is
             mstore(0x40, add(add(composeMsg, 0x20), composeMsgLength))
         }
 
-        address srcSender = address(uint160(uint256(packedSender)));
-
-        // ---------------------------------------------------------------
-        // 2. Verify peer adapter relationship
-        // ---------------------------------------------------------------
-        BridgeTypes.AssetTransferMessage memory atm = abi.decode(
-            composeMsg,
-            (BridgeTypes.AssetTransferMessage)
-        );
-
-        _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
-
-        // ---------------------------------------------------------------
-        // 3. Continue normal handling
-        // ---------------------------------------------------------------
-        _handleComposedMessage(_from, amtSD, composeMsg);
+        srcSender = address(uint160(uint256(packedSender)));
     }
 
     /**
