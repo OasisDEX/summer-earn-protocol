@@ -18,8 +18,6 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
     event ReadOperationNotFound(bytes32 indexed guid, string reason);
     event RelayFailed(bytes32 indexed operationId, bytes reason);
 
-    // todo: add happy path test
-
     function testSuccessfulReadResponseHandling() public {
         console.log("=== Testing Successful Read Response Handling ===");
 
