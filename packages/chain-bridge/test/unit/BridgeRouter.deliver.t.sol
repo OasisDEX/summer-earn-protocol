@@ -47,13 +47,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             balBefore + AMOUNT,
             "tokens not forwarded"
         );
-
-        // Router recorded the handling adapter
-        assertEq(
-            router.requestReceivedByAdapter(operationId),
-            address(mockAdapter),
-            "adapter not recorded"
-        );
     }
 
     function testDeliverMessageOnly() public {
@@ -77,13 +70,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             0,
             address(mockReceiver),
             payload
-        );
-
-        // Mapping updated
-        assertEq(
-            router.requestReceivedByAdapter(operationId),
-            address(mockAdapter),
-            "adapter mapping incorrect"
         );
     }
 

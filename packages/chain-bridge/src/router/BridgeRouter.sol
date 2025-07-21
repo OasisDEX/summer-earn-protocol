@@ -52,10 +52,6 @@ contract BridgeRouter is
     mapping(bytes32 operationId => address adapterAddress)
         public operationToAdapter;
 
-    /// @notice Mapping of request IDs to the adapter that processed them
-    mapping(bytes32 requestId => address receivingAdapter)
-        public requestReceivedByAdapter;
-
     /// @notice Mapping to track read request originators
     mapping(bytes32 requestId => address originator)
         public readRequestToOriginator;
@@ -228,9 +224,6 @@ contract BridgeRouter is
                 operationType
             )
         );
-
-        // // Set initial status to QUEUED
-        // operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
 
         return operationId;
     }
@@ -586,28 +579,6 @@ contract BridgeRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeRouter
-    function updateOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external onlyRegisteredAdapter {
-        if (operationToAdapter[operationId] != msg.sender) {
-            revert Unauthorized();
-        }
-
-        // Allow transitions from QUEUED to SENT, or from SENT to FAILED
-        if (status == BridgeTypes.OperationStatus.SENT) {
-            operationStatuses[operationId] = status;
-            emit OperationStatusUpdated(operationId, status);
-        } else if (
-            status == BridgeTypes.OperationStatus.FAILED &&
-            operationStatuses[operationId] == BridgeTypes.OperationStatus.SENT
-        ) {
-            operationStatuses[operationId] = status;
-            emit OperationStatusUpdated(operationId, status);
-        }
-    }
-
-    /// @inheritdoc IBridgeRouter
     function notifyMessageReceived(
         bytes32 operationId,
         address asset,
@@ -615,9 +586,6 @@ contract BridgeRouter is
         address recipient,
         uint16 sourceChainId
     ) external onlyRegisteredAdapter {
-        // Store which adapter received this request
-        requestReceivedByAdapter[operationId] = msg.sender;
-
         // Emit events for tracking
         emit MessageDelivered(operationId, recipient, true);
 
@@ -634,6 +602,7 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
+    // todo: add retry mechanism
     function deliverReadResponse(
         bytes32 operationId,
         uint16 sourceChainId,
@@ -665,9 +634,6 @@ contract BridgeRouter is
         address recipient,
         bytes calldata payload
     ) external onlyRegisteredAdapter nonReentrant {
-        // Track the handling adapter
-        requestReceivedByAdapter[operationId] = msg.sender;
-
         // 1. Move tokens first (if any)
         if (asset != address(0) && amount > 0) {
             IERC20(asset).safeTransfer(recipient, amount);

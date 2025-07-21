@@ -377,11 +377,6 @@ contract StargateAdapter is
             amount,
             recipient
         );
-
-        IBridgeRouter(bridgeRouter()).updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
     }
 
     /**

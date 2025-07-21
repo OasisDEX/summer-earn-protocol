@@ -18,6 +18,8 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
     event ReadOperationNotFound(bytes32 indexed guid, string reason);
     event RelayFailed(bytes32 indexed operationId, bytes reason);
 
+    // todo: add happy path test
+
     function testSuccessfulReadResponseHandling() public {
         console.log("=== Testing Successful Read Response Handling ===");
 
@@ -38,7 +40,10 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
         // Set the read request originator (required for deliverReadResponse)
-        router.setReadRequestOriginator(operationId, user);
+        router.setReadRequestOriginator(
+            operationId,
+            address(mockCrossChainStateReadReceiver)
+        );
 
         // Map the GUID to operation ID (simulating a previous read request)
         _setOperationMapping(guid, operationId);
@@ -49,10 +54,6 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             sender: bytes32(uint256(uint160(address(layerZeroAdapter)))), // Peer layerZeroAdapter address
             nonce: 1
         });
-
-        // Expect the RelayFailed event (since user is not a contract that implements the interface)
-        vm.expectEmit(true, false, false, true, address(layerZeroAdapter));
-        emit RelayFailed(operationId, "");
 
         // Simulate receiving the read response through LayerZero
         vm.prank(LZ_ENDPOINT_BASE); // Only the LZ endpoint can call lzReceive
@@ -124,12 +125,10 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             nonce: 1
         });
 
-        // Expect the RelayFailed event due to delivery failure
-        vm.expectEmit(true, false, false, false, address(layerZeroAdapter));
-        emit RelayFailed(operationId, "");
-
         // Simulate receiving the read response - should handle delivery failure gracefully
+        // todo: implement recoverey/retry mechanism
         vm.prank(LZ_ENDPOINT_BASE);
+        vm.expectRevert();
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 
         // Reset router behavior
@@ -259,11 +258,9 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 nonce: uint64(i + 1)
             });
 
-            // Expect the RelayFailed event for each response (since user is not a contract)
-            vm.expectEmit(true, false, false, true, address(layerZeroAdapter));
-            emit RelayFailed(operationIds[i], "");
-
+            // todo: implement recoverey/retry mechanism for all operations
             vm.prank(LZ_ENDPOINT_BASE);
+            vm.expectRevert();
             layerZeroAdapter.lzReceive(
                 origin,
                 guids[i],

@@ -291,7 +291,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         // srcEid - Read Channel ID for Read operations -
         // https://docs.layerzero.network/v2/developers/evm/lzread/overview#hybrid-messaging--read
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
-            _handleReadResponse(
+            _relayReadResponse(
                 _origin,
                 _guid,
                 abi.encode(BridgeTypes.ReadResponse({data: _payload}))
@@ -305,7 +305,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             (bytes memory message, address recipient, bytes32 messageId) = abi
                 .decode(actualPayload, (bytes, address, bytes32));
 
-            _handleGeneralMessage(message, recipient, messageId, srcChainId);
+            _relayGeneralMessage(message, recipient, messageId, srcChainId);
         } else {
             revert UnsupportedMessageType();
         }
@@ -318,7 +318,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param messageId The message ID
      * @param srcChainId The source chain ID
      */
-    function _handleGeneralMessage(
+    function _relayGeneralMessage(
         bytes memory message,
         address recipient,
         bytes32 messageId,
@@ -340,7 +340,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Response payload
      */
-    function _handleReadResponse(
+    function _relayReadResponse(
         Origin calldata _origin,
         bytes32 _guid,
         bytes memory _payload
@@ -353,26 +353,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             return;
         }
 
-        // Get the source chain ID from the origin
-        uint16 srcChainId = lzEidToChain[_origin.srcEid];
-
-        // Forward the result to the bridge router
-        try
-            IBridgeRouter(bridgeRouter()).deliverReadResponse(
-                operationId,
-                srcChainId,
-                _payload
-            )
-        {
-            emit ReadResponseDelivered(operationId, _payload);
-        } catch (bytes memory reason) {
-            // Mark as failed if delivery fails
-            _updateOperationStatus(
-                operationId,
-                BridgeTypes.OperationStatus.FAILED
-            );
-            emit RelayFailed(operationId, reason);
-        }
+        IBridgeRouter(bridgeRouter()).deliverReadResponse(
+            operationId,
+            lzEidToChain[_origin.srcEid],
+            _payload
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -539,12 +524,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             destinationChainId,
             destinationContract,
             selector
-        );
-
-        // Set initial status as SENT
-        IBridgeRouter(bridgeRouter()).updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
         );
     }
 
@@ -729,20 +708,5 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         return
             operationType == BridgeTypes.OperationType.MESSAGE ||
             operationType == BridgeTypes.OperationType.READ_STATE;
-    }
-
-    /**
-     * @notice Updates the status of a transfer on sending chain
-     * @param operationId ID of the operation to update
-     * @param status New status to set
-     */
-    function _updateOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) internal {
-        IBridgeRouter(bridgeRouter()).updateOperationStatus(
-            operationId,
-            status
-        );
     }
 }
