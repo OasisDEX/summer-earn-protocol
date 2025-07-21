@@ -29,9 +29,6 @@ library LayerZeroOptionsHelper {
             ? minGasLimit
             : adapterParams.gasLimit;
 
-        // Use provided msgValue
-        uint128 msgValue = adapterParams.msgValue;
-
         // Start with user-provided options or create new empty options
         if (adapterParams.options.length > 0) {
             // Use the user's options as the base if provided
@@ -46,7 +43,7 @@ library LayerZeroOptionsHelper {
             OptionsBuilder.addExecutorLzReceiveOption(
                 options,
                 gasLimit,
-                msgValue
+                adapterParams.msgValue
             );
     }
 

@@ -52,12 +52,23 @@ contract CrossChainFleetProxyTest is Test {
     Raft public raft;
     CrossChainRegistry public registry;
 
+    // Define separate target proxies for each adapter
+    address public constant ARB_STARGATE_PROXY = address(0x999); // Mock Stargate proxy address on Arbitrum
+    address public constant ARB_LAYERZERO_PROXY = address(0x998); // Mock LayerZero proxy address on Arbitrum
+
     function setUp() public {
         // Deploy mocks
         mockToken = new ERC20Mock();
         mockBridgeRouter = new MockBridgeRouter();
         accessManager = new ProtocolAccessManager(governor);
-        mockAdapter = new MockAdapter(address(mockBridgeRouter));
+        registry = new CrossChainRegistry(
+            address(accessManager),
+            DEST_CHAIN_ID // current chain ID
+        );
+        mockAdapter = new MockAdapter(
+            address(registry),
+            address(accessManager)
+        );
         mockBridgeRouter.registerAdapter(address(mockAdapter));
 
         // Deploy configuration manager and raft
@@ -98,19 +109,12 @@ contract CrossChainFleetProxyTest is Test {
         accessManager.grantGovernorRole(governor);
         vm.stopPrank();
 
-        // Deploy CrossChainRegistry BEFORE using it
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            DEST_CHAIN_ID // current chain ID
-        );
-
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
         registry.initializeBridgeConfiguration(
             address(mockBridgeRouter),
             200000 // defaultGasLimit
         );
-        vm.stopPrank();
 
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(
@@ -121,8 +125,25 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID
         );
 
-        // Register the ark-proxy relationship in the registry
-        vm.prank(governor);
+        // Register cross-chain relationships in registry
+        registry.registerRelationship(
+            address(bufferArkMock), // Use the ArkMock as the source
+            ARB_STARGATE_PROXY, // Different target for Stargate
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            registry.PEER()
+        );
+
+        // Register LayerZero adapter with different target
+        registry.registerRelationship(
+            address(mockAdapter), // Use the mockAdapter as the source
+            ARB_LAYERZERO_PROXY, // Different target for LayerZero
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            registry.PEER()
+        );
+
+        // Register the ark-proxy relationship
         registry.registerRelationship(
             SOURCE_ARK_ADDRESS,
             address(proxy),
@@ -131,13 +152,39 @@ contract CrossChainFleetProxyTest is Test {
             keccak256("ARK_FLEET")
         );
 
-        vm.startPrank(governor);
         accessManager.grantKeeperRole(address(proxy), governor);
-        vm.stopPrank();
 
-        // Register the mock adapter with the bridge router
-        vm.prank(governor);
         mockBridgeRouter.registerAdapter(address(mockAdapter));
+        vm.stopPrank();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                               HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Build a well-formed deliver payload for the given asset.
+    function _buildDeliverPayload(
+        address asset
+    ) internal view returns (bytes memory) {
+        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
+            operationId: keccak256(
+                abi.encodePacked("op", asset, block.timestamp)
+            ),
+            originator: address(this),
+            sourceAsset: asset
+        });
+        return abi.encode(dp);
+    }
+
+    /// @dev Build an “empty” payload (operationId == 0x0) – this triggers
+    ///      the MessageContentNotExpected branch in the proxy.
+    function _buildEmptyPayload() internal pure returns (bytes memory) {
+        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
+            operationId: bytes32(0),
+            originator: address(0),
+            sourceAsset: address(0)
+        });
+        return abi.encode(dp);
     }
 
     //----------------- Constructor Tests -----------------//
@@ -147,6 +194,7 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(address(proxy.bridgeRouter()), address(mockBridgeRouter));
         assertEq(address(proxy.crossChainRegistry()), address(registry));
         assertEq(proxy.fleetContract(), address(fleetCommanderMock));
+
         // Verify registry relationship works
         address arkFromRegistry = registry.getSourceForTarget(
             SOURCE_CHAIN_ID,
@@ -168,11 +216,7 @@ contract CrossChainFleetProxyTest is Test {
         // Try to receive assets while paused
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = abi.encodeWithSelector(
-            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
-            asset,
-            amount
-        );
+        bytes memory message = _buildDeliverPayload(asset);
         mockToken.mint(address(proxy), amount);
 
         // Should revert with Paused error
@@ -230,11 +274,7 @@ contract CrossChainFleetProxyTest is Test {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = abi.encodeWithSelector(
-            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
-            asset,
-            amount
-        );
+        bytes memory message = _buildDeliverPayload(asset);
 
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
@@ -271,11 +311,7 @@ contract CrossChainFleetProxyTest is Test {
         mockToken.mint(address(proxy), amount);
 
         // Prepare the message for receiving assets
-        bytes memory message = abi.encodeWithSelector(
-            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
-            asset,
-            amount
-        );
+        bytes memory message = _buildDeliverPayload(asset);
         bytes32 messageId = keccak256(
             abi.encode("deposit", amount, block.timestamp)
         );
@@ -294,11 +330,7 @@ contract CrossChainFleetProxyTest is Test {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = abi.encodeWithSelector(
-            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
-            asset,
-            amount
-        );
+        bytes memory message = _buildDeliverPayload(asset);
 
         // Mint tokens to the proxy
         mockToken.mint(address(proxy), amount);
@@ -319,11 +351,7 @@ contract CrossChainFleetProxyTest is Test {
         ERC20Mock invalidToken = new ERC20Mock();
         uint256 amount = 1000;
 
-        bytes memory message = abi.encodeWithSelector(
-            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
-            address(invalidToken),
-            amount
-        );
+        bytes memory message = _buildDeliverPayload(address(invalidToken));
 
         // Mint invalid tokens to the proxy
         invalidToken.mint(address(proxy), amount);
@@ -346,11 +374,7 @@ contract CrossChainFleetProxyTest is Test {
         address asset = address(mockToken);
         uint256 amount = 0;
 
-        bytes memory message = abi.encodeWithSelector(
-            ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
-            asset,
-            amount
-        );
+        bytes memory message = _buildDeliverPayload(asset);
 
         // Call from the adapter with zero amount
         vm.prank(address(mockAdapter));
@@ -364,7 +388,7 @@ contract CrossChainFleetProxyTest is Test {
         // Use empty message
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory emptyMessage = new bytes(0);
+        bytes memory emptyMessage = _buildEmptyPayload();
 
         // Mint tokens to the proxy
         mockToken.mint(address(proxy), amount);

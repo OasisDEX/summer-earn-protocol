@@ -10,11 +10,10 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {console} from "forge-std/console.sol";
+import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 
-contract MockAdapter is IBridgeAdapter {
+contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
     using SafeERC20 for IERC20;
-
-    address public bridgeRouter;
 
     // Add a fee multiplier state variable with a default value of 100 (100%)
     uint256 public feeMultiplier = 100;
@@ -60,9 +59,10 @@ contract MockAdapter is IBridgeAdapter {
         uint16 sourceChainId
     );
 
-    constructor(address _bridgeRouter) {
-        bridgeRouter = _bridgeRouter;
-
+    constructor(
+        address _registry,
+        address _accessManager
+    ) BaseBridgeAdapter(_registry, _accessManager) {
         // Initialize operation type to message type mapping (for consistency)
         operationToMessageType[BridgeTypes.OperationType.MESSAGE] = 1; // Mock message type
         operationToMessageType[BridgeTypes.OperationType.READ_STATE] = 2; // Mock read type
@@ -105,12 +105,7 @@ contract MockAdapter is IBridgeAdapter {
         address originator,
         address, // Accept keeper parameter from router
         BridgeTypes.AdapterParams calldata
-    ) external payable {
-        // Check caller is bridge router
-        if (msg.sender != bridgeRouter) {
-            revert Unauthorized();
-        }
-
+    ) external payable onlyRouter {
         // Verify chain and asset are supported
         if (!this.supportsChain(destinationChainId)) {
             revert UnsupportedChain();
@@ -142,10 +137,7 @@ contract MockAdapter is IBridgeAdapter {
         bytes calldata readParams,
         address, // keeper - not used in mock
         BridgeTypes.AdapterParams calldata
-    ) external payable {
-        // Check caller is bridge router
-        if (msg.sender != bridgeRouter) revert Unauthorized();
-
+    ) external payable onlyRouter {
         // Verify chain is supported
         if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
 
@@ -230,10 +222,7 @@ contract MockAdapter is IBridgeAdapter {
         bytes calldata message,
         address, // keeper - not used in mock
         BridgeTypes.AdapterParams calldata
-    ) external payable {
-        // Check caller is bridge router
-        if (msg.sender != bridgeRouter) revert Unauthorized();
-
+    ) external payable onlyRouter {
         // Verify chain is supported
         if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
 
@@ -273,7 +262,7 @@ contract MockAdapter is IBridgeAdapter {
         );
 
         // Notify the bridge router about the received message
-        IBridgeRouter(bridgeRouter).notifyMessageReceived(
+        IBridgeRouter(bridgeRouter()).notifyMessageReceived(
             messageId,
             address(0), // No asset for general message
             0, // No amount for general message

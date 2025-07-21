@@ -8,7 +8,6 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -78,51 +77,6 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         );
     }
 
-    function testGetRequiredFeeWithMinGasLimit() public {
-        useNetworkA();
-        vm.startPrank(governor);
-
-        // Set minimum gas limit
-        adapterA.setMinGasLimit(1000000);
-
-        // Create a simple payload for testing
-        bytes memory payload = abi.encodePacked(
-            uint16(BridgeTypes.OperationType.MESSAGE),
-            bytes("test payload")
-        );
-
-        // Get required fee directly from adapter
-        uint256 requiredFee = adapterA.getRequiredFee(
-            LZ_EID_B,
-            BridgeTypes.OperationType.MESSAGE,
-            payload
-        );
-
-        // Fee should be non-zero
-        assertTrue(requiredFee > 0);
-
-        vm.stopPrank();
-    }
-
-    function testSetMinGasLimit() public {
-        useNetworkA();
-
-        // Check current value
-        assertEq(adapterA.minGasLimit(), 700000);
-
-        // Try to set minGasLimit as unauthorized address
-        vm.prank(address(2));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                address(2)
-            )
-        );
-
-        // Actually call the function that should revert
-        adapterA.setMinGasLimit(600000);
-    }
-
     function testAdapterDirectEstimateFee() public {
         useNetworkA();
 
@@ -148,53 +102,6 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         assertTrue(nativeFee > 0);
         // Token fee should be zero for LayerZero
         assertEq(tokenFee, 0);
-    }
-
-    function testAdapterMinGasLimitEnforcement() public {
-        useNetworkA();
-        vm.startPrank(governor);
-
-        adapterA.setMinGasLimit(1000000);
-
-        // Create adapter params with a lower gas limit than the minimum
-        BridgeTypes.AdapterParams memory lowerParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000, // Lower than our minimum
-                msgValue: 0,
-                calldataSize: 0,
-                options: bytes("")
-            });
-
-        // Create adapter params with a higher gas limit than the minimum
-        BridgeTypes.AdapterParams memory higherParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 1500000, // Higher than our minimum
-                msgValue: 0,
-                calldataSize: 0,
-                options: bytes("")
-            });
-
-        // Estimate fees directly with adapter for both cases
-        (uint256 lowerFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(0),
-            0,
-            lowerParams,
-            BridgeTypes.OperationType.MESSAGE
-        );
-
-        (uint256 higherFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(0),
-            0,
-            higherParams,
-            BridgeTypes.OperationType.MESSAGE
-        );
-
-        // Higher gas limit should result in a higher fee
-        assertTrue(higherFee > lowerFee);
-
-        vm.stopPrank();
     }
 
     function testSupportsFeatures() public view {

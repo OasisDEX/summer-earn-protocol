@@ -130,13 +130,9 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         address executor = EXECUTOR_BASE;
         address readDvn = READ_DVN_BASE;
         uint64 confirmations = 15;
-        uint128 minGasLimit = 300000;
 
         // Step 1: Activate read channel
         layerZeroAdapter.activateReadChannel(readChannelId);
-
-        // Step 2: Set minimum gas limit
-        layerZeroAdapter.setMinGasLimit(minGasLimit);
 
         // Step 3: Configure read libraries (ReadLib1002)
         layerZeroAdapter.configureReadLibraries(readLib1002);
@@ -256,6 +252,16 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
 
         vm.startPrank(governor);
         router.registerAdapter(address(unconfiguredAdapter));
+
+        // Add peer relationship registration so the adapter can pass initial peer checks
+        // but don't configure the read channel (which is what the test expects to fail)
+        registry.registerAdapterPeer(
+            address(unconfiguredAdapter), // source adapter
+            address(unconfiguredAdapter), // target adapter (same address since it's a mirror setup)
+            SOURCE_CHAIN_ID, // Base chain ID (8453)
+            DEST_CHAIN_ID // Arbitrum chain ID (42161)
+        );
+
         vm.stopPrank();
 
         return unconfiguredAdapter;

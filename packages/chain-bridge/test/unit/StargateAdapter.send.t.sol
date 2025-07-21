@@ -10,7 +10,7 @@ import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol"
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
-
+import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 import {console} from "forge-std/console.sol";
 
 contract StargateAdapterSendTest is StargateAdapterSetupTest {
@@ -198,7 +198,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Should revert when called by non-router
         vm.prank(user);
-        vm.expectRevert(IBridgeAdapter.Unauthorized.selector);
+        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
         adapterA.transferAsset{value: 0.1 ether}(
             bytes32(0), // Fake operation ID
             CHAIN_ID_B,

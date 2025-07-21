@@ -59,20 +59,6 @@ contract StargateAdapterRecoveryTest is StargateAdapterSetupTest {
     }
 
     /*//////////////////////////////////////////////////////////////
-                      INTERFACE DETECTION TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testIsFleetProxyDetection() public view {
-        // FleetProxy should be detected as FleetProxy (doesn't support ICrossChainArk)
-        assertTrue(wrapperB.isFleetProxy(address(fleetProxy)));
-    }
-
-    function testIsNotFleetProxyForRegularContract() public view {
-        // Regular contract should not be detected as FleetProxy
-        assertFalse(wrapperB.isFleetProxy(address(tokenB)));
-    }
-
-    /*//////////////////////////////////////////////////////////////
                       FAILED COMPOSE STORAGE TESTS
     //////////////////////////////////////////////////////////////*/
 

@@ -3,12 +3,12 @@ pragma solidity 0.8.28;
 
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
 import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
-import {console} from "forge-std/console.sol";
 import {MockCrossChainReceiver} from "../../test/mocks/MockCrossChainReceiver.sol";
 import {BridgeRouterTestHelper} from "../../test/helpers/BridgeRouterTestHelper.sol";
 
@@ -77,9 +77,47 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         );
 
         // Verify the mock receiver received the correct data
-        assertEq(
-            abi.decode(mockReceiver.lastReceivedData(), (uint256)),
-            mockReadValue
+        BridgeTypes.ReadResponse memory response = abi.decode(
+            mockReceiver.lastReceivedData(),
+            (BridgeTypes.ReadResponse)
+        );
+        assertEq(abi.decode(response.data, (uint256)), mockReadValue);
+    }
+
+    function testGeneralMessageDelivery() public {
+        bytes32 messageId = bytes32(uint256(1));
+        bytes memory message = "test message";
+        address recipient = address(mockReceiver);
+
+        // Create origin data
+        Origin memory origin = Origin({
+            srcEid: LZ_EID_B,
+            sender: addressToBytes32(address(adapterB)),
+            nonce: 1
+        });
+
+        // Create payload with GENERAL_MESSAGE type
+        bytes memory payload = abi.encodePacked(
+            uint16(BridgeTypes.OperationType.MESSAGE), // GENERAL_MESSAGE type
+            abi.encode(message, recipient, messageId)
+        );
+
+        // Mock expectations for BridgeRouter.deliver call
+        vm.expectCall(
+            address(routerA),
+            abi.encodeCall(
+                IBridgeRouter.deliver,
+                (messageId, CHAIN_ID_B, address(0), 0, recipient, message)
+            )
+        );
+
+        // Execute the message
+        adapterA.lzReceiveTest(
+            origin,
+            messageId,
+            payload,
+            address(adapterB),
+            bytes("")
         );
     }
 }

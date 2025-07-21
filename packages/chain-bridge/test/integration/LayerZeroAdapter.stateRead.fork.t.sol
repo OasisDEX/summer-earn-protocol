@@ -247,39 +247,6 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         // Test passes if no revert occurs - actual LZ transaction would complete on real network
     }
 
-    function testUnsupportedChain() public {
-        uint16 unsupportedChainId = 999;
-        bytes32 currentOperationId = keccak256(
-            abi.encodePacked("test_operation_unsupported", block.timestamp)
-        );
-
-        bytes4 selector = MockTargetContract.getTestValue.selector;
-        bytes memory readParams = "";
-
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
-
-        // Should revert with UnsupportedChain error
-        vm.startPrank(address(router));
-        vm.expectRevert(abi.encodeWithSignature("UnsupportedChain()"));
-        layerZeroAdapter.readState{value: 1 ether}(
-            currentOperationId,
-            SOURCE_CHAIN_ID,
-            unsupportedChainId,
-            address(targetContract),
-            selector,
-            readParams,
-            keeper,
-            adapterParams
-        );
-        vm.stopPrank();
-    }
-
     function testReadChannelNotConfigured() public {
         // Deploy new layerZeroAdapter without read channel configuration
         LayerZeroAdapter unconfiguredAdapter = _deployUnconfiguredAdapter();
