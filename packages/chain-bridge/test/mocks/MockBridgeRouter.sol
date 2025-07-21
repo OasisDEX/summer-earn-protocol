@@ -269,19 +269,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit OperationStatusUpdated(operationId, status);
     }
 
-    function updateReceiveStatus(
-        bytes32 requestId,
-        address recipient,
-        BridgeTypes.OperationStatus status
-    ) external override {
-        // require(msg.sender == MOCK_ADAPTER_ADDRESS, "Mock: Unauthorized adapter"); // Example check
-        operationStatuses[requestId] = status;
-        emit OperationStatusUpdated(requestId, status);
-        if (status == BridgeTypes.OperationStatus.FAILED) {
-            emit MessageDelivered(requestId, recipient, false);
-        }
-    }
-
     function notifyMessageReceived(
         bytes32 operationId,
         address asset,

@@ -211,19 +211,6 @@ interface IBridgeRouter is IERC165 {
     ) external;
 
     /**
-     * @notice Update the status of a received message/transfer (called by adapters)
-     * @param requestId ID of the received request/operation
-     * @param recipient Address of the message recipient (used for event)
-     * @param status New status of the received request (e.g., DELIVERED, FAILED)
-     * @dev Called by the adapter on the destination chain after attempting delivery. Only adapter can call.
-     */
-    function updateReceiveStatus(
-        bytes32 requestId,
-        address recipient,
-        BridgeTypes.OperationStatus status
-    ) external;
-
-    /**
      * @notice Notify the router that a message or transfer has arrived (called by adapters)
      * @param operationId ID of the message/transfer received
      * @param asset Address of the asset received (address(0) for messages)

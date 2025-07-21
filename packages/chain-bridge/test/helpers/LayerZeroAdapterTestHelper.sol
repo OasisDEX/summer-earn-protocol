@@ -75,14 +75,6 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
         _updateOperationStatus(operationId, status);
     }
 
-    function updateReceiveStatus(
-        bytes32 requestId,
-        address recipient,
-        BridgeTypes.OperationStatus status
-    ) external {
-        _updateReceiveStatus(requestId, recipient, status);
-    }
-
     /**
      * @notice Exposes the internal getLayerZeroChainId function for testing
      * @param chainId Chain ID

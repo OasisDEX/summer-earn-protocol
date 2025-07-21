@@ -608,28 +608,6 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
-    function updateReceiveStatus(
-        bytes32 requestId,
-        address recipient,
-        BridgeTypes.OperationStatus status
-    ) external onlyRegisteredAdapter {
-        requestReceivedByAdapter[requestId] = msg.sender;
-
-        // Only update status if it's a failure
-        if (status == BridgeTypes.OperationStatus.FAILED) {
-            operationStatuses[requestId] = status;
-            emit OperationStatusUpdated(requestId, status);
-        }
-
-        // Always emit delivery event
-        emit MessageDelivered(
-            requestId,
-            recipient,
-            status != BridgeTypes.OperationStatus.FAILED
-        );
-    }
-
-    /// @inheritdoc IBridgeRouter
     function notifyMessageReceived(
         bytes32 operationId,
         address asset,

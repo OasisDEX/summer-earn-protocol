@@ -745,22 +745,4 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             status
         );
     }
-
-    /**
-     * @notice Updates the status of a received transfer on receiving chain
-     * @param requestId ID of the received request/transfer
-     * @param recipient Address of the message recipient (only needed for COMPLETED status)
-     * @param status New status to set
-     */
-    function _updateReceiveStatus(
-        bytes32 requestId,
-        address recipient,
-        BridgeTypes.OperationStatus status
-    ) internal {
-        IBridgeRouter(bridgeRouter()).updateReceiveStatus(
-            requestId,
-            recipient,
-            status
-        );
-    }
 }
