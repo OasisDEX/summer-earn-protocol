@@ -273,23 +273,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         address,
         bytes calldata
     ) internal override {
-        // Extract message type from the first 2 bytes if available
-        BridgeTypes.OperationType operationType = BridgeTypes
-            .OperationType
-            .MESSAGE; // Default to BridgeTypes.OperationType.MESSAGE
-        bytes memory actualPayload = _payload;
-
-        // If the payload starts with a uint16 message type marker
-        if (_payload.length >= 2) {
-            operationType = BridgeTypes.OperationType(
-                uint8(uint16(bytes2(_payload)))
-            ); // Takes first 2 bytes
-            actualPayload = _payload[2:]; // Creates slice starting at index 2
-        }
-
         // Check if this is a response from a read channel
         // srcEid - Read Channel ID for Read operations -
         // https://docs.layerzero.network/v2/developers/evm/lzread/overview#hybrid-messaging--read
+
+        // todo: should the read reponse also contain the operation type and the originator?
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
             _relayReadResponse(
                 _origin,
@@ -297,15 +285,27 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                 abi.encode(BridgeTypes.ReadResponse({data: _payload}))
             );
             return;
-        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            // Get the source chain ID from the origin
-            uint16 srcChainId = lzEidToChain[_origin.srcEid];
-            // IMPORTANT: Use actualPayload here instead of _payload
-            // This ensures we decode only the message data without the message type prefix
-            (bytes memory message, address recipient, bytes32 messageId) = abi
-                .decode(actualPayload, (bytes, address, bytes32));
+        } else if (_payload.length >= 2) {
+            // If the payload starts with a uint16 message type marker
+            BridgeTypes.OperationType operationType = BridgeTypes.OperationType(
+                uint8(uint16(bytes2(_payload)))
+            ); // Takes first 2 bytes
+            bytes memory actualPayload = _payload[2:]; // Creates slice starting at index 2
+            if (operationType == BridgeTypes.OperationType.MESSAGE) {
+                // Get the source chain ID from the origin
+                uint16 srcChainId = lzEidToChain[_origin.srcEid];
+                // IMPORTANT: Use actualPayload here instead of _payload
+                // This ensures we decode only the message data without the message type prefix
+                (
+                    bytes memory message,
+                    address recipient,
+                    bytes32 messageId
+                ) = abi.decode(actualPayload, (bytes, address, bytes32));
 
-            _relayGeneralMessage(message, recipient, messageId, srcChainId);
+                _relayGeneralMessage(message, recipient, messageId, srcChainId);
+            } else {
+                revert UnsupportedMessageType();
+            }
         } else {
             revert UnsupportedMessageType();
         }
