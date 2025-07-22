@@ -6,6 +6,12 @@ pragma solidity 0.8.28;
  * @notice Decodes Stargate-V2 “taxi” messages and exposes a simple helper.
  */
 library SummerTaxiCodec {
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+    error InvalidMessage();
+
+    /*//////////////////////////////////////////////////////////////
     /*------------------------------------------------------------------*\
     |  Layout constants                                                 |
     |  <1-byte type><2-byte assetId><32-byte receiver><8-byte amountSD> |
@@ -17,6 +23,8 @@ library SummerTaxiCodec {
     uint256 internal constant RECEIVER_OFFSET = 35; // 3 + 32
     uint256 internal constant AMOUNT_SD_OFFSET = 43; // 35 + 8
     uint256 internal constant SENDER_OFFSET = 75; // 43 + 32
+
+    uint256 internal constant MIN_TAXI_LEN = SENDER_OFFSET + 1; // header + ≥1 byte payload
 
     /// @return True if `_bytes` starts with the taxi message type byte.
     function isTaxi(bytes calldata _bytes) internal pure returns (bool) {
@@ -39,8 +47,9 @@ library SummerTaxiCodec {
             bytes memory composeMsg
         )
     {
-        if (_taxiBytes.length < SENDER_OFFSET || !isTaxi(_taxiBytes))
+        if (_taxiBytes.length < MIN_TAXI_LEN || !isTaxi(_taxiBytes)) {
             revert InvalidMessage();
+        }
 
         assetId = uint16(bytes2(_taxiBytes[MSG_TYPE_OFFSET:ASSET_ID_OFFSET]));
         receiver = bytes32(_taxiBytes[ASSET_ID_OFFSET:RECEIVER_OFFSET]);
