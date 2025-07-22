@@ -11,6 +11,7 @@ import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 import {TaxiCodec} from "@stargatefinance/stg-evm-v2/src/libs/TaxiCodec.sol";
+import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyA;
@@ -230,7 +231,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             bytes32("test-guid"),
             taxiMessage,
             address(0),
-            ""
+            hex""
         );
     }
 
@@ -534,6 +535,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             "recipient unexpectedly received tokens"
         );
     }
+
     function testSystemTransactionSuccessTokensDelivered() public {
         useNetworkB();
 

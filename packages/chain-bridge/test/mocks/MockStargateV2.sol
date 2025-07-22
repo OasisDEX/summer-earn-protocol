@@ -20,6 +20,8 @@ contract MockStargateV2Pool is IStargateV2 {
     bool public composeMsgWasSet;
     bytes public lastComposeMsg;
 
+    uint256 public mockAmountReceived;
+
     constructor(address _token) {
         TOKEN = _token;
     }
@@ -34,6 +36,10 @@ contract MockStargateV2Pool is IStargateV2 {
 
     function setExpectedComposeMsg(bytes memory _composeMsg) external {
         expectedComposeMsg = _composeMsg;
+    }
+
+    function setMockQuoteResponse(uint256 amountReceivedLD) external {
+        mockAmountReceived = amountReceivedLD;
     }
 
     function sendToken(

@@ -61,6 +61,13 @@ contract StargateAdapter is
     /// @notice Error for untrusted Stargate pool contract
     error UntrustedStargatePool(address from, address token);
 
+    /// @notice Error for slippage exceeding tolerance
+    error SlippageExceedsTolerance(
+        uint256 expectedAmount,
+        uint256 receivedAmount,
+        uint256 toleranceBps
+    );
+
     /// @notice Transfer parameters struct to avoid stack too deep
     struct TransferParams {
         address stargateContract;
@@ -410,50 +417,41 @@ contract StargateAdapter is
         SendParam memory sendParam,
         uint256 amount
     ) internal view {
-        try stargate.quoteOFT(sendParam) returns (
-            OFTLimit memory oftLimit,
-            OFTFeeDetail[] memory,
-            OFTReceipt memory oftReceipt
-        ) {
-            // Validate OFT limits first
-            if (amount < oftLimit.minAmountLD) {
-                revert InsufficientAmount(amount, oftLimit.minAmountLD);
-            }
-            if (amount > oftLimit.maxAmountLD) {
-                revert ExceedsMaxAmount(amount, oftLimit.maxAmountLD);
-            }
-
-            // Validate received amount
-            if (oftReceipt.amountReceivedLD == 0) {
-                revert ZeroAmountReceived();
-            }
-
-            // Check that received amount is not higher than input (suspicious)
-            if (oftReceipt.amountReceivedLD > amount) {
-                revert InvalidAmountReceived(
-                    oftReceipt.amountReceivedLD,
-                    amount
-                );
-            }
-
-            // Calculate minimum slippage threshold (use configurable tolerance)
-            uint256 minExpectedAmount = (amount *
-                (10000 - slippageToleranceBps)) / 10000;
-
-            // Ensure received amount is within acceptable slippage
-            if (oftReceipt.amountReceivedLD < minExpectedAmount) {
-                // Use fallback calculation instead of the quote
-                sendParam.minAmountLD = minExpectedAmount;
-            } else {
-                // Use the quoted amount if it's reasonable
-                sendParam.minAmountLD = oftReceipt.amountReceivedLD;
-            }
-        } catch {
-            // Use configurable slippage tolerance as fallback
-            sendParam.minAmountLD =
-                (amount * (10000 - slippageToleranceBps)) /
-                10000;
+        (OFTLimit memory oftLimit, , OFTReceipt memory oftReceipt) = stargate
+            .quoteOFT(sendParam);
+        // Validate OFT limits first
+        if (amount < oftLimit.minAmountLD) {
+            revert InsufficientAmount(amount, oftLimit.minAmountLD);
         }
+        if (amount > oftLimit.maxAmountLD) {
+            revert ExceedsMaxAmount(amount, oftLimit.maxAmountLD);
+        }
+
+        // Validate received amount
+        if (oftReceipt.amountReceivedLD == 0) {
+            revert ZeroAmountReceived();
+        }
+
+        // Check that received amount is not higher than input (suspicious)
+        if (oftReceipt.amountReceivedLD > amount) {
+            revert InvalidAmountReceived(oftReceipt.amountReceivedLD, amount);
+        }
+
+        // Calculate minimum slippage threshold (use configurable tolerance)
+        uint256 minExpectedAmount = (amount * (10000 - slippageToleranceBps)) /
+            10000;
+
+        // Revert if slippage exceeds tolerance
+        if (oftReceipt.amountReceivedLD < minExpectedAmount) {
+            revert SlippageExceedsTolerance(
+                minExpectedAmount,
+                oftReceipt.amountReceivedLD,
+                slippageToleranceBps
+            );
+        }
+
+        // Use the quoted amount since it's within tolerance
+        sendParam.minAmountLD = oftReceipt.amountReceivedLD;
     }
 
     /**
@@ -657,13 +655,8 @@ contract StargateAdapter is
         if (!SummerTaxiCodec.isTaxi(_message)) revert InvalidMessage();
 
         // Decode taxi message (includes srcSender & compose payload)
-        (
-            ,
-            ,
-            uint64 amtSD,
-            address srcSender,
-            bytes memory composeMsg
-        ) = SummerTaxiCodec.decodeTaxi(_message);
+        (, , , address srcSender, bytes memory composeMsg) = SummerTaxiCodec
+            .decodeTaxi(_message);
 
         // ---------------------------------------------------------------
         // 2. Verify peer adapter relationship
