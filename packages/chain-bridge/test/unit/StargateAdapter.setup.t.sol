@@ -155,6 +155,13 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             CHAIN_ID_A
         );
 
+        registryB.registerAdapterPeer(
+            address(adapterA), // sourceAdapter
+            address(adapterB), // targetAdapter
+            CHAIN_ID_A, // sourceChainId
+            CHAIN_ID_B // targetChainId
+        );
+
         adapterB.addSupportedAsset(address(tokenB), address(stargateB));
 
         routerB.registerAdapter(address(adapterB));

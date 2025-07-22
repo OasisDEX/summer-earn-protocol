@@ -17,7 +17,7 @@ import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@laye
 
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+import {SummerTaxiCodec} from "../libraries/SummerTaxiCodec.sol";
 
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
@@ -693,25 +693,46 @@ contract StargateAdapter is
      */
     function lzCompose(
         address _from,
-        bytes32,
+        bytes32, // guid
         bytes calldata _message,
-        address,
-        bytes calldata
+        address, // caller
+        bytes calldata // extraData
     ) external payable override nonReentrant {
         // Verify caller is LayerZero endpoint
-        if (msg.sender != LZ_ENDPOINT) {
-            revert Unauthorized();
-        }
+        if (msg.sender != LZ_ENDPOINT) revert Unauthorized();
 
         // Validate the Stargate pool contract
         _validateStargatePool(_from);
 
-        // Extract the amount and compose message from OFT encoding
-        uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        bytes memory composeMsg = OFTComposeMsgCodec.composeMsg(_message);
+        // ---------------------------------------------------------------
+        // 1. Taxi header must be present
+        // ---------------------------------------------------------------
+        if (!SummerTaxiCodec.isTaxi(_message)) revert InvalidMessage();
 
-        // Decode compose message and handle the rest
-        _handleComposedMessage(_from, amount, composeMsg);
+        // Decode taxi message (includes srcSender & compose payload)
+        (
+            ,
+            ,
+            uint64 amtSD,
+            address srcSender,
+            bytes memory composeMsg
+        ) = SummerTaxiCodec.decodeTaxi(_message);
+
+        // ---------------------------------------------------------------
+        // 2. Verify peer adapter relationship
+        // ---------------------------------------------------------------
+        BridgeTypes.AssetTransferMessage memory atm = abi.decode(
+            composeMsg,
+            (BridgeTypes.AssetTransferMessage)
+        );
+
+        _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
+
+        // ---------------------------------------------------------------
+        // 3. Continue normal handling (the SD amount from the Taxi header is
+        // informational; the real LD amount lives inside the composeMsg)
+        // ---------------------------------------------------------------
+        _handleComposedMessage(_from, composeMsg);
     }
 
     /**
@@ -744,22 +765,20 @@ contract StargateAdapter is
      */
     function _handleComposedMessage(
         address _from,
-        uint256 amount,
         bytes memory composeMsg
     ) internal {
         // Get the received asset from the Stargate contract
         address receivedAsset = IStargateV2(_from).token();
 
-        _handleAssetTransferMessage(amount, composeMsg, receivedAsset);
+        _handleAssetTransferMessage(receivedAsset, composeMsg);
     }
 
     /**
      * @dev Handle asset transfer compose messages
      */
     function _handleAssetTransferMessage(
-        uint256 amount,
-        bytes memory composeMsg,
-        address receivedAsset
+        address receivedAsset,
+        bytes memory composeMsg
     ) internal {
         // Decode the compose message
         BridgeTypes.AssetTransferMessage memory atm = abi.decode(
@@ -770,7 +789,7 @@ contract StargateAdapter is
         // -----------------------------------------------------------------
         // 1. Forward the tokens the adapter just received to the router
         // -----------------------------------------------------------------
-        IERC20(receivedAsset).safeTransfer(bridgeRouter(), amount);
+        IERC20(receivedAsset).safeTransfer(bridgeRouter(), atm.amount);
 
         // -----------------------------------------------------------------
         // 2. Build the payload the end-recipient expects
@@ -790,7 +809,7 @@ contract StargateAdapter is
             atm.operationId,
             uint16(atm.sourceChainId),
             receivedAsset,
-            amount,
+            atm.amount,
             atm.recipient,
             payload
         );
