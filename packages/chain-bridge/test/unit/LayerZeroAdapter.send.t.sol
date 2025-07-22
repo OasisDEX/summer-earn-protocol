@@ -59,13 +59,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         adapterA.activateReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1);
         vm.stopPrank();
 
-        // Mock the router's updateOperationStatus function
-        vm.mockCall(
-            address(routerA),
-            abi.encodeWithSelector(routerA.updateOperationStatus.selector),
-            abi.encode()
-        );
-
         // We expect this call to revert with LZ_DefaultSendLibUnavailable
         // This is because the LayerZeroOptionsHelper.createLzReadOptions is creating
         // options of type 5, which is not supported by the mock executor when !_isRead
@@ -308,13 +301,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         vm.startPrank(governor);
         adapterA.activateReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1);
         vm.stopPrank();
-
-        // Mock the router's updateOperationStatus function
-        vm.mockCall(
-            address(routerA),
-            abi.encodeWithSelector(routerA.updateOperationStatus.selector),
-            abi.encode()
-        );
 
         // We expect this call to revert with LZ_DefaultSendLibUnavailable
         // This is because the LayerZeroOptionsHelper.createLzReadOptions is creating

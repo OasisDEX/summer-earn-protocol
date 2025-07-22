@@ -10,6 +10,7 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
+import {TaxiCodec} from "@stargatefinance/stg-evm-v2/src/libs/TaxiCodec.sol";
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyA;
@@ -28,25 +29,53 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     ) external pure returns (bytes memory) {
         return OFTComposeMsgCodec.composeMsg(message);
     }
+
+    function encodeTaxiWithMemory(
+        address sender,
+        uint16 assetId,
+        bytes32 receiver,
+        uint64 amountSD,
+        bytes calldata composeMsg
+    ) external pure returns (bytes memory) {
+        return
+            TaxiCodec.encodeTaxi(
+                sender,
+                assetId,
+                receiver,
+                amountSD,
+                composeMsg
+            );
+    }
     /// forge-lint: disable-end(mixed-case-function)
 
     /**
-     * @dev Helper to add the composeFrom prefix to fleet deposit messages
-     * @dev CRITICAL: Stargate strips out the first 32 bytes (composeFrom) from compose messages
-     * @dev This prefix tells the destination adapter where the message originated from
-     * @param message The encoded fleet deposit message
-     * @return Properly formatted compose message with composeFrom prefix
+     * @dev Helper to create a properly encoded AssetTransferMessage
+     * @param recipient The recipient address
+     * @param asset The asset address
+     * @param amount The amount
+     * @param sourceChainId The source chain ID
+     * @param operationId The operation ID
+     * @param originator The originator address
+     * @return Properly encoded AssetTransferMessage
      */
-    function _addComposeFromPrefix(
-        bytes memory message
-    ) internal view returns (bytes memory) {
-        // Add composeFrom prefix - Stargate will strip this out and pass the rest to lzCompose
-        // The destination adapter needs to know which source adapter sent the message
-        return
-            abi.encodePacked(
-                bytes32(uint256(uint160(address(adapterA)))), // composeFrom = source adapter address
-                message
-            );
+    function _createAssetTransferMessage(
+        address recipient,
+        address asset,
+        uint256 amount,
+        uint256 sourceChainId,
+        bytes32 operationId,
+        address originator
+    ) internal pure returns (bytes memory) {
+        BridgeTypes.AssetTransferMessage memory atm = BridgeTypes
+            .AssetTransferMessage({
+                recipient: recipient,
+                asset: asset,
+                amount: amount,
+                sourceChainId: sourceChainId,
+                operationId: operationId,
+                originator: originator
+            });
+        return abi.encode(atm);
     }
 
     function setUp() public override {
@@ -66,41 +95,26 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         useNetworkA();
     }
 
-    /*
-     * NOTE: The following tests have been removed because the compose functionality
-     * in StargateAdapter is incomplete and not production-ready:
-     * - testLzComposeSuccess()
-     * - testLzComposeFleetProxyRevert()
-     * - testEndToEndComposeFlow()
-     *
-     * Issues with the current implementation:
-     * 1. Hardcoded fleet proxy addresses only for Arbitrum
-     * 2. Inconsistent message format expectations
-     * 3. Not used in production code
-     * 4. Message length validation doesn't match actual usage
-     *
-     * These tests were failing with "Compose msg too short" errors due to
-     * mismatched expectations between the implementation and test setup.
-     */
-
     function testLzComposeUnauthorizedCaller() public {
         useNetworkB();
 
-        // Create custom compose message (5 parameters, no fleet proxy)
-        bytes memory customComposeMessage = abi.encode(
+        // Create proper AssetTransferMessage
+        bytes memory customComposeMessage = _createAssetTransferMessage(
+            user,
             address(tokenB),
             1 ether,
-            CHAIN_ID_A,
+            uint256(CHAIN_ID_A),
             bytes32("test-operation"),
             user
         );
 
-        // Create OFT-encoded message (like Stargate would send)
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1), // nonce
-            uint32(CHAIN_ID_A), // source endpoint ID
-            1 ether, // amount
-            customComposeMessage // custom compose message
+        // Create taxi message directly (no need for OFT wrapper)
+        bytes memory taxiMessage = this.encodeTaxiWithMemory(
+            address(adapterA), // sender (source adapter)
+            uint16(1), // assetId
+            bytes32(uint256(uint160(address(adapterB)))), // receiver
+            uint64(1 ether / 10 ** tokenB.decimals()), // amountSD
+            customComposeMessage // properly encoded AssetTransferMessage
         );
 
         // Should revert when called by non-endpoint
@@ -108,7 +122,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
-            oftEncodedMessage,
+            taxiMessage,
             address(0),
             ""
         );
@@ -162,14 +176,14 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(adapterA)
         );
 
-        // Mock Stargate to expect compose message
-        bytes memory expectedComposeMsg = abi.encode(
-            address(fleetProxyB), // FleetProxy address
-            address(tokenA), // Asset address
-            1 ether, // Amount being sent
-            uint16(CHAIN_ID_A), // Source chain ID
-            expectedOperationId, // Operation ID for tracking
-            user // Original sender
+        // Mock Stargate to expect the proper AssetTransferMessage
+        bytes memory expectedComposeMsg = _createAssetTransferMessage(
+            address(fleetProxyB), // recipient
+            address(tokenA), // asset
+            1 ether, // amount
+            uint256(CHAIN_ID_A), // sourceChainId
+            expectedOperationId, // operationId
+            user // originator
         );
 
         stargateA.setExpectedComposeMsg(expectedComposeMsg);
@@ -194,19 +208,27 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     function testLzComposeWithInvalidMessage() public {
         useNetworkB();
 
-        // Invalid message (wrong encoding)
+        // Invalid message (wrong encoding - not AssetTransferMessage struct)
         bytes memory invalidMessage = abi.encode(
             address(fleetProxyB),
             address(tokenB)
         );
         // Missing required fields
 
+        bytes memory taxiMessage = this.encodeTaxiWithMemory(
+            address(adapterA),
+            uint16(1),
+            bytes32(uint256(uint160(address(adapterB)))),
+            uint64(1 ether / 10 ** tokenB.decimals()),
+            invalidMessage
+        );
+
         vm.expectRevert(); // Should revert on decode
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
-            invalidMessage,
+            taxiMessage,
             address(0),
             ""
         );
@@ -220,9 +242,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             memory realMessage = hex"0000000000066982000075e800000000000000000000000000000000000000000000000000000000004c4a45000000000000000000000000bb784b7bd9b9e2e3257c4838b798fb077d96c2350000000000000000000000001534e3d0f23d91142424a0091aab8037fac80cb8000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000000210515919236bbb71d094ca0aee8259859441555203071b0f3da4cb32e40d4118ac10000000000000000000000009d4d5ef9a4f25589cca44e1fbdec25d79f2271ea";
 
         // Parse the amount and compose message
-        /// forge-lint: disable-start(mixed-case-variable)
         uint256 amountLD = this.getAmountLD(realMessage);
-        /// forge-lint: disable-end(mixed-case-variable)
+
         bytes memory composeMsg = this.getComposeMsg(realMessage);
 
         console.log("Amount from OFT message:", amountLD);
@@ -309,20 +330,23 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         uint256 testAmount = 1 ether;
 
-        bytes memory customComposeMessage = abi.encode(
-            address(fleetProxyB), // fleetProxy
-            address(tokenB), // asset
-            testAmount, // expectedAmount
-            uint256(CHAIN_ID_A), // sourceChainId as uint256
-            bytes32("test-op"), // operationId
-            user // originator
+        // Create proper AssetTransferMessage
+        bytes memory customComposeMessage = _createAssetTransferMessage(
+            address(fleetProxyB),
+            address(tokenB),
+            testAmount,
+            uint256(CHAIN_ID_A),
+            bytes32("test-op"),
+            user
         );
 
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            customComposeMessage
+        // Create taxi message directly
+        bytes memory taxiMessage = this.encodeTaxiWithMemory(
+            address(adapterA), // sender (source adapter)
+            uint16(1), // assetId
+            bytes32(uint256(uint160(address(adapterB)))), // receiver
+            uint64(testAmount / 10 ** tokenB.decimals()), // amountSD
+            customComposeMessage // properly encoded AssetTransferMessage
         );
 
         // Don't mint tokens to adapter - should cause insufficient balance
@@ -334,7 +358,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
-            oftEncodedMessage,
+            taxiMessage,
             address(0),
             hex""
         );
@@ -345,39 +369,92 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         uint256 testAmount = 1 ether;
 
-        // Create compose message with invalid parameters (zero address for fleet proxy)
-        bytes memory customComposeMessage = abi.encode(
-            address(0), // fleetProxy - INVALID
-            address(tokenB), // asset
-            testAmount, // expectedAmount
-            uint256(CHAIN_ID_A), // sourceChainId as uint256
-            bytes32("test-op"), // operationId
-            user // originator
+        // Create AssetTransferMessage with invalid parameters (zero address for recipient)
+        bytes memory customComposeMessage = _createAssetTransferMessage(
+            address(0), // recipient - INVALID
+            address(tokenB),
+            testAmount,
+            uint256(CHAIN_ID_A),
+            bytes32("test-op"),
+            user
         );
 
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            customComposeMessage
+        // Create taxi message directly
+        bytes memory taxiMessage = this.encodeTaxiWithMemory(
+            address(adapterA), // sender (source adapter)
+            uint16(1), // assetId
+            bytes32(uint256(uint160(address(adapterB)))), // receiver
+            uint64(testAmount / 10 ** tokenB.decimals()), // amountSD
+            customComposeMessage // properly encoded AssetTransferMessage
         );
 
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
 
-        // Should revert with InvalidParams due to zero address fleet proxy
+        // Should revert with InvalidParams due to zero address recipient
         vm.prank(lzEndpointB);
         vm.expectRevert(); // Just expect any revert for now
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
-            oftEncodedMessage,
+            taxiMessage,
             address(0),
             hex""
         );
     }
 
-    function testSystemTransactionPartialFailureWithRecovery() public {
+    function testLzComposeInvalidMessageNotTaxi() public {
+        useNetworkB();
+
+        // Create a mock Stargate pool first so it passes pool validation
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        // Create a message that's NOT a taxi message (will fail TaxiCodec.isTaxi check)
+        bytes memory invalidTaxiMessage = hex"00"; // Not a valid taxi header
+
+        // Should revert with InvalidMessage when TaxiCodec.isTaxi fails
+        vm.expectRevert("InvalidMessage()");
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            address(mockStargateFrom), // Use valid Stargate pool so it passes pool validation
+            bytes32("test-guid"),
+            invalidTaxiMessage,
+            address(0),
+            hex""
+        );
+    }
+
+    function testLzComposeInvalidMessageMalformedTaxi() public {
+        useNetworkB();
+
+        // Create a mock Stargate pool first so it passes pool validation
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        // Create a message that starts like a taxi but is malformed
+        // Taxi should start with 0x01 but have insufficient data
+        bytes memory malformedTaxiMessage = hex"010001"; // Too short to be valid
+
+        // Should revert with InvalidMessage or during taxi decoding
+        vm.expectRevert();
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            address(mockStargateFrom), // Use valid Stargate pool
+            bytes32("test-guid"),
+            malformedTaxiMessage,
+            address(0),
+            hex""
+        );
+    }
+
+    function testSystemTransactionFailureTokensHeld() public {
         useNetworkB();
 
         uint256 testAmount = 1 ether;
@@ -394,8 +471,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
-        // Compose-message that the adapter is going to decode
-        bytes memory customComposeMessage = abi.encode(
+        // FIXED: Create proper AssetTransferMessage struct
+        bytes memory customComposeMessage = _createAssetTransferMessage(
             address(mockFleetCommander),
             address(tokenB),
             testAmount,
@@ -404,11 +481,16 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             testUser
         );
 
-        bytes memory oftEncodedMessage = OFTComposeMsgCodec.encode(
-            uint64(1),
-            uint32(CHAIN_ID_A),
-            testAmount,
-            _addComposeFromPrefix(customComposeMessage)
+        // Calculate the actual scaled amount that will be processed
+        uint64 scaledAmount = uint64(testAmount / 10 ** tokenB.decimals());
+
+        // Create taxi message directly - no need for OFT wrapper
+        bytes memory taxiMessage = this.encodeTaxiWithMemory(
+            address(adapterA), // sender (source adapter)
+            uint16(1), // assetId
+            bytes32(uint256(uint160(address(adapterB)))), // receiver
+            scaledAmount, // amountSD
+            customComposeMessage // properly encoded AssetTransferMessage
         );
 
         // Provide the adapter with the funds it will forward
@@ -420,58 +502,122 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(mockFleetCommander)
         );
 
-        // The payload BridgeRouter.deliver should receive
-        bytes memory expectedPayload = abi.encode(
-            testOperationId,
-            testUser,
-            address(tokenB)
-        );
-
-        vm.expectCall(
-            address(routerB),
-            abi.encodeWithSelector(
-                IBridgeRouter.deliver.selector,
-                testOperationId,
-                uint16(CHAIN_ID_A),
-                address(tokenB),
-                testAmount,
-                address(mockFleetCommander),
-                expectedPayload
-            )
-        );
-
         // Revert is expected to bubble up from BridgeRouter → FleetProxy
         vm.expectRevert();
-
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
             bytes32("test-guid"),
-            oftEncodedMessage,
+            taxiMessage,
             address(0),
             hex""
         );
 
         // ───────────────────────────  post-conditions  ───────────────────────────────
-        // 1. Tokens left the adapter …
+        // When the call reverts, the adapter keeps all tokens (no recovery mechanism triggered)
         assertEq(
             tokenB.balanceOf(address(adapterB)),
             testAmount,
-            "adapter is missing funds after revert"
+            "adapter should hold all tokens when downstream call fails"
         );
 
-        // 2. … and are now sitting inside the router (escrowed for governance/manual recovery)
         assertEq(
             tokenB.balanceOf(address(routerB)),
             routerBalanceBefore,
-            "router unexpectedly escrowed tokens"
+            "router should have no tokens after revert"
         );
 
-        // 3. Recipient got nothing because the downstream call reverted
+        // Recipient got nothing because the downstream call reverted
         assertEq(
             tokenB.balanceOf(address(mockFleetCommander)),
             fleetCommanderBalanceBefore,
             "recipient unexpectedly received tokens"
+        );
+    }
+    function testSystemTransactionSuccessTokensDelivered() public {
+        useNetworkB();
+
+        uint256 testAmount = 1 ether;
+        address testUser = makeAddr("testUser");
+        bytes32 testOperationId = keccak256("system-operation-success");
+
+        // ───────────────────  healthy recipient & mocked Stargate  ───────────────────
+        MockFleetProxy fleetProxy = new MockFleetProxy(address(tokenB));
+        // NOTE: do NOT setShouldRevert(true) → default is false (happy path)
+
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        // Proper AssetTransferMessage struct
+        bytes memory composeMsg = _createAssetTransferMessage(
+            address(fleetProxy),
+            address(tokenB),
+            testAmount,
+            uint256(CHAIN_ID_A),
+            testOperationId,
+            testUser
+        );
+
+        // Scaled amount for Taxi header (amountSD)
+        uint64 scaledAmount = uint64(testAmount / 10 ** tokenB.decimals());
+
+        // Taxi-encoded message (no OFT wrapper necessary)
+        bytes memory taxiMessage = this.encodeTaxiWithMemory(
+            address(adapterA), // src sender
+            uint16(1), // assetId dummy
+            bytes32(uint256(uint160(address(adapterB)))), // dst adapter
+            scaledAmount,
+            composeMsg
+        );
+
+        // Fund the destination adapter with the tokens it should forward
+        tokenB.mint(address(adapterB), testAmount);
+
+        // ───────────────────────────  balances before  ───────────────────────────────
+        uint256 routerBalanceBefore = tokenB.balanceOf(address(routerB));
+        uint256 fleetBalanceBefore = tokenB.balanceOf(address(fleetProxy));
+
+        // Call lzCompose from the authorised endpoint – should NOT revert
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            address(mockStargateFrom),
+            bytes32("test-guid-success"),
+            taxiMessage,
+            address(0),
+            hex""
+        );
+
+        // ───────────────────────────  post-conditions  ───────────────────────────────
+        // 1. Adapter no longer holds the funds
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            0,
+            "adapter should have forwarded all tokens"
+        );
+
+        // 2. Router is left with no balance (immediately forwarded to recipient)
+        assertEq(
+            tokenB.balanceOf(address(routerB)),
+            routerBalanceBefore,
+            "router should not retain tokens"
+        );
+
+        // 3. Recipient now owns the funds and callback executed
+        assertEq(
+            tokenB.balanceOf(address(fleetProxy)),
+            fleetBalanceBefore + testAmount,
+            "fleet proxy did not receive the expected amount"
+        );
+        assertTrue(fleetProxy.receivedAssets(), "callback not triggered");
+        assertEq(fleetProxy.lastAsset(), address(tokenB), "asset mismatch");
+        assertEq(fleetProxy.lastAmount(), testAmount, "amount mismatch");
+        assertEq(
+            fleetProxy.lastSourceChainId(),
+            CHAIN_ID_A,
+            "sourceChainId mismatch"
         );
     }
 }

@@ -69,9 +69,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     uint256 internal operationNonce; // To generate unique mock operation IDs
 
-    // Add mapping for chain to router addresses if not already present
-    mapping(uint16 => address) public chainToRouterAddress;
-
     uint64 public defaultGasLimit = 200000; // Default value matching the real implementation
 
     // Add mapping for registered adapters
@@ -253,22 +250,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         return operationId;
     }
 
-    // --- Adapter Callbacks ---
-    // These are simplified, just updating status. Real adapters would call these.
-    function updateOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external override {
-        // In real scenario, would check msg.sender is the expected adapter (operationAdapters[operationId])
-        if (operationAdapters[operationId] == address(0)) {
-            // If no adapter stored (e.g., direct call in test)
-            operationAdapters[operationId] = msg.sender; // Assume caller is adapter
-        }
-        // require(msg.sender == operationAdapters[operationId], "Mock: Unauthorized adapter");
-        operationStatuses[operationId] = status;
-        emit OperationStatusUpdated(operationId, status);
-    }
-
     function deliver(
         bytes32 operationId,
         uint16 sourceChainId,
@@ -360,14 +341,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     function unpause() external override {
         mockPaused = false;
-    }
-
-    function setChainRouterAddress(
-        uint16 _chainId,
-        address _routerAddress
-    ) external override {
-        chainToRouterAddress[_chainId] = _routerAddress; // Store in mock
-        emit ChainRouterAddressUpdated(_chainId, _routerAddress);
     }
 
     function recoverFunds(address recipient, uint256 amount) external override {

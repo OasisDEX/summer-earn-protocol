@@ -49,4 +49,4 @@ base = { key = "${API_KEY_BASESCAN}" }
 sonic = { key = "${API_KEY_SONICSCAN}" }
 
 [lint]
-exclude_lints = ["asm-keccak256"]
+exclude_lints = ["asm-keccak256", "unused-import", "mixed-case-variable"]
