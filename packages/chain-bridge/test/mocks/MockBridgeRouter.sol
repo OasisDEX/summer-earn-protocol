@@ -250,30 +250,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         return operationId;
     }
 
-    // --- Adapter Callbacks ---
-    function notifyMessageReceived(
-        bytes32 operationId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId
-    ) external override {
-        // require(msg.sender == MOCK_ADAPTER_ADDRESS, "Mock: Unauthorized adapter"); // Example check
-        // Emit events for tracking
-        emit MessageDelivered(operationId, recipient, true);
-        if (asset != address(0) && amount > 0) {
-            emit TransferReceived(
-                operationId,
-                asset,
-                amount,
-                recipient,
-                sourceChainId
-            );
-            // Simulate receiving asset from adapter
-            // If testing asset flow end-to-end, adapter mock would need minting/transfer ability
-        }
-    }
-
     function deliver(
         bytes32 operationId,
         uint16 sourceChainId,

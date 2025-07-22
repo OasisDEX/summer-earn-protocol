@@ -176,13 +176,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             abi.encode(message, address(mockReceiver), operationId)
         );
 
-        // Mock the router's notifyMessageReceived function
-        vm.mockCall(
-            address(routerA),
-            abi.encodeWithSelector(routerA.notifyMessageReceived.selector),
-            abi.encode()
-        );
-
         adapterA.setLzMessageToOperationId(guid, operationId);
 
         // Call lzReceive directly on adapterA to simulate message receipt
@@ -203,7 +196,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         useNetworkA();
         vm.deal(user, 1 ether);
 
-        vm.startPrank(user); // User is not the router
+        vm.startPrank(user); // User is not the routersdfgjd    `
 
         BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
             .AdapterParams({

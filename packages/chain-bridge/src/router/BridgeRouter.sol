@@ -561,33 +561,6 @@ contract BridgeRouter is
         return (bufferedNativeFee, baseTokenFee, adapter);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                        ADAPTER CALLBACK FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IBridgeRouter
-    function notifyMessageReceived(
-        bytes32 operationId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId
-    ) external onlyRegisteredAdapter {
-        // Emit events for tracking
-        emit MessageDelivered(operationId, recipient, true);
-
-        // If this is a transfer, emit the transfer event
-        if (asset != address(0) && amount > 0) {
-            emit TransferReceived(
-                operationId,
-                asset,
-                amount,
-                recipient,
-                sourceChainId
-            );
-        }
-    }
-
     /// @inheritdoc IBridgeRouter
     // todo: add retry mechanism
     function deliverReadResponse(

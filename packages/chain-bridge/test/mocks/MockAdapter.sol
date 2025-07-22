@@ -261,15 +261,6 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
             })
         );
 
-        // Notify the bridge router about the received message
-        IBridgeRouter(bridgeRouter()).notifyMessageReceived(
-            messageId,
-            address(0), // No asset for general message
-            0, // No amount for general message
-            sender, // The destination contract address
-            sourceChainId
-        );
-
         emit MessageRelayed(messageId, sender, sourceChainId);
     }
 

@@ -197,24 +197,6 @@ interface IBridgeRouter is IERC165 {
     ) external;
 
     /**
-     * @notice Notify the router that a message or transfer has arrived (called by adapters)
-     * @param operationId ID of the message/transfer received
-     * @param asset Address of the asset received (address(0) for messages)
-     * @param amount Amount of the asset received (0 for messages)
-     * @param recipient Address that received the assets/message
-     * @param sourceChainId ID of the chain where the operation originated
-     * @dev Called by adapter on destination chain upon successful receipt from the bridge protocol.
-     *      Sets status to DELIVERED and attempts to send confirmation back. Only adapter can call.
-     */
-    function notifyMessageReceived(
-        bytes32 operationId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId
-    ) external;
-
-    /**
      * @notice Deliver read response data (called by adapters)
      * @param operationId Unique identifier for the original read request
      * @param sourceChainId ID of the chain where the data was read from

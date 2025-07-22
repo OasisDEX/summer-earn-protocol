@@ -98,11 +98,8 @@ contract StargateAdapter is
     /// @notice LayerZero endpoint for compose functionality
     address public immutable LZ_ENDPOINT;
 
-    /// @notice HarborCommand contract address for fleet commander validation
-    address public immutable HARBOR_COMMAND;
-
     /// @notice Mapping of supported chains to their LayerZero Endpoint IDs
-    mapping(uint16 chainId => uint32 endpointId) public chainToEndpointId;
+    mapping(uint16 chainId => uint32 lzEid) public chainToLzEid;
 
     /// @notice Mapping of assets to their Stargate contracts on THIS chain only
     mapping(address asset => address stargateContract)
@@ -138,9 +135,6 @@ contract StargateAdapter is
     /// @notice Emitted when default transport mode is changed
     event DefaultTransportModeChanged(bool useTaxi);
 
-    /// @notice Emitted when compose gas limit is updated
-    event ComposeGasLimitUpdated(uint256 newGasLimit);
-
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
 
@@ -165,47 +159,6 @@ contract StargateAdapter is
         address indexed asset,
         uint256 amount,
         address indexed recipient
-    );
-
-    /// @notice Emitted when a compose operation fails and assets are held for recovery
-    event ComposeFailedAssetsHeld(
-        bytes32 indexed operationId,
-        address indexed asset,
-        uint256 amount,
-        address intendedRecipient,
-        bool isDeposit,
-        string reason
-    );
-
-    /// @notice Emitted when a cross-chain fleet deposit is completed
-    event CrossChainFleetDepositCompleted(
-        bytes32 indexed operationId,
-        address indexed fleetCommander,
-        address indexed shareRecipient,
-        address asset,
-        uint256 amount,
-        uint256 shares,
-        uint16 sourceChainId
-    );
-
-    /// @notice Emitted when a cross-chain fleet deposit fails
-    event CrossChainFleetDepositFailed(
-        bytes32 indexed operationId,
-        address indexed fleetCommander,
-        address asset,
-        uint256 amount,
-        string reason
-    );
-
-    /// @notice Emitted when a user refund is issued
-    event UserRefundIssued(
-        bytes32 indexed operationId,
-        address indexed asset,
-        uint256 amount,
-        address indexed user,
-        address originalUser,
-        uint16 sourceChainId,
-        string reason
     );
 
     event ComposeCallFailed(
@@ -235,7 +188,6 @@ contract StargateAdapter is
         if (_harborCommand == address(0)) revert InvalidParams();
 
         LZ_ENDPOINT = _lzEndpoint;
-        HARBOR_COMMAND = _harborCommand;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -278,7 +230,7 @@ contract StargateAdapter is
             revert InvalidParams();
         }
 
-        chainToEndpointId[chainId] = endpointId;
+        chainToLzEid[chainId] = endpointId;
         emit EndpointIdSet(chainId, endpointId);
     }
 
@@ -440,7 +392,7 @@ contract StargateAdapter is
 
         return
             SendParam({
-                dstEid: chainToEndpointId[destinationChainId],
+                dstEid: chainToLzEid[destinationChainId],
                 to: destinationAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount,
@@ -597,7 +549,7 @@ contract StargateAdapter is
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
-            dstEid: chainToEndpointId[dstChainId],
+            dstEid: chainToLzEid[dstChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
@@ -814,7 +766,7 @@ contract StargateAdapter is
      * @notice Get the LayerZero Endpoint ID for a given chain
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainToEndpointId[chainId];
+        return chainToLzEid[chainId];
     }
 
     /**
