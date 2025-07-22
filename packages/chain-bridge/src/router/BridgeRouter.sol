@@ -608,32 +608,6 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
-    function notifyMessageReceived(
-        bytes32 operationId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        uint16 sourceChainId
-    ) external onlyRegisteredAdapter {
-        // Store which adapter received this request
-        requestReceivedByAdapter[operationId] = msg.sender;
-
-        // Emit events for tracking
-        emit MessageDelivered(operationId, recipient, true);
-
-        // If this is a transfer, emit the transfer event
-        if (asset != address(0) && amount > 0) {
-            emit TransferReceived(
-                operationId,
-                asset,
-                amount,
-                recipient,
-                sourceChainId
-            );
-        }
-    }
-
-    /// @inheritdoc IBridgeRouter
     function deliverReadResponse(
         bytes32 operationId,
         uint16 sourceChainId,
