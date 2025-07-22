@@ -729,9 +729,10 @@ contract StargateAdapter is
         _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
 
         // ---------------------------------------------------------------
-        // 3. Continue normal handling
+        // 3. Continue normal handling (the SD amount from the Taxi header is
+        // informational; the real LD amount lives inside the composeMsg)
         // ---------------------------------------------------------------
-        _handleComposedMessage(_from, amtSD, composeMsg);
+        _handleComposedMessage(_from, composeMsg);
     }
 
     /**
@@ -764,22 +765,20 @@ contract StargateAdapter is
      */
     function _handleComposedMessage(
         address _from,
-        uint256 amount,
         bytes memory composeMsg
     ) internal {
         // Get the received asset from the Stargate contract
         address receivedAsset = IStargateV2(_from).token();
 
-        _handleAssetTransferMessage(amount, composeMsg, receivedAsset);
+        _handleAssetTransferMessage(receivedAsset, composeMsg);
     }
 
     /**
      * @dev Handle asset transfer compose messages
      */
     function _handleAssetTransferMessage(
-        uint256 amount,
-        bytes memory composeMsg,
-        address receivedAsset
+        address receivedAsset,
+        bytes memory composeMsg
     ) internal {
         // Decode the compose message
         BridgeTypes.AssetTransferMessage memory atm = abi.decode(
@@ -790,7 +789,7 @@ contract StargateAdapter is
         // -----------------------------------------------------------------
         // 1. Forward the tokens the adapter just received to the router
         // -----------------------------------------------------------------
-        IERC20(receivedAsset).safeTransfer(bridgeRouter(), amount);
+        IERC20(receivedAsset).safeTransfer(bridgeRouter(), atm.amount);
 
         // -----------------------------------------------------------------
         // 2. Build the payload the end-recipient expects
@@ -810,7 +809,7 @@ contract StargateAdapter is
             atm.operationId,
             uint16(atm.sourceChainId),
             receivedAsset,
-            amount,
+            atm.amount,
             atm.recipient,
             payload
         );

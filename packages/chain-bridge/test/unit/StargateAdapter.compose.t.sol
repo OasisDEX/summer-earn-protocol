@@ -416,8 +416,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Create a message that's NOT a taxi message (will fail TaxiCodec.isTaxi check)
         bytes memory invalidTaxiMessage = hex"00"; // Not a valid taxi header
 
-        // Should revert with TaxiCodec_InvalidMessage when TaxiCodec.isTaxi fails
-        vm.expectRevert("TaxiCodec_InvalidMessage()");
+        // Should revert with InvalidMessage when TaxiCodec.isTaxi fails
+        vm.expectRevert("InvalidMessage()");
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom), // Use valid Stargate pool so it passes pool validation
