@@ -90,6 +90,12 @@ export function handleArkAuctionParametersSet(event: ArkAuctionParametersSet): v
   const arkAuctionParameters = getOrCreateArkAuctionParameters(
     event.params.ark,
     event.params.rewardToken,
+    event.address,
   )
-  updateArkAuctionParameters(event.params.ark, event.params.rewardToken, arkAuctionParameters)
+  updateArkAuctionParameters(
+    event.params.ark,
+    event.params.rewardToken,
+    event.address,
+    arkAuctionParameters,
+  )
 }
