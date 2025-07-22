@@ -197,18 +197,6 @@ interface IBridgeRouter is IERC165 {
     ) external;
 
     /**
-     * @notice Update the status of an operation (called by adapters)
-     * @param operationId ID of the operation to update
-     * @param status New status of the operation
-     * @dev Called by the adapter handling the operation on the source chain. Requires caller ==
-     * operationToAdapter[operationId].
-     */
-    function updateOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external;
-
-    /**
      * @notice Notify the router that a message or transfer has arrived (called by adapters)
      * @param operationId ID of the message/transfer received
      * @param asset Address of the asset received (address(0) for messages)

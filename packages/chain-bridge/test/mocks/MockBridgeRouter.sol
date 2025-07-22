@@ -251,21 +251,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     }
 
     // --- Adapter Callbacks ---
-    // These are simplified, just updating status. Real adapters would call these.
-    function updateOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external override {
-        // In real scenario, would check msg.sender is the expected adapter (operationAdapters[operationId])
-        if (operationAdapters[operationId] == address(0)) {
-            // If no adapter stored (e.g., direct call in test)
-            operationAdapters[operationId] = msg.sender; // Assume caller is adapter
-        }
-        // require(msg.sender == operationAdapters[operationId], "Mock: Unauthorized adapter");
-        operationStatuses[operationId] = status;
-        emit OperationStatusUpdated(operationId, status);
-    }
-
     function notifyMessageReceived(
         bytes32 operationId,
         address asset,

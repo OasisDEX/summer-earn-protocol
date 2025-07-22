@@ -154,27 +154,11 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         );
         vm.stopPrank();
 
-        // Should revert when non-adapter tries to update status
-        vm.prank(user); // Use user address (or any other non-adapter)
-        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
-
         // Register second adapter and configure it to support the chain
         vm.startPrank(governor);
         router.registerAdapter(address(mockAdapter2));
         mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
         vm.stopPrank();
-
-        // Should revert when wrong adapter tries to deliver response
-        vm.prank(address(mockAdapter2));
-        vm.expectRevert(IBridgeRouter.Unauthorized.selector);
-        router.updateOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
     }
 
     function testDebugMockAdapter() public {

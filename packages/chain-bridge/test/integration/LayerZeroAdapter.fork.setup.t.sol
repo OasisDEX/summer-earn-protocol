@@ -5,7 +5,7 @@ import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
-
+import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -20,6 +20,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
     BridgeRouterTestHelper public router;
     CrossChainRegistry public registry;
     ProtocolAccessManager public accessManager;
+    MockCrossChainReceiver public mockCrossChainStateReadReceiver;
 
     // Test addresses
     address public governor = makeAddr("governor");
@@ -117,6 +118,8 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
 
         // Register layerZeroAdapter as an executor
         registry.registerExecutor(keeper);
+
+        mockCrossChainStateReadReceiver = new MockCrossChainReceiver();
 
         vm.stopPrank();
     }
