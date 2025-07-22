@@ -454,7 +454,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     siloV2: [Token.SILO, Token.XSILO],
   },
   base: {
-    morpho: [Token.MORPHO, Token.WELL],
+    morpho: [Token.MORPHO, Token.WELL, Token.SEAM],
     euler: [Token.REUL],
     moonwell: [Token.WELL],
   },
