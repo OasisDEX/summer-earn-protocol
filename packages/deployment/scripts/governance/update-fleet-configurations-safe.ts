@@ -3,11 +3,33 @@ import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
 import { Address, createPublicClient, encodeFunctionData, getAddress, http } from 'viem'
-import { Token } from '../../types/config-types'
-import { logPercentageComparison, logValueComparison } from '../helpers/fleet-config-reader'
 
+import chalk from 'chalk'
 import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+dotenv.config({ path: '../../.env' })
 
+enum Token {
+  USDC = 'usdc',
+  DAI = 'dai',
+  USDT = 'usdt',
+  USDE = 'usde',
+  USDCE = 'usdce',
+  USDS = 'usds',
+  STAKED_USDS = 'stakedUsds',
+  WETH = 'weth',
+  STETH = 'steth',
+  EURC = 'eurc',
+  SEAM = 'seam',
+  REUL = 'reul',
+  WELL = 'well',
+  WS = 'ws',
+  GEAR = 'gear',
+  MORPHO = 'morpho',
+  SYRUP = 'syrup',
+  SILO = 'silo',
+  SKY = 'sky',
+  XSILO = 'xsilo',
+}
 const addresses: Record<
   SupportedChain,
   {
@@ -987,6 +1009,77 @@ async function main() {
     } else {
       console.log(`\n⚠️ No transactions needed for ${chain}`)
     }
+  }
+}
+const MAX_UINT256 = BigInt(
+  '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+)
+function formatValue(value: bigint | number, unit: string): string {
+  // Handle max uint
+  if (typeof value === 'bigint' && value === MAX_UINT256) {
+    return 'max uint (no limit)'
+  }
+
+  // Handle decimals for known assets
+  if (unit.trim() === 'USDC' || unit.trim() === 'USDT') {
+    if (typeof value === 'bigint') {
+      const formatted = Number(value) / 1e6
+      return `${value.toString()} (${formatted.toLocaleString()})`
+    }
+  }
+
+  if (unit.trim() === 'WETH') {
+    if (typeof value === 'bigint') {
+      const formatted = Number(value) / 1e18
+      return `${value.toString()} (${formatted.toLocaleString()})`
+    }
+  }
+
+  // Default formatting for other values
+  return value.toString()
+}
+export function logValueComparison(
+  label: string,
+  currentValue: bigint | number,
+  newValue: bigint | number,
+  unit: string = '',
+): void {
+  const hasChanged = currentValue != newValue
+  const color = hasChanged ? chalk.red : chalk.green
+  const arrow = hasChanged ? '→' : '='
+
+  const formattedCurrent = formatValue(currentValue, unit)
+  const formattedNew = formatValue(newValue, unit)
+  if (hasChanged) {
+    console.log(
+      color(
+        `${label.padEnd(30)} ${formattedCurrent}${unit} ${arrow} ${formattedNew}${unit}${
+          hasChanged ? ' (updating)' : ' (unchanged)'
+        }`,
+      ),
+    )
+  }
+}
+
+export function logPercentageComparison(
+  label: string,
+  currentValue: bigint,
+  newValue: bigint,
+  WAD: bigint,
+): void {
+  const hasChanged = currentValue !== newValue
+  const color = hasChanged ? chalk.red : chalk.green
+  const arrow = hasChanged ? '→' : '='
+  const currentPercent = Number(currentValue) / Number(WAD)
+  const newPercent = Number(newValue) / Number(WAD)
+  if (hasChanged) {
+    console.log(
+      color(
+        `${label.padEnd(30)} ${currentPercent}% ${arrow} ${newPercent}%${
+          hasChanged ? ' (updating)' : ' (unchanged)'
+        }`,
+      ),
+    )
   }
 }
 
