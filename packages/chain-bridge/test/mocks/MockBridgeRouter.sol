@@ -69,9 +69,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     uint256 internal operationNonce; // To generate unique mock operation IDs
 
-    // Add mapping for chain to router addresses if not already present
-    mapping(uint16 => address) public chainToRouterAddress;
-
     uint64 public defaultGasLimit = 200000; // Default value matching the real implementation
 
     // Add mapping for registered adapters
@@ -368,14 +365,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     function unpause() external override {
         mockPaused = false;
-    }
-
-    function setChainRouterAddress(
-        uint16 _chainId,
-        address _routerAddress
-    ) external override {
-        chainToRouterAddress[_chainId] = _routerAddress; // Store in mock
-        emit ChainRouterAddressUpdated(_chainId, _routerAddress);
     }
 
     function recoverFunds(address recipient, uint256 amount) external override {

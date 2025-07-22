@@ -128,8 +128,6 @@ interface IBridgeRouter is IERC165 {
     error UnsupportedAdapterOperation();
     /// @notice Thrown when there are insufficient native funds in the router
     error InsufficientBalance();
-    /// @notice Error for calls not originating from the authorized executor
-    error OnlyAuthorizedExecutor();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
@@ -279,15 +277,6 @@ interface IBridgeRouter is IERC165 {
      */
     function isValidAdapter(address adapter) external view returns (bool);
 
-    /**
-     * @notice Get the configured BridgeRouter address for a given chain ID
-     * @param chainId The chain ID
-     * @return routerAddress The configured router address for that chain
-     */
-    function chainToRouterAddress(
-        uint16 chainId
-    ) external view returns (address routerAddress);
-
     /*//////////////////////////////////////////////////////////////
                          GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -327,17 +316,6 @@ interface IBridgeRouter is IERC165 {
     function recoverOperationStatus(
         bytes32 operationId,
         BridgeTypes.OperationStatus newStatus // Renamed param
-    ) external;
-
-    /**
-     * @notice Set the known BridgeRouter address for another chain (used for confirmations)
-     * @param chainId The target chain ID
-     * @param routerAddress Address of the BridgeRouter contract on that chain
-     * @dev Governor role required.
-     */
-    function setChainRouterAddress(
-        uint16 chainId,
-        address routerAddress
     ) external;
 
     /**

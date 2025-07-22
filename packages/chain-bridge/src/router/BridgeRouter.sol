@@ -59,10 +59,6 @@ contract BridgeRouter is
     /// @notice Pause state of the router
     bool public paused;
 
-    /// @notice Mapping of chain IDs to their BridgeRouter addresses
-    mapping(uint16 chainId => address routerAddress)
-        public chainToRouterAddress;
-
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -87,15 +83,6 @@ contract BridgeRouter is
      */
     modifier onlyRegisteredAdapter() {
         if (!adapters.contains(msg.sender)) revert UnknownAdapter();
-        _;
-    }
-
-    /**
-     * @dev Modifier ensuring the caller (`msg.sender`) is registered as an executor in the registry.
-     * Reverts with `OnlyAuthorizedExecutor` if the caller is not registered.
-     */
-    modifier onlyAuthorizedExecutor() {
-        if (!isExecutor(msg.sender)) revert OnlyAuthorizedExecutor();
         _;
     }
 
@@ -727,15 +714,6 @@ contract BridgeRouter is
         if (!success) revert TransferFailed();
 
         emit RouterFundsRecovered(recipient, amount);
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function setChainRouterAddress(
-        uint16 chainId,
-        address routerAddress
-    ) external onlyGovernor {
-        chainToRouterAddress[chainId] = routerAddress;
-        emit ChainRouterAddressUpdated(chainId, routerAddress);
     }
 
     /// @inheritdoc IBridgeRouter
