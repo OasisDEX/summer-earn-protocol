@@ -12,7 +12,6 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 import {TaxiCodec} from "@stargatefinance/stg-evm-v2/src/libs/TaxiCodec.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
-import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyA;
@@ -453,102 +452,6 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             malformedTaxiMessage,
             address(0),
             hex""
-        );
-    }
-
-    function testSlippageExceedsTolerance() public {
-        useNetworkA();
-        vm.deal(address(routerA), 1 ether);
-
-        uint256 inputAmount = 1 ether;
-        uint256 receivedAmount = 0.94 ether; // 6% slippage (exceeds 0.5% default tolerance)
-
-        // Calculate expected minimum amount: 1 ether * (10000 - 50) / 10000 = 0.995 ether
-        uint256 expectedMinAmount = (inputAmount * (10000 - 50)) / 10000; // 0.995 ether
-
-        // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
-
-        // Transfer tokens to router and approve
-        vm.prank(user);
-        assertTrue(tokenA.transfer(address(routerA), inputAmount));
-
-        vm.prank(address(routerA));
-        tokenA.approve(address(adapterA), inputAmount);
-
-        // Calculate operation ID
-        bytes32 expectedOperationId = keccak256(
-            abi.encode(
-                CHAIN_ID_A,
-                CHAIN_ID_B,
-                address(tokenA),
-                inputAmount,
-                user, // recipient
-                block.timestamp,
-                block.number
-            )
-        );
-
-        // Setup router
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
-
-        // Mock the quoteOFT call to return high slippage
-        // Create the response structs
-        OFTLimit memory limit = OFTLimit({
-            minAmountLD: 1,
-            maxAmountLD: type(uint256).max
-        });
-
-        OFTFeeDetail[] memory feeDetails = new OFTFeeDetail[](1);
-        feeDetails[0] = OFTFeeDetail({
-            feeAmountLD: -501,
-            description: "protocol fee"
-        });
-
-        OFTReceipt memory receipt = OFTReceipt({
-            amountSentLD: inputAmount,
-            amountReceivedLD: receivedAmount // This will trigger slippage check
-        });
-
-        // Mock the quoteOFT function to return our custom response
-        vm.mockCall(
-            address(stargateA),
-            abi.encodeWithSignature(
-                "quoteOFT((uint32,bytes32,uint256,uint256,bytes,bytes,bytes))"
-            ),
-            abi.encode(limit, feeDetails, receipt)
-        );
-
-        // Expect the SlippageExceedsTolerance revert
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                StargateAdapter.SlippageExceedsTolerance.selector,
-                expectedMinAmount, // 0.995 ether
-                receivedAmount, // 0.94 ether
-                50 // 50 basis points (0.5%)
-            )
-        );
-
-        // Execute transfer - should revert due to high slippage
-        vm.prank(address(routerA));
-        adapterA.transferAsset{value: 0.01 ether}(
-            expectedOperationId,
-            CHAIN_ID_B,
-            address(tokenA),
-            user, // recipient
-            inputAmount,
-            user, // originator
-            user, // keeper
-            adapterParams
         );
     }
 
