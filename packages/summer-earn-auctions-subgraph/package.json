@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-auctions-subgraph",
-  "version": "0.1.1-RAFT-2",
+  "version": "0.1.2-update-auction-params",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",

@@ -27,7 +27,7 @@ export function getOrCreateAuction(
 }
 
 export function updateAuction(auction: Auction, ark: Address, rewardToken: Address): void {
-  const autionParams = getOrCreateArkAuctionParameters(ark, rewardToken)
+  const autionParams = getOrCreateArkAuctionParameters(ark, rewardToken, Address.fromString(auction.raft))
 
   const raftContract = RaftContract.bind(Address.fromString(auction.raft))
   const auctionState = raftContract.try_auctions(ark, rewardToken)
@@ -108,12 +108,13 @@ export function getOrCreateArk(address: Address): Ark {
 export function getOrCreateArkAuctionParameters(
   ark: Address,
   rewardToken: Address,
+  raft: Address,
 ): ArkAuctionParameters {
   const arkAuctionParametersId = ark.toHexString() + rewardToken.toHexString()
   let arkAuctionParameters = ArkAuctionParameters.load(arkAuctionParametersId)
   if (!arkAuctionParameters) {
     arkAuctionParameters = new ArkAuctionParameters(arkAuctionParametersId)
-    updateArkAuctionParameters(ark, rewardToken, arkAuctionParameters)
+    updateArkAuctionParameters(ark, rewardToken, raft, arkAuctionParameters)
   }
   return arkAuctionParameters
 }
@@ -121,6 +122,7 @@ export function getOrCreateArkAuctionParameters(
 export function updateArkAuctionParameters(
   ark: Address,
   rewardToken: Address,
+  raft: Address,
   arkAuctionParameters: ArkAuctionParameters,
 ): void {
   const arkContract = ArkContract.bind(ark)
@@ -132,7 +134,8 @@ export function updateArkAuctionParameters(
   arkAuctionParameters.rewardToken = rewardTokenEntity.id
   const buyTokenEntity = getOrCreateToken(buyToken.value)
   arkAuctionParameters.buyToken = buyTokenEntity.id
-  const params = services.raft.try_arkAuctionParameters(ark, rewardToken)
+  const raftContract = RaftContract.bind(raft)
+  const params = raftContract.try_arkAuctionParameters(ark, rewardToken)
   arkAuctionParameters.kickerRewardPercentage = params.value
     .getKickerRewardPercentage()
     .toBigDecimal()
