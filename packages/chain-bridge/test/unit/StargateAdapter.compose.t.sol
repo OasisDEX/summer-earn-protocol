@@ -242,9 +242,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             memory realMessage = hex"0000000000066982000075e800000000000000000000000000000000000000000000000000000000004c4a45000000000000000000000000bb784b7bd9b9e2e3257c4838b798fb077d96c2350000000000000000000000001534e3d0f23d91142424a0091aab8037fac80cb8000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000000210515919236bbb71d094ca0aee8259859441555203071b0f3da4cb32e40d4118ac10000000000000000000000009d4d5ef9a4f25589cca44e1fbdec25d79f2271ea";
 
         // Parse the amount and compose message
-        /// forge-lint: disable-start(mixed-case-variable)
         uint256 amountLD = this.getAmountLD(realMessage);
-        /// forge-lint: disable-end(mixed-case-variable)
+
         bytes memory composeMsg = this.getComposeMsg(realMessage);
 
         console.log("Amount from OFT message:", amountLD);
@@ -533,6 +532,92 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             tokenB.balanceOf(address(mockFleetCommander)),
             fleetCommanderBalanceBefore,
             "recipient unexpectedly received tokens"
+        );
+    }
+    function testSystemTransactionSuccessTokensDelivered() public {
+        useNetworkB();
+
+        uint256 testAmount = 1 ether;
+        address testUser = makeAddr("testUser");
+        bytes32 testOperationId = keccak256("system-operation-success");
+
+        // ───────────────────  healthy recipient & mocked Stargate  ───────────────────
+        MockFleetProxy fleetProxy = new MockFleetProxy(address(tokenB));
+        // NOTE: do NOT setShouldRevert(true) → default is false (happy path)
+
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        // Proper AssetTransferMessage struct
+        bytes memory composeMsg = _createAssetTransferMessage(
+            address(fleetProxy),
+            address(tokenB),
+            testAmount,
+            uint256(CHAIN_ID_A),
+            testOperationId,
+            testUser
+        );
+
+        // Scaled amount for Taxi header (amountSD)
+        uint64 scaledAmount = uint64(testAmount / 10 ** tokenB.decimals());
+
+        // Taxi-encoded message (no OFT wrapper necessary)
+        bytes memory taxiMessage = this.encodeTaxiWithMemory(
+            address(adapterA), // src sender
+            uint16(1), // assetId dummy
+            bytes32(uint256(uint160(address(adapterB)))), // dst adapter
+            scaledAmount,
+            composeMsg
+        );
+
+        // Fund the destination adapter with the tokens it should forward
+        tokenB.mint(address(adapterB), testAmount);
+
+        // ───────────────────────────  balances before  ───────────────────────────────
+        uint256 routerBalanceBefore = tokenB.balanceOf(address(routerB));
+        uint256 fleetBalanceBefore = tokenB.balanceOf(address(fleetProxy));
+
+        // Call lzCompose from the authorised endpoint – should NOT revert
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(
+            address(mockStargateFrom),
+            bytes32("test-guid-success"),
+            taxiMessage,
+            address(0),
+            hex""
+        );
+
+        // ───────────────────────────  post-conditions  ───────────────────────────────
+        // 1. Adapter no longer holds the funds
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            0,
+            "adapter should have forwarded all tokens"
+        );
+
+        // 2. Router is left with no balance (immediately forwarded to recipient)
+        assertEq(
+            tokenB.balanceOf(address(routerB)),
+            routerBalanceBefore,
+            "router should not retain tokens"
+        );
+
+        // 3. Recipient now owns the funds and callback executed
+        assertEq(
+            tokenB.balanceOf(address(fleetProxy)),
+            fleetBalanceBefore + testAmount,
+            "fleet proxy did not receive the expected amount"
+        );
+        assertTrue(fleetProxy.receivedAssets(), "callback not triggered");
+        assertEq(fleetProxy.lastAsset(), address(tokenB), "asset mismatch");
+        assertEq(fleetProxy.lastAmount(), testAmount, "amount mismatch");
+        assertEq(
+            fleetProxy.lastSourceChainId(),
+            CHAIN_ID_A,
+            "sourceChainId mismatch"
         );
     }
 }

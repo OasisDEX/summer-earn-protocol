@@ -17,7 +17,7 @@ import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@laye
 
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {TaxiCodec} from "@stargatefinance/stg-evm-v2/src/libs/TaxiCodec.sol";
+import {SummerTaxiCodec} from "../libraries/SummerTaxiCodec.sol";
 
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
@@ -707,18 +707,16 @@ contract StargateAdapter is
         // ---------------------------------------------------------------
         // 1. Taxi header must be present
         // ---------------------------------------------------------------
-        if (!TaxiCodec.isTaxi(_message)) revert InvalidMessage();
-        /// forge-lint: disable-start(mixed-case-variable)
-        // msg layout: <type><assetId><receiver><amountSD><bytes32 sender><composeMsg>
-        (, , uint64 amtSD, bytes memory taxiPayload) = TaxiCodec.decodeTaxi(
-            _message
-        );
-        /// forge-lint: disable-end(mixed-case-variable)
+        if (!SummerTaxiCodec.isTaxi(_message)) revert InvalidMessage();
 
-        // Extract sender and compose message from taxi payload
-        (address srcSender, bytes memory composeMsg) = _extractTaxiPayload(
-            taxiPayload
-        );
+        // Decode taxi message (includes srcSender & compose payload)
+        (
+            ,
+            ,
+            uint64 amtSD,
+            address srcSender,
+            bytes memory composeMsg
+        ) = SummerTaxiCodec.decodeTaxi(_message);
 
         // ---------------------------------------------------------------
         // 2. Verify peer adapter relationship
@@ -734,48 +732,6 @@ contract StargateAdapter is
         // 3. Continue normal handling
         // ---------------------------------------------------------------
         _handleComposedMessage(_from, amtSD, composeMsg);
-    }
-
-    /**
-     * @dev Extracts sender address and compose message from taxi payload
-     * @param taxiPayload Raw payload from taxi message containing sender + composeMsg
-     * @return srcSender The address of the source adapter that sent the message
-     * @return composeMsg The composed message data
-     */
-    function _extractTaxiPayload(
-        bytes memory taxiPayload
-    ) internal pure returns (address srcSender, bytes memory composeMsg) {
-        bytes32 packedSender;
-
-        assembly {
-            // Extract first 32 bytes as sender
-            packedSender := mload(add(taxiPayload, 0x20))
-
-            // Calculate length of remaining data
-            let composeMsgLength := sub(mload(taxiPayload), 32)
-
-            // Allocate memory for composeMsg
-            composeMsg := mload(0x40)
-            mstore(composeMsg, composeMsgLength)
-
-            // Copy the data starting from byte 32
-            let src := add(add(taxiPayload, 0x20), 32)
-            let dst := add(composeMsg, 0x20)
-
-            // Copy data in 32-byte chunks
-            for {
-                let i := 0
-            } lt(i, composeMsgLength) {
-                i := add(i, 32)
-            } {
-                mstore(add(dst, i), mload(add(src, i)))
-            }
-
-            // Update free memory pointer
-            mstore(0x40, add(add(composeMsg, 0x20), composeMsgLength))
-        }
-
-        srcSender = address(uint160(uint256(packedSender)));
     }
 
     /**
