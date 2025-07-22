@@ -23,6 +23,23 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
         CROSS_CHAIN_REGISTRY = _crossChainRegistry;
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Modifier ensuring the caller (`msg.sender`) is registered as an executor in the registry.
+     * Reverts with `OnlyAuthorizedExecutor` if the caller is not registered.
+     */
+    modifier onlyAuthorizedExecutor() {
+        if (!isExecutor(msg.sender)) revert OnlyAuthorizedExecutor();
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /// @inheritdoc ICrossChainConfigManaged
     function bridgeRouter() public view virtual returns (address) {
         return ICrossChainRegistry(CROSS_CHAIN_REGISTRY).bridgeRouter();
