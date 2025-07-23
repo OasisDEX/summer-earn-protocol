@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IInflightAssetTracking} from "./IInflightAssetTracking.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
  * @title ICrossChainArk
@@ -53,10 +54,16 @@ interface ICrossChainArk is IInflightAssetTracking {
     error InvalidCrossChainRegistry();
 
     /// @notice Thrown when there are no pending transfer params.
-    error NoPendingTransferParams();
+    error NoPendingTransferQueued();
+
+    /// @notice Thrown when there are pending transfer params already queued.
+    error PendingTransferAlreadyQueued();
 
     /// @notice Emitted when a message is not expected
     event MessageContentNotExpected();
+
+    /// @notice Emitted when a pending transfer is queued
+    event PendingTransferQueued(BridgeTypes.ExecuteTransferParams params);
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
