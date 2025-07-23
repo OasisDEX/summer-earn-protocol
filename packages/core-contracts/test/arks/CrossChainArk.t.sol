@@ -169,6 +169,41 @@ contract CrossChainArkTest is Test, ArkTestBase {
         ark.board(1000, executeTransferParams);
     }
 
+    function testBoardRejectsPendingTransfer() public {
+        uint256 amount = 2000;
+        deal(address(mockToken), address(fleetCommander), amount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: 1000,
+                recipient: proxy,
+                originator: address(ark),
+                keeper: commander,
+                options: BridgeTypes.BridgeOptions({
+                    specifiedAdapter: address(mockAdapter),
+                    adapterParams: BridgeTypes.AdapterParams({
+                        gasLimit: 200000,
+                        msgValue: 0,
+                        calldataSize: 0,
+                        options: ""
+                    })
+                })
+            });
+        bytes memory executeTransferParams = abi.encode(params);
+        vm.prank(address(fleetCommander));
+        ark.board(1000, executeTransferParams);
+
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(ICrossChainArk.PendingTransferAlreadyQueued.selector);
+        ark.board(1000, executeTransferParams);
+        vm.prank(address(keeper));
+        ark.executeTransferAssets();
+    }
+
     function testBoardValidationsFailures() public {
         uint256 amount = 1000;
         deal(address(mockToken), address(fleetCommander), amount);

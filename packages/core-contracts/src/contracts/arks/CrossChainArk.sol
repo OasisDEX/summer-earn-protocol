@@ -187,6 +187,9 @@ contract CrossChainArk is
         uint256 amount,
         bytes calldata executeTransferParams
     ) internal override {
+        if (pendingTransferParams.asset != address(0)) {
+            revert PendingTransferAlreadyQueued();
+        }
         address proxyAddress = _getTargetProxy();
 
         BridgeTypes.ExecuteTransferParams memory params = abi.decode(
@@ -207,8 +210,7 @@ contract CrossChainArk is
 
     function executeTransferAssets() external payable onlyKeeper {
         if (pendingTransferParams.asset == address(0))
-            revert NoPendingTransferParams();
-        // todo: add more validaion or is that in the bridge router?
+            revert NoPendingTransferQueued();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
         config.asset.approve(
             address(bridgeRouter),
@@ -217,23 +219,8 @@ contract CrossChainArk is
         bridgeRouter.executeTransferAssets{value: msg.value}(
             pendingTransferParams
         );
-        pendingTransferParams = BridgeTypes.ExecuteTransferParams({
-            destinationChainId: 0,
-            asset: address(0),
-            amount: 0,
-            recipient: address(0),
-            originator: address(0),
-            keeper: address(0),
-            options: BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(0),
-                adapterParams: BridgeTypes.AdapterParams({
-                    gasLimit: 0,
-                    calldataSize: 0,
-                    msgValue: 0,
-                    options: bytes("")
-                })
-            })
-        });
+        _resetPendingTransferParams();
+        emit PendingTransferQueued(pendingTransferParams);
     }
 
     /**
@@ -361,7 +348,29 @@ contract CrossChainArk is
     {
         return config.asset.balanceOf(address(this));
     }
-
+    /**
+     * @notice Resets the pending transfer params
+     * @dev This function is used to reset the pending transfer params after the transfer has been executed
+     */
+    function _resetPendingTransferParams() internal {
+        pendingTransferParams = BridgeTypes.ExecuteTransferParams({
+            destinationChainId: 0,
+            asset: address(0),
+            amount: 0,
+            recipient: address(0),
+            originator: address(0),
+            keeper: address(0),
+            options: BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(0),
+                adapterParams: BridgeTypes.AdapterParams({
+                    gasLimit: 0,
+                    calldataSize: 0,
+                    msgValue: 0,
+                    options: bytes("")
+                })
+            })
+        });
+    }
     /**
      * @notice Harvests rewards from the Ark
      * @dev This Ark does not implement harvesting as it's a cross-chain bridge
