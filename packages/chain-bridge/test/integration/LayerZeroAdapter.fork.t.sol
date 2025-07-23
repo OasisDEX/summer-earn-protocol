@@ -43,7 +43,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         );
 
         assertTrue(
-            layerZeroAdapter.REGISTRY().getAdapterPeer(
+            layerZeroAdapter.CROSS_CHAIN_REGISTRY().getAdapterPeer(
                 address(layerZeroAdapter),
                 DEST_CHAIN_ID
             ) != address(0),

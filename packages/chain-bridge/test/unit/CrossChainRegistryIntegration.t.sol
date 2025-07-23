@@ -24,7 +24,8 @@ contract CrossChainRegistryIntegrationTest is Test {
     uint16 public constant CURRENT_CHAIN_ID = 1;
     uint16 public constant TARGET_CHAIN_ID = 42161;
 
-    bytes32 public constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
+    bytes32 public constant ARK_FLEET_RELATIONSHIP =
+        keccak256("ARK_FLEET_RELATIONSHIP");
 
     event CrossChainRelationshipRegistered(
         address indexed sourceContract,
@@ -161,7 +162,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         address proxy1 = makeAddr("proxy1");
         address proxy2 = makeAddr("proxy2");
 
-        bytes32 arkFleetType = keccak256("ARK_FLEET");
+        bytes32 arkFleetType = keccak256("ARK_FLEET_RELATIONSHIP");
         bytes32 bridgeType = keccak256("BRIDGE_ADAPTER");
 
         // Register ark with two different relationship types
@@ -366,12 +367,13 @@ contract CrossChainRegistryIntegrationTest is Test {
     }
 
     function test_supportedRelationshipTypes() public {
-        // Initially should have ARK_FLEET type pre-registered in constructor
+        // Initially should have ARK_FLEET_RELATIONSHIP type pre-registered in constructor
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 2);
-        assertEq(supportedTypes[0], keccak256("PEER"));
-        assertEq(supportedTypes[1], keccak256("ARK_FLEET"));
+        assertEq(supportedTypes.length, 3);
+        assertEq(supportedTypes[0], keccak256("PEER_RELATIONSHIP"));
+        assertEq(supportedTypes[1], keccak256("ARK_FLEET_RELATIONSHIP"));
+        assertEq(supportedTypes[2], keccak256("EXECUTOR_RELATIONSHIP"));
 
         // Add a new relationship type by using it
         bytes32 newType = keccak256("NEW_TYPE");
@@ -389,13 +391,14 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Should now have 2 supported types
         supportedTypes = registry.getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 3);
+        assertEq(supportedTypes.length, 4);
 
         // Check both types are present (order may vary)
         bool hasArkFleet = false;
         bool hasNewType = false;
         for (uint256 i = 0; i < supportedTypes.length; i++) {
-            if (supportedTypes[i] == keccak256("ARK_FLEET")) hasArkFleet = true;
+            if (supportedTypes[i] == keccak256("ARK_FLEET_RELATIONSHIP"))
+                hasArkFleet = true;
             if (supportedTypes[i] == newType) hasNewType = true;
         }
         assertTrue(hasArkFleet);

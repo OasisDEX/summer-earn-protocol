@@ -26,7 +26,6 @@ abstract contract BaseBridgeAdapter is
     /// @notice Error thrown when the message is invalid
     error InvalidMessage();
 
-    ICrossChainRegistry public immutable REGISTRY;
     uint16 public immutable THIS_CHAIN;
 
     /**
@@ -37,7 +36,6 @@ abstract contract BaseBridgeAdapter is
         address _registry,
         address _accessManager
     ) CrossChainConfigManaged(_registry) ProtocolAccessManaged(_accessManager) {
-        REGISTRY = ICrossChainRegistry(_registry);
         if (block.chainid > type(uint16).max) {
             revert ChainIdTooLarge(block.chainid);
         }
@@ -45,7 +43,12 @@ abstract contract BaseBridgeAdapter is
     }
 
     modifier onlySupportedDestination(uint16 dstChain) {
-        if (REGISTRY.getAdapterPeer(address(this), dstChain) == address(0)) {
+        if (
+            ICrossChainRegistry(CROSS_CHAIN_REGISTRY).getAdapterPeer(
+                address(this),
+                dstChain
+            ) == address(0)
+        ) {
             revert UnsupportedDestinationChain(dstChain);
         }
         _;
@@ -69,15 +72,16 @@ abstract contract BaseBridgeAdapter is
         view
         returns (uint16[] memory chains)
     {
-        (, uint16[] memory targetChainIds) = REGISTRY.getTargetsForSource(
-            address(this),
-            REGISTRY.PEER()
-        );
+        (, uint16[] memory targetChainIds) = CROSS_CHAIN_REGISTRY
+            .getTargetsForSource(
+                address(this),
+                CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
+            );
         return targetChainIds;
     }
 
     function _peerAdapter(uint16 dstChain) internal view returns (address) {
-        return REGISTRY.getAdapterPeer(address(this), dstChain);
+        return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
     }
 
     /// @dev Reverts if `srcAdapter` is **not** the registry-declared peer for `srcChain`.
@@ -86,7 +90,7 @@ abstract contract BaseBridgeAdapter is
         uint16 srcChain
     ) internal view {
         if (
-            !REGISTRY.isValidAdapterPeer(
+            !CROSS_CHAIN_REGISTRY.isValidAdapterPeer(
                 srcAdapter,
                 address(this), // <-- this adapter (dst)
                 srcChain,

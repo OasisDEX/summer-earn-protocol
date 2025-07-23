@@ -131,7 +131,7 @@ contract CrossChainFleetProxyTest is Test {
             ARB_STARGATE_PROXY, // Different target for Stargate
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            registry.PEER()
+            registry.PEER_RELATIONSHIP()
         );
 
         // Register LayerZero adapter with different target
@@ -140,7 +140,7 @@ contract CrossChainFleetProxyTest is Test {
             ARB_LAYERZERO_PROXY, // Different target for LayerZero
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            registry.PEER()
+            registry.PEER_RELATIONSHIP()
         );
 
         // Register the ark-proxy relationship
@@ -149,7 +149,7 @@ contract CrossChainFleetProxyTest is Test {
             address(proxy),
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            keccak256("ARK_FLEET")
+            keccak256("ARK_FLEET_RELATIONSHIP")
         );
 
         accessManager.grantKeeperRole(address(proxy), governor);
@@ -200,7 +200,7 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
             address(proxy),
-            keccak256("ARK_FLEET")
+            keccak256("ARK_FLEET_RELATIONSHIP")
         );
         assertEq(arkFromRegistry, SOURCE_ARK_ADDRESS);
     }

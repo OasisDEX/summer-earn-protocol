@@ -26,7 +26,8 @@ contract CrossChainArk is
     ICrossChainArk
 {
     /// @notice Relationship type constant for ARK-FLEET relationships
-    bytes32 private constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
+    bytes32 private constant ARK_FLEET_RELATIONSHIP =
+        keccak256("ARK_FLEET_RELATIONSHIP");
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////

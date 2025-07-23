@@ -190,7 +190,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
     function _verifyAdapterConfiguration() internal view {
         // Test that layerZeroAdapter is properly configured
         assertTrue(
-            layerZeroAdapter.REGISTRY().getAdapterPeer(
+            layerZeroAdapter.CROSS_CHAIN_REGISTRY().getAdapterPeer(
                 address(layerZeroAdapter),
                 DEST_CHAIN_ID
             ) != address(0),

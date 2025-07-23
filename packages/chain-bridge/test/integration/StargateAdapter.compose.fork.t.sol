@@ -282,7 +282,7 @@ contract StargateAdapterComposeForkTest is Test {
 
         // Test that adapter is properly configured
         assertTrue(
-            adapterMainnet.REGISTRY().getAdapterPeer(
+            adapterMainnet.CROSS_CHAIN_REGISTRY().getAdapterPeer(
                 address(adapterMainnet),
                 CHAIN_ID_ARBITRUM
             ) != address(0),

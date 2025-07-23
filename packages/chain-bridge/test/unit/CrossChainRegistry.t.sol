@@ -25,8 +25,10 @@ contract CrossChainRegistryTest is Test {
     uint16 public constant CURRENT_CHAIN_ID = 1;
     uint16 public constant TARGET_CHAIN_ID = 42161;
 
-    bytes32 public constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
-    bytes32 public constant EXECUTOR_RELATIONSHIP = keccak256("EXECUTOR");
+    bytes32 public constant ARK_FLEET_RELATIONSHIP =
+        keccak256("ARK_FLEET_RELATIONSHIP");
+    bytes32 public constant EXECUTOR_RELATIONSHIP =
+        keccak256("EXECUTOR_RELATIONSHIP");
 
     address public executor = makeAddr("executor");
 
@@ -741,8 +743,8 @@ contract CrossChainRegistryTest is Test {
     }
 
     function test_multipleRelationshipTypes() public {
-        bytes32 arkFleetType = keccak256("ARK_FLEET");
-        bytes32 bridgeType = keccak256("PEER");
+        bytes32 arkFleetType = keccak256("ARK_FLEET_RELATIONSHIP");
+        bytes32 bridgeType = keccak256("PEER_RELATIONSHIP");
 
         vm.prank(governor);
         registry.registerRelationship(
@@ -780,7 +782,7 @@ contract CrossChainRegistryTest is Test {
         // Check supported types
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 2);
+        assertEq(supportedTypes.length, 3);
         // Note: The order might vary, so we check both types are present
         assertTrue(
             (supportedTypes[0] == arkFleetType &&
@@ -795,7 +797,6 @@ contract CrossChainRegistryTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_bridgeConfigInitialState() public view {
-        assertFalse(registry.bridgeConfigInitialized());
         assertEq(registry.bridgeRouter(), address(0));
         assertEq(registry.defaultGasLimit(), 0);
     }
@@ -815,7 +816,6 @@ contract CrossChainRegistryTest is Test {
         );
 
         // Verify state
-        assertTrue(registry.bridgeConfigInitialized());
         assertEq(registry.bridgeRouter(), mockBridgeRouter);
         assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
 
@@ -1018,19 +1018,18 @@ contract CrossChainRegistryTest is Test {
         // Test initial state after constructor
         assertEq(registry.bridgeRouter(), address(0));
         assertEq(registry.defaultGasLimit(), 0);
-        assertFalse(registry.bridgeConfigInitialized());
 
-        // Test that both PEER and ARK_FLEET relationship types are supported by default
+        // Test that both PEER_RELATIONSHIP and ARK_FLEET_RELATIONSHIP relationship types are supported by default
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 2);
+        assertEq(supportedTypes.length, 3);
 
         // Check that both relationship types are present (order may vary)
         bool hasAdapterPeer = false;
         bool hasArkFleet = false;
 
         for (uint256 i = 0; i < supportedTypes.length; i++) {
-            if (supportedTypes[i] == keccak256("PEER")) {
+            if (supportedTypes[i] == keccak256("PEER_RELATIONSHIP")) {
                 hasAdapterPeer = true;
             } else if (supportedTypes[i] == ARK_FLEET_RELATIONSHIP) {
                 hasArkFleet = true;
@@ -1041,7 +1040,10 @@ contract CrossChainRegistryTest is Test {
             hasAdapterPeer,
             "BRIDGE_ADAPTER relationship type not found"
         );
-        assertTrue(hasArkFleet, "ARK_FLEET relationship type not found");
+        assertTrue(
+            hasArkFleet,
+            "ARK_FLEET_RELATIONSHIP relationship type not found"
+        );
 
         // Test that current chain ID is set correctly
         assertEq(registry.currentChainId(), CURRENT_CHAIN_ID);
@@ -1112,7 +1114,7 @@ contract CrossChainRegistryTest is Test {
     }
 
     /*─────────────────────────────────────────────────────────────────
-                            EXECUTOR TESTS
+                            EXECUTOR_RELATIONSHIP TESTS
     ─────────────────────────────────────────────────────────────────*/
     function test_registerExecutor_andAuthorization() public {
         _initializeBridgeConfig(); // sets non-zero bridgeRouter

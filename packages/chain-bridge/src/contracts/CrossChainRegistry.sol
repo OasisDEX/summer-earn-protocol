@@ -43,9 +43,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice Mapping to track if a relationship type is supported
     mapping(bytes32 => bool) private relationshipTypeSupported;
 
-    /// @notice Flag to track if bridge configuration has been initialized
-    bool public bridgeConfigInitialized;
-
     /// @notice The bridge router contract address
     address public bridgeRouter;
 
@@ -53,9 +50,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     uint256 public defaultGasLimit;
 
     /// @notice Constants for relationship types
-    bytes32 public constant PEER = keccak256("PEER");
-    bytes32 public constant ARK_FLEET = keccak256("ARK_FLEET");
-    bytes32 public constant EXECUTOR = keccak256("EXECUTOR");
+    bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
+    bytes32 public constant ARK_FLEET_RELATIONSHIP =
+        keccak256("ARK_FLEET_RELATIONSHIP");
+    bytes32 public constant EXECUTOR_RELATIONSHIP =
+        keccak256("EXECUTOR_RELATIONSHIP");
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -74,8 +73,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         CURRENT_CHAIN_ID = _currentChainId;
 
-        _addRelationshipType(PEER);
-        _addRelationshipType(ARK_FLEET);
+        _addRelationshipType(PEER_RELATIONSHIP);
+        _addRelationshipType(ARK_FLEET_RELATIONSHIP);
+        _addRelationshipType(EXECUTOR_RELATIONSHIP);
 
         emit RegistryInitialized(_currentChainId);
     }
@@ -181,13 +181,17 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             bridgeRouter,
             CURRENT_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            EXECUTOR
+            EXECUTOR_RELATIONSHIP
         );
     }
 
     /// @inheritdoc ICrossChainRegistry
     function removeExecutor(address executor) external onlyGovernor {
-        unregisterRelationship(executor, EXECUTOR, CURRENT_CHAIN_ID);
+        unregisterRelationship(
+            executor,
+            EXECUTOR_RELATIONSHIP,
+            CURRENT_CHAIN_ID
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -203,7 +207,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address _bridgeRouter,
         uint256 _defaultGasLimit
     ) external onlyGovernor {
-        if (bridgeConfigInitialized) {
+        if (bridgeRouter != address(0)) {
             revert BridgeConfigAlreadyInitialized();
         }
 
@@ -220,8 +224,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         emit BridgeRouterUpdated(address(0), _bridgeRouter);
         emit DefaultGasLimitUpdated(0, _defaultGasLimit);
-
-        bridgeConfigInitialized = true;
     }
 
     /**
@@ -491,7 +493,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        ADAPTER PEER CONVENIENCE
+                        ADAPTER PEER_RELATIONSHIP CONVENIENCE
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -512,7 +514,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             targetAdapter,
             sourceChainId,
             targetChainId,
-            PEER
+            PEER_RELATIONSHIP
         );
     }
 
@@ -526,12 +528,15 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceAdapter,
         uint16 targetChainId
     ) external view returns (address targetAdapter) {
-        (targetAdapter, ) = getTargetForSource(sourceAdapter, PEER);
+        (targetAdapter, ) = getTargetForSource(
+            sourceAdapter,
+            PEER_RELATIONSHIP
+        );
 
         // Validate the target chain matches
         bytes32 relationshipKey = _getRelationshipKey(
             sourceAdapter,
-            PEER,
+            PEER_RELATIONSHIP,
             targetChainId
         );
         CrossChainRelation memory relation = crossChainRelations[
@@ -566,7 +571,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 targetAdapter,
                 sourceChainId,
                 targetChainId,
-                PEER
+                PEER_RELATIONSHIP
             );
     }
 
@@ -648,7 +653,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 bridgeRouter,
                 CURRENT_CHAIN_ID,
                 CURRENT_CHAIN_ID,
-                EXECUTOR
+                EXECUTOR_RELATIONSHIP
             );
     }
 

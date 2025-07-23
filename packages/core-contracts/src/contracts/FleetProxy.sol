@@ -35,7 +35,8 @@ contract FleetProxy is
     using SafeERC20 for IERC20;
 
     /// @notice Relationship type constant for ARK-FLEET relationships
-    bytes32 private constant ARK_FLEET_RELATIONSHIP = keccak256("ARK_FLEET");
+    bytes32 private constant ARK_FLEET_RELATIONSHIP =
+        keccak256("ARK_FLEET_RELATIONSHIP");
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES

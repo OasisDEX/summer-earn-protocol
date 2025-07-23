@@ -10,7 +10,7 @@ import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
  * @custom:see ICrossChainConfigManaged
  */
 abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
-    address private immutable CROSS_CHAIN_REGISTRY;
+    ICrossChainRegistry public immutable CROSS_CHAIN_REGISTRY;
 
     /**
      * @notice Constructs the CrossChainConfigManaged contract
@@ -20,7 +20,7 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
         if (_crossChainRegistry == address(0)) {
             revert CrossChainRegistryZeroAddress();
         }
-        CROSS_CHAIN_REGISTRY = _crossChainRegistry;
+        CROSS_CHAIN_REGISTRY = ICrossChainRegistry(_crossChainRegistry);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -42,25 +42,22 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
 
     /// @inheritdoc ICrossChainConfigManaged
     function bridgeRouter() public view virtual returns (address) {
-        return ICrossChainRegistry(CROSS_CHAIN_REGISTRY).bridgeRouter();
+        return CROSS_CHAIN_REGISTRY.bridgeRouter();
     }
 
     /// @inheritdoc ICrossChainConfigManaged
     function defaultGasLimit() public view virtual returns (uint256) {
-        return ICrossChainRegistry(CROSS_CHAIN_REGISTRY).defaultGasLimit();
+        return CROSS_CHAIN_REGISTRY.defaultGasLimit();
     }
 
     /// @inheritdoc ICrossChainConfigManaged
     function crossChainRegistry() public view virtual returns (address) {
-        return CROSS_CHAIN_REGISTRY;
+        return address(CROSS_CHAIN_REGISTRY);
     }
 
     /// @inheritdoc ICrossChainConfigManaged
     function isExecutor(address executor) public view virtual returns (bool) {
-        return
-            ICrossChainRegistry(CROSS_CHAIN_REGISTRY).isAuthorizedExecutor(
-                executor
-            );
+        return CROSS_CHAIN_REGISTRY.isAuthorizedExecutor(executor);
     }
 
     /// @notice Error thrown when CrossChainRegistry address is zero

@@ -101,7 +101,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             proxy,
             SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
-            keccak256("ARK_FLEET")
+            keccak256("ARK_FLEET_RELATIONSHIP")
         );
 
         // Set up FleetCommander with BufferArk
@@ -605,7 +605,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encodeWithSelector(
                 ICrossChainRegistry.RelationshipDoesNotExist.selector,
                 address(arkWithoutProxy),
-                keccak256("ARK_FLEET"),
+                keccak256("ARK_FLEET_RELATIONSHIP"),
                 TARGET_CHAIN_ID
             )
         );

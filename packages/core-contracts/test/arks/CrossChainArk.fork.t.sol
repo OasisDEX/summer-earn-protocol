@@ -169,7 +169,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_STARGATE_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            registry.PEER()
+            registry.PEER_RELATIONSHIP()
         );
 
         // Register LayerZero adapter with different proxy address
@@ -178,7 +178,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_LAYERZERO_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            registry.PEER()
+            registry.PEER_RELATIONSHIP()
         );
 
         // Register the BridgeRouter as an executor
@@ -214,7 +214,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_STARGATE_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            keccak256("ARK_FLEET")
+            keccak256("ARK_FLEET_RELATIONSHIP")
         );
 
         // Setup permissions

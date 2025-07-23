@@ -18,7 +18,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         // Get chains through registry relationships
         (, uint16[] memory supportedChains) = registryA.getTargetsForSource(
             address(adapterA),
-            registryA.PEER()
+            registryA.PEER_RELATIONSHIP()
         );
 
         assertEq(supportedChains.length, 1);
@@ -28,15 +28,17 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     function testSupportsChain() public {
         // First check still works
         assertTrue(
-            adapterA.REGISTRY().getAdapterPeer(address(adapterA), CHAIN_ID_B) !=
-                address(0),
+            adapterA.CROSS_CHAIN_REGISTRY().getAdapterPeer(
+                address(adapterA),
+                CHAIN_ID_B
+            ) != address(0),
             "Chain B should be supported"
         );
 
         // Expect revert with InvalidChainRelationship error
 
         ICrossChainRegistry registryA = ICrossChainRegistry(
-            address(adapterA.REGISTRY())
+            address(adapterA.CROSS_CHAIN_REGISTRY())
         );
         vm.expectRevert(
             abi.encodeWithSelector(

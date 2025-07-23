@@ -17,7 +17,7 @@ interface ICrossChainRegistry {
      * @param targetContract The address of the target contract
      * @param sourceChainId The chain ID where the source contract is deployed
      * @param targetChainId The chain ID where the target contract is deployed
-     * @param relationshipType The type of relationship (e.g., keccak256("ARK_FLEET"))
+     * @param relationshipType The type of relationship (e.g., keccak256("ARK_FLEET_RELATIONSHIP"))
      */
     struct CrossChainRelation {
         address sourceContract;
@@ -134,16 +134,16 @@ interface ICrossChainRegistry {
 
     /// forge-lint: disable-start(mixed-case-function)
     /// @notice Returns the constant for adapter peer relationship type
-    /// @return bytes32 value of keccak256("PEER")
-    function PEER() external pure returns (bytes32);
+    /// @return bytes32 value of keccak256("PEER_RELATIONSHIP")
+    function PEER_RELATIONSHIP() external pure returns (bytes32);
 
     /// @notice Returns the constant for ark fleet relationship type
-    /// @return bytes32 value of keccak256("ARK_FLEET")
-    function ARK_FLEET() external pure returns (bytes32);
+    /// @return bytes32 value of keccak256("ARK_FLEET_RELATIONSHIP")
+    function ARK_FLEET_RELATIONSHIP() external pure returns (bytes32);
 
     /// @notice Returns the constant for executor relationship type
-    /// @return bytes32 value of keccak256("EXECUTOR")
-    function EXECUTOR() external pure returns (bytes32);
+    /// @return bytes32 value of keccak256("EXECUTOR_RELATIONSHIP")
+    function EXECUTOR_RELATIONSHIP() external pure returns (bytes32);
     /// forge-lint: disable-end(mixed-case-function)
 
     /*//////////////////////////////////////////////////////////////
@@ -352,7 +352,7 @@ interface ICrossChainRegistry {
     function currentChainId() external view returns (uint16);
 
     /*//////////////////////////////////////////////////////////////
-                        ADAPTER PEER CONVENIENCE
+                        ADAPTER PEER_RELATIONSHIP CONVENIENCE
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -396,7 +396,7 @@ interface ICrossChainRegistry {
     ) external view returns (bool);
 
     /*//////////////////////////////////////////////////////////////
-                            EXECUTOR FUNCTIONS
+                            EXECUTOR_RELATIONSHIP FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
