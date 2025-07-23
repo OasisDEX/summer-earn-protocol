@@ -178,5 +178,23 @@
     "decayType": "linear",
     "maxMultiplier": 2,
     "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "comp",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.015,
+      "usdt": 52.5,
+      "usdc": 52.5,
+      "dai": 52.5,
+      "usde": 52.5,
+      "usdce": 52.5,
+      "eurc": 52.5
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
   }
 ]
