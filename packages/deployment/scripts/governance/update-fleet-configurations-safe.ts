@@ -29,6 +29,7 @@ enum Token {
   SILO = 'silo',
   SKY = 'sky',
   XSILO = 'xsilo',
+  COMP = 'comp',
 }
 const addresses: Record<
   SupportedChain,
@@ -55,6 +56,7 @@ const addresses: Record<
       usdt: '0x6047828dc181963ba44974801FF68e538dA5eaF9',
       usde: '0x0000000000000000000000000000000000000000',
       xsilo: '0x0000000000000000000000000000000000000000',
+      comp: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     },
   },
   mainnet: {
@@ -74,6 +76,7 @@ const addresses: Record<
       sky: '0x56072C95FAA701256059aa122697B133aDEd9279',
       xsilo: '0xdd4c6fd31ccf66e250790643947675153c221a91',
       silo: '0xF0B2dd79324A66d2108C961d680F7616E1486bB0',
+      comp: '0xc00e94cb662c3520282e6f5717214004a7f26888',
     },
   },
   sonic: {
@@ -90,6 +93,7 @@ const addresses: Record<
       reul: '0x0000000000000000000000000000000000000000',
       silo: '0xb098AFC30FCE67f1926e735Db6fDadFE433E61db',
       xsilo: '0x4451765739b2D7BCe5f8BC95Beaf966c45E1Dcc9',
+      comp: '0x0000000000000000000000000000000000000000',
     },
   },
   arbitrum: {
@@ -106,6 +110,7 @@ const addresses: Record<
       seam: '0x0000000000000000000000000000000000000000',
       ws: '0x0000000000000000000000000000000000000000',
       xsilo: '0xf3775f959bc64923bd809085299dbc984d3e6c8a',
+      comp: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
     },
   },
 }
@@ -138,9 +143,6 @@ const VIEM_CHAIN_MAP = {
   [SupportedChain.sonic]: sonic,
 }
 
-const CHAIN_MAP_BY_ID = Object.fromEntries(
-  Object.values(VIEM_CHAIN_MAP).map((chain) => [chain.id, chain]),
-)
 // Hardcoded ABIs - these will be replaced with actual ABIs
 const FLEET_COMMANDER_ABI = [
   // Add your FleetCommander ABI here
@@ -405,6 +407,7 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'well':
     case 'silo':
     case 'xsilo':
+    case 'comp':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -474,16 +477,21 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     euler: [Token.REUL],
     gearbox: [Token.GEAR],
     siloV2: [Token.SILO, Token.XSILO],
+    compound_v3: [Token.COMP],
   },
   base: {
     morpho: [Token.MORPHO, Token.WELL, Token.SEAM],
     euler: [Token.REUL],
     moonwell: [Token.WELL],
+    compound_v3: [Token.COMP],
   },
   sonic: {
     aave_v3: [Token.WS],
     euler: [Token.WS],
     siloV2: [Token.WS, Token.SILO, Token.XSILO],
+  },
+  arbitrum: {
+    compound_v3: [Token.COMP],
   },
 }
 
@@ -658,15 +666,29 @@ async function handleSingleRewardToken(
   const currentKickerRewardPercentage = currentAuctionParams[3]
   const currentDecayType = currentAuctionParams[4]
 
-  console.log(
-    `\n🔄 Configuring ${arkConfig.ark.toUpperCase()} auction parameters - if they were modified. \n`,
+  logValueComparison('Duration', currentDuration, duration, arkConfig.arkSymbol, ' seconds')
+  logValueComparison(
+    'Start price',
+    currentStartPrice,
+    startPrice,
+    arkConfig.arkSymbol,
+    ` ${arkConfig.fleetAsset}`,
   )
-  console.log(`Reward token: ${rewardTokenSymbol.toUpperCase()}`)
-  logValueComparison('Duration', currentDuration, duration, ' seconds')
-  logValueComparison('Start price', currentStartPrice, startPrice, ` ${arkConfig.fleetAsset}`)
-  logValueComparison('End price', currentEndPrice, endPrice, ` ${arkConfig.fleetAsset}`)
-  logValueComparison('Kicker reward', currentKickerRewardPercentage, kickerRewardPercentage, ' %')
-  logValueComparison('Decay type', currentDecayType, decayType)
+  logValueComparison(
+    'End price',
+    currentEndPrice,
+    endPrice,
+    arkConfig.arkSymbol,
+    ` ${arkConfig.fleetAsset}`,
+  )
+  logValueComparison(
+    'Kicker reward',
+    currentKickerRewardPercentage,
+    kickerRewardPercentage,
+    arkConfig.arkSymbol,
+    ' %',
+  )
+  logValueComparison('Decay type', currentDecayType, decayType, arkConfig.arkSymbol)
 
   const txes: TransactionBase[] = []
   // Only update if any parameter has changed
@@ -677,13 +699,6 @@ async function handleSingleRewardToken(
     kickerRewardPercentage !== currentKickerRewardPercentage ||
     decayType !== Number(currentDecayType)
   ) {
-    console.log(
-      BigInt(duration) !== currentDuration,
-      startPrice !== currentStartPrice,
-      endPrice !== currentEndPrice,
-      kickerRewardPercentage !== currentKickerRewardPercentage,
-      decayType !== Number(currentDecayType),
-    )
     const setAuctionParamsCalldata = encodeFunctionData({
       abi: RAFT_ABI,
       functionName: 'setArkAuctionParameters',
@@ -744,6 +759,7 @@ async function createConfigurationTransactions(
       'Fleet deposit cap',
       currentFleetConfig.depositCap,
       fleetCap,
+      arkConfig.arkSymbol,
       ` ${arkConfig.fleetAsset}`,
     )
     if (currentFleetConfig.depositCap !== fleetCap) {
@@ -765,6 +781,7 @@ async function createConfigurationTransactions(
       'Minimum buffer balance',
       currentFleetConfig.minimumBufferBalance,
       minBuffer,
+      arkConfig.arkSymbol,
       ` ${arkConfig.fleetAsset}`,
     )
     if (currentFleetConfig.minimumBufferBalance !== minBuffer) {
@@ -786,6 +803,7 @@ async function createConfigurationTransactions(
       'Rebalance cooldown',
       currentFleetConfig.rebalanceCooldown,
       cooldown,
+      arkConfig.arkSymbol,
       ' seconds',
     )
     if (currentFleetConfig.rebalanceCooldown !== cooldown) {
@@ -815,12 +833,8 @@ async function createConfigurationTransactions(
 
   // Configure ark parameters
   const arkAddress = arkConfig.arkAddress
-  console.log(`\n📊 Reading current ark configuration for ${arkAddress}...`)
+  console.log(`\n📊 Reading current ark configuration for ${arkConfig.arkSymbol} ${arkAddress}...`)
   const currentArkConfig = await readArkConfig(arkAddress as Address, chain)
-
-  console.log(
-    `\n🔄 Ark parameters for ${arkConfig.arkSymbol} (${arkConfig.ark}) - showed only if they were modified.`,
-  )
 
   // Set ark deposit cap
   const arkCap = parseAmount(arkConfig.arkMaxCap, arkConfig.fleetAsset)
@@ -829,6 +843,7 @@ async function createConfigurationTransactions(
     'Ark deposit cap',
     currentArkConfig.depositCap,
     arkCap,
+    arkConfig.arkSymbol,
     ` ${arkConfig.fleetAsset}`,
   )
   if (currentArkConfig.depositCap !== arkCap) {
@@ -873,6 +888,7 @@ async function createConfigurationTransactions(
     'Ark max inflow',
     currentArkConfig.maxRebalanceInflow,
     maxInflow,
+    arkConfig.arkSymbol,
     ` ${arkConfig.fleetAsset}`,
   )
   if (currentArkConfig.maxRebalanceInflow !== maxInflow) {
@@ -892,6 +908,7 @@ async function createConfigurationTransactions(
     'Ark max outflow',
     currentArkConfig.maxRebalanceOutflow,
     maxOutflow,
+    arkConfig.arkSymbol,
     ` ${arkConfig.fleetAsset}`,
   )
   if (currentArkConfig.maxRebalanceOutflow !== maxOutflow) {
@@ -929,11 +946,6 @@ async function main() {
     // Filter arks for current chain
     const arksConfig = allArksConfig.filter((arkConfig) => {
       const isMatchingChain = arkConfig.chain.toLowerCase() === chain.toLowerCase()
-      if (!isMatchingChain) {
-        console.log(
-          `⚠️ Skipping ark config for different chain: ${arkConfig.chain} (current: ${chain})`,
-        )
-      }
       return isMatchingChain
     })
 
@@ -1042,6 +1054,7 @@ export function logValueComparison(
   label: string,
   currentValue: bigint | number,
   newValue: bigint | number,
+  name: string,
   unit: string = '',
 ): void {
   const hasChanged = currentValue != newValue
@@ -1053,7 +1066,7 @@ export function logValueComparison(
   if (hasChanged) {
     console.log(
       color(
-        `${label.padEnd(30)} ${formattedCurrent}${unit} ${arrow} ${formattedNew}${unit}${
+        `${name} - ${label.padEnd(30)} ${formattedCurrent}${unit} ${arrow} ${formattedNew}${unit} ${
           hasChanged ? ' (updating)' : ' (unchanged)'
         }`,
       ),

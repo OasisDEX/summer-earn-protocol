@@ -3,7 +3,7 @@ import { ERC20 as ERC20Contract } from '../../generated/HarborCommand/ERC20'
 import { Ark as ArkContract } from '../../generated/Raft/Ark'
 import { Raft as RaftContract } from '../../generated/Raft/Raft'
 import { Account, Ark, ArkAuctionParameters, Auction, Token } from '../../generated/schema'
-import { addresses, services } from './addressProvider'
+import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { BigDecimalConstants } from './constants'
 import * as utils from './utils'
@@ -27,7 +27,11 @@ export function getOrCreateAuction(
 }
 
 export function updateAuction(auction: Auction, ark: Address, rewardToken: Address): void {
-  const autionParams = getOrCreateArkAuctionParameters(ark, rewardToken, Address.fromString(auction.raft))
+  const autionParams = getOrCreateArkAuctionParameters(
+    ark,
+    rewardToken,
+    Address.fromString(auction.raft),
+  )
 
   const raftContract = RaftContract.bind(Address.fromString(auction.raft))
   const auctionState = raftContract.try_auctions(ark, rewardToken)
