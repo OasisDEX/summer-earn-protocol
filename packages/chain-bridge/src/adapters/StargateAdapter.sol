@@ -227,18 +227,28 @@ contract StargateAdapter is
     /**
      * @notice Sets the LayerZero endpoint ID for a chain
      * @param chainId Chain ID in our system
-     * @param endpointId Corresponding LayerZero Endpoint ID
+     * @param lzEid Corresponding LayerZero Endpoint ID
      */
-    function setEndpointId(
+    function addSupportedChain(
         uint16 chainId,
-        uint32 endpointId
+        uint32 lzEid
     ) external onlyGovernor {
-        if (endpointId == 0) {
+        if (lzEid == 0) {
             revert InvalidParams();
         }
 
-        chainToLzEid[chainId] = endpointId;
-        emit EndpointIdSet(chainId, endpointId);
+        chainToLzEid[chainId] = lzEid;
+        emit EndpointIdSet(chainId, lzEid);
+    }
+
+    /**
+     * @notice Removes a supported chain
+     * @param chainId Chain ID to remove
+     * @dev Can only be called by the contract owner
+     */
+    function removeSupportedChain(uint16 chainId) external onlyGovernor {
+        delete chainToLzEid[chainId];
+        emit EndpointIdSet(chainId, 0);
     }
 
     /**

@@ -67,9 +67,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Thrown when a message receiver rejects the call
     error ReceiverRejectedCall();
 
-    /// @notice Use EnumerableSet for storage
-    EnumerableSet.UintSet private _supportedChainIds;
-
     // Note: Errors are inherited from IBridgeAdapter interface
 
     /// @notice Emitted when read libraries are configured
@@ -127,7 +124,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         for (uint256 i = 0; i < _supportedChains.length; i++) {
             chainToLzEid[_supportedChains[i]] = _lzEids[i];
             lzEidToChain[_lzEids[i]] = _supportedChains[i];
-            _supportedChainIds.add(_supportedChains[i]);
         }
     }
 
@@ -157,7 +153,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     ) external onlyGovernor {
         chainToLzEid[chainId] = lzEid;
         lzEidToChain[lzEid] = chainId;
-        _supportedChainIds.add(chainId);
     }
 
     /**
@@ -169,7 +164,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint32 lzEid = chainToLzEid[chainId];
         delete chainToLzEid[chainId];
         delete lzEidToChain[lzEid];
-        _supportedChainIds.remove(chainId);
     }
 
     /**
