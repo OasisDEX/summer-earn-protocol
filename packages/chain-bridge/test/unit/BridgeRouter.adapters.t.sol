@@ -147,9 +147,10 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
                 amount: TRANSFER_AMOUNT,
-                recipient: user,
+                target: user,
                 originator: user,
-                keeper: address(executor),
+                refundAddress: address(executor),
+                message: "",
                 options: options
             })
         );

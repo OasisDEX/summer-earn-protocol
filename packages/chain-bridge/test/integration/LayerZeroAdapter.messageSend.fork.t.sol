@@ -51,10 +51,10 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         bytes32 operationId = router.executeSendMessage{value: nativeFee}(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
-                recipient: user,
+                target: user,
                 message: message,
                 originator: user,
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );
@@ -99,9 +99,9 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         layerZeroAdapter.sendMessage{value: nativeFee}(
             operationId,
             DEST_CHAIN_ID,
-            keeper, // recipient
+            keeper, // target
             message,
-            keeper, // refund keeper
+            keeper, // refundAddress
             adapterParams
         );
         vm.stopPrank();
@@ -129,9 +129,9 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         layerZeroAdapter.sendMessage{value: 1 ether}(
             operationId,
             DEST_CHAIN_ID,
-            keeper,
+            keeper, // target
             message,
-            keeper,
+            keeper, // refundAddress
             adapterParams
         );
         vm.stopPrank();

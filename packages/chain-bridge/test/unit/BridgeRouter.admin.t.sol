@@ -135,9 +135,10 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
                 amount: TRANSFER_AMOUNT,
-                recipient: user,
+                target: user,
                 originator: user,
-                keeper: address(executor),
+                refundAddress: address(executor),
+                message: "",
                 options: options
             })
         );
@@ -183,11 +184,11 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         router.executeReadState{value: nativeFee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                destinationContract: address(mockAdapter), // Use mock adapter as target contract
+                target: address(mockAdapter), // Use mock adapter as target contract
                 selector: bytes4(keccak256("test()")), // Example function selector
                 readParams: "", // Empty params
                 originator: user,
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );
@@ -225,10 +226,10 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         router.executeSendMessage(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
-                recipient: user, // Send to self for testing
+                target: user, // Send to self for testing
                 message: "", // Empty message
                 originator: user,
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );

@@ -156,10 +156,10 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         bytes32 operationId = router.executeSendMessage{value: nativeFee}(
             BridgeTypes.ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,
-                recipient: user,
+                target: user,
                 message: message,
                 originator: user,
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );
@@ -206,12 +206,11 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         bytes32 operationId = router.executeReadState{value: nativeFee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                // todo: fix this
-                destinationContract: address(1),
+                target: address(1),
                 selector: selector,
                 readParams: callData,
                 originator: user,
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );

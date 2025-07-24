@@ -54,9 +54,10 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
                 amount: TRANSFER_AMOUNT,
-                recipient: user,
+                target: user,
                 originator: user,
-                keeper: address(keeper),
+                refundAddress: address(keeper),
+                message: "",
                 options: options
             })
         );
@@ -146,9 +147,10 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
                 amount: TRANSFER_AMOUNT,
-                recipient: user,
+                target: user,
                 originator: user,
-                keeper: address(keeper),
+                refundAddress: address(keeper),
+                message: "",
                 options: options
             })
         );
@@ -405,9 +407,10 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
                 amount: TRANSFER_AMOUNT,
-                recipient: user,
+                target: user,
                 originator: user,
-                keeper: address(authorizedCaller),
+                refundAddress: address(authorizedCaller),
+                message: "",
                 options: options
             });
 
@@ -470,9 +473,10 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(token),
                 amount: 100,
-                recipient: user,
+                target: user,
                 originator: user,
-                keeper: address(authorizedCaller),
+                refundAddress: address(authorizedCaller),
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
