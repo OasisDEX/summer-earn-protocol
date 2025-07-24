@@ -94,7 +94,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Should revert when estimating fee for unsupported asset
         vm.expectRevert(
-            abi.encodeWithSelector(StargateAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
         );
         adapterA.estimateFee(
             CHAIN_ID_B,
@@ -281,7 +281,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         // Should revert when transferring unsupported asset
         vm.startPrank(address(routerA));
         vm.expectRevert(
-            abi.encodeWithSelector(StargateAdapter.UnsupportedAsset.selector)
+            abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
         );
         adapterA.transferAsset{value: 0.1 ether}(
             bytes32(0), // Fake operation ID
@@ -642,7 +642,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         // Expect the SlippageExceedsTolerance revert
         vm.expectRevert(
             abi.encodeWithSelector(
-                StargateAdapter.SlippageExceedsTolerance.selector,
+                IBridgeAdapter.SlippageExceedsTolerance.selector,
                 expectedMinAmount, // 0.995 ether
                 receivedAmount, // 0.94 ether
                 50 // 50 basis points (0.5%)

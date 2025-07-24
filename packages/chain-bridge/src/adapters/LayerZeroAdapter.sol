@@ -52,23 +52,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Minimum gas limit for operations
     uint128 public minGasLimit;
 
-    /// @notice Thrown when insufficient fee is provided for a layerzero operation
-    error InsufficientFeeForOptions(uint256 required, uint256 provided);
-
-    /// @notice Thrown when invalid options are provided
-    error InvalidOptions(bytes options);
-
-    /// @notice Thrown when an unsupported message type is received
-    error UnsupportedMessageType();
-
-    /// @notice Thrown when the LayerZero endpoint is invalid
-    error InvalidEndpoint();
-
-    /// @notice Thrown when a message receiver rejects the call
-    error ReceiverRejectedCall();
-
-    // Note: Errors are inherited from IBridgeAdapter interface
-
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(
         address indexed readLib1002,

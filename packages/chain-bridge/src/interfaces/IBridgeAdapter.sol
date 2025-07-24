@@ -65,6 +65,37 @@ interface IBridgeAdapter is ISendAdapter {
     /// @notice Thrown when trying to set bridge router to zero address
     error InvalidBridgeRouter();
 
+    /// @notice Thrown when an asset is not supported by the adapter
+    error UnsupportedAsset();
+
+    /// @notice Thrown when the contract has insufficient balance
+    error InsufficientBalance();
+
+    /// @notice Thrown when an unsupported message type is received
+    error UnsupportedMessageType();
+
+    /// @notice Error for slippage exceeding tolerance
+    error SlippageExceedsTolerance(
+        uint256 expectedAmount,
+        uint256 receivedAmount,
+        uint256 toleranceBps
+    );
+
+    /// @notice Error for zero amount received
+    error ZeroAmountReceived();
+
+    /// @notice Error for invalid amount received
+    error InvalidAmountReceived(uint256 received, uint256 expected);
+
+    /// @notice Error for insufficient amount received
+    error InsufficientAmount(uint256 amount, uint256 minAmount);
+
+    /// @notice Error for amount above maximum limit
+    error ExceedsMaxAmount(uint256 amount, uint256 maxAmount);
+
+    /// @notice Error for untrusted Stargate pool contract
+    error Untrusted(string what, address from, address additionalInfo);
+
     /**
      * @notice Estimate fees for a cross-chain operation
      * @param destinationChainId ID of the destination chain
