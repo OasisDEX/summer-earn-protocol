@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
 
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
@@ -67,7 +68,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         });
 
         // Expect revert with UnsupportedMessageType
-        vm.expectRevert(LayerZeroAdapter.UnsupportedMessageType.selector);
+        vm.expectRevert(IBridgeAdapter.UnsupportedMessageType.selector);
 
         // Call the test helper's lzReceiveTest function with the invalid payload
         adapterA.lzReceiveTest(

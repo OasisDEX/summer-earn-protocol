@@ -37,37 +37,6 @@ contract StargateAdapter is
     using AddressCast for address;
     using OptionsBuilder for bytes;
 
-    /// @notice Error for unsupported asset
-    error UnsupportedAsset();
-
-    /// @notice Error for insufficient balance
-    error InsufficientBalance();
-
-    /// @notice Error for invalid fleet commander
-    error InvalidFleetCommander();
-
-    /// @notice Error for amount below minimum limit
-    error InsufficientAmount(uint256 amount, uint256 minAmount);
-
-    /// @notice Error for amount above maximum limit
-    error ExceedsMaxAmount(uint256 amount, uint256 maxAmount);
-
-    /// @notice Error for zero amount received
-    error ZeroAmountReceived();
-
-    /// @notice Error for invalid amount received
-    error InvalidAmountReceived(uint256 received, uint256 input);
-
-    /// @notice Error for untrusted Stargate pool contract
-    error UntrustedStargatePool(address from, address token);
-
-    /// @notice Error for slippage exceeding tolerance
-    error SlippageExceedsTolerance(
-        uint256 expectedAmount,
-        uint256 receivedAmount,
-        uint256 toleranceBps
-    );
-
     /// @notice Transfer parameters struct to avoid stack too deep
     struct TransferParams {
         address stargateContract;
@@ -161,17 +130,18 @@ contract StargateAdapter is
         bytes reason
     );
 
+    /// @notice Emitted when compose call fails (alternate version with source chain)
+    event ComposeCallFailedWithSource(
+        bytes32 indexed operationId,
+        address indexed fleetProxy,
+        uint16 sourceChainId
+    );
+
     /// @notice Emitted when stuck tokens are recovered
     event TokensRecovered(
         address indexed asset,
         uint256 amount,
         address indexed recipient
-    );
-
-    event ComposeCallFailed(
-        bytes32 indexed operationId,
-        address indexed fleetProxy,
-        uint16 sourceChainId
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -689,7 +659,7 @@ contract StargateAdapter is
      * @dev Validates that a contract is a legitimate registered Stargate V2 pool
      * @param _from Address of the contract to validate
      * @return token The ERC20 token handled by this Stargate pool
-     * @dev Reverts with UntrustedStargatePool if validation fails
+     * @dev Reverts with Untrusted if validation fails
      */
     function _validateStargatePool(
         address _from
@@ -699,12 +669,12 @@ contract StargateAdapter is
             token = _token;
         } catch {
             // If token() call fails, this is not a valid Stargate V2 contract
-            revert UntrustedStargatePool(_from, address(0));
+            revert Untrusted("Stargate pool", _from, address(0));
         }
 
         // 2. Verify this exact Stargate contract is registered for this token
         if (assetToStargateContract[token] != _from) {
-            revert UntrustedStargatePool(_from, token);
+            revert Untrusted("Stargate pool", _from, token);
         }
 
         return token;
