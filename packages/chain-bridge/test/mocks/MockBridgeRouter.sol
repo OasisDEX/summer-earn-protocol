@@ -35,12 +35,12 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint16 destinationChainId;
         address asset;
         uint256 amount;
-        address recipient;
+        address target;
     }
 
     struct MessageCall {
         uint16 destinationChainId;
-        address recipient;
+        address target;
         bytes message;
     }
 
@@ -53,12 +53,12 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient
+        address target
     );
     event MockSendMessage(
         bytes32 operationId,
         uint16 destinationChainId,
-        address recipient,
+        address target,
         bytes message
     );
 
@@ -170,7 +170,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             params.destinationChainId,
             params.asset,
             params.amount,
-            params.recipient,
+            params.target,
             MOCK_ADAPTER_ADDRESS
         );
         emit OperationStatusUpdated(
@@ -200,7 +200,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit ReadRequestInitiated(
             operationId,
             params.destinationChainId,
-            params.destinationContract,
+            params.target,
             params.selector,
             params.readParams,
             MOCK_ADAPTER_ADDRESS
@@ -232,7 +232,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit MessageInitiated(
             operationId,
             params.destinationChainId,
-            params.recipient,
+            params.target,
             MOCK_ADAPTER_ADDRESS
         );
         emit OperationStatusUpdated(
@@ -255,7 +255,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint16 sourceChainId,
         address asset,
         uint256 amount,
-        address recipient,
+        address target,
         bytes calldata
     ) external {
         // Track the handling adapter
@@ -263,20 +263,20 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
         // 1. Move tokens first (if any)
         if (asset != address(0) && amount > 0) {
-            IERC20(asset).safeTransfer(recipient, amount);
+            IERC20(asset).safeTransfer(target, amount);
 
             // Emit transfer received event
             emit TransferReceived(
                 operationId,
                 asset,
                 amount,
-                recipient,
+                target,
                 sourceChainId
             );
         }
 
         // Always emit message delivered event
-        emit MessageDelivered(operationId, recipient, true);
+        emit MessageDelivered(operationId, target, true);
     }
 
     function deliverReadResponse(
@@ -343,10 +343,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockPaused = false;
     }
 
-    function recoverFunds(address recipient, uint256 amount) external override {
-        (bool s, ) = payable(recipient).call{value: amount}("");
+    function recoverFunds(address target, uint256 amount) external override {
+        (bool s, ) = payable(target).call{value: amount}("");
         require(s);
-        emit RouterFundsRecovered(recipient, amount);
+        emit RouterFundsRecovered(target, amount);
     }
 
     function recoverOperationStatus(
@@ -426,7 +426,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient,
+        address target,
         BridgeTypes.BridgeOptions calldata
     ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
@@ -438,7 +438,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
                 destinationChainId: destinationChainId,
                 asset: asset,
                 amount: amount,
-                recipient: recipient
+                target: target
             })
         );
 
@@ -451,7 +451,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             destinationChainId,
             asset,
             amount,
-            recipient,
+            target,
             MOCK_ADAPTER_ADDRESS
         );
 
@@ -460,7 +460,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             destinationChainId,
             asset,
             amount,
-            recipient
+            target
         );
 
         return operationId;
@@ -469,7 +469,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // Update sendMessage to record calls
     function sendMessage(
         uint16 destinationChainId,
-        address recipient,
+        address target,
         bytes calldata message,
         BridgeTypes.BridgeOptions calldata
     ) external payable returns (bytes32) {
@@ -480,7 +480,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         messageCalls.push(
             MessageCall({
                 destinationChainId: destinationChainId,
-                recipient: recipient,
+                target: target,
                 message: message
             })
         );
@@ -492,16 +492,11 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit MessageInitiated(
             operationId,
             destinationChainId,
-            recipient,
+            target,
             MOCK_ADAPTER_ADDRESS
         );
 
-        emit MockSendMessage(
-            operationId,
-            destinationChainId,
-            recipient,
-            message
-        );
+        emit MockSendMessage(operationId, destinationChainId, target, message);
 
         return operationId;
     }
@@ -528,7 +523,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // Add readState function from core contracts version
     function readState(
         uint16 destinationChainId,
-        address destinationContract,
+        address target,
         bytes4 selector,
         bytes calldata readParams,
         BridgeTypes.BridgeOptions calldata
@@ -543,7 +538,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit ReadRequestInitiated(
             operationId,
             destinationChainId,
-            destinationContract,
+            target,
             selector,
             readParams,
             MOCK_ADAPTER_ADDRESS

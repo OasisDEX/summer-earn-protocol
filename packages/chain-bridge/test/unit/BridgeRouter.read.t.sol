@@ -55,11 +55,11 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         bytes32 operationId = router.executeReadState{value: fee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                destinationContract: targetContract,
+                target: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );
@@ -113,11 +113,11 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         operationId = router.executeReadState{value: fee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                destinationContract: targetContract,
+                target: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );
@@ -198,11 +198,11 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         operationId = router.executeReadState{value: fee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                destinationContract: targetContract,
+                target: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );
@@ -273,11 +273,11 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         operationId = router.executeReadState{value: fee}(
             BridgeTypes.ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,
-                destinationContract: targetContract,
+                target: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
-                keeper: address(keeper),
+                refundAddress: address(keeper),
                 options: options
             })
         );

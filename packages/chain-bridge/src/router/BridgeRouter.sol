@@ -108,7 +108,7 @@ contract BridgeRouter is
     ) internal pure {
         if (
             params.amount == 0 ||
-            params.recipient == address(0) ||
+            params.target == address(0) ||
             params.originator == address(0) ||
             params.asset == address(0)
         ) revert InvalidParams();
@@ -121,10 +121,8 @@ contract BridgeRouter is
     function _validateReadStateParams(
         BridgeTypes.ExecuteReadStateParams calldata params
     ) internal pure {
-        if (
-            params.originator == address(0) ||
-            params.destinationContract == address(0)
-        ) revert InvalidParams();
+        if (params.originator == address(0) || params.target == address(0))
+            revert InvalidParams();
     }
 
     /**
@@ -134,7 +132,7 @@ contract BridgeRouter is
     function _validateSendMessageParams(
         BridgeTypes.ExecuteSendMessageParams calldata params
     ) internal pure {
-        if (params.recipient == address(0) || params.originator == address(0)) {
+        if (params.target == address(0) || params.originator == address(0)) {
             revert InvalidParams();
         }
     }
@@ -184,7 +182,7 @@ contract BridgeRouter is
      * @param destinationChainId Target chain ID
      * @param asset Asset address (address(0) for non-asset operations)
      * @param amount Amount (0 for non-asset operations)
-     * @param recipient Recipient address
+     * @param target Recipient address
      * @param additionalData Additional data for ID generation (contract address, selector, etc.)
      * @return operationId The generated operation ID
      */
@@ -193,7 +191,7 @@ contract BridgeRouter is
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        address recipient,
+        address target,
         bytes memory additionalData
     ) internal returns (bytes32 operationId) {
         // Use nonce for better uniqueness and collision resistance
@@ -205,7 +203,7 @@ contract BridgeRouter is
                 destinationChainId,
                 asset,
                 amount,
-                recipient,
+                target,
                 additionalData,
                 currentNonce,
                 operationType
@@ -302,7 +300,7 @@ contract BridgeRouter is
             params.destinationChainId,
             params.asset,
             params.amount,
-            params.recipient,
+            params.target,
             abi.encode(params.originator) // Additional data for uniqueness
         );
 
@@ -314,10 +312,10 @@ contract BridgeRouter is
             operationId, // Pass the router-generated ID
             params.destinationChainId,
             params.asset,
-            params.recipient,
+            params.target,
             params.amount,
             params.originator,
-            params.keeper, // Pass keeper for refunds
+            params.refundAddress, // Pass keeper for refunds
             params.options.adapterParams
         );
 
@@ -326,7 +324,7 @@ contract BridgeRouter is
             params.destinationChainId,
             params.asset,
             params.amount,
-            params.recipient,
+            params.target,
             specifiedAdapter
         );
 
@@ -375,9 +373,9 @@ contract BridgeRouter is
             params.destinationChainId,
             address(0), // No asset
             0, // No amount
-            address(0), // No recipient for read operations
+            address(0), // No target for read operations
             abi.encode(
-                params.destinationContract,
+                params.target,
                 params.selector,
                 params.readParams,
                 params.originator
@@ -395,17 +393,17 @@ contract BridgeRouter is
             operationId, // Pass the router-generated ID
             uint16(block.chainid),
             params.destinationChainId,
-            params.destinationContract,
+            params.target,
             params.selector,
             params.readParams,
-            params.keeper, // Pass keeper for refunds
+            params.refundAddress, // Pass keeper for refunds
             params.options.adapterParams
         );
 
         emit ReadRequestInitiated(
             operationId,
             params.destinationChainId,
-            params.destinationContract,
+            params.target,
             params.selector,
             params.readParams,
             specifiedAdapter
@@ -456,7 +454,7 @@ contract BridgeRouter is
             params.destinationChainId,
             address(0), // No asset
             0, // No amount
-            params.recipient,
+            params.target,
             abi.encode(params.message, params.originator)
         );
 
@@ -466,16 +464,16 @@ contract BridgeRouter is
         ISendAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params.destinationChainId,
-            params.recipient,
+            params.target,
             params.message,
-            params.keeper, // Pass keeper for refunds
+            params.refundAddress, // Pass keeper for refunds
             params.options.adapterParams
         );
 
         emit MessageInitiated(
             operationId,
             params.destinationChainId,
-            params.recipient,
+            params.target,
             specifiedAdapter
         );
 

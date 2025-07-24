@@ -41,39 +41,60 @@ library BridgeTypes {
 
     /**
      * @notice Parameters for executeTransferAssets
+     * @dev This struct is used to transfer assets from one chain to another.
+     * @dev The originator is the address that initiated the transfer ie. crosschain ark
+     * @dev The target is the address that will receive the assets.
+     * @dev The asset is the address of the asset to be transferred.
+     * @dev The amount is the amount of the asset to be transferred.
+     * @dev The message is the message to be sent to the destination chain.
+     * @dev The refundAddress is the address that will receive the refund.
      */
     struct ExecuteTransferParams {
+        address originator;
         uint16 destinationChainId;
+        address target;
         address asset;
         uint256 amount;
-        address recipient;
-        address originator;
-        address keeper; // Add keeper field for refunds
+        bytes message;
+        address refundAddress;
         BridgeOptions options;
     }
 
     /**
      * @notice Parameters for executeReadState
+     * @dev This struct is used to read state from a contract on a destination chain.
+     * @dev The originator is the address that initiated the read state operation ie. crosschain ark
+     * @dev The destinationChainId is the chain id of the destination chain.
+     * @dev The target is the address that will be read from.
+     * @dev The selector is the selector of the function to read state from.
+     * @dev The readParams are the parameters to pass to the read state function.
+     * @dev The refundAddress is the address that will receive the refund.
      */
     struct ExecuteReadStateParams {
+        address originator;
         uint16 destinationChainId;
-        address destinationContract;
+        address target;
         bytes4 selector;
         bytes readParams;
-        address originator;
-        address keeper; // Add keeper field for refunds
+        address refundAddress;
         BridgeOptions options;
     }
 
     /**
      * @notice Parameters for executeSendMessage
+     * @dev This struct is used to send a message to a destination chain.
+     * @dev The originator is the address that initiated the send message operation ie. crosschain ark
+     * @dev The destinationChainId is the chain id of the destination chain.
+     * @dev The target is the address that will receive the message.
+     * @dev The message is the message to be sent to the destination chain.
+     * @dev The refundAddress is the address that will receive the refund.
      */
     struct ExecuteSendMessageParams {
-        uint16 destinationChainId;
-        address recipient;
-        bytes message;
         address originator;
-        address keeper; // Add keeper field for refunds
+        uint16 destinationChainId;
+        address target;
+        bytes message;
+        address refundAddress;
         BridgeOptions options;
     }
 
