@@ -244,7 +244,7 @@ contract StargateAdapter is
     function transferAsset(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata
     )
         external
         payable
