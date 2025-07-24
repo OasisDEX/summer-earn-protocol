@@ -4,14 +4,14 @@ pragma solidity 0.8.28;
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
 
 /**
  * @title ConfigurationManager
  * @notice Manages system-wide configuration parameters for the protocol
  * @custom:see IConfigurationManager
  */
-contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
+contract ConfigurationManager is IConfigurationManager, ProtocolAccessManagedWhitelist {
     bool public initialized;
 
     /// @inheritdoc IConfigurationManager
@@ -33,7 +33,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      * @notice Constructs the ConfigurationManager contract
      * @param _accessManager The address of the ProtocolAccessManager contract
      */
-    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
+    constructor(address _accessManager) ProtocolAccessManagedWhitelist(_accessManager) {}
 
     /// @inheritdoc IConfigurationManager
     function initializeConfiguration(
@@ -45,9 +45,9 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         if (
             params.raft == address(0) ||
             params.tipJar == address(0) ||
-            params.treasury == address(0) ||
-            params.harborCommand == address(0) ||
-            params.fleetCommanderRewardsManagerFactory == address(0)
+            params.treasury == address(0) 
+            // params.harborCommand == address(0) ||
+            // params.fleetCommanderRewardsManagerFactory == address(0)
         ) {
             revert AddressZero();
         }

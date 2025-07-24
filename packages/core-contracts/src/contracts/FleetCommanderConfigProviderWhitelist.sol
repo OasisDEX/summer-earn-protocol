@@ -41,8 +41,6 @@ contract FleetCommanderConfigProviderWhitelist is
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
-    bool public transfersEnabled;
-
     constructor(
         FleetCommanderParams memory params
     )
@@ -71,9 +69,7 @@ contract FleetCommanderConfigProviderWhitelist is
             minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-            stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
-                fleetCommanderRewardsManagerFactory()
-            ).createRewardsManager(address(_accessManager), address(this))
+            stakingRewardsManager: address(0)
         });
         details = params.details;
     }
@@ -213,18 +209,6 @@ contract FleetCommanderConfigProviderWhitelist is
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations
         );
-    }
-
-    ///@inheritdoc IFleetCommanderConfigProvider
-    function setFleetTokenTransferability()
-        external
-        onlyGovernor
-        whenNotPaused
-    {
-        if (!transfersEnabled) {
-            transfersEnabled = true;
-            emit TransfersEnabled();
-        }
     }
 
     // INTERNAL FUNCTIONS

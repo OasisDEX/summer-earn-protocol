@@ -48,20 +48,6 @@ contract ProtocolAccessManagerWhitelist is IProtocolAccessManagerWhitelist, Limi
     /// @notice Role identifier for super keepers who can globally perform fleet maintanence roles
     bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 
-
-    /**
-     * @notice Role identifier for protocol guardians
-     * @dev Guardians have emergency powers across multiple protocol components:
-     * - Can pause/unpause Fleet operations for security
-     * - Can pause/unpause TipJar operations
-     * - Can cancel governance proposals on SummerGovernor even if they don't meet normal cancellation requirements
-     * - Can cancel TipJar proposals
-     *
-     * The guardian role serves as an emergency backstop to protect the protocol, but with less
-     * privilege than governors.
-     */
-    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-
     /**
      * @notice Role identifier for decay controller
      * @dev This role allows the decay controller to manage the decay of user voting power
@@ -77,14 +63,6 @@ contract ProtocolAccessManagerWhitelist is IProtocolAccessManagerWhitelist, Limi
     bytes32 public constant ADMIRALS_QUARTERS_ROLE =
         keccak256("ADMIRALS_QUARTERS_ROLE");
 
-    /// @notice Minimum allowed guardian expiration period (7 days)
-    uint256 public constant MIN_GUARDIAN_EXPIRY = 7 days;
-
-    /// @notice Maximum allowed guardian expiration period (180 days)
-    uint256 public constant MAX_GUARDIAN_EXPIRY = 180 days;
-
-    /// @notice Role identifier for the Foundation which manages vesting wallets and related operations
-    bytes32 public constant FOUNDATION_ROLE = keccak256("FOUNDATION_ROLE");
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -148,16 +126,6 @@ contract ProtocolAccessManagerWhitelist is IProtocolAccessManagerWhitelist, Limi
     /// @inheritdoc IProtocolAccessManagerWhitelist
     function grantSuperKeeperRole(address account) external onlyGovernor {
         _grantRole(SUPER_KEEPER_ROLE, account);
-    }
-
-    /// @inheritdoc IProtocolAccessManagerWhitelist
-    function grantGuardianRole(address account) external onlyGovernor {
-        _grantRole(GUARDIAN_ROLE, account);
-    }
-
-    /// @inheritdoc IProtocolAccessManagerWhitelist
-    function revokeGuardianRole(address account) external onlyGovernor {
-        _revokeRole(GUARDIAN_ROLE, account);
     }
 
     /// @inheritdoc IProtocolAccessManagerWhitelist
@@ -320,48 +288,6 @@ contract ProtocolAccessManagerWhitelist is IProtocolAccessManagerWhitelist, Limi
     mapping(address guardian => uint256 expirationTimestamp)
         public guardianExpirations;
 
-    /**
-     * @notice Checks if an account is an active guardian (has role and not expired)
-     * @param account Address to check
-     * @return bool True if account is an active guardian
-     */
-    function isActiveGuardian(address account) public view returns (bool) {
-        return
-            hasRole(GUARDIAN_ROLE, account) &&
-            guardianExpirations[account] > block.timestamp;
-    }
-
-    /**
-     * @notice Sets the expiration timestamp for a guardian
-     * @param account Guardian address
-     * @param expiration Timestamp when guardian powers expire
-     * @dev The expiration period (time from now until expiration) must be between MIN_GUARDIAN_EXPIRY and MAX_GUARDIAN_EXPIRY
-     * This ensures guardians can't be immediately removed (protecting against malicious proposals) while still
-     * allowing for their eventual phase-out (protecting against malicious guardians)
-     */
-    function setGuardianExpiration(
-        address account,
-        uint256 expiration
-    ) external onlyRole(GOVERNOR_ROLE) {
-        if (!hasRole(GUARDIAN_ROLE, account)) {
-            revert CallerIsNotGuardian(account);
-        }
-
-        uint256 expiryPeriod = expiration - block.timestamp;
-        if (
-            expiryPeriod < MIN_GUARDIAN_EXPIRY ||
-            expiryPeriod > MAX_GUARDIAN_EXPIRY
-        ) {
-            revert InvalidGuardianExpiryPeriod(
-                expiryPeriod,
-                MIN_GUARDIAN_EXPIRY,
-                MAX_GUARDIAN_EXPIRY
-            );
-        }
-
-        guardianExpirations[account] = expiration;
-        emit GuardianExpirationSet(account, expiration);
-    }
 
     /**
      * @inheritdoc IProtocolAccessManagerWhitelist
@@ -379,23 +305,4 @@ contract ProtocolAccessManagerWhitelist is IProtocolAccessManagerWhitelist, Limi
         return super.hasRole(role, account);
     }
 
-    /// @inheritdoc IProtocolAccessManagerWhitelist
-    function getGuardianExpiration(
-        address account
-    ) external view returns (uint256 expiration) {
-        if (!hasRole(GUARDIAN_ROLE, account)) {
-            revert CallerIsNotGuardian(account);
-        }
-        return guardianExpirations[account];
-    }
-
-    /// @inheritdoc IProtocolAccessManagerWhitelist
-    function grantFoundationRole(address account) external onlyGovernor {
-        _grantRole(FOUNDATION_ROLE, account);
-    }
-
-    /// @inheritdoc IProtocolAccessManagerWhitelist
-    function revokeFoundationRole(address account) external onlyGovernor {
-        _revokeRole(FOUNDATION_ROLE, account);
-    }
 }

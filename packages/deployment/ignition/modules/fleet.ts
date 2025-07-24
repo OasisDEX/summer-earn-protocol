@@ -32,7 +32,7 @@ export function createFleetModule(moduleName: string) {
       'fleetCommanderRewardsManagerFactory',
     )
 
-    const fleetCommander = m.contract('FleetCommander', [
+    const fleetCommander = m.contract('FleetCommanderWhitelist', [
       {
         name: fleetName,
         symbol: fleetSymbol,

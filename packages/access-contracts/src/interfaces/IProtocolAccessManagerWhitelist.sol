@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-
 /**
  * @dev Dynamic roles are roles that are not hardcoded in the contract but are defined by the protocol
  * Members of this enum are treated as prefixes to the role generated using prefix and target contract address
@@ -172,20 +170,6 @@ interface IProtocolAccessManagerWhitelist {
     ) external;
 
     /**
-     * @notice Grants the Guardian role to a given account
-     *
-     * @param account The account to which the Guardian role will be granted
-     */
-    function grantGuardianRole(address account) external;
-
-    /**
-     * @notice Revokes the Guardian role from a given account
-     *
-     * @param account The account from which the Guardian role will be revoked
-     */
-    function revokeGuardianRole(address account) external;
-
-    /**
      * @notice Grants the Decay Controller role to a given account
      * @param account The account to which the Decay Controller role will be granted
      */
@@ -216,9 +200,6 @@ interface IProtocolAccessManagerWhitelist {
     /// @notice Role identifier for the Governor role
     function GOVERNOR_ROLE() external pure returns (bytes32);
 
-    /// @notice Role identifier for the Guardian role
-    function GUARDIAN_ROLE() external pure returns (bytes32);
-
     /// @notice Role identifier for the Super Keeper role
     function SUPER_KEEPER_ROLE() external pure returns (bytes32);
 
@@ -228,8 +209,6 @@ interface IProtocolAccessManagerWhitelist {
     /// @notice Role identifier for the Admirals Quarters role
     function ADMIRALS_QUARTERS_ROLE() external pure returns (bytes32);
 
-    /// @notice Role identifier for the Foundation, responsible for managing vesting wallets and related operations
-    function FOUNDATION_ROLE() external pure returns (bytes32);
 
     /**
      * @notice Checks if an account has a specific role
@@ -246,74 +225,11 @@ interface IProtocolAccessManagerWhitelist {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Emitted when a guardian's expiration is set
-     * @param account The address of the guardian
-     * @param expiration The timestamp until which the guardian powers are valid
-     */
-    event GuardianExpirationSet(address indexed account, uint256 expiration);
 
     /*//////////////////////////////////////////////////////////////
                             GUARDIAN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Checks if an account is an active guardian (has role and not expired)
-     * @param account Address to check
-     * @return bool True if account is an active guardian
-     */
-    function isActiveGuardian(address account) external view returns (bool);
 
-    /**
-     * @notice Sets the expiration timestamp for a guardian
-     * @param account Guardian address
-     * @param expiration Timestamp when guardian powers expire
-     */
-    function setGuardianExpiration(
-        address account,
-        uint256 expiration
-    ) external;
 
-    /**
-     * @notice Gets the expiration timestamp for a guardian
-     * @param account Guardian address
-     * @return uint256 Timestamp when guardian powers expire
-     */
-    function guardianExpirations(
-        address account
-    ) external view returns (uint256);
-
-    /**
-     * @notice Gets the expiration timestamp for a guardian
-     * @param account Guardian address
-     * @return expiration Timestamp when guardian powers expire
-     */
-    function getGuardianExpiration(
-        address account
-    ) external view returns (uint256 expiration);
-
-    /**
-     * @notice Emitted when an invalid guardian expiry period is set
-     * @param expiryPeriod The expiry period that was set
-     * @param minExpiryPeriod The minimum allowed expiry period
-     * @param maxExpiryPeriod The maximum allowed expiry period
-     */
-    error InvalidGuardianExpiryPeriod(
-        uint256 expiryPeriod,
-        uint256 minExpiryPeriod,
-        uint256 maxExpiryPeriod
-    );
-
-    /**
-     * @notice Grants the Foundation role to a given account. The Foundation is responsible for
-     * managing vesting wallets and related operations.
-     * @param account The account to which the Foundation role will be granted
-     */
-    function grantFoundationRole(address account) external;
-
-    /**
-     * @notice Revokes the Foundation role from a given account
-     * @param account The account from which the Foundation role will be revoked
-     */
-    function revokeFoundationRole(address account) external;
 }

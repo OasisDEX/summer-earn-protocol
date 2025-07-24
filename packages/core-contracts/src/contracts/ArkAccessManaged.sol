@@ -5,9 +5,9 @@ import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 
 import {IConfigurationManaged} from "../interfaces/IConfigurationManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManagerWhitelist.sol";
 
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
 
 /**
  * @title ArkAccessManaged
@@ -16,12 +16,12 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  * @dev Inherits from ProtocolAccessManaged and implements IArkAccessManaged.
  * @custom:see IArkAccessManaged
  */
-contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
+contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManagedWhitelist {
     /**
      * @notice Initializes the ArkAccessManaged contract.
      * @param accessManager The address of the access manager contract.
      */
-    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
+    constructor(address accessManager) ProtocolAccessManagedWhitelist(accessManager) {}
 
     /**
      * @notice Checks if the caller is authorized to board funds.

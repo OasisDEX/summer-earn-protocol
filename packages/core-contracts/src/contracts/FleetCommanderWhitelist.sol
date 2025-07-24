@@ -465,22 +465,22 @@ contract FleetCommanderWhitelist is
         _updateCooldown(newCooldown);
     }
 
-    /// @inheritdoc IFleetCommander
-    function forceRebalance(
-        RebalanceData[] calldata rebalanceData
-    ) external onlyGovernor collectTip whenNotPaused {
-        _validateReallocateAllAssets(rebalanceData);
-        _validateAdjustBuffer(rebalanceData);
-        _reallocateAllAssets(rebalanceData);
-    }
+    // /// @inheritdoc IFleetCommander
+    // function forceRebalance(
+    //     RebalanceData[] calldata rebalanceData
+    // ) external onlyGovernor collectTip whenNotPaused {
+    //     _validateReallocateAllAssets(rebalanceData);
+    //     _validateAdjustBuffer(rebalanceData);
+    //     _reallocateAllAssets(rebalanceData);
+    // }
 
     /// @inheritdoc IFleetCommander
-    function pause() external onlyGuardianOrGovernor {
+    function pause() external onlyGovernor {
         _pause();
     }
 
     /// @inheritdoc IFleetCommander
-    function unpause() external onlyGuardianOrGovernor {
+    function unpause() external onlyGovernor {
         _unpause();
     }
 
@@ -488,29 +488,8 @@ contract FleetCommanderWhitelist is
                         PUBLIC ERC20 FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IERC20
-    function transfer(
-        address to,
-        uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
-            return super.transfer(to, amount);
-        }
 
-        revert FleetCommanderTransfersDisabled();
-    }
 
-    /// @inheritdoc IERC20
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
-            return super.transferFrom(from, to, amount);
-        }
-        revert FleetCommanderTransfersDisabled();
-    }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS

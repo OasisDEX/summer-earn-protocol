@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {IAccessControlErrors} from "../interfaces/IAccessControlErrors.sol";
 import {ContractSpecificRoles, IProtocolAccessManagerWhitelist} from "../interfaces/IProtocolAccessManagerWhitelist.sol";
-import {ProtocolAccessManagerWhitelist} from "./ProtocolAccessManagerWhitelist.sol";
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -46,25 +45,6 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
     /// @notice Role identifier for super keepers who can globally perform fleet maintanence roles
     bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 
-    /**
-     * @notice Role identifier for protocol guardians
-     * @dev Guardians have emergency powers across multiple protocol components:
-     * - Can pause/unpause Fleet operations for security
-     * - Can pause/unpause TipJar operations
-     * - Can cancel governance proposals on SummerGovernor even if they don't meet normal cancellation requirements
-     * - Can cancel TipJar proposals
-     *
-     * The guardian role serves as an emergency backstop to protect the protocol, but with less
-     * privilege than governors.
-     */
-    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-
-    /**
-     * @notice Role identifier for decay controller
-     * @dev This role allows the decay controller to manage the decay of user voting power
-     */
-    bytes32 public constant DECAY_CONTROLLER_ROLE =
-        keccak256("DECAY_CONTROLLER_ROLE");
 
     /**
      * @notice Role identifier for admirals quarters bundler contract
@@ -79,7 +59,7 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The ProtocolAccessManager instance used for access control
-    ProtocolAccessManagerWhitelist internal immutable _accessManager;
+    IProtocolAccessManagerWhitelist internal immutable _accessManager;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -95,15 +75,15 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
             revert InvalidAccessManagerAddress(address(0));
         }
 
-        if (
-            !IERC165(accessManager).supportsInterface(
-                type(IProtocolAccessManagerWhitelist).interfaceId
-            )
-        ) {
-            revert InvalidAccessManagerAddress(accessManager);
-        }
+        // if (
+        //     !IERC165(accessManager).supportsInterface(
+        //         type(IProtocolAccessManagerWhitelist).interfaceId
+        //     )
+        // ) {
+        //     revert InvalidAccessManagerAddress(accessManager);
+        // }
 
-        _accessManager = ProtocolAccessManagerWhitelist(accessManager);
+        _accessManager = IProtocolAccessManagerWhitelist(accessManager);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -199,77 +179,8 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
         _;
     }
 
-    /**
-     * @notice Modifier to restrict access to guardians only
-     * @dev Modifier to check that the caller has the Guardian role
-     * @custom:internal-logic
-     * - Checks if the caller has the GUARDIAN_ROLE in the access manager
-     * @custom:effects
-     * - Reverts if the caller doesn't have the GUARDIAN_ROLE
-     * - Allows the function to proceed if the caller has the role
-     * @custom:security-considerations
-     * - Ensures that only authorized guardians can access emergency functions
-     * - Relies on the correct setup of the access manager
-     */
-    modifier onlyGuardian() {
-        if (!_accessManager.hasRole(GUARDIAN_ROLE, msg.sender)) {
-            revert CallerIsNotGuardian(msg.sender);
-        }
-        _;
-    }
 
-    /**
-     * @notice Modifier to restrict access to either guardians or governors
-     * @dev Modifier to check that the caller has either the Guardian or Governor role
-     * @custom:internal-logic
-     * - Checks if the caller has either the GUARDIAN_ROLE or the GOVERNOR_ROLE
-     * @custom:effects
-     * - Reverts if the caller doesn't have either of the required roles
-     * - Allows the function to proceed if the caller has one of the roles
-     * @custom:security-considerations
-     * - Ensures that only authorized guardians or governors can access certain functions
-     * - Provides flexibility for functions that can be accessed by either role
-     * @custom:gas-considerations
-     * - Performs two role checks, which may impact gas usage
-     */
-    modifier onlyGuardianOrGovernor() {
-        if (
-            !_accessManager.hasRole(GUARDIAN_ROLE, msg.sender) &&
-            !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotGuardianOrGovernor(msg.sender);
-        }
-        _;
-    }
 
-    /**
-     * @notice Modifier to restrict access to decay controllers only
-     */
-    modifier onlyDecayController() {
-        if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, msg.sender)) {
-            revert CallerIsNotDecayController(msg.sender);
-        }
-        _;
-    }
-
-    /**
-     * @notice Modifier to restrict access to foundation only
-     * @dev Modifier to check that the caller has the Foundation role
-     * @custom:security-considerations
-     * - Ensures that only the Foundation can access vesting and related functions
-     * - Relies on the correct setup of the access manager
-     */
-    modifier onlyFoundation() {
-        if (
-            !_accessManager.hasRole(
-                _accessManager.FOUNDATION_ROLE(),
-                msg.sender
-            )
-        ) {
-            revert CallerIsNotFoundation(msg.sender);
-        }
-        _;
-    }
 
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
@@ -289,17 +200,6 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
         return keccak256(abi.encodePacked(roleName, roleTargetContract));
     }
 
-    /**
-     * @notice Checks if an account has the Admirals Quarters role
-     * @param account The address to check
-     * @return bool True if the account has the Admirals Quarters role
-     */
-    function hasAdmiralsQuartersRole(
-        address account
-    ) public view returns (bool) {
-        return _accessManager.hasRole(ADMIRALS_QUARTERS_ROLE, account);
-    }
-
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -313,17 +213,6 @@ contract ProtocolAccessManagedWhitelist is IAccessControlErrors, Context {
         return _accessManager.hasRole(GOVERNOR_ROLE, account);
     }
 
-    function _isDecayController(address account) internal view returns (bool) {
-        return _accessManager.hasRole(DECAY_CONTROLLER_ROLE, account);
-    }
 
-    /**
-     * @notice Helper function to check if an address has the Foundation role
-     * @param account The address to check
-     * @return bool True if the address has the Foundation role
-     */
-    function _isFoundation(address account) internal view returns (bool) {
-        return
-            _accessManager.hasRole(_accessManager.FOUNDATION_ROLE(), account);
-    }
+
 }

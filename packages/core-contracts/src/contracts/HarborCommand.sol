@@ -5,7 +5,7 @@ import {IHarborCommandEvents} from "../events/IHarborCommandEvents.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ProtocolAccessManagedWhitelist} from "@summerfi/access-contracts/contracts/ProtocolAccessManagedWhitelist.sol";
 
 /**
  * @title HarborCommand - Fleet Commander Management System
@@ -28,7 +28,7 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  * @custom:see IHarborCommand
  */
 contract HarborCommand is
-    ProtocolAccessManaged,
+    ProtocolAccessManagedWhitelist,
     IHarborCommandEvents,
     IHarborCommand
 {
@@ -49,7 +49,7 @@ contract HarborCommand is
      * @notice Initializes the HarborCommand contract
      * @param _accessManager Address of the access manager contract
      */
-    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
+    constructor(address _accessManager) ProtocolAccessManagedWhitelist(_accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL GOVERNOR FUNCTIONS

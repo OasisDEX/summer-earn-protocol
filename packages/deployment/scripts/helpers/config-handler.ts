@@ -52,9 +52,9 @@ export function getConfigByNetwork(
   if (validateConfig.common) {
     validateCommonConfig(networkConfig)
   }
-  if (validateConfig.gov) {
-    validateGovDeployment(networkConfig)
-  }
+  // if (validateConfig.gov) {
+  //   validateGovDeployment(networkConfig)
+  // }
   if (validateConfig.core) {
     validateCoreDeployment(networkConfig)
   }

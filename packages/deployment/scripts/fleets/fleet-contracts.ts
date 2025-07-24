@@ -17,12 +17,31 @@ export async function deployFleetContracts(
   config: BaseConfig,
   asset: string,
 ) {
+  console.log(fleetDefinition)
   const chainId = getChainId()
+  console.log(chainId)
   const deploymentId = await handleDeploymentId(chainId)
+  console.log(deploymentId)
 
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
+  console.log(name)
   const fleetModule = createFleetModule(`FleetModule_${name}`)
-
+  console.log(fleetModule)
+console.table({
+  [`FleetModule_${name}`]: {
+    configurationManager: config.deployedContracts.core.configurationManager.address,
+    protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
+    fleetName: fleetDefinition.fleetName,
+    fleetSymbol: fleetDefinition.symbol,
+    fleetDetails: fleetDefinition.details,
+    asset,
+    initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
+    initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
+    depositCap: fleetDefinition.depositCap,
+    initialTipRate: fleetDefinition.initialTipRate,
+    fleetCommanderRewardsManagerFactory: '0x0000000000000000000000000000000000000000',
+  },
+})
   const deployedModule = await hre.ignition.deploy(fleetModule, {
     parameters: {
       [`FleetModule_${name}`]: {
@@ -37,7 +56,7 @@ export async function deployFleetContracts(
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
         fleetCommanderRewardsManagerFactory:
-          config.deployedContracts.core.fleetCommanderRewardsManagerFactory.address,
+         '0x0000000000000000000000000000000000000000'
       },
     },
     deploymentId,

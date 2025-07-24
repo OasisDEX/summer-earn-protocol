@@ -122,10 +122,4 @@ interface IFleetCommanderConfigProvider is
      * @notice Deploys and sets the staking rewards manager contract address
      */
     function updateStakingRewardsManager() external;
-
-    /**
-     * @notice Enables or disables transfers of fleet commander shares
-     * @dev Only callable by the governor when not paused
-     */
-    function setFleetTokenTransferability() external;
 }

@@ -459,14 +459,14 @@ contract FleetCommander is
         _updateCooldown(newCooldown);
     }
 
-    /// @inheritdoc IFleetCommander
-    function forceRebalance(
-        RebalanceData[] calldata rebalanceData
-    ) external onlyGovernor collectTip whenNotPaused {
-        _validateReallocateAllAssets(rebalanceData);
-        _validateAdjustBuffer(rebalanceData);
-        _reallocateAllAssets(rebalanceData);
-    }
+    // /// @inheritdoc IFleetCommander
+    // function forceRebalance(
+    //     RebalanceData[] calldata rebalanceData
+    // ) external onlyGovernor collectTip whenNotPaused {
+    //     _validateReallocateAllAssets(rebalanceData);
+    //     _validateAdjustBuffer(rebalanceData);
+    //     _reallocateAllAssets(rebalanceData);
+    // }
 
     /// @inheritdoc IFleetCommander
     function pause() external onlyGuardianOrGovernor {
