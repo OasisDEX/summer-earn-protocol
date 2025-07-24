@@ -63,7 +63,10 @@ interface ICrossChainArk is IInflightAssetTracking {
     event MessageContentNotExpected();
 
     /// @notice Emitted when a pending transfer is queued
-    event PendingTransferQueued(BridgeTypes.ExecuteTransferParams params);
+    event PendingTransferQueued(
+        BridgeTypes.ExecuteTransferParams params,
+        BridgeTypes.BridgeOptions options
+    );
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS

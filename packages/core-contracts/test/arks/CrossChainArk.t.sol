@@ -79,12 +79,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         defaultOptions = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 0,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            })
+            gasLimit: 0,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
         });
 
         ark = new CrossChainArk(
@@ -153,18 +151,16 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: proxy,
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
-        bytes memory executeTransferParams = abi.encode(params);
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
 
         vm.prank(address(fleetCommander));
         ark.board(1000, executeTransferParams);
@@ -184,18 +180,16 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: proxy,
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
-        bytes memory executeTransferParams = abi.encode(params);
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
         vm.prank(address(fleetCommander));
         ark.board(1000, executeTransferParams);
 
@@ -221,18 +215,19 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: proxy,
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
-        bytes memory zeroAmountParams_encoded = abi.encode(zeroAmountParams);
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory zeroAmountParams_encoded = abi.encode(
+            zeroAmountParams,
+            options
+        );
 
         vm.prank(address(fleetCommander));
         vm.expectRevert(ICrossChainArk.InvalidAmount.selector);
@@ -247,19 +242,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: proxy,
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
+        BridgeTypes.BridgeOptions memory options2 = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
         bytes memory mismatchAmountParams_encoded = abi.encode(
-            mismatchAmountParams
+            mismatchAmountParams,
+            options2
         );
 
         vm.prank(address(fleetCommander));
@@ -275,18 +269,19 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: proxy,
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
-        bytes memory zeroAssetParams_encoded = abi.encode(zeroAssetParams);
+        BridgeTypes.BridgeOptions memory options3 = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory zeroAssetParams_encoded = abi.encode(
+            zeroAssetParams,
+            options3
+        );
 
         vm.prank(address(fleetCommander));
         vm.expectRevert(ICrossChainArk.InvalidAsset.selector);
@@ -302,18 +297,19 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: proxy,
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
-        bytes memory wrongAssetParams_encoded = abi.encode(wrongAssetParams);
+        BridgeTypes.BridgeOptions memory options4 = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory wrongAssetParams_encoded = abi.encode(
+            wrongAssetParams,
+            options4
+        );
 
         vm.prank(address(fleetCommander));
         vm.expectRevert(ICrossChainArk.InvalidAsset.selector);
@@ -329,19 +325,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: wrongRecipient,
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
+        BridgeTypes.BridgeOptions memory options5 = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
         bytes memory wrongRecipientParams_encoded = abi.encode(
-            wrongRecipientParams
+            wrongRecipientParams,
+            options5
         );
 
         vm.prank(address(fleetCommander));
@@ -358,19 +353,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: proxy,
                 originator: wrongOriginator,
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
+        BridgeTypes.BridgeOptions memory options6 = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
         bytes memory wrongOriginatorParams_encoded = abi.encode(
-            wrongOriginatorParams
+            wrongOriginatorParams,
+            options6
         );
 
         vm.prank(address(fleetCommander));
@@ -387,18 +381,19 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 target: proxy,
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
-        bytes memory wrongChainParams_encoded = abi.encode(wrongChainParams);
+        BridgeTypes.BridgeOptions memory options7 = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory wrongChainParams_encoded = abi.encode(
+            wrongChainParams,
+            options7
+        );
 
         vm.prank(address(fleetCommander));
         vm.expectRevert(ICrossChainArk.InvalidSatelliteChain.selector);

@@ -46,6 +46,9 @@ contract CrossChainArk is
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
 
+    /// @notice Pending transfer options for the cross-chain transfer
+    BridgeTypes.BridgeOptions public pendingTransferOptions;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -114,7 +117,7 @@ contract CrossChainArk is
             });
         operationId = IBridgeRouter(bridgeRouter()).executeReadState{
             value: msg.value
-        }(params);
+        }(params, options);
 
         emit RemoteAssetBalanceUpdateRequested(
             operationId,
@@ -191,10 +194,14 @@ contract CrossChainArk is
         }
         address proxyAddress = _getTargetProxy();
 
-        BridgeTypes.ExecuteTransferParams memory params = abi.decode(
-            executeTransferParams,
-            (BridgeTypes.ExecuteTransferParams)
-        );
+        (
+            BridgeTypes.ExecuteTransferParams memory params,
+            BridgeTypes.BridgeOptions memory options
+        ) = abi.decode(
+                executeTransferParams,
+                (BridgeTypes.ExecuteTransferParams, BridgeTypes.BridgeOptions)
+            );
+
         if (amount == 0) revert InvalidAmount();
         if (amount != params.amount) revert InvalidAmount();
         if (params.asset == address(0)) revert InvalidAsset();
@@ -205,6 +212,7 @@ contract CrossChainArk is
             revert InvalidSatelliteChain();
 
         pendingTransferParams = params;
+        pendingTransferOptions = options;
     }
 
     function executeTransferAssets() external payable onlyKeeper {
@@ -216,10 +224,14 @@ contract CrossChainArk is
             pendingTransferParams.amount
         );
         bridgeRouter.executeTransferAssets{value: msg.value}(
-            pendingTransferParams
+            pendingTransferParams,
+            pendingTransferOptions
         );
         _resetPendingTransferParams();
-        emit PendingTransferQueued(pendingTransferParams);
+        emit PendingTransferQueued(
+            pendingTransferParams,
+            pendingTransferOptions
+        );
     }
 
     /**
@@ -359,16 +371,14 @@ contract CrossChainArk is
             target: address(0),
             originator: address(0),
             refundAddress: address(0),
-            message: "",
-            options: BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(0),
-                adapterParams: BridgeTypes.AdapterParams({
-                    gasLimit: 0,
-                    calldataSize: 0,
-                    msgValue: 0,
-                    options: bytes("")
-                })
-            })
+            message: ""
+        });
+        pendingTransferOptions = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(0),
+            gasLimit: 0,
+            calldataSize: 0,
+            msgValue: 0,
+            options: bytes("")
         });
     }
     /**
