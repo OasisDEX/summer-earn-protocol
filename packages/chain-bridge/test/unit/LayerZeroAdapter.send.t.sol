@@ -26,13 +26,13 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         useNetworkA();
 
         // Create adapter params with empty options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: bytes("")
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 100,
+            msgValue: 0,
+            options: bytes("")
+        });
 
         // Generate a proper operation ID (fake but realistic)
         bytes32 operationId = keccak256(
@@ -67,15 +67,19 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         );
         vm.deal(address(routerA), 1 ether);
         vm.prank(address(routerA));
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: CHAIN_ID_B,
+                target: address(tokenB),
+                selector: bytes4(keccak256("balanceOf(address)")),
+                readParams: abi.encode("read params"),
+                originator: address(user),
+                refundAddress: address(user)
+            });
         adapterA.readState{value: 0.1 ether}(
             operationId, // Use proper operation ID
-            CHAIN_ID_A,
-            CHAIN_ID_B,
-            address(tokenB),
-            bytes4(keccak256("balanceOf(address)")),
-            abi.encode("read params"),
-            address(user), // keeper
-            adapterParams
+            params,
+            options
         );
     }
 
@@ -88,13 +92,13 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         // Create a test message to send cross-chain
         bytes memory message = abi.encode("Hello from Chain A!");
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: bytes("")
+        });
 
         // Generate a proper operation ID that matches BridgeRouter's logic
         bytes32 operationId = keccak256(
@@ -119,13 +123,18 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         emit MessageInitiated(operationId, CHAIN_ID_B, recipient, message);
 
         // Call sendMessage directly on the adapter - no return value expected
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                message: message,
+                originator: address(user),
+                refundAddress: address(user)
+            });
         adapterA.sendMessage{value: 0.1 ether}(
             operationId, // Use proper operation ID
-            CHAIN_ID_B,
-            recipient,
-            message,
-            address(user), // keeper
-            adapterParams
+            params,
+            options
         );
 
         vm.stopPrank();
@@ -134,20 +143,20 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     function testDirectEstimateFee() public {
         useNetworkA();
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: bytes("")
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: bytes("")
+        });
 
         // Call estimateFee directly on the adapter
         (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateFee(
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.MESSAGE
         );
 
@@ -198,13 +207,13 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         vm.startPrank(user); // User is not the routersdfgjd    `
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: bytes("")
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: bytes("")
+        });
 
         // Generate a fake operation ID
         bytes32 operationId = keccak256(abi.encode("fake-operation"));
@@ -214,13 +223,18 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             abi.encodeWithSelector(BaseBridgeAdapter.Unauthorized.selector)
         );
 
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                message: abi.encode("This should fail"),
+                originator: address(user),
+                refundAddress: address(user)
+            });
         adapterA.sendMessage{value: 0.1 ether}(
             operationId, // Use proper operation ID
-            CHAIN_ID_B,
-            recipient,
-            abi.encode("This should fail"),
-            address(user), // keeper
-            adapterParams
+            params,
+            options
         );
 
         vm.stopPrank();
@@ -233,13 +247,13 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         vm.startPrank(address(routerA));
 
         // Create adapter params requiring more msgValue than provided
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0.5 ether,
-                options: bytes("")
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0.5 ether,
+            options: bytes("")
+        });
 
         // Generate a fake operation ID
         bytes32 operationId = keccak256(abi.encode("fake-operation"));
@@ -253,13 +267,20 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             )
         );
 
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                message: abi.encode(
+                    "This should fail due to insufficient value"
+                ),
+                originator: address(user),
+                refundAddress: address(user)
+            });
         adapterA.sendMessage{value: 0.1 ether}(
             operationId, // Use proper operation ID
-            CHAIN_ID_B,
-            recipient,
-            abi.encode("This should fail due to insufficient value"),
-            address(user), // keeper
-            adapterParams
+            params,
+            options
         );
 
         vm.stopPrank();
@@ -269,13 +290,13 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         useNetworkA();
 
         // Create adapter params with empty options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: bytes("")
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 100,
+            msgValue: 0,
+            options: bytes("")
+        });
 
         // Generate a proper operation ID that matches BridgeRouter's logic
         bytes32 operationId = keccak256(
@@ -313,15 +334,19 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         vm.prank(address(routerA));
 
         // This should revert due to the mock LayerZero setup
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: CHAIN_ID_B,
+                target: address(tokenB),
+                selector: bytes4(keccak256("balanceOf(address)")),
+                readParams: abi.encode(recipient),
+                originator: address(user),
+                refundAddress: address(user)
+            });
         adapterA.readState{value: 0.1 ether}(
             operationId, // Use proper operation ID
-            CHAIN_ID_A,
-            CHAIN_ID_B,
-            address(tokenB),
-            bytes4(keccak256("balanceOf(address)")),
-            abi.encode(recipient),
-            address(user), // keeper
-            adapterParams
+            params,
+            options
         );
     }
 

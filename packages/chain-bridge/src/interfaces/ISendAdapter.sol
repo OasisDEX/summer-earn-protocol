@@ -49,65 +49,39 @@ interface ISendAdapter {
     /**
      * @notice Transfer an asset to a destination chain
      * @param operationId Router-provided operation ID for tracking
-     * @param destinationChainId ID of the destination chain
-     * @param asset Address of the asset to transfer
-     * @param recipient Address of the recipient on the destination chain
-     * @param amount Amount of the asset to transfer
-     * @param originator Address that initiated the transfer (for tracking/callbacks)
-     * @param keeper Address that should receive any refunds
-     * @param adapterParams Additional adapter-specific parameters
+     * @param params Parameters for the transfer
+     * @param options Bridge options including adapter selection and parameters
      * @dev Initiates a cross-chain asset transfer
      */
     function transferAsset(
         bytes32 operationId,
-        uint16 destinationChainId,
-        address asset,
-        address recipient,
-        uint256 amount,
-        address originator,
-        address keeper,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable;
 
     /**
      * @notice Read state from a contract on a source chain
      * @param operationId Router-provided operation ID for tracking
-     * @param srcChainId ID of the source chain
-     * @param destinationChainId ID of the destination chain
-     * @param destinationContract Address of the contract on the destination chain
-     * @param selector Function selector to call
-     * @param readParams Parameters for the function call
-     * @param keeper Address that should receive any refunds
-     * @param adapterParams Additional adapter-specific parameters
+     * @param params Parameters for the read state operation
+     * @param options Bridge options including adapter selection and parameters
      * @dev Initiates a cross-chain state read operation
      */
     function readState(
         bytes32 operationId,
-        uint16 srcChainId,
-        uint16 destinationChainId,
-        address destinationContract,
-        bytes4 selector,
-        bytes calldata readParams,
-        address keeper,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable;
 
     /**
      * @notice Send a general message to a destination chain
      * @param operationId Router-provided operation ID for tracking
-     * @param destinationChainId ID of the destination chain
-     * @param recipient Address of the recipient on the destination chain
-     * @param message The message data to send
-     * @param keeper Address that should receive any refunds
-     * @param adapterParams Additional adapter-specific parameters
+     * @param params Parameters for the send message operation
+     * @param options Bridge options including adapter selection and parameters
      * @dev Initiates a cross-chain messaging operation
      */
     function sendMessage(
         bytes32 operationId,
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata message,
-        address keeper,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable;
 }

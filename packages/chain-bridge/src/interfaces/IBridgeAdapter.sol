@@ -101,7 +101,7 @@ interface IBridgeAdapter is ISendAdapter {
      * @param destinationChainId ID of the destination chain
      * @param asset Address of the asset to transfer (address(0) for non-asset operations)
      * @param amount Amount of the asset to transfer (0 for non-asset operations)
-     * @param adapterParams Additional adapter-specific parameters
+     * @param options Bridge options including adapter selection and parameters
      * @param operationType Type of operation (0=MESSAGE, 1=READ_STATE, 2=TRANSFER_ASSET)
      * @return nativeFee Fee in the chain's native token
      * @return tokenFee Fee in the transferred token (if applicable)
@@ -110,7 +110,7 @@ interface IBridgeAdapter is ISendAdapter {
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        BridgeTypes.AdapterParams calldata adapterParams,
+        BridgeTypes.BridgeOptions calldata options,
         BridgeTypes.OperationType operationType
     ) external view returns (uint256 nativeFee, uint256 tokenFee);
 

@@ -49,19 +49,19 @@ contract LayerZeroAdapterStateReadBaseForkTest is
     }
 
     function testEstimateStateReadFee() public view {
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 300000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.READ_STATE
         );
 
@@ -82,19 +82,19 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         bytes memory readParams = "";
 
         // Get fee estimate
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 300000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.READ_STATE
         );
 
@@ -114,15 +114,19 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         // Set bridge router as the sender to bypass access control
         vm.startPrank(address(router));
 
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: selector,
+                readParams: readParams,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         layerZeroAdapter.readState{value: nativeFee}(
             currentOperationId,
-            SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            address(targetContract),
-            selector,
-            readParams,
-            keeper,
-            adapterParams
+            params,
+            options
         );
         vm.stopPrank();
     }
@@ -135,34 +139,38 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         bytes4 selector = MockTargetContract.getTestValue.selector;
         bytes memory readParams = "";
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 300000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.READ_STATE
         );
 
         // Try to send with insufficient fee from bridge router
         vm.startPrank(address(router));
         vm.expectRevert(); // Should revert due to insufficient fee
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: selector,
+                readParams: readParams,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         layerZeroAdapter.readState{value: nativeFee / 2}(
             currentOperationId,
-            SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            address(targetContract),
-            selector,
-            readParams,
-            keeper,
-            adapterParams
+            params,
+            options
         );
         vm.stopPrank();
     }
@@ -175,26 +183,30 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         bytes4 selector = MockTargetContract.getTestValue.selector;
         bytes memory readParams = "";
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 300000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         // Try to call readState directly (not through bridge router)
         vm.startPrank(user);
         vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: selector,
+                readParams: readParams,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         layerZeroAdapter.readState{value: 1 ether}(
             currentOperationId,
-            SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            address(targetContract),
-            selector,
-            readParams,
-            keeper,
-            adapterParams
+            params,
+            options
         );
         vm.stopPrank();
     }
@@ -209,19 +221,19 @@ contract LayerZeroAdapterStateReadBaseForkTest is
 
         // Use higher gas limit than minimum
         uint64 customGasLimit = 300000 * 2;
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: customGasLimit,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: customGasLimit,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.READ_STATE
         );
 
@@ -232,15 +244,19 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         );
 
         vm.startPrank(address(router));
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: selector,
+                readParams: readParams,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         layerZeroAdapter.readState{value: nativeFee}(
             currentOperationId,
-            SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            address(targetContract),
-            selector,
-            readParams,
-            keeper,
-            adapterParams
+            params,
+            options
         );
         vm.stopPrank();
 
@@ -258,26 +274,31 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         bytes4 selector = MockTargetContract.getTestValue.selector;
         bytes memory readParams = "";
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(unconfiguredAdapter),
+            gasLimit: 300000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         // Should revert with ReadChannelNotConfigured error
         vm.startPrank(address(router));
         vm.expectRevert(abi.encodeWithSignature("ReadChannelNotConfigured()"));
+
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: selector,
+                readParams: readParams,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         unconfiguredAdapter.readState{value: 1 ether}(
             currentOperationId,
-            SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            address(targetContract),
-            selector,
-            readParams,
-            keeper,
-            adapterParams
+            params,
+            options
         );
         vm.stopPrank();
     }
@@ -323,19 +344,19 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         bytes4 selector = MockTargetContract.getTestValue.selector;
         bytes memory readParams = "";
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 300000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.READ_STATE
         );
 
@@ -349,18 +370,21 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         // Even though we can't complete the cross-chain flow in a fork test,
         // we can verify the transaction doesn't revert when submitted to the endpoint
         vm.startPrank(address(router));
-
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: selector,
+                readParams: readParams,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         // The transaction should not revert if properly configured
         try
             layerZeroAdapter.readState{value: nativeFee}(
                 currentOperationId,
-                SOURCE_CHAIN_ID,
-                DEST_CHAIN_ID,
-                address(targetContract),
-                selector,
-                readParams,
-                keeper,
-                adapterParams
+                params,
+                options
             )
         {
             // Success - the read request was accepted by LayerZero endpoint
@@ -387,19 +411,19 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         bytes4 selector = MockTargetContract.getTestValue.selector;
         bytes memory readParams = "";
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 300000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(targetContract),
             0,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.READ_STATE
         );
 
@@ -420,15 +444,19 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         vm.startPrank(address(router));
 
         // This should not revert if ReadLib1002 is properly configured
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: selector,
+                readParams: readParams,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         layerZeroAdapter.readState{value: nativeFee}(
             currentOperationId,
-            SOURCE_CHAIN_ID,
-            DEST_CHAIN_ID,
-            address(targetContract),
-            selector,
-            readParams,
-            keeper,
-            adapterParams
+            params,
+            options
         );
 
         vm.stopPrank();

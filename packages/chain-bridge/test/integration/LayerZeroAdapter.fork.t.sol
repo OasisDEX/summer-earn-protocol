@@ -66,23 +66,26 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         bytes32 testOperationId = keccak256("unauthorized_test");
         bytes memory message = abi.encode("Unauthorized test");
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 500000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         vm.startPrank(user);
         vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
         layerZeroAdapter.sendMessage{value: 1 ether}(
             testOperationId,
-            DEST_CHAIN_ID,
-            keeper,
-            message,
-            keeper,
-            adapterParams
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: keeper,
+                message: message,
+                originator: keeper,
+                refundAddress: address(keeper)
+            }),
+            options
         );
         vm.stopPrank();
 
@@ -131,16 +134,12 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
 
     // Helper function to execute a bridge message operation
     function _executeBridgeMessage(string memory messageContent) internal {
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(layerZeroAdapter), // Specify layerZeroAdapter if needed
-            adapterParams: adapterParams
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
         });
 
         bytes memory message = abi.encode(messageContent);
@@ -159,9 +158,9 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
                 target: user,
                 message: message,
                 originator: user,
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
         vm.stopPrank();
 
@@ -175,16 +174,12 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
 
     // Helper function to execute a bridge state read operation
     function _executeBridgeStateRead() internal {
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 300000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(layerZeroAdapter), // Explicitly specify layerZeroAdapter
-            adapterParams: adapterParams
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 300000,
+            calldataSize: 100,
+            msgValue: 0,
+            options: ""
         });
 
         bytes4 selector = bytes4(keccak256("balanceOf(address)"));
@@ -210,9 +205,9 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
                 selector: selector,
                 readParams: callData,
                 originator: user,
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
         assertEq(
             uint256(router.getOperationStatus(operationId)),

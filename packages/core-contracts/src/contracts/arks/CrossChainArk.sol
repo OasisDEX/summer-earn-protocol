@@ -110,8 +110,7 @@ contract CrossChainArk is
                 selector: IFleetProxy.totalAssets.selector,
                 readParams: "",
                 originator: address(this),
-                refundAddress: msg.sender,
-                options: options
+                refundAddress: msg.sender
             });
         operationId = IBridgeRouter(bridgeRouter()).executeReadState{
             value: msg.value

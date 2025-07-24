@@ -37,18 +37,6 @@ contract StargateAdapter is
     using AddressCast for address;
     using OptionsBuilder for bytes;
 
-    /// @notice Transfer parameters struct to avoid stack too deep
-    struct TransferParams {
-        address stargateContract;
-        uint16 destinationChainId;
-        address asset;
-        address recipient;
-        uint256 amount;
-        address originator;
-        address keeper;
-        bytes32 operationId;
-    }
-
     /// @notice Information about failed compose operations for recovery
     struct FailedCompose {
         address asset;
@@ -255,66 +243,38 @@ contract StargateAdapter is
     /// @inheritdoc ISendAdapter
     function transferAsset(
         bytes32 operationId,
-        uint16 dstChainId,
-        address asset,
-        address recipient,
-        uint256 amount,
-        address originator,
-        address keeper,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
-        onlySupportedDestination(dstChainId)
+        onlySupportedDestination(params.destinationChainId)
         onlyRouter
         nonReentrant
     {
         uint256 providedFee = msg.value;
 
-        // Resolve destination adapter via registry
-        address destinationAdapter = _peerAdapter(dstChainId);
-        if (destinationAdapter == address(0)) revert UnsupportedChain();
-
         // Check if asset is supported on current chain
-        if (assetToStargateContract[asset] == address(0)) {
+        if (assetToStargateContract[params.asset] == address(0)) {
             revert UnsupportedAsset();
         }
 
-        // Get the source chain Stargate contract
-        address stargateContract = assetToStargateContract[asset];
-
         // Transfer tokens from BridgeRouter to this contract
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-
-        // Approve Stargate contract to spend the tokens
-        IERC20(asset).forceApprove(stargateContract, amount);
-
-        // Execute the Stargate V2 transfer
-        TransferParams memory params = TransferParams({
-            stargateContract: stargateContract,
-            destinationChainId: dstChainId,
-            asset: asset,
-            recipient: recipient,
-            amount: amount,
-            originator: originator,
-            keeper: keeper,
-            operationId: operationId
-        });
-
-        _executeSendToken(
-            params,
-            destinationAdapter,
-            adapterParams,
-            providedFee
+        IERC20(params.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            params.amount
         );
+
+        _executeSendToken(operationId, params, providedFee);
 
         // Emit the TransferInitiated event
         emit TransferInitiated(
             operationId,
-            dstChainId,
-            asset,
-            amount,
-            recipient
+            params.destinationChainId,
+            params.asset,
+            params.amount,
+            params.target
         );
     }
 
@@ -322,20 +282,28 @@ contract StargateAdapter is
      * @dev Execute the actual sendToken call
      */
     function _executeSendToken(
-        TransferParams memory params,
-        address destinationAdapter,
-        BridgeTypes.AdapterParams calldata adapterParams,
+        bytes32 operationId,
+        BridgeTypes.ExecuteTransferParams memory params,
         uint256 providedFee
     ) internal {
-        IStargateV2 stargate = IStargateV2(params.stargateContract);
+        // Get the source chain Stargate contract
+        address stargateContract = assetToStargateContract[params.asset];
+        IStargateV2 stargate = IStargateV2(stargateContract);
+
+        // Approve Stargate contract to spend the tokens
+        IERC20(params.asset).forceApprove(stargateContract, params.amount);
+
+        // Resolve destination adapter via registry
+        address destinationAdapter = _peerAdapter(params.destinationChainId);
+        if (destinationAdapter == address(0)) revert UnsupportedChain();
 
         BridgeTypes.AssetTransferMessage memory atm = BridgeTypes
             .AssetTransferMessage({
-                recipient: params.recipient,
+                recipient: params.target,
                 asset: params.asset,
                 amount: params.amount,
                 sourceChainId: block.chainid,
-                operationId: params.operationId,
+                operationId: operationId,
                 originator: params.originator
             });
 
@@ -344,8 +312,7 @@ contract StargateAdapter is
             params.destinationChainId,
             destinationAdapter,
             params.amount,
-            abi.encode(atm),
-            adapterParams
+            abi.encode(atm)
         );
 
         // Update minAmountLD based on quote
@@ -362,8 +329,7 @@ contract StargateAdapter is
         uint16 destinationChainId,
         address destinationAdapter,
         uint256 amount,
-        bytes memory composeMsg,
-        BridgeTypes.AdapterParams calldata
+        bytes memory composeMsg
     ) internal view returns (SendParam memory) {
         // Always use taxi mode for compose functionality and reliability
         bytes memory oftCmd = OftCmdHelper.taxi(); // Always use taxi mode like in the example
@@ -440,7 +406,7 @@ contract StargateAdapter is
     function _performTransfer(
         IStargateV2 stargate,
         SendParam memory sendParam,
-        TransferParams memory params,
+        BridgeTypes.ExecuteTransferParams memory params,
         uint256 providedFee
     ) internal {
         MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
@@ -453,7 +419,7 @@ contract StargateAdapter is
         stargate.sendToken{value: messagingFee.nativeFee}(
             sendParam,
             messagingFee,
-            params.keeper // Always refund to keeper who paid fees
+            params.refundAddress // Always refund to keeper who paid fees
         );
     }
 
@@ -461,7 +427,7 @@ contract StargateAdapter is
      * @dev Determines transport mode based on adapter params
      */
     function _getTransportMode(
-        BridgeTypes.AdapterParams calldata,
+        BridgeTypes.BridgeOptions calldata,
         bool
     ) internal pure returns (bytes memory) {
         // Always use taxi mode for cross-chain asset transfers
@@ -482,7 +448,7 @@ contract StargateAdapter is
         uint16 dstChainId,
         address asset,
         uint256 amount,
-        BridgeTypes.AdapterParams calldata adapterParams,
+        BridgeTypes.BridgeOptions calldata options,
         BridgeTypes.OperationType operationType
     )
         public
@@ -502,8 +468,8 @@ contract StargateAdapter is
         address stargateContract = assetToStargateContract[asset];
 
         // Use compose gas limit from adapter params if provided, otherwise use default
-        uint256 gasLimit = adapterParams.gasLimit > 0
-            ? adapterParams.gasLimit
+        uint256 gasLimit = options.gasLimit > 0
+            ? options.gasLimit
             : defaultGasLimit();
 
         // Always include compose options in fee estimation
@@ -513,9 +479,9 @@ contract StargateAdapter is
 
         // Check if a compose message is provided in adapter params
         bytes memory composeMsg;
-        if (adapterParams.options.length > 0) {
+        if (options.options.length > 0) {
             // Use the provided compose message for accurate fee estimation
-            composeMsg = adapterParams.options;
+            composeMsg = options.options;
         } else {
             // Fall back to dummy compose message for legacy compatibility
             composeMsg = abi.encode(
@@ -583,13 +549,8 @@ contract StargateAdapter is
     /// @inheritdoc ISendAdapter
     function readState(
         bytes32,
-        uint16,
-        uint16,
-        address,
-        bytes4,
-        bytes calldata,
-        address, // keeper
-        BridgeTypes.AdapterParams calldata
+        BridgeTypes.ExecuteReadStateParams calldata,
+        BridgeTypes.BridgeOptions calldata
     ) external payable {
         revert OperationNotSupported();
     }
@@ -597,11 +558,8 @@ contract StargateAdapter is
     /// @inheritdoc ISendAdapter
     function sendMessage(
         bytes32,
-        uint16,
-        address,
-        bytes calldata,
-        address, // keeper
-        BridgeTypes.AdapterParams calldata
+        BridgeTypes.ExecuteSendMessageParams calldata,
+        BridgeTypes.BridgeOptions calldata
     ) external payable {
         revert OperationNotSupported();
     }

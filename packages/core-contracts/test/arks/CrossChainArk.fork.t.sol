@@ -431,8 +431,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 target: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: options
+                message: ""
             });
         bytes memory executeTransferParams = abi.encode(transferParams);
 
