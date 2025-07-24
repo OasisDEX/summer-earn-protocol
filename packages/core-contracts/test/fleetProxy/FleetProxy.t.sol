@@ -237,9 +237,10 @@ contract CrossChainFleetProxyTest is Test {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(mockToken),
                 amount: 100,
-                recipient: address(proxy),
+                target: address(proxy),
                 originator: address(proxy),
-                keeper: address(governor),
+                refundAddress: address(governor),
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -420,9 +421,10 @@ contract CrossChainFleetProxyTest is Test {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(mockToken),
                 amount: 0,
-                recipient: address(proxy),
+                target: address(proxy),
                 originator: address(proxy),
-                keeper: address(governor),
+                refundAddress: address(governor),
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -449,9 +451,10 @@ contract CrossChainFleetProxyTest is Test {
                 destinationChainId: SOURCE_CHAIN_ID,
                 asset: address(mockToken),
                 amount: 0,
-                recipient: SOURCE_ARK_ADDRESS,
+                target: SOURCE_ARK_ADDRESS,
                 originator: address(proxy),
-                keeper: address(governor),
+                refundAddress: address(governor),
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -473,9 +476,10 @@ contract CrossChainFleetProxyTest is Test {
                 destinationChainId: SOURCE_CHAIN_ID,
                 asset: address(invalidToken),
                 amount: amount,
-                recipient: SOURCE_ARK_ADDRESS,
+                target: SOURCE_ARK_ADDRESS,
                 originator: address(proxy),
-                keeper: address(governor),
+                refundAddress: address(governor),
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -497,9 +501,10 @@ contract CrossChainFleetProxyTest is Test {
                 destinationChainId: SOURCE_CHAIN_ID,
                 asset: address(mockToken),
                 amount: amount,
-                recipient: SOURCE_ARK_ADDRESS,
+                target: SOURCE_ARK_ADDRESS,
                 originator: wrongOriginator,
-                keeper: address(governor),
+                refundAddress: address(governor),
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -521,9 +526,10 @@ contract CrossChainFleetProxyTest is Test {
                 destinationChainId: wrongChainId,
                 asset: address(mockToken),
                 amount: amount,
-                recipient: SOURCE_ARK_ADDRESS,
+                target: SOURCE_ARK_ADDRESS,
                 originator: address(proxy),
-                keeper: address(governor),
+                refundAddress: address(governor),
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -545,9 +551,10 @@ contract CrossChainFleetProxyTest is Test {
                 destinationChainId: SOURCE_CHAIN_ID,
                 asset: address(mockToken),
                 amount: amount,
-                recipient: wrongRecipient,
+                target: wrongRecipient,
                 originator: address(proxy),
-                keeper: address(governor),
+                refundAddress: address(governor),
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({

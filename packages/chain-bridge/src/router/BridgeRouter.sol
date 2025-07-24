@@ -110,7 +110,9 @@ contract BridgeRouter is
             params.amount == 0 ||
             params.target == address(0) ||
             params.originator == address(0) ||
-            params.asset == address(0)
+            params.asset == address(0) ||
+            params.refundAddress == address(0) ||
+            params.destinationChainId == 0
         ) revert InvalidParams();
     }
 
@@ -121,8 +123,13 @@ contract BridgeRouter is
     function _validateReadStateParams(
         BridgeTypes.ExecuteReadStateParams calldata params
     ) internal pure {
-        if (params.originator == address(0) || params.target == address(0))
-            revert InvalidParams();
+        if (
+            params.originator == address(0) ||
+            params.target == address(0) ||
+            params.destinationChainId == 0 ||
+            params.selector == bytes4(0) ||
+            params.refundAddress == address(0)
+        ) revert InvalidParams();
     }
 
     /**
@@ -132,7 +139,13 @@ contract BridgeRouter is
     function _validateSendMessageParams(
         BridgeTypes.ExecuteSendMessageParams calldata params
     ) internal pure {
-        if (params.target == address(0) || params.originator == address(0)) {
+        if (
+            params.target == address(0) ||
+            params.originator == address(0) ||
+            params.destinationChainId == 0 ||
+            params.refundAddress == address(0) ||
+            params.message.length == 0
+        ) {
             revert InvalidParams();
         }
     }

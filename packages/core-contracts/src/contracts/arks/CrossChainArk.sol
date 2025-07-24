@@ -106,11 +106,11 @@ contract CrossChainArk is
         BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
             .ExecuteReadStateParams({
                 destinationChainId: satelliteChainId,
-                destinationContract: proxyAddress,
+                target: proxyAddress,
                 selector: IFleetProxy.totalAssets.selector,
                 readParams: "",
                 originator: address(this),
-                keeper: msg.sender,
+                refundAddress: msg.sender,
                 options: options
             });
         operationId = IBridgeRouter(bridgeRouter()).executeReadState{
@@ -200,7 +200,7 @@ contract CrossChainArk is
         if (amount != params.amount) revert InvalidAmount();
         if (params.asset == address(0)) revert InvalidAsset();
         if (params.asset != address(config.asset)) revert InvalidAsset();
-        if (params.recipient != proxyAddress) revert InvalidRecipient();
+        if (params.target != proxyAddress) revert InvalidRecipient();
         if (params.originator != address(this)) revert InvalidRequestor();
         if (params.destinationChainId != satelliteChainId)
             revert InvalidSatelliteChain();
@@ -357,9 +357,10 @@ contract CrossChainArk is
             destinationChainId: 0,
             asset: address(0),
             amount: 0,
-            recipient: address(0),
+            target: address(0),
             originator: address(0),
-            keeper: address(0),
+            refundAddress: address(0),
+            message: "",
             options: BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(0),
                 adapterParams: BridgeTypes.AdapterParams({
