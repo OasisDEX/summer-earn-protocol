@@ -300,7 +300,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 destinationChainId: CHAIN_ID_B,
-                asset: address(tokenA),
+                asset: address(0x6),
                 amount: 1 ether,
                 target: recipient,
                 originator: user,

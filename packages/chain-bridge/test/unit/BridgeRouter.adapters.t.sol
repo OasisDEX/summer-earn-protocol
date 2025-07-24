@@ -283,7 +283,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
-
+        options.specifiedAdapter = address(mockAdapter);
         // Test 5: Valid adapter with different token (MockAdapter supports any token)
         ERC20Mock newToken = new ERC20Mock();
         (, , address specifiedAdapterForNewToken) = router.quote(

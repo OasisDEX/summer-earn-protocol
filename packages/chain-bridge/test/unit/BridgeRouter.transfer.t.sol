@@ -79,7 +79,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
 
         // Create bridge options
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter),
+            specifiedAdapter: address(0),
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
