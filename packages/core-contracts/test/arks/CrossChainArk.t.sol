@@ -150,9 +150,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: address(mockToken),
                 amount: amount,
-                recipient: proxy,
+                target: proxy,
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -180,9 +181,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: address(mockToken),
                 amount: 1000,
-                recipient: proxy,
+                target: proxy,
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -216,9 +218,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: address(mockToken),
                 amount: 0,
-                recipient: proxy,
+                target: proxy,
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -241,9 +244,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: address(mockToken),
                 amount: 500, // Different from board amount
-                recipient: proxy,
+                target: proxy,
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -268,9 +272,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: address(0),
                 amount: amount,
-                recipient: proxy,
+                target: proxy,
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -294,9 +299,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: wrongAsset,
                 amount: amount,
-                recipient: proxy,
+                target: proxy,
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -320,9 +326,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: address(mockToken),
                 amount: amount,
-                recipient: wrongRecipient,
+                target: wrongRecipient,
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -348,9 +355,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: address(mockToken),
                 amount: amount,
-                recipient: proxy,
+                target: proxy,
                 originator: wrongOriginator,
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -376,9 +384,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 destinationChainId: wrongChainId,
                 asset: address(mockToken),
                 amount: amount,
-                recipient: proxy,
+                target: proxy,
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter),
                     adapterParams: BridgeTypes.AdapterParams({

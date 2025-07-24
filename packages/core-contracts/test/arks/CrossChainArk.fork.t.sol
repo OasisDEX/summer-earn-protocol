@@ -244,9 +244,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(usdc),
                 amount: amount,
-                recipient: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
+                target: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(stargateAdapter),
                     adapterParams: BridgeTypes.AdapterParams({
@@ -269,12 +270,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Assert - Verify the pending transfer params were stored correctly
         (
+            address originator,
             uint16 destinationChainId,
+            address target,
             address asset,
             uint256 storedAmount,
-            address recipient,
-            address originator,
-            address keeper, // options struct components
+            bytes memory message,
+            address refundAddress, // options struct
 
         ) = ark.pendingTransferParams();
 
@@ -285,9 +287,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         assertEq(asset, address(usdc), "Incorrect asset address");
         assertEq(storedAmount, amount, "Incorrect stored amount");
-        assertEq(recipient, ARB_STARGATE_PROXY, "Incorrect recipient address");
+        assertEq(target, ARB_STARGATE_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
-        assertEq(keeper, commander, "Incorrect keeper address");
+        assertEq(refundAddress, commander, "Incorrect keeper address");
 
         // Verify assets were transferred to ark
         assertEq(
@@ -426,9 +428,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(usdc),
                 amount: amount,
-                recipient: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
+                target: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
                 originator: address(ark),
-                keeper: commander,
+                refundAddress: commander,
+                message: "",
                 options: options
             });
         bytes memory executeTransferParams = abi.encode(transferParams);
@@ -451,12 +454,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // === STEP 2: Verify Pending Transfer Params ===
         (
+            address originator,
             uint16 destinationChainId,
+            address target,
             address asset,
             uint256 storedAmount,
-            address recipient,
-            address originator,
-            address keeper, // options struct
+            bytes memory message,
+            address refundAddress, // options struct
 
         ) = ark.pendingTransferParams();
 
@@ -467,9 +471,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         assertEq(asset, address(usdc), "Incorrect asset address");
         assertEq(storedAmount, amount, "Incorrect stored amount");
-        assertEq(recipient, ARB_STARGATE_PROXY, "Incorrect recipient address");
+        assertEq(target, ARB_STARGATE_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
-        assertEq(keeper, commander, "Incorrect keeper address");
+        assertEq(refundAddress, commander, "Incorrect keeper address");
 
         // === STEP 3: Get Quote and Execute Transfer ===
         (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter.quote(
@@ -538,7 +542,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Verify pending transfer params were cleared
-        (uint16 clearedChainId, , , , , , ) = ark.pendingTransferParams();
+        (, uint16 clearedChainId, , , , , , ) = ark.pendingTransferParams();
         assertEq(
             clearedChainId,
             0,

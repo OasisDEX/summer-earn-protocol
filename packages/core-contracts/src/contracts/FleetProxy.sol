@@ -139,7 +139,7 @@ contract FleetProxy is
         if (params.originator != address(this)) revert InvalidRequestor();
         if (params.destinationChainId != hubChainId)
             revert InvalidSatelliteChain();
-        if (params.recipient != _getSourceChainArk(params.destinationChainId))
+        if (params.target != _getSourceChainArk(params.destinationChainId))
             revert InvalidRecipient();
 
         // 2. Withdraw from fleet contract
