@@ -21,17 +21,12 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
     function testSendMessageViaQueue() public {
         console.log("=== Testing Core Message Send Via Queue ===");
 
-        // Define standard options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
-            adapterParams: adapterParams
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
         });
 
         // Get quote for fees
@@ -54,9 +49,9 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
                 target: user,
                 message: message,
                 originator: user,
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
         vm.stopPrank();
 
@@ -75,19 +70,19 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         bytes32 operationId = keccak256("test_direct_message");
         bytes memory message = abi.encode("Direct message test");
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 500000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(0),
             0,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.MESSAGE
         );
 
@@ -96,13 +91,18 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
 
         // Call layerZeroAdapter through router context (authorized)
         vm.startPrank(address(router));
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: keeper,
+                message: message,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         layerZeroAdapter.sendMessage{value: nativeFee}(
             operationId,
-            DEST_CHAIN_ID,
-            keeper, // target
-            message,
-            keeper, // refundAddress
-            adapterParams
+            params,
+            options
         );
         vm.stopPrank();
 
@@ -115,24 +115,29 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         bytes32 operationId = keccak256("unauthorized_test");
         bytes memory message = abi.encode("Unauthorized test");
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 500000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         // Direct call should fail (not from router)
         vm.startPrank(user);
         vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: keeper,
+                message: message,
+                originator: keeper,
+                refundAddress: address(keeper)
+            });
         layerZeroAdapter.sendMessage{value: 1 ether}(
             operationId,
-            DEST_CHAIN_ID,
-            keeper, // target
-            message,
-            keeper, // refundAddress
-            adapterParams
+            params,
+            options
         );
         vm.stopPrank();
 
@@ -142,19 +147,19 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
     function testEstimateMessageFee() public view {
         console.log("=== Testing Fee Estimation ===");
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(layerZeroAdapter),
+            gasLimit: 500000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
 
         (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter.estimateFee(
             DEST_CHAIN_ID,
             address(0),
             0,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.MESSAGE
         );
 

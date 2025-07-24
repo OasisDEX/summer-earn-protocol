@@ -240,16 +240,14 @@ contract CrossChainFleetProxyTest is Test {
                 target: address(proxy),
                 originator: address(proxy),
                 refundAddress: address(governor),
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
-                        calldataSize: 100,
-                        msgValue: 0,
-                        options: ""
-                    })
-                })
+                message: ""
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
             })
         );
 
@@ -424,16 +422,14 @@ contract CrossChainFleetProxyTest is Test {
                 target: address(proxy),
                 originator: address(proxy),
                 refundAddress: address(governor),
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
-                        calldataSize: 100,
-                        msgValue: 0,
-                        options: ""
-                    })
-                })
+                message: ""
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
             })
         );
     }
@@ -454,16 +450,14 @@ contract CrossChainFleetProxyTest is Test {
                 target: SOURCE_ARK_ADDRESS,
                 originator: address(proxy),
                 refundAddress: address(governor),
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
-                        calldataSize: 100,
-                        msgValue: 0,
-                        options: ""
-                    })
-                })
+                message: ""
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
             })
         );
 
@@ -479,16 +473,14 @@ contract CrossChainFleetProxyTest is Test {
                 target: SOURCE_ARK_ADDRESS,
                 originator: address(proxy),
                 refundAddress: address(governor),
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
-                        calldataSize: 100,
-                        msgValue: 0,
-                        options: ""
-                    })
-                })
+                message: ""
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
             })
         );
 
@@ -504,16 +496,14 @@ contract CrossChainFleetProxyTest is Test {
                 target: SOURCE_ARK_ADDRESS,
                 originator: wrongOriginator,
                 refundAddress: address(governor),
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
-                        calldataSize: 100,
-                        msgValue: 0,
-                        options: ""
-                    })
-                })
+                message: ""
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
             })
         );
 
@@ -529,16 +519,14 @@ contract CrossChainFleetProxyTest is Test {
                 target: SOURCE_ARK_ADDRESS,
                 originator: address(proxy),
                 refundAddress: address(governor),
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
-                        calldataSize: 100,
-                        msgValue: 0,
-                        options: ""
-                    })
-                })
+                message: ""
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
             })
         );
 
@@ -554,16 +542,14 @@ contract CrossChainFleetProxyTest is Test {
                 target: wrongRecipient,
                 originator: address(proxy),
                 refundAddress: address(governor),
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(mockAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 100000,
-                        calldataSize: 100,
-                        msgValue: 0,
-                        options: ""
-                    })
-                })
+                message: ""
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
             })
         );
     }

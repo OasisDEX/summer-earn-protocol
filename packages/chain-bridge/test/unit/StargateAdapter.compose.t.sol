@@ -134,20 +134,20 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.deal(address(routerA), 1 ether);
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Estimate fee
         (uint256 nativeFee, ) = adapterA.estimateFee(
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
@@ -189,17 +189,22 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         stargateA.setExpectedComposeMsg(expectedComposeMsg);
 
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: address(fleetProxyB),
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         // Execute transfer
         vm.prank(address(routerA));
         adapterA.transferAsset{value: nativeFee}(
             expectedOperationId,
-            CHAIN_ID_B,
-            address(tokenA),
-            address(fleetProxyB), // Send to fleet proxy
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
 
         // Verify compose message was set correctly

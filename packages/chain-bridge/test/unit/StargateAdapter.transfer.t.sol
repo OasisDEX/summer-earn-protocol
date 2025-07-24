@@ -28,20 +28,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Create adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Estimate fee for transferring assets
         (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateFee(
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
@@ -54,13 +54,13 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Create adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Should revert with InvalidChainRelationship when estimating fee for unsupported chain
         vm.expectRevert(
@@ -75,7 +75,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             9999, // Unsupported chain
             address(tokenA),
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
     }
@@ -84,13 +84,13 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Create adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Should revert when estimating fee for unsupported asset
         vm.expectRevert(
@@ -100,7 +100,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             CHAIN_ID_B,
             address(0xdead), // Unsupported asset
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
     }
@@ -110,20 +110,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.deal(address(routerA), 1 ether); // Provide ETH to the router
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // First estimate the fee
         (uint256 nativeFee, ) = adapterA.estimateFee(
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
@@ -166,16 +166,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             1 ether,
             recipient
         );
-
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         adapterA.transferAsset{value: nativeFee}(
             expectedOperationId, // Pass operation ID as first parameter
-            CHAIN_ID_B,
-            address(tokenA),
-            recipient,
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
 
         // Verify the operation status is SENT
@@ -194,13 +198,13 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.deal(user, 1 ether); // Provide ETH to the user
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Approve tokens for the adapter
         vm.prank(user);
@@ -209,15 +213,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         // Should revert when called by non-router
         vm.prank(user);
         vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         adapterA.transferAsset{value: 0.1 ether}(
             bytes32(0), // Fake operation ID
-            CHAIN_ID_B,
-            address(tokenA),
-            recipient,
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
     }
 
@@ -226,13 +235,13 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.deal(address(routerA), 1 ether); // Provide ETH to the router
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Should revert with InvalidChainRelationship when transferring to unsupported chain
         vm.prank(address(routerA));
@@ -244,15 +253,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
                 CHAIN_ID_A // currentChainId
             )
         );
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: 9999,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         adapterA.transferAsset{value: 0.1 ether}(
             bytes32(0), // Fake operation ID
-            9999, // Unsupported chain
-            address(tokenA),
-            recipient,
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
     }
 
@@ -270,28 +284,33 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Should revert when transferring unsupported asset
         vm.startPrank(address(routerA));
         vm.expectRevert(
             abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
         );
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(0x6),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         adapterA.transferAsset{value: 0.1 ether}(
             bytes32(0), // Fake operation ID
-            CHAIN_ID_B,
-            address(0xdead), // Unsupported asset
-            recipient,
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
         vm.stopPrank();
     }
@@ -301,20 +320,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.deal(address(routerA), 1 ether); // Provide ETH to the router
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Estimate the required fee
         (uint256 requiredFee, ) = adapterA.estimateFee(
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
@@ -354,15 +373,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
                 requiredFee / 2
             )
         );
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         adapterA.transferAsset{value: requiredFee / 2}(
             expectedOperationId, // Use the expected operation ID
-            CHAIN_ID_B,
-            address(tokenA),
-            recipient,
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
     }
 
@@ -370,38 +394,47 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         useNetworkA();
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Test readState (unsupported)
         vm.prank(address(routerA));
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: CHAIN_ID_B,
+                target: address(tokenA),
+                selector: bytes4(0),
+                readParams: "",
+                originator: user,
+                refundAddress: user
+            });
         adapterA.readState(
             bytes32(0), // Fake operation ID
-            CHAIN_ID_A,
-            CHAIN_ID_B,
-            address(tokenA),
-            bytes4(0),
-            "",
-            user, // keeper
-            adapterParams
+            params,
+            options
         );
 
         // Test sendMessage (unsupported)
         vm.prank(address(routerA));
         vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        BridgeTypes.ExecuteSendMessageParams memory params2 = BridgeTypes
+            .ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                message: "",
+                originator: user,
+                refundAddress: user
+            });
         adapterA.sendMessage(
             bytes32(0), // Fake operation ID
-            CHAIN_ID_B,
-            recipient,
-            "",
-            user, // keeper
-            adapterParams
+            params2,
+            options
         );
     }
 
@@ -410,20 +443,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.deal(address(routerA), 10 ether); // Provide enough ETH
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Estimate the required fee
         (uint256 requiredFee, ) = adapterA.estimateFee(
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
@@ -451,17 +484,22 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             address(adapterA)
         );
         console.log("transferAssetMsgValueConsistency 0");
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         // Test with EXACTLY the required fee - should work
         vm.prank(address(routerA));
         adapterA.transferAsset{value: requiredFee + 1}(
             expectedOperationId,
-            CHAIN_ID_B,
-            address(tokenA),
-            recipient,
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
         console.log("transferAssetMsgValueConsistency 1");
         // Setup for second transfer - need new tokens, allowance, and operation ID
@@ -487,18 +525,12 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             expectedOperationId2,
             address(adapterA)
         );
-
         // Test with significantly MORE than required fee - should also work
         vm.prank(address(routerA));
         adapterA.transferAsset{value: requiredFee * 100}(
             expectedOperationId2,
-            CHAIN_ID_B,
-            address(tokenA),
-            recipient,
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
         console.log("transferAssetMsgValueConsistency 2");
     }
@@ -507,20 +539,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         useNetworkA();
         vm.deal(address(routerA), 10 ether);
 
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Test with 1 wei less than required - should fail
         (uint256 requiredFee, ) = adapterA.estimateFee(
             CHAIN_ID_B,
             address(tokenA),
             1 ether,
-            adapterParams,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
@@ -555,15 +587,20 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
                 requiredFee - 1
             )
         );
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         adapterA.transferAsset{value: requiredFee - 1}(
             expectedOperationId,
-            CHAIN_ID_B,
-            address(tokenA),
-            recipient,
-            1 ether,
-            user,
-            user, // Add keeper parameter
-            adapterParams
+            params,
+            options
         );
     }
 
@@ -578,13 +615,13 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         uint256 expectedMinAmount = (inputAmount * (10000 - 50)) / 10000; // 0.995 ether
 
         // Setup adapter params
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
 
         // Transfer tokens to router and approve
         vm.prank(user);
@@ -648,18 +685,22 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
                 50 // 50 basis points (0.5%)
             )
         );
-
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: CHAIN_ID_B,
+                asset: address(tokenA),
+                amount: 1 ether,
+                target: recipient,
+                originator: user,
+                message: "",
+                refundAddress: user
+            });
         // Execute transfer - should revert due to high slippage
         vm.prank(address(routerA));
         adapterA.transferAsset{value: 0.01 ether}(
             expectedOperationId,
-            CHAIN_ID_B,
-            address(tokenA),
-            user, // recipient
-            inputAmount,
-            user, // originator
-            user, // keeper
-            adapterParams
+            params,
+            options
         );
     }
 }

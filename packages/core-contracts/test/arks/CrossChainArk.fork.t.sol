@@ -247,18 +247,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 target: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: BridgeTypes.BridgeOptions({
-                    specifiedAdapter: address(stargateAdapter),
-                    adapterParams: BridgeTypes.AdapterParams({
-                        gasLimit: 200000,
-                        msgValue: 0,
-                        calldataSize: 0,
-                        options: ""
-                    })
-                })
+                message: ""
             });
-        bytes memory executeTransferParams = abi.encode(params);
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(stargateAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -276,9 +274,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address asset,
             uint256 storedAmount,
             bytes memory message,
-            address refundAddress, // options struct
-
+            address refundAddress
         ) = ark.pendingTransferParams();
+
+        (
+            address specifiedAdapter,
+            uint256 gasLimit,
+            uint256 msgValue,
+            uint256 calldataSize,
+            bytes memory opts
+        ) = ark.pendingTransferOptions();
 
         assertEq(
             destinationChainId,
@@ -290,6 +295,14 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertEq(target, ARB_STARGATE_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
         assertEq(refundAddress, commander, "Incorrect keeper address");
+        assertEq(
+            specifiedAdapter,
+            address(stargateAdapter),
+            "Incorrect adapter address"
+        );
+        assertEq(gasLimit, 200000, "Incorrect gas limit");
+        assertEq(msgValue, 0, "Incorrect msg value");
+        assertEq(calldataSize, 0, "Incorrect calldata size");
 
         // Verify assets were transferred to ark
         assertEq(
@@ -321,12 +334,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Request remote asset balance update directly
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 700000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            })
+            gasLimit: 700000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
         });
 
         // Get quote for the read operation
@@ -415,12 +426,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create executeTransferParams for the board call
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(stargateAdapter),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 200000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            })
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
         });
 
         BridgeTypes.ExecuteTransferParams memory transferParams = BridgeTypes
@@ -431,10 +440,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 target: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
                 originator: address(ark),
                 refundAddress: commander,
-                message: "",
-                options: options
+                message: ""
             });
-        bytes memory executeTransferParams = abi.encode(transferParams);
+        bytes memory executeTransferParams = abi.encode(
+            transferParams,
+            options
+        );
 
         // Board the assets - this stores pending transfer params
         vm.prank(commander);
@@ -460,9 +471,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address asset,
             uint256 storedAmount,
             bytes memory message,
-            address refundAddress, // options struct
-
+            address refundAddress
         ) = ark.pendingTransferParams();
+
+        (
+            address specifiedAdapter,
+            uint256 gasLimit,
+            uint256 msgValue,
+            uint256 calldataSize,
+            bytes memory opts
+        ) = ark.pendingTransferOptions();
 
         assertEq(
             destinationChainId,
@@ -474,7 +492,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertEq(target, ARB_STARGATE_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
         assertEq(refundAddress, commander, "Incorrect keeper address");
-
+        assertEq(
+            specifiedAdapter,
+            address(stargateAdapter),
+            "Incorrect adapter address"
+        );
+        assertEq(gasLimit, 200000, "Incorrect gas limit");
+        assertEq(msgValue, 0, "Incorrect msg value");
+        assertEq(calldataSize, 0, "Incorrect calldata size");
+        assertEq(opts, "", "Incorrect options");
         // === STEP 3: Get Quote and Execute Transfer ===
         (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter.quote(
             DEST_CHAIN_ID,
@@ -542,13 +568,58 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Verify pending transfer params were cleared
-        (, uint16 clearedChainId, , , , , , ) = ark.pendingTransferParams();
+        (
+            address originator2,
+            uint16 clearedChainId,
+            address target2,
+            address asset2,
+            uint256 storedAmount2,
+            bytes memory message2,
+            address refundAddress2
+        ) = ark.pendingTransferParams();
+        (
+            address specifiedAdapter2,
+            uint256 gasLimit2,
+            uint256 msgValue2,
+            uint256 calldataSize2,
+            bytes memory opts2
+        ) = ark.pendingTransferOptions();
         assertEq(
             clearedChainId,
             0,
             "Pending transfer params should be cleared"
         );
-
+        assertEq(
+            originator2,
+            address(0),
+            "Pending transfer params should be cleared"
+        );
+        assertEq(
+            target2,
+            address(0),
+            "Pending transfer params should be cleared"
+        );
+        assertEq(
+            asset2,
+            address(0),
+            "Pending transfer params should be cleared"
+        );
+        assertEq(storedAmount2, 0, "Pending transfer params should be cleared");
+        assertEq(message2, "", "Pending transfer params should be cleared");
+        assertEq(
+            refundAddress2,
+            address(0),
+            "Pending transfer params should be cleared"
+        );
+        assertEq(
+            specifiedAdapter2,
+            address(0),
+            "Pending transfer params should be cleared"
+        );
+        assertEq(gasLimit2, 0, "Pending transfer params should be cleared");
+        assertEq(msgValue2, 0, "Pending transfer params should be cleared");
+        assertEq(calldataSize2, 0, "Pending transfer params should be cleared");
+        assertEq(opts2, "", "Pending transfer params should be cleared");
         // === STEP 6: Integration Test Success Verification ===
         emit log_named_uint("Native Fee Paid", nativeFee);
         emit log_named_address("Keeper", commander);
@@ -600,12 +671,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 2: Create bridge options for LayerZero adapter ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 700000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            })
+            gasLimit: 700000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
         });
 
         // Get quote for the read operation
@@ -702,12 +771,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 1: Request remote balance update directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 700000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            })
+            gasLimit: 700000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
         });
 
         (uint256 fee, , ) = bridgeRouter.quote(
@@ -859,12 +926,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 2: Create bridge options for LayerZero adapter ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 700000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            })
+            gasLimit: 700000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
         });
 
         // Get quote for the read operation
@@ -1011,12 +1076,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 1: Setup and execute a read request directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),
-            adapterParams: BridgeTypes.AdapterParams({
-                gasLimit: 700000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: ""
-            })
+            gasLimit: 700000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
         });
 
         (uint256 fee, , ) = bridgeRouter.quote(

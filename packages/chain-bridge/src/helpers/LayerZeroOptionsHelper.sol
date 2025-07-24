@@ -14,77 +14,76 @@ library LayerZeroOptionsHelper {
 
     /**
      * @notice Creates standard messaging options with appropriate gas limit
-     * @param adapterParams Additional adapter params (optional)
-     * @param minGasLimit Minimum gas limit to enforce (if adapter param gas limit is lower)
+     * @param options Bridge options containing gas limit and other parameters
+     * @param minGasLimit Minimum gas limit to enforce (if options gas limit is lower)
      * @return Options bytes formatted for LayerZero standard messaging
      */
     function createMessagingOptions(
-        BridgeTypes.AdapterParams memory adapterParams,
+        BridgeTypes.BridgeOptions memory options,
         uint128 minGasLimit
     ) internal pure returns (bytes memory) {
-        bytes memory options;
+        bytes memory lzOptions;
 
         // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
+        uint128 gasLimit = options.gasLimit < minGasLimit
             ? minGasLimit
-            : adapterParams.gasLimit;
+            : options.gasLimit;
 
         // Start with user-provided options or create new empty options
-        if (adapterParams.options.length > 0) {
+        if (options.options.length > 0) {
             // Use the user's options as the base if provided
-            options = adapterParams.options;
+            lzOptions = options.options;
         } else {
             // Create new empty options if none provided
-            options = OptionsBuilder.newOptions();
+            lzOptions = OptionsBuilder.newOptions();
         }
 
         // Add our LzReceive option to the existing or new options
         return
             OptionsBuilder.addExecutorLzReceiveOption(
-                options,
+                lzOptions,
                 gasLimit,
-                adapterParams.msgValue
+                options.msgValue
             );
     }
 
     /**
      * @notice Creates lzRead options with appropriate gas limit and calldata size
-     * @param adapterParams Additional adapter params (optional)
-     * @param minGasLimit Minimum gas limit to enforce (if adapter param gas limit is lower)
+     * @param options Bridge options containing gas limit and other parameters
+     * @param minGasLimit Minimum gas limit to enforce (if options gas limit is lower)
      * @return Options bytes formatted for LayerZero lzRead operations
      */
     function createLzReadOptions(
-        BridgeTypes.AdapterParams memory adapterParams,
+        BridgeTypes.BridgeOptions memory options,
         uint128 minGasLimit
     ) internal pure returns (bytes memory) {
-        bytes memory options;
+        bytes memory lzOptions;
 
         // Ensure gas limit meets minimum requirements
-        uint128 gasLimit = adapterParams.gasLimit < minGasLimit
+        uint128 gasLimit = options.gasLimit < minGasLimit
             ? minGasLimit
-            : adapterParams.gasLimit;
+            : options.gasLimit;
 
         // Start with user-provided options or create new empty options
-        if (adapterParams.options.length > 0) {
-            options = adapterParams.options;
+        if (options.options.length > 0) {
+            lzOptions = options.options;
         } else {
-            options = OptionsBuilder.newOptions();
+            lzOptions = OptionsBuilder.newOptions();
         }
 
         // For lzRead operations, we need to provide a reasonable calldata size estimate
-        // If not provided in adapterParams, use a default reasonable size
-        uint32 calldataSize = adapterParams.calldataSize > 0
-            ? uint32(adapterParams.calldataSize)
-            : 1024; // Default to
-        // 1KB for read responses
+        // If not provided in options, use a default reasonable size
+        uint32 calldataSize = options.calldataSize > 0
+            ? uint32(options.calldataSize)
+            : 1024; // Default to 1KB for read responses
 
         // Add our LzRead option to the existing or new options
         return
             OptionsBuilder.addExecutorLzReadOption(
-                options,
+                lzOptions,
                 gasLimit,
                 calldataSize, // ✅ Use proper calldata size (uint32)
-                adapterParams.msgValue
+                options.msgValue
             );
     }
 

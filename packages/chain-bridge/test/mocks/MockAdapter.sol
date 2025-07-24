@@ -98,30 +98,29 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
     /// @inheritdoc ISendAdapter
     function transferAsset(
         bytes32 operationId, // Accept from router
-        uint16 destinationChainId,
-        address asset,
-        address recipient,
-        uint256 amount,
-        address originator,
-        address, // Accept keeper parameter from router
-        BridgeTypes.AdapterParams calldata
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata
     ) external payable onlyRouter {
         // Verify chain and asset are supported
-        if (!this.supportsChain(destinationChainId)) {
+        if (!this.supportsChain(params.destinationChainId)) {
             revert UnsupportedChain();
         }
 
         // Transfer tokens from BridgeRouter to this contract (like real adapters do)
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(params.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            params.amount
+        );
 
         // Use the provided operation ID (don't generate our own)
         emit MockTransferInitiated(
             operationId, // Use router's ID
-            destinationChainId,
-            asset,
-            recipient,
-            amount,
-            originator
+            params.destinationChainId,
+            params.asset,
+            params.target,
+            params.amount,
+            params.originator
         );
 
         // No return value needed
@@ -130,25 +129,21 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
     /// @inheritdoc ISendAdapter
     function readState(
         bytes32 operationId, // Accept from router
-        uint16 srcChainId,
-        uint16 destinationChainId,
-        address destinationContract,
-        bytes4 selector,
-        bytes calldata readParams,
-        address, // keeper - not used in mock
-        BridgeTypes.AdapterParams calldata
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata
     ) external payable onlyRouter {
         // Verify chain is supported
-        if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
+        if (!this.supportsChain(params.destinationChainId))
+            revert UnsupportedChain();
 
         // Use the provided operation ID (don't generate our own)
         emit MockReadInitiated(
             operationId, // Use router's ID
-            srcChainId,
-            destinationChainId,
-            destinationContract,
-            selector,
-            readParams
+            uint16(0),
+            params.destinationChainId,
+            params.target,
+            params.selector,
+            params.readParams
         );
 
         // No return value needed
@@ -159,7 +154,7 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
         uint16 destinationChainId,
         address,
         uint256,
-        BridgeTypes.AdapterParams calldata,
+        BridgeTypes.BridgeOptions calldata,
         BridgeTypes.OperationType
     ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Check if chain is supported
@@ -217,21 +212,19 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
     /// @inheritdoc ISendAdapter
     function sendMessage(
         bytes32 operationId, // Accept from router
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata message,
-        address, // keeper - not used in mock
-        BridgeTypes.AdapterParams calldata
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata
     ) external payable onlyRouter {
         // Verify chain is supported
-        if (!this.supportsChain(destinationChainId)) revert UnsupportedChain();
+        if (!this.supportsChain(params.destinationChainId))
+            revert UnsupportedChain();
 
         // Use the provided operation ID (don't generate our own)
         emit MockMessageInitiated(
             operationId, // Use router's ID
-            destinationChainId,
-            recipient,
-            message
+            params.destinationChainId,
+            params.target,
+            params.message
         );
 
         // No return value needed

@@ -19,17 +19,12 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
-
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
-            adapterParams: adapterParams
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 500000,
+            calldataSize: 100,
+            msgValue: 0,
+            options: ""
         });
 
         // Quote fee FOR EXECUTION
@@ -59,9 +54,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
         vm.stopPrank();
 
@@ -84,16 +79,12 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter), // Specify adapter
-            adapterParams: adapterParams
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 500000,
+            calldataSize: 100,
+            msgValue: 0,
+            options: ""
         });
 
         // Quote fee FOR EXECUTION
@@ -117,9 +108,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
         vm.stopPrank();
 
@@ -169,17 +160,13 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // mockReceiver (queueManager) queues the operation (NO VALUE)
         vm.startPrank(address(mockReceiver));
         // Create bridge options inside prank
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
-        options = BridgeTypes.BridgeOptions({ // Initialize options here
-                specifiedAdapter: address(mockAdapter), // Specify adapter
-                adapterParams: adapterParams
-            });
+        options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 500000,
+            calldataSize: 100,
+            msgValue: 0,
+            options: ""
+        });
 
         // Quote fee FOR EXECUTION
         (uint256 fee, , ) = router.quote(
@@ -202,9 +189,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
         vm.stopPrank();
 
@@ -244,17 +231,13 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // mockReceiver (queueManager) queues the operation (NO VALUE)
         vm.startPrank(address(mockReceiver));
         // Create bridge options inside prank
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            });
-        options = BridgeTypes.BridgeOptions({ // Initialize options here
-                specifiedAdapter: address(mockAdapter), // Specify adapter
-                adapterParams: adapterParams
-            });
+        options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 500000,
+            calldataSize: 100,
+            msgValue: 0,
+            options: ""
+        });
 
         // Quote fee FOR EXECUTION
         (uint256 fee, , ) = router.quote(
@@ -277,9 +260,9 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 selector: targetSelector,
                 readParams: targetCalldata,
                 originator: address(mockReceiver),
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
         vm.stopPrank();
 

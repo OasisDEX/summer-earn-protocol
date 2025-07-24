@@ -142,7 +142,8 @@ interface IBridgeRouter is IERC165 {
      * @return operationId Unique operation ID.
      */
     function executeTransferAssets(
-        BridgeTypes.ExecuteTransferParams calldata params
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable returns (bytes32 operationId);
 
     /**
@@ -155,7 +156,8 @@ interface IBridgeRouter is IERC165 {
      * @return operationId Unique operation ID.
      */
     function executeReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable returns (bytes32 operationId);
 
     /**
@@ -167,7 +169,8 @@ interface IBridgeRouter is IERC165 {
      * @return operationId Unique operation ID.
      */
     function executeSendMessage(
-        BridgeTypes.ExecuteSendMessageParams calldata params
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external payable returns (bytes32 operationId);
 
     /*//////////////////////////////////////////////////////////////

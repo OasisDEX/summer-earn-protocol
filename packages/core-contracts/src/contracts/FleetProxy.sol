@@ -127,7 +127,8 @@ contract FleetProxy is
 
     /// @notice Keeper function to withdraw and transfer assets
     function withdrawAndTransfer(
-        BridgeTypes.ExecuteTransferParams calldata params
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external whenNotPaused nonReentrant onlyKeeper {
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
 
@@ -161,7 +162,7 @@ contract FleetProxy is
         IERC20(asset).forceApprove(address(bridgeRouter), params.amount);
 
         // 6. Queue the cross-chain transfer back to the Ark on the hub chain
-        bridgeRouter.executeTransferAssets(params);
+        bridgeRouter.executeTransferAssets(params, options);
 
         emit AssetsWithdrawnAndTransferred(
             params.amount,

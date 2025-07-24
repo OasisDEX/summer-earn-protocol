@@ -246,7 +246,8 @@ contract BridgeRouter is
      * @inheritdoc IBridgeRouter
      */
     function executeTransferAssets(
-        BridgeTypes.ExecuteTransferParams calldata params
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
@@ -256,7 +257,7 @@ contract BridgeRouter is
         returns (bytes32 operationId)
     {
         _validateAdapterSupportsOperation(
-            params.options.specifiedAdapter,
+            options.specifiedAdapter,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
         _validateTransferParams(params);
@@ -266,7 +267,7 @@ contract BridgeRouter is
             params.destinationChainId,
             params.asset,
             params.amount,
-            params.options,
+            options,
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
@@ -323,13 +324,8 @@ contract BridgeRouter is
         // Call adapter with the full msg.value
         ISendAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
             operationId, // Pass the router-generated ID
-            params.destinationChainId,
-            params.asset,
-            params.target,
-            params.amount,
-            params.originator,
-            params.refundAddress, // Pass keeper for refunds
-            params.options.adapterParams
+            params,
+            options
         );
 
         emit TransferInitiated(
@@ -350,7 +346,8 @@ contract BridgeRouter is
      * @inheritdoc IBridgeRouter
      */
     function executeReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
@@ -360,7 +357,7 @@ contract BridgeRouter is
         returns (bytes32 operationId)
     {
         _validateAdapterSupportsOperation(
-            params.options.specifiedAdapter,
+            options.specifiedAdapter,
             BridgeTypes.OperationType.READ_STATE
         );
         _validateReadStateParams(params);
@@ -370,7 +367,7 @@ contract BridgeRouter is
             params.destinationChainId,
             address(0), // No asset
             0, // No amount
-            params.options,
+            options,
             BridgeTypes.OperationType.READ_STATE
         );
 
@@ -404,13 +401,8 @@ contract BridgeRouter is
         // Call adapter with the full msg.value
         ISendAdapter(specifiedAdapter).readState{value: bufferedFee}(
             operationId, // Pass the router-generated ID
-            uint16(block.chainid),
-            params.destinationChainId,
-            params.target,
-            params.selector,
-            params.readParams,
-            params.refundAddress, // Pass keeper for refunds
-            params.options.adapterParams
+            params,
+            options
         );
 
         emit ReadRequestInitiated(
@@ -431,7 +423,8 @@ contract BridgeRouter is
      * @inheritdoc IBridgeRouter
      */
     function executeSendMessage(
-        BridgeTypes.ExecuteSendMessageParams calldata params
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
@@ -441,7 +434,7 @@ contract BridgeRouter is
         returns (bytes32 operationId)
     {
         _validateAdapterSupportsOperation(
-            params.options.specifiedAdapter,
+            options.specifiedAdapter,
             BridgeTypes.OperationType.MESSAGE
         );
         _validateSendMessageParams(params);
@@ -451,7 +444,7 @@ contract BridgeRouter is
             params.destinationChainId,
             address(0), // No asset
             0, // No amount
-            params.options,
+            options,
             BridgeTypes.OperationType.MESSAGE
         );
 
@@ -476,11 +469,8 @@ contract BridgeRouter is
         // Call adapter with the full msg.value
         ISendAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
             operationId, // Pass the router-generated ID
-            params.destinationChainId,
-            params.target,
-            params.message,
-            params.refundAddress, // Pass keeper for refunds
-            params.options.adapterParams
+            params,
+            options
         );
 
         emit MessageInitiated(
@@ -538,7 +528,7 @@ contract BridgeRouter is
             destinationChainId,
             asset,
             amount,
-            options.adapterParams,
+            options,
             operationType
         );
 

@@ -84,20 +84,20 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         useNetworkA();
 
         // Create adapter params with a specific gas limit
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                msgValue: 0,
-                calldataSize: 0,
-                options: bytes("")
-            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(adapterA),
+            gasLimit: 500000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: bytes("")
+        });
 
         // Call estimateFee directly on the adapter
         (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateFee(
             CHAIN_ID_B,
             address(0), // No asset for general message
             0, // No amount for general message
-            adapterParams,
+            options,
             BridgeTypes.OperationType.MESSAGE
         );
 

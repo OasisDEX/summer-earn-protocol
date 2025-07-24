@@ -15,21 +15,20 @@ library BridgeTypes {
     }
 
     /**
-     * @notice Generic adapter options structure for cross-chain operations
+     * @notice Bridge options structure
+     * @dev This struct is used to pass options to the bridge.
+     * @dev The specifiedAdapter is the address of the adapter to use.
+     * @dev The gasLimit is the gas limit for execution on destination chain.
+     * @dev The calldataSize is the size of expected return calldata (for read operations).
+     * @dev The msgValue is the native value to forward (for operations requiring value).
+     * @dev The options are additional adapter-specific parameters.
      */
-    struct AdapterParams {
+    struct BridgeOptions {
+        address specifiedAdapter; // Required specific adapter to use (address(0) will revert)
         uint64 gasLimit; // Gas limit for execution on destination chain
         uint32 calldataSize; // Size of expected return calldata (for read operations)
         uint128 msgValue; // Native value to forward (for operations requiring value)
         bytes options; // Additional adapter-specific parameters
-    }
-
-    /**
-     * @notice Bridge options structure
-     */
-    struct BridgeOptions {
-        address specifiedAdapter; // Required specific adapter to use (address(0) will revert)
-        AdapterParams adapterParams; // Generic adapter options
     }
 
     // Enum for operation types
@@ -57,7 +56,6 @@ library BridgeTypes {
         uint256 amount;
         bytes message;
         address refundAddress;
-        BridgeOptions options;
     }
 
     /**
@@ -77,7 +75,6 @@ library BridgeTypes {
         bytes4 selector;
         bytes readParams;
         address refundAddress;
-        BridgeOptions options;
     }
 
     /**
@@ -95,7 +92,6 @@ library BridgeTypes {
         address target;
         bytes message;
         address refundAddress;
-        BridgeOptions options;
     }
 
     struct DeliverPayload {

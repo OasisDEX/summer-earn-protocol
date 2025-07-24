@@ -372,7 +372,8 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // --- External Execute Functions (Matching IBridgeRouter) ---
 
     function executeTransferAssets(
-        BridgeTypes.ExecuteTransferParams calldata params
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata
     )
         external
         payable
@@ -384,7 +385,8 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     }
 
     function executeReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata
     )
         external
         payable
@@ -396,7 +398,8 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     }
 
     function executeSendMessage(
-        BridgeTypes.ExecuteSendMessageParams calldata params
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata
     )
         external
         payable

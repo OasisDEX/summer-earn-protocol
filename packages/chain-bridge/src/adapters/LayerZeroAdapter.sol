@@ -344,14 +344,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @inheritdoc ISendAdapter
     function transferAsset(
         bytes32, // operationId - not used by LayerZero adapter
-        uint16 destinationChainId,
-        address,
-        address,
-        uint256,
-        address,
-        address, // keeper - not used by LayerZero adapter
-        BridgeTypes.AdapterParams calldata
-    ) external payable onlySupportedDestination(destinationChainId) {
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable onlySupportedDestination(params.destinationChainId) {
         // This adapter doesn't support asset transfers directly
         // It should never be called for this purpose due to capability flags
         revert OperationNotSupported();
@@ -362,7 +357,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint16 destinationChainId,
         address,
         uint256,
-        BridgeTypes.AdapterParams calldata adapterParams,
+        BridgeTypes.BridgeOptions calldata options,
         BridgeTypes.OperationType operationType
     )
         external
@@ -377,7 +372,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // Create appropriate payload based on message type
         bytes memory payload;
-        bytes memory options;
+        bytes memory lzOptions;
 
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             // Construct a READ payload identical to readState implementation
@@ -404,7 +399,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             );
         }
 
-        options = _prepareOptions(adapterParams, operationType);
+        lzOptions = _prepareOptions(options, operationType);
 
         // Quote should use the same destination target as real message
         uint32 dstEid = lzDstEid;
@@ -416,12 +411,12 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             EndpointFee memory fee = _quote(
                 readChannelId,
                 payload,
-                options,
+                lzOptions,
                 false
             );
             return (fee.nativeFee, fee.lzTokenFee);
         } else {
-            EndpointFee memory fee = _quote(dstEid, payload, options, false);
+            EndpointFee memory fee = _quote(dstEid, payload, lzOptions, false);
             return (fee.nativeFee, fee.lzTokenFee);
         }
     }
@@ -436,17 +431,12 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @inheritdoc ISendAdapter
     function readState(
         bytes32 operationId,
-        uint16 srcChainId,
-        uint16 destinationChainId,
-        address destinationContract,
-        bytes4 selector,
-        bytes calldata readParams,
-        address keeper,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
-        onlySupportedDestination(destinationChainId)
+        onlySupportedDestination(params.destinationChainId)
         onlyRouter
         nonReentrant
     {
@@ -454,11 +444,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
 
         // Get the LayerZero EID for destination chain
-        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
+        uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
 
         // Check if enough value was sent if specified in adapter options
-        if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
-            revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
+        if (options.msgValue > 0 && msg.value < options.msgValue) {
+            revert InsufficientMsgValue(options.msgValue, msg.value);
         }
 
         bytes32 guid;
@@ -471,71 +461,68 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                 isBlockNum: false,
                 blockNumOrTimestamp: uint64(block.timestamp),
                 confirmations: 15,
-                to: destinationContract,
-                callData: abi.encodePacked(selector, readParams)
+                to: params.target,
+                callData: abi.encodePacked(params.selector, params.readParams)
             });
 
             // Encode and send
             bytes memory cmd = ReadCodecV1.encode(0, readRequests);
-            bytes memory options = _prepareOptions(
-                adapterParams,
+            bytes memory lzOptions = _prepareOptions(
+                options,
                 BridgeTypes.OperationType.READ_STATE
             );
 
             MessagingReceipt memory receipt = _lzSend(
                 readChannelId,
                 cmd,
-                options,
+                lzOptions,
                 EndpointFee(msg.value, 0),
-                payable(keeper)
+                payable(params.refundAddress)
             );
             guid = receipt.guid;
         }
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[guid] = operationId;
-
+        // todo : fix event
         emit ReadRequestInitiated(
             operationId,
-            srcChainId,
-            destinationChainId,
-            destinationContract,
-            selector
+            uint16(0),
+            params.destinationChainId,
+            params.target,
+            params.selector
         );
     }
 
     /// @inheritdoc ISendAdapter
     function sendMessage(
         bytes32 operationId, // Accept from router
-        uint16 destinationChainId,
-        address recipient,
-        bytes calldata message,
-        address keeper,
-        BridgeTypes.AdapterParams calldata adapterParams
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
-        onlySupportedDestination(destinationChainId)
+        onlySupportedDestination(params.destinationChainId)
         onlyRouter
         nonReentrant
     {
         // Get the LayerZero EID for destination chain
-        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
+        uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
 
         // If msgValue is specified in adapter options, ensure enough value was sent
-        if (adapterParams.msgValue > 0 && msg.value < adapterParams.msgValue) {
-            revert InsufficientMsgValue(adapterParams.msgValue, msg.value);
+        if (options.msgValue > 0 && msg.value < options.msgValue) {
+            revert InsufficientMsgValue(options.msgValue, msg.value);
         }
 
         // Encode payload for LayerZero with BridgeTypes.OperationType.MESSAGE message type
         bytes memory payload = abi.encodePacked(
             uint16(BridgeTypes.OperationType.MESSAGE), // BridgeTypes.OperationType.MESSAGE message type
-            abi.encode(message, recipient, operationId)
+            abi.encode(params.message, params.target, operationId)
         );
 
         // Create options with appropriate gas limit
-        bytes memory options = _prepareOptions(
-            adapterParams,
+        bytes memory lzOptions = _prepareOptions(
+            options,
             BridgeTypes.OperationType.MESSAGE
         );
 
@@ -544,9 +531,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         MessagingReceipt memory receipt = _lzSend(
             lzDstEid,
             payload,
-            options,
+            lzOptions,
             EndpointFee(msg.value, 0),
-            payable(keeper)
+            payable(params.refundAddress)
         );
 
         // Map LayerZero's guid to router's operation ID
@@ -555,9 +542,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         // Emit event for message initiation
         emit MessageInitiated(
             operationId,
-            destinationChainId,
-            recipient,
-            message
+            params.destinationChainId,
+            params.target,
+            params.message
         );
     }
 
@@ -586,29 +573,26 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
     /**
      * @notice Creates options with gas limit at least as high as the configured minimum
-     * @param adapterParams User-provided adapter parameters
+     * @param options User-provided adapter parameters
      * @param operationType The operation type being sent
      * @return options The prepared options with appropriate minimum gas limits
      */
     function _prepareOptions(
-        BridgeTypes.AdapterParams memory adapterParams,
+        BridgeTypes.BridgeOptions calldata options,
         BridgeTypes.OperationType operationType
     ) internal view returns (bytes memory) {
-        uint128 gasLimit = adapterParams.gasLimit > 0
-            ? uint128(adapterParams.gasLimit)
+        uint128 gasLimit = options.gasLimit > 0
+            ? uint128(options.gasLimit)
             : uint128(defaultGasLimit());
 
         // Use the helper to create messaging options with minimum gas limit enforcement
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             return
-                LayerZeroOptionsHelper.createLzReadOptions(
-                    adapterParams,
-                    gasLimit
-                );
+                LayerZeroOptionsHelper.createLzReadOptions(options, gasLimit);
         } else {
             return
                 LayerZeroOptionsHelper.createMessagingOptions(
-                    adapterParams,
+                    options,
                     gasLimit
                 );
         }
@@ -630,8 +614,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes memory options;
         {
             // Create params in limited scope
-            BridgeTypes.AdapterParams memory params = BridgeTypes
-                .AdapterParams({
+            BridgeTypes.BridgeOptions memory params = BridgeTypes
+                .BridgeOptions({
+                    specifiedAdapter: address(this),
                     gasLimit: uint64(defaultGasLimit()),
                     msgValue: 0,
                     calldataSize: 0,

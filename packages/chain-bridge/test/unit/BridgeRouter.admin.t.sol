@@ -99,17 +99,12 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         // User attempts to queue (NO VALUE)
         vm.startPrank(user);
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
-
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
-            adapterParams: adapterParams
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
         });
 
         // Get fee estimate first (for keeper execution)
@@ -138,9 +133,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
                 target: user,
                 originator: user,
                 refundAddress: address(executor),
-                message: "",
-                options: options
-            })
+                message: ""
+            }),
+            options
         );
 
         vm.stopPrank();
@@ -154,17 +149,12 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
-
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
-            adapterParams: adapterParams
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
         });
 
         vm.stopPrank(); // User stops queueing
@@ -188,9 +178,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
                 selector: bytes4(keccak256("test()")), // Example function selector
                 readParams: "", // Empty params
                 originator: user,
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
 
         vm.stopPrank();
@@ -204,18 +194,14 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(user);
 
         // Create bridge options
-        BridgeTypes.AdapterParams memory adapterParams = BridgeTypes
-            .AdapterParams({
-                gasLimit: 500000,
-                calldataSize: 0,
-                msgValue: 0,
-                options: ""
-            });
-
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
-            adapterParams: adapterParams
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 500000,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
         });
+
         vm.stopPrank(); // User stops queueing
 
         // Attempt to execute the queued operation (e.g., by keeper)
@@ -229,9 +215,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
                 target: user, // Send to self for testing
                 message: "", // Empty message
                 originator: user,
-                refundAddress: address(keeper),
-                options: options
-            })
+                refundAddress: address(keeper)
+            }),
+            options
         );
         vm.stopPrank();
     }
