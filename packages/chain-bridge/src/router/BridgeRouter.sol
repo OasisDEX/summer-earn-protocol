@@ -563,66 +563,70 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
-    // todo: add retry mechanism
-    function deliverReadResponse(
-        bytes32 operationId,
-        uint16 sourceChainId,
-        bytes calldata resultData
-    ) external nonReentrant onlyRegisteredAdapter {
-        if (operationToAdapter[operationId] != msg.sender) {
-            revert Unauthorized();
-        }
-
-        address originator = readRequestToOriginator[operationId];
-        if (originator == address(0)) revert InvalidParams();
-
-        ICrossChainStateReadReceiver(originator).receiveStateRead(
-            resultData,
-            originator,
-            operationId,
-            sourceChainId
-        );
-
-        emit ReadResponseDelivered(operationId, originator, true);
-    }
-
-    /// @inheritdoc IBridgeRouter
     function deliver(
-        bytes32 operationId,
-        uint16 sourceChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        bytes calldata payload
+        BridgeTypes.OperationType operationType,
+        bytes calldata operationPayload
     ) external onlyRegisteredAdapter nonReentrant {
-        // 1. Move tokens first (if any)
-        if (asset != address(0) && amount > 0) {
-            IERC20(asset).safeTransfer(recipient, amount);
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.ReceiveTransferParams memory data = abi.decode(
+                operationPayload,
+                (BridgeTypes.ReceiveTransferParams)
+            );
 
-            // Callback with asset payload (registry guarantees a valid target)
-            ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
-                asset,
-                amount,
-                payload,
-                sourceChainId
+            // Transfer the asset
+            IERC20(data.asset).safeTransfer(data.recipient, data.amount);
+
+            // Call appropriate receiver interface
+            ICrossChainAssetReceiver(data.recipient).receiveMessageWithAssets(
+                data.asset,
+                data.amount,
+                data.message, // This could be empty bytes
+                data.sourceChainId
             );
 
             emit TransferReceived(
-                operationId,
-                asset,
-                amount,
-                recipient,
-                sourceChainId
+                data.operationId,
+                data.asset,
+                data.amount,
+                data.recipient,
+                data.sourceChainId
             );
-            return; // nothing else to emit
-        }
+        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            BridgeTypes.ReceiveMessageParams memory data = abi.decode(
+                operationPayload,
+                (BridgeTypes.ReceiveMessageParams)
+            );
 
-        // 2. Pure message path
-        ICrossChainMessageReceiver(recipient).receiveMessage(
-            sourceChainId,
-            payload
-        );
-        emit MessageDelivered(operationId, recipient, true);
+            ICrossChainMessageReceiver(data.recipient).receiveMessage(
+                data.sourceChainId,
+                data.message
+            );
+
+            emit MessageDelivered(data.operationId, data.recipient, true);
+        } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            // Handle read response delivery (this already exists as deliverReadResponse)
+            BridgeTypes.ReceiveReadResponse memory data = abi.decode(
+                operationPayload,
+                (BridgeTypes.ReceiveReadResponse)
+            );
+
+            if (operationToAdapter[data.operationId] != msg.sender) {
+                revert Unauthorized();
+            }
+
+            address originator = readRequestToOriginator[data.operationId];
+            if (originator == address(0)) revert InvalidParams();
+
+            ICrossChainStateReadReceiver(originator).receiveStateRead(
+                data.readResponseData,
+                data.operationId,
+                data.sourceChainId
+            );
+
+            emit ReadResponseDelivered(data.operationId, originator, true);
+        } else {
+            revert UnsupportedOperationType();
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

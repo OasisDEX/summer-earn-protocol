@@ -40,10 +40,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function _encodeReadResponse(
         uint256 balance
     ) internal pure returns (bytes memory) {
-        BridgeTypes.ReadResponse memory rr = BridgeTypes.ReadResponse({
-            data: abi.encode(balance)
-        });
-        return abi.encode(rr);
+        return abi.encode(balance);
     }
 
     function setUp() public {
@@ -412,7 +409,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Call as bridgeRouter, with correct sourceChain and requestor
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, address(ark), requestId, sourceChain);
+        ark.receiveStateRead(resultData, requestId, sourceChain);
 
         // Check state
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
@@ -431,7 +428,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         bytes memory resultData = _encodeReadResponse(initialRemoteBalance);
         bytes32 requestId = keccak256("test-request");
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, address(ark), requestId, sourceChain);
+        ark.receiveStateRead(resultData, requestId, sourceChain);
 
         // Should emit the event when receiving assets
         vm.expectEmit(true, true, true, true);
@@ -468,7 +465,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         emit ICrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
 
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, address(ark), requestId, sourceChain);
+        ark.receiveStateRead(resultData, requestId, sourceChain);
 
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
         assertEq(
@@ -498,7 +495,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         emit IInflightAssetTracking.InflightAssetsUpdated(0);
 
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, address(ark), requestId, sourceChain);
+        ark.receiveStateRead(resultData, requestId, sourceChain);
 
         assertEq(
             ark.inflightAssets(),
@@ -517,7 +514,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Test unauthorized caller
         vm.prank(address(0x999));
         vm.expectRevert(ICrossChainArk.Unauthorized.selector);
-        ark.receiveStateRead(resultData, address(ark), requestId, sourceChain);
+        ark.receiveStateRead(resultData, requestId, sourceChain);
     }
 
     function testReceiveStateReadInvalidSourceChain() public {
@@ -529,29 +526,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Test wrong source chain
         vm.prank(address(router));
         vm.expectRevert(ICrossChainArk.InvalidSourceChain.selector);
-        ark.receiveStateRead(
-            resultData,
-            address(ark),
-            requestId,
-            wrongSourceChain
-        );
-    }
-
-    function testReceiveStateReadInvalidRequestor() public {
-        uint256 remoteBalance = 1000;
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
-        bytes32 requestId = keccak256("wrong-requestor-test");
-        uint16 sourceChain = TARGET_CHAIN_ID;
-
-        // Test wrong requestor
-        vm.prank(address(router));
-        vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
-        ark.receiveStateRead(
-            resultData,
-            address(0x123),
-            requestId,
-            sourceChain
-        );
+        ark.receiveStateRead(resultData, requestId, wrongSourceChain);
     }
 
     function testSupportsInterfaceIncludesStateReadReceiver() public view {
@@ -579,12 +554,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("total-assets-test");
         vm.prank(address(router));
-        ark.receiveStateRead(
-            resultData,
-            address(ark),
-            requestId,
-            TARGET_CHAIN_ID
-        );
+        ark.receiveStateRead(resultData, requestId, TARGET_CHAIN_ID);
 
         // Setup inflight assets
         vm.prank(address(router));
@@ -652,7 +622,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     }
 
     function testBridgeRouterDeliveryFlow() public {
-        // This test simulates what would happen when BridgeRouter calls deliverReadResponse
+        // This test simulates what would happen when BridgeRouter calls deliver()
         // and that results in CrossChainArk.receiveStateRead being called
         uint256 remoteBalance = 7777;
         bytes memory resultData = _encodeReadResponse(remoteBalance);
@@ -662,7 +632,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // In the real flow:
         // 1. CrossChainArk requests a state read via BridgeRouter
         // 2. BridgeRouter executes the read request
-        // 3. When response comes back, BridgeRouter.deliverReadResponse calls receiveStateRead
+        // 3. When response comes back, BridgeRouter.deliver() calls receiveStateRead
 
         // For this test, we simulate step 3 directly
         vm.expectEmit(true, true, true, true);
@@ -673,12 +643,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Simulate BridgeRouter calling receiveStateRead on the CrossChainArk
         vm.prank(address(router));
-        ark.receiveStateRead(
-            resultData,
-            address(ark),
-            operationId,
-            sourceChain
-        );
+        ark.receiveStateRead(resultData, operationId, sourceChain);
 
         // Verify the state was updated correctly
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);

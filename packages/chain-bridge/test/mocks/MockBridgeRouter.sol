@@ -3,6 +3,9 @@ pragma solidity ^0.8.28;
 
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainMessageReceiver} from "../../src/interfaces/ICrossChainMessageReceiver.sol";
+import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -251,54 +254,75 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     }
 
     function deliver(
-        bytes32 operationId,
-        uint16 sourceChainId,
-        address asset,
-        uint256 amount,
-        address target,
-        bytes calldata
+        BridgeTypes.OperationType operationType,
+        bytes calldata operationPayload
     ) external {
-        // Track the handling adapter
-        operationAdapters[operationId] = msg.sender;
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.ReceiveTransferParams memory data = abi.decode(
+                operationPayload,
+                (BridgeTypes.ReceiveTransferParams)
+            );
 
-        // 1. Move tokens first (if any)
-        if (asset != address(0) && amount > 0) {
-            IERC20(asset).safeTransfer(target, amount);
+            // Track the handling adapter
+            operationAdapters[data.operationId] = msg.sender;
 
-            // Emit transfer received event
+            // Transfer the asset if we have tokens
+            if (data.asset != address(0) && data.amount > 0) {
+                IERC20(data.asset).safeTransfer(data.recipient, data.amount);
+            }
+
+            // Call appropriate receiver interface
+            ICrossChainAssetReceiver(data.recipient).receiveMessageWithAssets(
+                data.asset,
+                data.amount,
+                data.message,
+                data.sourceChainId
+            );
+
             emit TransferReceived(
-                operationId,
-                asset,
-                amount,
-                target,
-                sourceChainId
+                data.operationId,
+                data.asset,
+                data.amount,
+                data.recipient,
+                data.sourceChainId
             );
-        }
+        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            BridgeTypes.ReceiveMessageParams memory data = abi.decode(
+                operationPayload,
+                (BridgeTypes.ReceiveMessageParams)
+            );
 
-        // Always emit message delivered event
-        emit MessageDelivered(operationId, target, true);
-    }
+            // Track the handling adapter
+            operationAdapters[data.operationId] = msg.sender;
 
-    function deliverReadResponse(
-        bytes32 operationId,
-        uint16,
-        bytes calldata
-    ) external {
-        // require(msg.sender == operationAdapters[operationId], "Mock: Unauthorized adapter");
-        address originator = operationOriginators[operationId];
-        // Simulate attempting to call originator - for tests, just update status & emit
-        bool delivered = originator != address(0); // Mock success if originator exists
-        if (delivered) {
-            // Emit event for successful delivery
-            emit ReadResponseDelivered(operationId, originator, delivered);
+            ICrossChainMessageReceiver(data.recipient).receiveMessage(
+                data.sourceChainId,
+                data.message
+            );
+
+            emit MessageDelivered(data.operationId, data.recipient, true);
+        } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            BridgeTypes.ReceiveReadResponse memory data = abi.decode(
+                operationPayload,
+                (BridgeTypes.ReceiveReadResponse)
+            );
+
+            // Track the handling adapter
+            operationAdapters[data.operationId] = msg.sender;
+
+            // For mock purposes, assume originator is stored or passed in data
+            // In real implementation, this comes from readRequestToOriginator mapping
+            address originator = operationOriginators[data.operationId]; // Use originator from payload for mock
+
+            ICrossChainStateReadReceiver(originator).receiveStateRead(
+                data.readResponseData,
+                data.operationId,
+                data.sourceChainId
+            );
+
+            emit ReadResponseDelivered(data.operationId, originator, true);
         } else {
-            // Update status to FAILED if delivery failed
-            operationStatuses[operationId] = BridgeTypes.OperationStatus.FAILED;
-            emit OperationStatusUpdated(
-                operationId,
-                BridgeTypes.OperationStatus.FAILED
-            );
-            emit ReadResponseDelivered(operationId, originator, delivered);
+            revert("UnsupportedOperationType");
         }
     }
 

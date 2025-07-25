@@ -257,20 +257,14 @@ contract CrossChainArk is
      */
     function receiveStateRead(
         bytes calldata resultData,
-        address requestor,
         bytes32 requestId,
         uint16 sourceChainId
     ) external {
         if (msg.sender != bridgeRouter()) revert Unauthorized();
         if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
-        if (requestor != address(this)) revert InvalidRequestor();
 
         // Decode the remote asset balance
-        BridgeTypes.ReadResponse memory rr = abi.decode(
-            resultData,
-            (BridgeTypes.ReadResponse)
-        );
-        uint256 newRemoteBalance = abi.decode(rr.data, (uint256));
+        uint256 newRemoteBalance = abi.decode(resultData, (uint256));
 
         lastRemoteAssetBalance = newRemoteBalance;
 

@@ -256,11 +256,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // todo: should the read reponse also contain the operation type and the originator?
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
-            _relayReadResponse(
-                _origin,
-                _guid,
-                abi.encode(BridgeTypes.ReadResponse({data: _payload}))
-            );
+            _relayReadResponse(_origin, _guid, _payload);
             return;
         } else if (_payload.length >= 2) {
             // If the payload starts with a uint16 message type marker
@@ -276,10 +272,15 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                 (
                     bytes memory message,
                     address recipient,
-                    bytes32 messageId
+                    bytes32 operationId
                 ) = abi.decode(actualPayload, (bytes, address, bytes32));
 
-                _relayGeneralMessage(message, recipient, messageId, srcChainId);
+                _relayGeneralMessage(
+                    message,
+                    recipient,
+                    operationId,
+                    srcChainId
+                );
             } else {
                 revert UnsupportedMessageType();
             }
@@ -292,22 +293,26 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @dev Handles general messages
      * @param message The message payload
      * @param recipient The recipient address of the message
-     * @param messageId The message ID
+     * @param operationId The message ID
      * @param srcChainId The source chain ID
      */
     function _relayGeneralMessage(
         bytes memory message,
         address recipient,
-        bytes32 messageId,
+        bytes32 operationId,
         uint16 srcChainId
     ) internal {
         IBridgeRouter(bridgeRouter()).deliver(
-            messageId,
-            srcChainId,
-            address(0), // no asset
-            0, // no amount
-            recipient,
-            message
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(
+                BridgeTypes.ReceiveMessageParams({
+                    operationId: operationId,
+                    originator: address(this),
+                    sourceChainId: srcChainId,
+                    recipient: recipient,
+                    message: message
+                })
+            )
         );
     }
 
@@ -323,17 +328,23 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes memory _payload
     ) internal {
         // Extract requestId from the guid mapping
+
         bytes32 operationId = lzMessageToOperationId[_guid];
         if (operationId == bytes32(0)) {
             // Silently fail so it doesn't get locked with DVN
             emit ReadOperationNotFound(_guid, "No operationId found");
             return;
         }
-
-        IBridgeRouter(bridgeRouter()).deliverReadResponse(
-            operationId,
-            lzEidToChain[_origin.srcEid],
-            _payload
+        bytes memory operationPayload = abi.encode(
+            BridgeTypes.ReceiveReadResponse({
+                readResponseData: _payload,
+                operationId: operationId,
+                sourceChainId: lzEidToChain[_origin.srcEid]
+            })
+        );
+        IBridgeRouter(bridgeRouter()).deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            operationPayload
         );
     }
 

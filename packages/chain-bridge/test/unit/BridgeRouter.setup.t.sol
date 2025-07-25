@@ -115,6 +115,21 @@ contract BridgeRouterSetup is Test {
         vm.deal(address(mockReceiver), 10 ether);
 
         vm.stopPrank();
+
+        vm.label(address(mockReceiver), "mockReceiver");
+        vm.label(address(mockAdapter), "mockAdapter");
+        vm.label(address(mockAdapter2), "mockAdapter2");
+        vm.label(address(router), "router");
+        vm.label(address(accessManager), "accessManager");
+        vm.label(address(registry), "registry");
+        vm.label(address(token), "token");
+        vm.label(address(keeper), "keeper");
+        vm.label(address(executor), "executor");
+        vm.label(address(governor), "governor");
+        vm.label(address(guardian), "guardian");
+        vm.label(address(user), "user");
+        vm.label(address(0x999), "0x999");
+        vm.label(address(0x123), "0x123");
     }
 
     function testSkip() public {}
