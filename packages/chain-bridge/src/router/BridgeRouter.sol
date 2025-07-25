@@ -568,9 +568,9 @@ contract BridgeRouter is
         bytes calldata operationPayload
     ) external onlyRegisteredAdapter nonReentrant {
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.ReceiveTransferParams memory data = abi.decode(
+            BridgeTypes.DeliveredTransferParams memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.ReceiveTransferParams)
+                (BridgeTypes.DeliveredTransferParams)
             );
 
             // Transfer the asset
@@ -592,9 +592,9 @@ contract BridgeRouter is
                 data.sourceChainId
             );
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.ReceiveMessageParams memory data = abi.decode(
+            BridgeTypes.DeliveredMessageParams memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.ReceiveMessageParams)
+                (BridgeTypes.DeliveredMessageParams)
             );
 
             ICrossChainMessageReceiver(data.recipient).receiveMessage(
@@ -605,9 +605,9 @@ contract BridgeRouter is
             emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
             // Handle read response delivery (this already exists as deliverReadResponse)
-            BridgeTypes.ReceiveReadResponse memory data = abi.decode(
+            BridgeTypes.DeliveredReadResponse memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.ReceiveReadResponse)
+                (BridgeTypes.DeliveredReadResponse)
             );
 
             if (operationToAdapter[data.operationId] != msg.sender) {

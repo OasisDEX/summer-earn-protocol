@@ -57,7 +57,7 @@ library BridgeTypes {
         bytes message;
         address refundAddress;
     }
-    struct ReceiveTransferParams {
+    struct DeliveredTransferParams {
         bytes32 operationId;
         address originator;
         uint16 sourceChainId;
@@ -66,7 +66,7 @@ library BridgeTypes {
         uint256 amount;
         bytes message;
     }
-    struct ReceiveMessageParams {
+    struct DeliveredMessageParams {
         bytes32 operationId;
         address originator;
         uint16 sourceChainId;
@@ -82,7 +82,7 @@ library BridgeTypes {
      *              abi.decode(resultData, (BridgeTypes.ReadResponse));
      *      and then decode `r.data` to whatever concrete type it expects.
      */
-    struct ReceiveReadResponse {
+    struct DeliveredReadResponse {
         bytes readResponseData; // ABI-encoded return data of the read call
         bytes32 operationId;
         uint16 sourceChainId;

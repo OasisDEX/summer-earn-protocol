@@ -714,7 +714,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: mockResponseData,
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -800,7 +800,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: responseData,
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -818,7 +818,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: responseData,
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -837,7 +837,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: responseData,
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -1015,7 +1015,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             bridgeRouter.deliver(
                 BridgeTypes.OperationType.READ_STATE,
                 abi.encode(
-                    BridgeTypes.ReceiveReadResponse({
+                    BridgeTypes.DeliveredReadResponse({
                         readResponseData: responsePayload,
                         operationId: operationId,
                         sourceChainId: DEST_CHAIN_ID
@@ -1105,7 +1105,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: responseData,
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -1125,7 +1125,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: responseData,
                     operationId: invalidOperationId,
                     sourceChainId: DEST_CHAIN_ID

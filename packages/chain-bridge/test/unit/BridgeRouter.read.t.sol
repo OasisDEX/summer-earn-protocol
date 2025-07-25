@@ -140,7 +140,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: abi.encode(uint256(100)),
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -218,7 +218,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: abi.encode(uint256(100)),
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -294,7 +294,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 IBridgeRouter.deliver.selector,
                 BridgeTypes.OperationType.READ_STATE,
                 abi.encode(
-                    BridgeTypes.ReceiveReadResponse({
+                    BridgeTypes.DeliveredReadResponse({
                         readResponseData: abi.encode(uint256(100)),
                         operationId: operationId,
                         sourceChainId: DEST_CHAIN_ID
@@ -318,7 +318,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     readResponseData: abi.encode(uint256(100)),
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID

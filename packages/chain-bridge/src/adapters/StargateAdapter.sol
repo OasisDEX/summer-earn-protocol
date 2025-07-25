@@ -297,8 +297,8 @@ contract StargateAdapter is
         address destinationAdapter = _peerAdapter(params.destinationChainId);
         if (destinationAdapter == address(0)) revert UnsupportedChain();
 
-        BridgeTypes.ReceiveTransferParams memory atm = BridgeTypes
-            .ReceiveTransferParams({
+        BridgeTypes.DeliveredTransferParams memory atm = BridgeTypes
+            .DeliveredTransferParams({
                 recipient: params.target,
                 asset: params.asset,
                 amount: params.amount,
@@ -600,9 +600,9 @@ contract StargateAdapter is
         // ---------------------------------------------------------------
         // 2. Verify peer adapter relationship
         // ---------------------------------------------------------------
-        BridgeTypes.ReceiveTransferParams memory atm = abi.decode(
+        BridgeTypes.DeliveredTransferParams memory atm = abi.decode(
             composeMsg,
-            (BridgeTypes.ReceiveTransferParams)
+            (BridgeTypes.DeliveredTransferParams)
         );
 
         _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
@@ -660,9 +660,9 @@ contract StargateAdapter is
         bytes memory composeMsg
     ) internal {
         // Decode the compose message
-        BridgeTypes.ReceiveTransferParams memory atm = abi.decode(
+        BridgeTypes.DeliveredTransferParams memory atm = abi.decode(
             composeMsg,
-            (BridgeTypes.ReceiveTransferParams)
+            (BridgeTypes.DeliveredTransferParams)
         );
 
         // -----------------------------------------------------------------

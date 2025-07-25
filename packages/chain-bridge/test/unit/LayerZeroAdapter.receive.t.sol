@@ -108,7 +108,7 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
                 (
                     BridgeTypes.OperationType.MESSAGE,
                     abi.encode(
-                        BridgeTypes.ReceiveMessageParams({
+                        BridgeTypes.DeliveredMessageParams({
                             operationId: messageId,
                             originator: address(adapterA),
                             sourceChainId: uint16(CHAIN_ID_B),

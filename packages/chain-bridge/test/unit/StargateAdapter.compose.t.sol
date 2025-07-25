@@ -50,14 +50,14 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     /// forge-lint: disable-end(mixed-case-function)
 
     /**
-     * @dev Helper to create a properly encoded ReceiveTransferParams
+     * @dev Helper to create a properly encoded DeliveredTransferParams
      * @param recipient The recipient address
      * @param asset The asset address
      * @param amount The amount
      * @param sourceChainId The source chain ID
      * @param operationId The operation ID
      * @param originator The originator address
-     * @return Properly encoded ReceiveTransferParams
+     * @return Properly encoded DeliveredTransferParams
      */
     function _createAssetTransferMessage(
         address recipient,
@@ -67,8 +67,8 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes32 operationId,
         address originator
     ) internal pure returns (bytes memory) {
-        BridgeTypes.ReceiveTransferParams memory atm = BridgeTypes
-            .ReceiveTransferParams({
+        BridgeTypes.DeliveredTransferParams memory atm = BridgeTypes
+            .DeliveredTransferParams({
                 recipient: recipient,
                 asset: asset,
                 amount: amount,
@@ -100,7 +100,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     function testLzComposeUnauthorizedCaller() public {
         useNetworkB();
 
-        // Create proper ReceiveTransferParams
+        // Create proper DeliveredTransferParams
         bytes memory customComposeMessage = _createAssetTransferMessage(
             user,
             address(tokenB),
@@ -116,7 +116,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             uint16(1), // assetId
             bytes32(uint256(uint160(address(adapterB)))), // receiver
             uint64(1 ether / 10 ** tokenB.decimals()), // amountSD
-            customComposeMessage // properly encoded ReceiveTransferParams
+            customComposeMessage // properly encoded DeliveredTransferParams
         );
 
         // Should revert when called by non-endpoint
@@ -178,7 +178,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(adapterA)
         );
 
-        // Mock Stargate to expect the proper ReceiveTransferParams
+        // Mock Stargate to expect the proper DeliveredTransferParams
         bytes memory expectedComposeMsg = _createAssetTransferMessage(
             address(fleetProxyB), // recipient
             address(tokenA), // asset
@@ -215,7 +215,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     function testLzComposeWithInvalidMessage() public {
         useNetworkB();
 
-        // Invalid message (wrong encoding - not ReceiveTransferParams struct)
+        // Invalid message (wrong encoding - not DeliveredTransferParams struct)
         bytes memory invalidMessage = abi.encode(
             address(fleetProxyB),
             address(tokenB)
@@ -337,7 +337,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         uint256 testAmount = 1 ether;
 
-        // Create proper ReceiveTransferParams
+        // Create proper DeliveredTransferParams
         bytes memory customComposeMessage = _createAssetTransferMessage(
             address(fleetProxyB),
             address(tokenB),
@@ -353,7 +353,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             uint16(1), // assetId
             bytes32(uint256(uint160(address(adapterB)))), // receiver
             uint64(testAmount / 10 ** tokenB.decimals()), // amountSD
-            customComposeMessage // properly encoded ReceiveTransferParams
+            customComposeMessage // properly encoded DeliveredTransferParams
         );
 
         // Don't mint tokens to adapter - should cause insufficient balance
@@ -376,7 +376,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         uint256 testAmount = 1 ether;
 
-        // Create ReceiveTransferParams with invalid parameters (zero address for recipient)
+        // Create DeliveredTransferParams with invalid parameters (zero address for recipient)
         bytes memory customComposeMessage = _createAssetTransferMessage(
             address(0), // recipient - INVALID
             address(tokenB),
@@ -392,7 +392,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             uint16(1), // assetId
             bytes32(uint256(uint160(address(adapterB)))), // receiver
             uint64(testAmount / 10 ** tokenB.decimals()), // amountSD
-            customComposeMessage // properly encoded ReceiveTransferParams
+            customComposeMessage // properly encoded DeliveredTransferParams
         );
 
         // Mint tokens to adapter
@@ -478,7 +478,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
-        // FIXED: Create proper ReceiveTransferParams struct
+        // FIXED: Create proper DeliveredTransferParams struct
         bytes memory customComposeMessage = _createAssetTransferMessage(
             address(mockFleetCommander),
             address(tokenB),
@@ -497,7 +497,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             uint16(1), // assetId
             bytes32(uint256(uint160(address(adapterB)))), // receiver
             scaledAmount, // amountSD
-            customComposeMessage // properly encoded ReceiveTransferParams
+            customComposeMessage // properly encoded DeliveredTransferParams
         );
 
         // Provide the adapter with the funds it will forward
@@ -559,7 +559,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
-        // Proper ReceiveTransferParams struct
+        // Proper DeliveredTransferParams struct
         bytes memory composeMsg = _createAssetTransferMessage(
             address(fleetProxy),
             address(tokenB),

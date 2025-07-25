@@ -36,7 +36,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
-                BridgeTypes.ReceiveTransferParams({
+                BridgeTypes.DeliveredTransferParams({
                     operationId: operationId,
                     originator: address(mockAdapter),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
@@ -73,7 +73,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.ReceiveMessageParams({
+                BridgeTypes.DeliveredMessageParams({
                     operationId: operationId,
                     originator: address(mockAdapter),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
@@ -97,7 +97,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.ReceiveReadResponse({
+                BridgeTypes.DeliveredReadResponse({
                     operationId: operationId,
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
                     readResponseData: responseData
@@ -118,7 +118,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.ReceiveMessageParams({
+                BridgeTypes.DeliveredMessageParams({
                     operationId: operationId,
                     originator: address(mockAdapter2),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
@@ -138,7 +138,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.ReceiveMessageParams({
+                BridgeTypes.DeliveredMessageParams({
                     operationId: operationId,
                     originator: address(mockAdapter),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),

@@ -305,7 +305,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.ReceiveMessageParams({
+                BridgeTypes.DeliveredMessageParams({
                     operationId: operationId,
                     originator: address(this),
                     sourceChainId: srcChainId,
@@ -336,7 +336,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             return;
         }
         bytes memory operationPayload = abi.encode(
-            BridgeTypes.ReceiveReadResponse({
+            BridgeTypes.DeliveredReadResponse({
                 readResponseData: _payload,
                 operationId: operationId,
                 sourceChainId: lzEidToChain[_origin.srcEid]
