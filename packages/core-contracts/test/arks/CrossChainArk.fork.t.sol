@@ -19,6 +19,7 @@ import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInfligh
 import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
+import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
@@ -39,10 +40,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     function _encodeReadResponse(
         uint256 balance
     ) internal pure returns (bytes memory) {
-        BridgeTypes.ReadResponse memory rr = BridgeTypes.ReadResponse({
-            data: abi.encode(balance)
-        });
-        return abi.encode(rr);
+        return abi.encode(balance);
     }
 
     // LayerZero specific constants
@@ -379,12 +377,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Simulate receiving the state read response from the router
         vm.prank(address(bridgeRouter));
-        ark.receiveStateRead(
-            resultData,
-            address(ark),
-            operationId,
-            DEST_CHAIN_ID
-        );
+        ark.receiveStateRead(resultData, operationId, DEST_CHAIN_ID);
 
         // Assert that the remote balance was updated and inflight assets reset
         assertEq(
@@ -644,7 +637,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // 1. CrossChainArk requests remote asset balance update directly
         // 2. BridgeRouter calls LayerZeroAdapter to send the read request
         // 3. Mock LayerZero response comes back to LayerZeroAdapter
-        // 4. LayerZeroAdapter calls BridgeRouter.deliverReadResponse
+        // 4. LayerZeroAdapter calls BridgeRouter.deliver()
         // 5. BridgeRouter calls CrossChainArk.receiveStateRead
         // 6. CrossChainArk updates its state and emits events
 
@@ -705,7 +698,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // The response should contain the encoded remote balance
         bytes memory mockResponseData = _encodeReadResponse(mockRemoteBalance);
 
-        // === STEP 5: Simulate BridgeRouter.deliverReadResponse ===
+        // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
@@ -716,12 +709,17 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.expectEmit(true, true, true, true);
         emit IInflightAssetTracking.InflightAssetsUpdated(0);
 
-        // Simulate the adapter calling deliverReadResponse
+        // Simulate the adapter calling deliver()
         vm.prank(address(layerZeroAdapter));
-        bridgeRouter.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            mockResponseData
+        bridgeRouter.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: mockResponseData,
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
 
         // === STEP 6: Verify final state ===
@@ -799,10 +797,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         address fakeAdapter = makeAddr("fake-adapter");
         vm.prank(fakeAdapter);
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        bridgeRouter.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            responseData
+        bridgeRouter.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: responseData,
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
 
         // Test 2: Wrong adapter trying to deliver response
@@ -812,10 +815,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         vm.prank(secondAdapter);
         vm.expectRevert(IBridgeRouter.Unauthorized.selector);
-        bridgeRouter.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            responseData
+        bridgeRouter.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: responseData,
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
 
         // Test 3: Successful delivery by correct adapter
@@ -826,10 +834,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.prank(address(layerZeroAdapter));
-        bridgeRouter.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            responseData
+        bridgeRouter.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: responseData,
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
 
         // Verify state updates
@@ -851,34 +864,14 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Test 1: Unauthorized caller (not BridgeRouter)
         vm.prank(address(0x999));
         vm.expectRevert(ICrossChainArk.Unauthorized.selector);
-        ark.receiveStateRead(
-            responseData,
-            address(ark),
-            operationId,
-            DEST_CHAIN_ID
-        );
+        ark.receiveStateRead(responseData, operationId, DEST_CHAIN_ID);
 
         // Test 2: Invalid source chain
         vm.prank(address(bridgeRouter));
         vm.expectRevert(ICrossChainArk.InvalidSourceChain.selector);
-        ark.receiveStateRead(
-            responseData,
-            address(ark),
-            operationId,
-            uint16(999)
-        );
+        ark.receiveStateRead(responseData, operationId, uint16(999));
 
-        // Test 3: Invalid requestor
-        vm.prank(address(bridgeRouter));
-        vm.expectRevert(ICrossChainArk.InvalidRequestor.selector);
-        ark.receiveStateRead(
-            responseData,
-            address(0x123),
-            operationId,
-            DEST_CHAIN_ID
-        );
-
-        // Test 4: Successful call with correct parameters
+        // Test 3: Successful call with correct parameters
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
@@ -886,12 +879,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.prank(address(bridgeRouter));
-        ark.receiveStateRead(
-            responseData,
-            address(ark),
-            operationId,
-            DEST_CHAIN_ID
-        );
+        ark.receiveStateRead(responseData, operationId, DEST_CHAIN_ID);
 
         assertEq(ark.lastRemoteAssetBalance(), mockRemoteBalance);
 
@@ -1003,7 +991,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         emit IInflightAssetTracking.InflightAssetsUpdated(0);
 
         // Simulate LayerZero endpoint calling lzReceive on the adapter
-        // The adapter should recognize this as a read response and call deliverReadResponse
+        // The adapter should recognize this as a read response and call deliver()
         vm.prank(LZ_ENDPOINT_MAINNET); // LayerZero endpoint calls the adapter
 
         // Call the adapter's lzReceive method (this is the external interface LayerZero uses)
@@ -1021,13 +1009,18 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // If the direct call doesn't work, we'll simulate the internal flow
         if (!success) {
-            // Fallback: directly simulate the adapter calling deliverReadResponse
+            // Fallback: directly simulate the adapter calling deliver()
             // This simulates what _handleReadResponse would do
             vm.prank(address(layerZeroAdapter));
-            bridgeRouter.deliverReadResponse(
-                operationId,
-                DEST_CHAIN_ID,
-                responsePayload
+            bridgeRouter.deliver(
+                BridgeTypes.OperationType.READ_STATE,
+                abi.encode(
+                    BridgeTypes.ReceiveReadResponse({
+                        readResponseData: responsePayload,
+                        operationId: operationId,
+                        sourceChainId: DEST_CHAIN_ID
+                    })
+                )
             );
         }
 
@@ -1100,19 +1093,24 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 2: Test LayerZero adapter's response handling directly ===
         bytes memory responseData = _encodeReadResponse(mockRemoteBalance);
 
-        // Test the adapter's deliverReadResponse path
+        // Test the adapter's deliver() path
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
             operationId
         );
 
-        // Simulate the adapter calling deliverReadResponse after processing LayerZero response
+        // Simulate the adapter calling deliver() after processing LayerZero response
         vm.prank(address(layerZeroAdapter));
-        bridgeRouter.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            responseData
+        bridgeRouter.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: responseData,
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
 
         // Verify the result
@@ -1124,10 +1122,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Should fail for invalid operation ID
         vm.prank(address(layerZeroAdapter));
         vm.expectRevert(); // Should revert because operation mapping doesn't exist
-        bridgeRouter.deliverReadResponse(
-            invalidOperationId,
-            DEST_CHAIN_ID,
-            responseData
+        bridgeRouter.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: responseData,
+                    operationId: invalidOperationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
 
         emit log_string(

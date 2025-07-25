@@ -50,14 +50,14 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     /// forge-lint: disable-end(mixed-case-function)
 
     /**
-     * @dev Helper to create a properly encoded AssetTransferMessage
+     * @dev Helper to create a properly encoded ReceiveTransferParams
      * @param recipient The recipient address
      * @param asset The asset address
      * @param amount The amount
      * @param sourceChainId The source chain ID
      * @param operationId The operation ID
      * @param originator The originator address
-     * @return Properly encoded AssetTransferMessage
+     * @return Properly encoded ReceiveTransferParams
      */
     function _createAssetTransferMessage(
         address recipient,
@@ -67,14 +67,15 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         bytes32 operationId,
         address originator
     ) internal pure returns (bytes memory) {
-        BridgeTypes.AssetTransferMessage memory atm = BridgeTypes
-            .AssetTransferMessage({
+        BridgeTypes.ReceiveTransferParams memory atm = BridgeTypes
+            .ReceiveTransferParams({
                 recipient: recipient,
                 asset: asset,
                 amount: amount,
-                sourceChainId: sourceChainId,
+                sourceChainId: uint16(sourceChainId),
                 operationId: operationId,
-                originator: originator
+                originator: originator,
+                message: ""
             });
         return abi.encode(atm);
     }
@@ -99,7 +100,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     function testLzComposeUnauthorizedCaller() public {
         useNetworkB();
 
-        // Create proper AssetTransferMessage
+        // Create proper ReceiveTransferParams
         bytes memory customComposeMessage = _createAssetTransferMessage(
             user,
             address(tokenB),
@@ -115,7 +116,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             uint16(1), // assetId
             bytes32(uint256(uint160(address(adapterB)))), // receiver
             uint64(1 ether / 10 ** tokenB.decimals()), // amountSD
-            customComposeMessage // properly encoded AssetTransferMessage
+            customComposeMessage // properly encoded ReceiveTransferParams
         );
 
         // Should revert when called by non-endpoint
@@ -177,7 +178,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(adapterA)
         );
 
-        // Mock Stargate to expect the proper AssetTransferMessage
+        // Mock Stargate to expect the proper ReceiveTransferParams
         bytes memory expectedComposeMsg = _createAssetTransferMessage(
             address(fleetProxyB), // recipient
             address(tokenA), // asset
@@ -214,7 +215,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     function testLzComposeWithInvalidMessage() public {
         useNetworkB();
 
-        // Invalid message (wrong encoding - not AssetTransferMessage struct)
+        // Invalid message (wrong encoding - not ReceiveTransferParams struct)
         bytes memory invalidMessage = abi.encode(
             address(fleetProxyB),
             address(tokenB)
@@ -336,7 +337,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         uint256 testAmount = 1 ether;
 
-        // Create proper AssetTransferMessage
+        // Create proper ReceiveTransferParams
         bytes memory customComposeMessage = _createAssetTransferMessage(
             address(fleetProxyB),
             address(tokenB),
@@ -352,7 +353,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             uint16(1), // assetId
             bytes32(uint256(uint160(address(adapterB)))), // receiver
             uint64(testAmount / 10 ** tokenB.decimals()), // amountSD
-            customComposeMessage // properly encoded AssetTransferMessage
+            customComposeMessage // properly encoded ReceiveTransferParams
         );
 
         // Don't mint tokens to adapter - should cause insufficient balance
@@ -375,7 +376,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         uint256 testAmount = 1 ether;
 
-        // Create AssetTransferMessage with invalid parameters (zero address for recipient)
+        // Create ReceiveTransferParams with invalid parameters (zero address for recipient)
         bytes memory customComposeMessage = _createAssetTransferMessage(
             address(0), // recipient - INVALID
             address(tokenB),
@@ -391,7 +392,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             uint16(1), // assetId
             bytes32(uint256(uint160(address(adapterB)))), // receiver
             uint64(testAmount / 10 ** tokenB.decimals()), // amountSD
-            customComposeMessage // properly encoded AssetTransferMessage
+            customComposeMessage // properly encoded ReceiveTransferParams
         );
 
         // Mint tokens to adapter
@@ -477,7 +478,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
-        // FIXED: Create proper AssetTransferMessage struct
+        // FIXED: Create proper ReceiveTransferParams struct
         bytes memory customComposeMessage = _createAssetTransferMessage(
             address(mockFleetCommander),
             address(tokenB),
@@ -496,7 +497,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             uint16(1), // assetId
             bytes32(uint256(uint160(address(adapterB)))), // receiver
             scaledAmount, // amountSD
-            customComposeMessage // properly encoded AssetTransferMessage
+            customComposeMessage // properly encoded ReceiveTransferParams
         );
 
         // Provide the adapter with the funds it will forward
@@ -558,7 +559,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
-        // Proper AssetTransferMessage struct
+        // Proper ReceiveTransferParams struct
         bytes memory composeMsg = _createAssetTransferMessage(
             address(fleetProxy),
             address(tokenB),

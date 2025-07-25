@@ -297,14 +297,15 @@ contract StargateAdapter is
         address destinationAdapter = _peerAdapter(params.destinationChainId);
         if (destinationAdapter == address(0)) revert UnsupportedChain();
 
-        BridgeTypes.AssetTransferMessage memory atm = BridgeTypes
-            .AssetTransferMessage({
+        BridgeTypes.ReceiveTransferParams memory atm = BridgeTypes
+            .ReceiveTransferParams({
                 recipient: params.target,
                 asset: params.asset,
                 amount: params.amount,
-                sourceChainId: block.chainid,
+                sourceChainId: uint16(block.chainid),
                 operationId: operationId,
-                originator: params.originator
+                originator: params.originator,
+                message: params.message
             });
 
         // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
@@ -599,9 +600,9 @@ contract StargateAdapter is
         // ---------------------------------------------------------------
         // 2. Verify peer adapter relationship
         // ---------------------------------------------------------------
-        BridgeTypes.AssetTransferMessage memory atm = abi.decode(
+        BridgeTypes.ReceiveTransferParams memory atm = abi.decode(
             composeMsg,
-            (BridgeTypes.AssetTransferMessage)
+            (BridgeTypes.ReceiveTransferParams)
         );
 
         _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
@@ -659,9 +660,9 @@ contract StargateAdapter is
         bytes memory composeMsg
     ) internal {
         // Decode the compose message
-        BridgeTypes.AssetTransferMessage memory atm = abi.decode(
+        BridgeTypes.ReceiveTransferParams memory atm = abi.decode(
             composeMsg,
-            (BridgeTypes.AssetTransferMessage)
+            (BridgeTypes.ReceiveTransferParams)
         );
 
         // -----------------------------------------------------------------
@@ -670,26 +671,11 @@ contract StargateAdapter is
         IERC20(receivedAsset).safeTransfer(bridgeRouter(), atm.amount);
 
         // -----------------------------------------------------------------
-        // 2. Build the payload the end-recipient expects
-        //    (same shape as before, just without the token/amount fields)
-        // -----------------------------------------------------------------
-        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
-            operationId: atm.operationId,
-            originator: atm.originator,
-            sourceAsset: atm.asset
-        });
-        bytes memory payload = abi.encode(dp);
-
-        // -----------------------------------------------------------------
         // 3. Let the BridgeRouter finish the delivery
         // -----------------------------------------------------------------
         IBridgeRouter(bridgeRouter()).deliver(
-            atm.operationId,
-            uint16(atm.sourceChainId),
-            receivedAsset,
-            atm.amount,
-            atm.recipient,
-            payload
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            composeMsg
         );
     }
 

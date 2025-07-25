@@ -129,6 +129,8 @@ interface IBridgeRouter is IERC165 {
     /// @notice Thrown when there are insufficient native funds in the router
     error InsufficientBalance();
 
+    error UnsupportedOperationType();
+
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
     //////////////////////////////////////////////////////////////*/
@@ -183,35 +185,12 @@ interface IBridgeRouter is IERC165 {
      *      The registry ensures recipients are valid targets.
      *      For assets, transfers tokens and emits TransferReceived.
      *      For messages, calls recipient and emits MessageDelivered.
-     * @param operationId Unique identifier for this cross-chain operation
-     * @param sourceChainId Chain ID where the operation originated
-     * @param asset Address of the asset being transferred (address(0) for pure messages)
-     * @param amount Amount of asset being transferred (0 for pure messages)
-     * @param recipient Address to receive the assets/message
-     * @param payload Additional data for the recipient
+     * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET).
+     * @param operationPayload Encoded operation payload
      */
     function deliver(
-        bytes32 operationId,
-        uint16 sourceChainId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        bytes calldata payload
-    ) external;
-
-    /**
-     * @notice Deliver read response data (called by adapters)
-     * @param operationId Unique identifier for the original read request
-     * @param sourceChainId ID of the chain where the data was read from
-     * @param resultData The data returned from the destination chain read
-     * @dev Called by adapter on the source chain upon receiving the response.
-     *      Attempts to forward the result to the original requester. Requires caller ==
-     * operationToAdapter[operationId].
-     */
-    function deliverReadResponse(
-        bytes32 operationId,
-        uint16 sourceChainId,
-        bytes calldata resultData
+        BridgeTypes.OperationType operationType,
+        bytes calldata operationPayload
     ) external;
 
     /*//////////////////////////////////////////////////////////////

@@ -24,12 +24,11 @@ contract MockCrossChainReceiver is
     }
 
     function receiveStateRead(
-        bytes calldata data,
-        address sender,
-        bytes32 messageId,
+        bytes calldata resultData,
+        bytes32 requestId,
         uint16 sourceChainId
     ) external {
-        _processReceipt(data, sender, messageId, sourceChainId);
+        _processReceipt(resultData, msg.sender, requestId, sourceChainId);
     }
 
     function receiveMessage(

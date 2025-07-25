@@ -76,12 +76,10 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             uint256(BridgeTypes.OperationStatus.SENT)
         );
 
-        // Verify the mock receiver received the correct data
-        BridgeTypes.ReadResponse memory response = abi.decode(
-            mockReceiver.lastReceivedData(),
-            (BridgeTypes.ReadResponse)
+        assertEq(
+            abi.decode(mockReceiver.lastReceivedData(), (uint256)),
+            mockReadValue
         );
-        assertEq(abi.decode(response.data, (uint256)), mockReadValue);
     }
 
     function testGeneralMessageDelivery() public {
@@ -107,7 +105,18 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             address(routerA),
             abi.encodeCall(
                 IBridgeRouter.deliver,
-                (messageId, CHAIN_ID_B, address(0), 0, recipient, message)
+                (
+                    BridgeTypes.OperationType.MESSAGE,
+                    abi.encode(
+                        BridgeTypes.ReceiveMessageParams({
+                            operationId: messageId,
+                            originator: address(adapterA),
+                            sourceChainId: uint16(CHAIN_ID_B),
+                            recipient: recipient,
+                            message: message
+                        })
+                    )
+                )
             )
         );
 

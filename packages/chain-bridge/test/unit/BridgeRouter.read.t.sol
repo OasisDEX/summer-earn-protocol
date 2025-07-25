@@ -6,6 +6,7 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
+import {console} from "forge-std/console.sol";
 
 contract BridgeRouterReadStateTest is BridgeRouterSetup {
     // ---- READ STATE TESTS ----
@@ -132,21 +133,25 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             abi.encodeWithSelector(
                 ICrossChainStateReadReceiver.receiveStateRead.selector,
                 abi.encode(uint256(100)), // resultData
-                address(mockReceiver), // originator
                 operationId, // operationId
                 DEST_CHAIN_ID // sourceChainId
             )
         );
-        router.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            abi.encode(uint256(100))
+        router.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: abi.encode(uint256(100)),
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
 
         // Verify that the mockReceiver received the data
         assertEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
-        // Originator of the read request was mockReceiver
-        assertEq(mockReceiver.lastSender(), address(mockReceiver));
+        // Originator of the read request was router - router calls receive in receiver
+        assertEq(mockReceiver.lastSender(), address(router));
         assertEq(mockReceiver.lastSourceChainId(), DEST_CHAIN_ID);
     }
 
@@ -198,9 +203,8 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // Test case 1: Non-adapter trying to deliver response
         vm.prank(address(0x999)); // Random non-adapter address
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
+        router.deliver(
+            BridgeTypes.OperationType.READ_STATE,
             abi.encode(uint256(100))
         );
 
@@ -211,10 +215,15 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         // Test case 2: Different adapter trying to deliver response
         vm.prank(address(mockAdapter2));
         vm.expectRevert(IBridgeRouter.Unauthorized.selector);
-        router.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            abi.encode(uint256(100))
+        router.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: abi.encode(uint256(100)),
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
     }
 
@@ -282,10 +291,15 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.expectCall(
             address(router),
             abi.encodeWithSelector(
-                IBridgeRouter.deliverReadResponse.selector,
-                operationId,
-                DEST_CHAIN_ID,
-                abi.encode(uint256(100))
+                IBridgeRouter.deliver.selector,
+                BridgeTypes.OperationType.READ_STATE,
+                abi.encode(
+                    BridgeTypes.ReceiveReadResponse({
+                        readResponseData: abi.encode(uint256(100)),
+                        operationId: operationId,
+                        sourceChainId: DEST_CHAIN_ID
+                    })
+                )
             )
         );
         // Expect the call to the receiver, which will revert
@@ -293,19 +307,23 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             address(mockReceiver),
             abi.encodeWithSelector(
                 ICrossChainStateReadReceiver.receiveStateRead.selector,
-                abi.encode(uint256(100)), // resultData
-                address(mockReceiver), // originator
-                operationId, // operationId
+                abi.encode(uint256(100)),
+                operationId, // requestId
                 DEST_CHAIN_ID // sourceChainId
             )
         );
         // Do not mock a return, let it revert
 
         vm.expectRevert(bytes("Receiver rejected call"));
-        router.deliverReadResponse(
-            operationId,
-            DEST_CHAIN_ID,
-            abi.encode(uint256(100))
+        router.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.ReceiveReadResponse({
+                    readResponseData: abi.encode(uint256(100)),
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
+            )
         );
 
         assertNotEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
