@@ -43,7 +43,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
         address originator,
         address arkAddress,
         uint256 balance,
-        uint16 sourceChainId
+        uint16 sourceChainId,
+        bytes32 latestOutgoingTransferId
     ) internal pure returns (BridgeTypes.DeliveredMessageParams memory) {
         return
             BridgeTypes.DeliveredMessageParams({
@@ -51,7 +52,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(balance)
+                message: abi.encode(balance, latestOutgoingTransferId)
             });
     }
 
@@ -417,7 +418,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
-            TARGET_CHAIN_ID
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
         uint16 sourceChain = TARGET_CHAIN_ID;
@@ -437,12 +439,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function testReceiveMessageWithAssets() public {
         address tokenAddress = address(mockToken);
         uint256 amount = 500;
-        bytes memory message = _buildEmptyPayload();
+
         uint16 sourceChain = TARGET_CHAIN_ID;
         bytes32 requestId = keccak256("test-request");
 
         // Track initial state
         uint256 initialRemoteBalance = 1000;
+        uint256 remoteBalanceAfterWithdrawal = initialRemoteBalance - amount;
+        bytes memory message = abi.encode(remoteBalanceAfterWithdrawal);
 
         // Set initial remote balance
         BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
@@ -450,7 +454,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             initialRemoteBalance,
-            TARGET_CHAIN_ID
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
         vm.prank(address(router));
         ark.receiveMessage(params);
@@ -465,10 +470,15 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Call as bridgeRouter
         vm.prank(address(router));
         ark.receiveMessageWithAssets(
-            tokenAddress,
-            amount,
-            message,
-            sourceChain
+            BridgeTypes.DeliveredTransferParams({
+                operationId: requestId,
+                originator: address(proxy),
+                sourceChainId: sourceChain,
+                recipient: address(ark),
+                asset: tokenAddress,
+                amount: amount,
+                message: message
+            })
         );
 
         // Check state was updated correctly
@@ -487,7 +497,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
-            TARGET_CHAIN_ID
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
         uint16 sourceChain = TARGET_CHAIN_ID;
 
@@ -509,14 +520,16 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function testReceiveStateReadResetsInflightAssets() public {
         uint256 remoteBalance = 2000;
         bytes32 requestId = keccak256("inflight-reset-test");
+        uint16 sourceChain = TARGET_CHAIN_ID;
+
         BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),
             remoteBalance,
-            TARGET_CHAIN_ID
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
-        uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Set some inflight assets first
         vm.prank(address(router));
@@ -551,7 +564,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
-            sourceChain
+            sourceChain,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
         // Test unauthorized caller
@@ -569,7 +583,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
-            wrongSourceChain
+            wrongSourceChain,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
         // Test wrong source chain
@@ -605,7 +620,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
-            TARGET_CHAIN_ID
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
         vm.prank(address(router));
         ark.receiveMessage(params);
@@ -633,7 +649,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
             address(proxy),
             address(ark),
             remoteBalance,
-            TARGET_CHAIN_ID
+            TARGET_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
         // In the real flow:

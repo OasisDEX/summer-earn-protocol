@@ -193,7 +193,7 @@ contract LayerZeroAdapterStateReadBaseForkTest is
 
         // Try to call readState directly (not through bridge router)
         vm.startPrank(user);
-        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
+        vm.expectRevert(abi.encodeWithSignature("OnlyBridgeRouter()"));
         BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
             .ExecuteReadStateParams({
                 destinationChainId: DEST_CHAIN_ID,

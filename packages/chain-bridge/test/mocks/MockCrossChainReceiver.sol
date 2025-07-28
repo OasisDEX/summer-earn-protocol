@@ -24,11 +24,14 @@ contract MockCrossChainReceiver is
     }
 
     function receiveStateRead(
-        bytes calldata resultData,
-        bytes32 requestId,
-        uint16 sourceChainId
+        BridgeTypes.DeliveredReadResponse calldata params
     ) external {
-        _processReceipt(resultData, msg.sender, requestId, sourceChainId);
+        _processReceipt(
+            params.readResponseData,
+            msg.sender,
+            params.operationId,
+            params.sourceChainId
+        );
     }
 
     function receiveMessage(
@@ -43,12 +46,14 @@ contract MockCrossChainReceiver is
     }
 
     function receiveMessageWithAssets(
-        address,
-        uint256,
-        bytes calldata message,
-        uint16 sourceChainId
+        BridgeTypes.DeliveredTransferParams calldata params
     ) external {
-        _processReceipt(message, msg.sender, bytes32(0), sourceChainId);
+        _processReceipt(
+            params.message,
+            msg.sender,
+            params.operationId,
+            params.sourceChainId
+        );
     }
 
     function _processReceipt(

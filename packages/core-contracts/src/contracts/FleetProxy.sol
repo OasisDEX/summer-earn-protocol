@@ -51,6 +51,9 @@ contract FleetProxy is
     /// @notice The source chain ID where the fleet is deployed
     uint16 public immutable hubChainId;
 
+    /// @notice The latest incoming transfer ID
+    bytes32 public latestIncomingTransferId;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -126,43 +129,56 @@ contract FleetProxy is
     }
 
     /// @notice Keeper function to withdraw and transfer assets
+    /// @param amount The amount of assets to withdraw
+    /// @param options The bridge options
+    /// @dev This function is used to withdraw assets from the fleet contract and transfer them to the hub chain
+    /// @dev This function is only callable by the keeper
+    /// @dev We attach the remaining fleet balance to the message to be delivered to the hub chain
     function withdrawAndTransfer(
-        BridgeTypes.ExecuteTransferParams calldata params,
+        uint amount,
         BridgeTypes.BridgeOptions calldata options
-    ) external whenNotPaused nonReentrant onlyKeeper {
+    ) external payable whenNotPaused nonReentrant onlyKeeper {
+        if (amount == 0) revert NoAssets();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
 
         // 1. Get the asset from fleet contract
         address asset = IERC4626(fleetAddress).asset();
-        if (params.amount == 0) revert NoAssets();
-
-        if (params.asset != asset) revert InvalidAsset();
-        if (params.originator != address(this)) revert InvalidRequestor();
-        if (params.destinationChainId != hubChainId)
-            revert InvalidSatelliteChain();
-        if (params.target != _getSourceChainArk(params.destinationChainId))
-            revert InvalidRecipient();
 
         // 2. Withdraw from fleet contract
         IFleetCommander(fleetAddress).withdraw(
-            params.amount,
+            amount,
             address(this),
+            address(this)
+        );
+        uint256 fleetBalance = IFleetCommander(fleetAddress).balanceOf(
             address(this)
         );
 
         // 3. Verify we received the expected amount
-        if (IERC20(asset).balanceOf(address(this)) < params.amount)
+        if (IERC20(asset).balanceOf(address(this)) < amount)
             revert WithdrawalFailed();
 
         // 4. Track inflight withdrawals before bridging
-        inflightWithdrawals += params.amount;
+        inflightWithdrawals += amount;
         emit InflightAssetsUpdated(inflightWithdrawals);
 
         // 5. Approve the bridge router to transfer the assets
-        IERC20(asset).forceApprove(address(bridgeRouter), params.amount);
+        IERC20(asset).forceApprove(address(bridgeRouter), amount);
 
-        // 6. Queue the cross-chain transfer back to the Ark on the hub chain
-        bridgeRouter.executeTransferAssets(params, options);
+        // 6. Prepare the transfer parameters
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: hubChainId,
+                target: _getSourceChainArk(hubChainId),
+                asset: asset,
+                amount: amount,
+                message: abi.encode(fleetBalance),
+                refundAddress: address(this)
+            });
+
+        // 7. Execute the cross-chain transfer back to the Ark on the hub chain
+        bridgeRouter.executeTransferAssets{value: msg.value}(params, options);
 
         emit AssetsWithdrawnAndTransferred(
             params.amount,
@@ -171,23 +187,37 @@ contract FleetProxy is
         );
     }
 
+    // todo: revise security wise
+    /**
+     * @notice Notifies the source chain that assets have been received
+     */
+    function notifySourceChain(
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable whenNotPaused nonReentrant onlyKeeper {
+        IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
+        uint256 fleetBalance = IFleetCommander(fleetAddress).balanceOf(
+            address(this)
+        );
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                originator: address(this),
+                destinationChainId: hubChainId,
+                target: _getSourceChainArk(hubChainId),
+                message: abi.encode(fleetBalance, latestIncomingTransferId),
+                refundAddress: address(this)
+            });
+        bridgeRouter.executeSendMessage(params, options);
+    }
+
     /*//////////////////////////////////////////////////////////////
                     CROSS-CHAIN RECEIVER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ICrossChainAssetReceiver
     function receiveMessageWithAssets(
-        address asset,
-        uint256 amount,
-        bytes calldata message,
-        uint16 _hubChainId
+        BridgeTypes.DeliveredTransferParams calldata params
     ) external whenNotPaused nonReentrant {
-        BridgeTypes.DeliverPayload memory dp = abi.decode(
-            message,
-            (BridgeTypes.DeliverPayload)
-        );
-
-        if (dp.operationId == bytes32(0)) {
+        if (params.operationId == bytes32(0)) {
             emit MessageContentNotExpected();
         }
 
@@ -197,20 +227,23 @@ contract FleetProxy is
         }
 
         // Validate the relationship using registry
-        if (!_isValidSourceChain(_hubChainId)) {
+        if (!_isValidSourceChain(params.sourceChainId)) {
             revert InvalidSourceChain();
         }
 
         // Check if the asset matches the fleet's asset
-        if (asset != IERC4626(fleetAddress).asset()) {
+        if (params.asset != IERC4626(fleetAddress).asset()) {
             revert InvalidAsset();
         }
 
-        if (amount == 0) {
+        if (params.amount == 0) {
             revert NoAssets();
         }
-
-        _handleReceiveAssets(asset, amount, _hubChainId);
+        if (params.originator != _getSourceChainArk(params.sourceChainId)) {
+            revert InvalidRequestor();
+        }
+        _handleReceiveAssets(params.asset, params.amount, params.sourceChainId);
+        latestIncomingTransferId = params.operationId;
     }
 
     /// @inheritdoc IERC165

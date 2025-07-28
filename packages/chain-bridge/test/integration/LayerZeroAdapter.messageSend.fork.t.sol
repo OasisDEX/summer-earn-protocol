@@ -125,7 +125,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
 
         // Direct call should fail (not from router)
         vm.startPrank(user);
-        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
+        vm.expectRevert(abi.encodeWithSignature("OnlyBridgeRouter()"));
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
             .ExecuteSendMessageParams({
                 destinationChainId: DEST_CHAIN_ID,

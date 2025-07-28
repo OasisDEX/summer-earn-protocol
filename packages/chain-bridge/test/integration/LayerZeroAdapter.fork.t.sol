@@ -75,7 +75,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         });
 
         vm.startPrank(user);
-        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
+        vm.expectRevert(abi.encodeWithSignature("OnlyBridgeRouter()"));
         layerZeroAdapter.sendMessage{value: 1 ether}(
             testOperationId,
             BridgeTypes.ExecuteSendMessageParams({

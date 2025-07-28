@@ -132,9 +132,11 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             address(mockReceiver),
             abi.encodeWithSelector(
                 ICrossChainStateReadReceiver.receiveStateRead.selector,
-                abi.encode(uint256(100)), // resultData
-                operationId, // operationId
-                DEST_CHAIN_ID // sourceChainId
+                BridgeTypes.DeliveredReadResponse({
+                    readResponseData: abi.encode(uint256(100)),
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
             )
         );
         router.deliver(
@@ -307,9 +309,11 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             address(mockReceiver),
             abi.encodeWithSelector(
                 ICrossChainStateReadReceiver.receiveStateRead.selector,
-                abi.encode(uint256(100)),
-                operationId, // requestId
-                DEST_CHAIN_ID // sourceChainId
+                BridgeTypes.DeliveredReadResponse({
+                    readResponseData: abi.encode(uint256(100)),
+                    operationId: operationId,
+                    sourceChainId: DEST_CHAIN_ID
+                })
             )
         );
         // Do not mock a return, let it revert

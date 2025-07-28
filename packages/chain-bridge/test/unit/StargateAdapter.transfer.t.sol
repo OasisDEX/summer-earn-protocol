@@ -13,6 +13,7 @@ import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
 import {console} from "forge-std/console.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {ICrossChainConfigManaged} from "../../src/interfaces/ICrossChainConfigManaged.sol";
 
 contract StargateAdapterSendTest is StargateAdapterSetupTest {
     // Add event declaration for the event we expect
@@ -212,7 +213,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // Should revert when called by non-router
         vm.prank(user);
-        vm.expectRevert(BaseBridgeAdapter.Unauthorized.selector);
+        vm.expectRevert(ICrossChainConfigManaged.OnlyBridgeRouter.selector);
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 destinationChainId: CHAIN_ID_B,

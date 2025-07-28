@@ -25,10 +25,15 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             address(mockReceiver),
             abi.encodeWithSelector(
                 ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
-                address(token),
-                AMOUNT,
-                payload,
-                SOURCE_CHAIN_ID
+                BridgeTypes.DeliveredTransferParams({
+                    operationId: operationId,
+                    originator: address(mockAdapter),
+                    sourceChainId: uint16(SOURCE_CHAIN_ID),
+                    recipient: address(mockReceiver),
+                    asset: address(token),
+                    amount: AMOUNT,
+                    message: payload
+                })
             )
         );
 
@@ -64,8 +69,13 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             address(mockReceiver),
             abi.encodeWithSelector(
                 ICrossChainMessageReceiver.receiveMessage.selector,
-                SOURCE_CHAIN_ID,
-                payload
+                BridgeTypes.DeliveredMessageParams({
+                    operationId: operationId,
+                    originator: address(mockAdapter),
+                    sourceChainId: uint16(SOURCE_CHAIN_ID),
+                    recipient: address(mockReceiver),
+                    message: payload
+                })
             )
         );
 

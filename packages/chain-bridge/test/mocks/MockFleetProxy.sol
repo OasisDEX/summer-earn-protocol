@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
 contract MockFleetProxy is ICrossChainAssetReceiver {
     address public immutable ASSET;
@@ -22,20 +23,17 @@ contract MockFleetProxy is ICrossChainAssetReceiver {
     }
 
     function receiveMessageWithAssets(
-        address _asset,
-        uint256 _amount,
-        bytes calldata _message,
-        uint16 _sourceChainId
+        BridgeTypes.DeliveredTransferParams calldata params
     ) external override {
         if (shouldRevert) {
             revert("MockFleetProxy: forced revert");
         }
 
         receivedAssets = true;
-        lastAsset = _asset;
-        lastAmount = _amount;
-        lastMessage = _message;
-        lastSourceChainId = _sourceChainId;
+        lastAsset = params.asset;
+        lastAmount = params.amount;
+        lastMessage = params.message;
+        lastSourceChainId = params.sourceChainId;
     }
 
     function supportsInterface(

@@ -43,7 +43,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         address originator,
         address arkAddress,
         uint256 balance,
-        uint16 sourceChainId
+        uint16 sourceChainId,
+        bytes32 latestOutgoingTransferId
     ) internal pure returns (BridgeTypes.DeliveredMessageParams memory) {
         return
             BridgeTypes.DeliveredMessageParams({
@@ -51,7 +52,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 originator: originator,
                 sourceChainId: sourceChainId,
                 recipient: arkAddress,
-                message: abi.encode(balance)
+                message: abi.encode(balance, latestOutgoingTransferId)
             });
     }
 
@@ -612,18 +613,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
         vm.deal(commander, nativeFee);
 
-        // // === STEP 3: CrossChainArk requests remote balance update directly ===
-        // vm.prank(commander); // Commander acts as keeper
-        // bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
-        //     value: nativeFee
-        // }(options);
-
-        // // Verify operation was created
-        // assertTrue(
-        //     operationId != bytes32(0),
-        //     "Operation ID should be non-zero"
-        // );
-
         // === STEP 4: Simulate LayerZero response delivery ===
         // The response should contain the encoded remote balance
         BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
@@ -631,13 +620,19 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_STARGATE_PROXY,
             address(ark),
             mockRemoteBalance,
-            DEST_CHAIN_ID
+            DEST_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
         vm.prank(address(bridgeRouter));
         ark.receiveMessage(params);
 
         // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
+
+        // Set some inflight assets
+        vm.prank(address(bridgeRouter));
+        ark.updateInflightAssets(initialInflightAssets);
+
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
@@ -731,7 +726,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_STARGATE_PROXY,
             address(ark),
             mockRemoteBalance,
-            DEST_CHAIN_ID
+            DEST_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
         // Test 1: Unauthorized adapter trying to deliver response
@@ -777,7 +773,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_STARGATE_PROXY,
             address(ark),
             mockRemoteBalance,
-            DEST_CHAIN_ID
+            DEST_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
         // Test 1: Unauthorized caller (not BridgeRouter)
@@ -881,7 +878,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_STARGATE_PROXY,
             address(ark),
             mockRemoteBalance,
-            DEST_CHAIN_ID
+            DEST_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         ).message;
 
         // Create the Origin struct that LayerZero would pass to _lzReceive
@@ -1008,7 +1006,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_STARGATE_PROXY,
             address(ark),
             mockRemoteBalance,
-            DEST_CHAIN_ID
+            DEST_CHAIN_ID,
+            bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
         // Test the adapter's deliver() path

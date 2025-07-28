@@ -273,10 +273,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
             // Call appropriate receiver interface
             ICrossChainAssetReceiver(data.recipient).receiveMessageWithAssets(
-                data.asset,
-                data.amount,
-                data.message,
-                data.sourceChainId
+                data
             );
 
             emit TransferReceived(
@@ -311,11 +308,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             // In real implementation, this comes from readRequestToOriginator mapping
             address originator = operationOriginators[data.operationId]; // Use originator from payload for mock
 
-            ICrossChainStateReadReceiver(originator).receiveStateRead(
-                data.readResponseData,
-                data.operationId,
-                data.sourceChainId
-            );
+            ICrossChainStateReadReceiver(originator).receiveStateRead(data);
 
             emit ReadResponseDelivered(data.operationId, originator, true);
         } else {
