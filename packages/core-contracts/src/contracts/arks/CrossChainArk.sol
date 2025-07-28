@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import "../Ark.sol";
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
 import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainStateReadReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainStateReadReceiver.sol";
+import {ICrossChainMessageReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainMessageReceiver.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
@@ -22,7 +22,7 @@ contract CrossChainArk is
     Ark,
     CrossChainConfigManaged,
     ICrossChainAssetReceiver,
-    ICrossChainStateReadReceiver,
+    ICrossChainMessageReceiver,
     ICrossChainArk
 {
     /// @notice Relationship type constant for ARK-FLEET relationships
@@ -97,35 +97,6 @@ contract CrossChainArk is
         emit InflightAssetsUpdated(amount);
     }
 
-    /// @notice Requests a state read to update the remote asset balance
-    /// @dev Can be called by keeper or governor to queue a cross-chain state read.
-    /// The actual execution (with fees and options) will be done separately by a keeper calling
-    /// BridgeQueue.executeQueuedOperation()
-    /// @return operationId The ID of the queued state read operation
-    function requestRemoteAssetBalanceUpdate(
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyKeeper returns (bytes32 operationId) {
-        address proxyAddress = _getTargetProxy();
-        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
-            .ExecuteReadStateParams({
-                destinationChainId: satelliteChainId,
-                target: proxyAddress,
-                selector: IFleetProxy.totalAssets.selector,
-                readParams: "",
-                originator: address(this),
-                refundAddress: msg.sender
-            });
-        operationId = IBridgeRouter(bridgeRouter()).executeReadState{
-            value: msg.value
-        }(params, options);
-
-        emit RemoteAssetBalanceUpdateRequested(
-            operationId,
-            satelliteChainId,
-            proxyAddress
-        );
-    }
-
     /*//////////////////////////////////////////////////////////////
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -162,16 +133,12 @@ contract CrossChainArk is
     )
         external
         pure
-        override(
-            ICrossChainAssetReceiver,
-            ICrossChainStateReadReceiver,
-            IERC165
-        )
+        override(ICrossChainAssetReceiver, ICrossChainMessageReceiver, IERC165)
         returns (bool)
     {
         return
             interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
-            interfaceId == type(ICrossChainStateReadReceiver).interfaceId ||
+            interfaceId == type(ICrossChainMessageReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
@@ -252,23 +219,27 @@ contract CrossChainArk is
         // No cross-chain message is required as satellite chain withdrawals are keeper-managed
     }
 
+    error InvalidSender();
+
     /**
-     * @inheritdoc ICrossChainStateReadReceiver
+     * @inheritdoc ICrossChainMessageReceiver
      */
-    function receiveStateRead(
-        bytes calldata resultData,
-        bytes32 requestId,
-        uint16 sourceChainId
-    ) external {
-        if (msg.sender != bridgeRouter()) revert Unauthorized();
-        if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
+    function receiveMessage(
+        BridgeTypes.DeliveredMessageParams calldata params
+    ) external onlyRouter {
+        if (params.sourceChainId != satelliteChainId)
+            revert InvalidSourceChain();
 
         // Decode the remote asset balance
-        uint256 newRemoteBalance = abi.decode(resultData, (uint256));
+        uint256 newRemoteBalance = abi.decode(params.message, (uint256));
+
+        if (params.originator != _getTargetProxy()) revert InvalidSender();
 
         lastRemoteAssetBalance = newRemoteBalance;
-
-        emit RemoteAssetBalanceUpdated(lastRemoteAssetBalance, requestId);
+        emit RemoteAssetBalanceUpdated(
+            lastRemoteAssetBalance,
+            params.operationId
+        );
 
         // Reset inflight assets as the state read now reflects the current remote balance
         inflightAssets = 0;
@@ -278,12 +249,14 @@ contract CrossChainArk is
     /**
      * @inheritdoc ICrossChainAssetReceiver
      */
+    // todo: use op type + encoded DeliveredTransferParams/DeliveredMessageParams/DeliveredReadResponse ?
     function receiveMessageWithAssets(
         address tokenAddress,
         uint256 amount,
         bytes calldata message,
         uint16 sourceChainId
-    ) external {
+    ) external onlyRouter {
+        // todo: use DeliveredTransferParams ?
         BridgeTypes.DeliverPayload memory dp = abi.decode(
             message,
             (BridgeTypes.DeliverPayload)
@@ -293,10 +266,6 @@ contract CrossChainArk is
             emit MessageContentNotExpected();
         }
 
-        // Allow calls from BridgeRouter or registered bridge adapters
-        if (msg.sender != bridgeRouter()) {
-            revert Unauthorized();
-        }
         if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
         if (tokenAddress != address(config.asset)) revert InvalidAsset();
 
@@ -353,6 +322,7 @@ contract CrossChainArk is
     {
         return config.asset.balanceOf(address(this));
     }
+
     /**
      * @notice Resets the pending transfer params
      * @dev This function is used to reset the pending transfer params after the transfer has been executed
@@ -375,6 +345,7 @@ contract CrossChainArk is
             options: bytes("")
         });
     }
+
     /**
      * @notice Harvests rewards from the Ark
      * @dev This Ark does not implement harvesting as it's a cross-chain bridge
