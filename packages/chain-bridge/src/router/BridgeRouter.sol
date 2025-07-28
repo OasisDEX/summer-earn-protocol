@@ -578,10 +578,7 @@ contract BridgeRouter is
 
             // Call appropriate receiver interface
             ICrossChainAssetReceiver(data.recipient).receiveMessageWithAssets(
-                data.asset,
-                data.amount,
-                data.message, // This could be empty bytes
-                data.sourceChainId
+                data
             );
 
             emit TransferReceived(
@@ -614,11 +611,7 @@ contract BridgeRouter is
             address originator = readRequestToOriginator[data.operationId];
             if (originator == address(0)) revert InvalidParams();
 
-            ICrossChainStateReadReceiver(originator).receiveStateRead(
-                data.readResponseData,
-                data.operationId,
-                data.sourceChainId
-            );
+            ICrossChainStateReadReceiver(originator).receiveStateRead(data);
 
             emit ReadResponseDelivered(data.operationId, originator, true);
         } else {

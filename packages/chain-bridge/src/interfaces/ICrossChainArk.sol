@@ -88,4 +88,10 @@ interface ICrossChainArk is IInflightAssetTracking {
         uint16 targetChainId,
         address targetProxy
     );
+
+    /// @notice Emitted when a transfer ID is invalid.
+    event InvalidTransferId(
+        bytes32 latestTransferReceivedInFleetProxy,
+        bytes32 latestOutgoingTransferId
+    );
 }

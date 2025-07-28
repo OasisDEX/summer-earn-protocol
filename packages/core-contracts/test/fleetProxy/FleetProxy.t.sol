@@ -187,6 +187,26 @@ contract CrossChainFleetProxyTest is Test {
         return abi.encode(dp);
     }
 
+    /// @dev Build a well-formed delivered transfer params for the given asset.
+    function _buildDeliveredTransferParams(
+        address asset,
+        uint256 amount,
+        bytes memory message,
+        uint16 sourceChainId
+    ) internal view returns (BridgeTypes.DeliveredTransferParams memory) {
+        return
+            BridgeTypes.DeliveredTransferParams({
+                operationId: keccak256(
+                    abi.encodePacked("op", asset, block.timestamp)
+                ),
+                originator: SOURCE_ARK_ADDRESS,
+                sourceChainId: sourceChainId,
+                recipient: address(proxy),
+                asset: asset,
+                amount: amount,
+                message: message
+            });
+    }
     //----------------- Constructor Tests -----------------//
 
     function test_Constructor() public view {
@@ -206,6 +226,7 @@ contract CrossChainFleetProxyTest is Test {
     }
 
     //----------------- Administrative Tests -----------------//
+
     function test_PauseUnpause() public {
         // Test pause - guardian can pause
         vm.prank(guardian);
@@ -222,7 +243,14 @@ contract CrossChainFleetProxyTest is Test {
         // Should revert with Paused error
         vm.prank(address(mockAdapter));
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+        proxy.receiveMessageWithAssets(
+            _buildDeliveredTransferParams(
+                asset,
+                amount,
+                message,
+                SOURCE_CHAIN_ID
+            )
+        );
 
         // Setup keeper role for testing withdrawAndTransfer
         vm.startPrank(governor);
@@ -233,15 +261,7 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         proxy.withdrawAndTransfer(
-            BridgeTypes.ExecuteTransferParams({
-                destinationChainId: DEST_CHAIN_ID,
-                asset: address(mockToken),
-                amount: 100,
-                target: address(proxy),
-                originator: address(proxy),
-                refundAddress: address(governor),
-                message: ""
-            }),
+            100,
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
@@ -263,7 +283,14 @@ contract CrossChainFleetProxyTest is Test {
 
         // Operations should work after unpausing
         vm.prank(address(mockAdapter));
-        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+        proxy.receiveMessageWithAssets(
+            _buildDeliveredTransferParams(
+                asset,
+                amount,
+                message,
+                SOURCE_CHAIN_ID
+            )
+        );
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
 
@@ -278,12 +305,38 @@ contract CrossChainFleetProxyTest is Test {
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
         vm.prank(address(mockAdapter));
-        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+        proxy.receiveMessageWithAssets(
+            _buildDeliveredTransferParams(
+                asset,
+                amount,
+                message,
+                SOURCE_CHAIN_ID
+            )
+        );
 
         // Verify token balance was updated
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
+    function test_ReceiveMessageWithAssets_WrongPorxy() public {
+        // Prepare the message for receiving assets
+        address asset = address(mockToken);
+        uint256 amount = 1000;
+        bytes memory message = _buildDeliverPayload(asset);
 
+        BridgeTypes.DeliveredTransferParams
+            memory params = _buildDeliveredTransferParams(
+                asset,
+                amount,
+                message,
+                SOURCE_CHAIN_ID
+            );
+        params.originator = address(0x123);
+        // Call from the bridge router address
+        mockToken.mint(address(proxy), amount);
+        vm.prank(address(mockAdapter));
+        vm.expectRevert(abi.encodeWithSignature("InvalidRequestor()"));
+        proxy.receiveMessageWithAssets(params);
+    }
     function test_SupportsInterface() public view {
         // Should support ICrossChainAssetReceiver interface
         bytes4 interfaceId = type(ICrossChainAssetReceiver).interfaceId;
@@ -317,7 +370,14 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call from the bridge router address (via adapter)
         vm.prank(address(mockAdapter));
-        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+        proxy.receiveMessageWithAssets(
+            _buildDeliveredTransferParams(
+                asset,
+                amount,
+                message,
+                SOURCE_CHAIN_ID
+            )
+        );
 
         // Verify token balance was updated in the fleet commander
         assertEq(fleetCommanderMock.totalAssets(), amount);
@@ -342,7 +402,14 @@ contract CrossChainFleetProxyTest is Test {
         vm.expectRevert(
             abi.encodeWithSignature("CallerNotRegisteredAdapter()")
         );
-        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+        proxy.receiveMessageWithAssets(
+            _buildDeliveredTransferParams(
+                asset,
+                amount,
+                message,
+                SOURCE_CHAIN_ID
+            )
+        );
     }
 
     function test_ReceiveMessageWithAssets_InvalidAsset() public {
@@ -361,10 +428,12 @@ contract CrossChainFleetProxyTest is Test {
         // Should revert with InvalidAsset error
         vm.expectRevert(abi.encodeWithSignature("InvalidAsset()"));
         proxy.receiveMessageWithAssets(
-            address(invalidToken),
-            amount,
-            message,
-            SOURCE_CHAIN_ID
+            _buildDeliveredTransferParams(
+                address(invalidToken),
+                amount,
+                message,
+                SOURCE_CHAIN_ID
+            )
         );
     }
 
@@ -380,7 +449,14 @@ contract CrossChainFleetProxyTest is Test {
 
         // Should revert with NoAssets error
         vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
-        proxy.receiveMessageWithAssets(asset, amount, message, SOURCE_CHAIN_ID);
+        proxy.receiveMessageWithAssets(
+            _buildDeliveredTransferParams(
+                asset,
+                amount,
+                message,
+                SOURCE_CHAIN_ID
+            )
+        );
     }
 
     function test_ReceiveMessageWithAssets_EmptyMessage() public {
@@ -400,10 +476,12 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call should succeed
         proxy.receiveMessageWithAssets(
-            asset,
-            amount,
-            emptyMessage,
-            SOURCE_CHAIN_ID
+            _buildDeliveredTransferParams(
+                asset,
+                amount,
+                emptyMessage,
+                SOURCE_CHAIN_ID
+            )
         );
 
         // Verify tokens were still processed correctly
@@ -415,135 +493,7 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
         proxy.withdrawAndTransfer(
-            BridgeTypes.ExecuteTransferParams({
-                destinationChainId: DEST_CHAIN_ID,
-                asset: address(mockToken),
-                amount: 0,
-                target: address(proxy),
-                originator: address(proxy),
-                refundAddress: address(governor),
-                message: ""
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(mockAdapter),
-                gasLimit: 100000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            })
-        );
-    }
-
-    function test_WithdrawAndTransfer_ValidationFailures() public {
-        // Setup: Add some assets to the fleet commander for testing
-        uint256 amount = 1000;
-        deal(address(mockToken), address(fleetCommanderMock), amount);
-
-        // Test 1: Zero amount should revert with NoAssets
-        vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
-        proxy.withdrawAndTransfer(
-            BridgeTypes.ExecuteTransferParams({
-                destinationChainId: SOURCE_CHAIN_ID,
-                asset: address(mockToken),
-                amount: 0,
-                target: SOURCE_ARK_ADDRESS,
-                originator: address(proxy),
-                refundAddress: address(governor),
-                message: ""
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(mockAdapter),
-                gasLimit: 100000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            })
-        );
-
-        // Test 2: Invalid asset should revert with InvalidAsset
-        ERC20Mock invalidToken = new ERC20Mock();
-        vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("InvalidAsset()"));
-        proxy.withdrawAndTransfer(
-            BridgeTypes.ExecuteTransferParams({
-                destinationChainId: SOURCE_CHAIN_ID,
-                asset: address(invalidToken),
-                amount: amount,
-                target: SOURCE_ARK_ADDRESS,
-                originator: address(proxy),
-                refundAddress: address(governor),
-                message: ""
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(mockAdapter),
-                gasLimit: 100000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            })
-        );
-
-        // Test 3: Invalid originator should revert with InvalidRequestor
-        address wrongOriginator = address(0x999);
-        vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("InvalidRequestor()"));
-        proxy.withdrawAndTransfer(
-            BridgeTypes.ExecuteTransferParams({
-                destinationChainId: SOURCE_CHAIN_ID,
-                asset: address(mockToken),
-                amount: amount,
-                target: SOURCE_ARK_ADDRESS,
-                originator: wrongOriginator,
-                refundAddress: address(governor),
-                message: ""
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(mockAdapter),
-                gasLimit: 100000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            })
-        );
-
-        // Test 4: Invalid destination chain ID should revert with InvalidSatelliteChain
-        uint16 wrongChainId = 9999;
-        vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("InvalidSatelliteChain()"));
-        proxy.withdrawAndTransfer(
-            BridgeTypes.ExecuteTransferParams({
-                destinationChainId: wrongChainId,
-                asset: address(mockToken),
-                amount: amount,
-                target: SOURCE_ARK_ADDRESS,
-                originator: address(proxy),
-                refundAddress: address(governor),
-                message: ""
-            }),
-            BridgeTypes.BridgeOptions({
-                specifiedAdapter: address(mockAdapter),
-                gasLimit: 100000,
-                calldataSize: 100,
-                msgValue: 0,
-                options: ""
-            })
-        );
-
-        // Test 5: Invalid recipient should revert with InvalidRecipient
-        address wrongRecipient = address(0x888);
-        vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("InvalidRecipient()"));
-        proxy.withdrawAndTransfer(
-            BridgeTypes.ExecuteTransferParams({
-                destinationChainId: SOURCE_CHAIN_ID,
-                asset: address(mockToken),
-                amount: amount,
-                target: wrongRecipient,
-                originator: address(proxy),
-                refundAddress: address(governor),
-                message: ""
-            }),
+            0,
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,

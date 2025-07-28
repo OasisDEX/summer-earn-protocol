@@ -715,10 +715,15 @@ contract StargateAdapter is
         if (tryReceiveCall) {
             try
                 ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
-                    asset,
-                    amount,
-                    customMessage,
-                    uint16(block.chainid) // Use current chain as source for manual recovery
+                    BridgeTypes.DeliveredTransferParams({
+                        operationId: operationId,
+                        originator: address(this),
+                        sourceChainId: uint16(block.chainid),
+                        recipient: recipient,
+                        asset: asset,
+                        amount: amount,
+                        message: customMessage
+                    })
                 )
             {
                 // Success - call completed

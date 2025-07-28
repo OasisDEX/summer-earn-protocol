@@ -196,7 +196,39 @@ The `DeliveredMessageParams` struct provides:
 
 ### For Cross-Chain Asset Recipients
 
-Implement the `ICrossChainAssetReceiver` interface to receive assets with messages.
+Implement the `ICrossChainAssetReceiver` interface to receive assets with accompanying messages:
+
+```solidity
+function receiveMessageWithAssets(
+    BridgeTypes.DeliveredTransferParams calldata params
+) external {
+    // Validate caller and source
+    require(msg.sender == bridgeRouter, "Only bridge router");
+    require(params.sourceChainId == trustedChainId, "Invalid source chain");
+    require(params.asset == expectedToken, "Unsupported asset");
+    
+    // Verify we received the expected amount
+    require(
+        IERC20(params.asset).balanceOf(address(this)) >= expectedBalance + params.amount,
+        "Assets not received"
+    );
+    
+    // Decode and process the accompanying message
+    DepositInstruction memory instruction = abi.decode(params.message, (DepositInstruction));
+    _processDepositWithInstruction(params.asset, params.amount, instruction, params.operationId);
+}
+```
+
+The `DeliveredTransferParams` struct provides:
+- `operationId`: Unique identifier for the cross-chain operation
+- `originator`: Address that initiated the transfer on the source chain
+- `sourceChainId`: Chain ID where the transfer originated
+- `recipient`: Address of the receiving contract (should be `address(this)`)
+- `asset`: Address of the transferred token contract
+- `amount`: Amount of tokens transferred (in token's native decimals)
+- `message`: Encoded message payload to process with the transfer
+
+**Important**: Assets are transferred to your contract BEFORE `receiveMessageWithAssets()` is called, so your contract balance will already reflect the received amount.
 
 ### For State Read Recipients
 

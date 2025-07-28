@@ -9,6 +9,7 @@ import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.so
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
+import {ICrossChainConfigManaged} from "../../src/interfaces/ICrossChainConfigManaged.sol";
 
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
     using OptionsBuilder for bytes;
@@ -220,7 +221,9 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
 
         // Should revert with Unauthorized since only the router can call sendMessage
         vm.expectRevert(
-            abi.encodeWithSelector(BaseBridgeAdapter.Unauthorized.selector)
+            abi.encodeWithSelector(
+                ICrossChainConfigManaged.OnlyBridgeRouter.selector
+            )
         );
 
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes

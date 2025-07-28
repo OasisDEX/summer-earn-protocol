@@ -43,6 +43,9 @@ contract CrossChainArk is
     /// @notice Amount of assets currently in-flight (being bridged)
     uint256 public inflightAssets;
 
+    /// @notice The latest outgoing transfer ID
+    bytes32 public latestOutgoingTransferId;
+
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
 
@@ -92,7 +95,6 @@ contract CrossChainArk is
         if (msg.sender != bridgeRouter()) {
             revert Unauthorized();
         }
-
         inflightAssets = amount;
         emit InflightAssetsUpdated(amount);
     }
@@ -190,11 +192,11 @@ contract CrossChainArk is
             address(bridgeRouter),
             pendingTransferParams.amount
         );
-        bridgeRouter.executeTransferAssets{value: msg.value}(
-            pendingTransferParams,
-            pendingTransferOptions
-        );
+        bytes32 operationId = bridgeRouter.executeTransferAssets{
+            value: msg.value
+        }(pendingTransferParams, pendingTransferOptions);
         _resetPendingTransferParams();
+        latestOutgoingTransferId = operationId;
         emit PendingTransferQueued(
             pendingTransferParams,
             pendingTransferOptions
@@ -231,8 +233,17 @@ contract CrossChainArk is
             revert InvalidSourceChain();
 
         // Decode the remote asset balance
-        uint256 newRemoteBalance = abi.decode(params.message, (uint256));
-
+        (uint256 newRemoteBalance, bytes32 latestReceivedTransferId) = abi
+            .decode(params.message, (uint256, bytes32));
+        if (latestReceivedTransferId != latestOutgoingTransferId) {
+            // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
+            // sent by this Ark
+            emit InvalidTransferId(
+                latestReceivedTransferId,
+                latestOutgoingTransferId
+            );
+            return;
+        }
         if (params.originator != _getTargetProxy()) revert InvalidSender();
 
         lastRemoteAssetBalance = newRemoteBalance;
@@ -242,42 +253,32 @@ contract CrossChainArk is
         );
 
         // Reset inflight assets as the state read now reflects the current remote balance
-        inflightAssets = 0;
-        emit InflightAssetsUpdated(0);
+        if (inflightAssets > 0) {
+            inflightAssets = 0;
+            emit InflightAssetsUpdated(0);
+        }
     }
 
     /**
      * @inheritdoc ICrossChainAssetReceiver
      */
-    // todo: use op type + encoded DeliveredTransferParams/DeliveredMessageParams/DeliveredReadResponse ?
     function receiveMessageWithAssets(
-        address tokenAddress,
-        uint256 amount,
-        bytes calldata message,
-        uint16 sourceChainId
+        BridgeTypes.DeliveredTransferParams calldata params
     ) external onlyRouter {
-        // todo: use DeliveredTransferParams ?
-        BridgeTypes.DeliverPayload memory dp = abi.decode(
-            message,
-            (BridgeTypes.DeliverPayload)
-        );
-
-        if (dp.operationId == bytes32(0)) {
+        if (params.operationId == bytes32(0)) {
             emit MessageContentNotExpected();
         }
+        if (params.sourceChainId != satelliteChainId)
+            revert InvalidSourceChain();
+        if (params.asset != address(config.asset)) revert InvalidAsset();
+        if (params.originator != _getTargetProxy()) revert InvalidRequestor();
 
-        if (sourceChainId != satelliteChainId) revert InvalidSourceChain();
-        if (tokenAddress != address(config.asset)) revert InvalidAsset();
-
+        uint256 remoteBalance = abi.decode(params.message, (uint256));
         // Update the remote asset tracking
-        // Since we've received these assets, we can reduce the remote balance
-        if (amount <= lastRemoteAssetBalance) {
-            lastRemoteAssetBalance -= amount;
-        } else {
-            lastRemoteAssetBalance = 0;
-        }
 
-        emit AssetsReceived(tokenAddress, amount, sourceChainId);
+        lastRemoteAssetBalance = remoteBalance;
+
+        emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
     }
 
     /**
