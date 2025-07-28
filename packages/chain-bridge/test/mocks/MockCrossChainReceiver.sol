@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
 import {ICrossChainMessageReceiver} from "../../src/interfaces/ICrossChainMessageReceiver.sol";
 import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
-
+import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 /**
  * @title MockCrossChainReceiver
  * @notice Mock contract that implements the ICrossChainReceiver interface for testing
@@ -32,10 +32,14 @@ contract MockCrossChainReceiver is
     }
 
     function receiveMessage(
-        uint16 sourceChainId,
-        bytes calldata message
+        BridgeTypes.DeliveredMessageParams calldata params
     ) external {
-        _processReceipt(message, msg.sender, bytes32(0), sourceChainId);
+        _processReceipt(
+            params.message,
+            msg.sender,
+            bytes32(0),
+            params.sourceChainId
+        );
     }
 
     function receiveMessageWithAssets(

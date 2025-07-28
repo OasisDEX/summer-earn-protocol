@@ -597,10 +597,7 @@ contract BridgeRouter is
                 (BridgeTypes.DeliveredMessageParams)
             );
 
-            ICrossChainMessageReceiver(data.recipient).receiveMessage(
-                data.sourceChainId,
-                data.message
-            );
+            ICrossChainMessageReceiver(data.recipient).receiveMessage(data);
 
             emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {

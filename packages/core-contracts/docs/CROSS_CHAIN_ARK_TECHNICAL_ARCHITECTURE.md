@@ -2,6 +2,8 @@
 
 This document describes the security and validation mechanisms for Summer's Cross-Chain Ark system, focusing on how the CrossChainRegistry, CrossChainArk, and FleetProxy contracts coordinate to ensure secure cross-chain operations.
 
+> **⚠️ Note**: This document contains some code examples from the previous architecture. Recent updates have unified cross-chain message handling through `ICrossChainMessageReceiver.receiveMessage()` and transitioned from BridgeQueue-based operations to direct BridgeRouter interactions. Please refer to the current contract implementations for the most up-to-date API.
+
 ## Core Security Components
 
 - **CrossChainRegistry**: Central security gatekeeper that validates cross-chain relationships
@@ -210,11 +212,9 @@ contract CrossChainArk is Ark, ICrossChainAssetReceiver {
         bridgeQueue.queueTransferAssets(satelliteChainId, address(config.asset), amount, proxyAddress);
     }
     
-    function requestRemoteAssetBalanceUpdate() external onlyKeeper returns (bytes32 queueId) {
-        address proxyAddress = _getTargetProxy(); // Direct call - reverts if no relationship
-        queueId = bridgeQueue.queueReadState(satelliteChainId, proxyAddress, IFleetProxy.totalAssets.selector, "");
-        emit RemoteAssetBalanceUpdateRequested(queueId, satelliteChainId, proxyAddress);
-    }
+    // Note: Remote asset balance updates are now handled through the unified message system
+    // via ICrossChainMessageReceiver.receiveMessage() instead of a dedicated method.
+    // State reads are initiated through the BridgeRouter directly using executeReadState().
 }
 ```
 

@@ -18,6 +18,7 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
+import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainArk ark;
@@ -37,10 +38,21 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     /// @dev Wraps a uint256 in BridgeTypes.ReadResponse so that
     ///      CrossChainArk.receiveStateRead can decode it.
-    function _encodeReadResponse(
-        uint256 balance
-    ) internal pure returns (bytes memory) {
-        return abi.encode(balance);
+    function _encodeMessage(
+        bytes32 operationId,
+        address originator,
+        address arkAddress,
+        uint256 balance,
+        uint16 sourceChainId
+    ) internal pure returns (BridgeTypes.DeliveredMessageParams memory) {
+        return
+            BridgeTypes.DeliveredMessageParams({
+                operationId: operationId,
+                originator: originator,
+                sourceChainId: sourceChainId,
+                recipient: arkAddress,
+                message: abi.encode(balance)
+            });
     }
 
     function setUp() public {
@@ -399,8 +411,15 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadUpdatesRemoteBalanceAndEmitsEvent() public {
         uint256 remoteBalance = 12345;
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("test-request");
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            TARGET_CHAIN_ID
+        );
+
         uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Should emit the event and update the state
@@ -409,7 +428,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Call as bridgeRouter, with correct sourceChain and requestor
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, requestId, sourceChain);
+        ark.receiveMessage(params);
 
         // Check state
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
@@ -420,15 +439,21 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 amount = 500;
         bytes memory message = _buildEmptyPayload();
         uint16 sourceChain = TARGET_CHAIN_ID;
+        bytes32 requestId = keccak256("test-request");
 
         // Track initial state
         uint256 initialRemoteBalance = 1000;
 
         // Set initial remote balance
-        bytes memory resultData = _encodeReadResponse(initialRemoteBalance);
-        bytes32 requestId = keccak256("test-request");
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            initialRemoteBalance,
+            TARGET_CHAIN_ID
+        );
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, requestId, sourceChain);
+        ark.receiveMessage(params);
 
         // Should emit the event when receiving assets
         vm.expectEmit(true, true, true, true);
@@ -456,8 +481,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadWithCorrectParameterOrder() public {
         uint256 remoteBalance = 54321;
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("parameter-order-test");
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            TARGET_CHAIN_ID
+        );
         uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Test the correct parameter order: (resultData, requestor, requestId, sourceChainId)
@@ -465,7 +496,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         emit ICrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
 
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, requestId, sourceChain);
+        ark.receiveMessage(params);
 
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
         assertEq(
@@ -477,8 +508,14 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadResetsInflightAssets() public {
         uint256 remoteBalance = 2000;
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("inflight-reset-test");
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            TARGET_CHAIN_ID
+        );
         uint16 sourceChain = TARGET_CHAIN_ID;
 
         // Set some inflight assets first
@@ -495,7 +532,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         emit IInflightAssetTracking.InflightAssetsUpdated(0);
 
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, requestId, sourceChain);
+        ark.receiveMessage(params);
 
         assertEq(
             ark.inflightAssets(),
@@ -507,26 +544,38 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testReceiveStateReadUnauthorizedCaller() public {
         uint256 remoteBalance = 1000;
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("unauthorized-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            sourceChain
+        );
 
         // Test unauthorized caller
         vm.prank(address(0x999));
-        vm.expectRevert(ICrossChainArk.Unauthorized.selector);
-        ark.receiveStateRead(resultData, requestId, sourceChain);
+        vm.expectRevert(ICrossChainConfigManaged.OnlyBridgeRouter.selector);
+        ark.receiveMessage(params);
     }
 
     function testReceiveStateReadInvalidSourceChain() public {
         uint256 remoteBalance = 1000;
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
         bytes32 requestId = keccak256("wrong-chain-test");
         uint16 wrongSourceChain = 9999;
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            wrongSourceChain
+        );
 
         // Test wrong source chain
         vm.prank(address(router));
         vm.expectRevert(ICrossChainArk.InvalidSourceChain.selector);
-        ark.receiveStateRead(resultData, requestId, wrongSourceChain);
+        ark.receiveMessage(params);
     }
 
     function testSupportsInterfaceIncludesStateReadReceiver() public view {
@@ -551,10 +600,15 @@ contract CrossChainArkTest is Test, ArkTestBase {
         deal(address(mockToken), address(ark), localBalance);
 
         // Setup remote balance via state read
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
-        bytes32 requestId = keccak256("total-assets-test");
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            bytes32(0),
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            TARGET_CHAIN_ID
+        );
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, requestId, TARGET_CHAIN_ID);
+        ark.receiveMessage(params);
 
         // Setup inflight assets
         vm.prank(address(router));
@@ -569,65 +623,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
         );
     }
 
-    function testRequestRemoteAssetBalanceUpdateRequiresKeeper() public {
-        // Test that only keeper can request balance updates
-        vm.prank(address(0x999));
-        vm.expectRevert(); // Should revert with access control error
-        ark.requestRemoteAssetBalanceUpdate(defaultOptions);
-
-        // Test successful keeper call
-        vm.prank(keeper);
-        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate(
-            defaultOptions
-        );
-        assertTrue(
-            operationId != bytes32(0),
-            "Should return non-zero operation ID"
-        );
-    }
-
-    function testRequestRemoteAssetBalanceUpdateRequiresTargetProxy() public {
-        // Deploy ark without target proxy set
-        ArkParams memory params = ArkParams({
-            name: "TestArk",
-            details: "TestArk details",
-            accessManager: address(accessManager),
-            configurationManager: address(configurationManager),
-            asset: address(mockToken),
-            depositCap: type(uint256).max,
-            maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false,
-            maxDepositPercentageOfTVL: PERCENTAGE_1
-        });
-
-        CrossChainArk arkWithoutProxy = new CrossChainArk(
-            address(router),
-            address(registry),
-            TARGET_CHAIN_ID,
-            params
-        );
-
-        // Should revert when target proxy is not set - now with registry error
-        vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(arkWithoutProxy),
-                keccak256("ARK_FLEET_RELATIONSHIP"),
-                TARGET_CHAIN_ID
-            )
-        );
-        arkWithoutProxy.requestRemoteAssetBalanceUpdate(defaultOptions);
-    }
-
     function testBridgeRouterDeliveryFlow() public {
         // This test simulates what would happen when BridgeRouter calls deliver()
         // and that results in CrossChainArk.receiveStateRead being called
         uint256 remoteBalance = 7777;
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
-        bytes32 operationId = keccak256("delivery-flow-test");
-        uint16 sourceChain = TARGET_CHAIN_ID;
+        bytes32 requestId = keccak256("delivery-flow-test");
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            requestId,
+            address(proxy),
+            address(ark),
+            remoteBalance,
+            TARGET_CHAIN_ID
+        );
 
         // In the real flow:
         // 1. CrossChainArk requests a state read via BridgeRouter
@@ -636,14 +643,11 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // For this test, we simulate step 3 directly
         vm.expectEmit(true, true, true, true);
-        emit ICrossChainArk.RemoteAssetBalanceUpdated(
-            remoteBalance,
-            operationId
-        );
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
 
         // Simulate BridgeRouter calling receiveStateRead on the CrossChainArk
         vm.prank(address(router));
-        ark.receiveStateRead(resultData, operationId, sourceChain);
+        ark.receiveMessage(params);
 
         // Verify the state was updated correctly
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);

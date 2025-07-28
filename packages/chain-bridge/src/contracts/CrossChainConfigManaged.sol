@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {ICrossChainConfigManaged} from "../interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 
 /**
  * @title CrossChainConfigManaged
@@ -33,6 +34,11 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
      */
     modifier onlyAuthorizedExecutor() {
         if (!isExecutor(msg.sender)) revert OnlyAuthorizedExecutor();
+        _;
+    }
+
+    modifier onlyRouter() {
+        if (msg.sender != bridgeRouter()) revert OnlyBridgeRouter();
         _;
     }
 

@@ -16,6 +16,9 @@ interface ICrossChainConfigManaged {
     /// @notice Thrown when the caller is not an executor
     error OnlyAuthorizedExecutor();
 
+    /// @notice Thrown when the caller is not the bridge router
+    error OnlyBridgeRouter();
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

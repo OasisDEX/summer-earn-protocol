@@ -20,6 +20,7 @@ import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargate
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
+import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
@@ -35,12 +36,23 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                               HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Wraps a uint256 in BridgeTypes.ReadResponse so that
-    ///      CrossChainArk.receiveStateRead can decode it.
-    function _encodeReadResponse(
-        uint256 balance
-    ) internal pure returns (bytes memory) {
-        return abi.encode(balance);
+    /// @dev Wraps a uint256 in BridgeTypes.DeliveredMessageParams so that
+    ///      CrossChainArk.receiveMessage can decode it.
+    function _encodeMessage(
+        bytes32 operationId,
+        address originator,
+        address arkAddress,
+        uint256 balance,
+        uint16 sourceChainId
+    ) internal pure returns (BridgeTypes.DeliveredMessageParams memory) {
+        return
+            BridgeTypes.DeliveredMessageParams({
+                operationId: operationId,
+                originator: originator,
+                sourceChainId: sourceChainId,
+                recipient: arkAddress,
+                message: abi.encode(balance)
+            });
     }
 
     // LayerZero specific constants
@@ -312,88 +324,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             usdc.balanceOf(address(ark)),
             amount,
             "Ark should hold the USDC"
-        );
-    }
-
-    function test_ReadState_CrossChain() public {
-        // Setup: Give ark some local balance and inflight assets
-        uint256 localAmount = 500 * 10 ** 6; // 500 USDC local
-        uint256 inflightAmount = 200 * 10 ** 6; // 200 USDC in flight
-        deal(address(usdc), address(ark), localAmount);
-
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(inflightAmount);
-
-        // Verify initial state
-        assertEq(ark.totalAssets(), localAmount + inflightAmount);
-        assertEq(ark.lastRemoteAssetBalance(), 0);
-
-        // Request remote asset balance update directly
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(layerZeroAdapter),
-            gasLimit: 700000,
-            msgValue: 0,
-            calldataSize: 0,
-            options: ""
-        });
-
-        // Get quote for the read operation
-        (uint256 nativeFee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0), // No asset for read
-            0, // No amount for read
-            options,
-            BridgeTypes.OperationType.READ_STATE
-        );
-
-        vm.deal(commander, nativeFee);
-
-        // Execute the read request directly
-        vm.prank(commander);
-        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
-            value: nativeFee
-        }(options);
-
-        // Verify operation was created
-        assertTrue(
-            operationId != bytes32(0),
-            "Operation ID should be non-zero"
-        );
-
-        // Mock the remote balance response
-        uint256 remoteBalance = 1_000 * 1e6;
-        bytes memory resultData = _encodeReadResponse(remoteBalance);
-
-        // Expect events to be emitted
-        vm.expectEmit(true, true, true, true);
-        emit ICrossChainArk.RemoteAssetBalanceUpdated(
-            remoteBalance,
-            operationId
-        );
-
-        vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
-
-        // Simulate receiving the state read response from the router
-        vm.prank(address(bridgeRouter));
-        ark.receiveStateRead(resultData, operationId, DEST_CHAIN_ID);
-
-        // Assert that the remote balance was updated and inflight assets reset
-        assertEq(
-            ark.lastRemoteAssetBalance(),
-            remoteBalance,
-            "Remote balance should be updated"
-        );
-        assertEq(
-            ark.inflightAssets(),
-            0,
-            "Inflight assets should be reset to 0"
-        );
-        assertEq(
-            ark.totalAssets(),
-            localAmount + remoteBalance, // localAmount + remoteBalance + 0 inflight
-            "Total assets should include local and remote balances"
         );
     }
 
@@ -676,34 +606,42 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(0), // No asset for read
             0, // No amount for read
             options,
-            BridgeTypes.OperationType.READ_STATE
+            BridgeTypes.OperationType.MESSAGE
         );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
         vm.deal(commander, nativeFee);
 
-        // === STEP 3: CrossChainArk requests remote balance update directly ===
-        vm.prank(commander); // Commander acts as keeper
-        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
-            value: nativeFee
-        }(options);
+        // // === STEP 3: CrossChainArk requests remote balance update directly ===
+        // vm.prank(commander); // Commander acts as keeper
+        // bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
+        //     value: nativeFee
+        // }(options);
 
-        // Verify operation was created
-        assertTrue(
-            operationId != bytes32(0),
-            "Operation ID should be non-zero"
-        );
+        // // Verify operation was created
+        // assertTrue(
+        //     operationId != bytes32(0),
+        //     "Operation ID should be non-zero"
+        // );
 
         // === STEP 4: Simulate LayerZero response delivery ===
         // The response should contain the encoded remote balance
-        bytes memory mockResponseData = _encodeReadResponse(mockRemoteBalance);
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            bytes32(0),
+            ARB_STARGATE_PROXY,
+            address(ark),
+            mockRemoteBalance,
+            DEST_CHAIN_ID
+        );
+        vm.prank(address(bridgeRouter));
+        ark.receiveMessage(params);
 
         // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
-            operationId
+            params.operationId
         );
 
         vm.expectEmit(true, true, true, true);
@@ -712,12 +650,14 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Simulate the adapter calling deliver()
         vm.prank(address(layerZeroAdapter));
         bridgeRouter.deliver(
-            BridgeTypes.OperationType.READ_STATE,
+            BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.DeliveredReadResponse({
-                    readResponseData: mockResponseData,
-                    operationId: operationId,
-                    sourceChainId: DEST_CHAIN_ID
+                BridgeTypes.DeliveredMessageParams({
+                    operationId: params.operationId,
+                    originator: ARB_STARGATE_PROXY,
+                    sourceChainId: DEST_CHAIN_ID,
+                    recipient: address(ark),
+                    message: params.message
                 })
             )
         );
@@ -746,7 +686,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // === STEP 7: Verify integration completed successfully ===
-        emit log_named_bytes32("Operation ID", operationId);
+        emit log_named_bytes32("Operation ID", params.operationId);
         emit log_named_uint("Initial Local Balance", initialLocalBalance);
         emit log_named_uint("Initial Inflight Assets", initialInflightAssets);
         emit log_named_uint("Mock Remote Balance", mockRemoteBalance);
@@ -780,69 +720,40 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(0),
             0,
             options,
-            BridgeTypes.OperationType.READ_STATE
+            BridgeTypes.OperationType.MESSAGE
         );
 
         vm.deal(commander, fee);
 
-        vm.prank(commander);
-        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{value: fee}(
-            options
-        );
-
         // === STEP 3: Test error handling scenarios ===
-        bytes memory responseData = _encodeReadResponse(mockRemoteBalance);
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            bytes32(0),
+            ARB_STARGATE_PROXY,
+            address(ark),
+            mockRemoteBalance,
+            DEST_CHAIN_ID
+        );
 
         // Test 1: Unauthorized adapter trying to deliver response
         address fakeAdapter = makeAddr("fake-adapter");
         vm.prank(fakeAdapter);
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         bridgeRouter.deliver(
-            BridgeTypes.OperationType.READ_STATE,
-            abi.encode(
-                BridgeTypes.DeliveredReadResponse({
-                    readResponseData: responseData,
-                    operationId: operationId,
-                    sourceChainId: DEST_CHAIN_ID
-                })
-            )
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
         );
 
-        // Test 2: Wrong adapter trying to deliver response
-        address secondAdapter = makeAddr("second-adapter");
-        vm.prank(governor);
-        bridgeRouter.registerAdapter(secondAdapter);
-
-        vm.prank(secondAdapter);
-        vm.expectRevert(IBridgeRouter.Unauthorized.selector);
-        bridgeRouter.deliver(
-            BridgeTypes.OperationType.READ_STATE,
-            abi.encode(
-                BridgeTypes.DeliveredReadResponse({
-                    readResponseData: responseData,
-                    operationId: operationId,
-                    sourceChainId: DEST_CHAIN_ID
-                })
-            )
-        );
-
-        // Test 3: Successful delivery by correct adapter
+        // Test 2: Successful delivery by correct adapter
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
-            operationId
+            params.operationId
         );
 
         vm.prank(address(layerZeroAdapter));
         bridgeRouter.deliver(
-            BridgeTypes.OperationType.READ_STATE,
-            abi.encode(
-                BridgeTypes.DeliveredReadResponse({
-                    readResponseData: responseData,
-                    operationId: operationId,
-                    sourceChainId: DEST_CHAIN_ID
-                })
-            )
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
         );
 
         // Verify state updates
@@ -858,18 +769,27 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Test parameter validation in the CrossChainArk.receiveStateRead method
 
         uint256 mockRemoteBalance = 1500 * 10 ** 6;
-        bytes memory responseData = _encodeReadResponse(mockRemoteBalance);
+        uint16 invalidSourceChain = 9999;
         bytes32 operationId = keccak256("test-validation");
+
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            operationId,
+            ARB_STARGATE_PROXY,
+            address(ark),
+            mockRemoteBalance,
+            DEST_CHAIN_ID
+        );
 
         // Test 1: Unauthorized caller (not BridgeRouter)
         vm.prank(address(0x999));
-        vm.expectRevert(ICrossChainArk.Unauthorized.selector);
-        ark.receiveStateRead(responseData, operationId, DEST_CHAIN_ID);
+        vm.expectRevert(ICrossChainConfigManaged.OnlyBridgeRouter.selector);
+        ark.receiveMessage(params);
 
         // Test 2: Invalid source chain
+        params.sourceChainId = invalidSourceChain;
         vm.prank(address(bridgeRouter));
         vm.expectRevert(ICrossChainArk.InvalidSourceChain.selector);
-        ark.receiveStateRead(responseData, operationId, uint16(999));
+        ark.receiveMessage(params);
 
         // Test 3: Successful call with correct parameters
         vm.expectEmit(true, true, true, true);
@@ -878,8 +798,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             operationId
         );
 
+        params.sourceChainId = DEST_CHAIN_ID;
         vm.prank(address(bridgeRouter));
-        ark.receiveStateRead(responseData, operationId, DEST_CHAIN_ID);
+        ark.receiveMessage(params);
 
         assertEq(ark.lastRemoteAssetBalance(), mockRemoteBalance);
 
@@ -926,30 +847,18 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(0), // No asset for read
             0, // No amount for read
             options,
-            BridgeTypes.OperationType.READ_STATE
+            BridgeTypes.OperationType.MESSAGE
         );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
         vm.deal(commander, nativeFee);
 
-        // === STEP 3: CrossChainArk requests remote balance update directly ===
-        vm.prank(keeper);
-        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{
-            value: nativeFee
-        }(options);
-
-        // Verify operation was created
-        assertTrue(
-            operationId != bytes32(0),
-            "Operation ID should be non-zero"
-        );
-
         // === STEP 4: Simulate LayerZero calling _lzReceive on the adapter ===
         // This is the key part - we'll simulate LayerZero delivering a read response
-
+        bytes32 TEST_OP_ID = bytes32(uint256(1234));
         // Create a mock LayerZero GUID that would be associated with this operation
         bytes32 mockGuid = keccak256(
-            abi.encodePacked("mock-lz-guid", operationId, block.timestamp)
+            abi.encodePacked("mock-lz-guid", TEST_OP_ID, block.timestamp)
         );
 
         // The adapter would have stored this mapping when the read was sent
@@ -958,7 +867,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.store(
             address(layerZeroAdapter),
             keccak256(abi.encodePacked("lzMessageToOperationId", mockGuid)),
-            operationId
+            TEST_OP_ID
         );
 
         // Create the LayerZero Origin struct for the read response
@@ -967,7 +876,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint32 readResponseEid = layerZeroAdapter.READ_CHANNEL_THRESHOLD() + 1;
 
         // Create the response payload (encoded remote balance)
-        bytes memory responsePayload = _encodeReadResponse(mockRemoteBalance);
+        bytes memory responsePayload = _encodeMessage(
+            bytes32(0),
+            ARB_STARGATE_PROXY,
+            address(ark),
+            mockRemoteBalance,
+            DEST_CHAIN_ID
+        ).message;
 
         // Create the Origin struct that LayerZero would pass to _lzReceive
         Origin memory origin = Origin({
@@ -984,7 +899,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
-            operationId
+            TEST_OP_ID
         );
 
         vm.expectEmit(true, true, true, true);
@@ -1013,11 +928,13 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             // This simulates what _handleReadResponse would do
             vm.prank(address(layerZeroAdapter));
             bridgeRouter.deliver(
-                BridgeTypes.OperationType.READ_STATE,
+                BridgeTypes.OperationType.MESSAGE,
                 abi.encode(
-                    BridgeTypes.DeliveredReadResponse({
-                        readResponseData: responsePayload,
-                        operationId: operationId,
+                    BridgeTypes.DeliveredMessageParams({
+                        operationId: TEST_OP_ID,
+                        originator: ARB_STARGATE_PROXY,
+                        recipient: address(ark),
+                        message: responsePayload,
                         sourceChainId: DEST_CHAIN_ID
                     })
                 )
@@ -1048,7 +965,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // === STEP 7: Verify integration completed successfully ===
-        emit log_named_bytes32("Operation ID", operationId);
+        emit log_named_bytes32("Operation ID", TEST_OP_ID);
         emit log_named_bytes32("Mock LayerZero GUID", mockGuid);
         emit log_named_uint("Initial Local Balance", initialLocalBalance);
         emit log_named_uint("Initial Inflight Assets", initialInflightAssets);
@@ -1080,61 +997,35 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(0),
             0,
             options,
-            BridgeTypes.OperationType.READ_STATE
+            BridgeTypes.OperationType.MESSAGE
         );
 
         vm.deal(commander, fee);
 
-        vm.prank(commander);
-        bytes32 operationId = ark.requestRemoteAssetBalanceUpdate{value: fee}(
-            options
-        );
-
         // === STEP 2: Test LayerZero adapter's response handling directly ===
-        bytes memory responseData = _encodeReadResponse(mockRemoteBalance);
+        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+            bytes32(0),
+            ARB_STARGATE_PROXY,
+            address(ark),
+            mockRemoteBalance,
+            DEST_CHAIN_ID
+        );
 
         // Test the adapter's deliver() path
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
-            operationId
+            params.operationId
         );
 
         // Simulate the adapter calling deliver() after processing LayerZero response
         vm.prank(address(layerZeroAdapter));
         bridgeRouter.deliver(
-            BridgeTypes.OperationType.READ_STATE,
-            abi.encode(
-                BridgeTypes.DeliveredReadResponse({
-                    readResponseData: responseData,
-                    operationId: operationId,
-                    sourceChainId: DEST_CHAIN_ID
-                })
-            )
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
         );
 
         // Verify the result
         assertEq(ark.lastRemoteAssetBalance(), mockRemoteBalance);
-
-        // === STEP 3: Test error scenarios in adapter response handling ===
-        bytes32 invalidOperationId = keccak256("invalid-operation");
-
-        // Should fail for invalid operation ID
-        vm.prank(address(layerZeroAdapter));
-        vm.expectRevert(); // Should revert because operation mapping doesn't exist
-        bridgeRouter.deliver(
-            BridgeTypes.OperationType.READ_STATE,
-            abi.encode(
-                BridgeTypes.DeliveredReadResponse({
-                    readResponseData: responseData,
-                    operationId: invalidOperationId,
-                    sourceChainId: DEST_CHAIN_ID
-                })
-            )
-        );
-
-        emit log_string(
-            "SUCCESS: LayerZero adapter read response flow test passed"
-        );
     }
 }

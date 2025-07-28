@@ -59,11 +59,6 @@ abstract contract BaseBridgeAdapter is
         _;
     }
 
-    modifier onlyRouter() {
-        if (msg.sender != bridgeRouter()) revert Unauthorized();
-        _;
-    }
-
     /**
      * @notice Get the list of supported chains
      */

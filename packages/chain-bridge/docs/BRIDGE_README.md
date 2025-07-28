@@ -171,19 +171,54 @@ bridgeQueue.transferAssets{value: estimatedFee}(
 
 ### For Cross-Chain Message Recipients
 
-Implement the `ICrossChainReceiver` interface to receive messages and transfers.
+Implement the `ICrossChainMessageReceiver` interface to receive arbitrary messages:
+
+```solidity
+function receiveMessage(
+    BridgeTypes.DeliveredMessageParams calldata params
+) external {
+    // Validate caller and source
+    require(msg.sender == bridgeRouter, "Only bridge router");
+    require(params.sourceChainId == trustedChainId, "Invalid source chain");
+    
+    // Decode and process the message
+    MyMessageStruct memory data = abi.decode(params.message, (MyMessageStruct));
+    _processMessage(data, params.operationId);
+}
+```
+
+The `DeliveredMessageParams` struct provides:
+- `operationId`: Unique identifier for the cross-chain operation
+- `originator`: Address that initiated the message on the source chain
+- `sourceChainId`: Chain ID where the message originated
+- `recipient`: Address of the receiving contract (should be `address(this)`)
+- `message`: Encoded message payload to process
+
+### For Cross-Chain Asset Recipients
+
+Implement the `ICrossChainAssetReceiver` interface to receive assets with messages.
 
 ### For State Read Recipients
 
-Implement the `ICrossChainStateReadReceiver` interface:
+Implement the `ICrossChainStateReadReceiver` interface to receive state read responses:
 
 ```solidity
 function receiveStateRead(
     bytes calldata resultData,
-    address originator,
-    bytes32 operationId,
+    bytes32 requestId,
     uint16 sourceChainId
-) external;
+) external {
+    // Validate caller and source
+    require(msg.sender == bridgeRouter, "Only bridge router");
+    require(sourceChainId == trustedChainId, "Invalid source chain");
+    require(pendingRequests[requestId], "Unknown request");
+    
+    // Decode the result based on expected return type
+    uint256 balance = abi.decode(resultData, (uint256));
+    _processStateReadResult(requestId, balance);
+    
+    delete pendingRequests[requestId]; // Prevent replay
+}
 ```
 
 ## Router API

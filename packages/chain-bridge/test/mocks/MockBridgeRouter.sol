@@ -295,10 +295,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             // Track the handling adapter
             operationAdapters[data.operationId] = msg.sender;
 
-            ICrossChainMessageReceiver(data.recipient).receiveMessage(
-                data.sourceChainId,
-                data.message
-            );
+            ICrossChainMessageReceiver(data.recipient).receiveMessage(data);
 
             emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
@@ -391,6 +388,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // --- Receive Ether ---
     receive() external payable {}
+
     fallback() external payable {}
 
     // --- External Execute Functions (Matching IBridgeRouter) ---
