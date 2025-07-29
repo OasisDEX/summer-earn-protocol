@@ -1,82 +1,119 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
-
+import {CrossChainReceiverBase} from "../../src/base/CrossChainReceiverBase.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+
 /**
  * @title MockCrossChainReceiver
  * @notice Mock contract that implements the ICrossChainReceiver interface for testing
+ * @dev Supports all operation types for comprehensive testing
  */
-contract MockCrossChainReceiver is ICrossChainReceiver {
+contract MockCrossChainReceiver is CrossChainReceiverBase {
     bytes public lastReceivedData;
     address public lastSender;
     uint16 public lastSourceChainId;
+    bytes32 public lastOperationId;
+    BridgeTypes.OperationType public lastOperationType;
     bool public receiveSuccess = true;
+    bool public shouldRevertAuth;
 
     function setReceiveSuccess(bool success) external {
         receiveSuccess = success;
     }
 
-    function receiveOperation(
-        BridgeTypes.OperationType operationType,
-        bytes calldata encodedParams
-    ) external {
-        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.DeliveredTransferParams memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.DeliveredTransferParams)
-            );
-            _processReceipt(
-                params.message,
-                msg.sender,
-                params.operationId,
-                params.sourceChainId
-            );
-        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.DeliveredMessageParams memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.DeliveredMessageParams)
-            );
-            _processReceipt(
-                params.message,
-                msg.sender,
-                params.operationId,
-                params.sourceChainId
-            );
-        } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            BridgeTypes.DeliveredReadResponse memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.DeliveredReadResponse)
-            );
-            _processReceipt(
-                params.readResponseData,
-                msg.sender,
-                params.operationId,
-                params.sourceChainId
-            );
-        } else {
-            revert InvalidOperationType();
+    function setShouldRevertAuth(bool _shouldRevertAuth) external {
+        shouldRevertAuth = _shouldRevertAuth;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        CROSS-CHAIN RECEIVER OVERRIDES
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Mock authorization check - can be configured to revert for testing
+     */
+    function _requireAuthorizedCaller() internal view override {
+        if (shouldRevertAuth) {
+            revert Unauthorized();
         }
+        // In mock, we don't enforce real authorization for testing flexibility
+    }
+
+    /**
+     * @notice Returns all supported operation types for comprehensive testing
+     */
+    function _getSupportedOperationTypes()
+        internal
+        pure
+        override
+        returns (BridgeTypes.OperationType[] memory supportedTypes)
+    {
+        supportedTypes = new BridgeTypes.OperationType[](3);
+        supportedTypes[0] = BridgeTypes.OperationType.MESSAGE;
+        supportedTypes[1] = BridgeTypes.OperationType.TRANSFER_ASSET;
+        supportedTypes[2] = BridgeTypes.OperationType.READ_STATE;
+    }
+
+    /**
+     * @notice Handles MESSAGE operations
+     */
+    function _handleMessage(
+        BridgeTypes.DeliveredMessageParams memory params
+    ) internal override {
+        _processReceipt(
+            params.message,
+            msg.sender,
+            params.operationId,
+            params.sourceChainId,
+            BridgeTypes.OperationType.MESSAGE
+        );
+    }
+
+    /**
+     * @notice Handles TRANSFER_ASSET operations
+     */
+    function _handleTransferAsset(
+        BridgeTypes.DeliveredTransferParams memory params
+    ) internal override {
+        _processReceipt(
+            params.message,
+            msg.sender,
+            params.operationId,
+            params.sourceChainId,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+    }
+
+    /**
+     * @notice Handles READ_STATE response operations
+     */
+    function _handleReadStateResponse(
+        BridgeTypes.DeliveredReadResponse memory params
+    ) internal override {
+        _processReceipt(
+            params.readResponseData,
+            msg.sender,
+            params.operationId,
+            params.sourceChainId,
+            BridgeTypes.OperationType.READ_STATE
+        );
     }
 
     function _processReceipt(
         bytes memory data,
         address sender,
-        bytes32,
-        uint16 sourceChainId
+        bytes32 operationId,
+        uint16 sourceChainId,
+        BridgeTypes.OperationType operationType
     ) internal {
         if (!receiveSuccess) revert("Receiver rejected call");
 
         lastReceivedData = data;
         lastSender = sender;
         lastSourceChainId = sourceChainId;
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    ) external pure override(ICrossChainReceiver) returns (bool) {
-        return interfaceId == type(ICrossChainReceiver).interfaceId;
+        lastOperationId = operationId;
+        lastOperationType = operationType;
     }
 
     function testSkipper() public {}

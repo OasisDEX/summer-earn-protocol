@@ -21,6 +21,7 @@ import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainReg
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
     CrossChainArk public ark;
@@ -782,7 +783,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Test 1: Unauthorized caller (not BridgeRouter)
         vm.prank(address(0x999));
-        vm.expectRevert(ICrossChainConfigManaged.OnlyBridgeRouter.selector);
+        vm.expectRevert(ICrossChainReceiver.Unauthorized.selector);
         ark.receiveOperation(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(params)

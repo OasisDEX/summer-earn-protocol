@@ -7,7 +7,7 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {BaseBridgeAdapter} from "./BaseBridgeAdapter.sol";
+import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
 import {MessagingFee as EndpointFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";

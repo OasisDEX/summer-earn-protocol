@@ -9,7 +9,7 @@ import {MockFleetProxy} from "../mocks/MockFleetProxy.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {TaxiCodec} from "@stargatefinance/stg-evm-v2/src/libs/TaxiCodec.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 

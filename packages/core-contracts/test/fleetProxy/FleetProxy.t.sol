@@ -241,7 +241,7 @@ contract CrossChainFleetProxyTest is Test {
         mockToken.mint(address(proxy), amount);
 
         // Should revert with Paused error
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         proxy.receiveOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
@@ -285,7 +285,7 @@ contract CrossChainFleetProxyTest is Test {
         assertFalse(proxy.paused());
 
         // Operations should work after unpausing
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
         proxy.receiveOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
@@ -310,7 +310,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
         proxy.receiveOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
@@ -342,7 +342,7 @@ contract CrossChainFleetProxyTest is Test {
         params.originator = address(0x123);
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
         vm.expectRevert(abi.encodeWithSignature("InvalidRequestor()"));
         proxy.receiveOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
@@ -381,7 +381,7 @@ contract CrossChainFleetProxyTest is Test {
         );
 
         // Call from the bridge router address (via adapter)
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
         proxy.receiveOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
@@ -414,9 +414,7 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(unauthorizedCaller);
 
         // Should revert with CallerNotRegisteredAdapter error
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerNotRegisteredAdapter()")
-        );
+        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
         proxy.receiveOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
@@ -441,7 +439,7 @@ contract CrossChainFleetProxyTest is Test {
         invalidToken.mint(address(proxy), amount);
 
         // Call from the adapter but with invalid asset
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
 
         // Should revert with InvalidAsset error
         vm.expectRevert(abi.encodeWithSignature("InvalidAsset()"));
@@ -466,7 +464,7 @@ contract CrossChainFleetProxyTest is Test {
         bytes memory message = _buildDeliverPayload(asset);
 
         // Call from the adapter with zero amount
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
 
         // Should revert with NoAssets error
         vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
@@ -494,7 +492,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call from the adapter with empty message
         // This should emit the in-code message warning but still process the assets
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
 
         // No event expectation since MessageContentNotExpected isn't declared as an event
 
