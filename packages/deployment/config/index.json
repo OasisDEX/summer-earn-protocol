@@ -40,7 +40,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x16160Cd5C54dE1CaBa7C567C6D232c1A9D514515"
+          "address": "0x4e92071F9BC94011419Dc03fEaCA32D11241313a"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -216,7 +216,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x0b966C2b4999D85AC175bEE4f68Fc42005f57F0B"
+          "address": "0x1db04f01386c6BE2d22b7947236d8ACc05901219"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -386,7 +386,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x1fff8345CFF27FBF204644FbbcC08450D7FC63Ee"
+          "address": "0xD03bD9Ef8c72Aee3DBb5b8DF83c479D847622Dba"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -660,7 +660,7 @@
           "address": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
         },
         "admiralsQuarters": {
-          "address": "0xC5B2E6fDbC3EBdc72AA070b8e4573d2c6D125459"
+          "address": "0xa514a99b3584D152b2BE9cBe3e7B34Ad40954410"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xC474Cd1ea6f1809d17be61717b83f0F984EF0459"
