@@ -569,7 +569,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // 2. BridgeRouter calls LayerZeroAdapter to send the read request
         // 3. Mock LayerZero response comes back to LayerZeroAdapter
         // 4. LayerZeroAdapter calls BridgeRouter.deliver()
-        // 5. BridgeRouter calls CrossChainArk.receiveStateRead
+        // 5. BridgeRouter calls CrossChainArk.receiveOperation(BridgeTypes.OperationType.READ_STATE,abi.encode(
         // 6. CrossChainArk updates its state and emits events
 
         // === STEP 1: Setup initial state ===
@@ -624,7 +624,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
         vm.prank(address(bridgeRouter));
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
@@ -762,7 +765,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     }
 
     function test_ReadStateIntegration_ParameterValidation() public {
-        // Test parameter validation in the CrossChainArk.receiveStateRead method
+        // Test parameter validation in the CrossChainArk.receiveOperation(BridgeTypes.OperationType.READ_STATE,abi.encode( method
 
         uint256 mockRemoteBalance = 1500 * 10 ** 6;
         uint16 invalidSourceChain = 9999;
@@ -780,13 +783,19 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Test 1: Unauthorized caller (not BridgeRouter)
         vm.prank(address(0x999));
         vm.expectRevert(ICrossChainConfigManaged.OnlyBridgeRouter.selector);
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         // Test 2: Invalid source chain
         params.sourceChainId = invalidSourceChain;
         vm.prank(address(bridgeRouter));
         vm.expectRevert(ICrossChainArk.InvalidSourceChain.selector);
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         // Test 3: Successful call with correct parameters
         vm.expectEmit(true, true, true, true);
@@ -797,7 +806,10 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         params.sourceChainId = DEST_CHAIN_ID;
         vm.prank(address(bridgeRouter));
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         assertEq(ark.lastRemoteAssetBalance(), mockRemoteBalance);
 

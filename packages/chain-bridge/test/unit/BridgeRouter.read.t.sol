@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
-import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {console} from "forge-std/console.sol";
@@ -131,12 +131,15 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.expectCall(
             address(mockReceiver),
             abi.encodeWithSelector(
-                ICrossChainStateReadReceiver.receiveStateRead.selector,
-                BridgeTypes.DeliveredReadResponse({
-                    readResponseData: abi.encode(uint256(100)),
-                    operationId: operationId,
-                    sourceChainId: DEST_CHAIN_ID
-                })
+                ICrossChainReceiver.receiveOperation.selector,
+                BridgeTypes.OperationType.READ_STATE,
+                abi.encode(
+                    BridgeTypes.DeliveredReadResponse({
+                        readResponseData: abi.encode(uint256(100)),
+                        operationId: operationId,
+                        sourceChainId: DEST_CHAIN_ID
+                    })
+                )
             )
         );
         router.deliver(
@@ -308,12 +311,15 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.expectCall(
             address(mockReceiver),
             abi.encodeWithSelector(
-                ICrossChainStateReadReceiver.receiveStateRead.selector,
-                BridgeTypes.DeliveredReadResponse({
-                    readResponseData: abi.encode(uint256(100)),
-                    operationId: operationId,
-                    sourceChainId: DEST_CHAIN_ID
-                })
+                ICrossChainReceiver.receiveOperation.selector,
+                BridgeTypes.OperationType.READ_STATE,
+                abi.encode(
+                    BridgeTypes.DeliveredReadResponse({
+                        readResponseData: abi.encode(uint256(100)),
+                        operationId: operationId,
+                        sourceChainId: DEST_CHAIN_ID
+                    })
+                )
             )
         );
         // Do not mock a return, let it revert

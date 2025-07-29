@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridgeAdapter, ISendAdapter} from "../interfaces/IBridgeAdapter.sol";
 /// forge-lint: disable-end(unused-import)
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -693,8 +693,8 @@ contract StargateAdapter is
      * @param amount Amount to recover
      * @param recipient Where to send the tokens
      * @param operationId Operation ID to clear (optional)
-     * @param tryReceiveCall Whether to attempt receiveMessageWithAssets call
-     * @param customMessage Custom message for receiveMessageWithAssets (if tryReceiveCall is true)
+     * @param tryReceiveCall Whether to attempt receiveOperation(BridgeTypes.OperationType.TRANSFER_ASSET,abi.encode( call
+     * @param customMessage Custom message for receiveOperation(BridgeTypes.OperationType.TRANSFER_ASSET,abi.encode( (if tryReceiveCall is true)
      */
     function manualRecovery(
         address asset,
@@ -714,16 +714,19 @@ contract StargateAdapter is
         // Optionally try the receive call with custom message
         if (tryReceiveCall) {
             try
-                ICrossChainAssetReceiver(recipient).receiveMessageWithAssets(
-                    BridgeTypes.DeliveredTransferParams({
-                        operationId: operationId,
-                        originator: address(this),
-                        sourceChainId: uint16(block.chainid),
-                        recipient: recipient,
-                        asset: asset,
-                        amount: amount,
-                        message: customMessage
-                    })
+                ICrossChainReceiver(recipient).receiveOperation(
+                    BridgeTypes.OperationType.TRANSFER_ASSET,
+                    abi.encode(
+                        BridgeTypes.DeliveredTransferParams({
+                            operationId: operationId,
+                            originator: address(this),
+                            sourceChainId: uint16(block.chainid),
+                            recipient: recipient,
+                            asset: asset,
+                            amount: amount,
+                            message: customMessage
+                        })
+                    )
                 )
             {
                 // Success - call completed

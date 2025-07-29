@@ -5,7 +5,6 @@ This directory contains the implementation of a modular cross-chain bridge syste
 ## Core Components
 
 - **BridgeRouter**: Central execution contract that coordinates cross-chain operations
-- **BridgeQueue**: User-facing contract that handles queuing, adapter selection, and fee management
 - **Bridge Adapters**: Protocol-specific implementations (LayerZero, Stargate, etc.)
 - **CrossChainReceiver**: Interface for contracts that need to receive cross-chain data
 

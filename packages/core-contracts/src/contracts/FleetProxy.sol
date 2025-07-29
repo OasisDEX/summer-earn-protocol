@@ -10,7 +10,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
-import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -26,7 +26,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract FleetProxy is
     ProtocolAccessManaged,
     CrossChainConfigManaged,
-    ICrossChainAssetReceiver,
+    ICrossChainReceiver,
     IInflightAssetTracking,
     IFleetProxy,
     Pausable,
@@ -212,11 +212,24 @@ contract FleetProxy is
     /*//////////////////////////////////////////////////////////////
                     CROSS-CHAIN RECEIVER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc ICrossChainAssetReceiver
-    function receiveMessageWithAssets(
-        BridgeTypes.DeliveredTransferParams calldata params
+    function receiveOperation(
+        BridgeTypes.OperationType operationType,
+        bytes calldata encodedParams
     ) external whenNotPaused nonReentrant {
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.DeliveredTransferParams memory params = abi.decode(
+                encodedParams,
+                (BridgeTypes.DeliveredTransferParams)
+            );
+            _receiveMessageWithAssets(params);
+        } else {
+            revert InvalidOperationType();
+        }
+    }
+
+    function _receiveMessageWithAssets(
+        BridgeTypes.DeliveredTransferParams memory params
+    ) internal whenNotPaused {
         if (params.operationId == bytes32(0)) {
             emit MessageContentNotExpected();
         }
@@ -249,9 +262,9 @@ contract FleetProxy is
     /// @inheritdoc IERC165
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure override(ICrossChainAssetReceiver, IERC165) returns (bool) {
+    ) external pure override(ICrossChainReceiver, IERC165) returns (bool) {
         return
-            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
+            interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(IInflightAssetTracking).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }

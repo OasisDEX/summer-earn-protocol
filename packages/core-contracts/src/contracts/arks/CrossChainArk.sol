@@ -3,8 +3,7 @@ pragma solidity 0.8.28;
 
 import "../Ark.sol";
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
-import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainMessageReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainMessageReceiver.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
@@ -21,8 +20,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 contract CrossChainArk is
     Ark,
     CrossChainConfigManaged,
-    ICrossChainAssetReceiver,
-    ICrossChainMessageReceiver,
+    ICrossChainReceiver,
     ICrossChainArk
 {
     /// @notice Relationship type constant for ARK-FLEET relationships
@@ -125,22 +123,16 @@ contract CrossChainArk is
     }
 
     /**
-     * @inheritdoc ICrossChainAssetReceiver
+     * @inheritdoc ICrossChainReceiver
      * @notice Checks if this contract supports the CrossChainReceiver interface
      * @param interfaceId The interface ID to check
-     * @return True if the contract implements ICrossChainReceiver or ICrossChainAssetReceiver
+     * @return True if the contract implements ICrossChainReceiver or ICrossChainReceiver
      */
     function supportsInterface(
         bytes4 interfaceId
-    )
-        external
-        pure
-        override(ICrossChainAssetReceiver, ICrossChainMessageReceiver, IERC165)
-        returns (bool)
-    {
+    ) external pure override(ICrossChainReceiver, IERC165) returns (bool) {
         return
-            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
-            interfaceId == type(ICrossChainMessageReceiver).interfaceId ||
+            interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
@@ -224,13 +216,35 @@ contract CrossChainArk is
     error InvalidSender();
 
     /**
-     * @inheritdoc ICrossChainMessageReceiver
+     * @inheritdoc ICrossChainReceiver
      */
-    function receiveMessage(
-        BridgeTypes.DeliveredMessageParams calldata params
+    function receiveOperation(
+        BridgeTypes.OperationType operationType,
+        bytes calldata encodedParams
     ) external onlyRouter {
+        if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            BridgeTypes.DeliveredMessageParams memory params = abi.decode(
+                encodedParams,
+                (BridgeTypes.DeliveredMessageParams)
+            );
+            _receiveMessage(params);
+        } else if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.DeliveredTransferParams memory params = abi.decode(
+                encodedParams,
+                (BridgeTypes.DeliveredTransferParams)
+            );
+            _receiveMessageWithAssets(params);
+        } else {
+            revert InvalidOperationType();
+        }
+    }
+
+    function _receiveMessage(
+        BridgeTypes.DeliveredMessageParams memory params
+    ) internal {
         if (params.sourceChainId != satelliteChainId)
             revert InvalidSourceChain();
+        if (params.originator != _getTargetProxy()) revert InvalidSender();
 
         // Decode the remote asset balance
         (uint256 newRemoteBalance, bytes32 latestReceivedTransferId) = abi
@@ -259,12 +273,9 @@ contract CrossChainArk is
         }
     }
 
-    /**
-     * @inheritdoc ICrossChainAssetReceiver
-     */
-    function receiveMessageWithAssets(
-        BridgeTypes.DeliveredTransferParams calldata params
-    ) external onlyRouter {
+    function _receiveMessageWithAssets(
+        BridgeTypes.DeliveredTransferParams memory params
+    ) internal {
         if (params.operationId == bytes32(0)) {
             emit MessageContentNotExpected();
         }

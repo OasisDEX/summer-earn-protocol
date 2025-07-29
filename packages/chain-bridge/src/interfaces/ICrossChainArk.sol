@@ -35,7 +35,7 @@ interface ICrossChainArk is IInflightAssetTracking {
     /// @notice Thrown when the requestor address is invalid.
     error InvalidRequestor();
 
-    /// @notice Thrown when receiveMessageWithAssets is called (not supported for this Ark).
+    /// @notice Thrown when receiveOperation(BridgeTypes.OperationType.TRANSFER_ASSET,abi.encode( is called (not supported for this Ark).
     error ReceiveMessageWithAssetsNotSupported();
 
     /// @notice Thrown when there are insufficient assets on the contract to perform the withdrawal.

@@ -1,19 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainMessageReceiver} from "../../src/interfaces/ICrossChainMessageReceiver.sol";
-import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 /**
  * @title MockCrossChainReceiver
  * @notice Mock contract that implements the ICrossChainReceiver interface for testing
  */
-contract MockCrossChainReceiver is
-    ICrossChainMessageReceiver,
-    ICrossChainAssetReceiver,
-    ICrossChainStateReadReceiver
-{
+contract MockCrossChainReceiver is ICrossChainReceiver {
     bytes public lastReceivedData;
     address public lastSender;
     uint16 public lastSourceChainId;
@@ -23,41 +18,50 @@ contract MockCrossChainReceiver is
         receiveSuccess = success;
     }
 
-    function receiveStateRead(
-        BridgeTypes.DeliveredReadResponse calldata params
+    function receiveOperation(
+        BridgeTypes.OperationType operationType,
+        bytes calldata encodedParams
     ) external {
-        _processReceipt(
-            params.readResponseData,
-            msg.sender,
-            params.operationId,
-            params.sourceChainId
-        );
-    }
-
-    function receiveMessage(
-        BridgeTypes.DeliveredMessageParams calldata params
-    ) external {
-        _processReceipt(
-            params.message,
-            msg.sender,
-            bytes32(0),
-            params.sourceChainId
-        );
-    }
-
-    function receiveMessageWithAssets(
-        BridgeTypes.DeliveredTransferParams calldata params
-    ) external {
-        _processReceipt(
-            params.message,
-            msg.sender,
-            params.operationId,
-            params.sourceChainId
-        );
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.DeliveredTransferParams memory params = abi.decode(
+                encodedParams,
+                (BridgeTypes.DeliveredTransferParams)
+            );
+            _processReceipt(
+                params.message,
+                msg.sender,
+                params.operationId,
+                params.sourceChainId
+            );
+        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            BridgeTypes.DeliveredMessageParams memory params = abi.decode(
+                encodedParams,
+                (BridgeTypes.DeliveredMessageParams)
+            );
+            _processReceipt(
+                params.message,
+                msg.sender,
+                params.operationId,
+                params.sourceChainId
+            );
+        } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            BridgeTypes.DeliveredReadResponse memory params = abi.decode(
+                encodedParams,
+                (BridgeTypes.DeliveredReadResponse)
+            );
+            _processReceipt(
+                params.readResponseData,
+                msg.sender,
+                params.operationId,
+                params.sourceChainId
+            );
+        } else {
+            revert InvalidOperationType();
+        }
     }
 
     function _processReceipt(
-        bytes calldata data,
+        bytes memory data,
         address sender,
         bytes32,
         uint16 sourceChainId
@@ -71,20 +75,8 @@ contract MockCrossChainReceiver is
 
     function supportsInterface(
         bytes4 interfaceId
-    )
-        external
-        pure
-        override(
-            ICrossChainMessageReceiver,
-            ICrossChainAssetReceiver,
-            ICrossChainStateReadReceiver
-        )
-        returns (bool)
-    {
-        return
-            interfaceId == type(ICrossChainMessageReceiver).interfaceId ||
-            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
-            interfaceId == type(ICrossChainStateReadReceiver).interfaceId;
+    ) external pure override(ICrossChainReceiver) returns (bool) {
+        return interfaceId == type(ICrossChainReceiver).interfaceId;
     }
 
     function testSkipper() public {}

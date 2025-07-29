@@ -2,8 +2,8 @@
 pragma solidity ^0.8.28;
 
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainMessageReceiver} from "../../src/interfaces/ICrossChainMessageReceiver.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
@@ -24,16 +24,19 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         vm.expectCall(
             address(mockReceiver),
             abi.encodeWithSelector(
-                ICrossChainAssetReceiver.receiveMessageWithAssets.selector,
-                BridgeTypes.DeliveredTransferParams({
-                    operationId: operationId,
-                    originator: address(mockAdapter),
-                    sourceChainId: uint16(SOURCE_CHAIN_ID),
-                    recipient: address(mockReceiver),
-                    asset: address(token),
-                    amount: AMOUNT,
-                    message: payload
-                })
+                ICrossChainReceiver.receiveOperation.selector,
+                BridgeTypes.OperationType.TRANSFER_ASSET,
+                abi.encode(
+                    BridgeTypes.DeliveredTransferParams({
+                        operationId: operationId,
+                        originator: address(mockAdapter),
+                        sourceChainId: uint16(SOURCE_CHAIN_ID),
+                        recipient: address(mockReceiver),
+                        asset: address(token),
+                        amount: AMOUNT,
+                        message: payload
+                    })
+                )
             )
         );
 
@@ -68,14 +71,17 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         vm.expectCall(
             address(mockReceiver),
             abi.encodeWithSelector(
-                ICrossChainMessageReceiver.receiveMessage.selector,
-                BridgeTypes.DeliveredMessageParams({
-                    operationId: operationId,
-                    originator: address(mockAdapter),
-                    sourceChainId: uint16(SOURCE_CHAIN_ID),
-                    recipient: address(mockReceiver),
-                    message: payload
-                })
+                ICrossChainReceiver.receiveOperation.selector,
+                BridgeTypes.OperationType.MESSAGE,
+                abi.encode(
+                    BridgeTypes.DeliveredMessageParams({
+                        operationId: operationId,
+                        originator: address(mockAdapter),
+                        sourceChainId: uint16(SOURCE_CHAIN_ID),
+                        recipient: address(mockReceiver),
+                        message: payload
+                    })
+                )
             )
         );
 

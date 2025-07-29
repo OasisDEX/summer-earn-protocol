@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
- * @title ICrossChainAssetReceiver
+ * @title ICrossChainReceiver
  * @notice Interface for contracts that receive both assets and messages from other chains
  * @dev This interface enables contracts to receive cross-chain asset transfers accompanied
  *      by arbitrary message data through the bridge system. Both assets and messages are
@@ -23,27 +23,25 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
  *      - Multi-step operations requiring both assets and data
  *
  *      Security Considerations:
- *      - Only the BridgeRouter can call receiveMessageWithAssets()
+ *      - Only the BridgeRouter can call receiveOperation(BridgeTypes.OperationType.TRANSFER_ASSET,abi.encode(()
  *      - Implementations should validate the sourceChainId against expected chains
  *      - Implementations should validate the originator against expected senders
  *      - Asset address and amount should be validated before processing
  *      - Message content should be properly decoded and validated
  */
-interface ICrossChainAssetReceiver {
+interface ICrossChainReceiver {
+    /**
+     * @notice Thrown when an invalid operation type is provided
+     */
+    error InvalidOperationType();
     /**
      * @notice Receives assets and an accompanying message from another chain
      * @dev Called by the BridgeRouter when a cross-chain asset transfer with message is delivered.
      *      Implementations MUST verify the caller is the authorized BridgeRouter.
      *      The assets will have already been transferred to this contract before this function is called.
      *
-     * @param params Structured transfer delivery parameters containing:
-     *        - operationId: Unique identifier for this cross-chain operation
-     *        - originator: Address that initiated the transfer on the source chain
-     *        - sourceChainId: Chain ID where the transfer originated
-     *        - recipient: Address of this contract (should be address(this))
-     *        - asset: Address of the transferred token contract
-     *        - amount: Amount of tokens transferred (in token's native decimals)
-     *        - message: Encoded message payload to be processed with the transfer
+     * @param operationType The type of operation to perform
+     * @param encodedParams The encoded parameters for the operation
      *
      * Security Requirements:
      * - MUST validate msg.sender is the authorized BridgeRouter
@@ -60,33 +58,35 @@ interface ICrossChainAssetReceiver {
      *
      * @custom:example
      * ```solidity
-     * function receiveMessageWithAssets(
-     *     BridgeTypes.DeliveredTransferParams calldata params
+     * function receive(
+     *     BridgeTypes.OperationType operationType,
+     *     bytes calldata encodedParams
      * ) external {
      *     require(msg.sender == bridgeRouter, "Only bridge router");
-     *     require(params.sourceChainId == trustedChainId, "Invalid source chain");
-     *     require(params.asset == expectedToken, "Unsupported asset");
+     *     require(operationType == BridgeTypes.OperationType.DEPOSIT, "Invalid operation type");
+     *     require(encodedParams.length > 0, "Invalid encoded params");
      *
      *     // Verify we received the expected amount
      *     require(
      *         IERC20(params.asset).balanceOf(address(this)) >= expectedBalance + params.amount,
-     *         "Assets not received"
+     *         "Invalid encoded params"
      *     );
      *
      *     // Decode and process the accompanying message
-     *     DepositInstruction memory instruction = abi.decode(params.message, (DepositInstruction));
-     *     _processDepositWithInstruction(params.asset, params.amount, instruction, params.operationId);
+     *     DepositInstruction memory instruction = abi.decode(encodedParams, (DepositInstruction));
+     *     _processDepositWithInstruction(instruction);
      * }
      * ```
      */
-    function receiveMessageWithAssets(
-        BridgeTypes.DeliveredTransferParams calldata params
+    function receiveOperation(
+        BridgeTypes.OperationType operationType,
+        bytes calldata encodedParams
     ) external;
 
     /**
      * @notice Returns whether this contract supports the given interface
      * @dev Used for ERC165 interface detection. Implementations should return true
-     *      for ICrossChainAssetReceiver interface ID.
+     *      for ICrossChainReceiver interface ID.
      * @param interfaceId The interface identifier to check
      * @return bool True if the interface is supported
      */

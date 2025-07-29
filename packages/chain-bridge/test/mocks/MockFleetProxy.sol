@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 
-contract MockFleetProxy is ICrossChainAssetReceiver {
+contract MockFleetProxy is ICrossChainReceiver {
     address public immutable ASSET;
     bool public receivedAssets;
     address public lastAsset;
@@ -22,25 +22,33 @@ contract MockFleetProxy is ICrossChainAssetReceiver {
         shouldRevert = _shouldRevert;
     }
 
-    function receiveMessageWithAssets(
-        BridgeTypes.DeliveredTransferParams calldata params
+    function receiveOperation(
+        BridgeTypes.OperationType operationType,
+        bytes calldata encodedParams
     ) external override {
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.DeliveredTransferParams memory params = abi.decode(
+                encodedParams,
+                (BridgeTypes.DeliveredTransferParams)
+            );
+            receivedAssets = true;
+            lastAsset = params.asset;
+            lastAmount = params.amount;
+            lastMessage = params.message;
+            lastSourceChainId = params.sourceChainId;
+        } else {
+            revert InvalidOperationType();
+        }
         if (shouldRevert) {
             revert("MockFleetProxy: forced revert");
         }
-
-        receivedAssets = true;
-        lastAsset = params.asset;
-        lastAmount = params.amount;
-        lastMessage = params.message;
-        lastSourceChainId = params.sourceChainId;
     }
 
     function supportsInterface(
         bytes4 interfaceId
     ) external pure override returns (bool) {
         return
-            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
+            interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 

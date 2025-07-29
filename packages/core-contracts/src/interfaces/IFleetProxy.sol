@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 /**
  * @title IFleetProxy
@@ -9,7 +9,7 @@ import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICross
  * @notice Interface for the FleetProxy contract that receives and holds assets on a satellite chain
  * @dev Inherits ICrossChainReceiver to handle cross-chain messages
  */
-interface IFleetProxy is ICrossChainAssetReceiver {
+interface IFleetProxy is ICrossChainReceiver {
     /*//////////////////////////////////////////////////////////////
                             EVENTS
     //////////////////////////////////////////////////////////////*/
