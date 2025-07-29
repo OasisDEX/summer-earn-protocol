@@ -8,7 +8,7 @@ import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {ICrossChainConfigManaged} from "../../src/interfaces/ICrossChainConfigManaged.sol";
 
 contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {

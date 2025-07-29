@@ -14,11 +14,12 @@ import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainArk ark;
@@ -37,7 +38,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Wraps a uint256 in BridgeTypes.ReadResponse so that
-    ///      CrossChainArk.receiveStateRead can decode it.
+    ///      CrossChainArk.receiveOperation(BridgeTypes.OperationType.READ_STATE,abi.encode( can decode it.
     function _encodeMessage(
         bytes32 operationId,
         address originator,
@@ -430,7 +431,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Call as bridgeRouter, with correct sourceChain and requestor
         vm.prank(address(router));
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         // Check state
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
@@ -458,7 +462,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
         vm.prank(address(router));
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         // Should emit the event when receiving assets
         vm.expectEmit(true, true, true, true);
@@ -469,16 +476,19 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Call as bridgeRouter
         vm.prank(address(router));
-        ark.receiveMessageWithAssets(
-            BridgeTypes.DeliveredTransferParams({
-                operationId: requestId,
-                originator: address(proxy),
-                sourceChainId: sourceChain,
-                recipient: address(ark),
-                asset: tokenAddress,
-                amount: amount,
-                message: message
-            })
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                BridgeTypes.DeliveredTransferParams({
+                    operationId: requestId,
+                    originator: address(proxy),
+                    sourceChainId: sourceChain,
+                    recipient: address(ark),
+                    asset: tokenAddress,
+                    amount: amount,
+                    message: message
+                })
+            )
         );
 
         // Check state was updated correctly
@@ -507,7 +517,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
         emit ICrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
 
         vm.prank(address(router));
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
         assertEq(
@@ -545,7 +558,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
         emit IInflightAssetTracking.InflightAssetsUpdated(0);
 
         vm.prank(address(router));
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         assertEq(
             ark.inflightAssets(),
@@ -570,8 +586,11 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Test unauthorized caller
         vm.prank(address(0x999));
-        vm.expectRevert(ICrossChainConfigManaged.OnlyBridgeRouter.selector);
-        ark.receiveMessage(params);
+        vm.expectRevert(ICrossChainReceiver.Unauthorized.selector);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
     }
 
     function testReceiveStateReadInvalidSourceChain() public {
@@ -590,20 +609,23 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Test wrong source chain
         vm.prank(address(router));
         vm.expectRevert(ICrossChainArk.InvalidSourceChain.selector);
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
     }
 
     function testSupportsInterfaceIncludesStateReadReceiver() public view {
         // Test that the contract properly reports support for all interfaces
         assertTrue(
-            ark.supportsInterface(type(ICrossChainAssetReceiver).interfaceId),
-            "Should support ICrossChainAssetReceiver"
+            ark.supportsInterface(type(ICrossChainReceiver).interfaceId),
+            "Should support ICrossChainReceiver"
         );
         assertTrue(
             ark.supportsInterface(type(ICrossChainArk).interfaceId),
             "Should support ICrossChainArk"
         );
-        // Note: ICrossChainStateReadReceiver interface support is tested in other tests
+        // Note: ICrossChainReceiver interface support is tested in other tests
     }
 
     function testTotalAssetsIncludesAllComponents() public {
@@ -624,7 +646,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
         vm.prank(address(router));
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         // Setup inflight assets
         vm.prank(address(router));
@@ -641,7 +666,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
     function testBridgeRouterDeliveryFlow() public {
         // This test simulates what would happen when BridgeRouter calls deliver()
-        // and that results in CrossChainArk.receiveStateRead being called
+        // and that results in CrossChainArk.receiveOperation(BridgeTypes.OperationType.READ_STATE,abi.encode( being called
         uint256 remoteBalance = 7777;
         bytes32 requestId = keccak256("delivery-flow-test");
         BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
@@ -664,7 +689,10 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Simulate BridgeRouter calling receiveStateRead on the CrossChainArk
         vm.prank(address(router));
-        ark.receiveMessage(params);
+        ark.receiveOperation(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(params)
+        );
 
         // Verify the state was updated correctly
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
@@ -674,8 +702,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function testInterfaceSupport() public view {
         // Test all the interfaces the CrossChainArk should support
         assertTrue(
-            ark.supportsInterface(type(ICrossChainAssetReceiver).interfaceId),
-            "Should support ICrossChainAssetReceiver"
+            ark.supportsInterface(type(ICrossChainReceiver).interfaceId),
+            "Should support ICrossChainReceiver"
         );
         assertTrue(
             ark.supportsInterface(type(ICrossChainArk).interfaceId),

@@ -10,7 +10,7 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {console} from "forge-std/console.sol";
-import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 
 contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
     using SafeERC20 for IERC20;

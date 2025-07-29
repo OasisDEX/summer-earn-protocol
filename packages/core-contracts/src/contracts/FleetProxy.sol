@@ -6,11 +6,11 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
-import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
+import {CrossChainReceiverBase} from "./base/CrossChainReceiverBase.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
@@ -26,7 +26,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract FleetProxy is
     ProtocolAccessManaged,
     CrossChainConfigManaged,
-    ICrossChainAssetReceiver,
+    CrossChainReceiverBase,
     IInflightAssetTracking,
     IFleetProxy,
     Pausable,
@@ -209,21 +209,53 @@ contract FleetProxy is
         bridgeRouter.executeSendMessage(params, options);
     }
 
+    /// @inheritdoc IERC165
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure override(CrossChainReceiverBase, IERC165) returns (bool) {
+        return
+            interfaceId == type(ICrossChainReceiver).interfaceId ||
+            interfaceId == type(IInflightAssetTracking).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
+    }
+
     /*//////////////////////////////////////////////////////////////
-                    CROSS-CHAIN RECEIVER FUNCTIONS
+                        CROSS-CHAIN RECEIVER OVERRIDES
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ICrossChainAssetReceiver
-    function receiveMessageWithAssets(
-        BridgeTypes.DeliveredTransferParams calldata params
-    ) external whenNotPaused nonReentrant {
+    /**
+     * @notice Validates that the caller is authorized (bridge router via registered adapter)
+     * @dev Implementation of abstract method from CrossChainReceiverBase
+     */
+    function _requireAuthorizedCaller() internal view override {
+        if (msg.sender != address(bridgeRouter())) {
+            revert Unauthorized();
+        }
+    }
+
+    /**
+     * @notice Returns the operation types supported by FleetProxy
+     * @return supportedTypes Array containing only TRANSFER_ASSET operation type
+     */
+    function _getSupportedOperationTypes()
+        internal
+        pure
+        override
+        returns (BridgeTypes.OperationType[] memory supportedTypes)
+    {
+        supportedTypes = new BridgeTypes.OperationType[](1);
+        supportedTypes[0] = BridgeTypes.OperationType.TRANSFER_ASSET;
+    }
+
+    /**
+     * @notice Handles TRANSFER_ASSET operation type (asset deposits from CrossChainArk)
+     * @param params Decoded transfer parameters
+     */
+    function _handleTransferAsset(
+        BridgeTypes.DeliveredTransferParams memory params
+    ) internal override whenNotPaused {
         if (params.operationId == bytes32(0)) {
             emit MessageContentNotExpected();
-        }
-
-        // Only a registered adapter can call this function
-        if (!IBridgeRouter(bridgeRouter()).isValidAdapter(msg.sender)) {
-            revert CallerNotRegisteredAdapter();
         }
 
         // Validate the relationship using registry
@@ -244,16 +276,6 @@ contract FleetProxy is
         }
         _handleReceiveAssets(params.asset, params.amount, params.sourceChainId);
         latestIncomingTransferId = params.operationId;
-    }
-
-    /// @inheritdoc IERC165
-    function supportsInterface(
-        bytes4 interfaceId
-    ) external pure override(ICrossChainAssetReceiver, IERC165) returns (bool) {
-        return
-            interfaceId == type(ICrossChainAssetReceiver).interfaceId ||
-            interfaceId == type(IInflightAssetTracking).interfaceId ||
-            interfaceId == type(IERC165).interfaceId;
     }
 
     /*//////////////////////////////////////////////////////////////

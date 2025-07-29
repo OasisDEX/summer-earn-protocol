@@ -10,7 +10,7 @@ import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol"
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
-import {BaseBridgeAdapter} from "../../src/adapters/BaseBridgeAdapter.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {console} from "forge-std/console.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {ICrossChainConfigManaged} from "../../src/interfaces/ICrossChainConfigManaged.sol";

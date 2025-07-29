@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ICrossChainAssetReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainAssetReceiver.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -241,14 +241,17 @@ contract CrossChainFleetProxyTest is Test {
         mockToken.mint(address(proxy), amount);
 
         // Should revert with Paused error
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        proxy.receiveMessageWithAssets(
-            _buildDeliveredTransferParams(
-                asset,
-                amount,
-                message,
-                SOURCE_CHAIN_ID
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
             )
         );
 
@@ -282,13 +285,16 @@ contract CrossChainFleetProxyTest is Test {
         assertFalse(proxy.paused());
 
         // Operations should work after unpausing
-        vm.prank(address(mockAdapter));
-        proxy.receiveMessageWithAssets(
-            _buildDeliveredTransferParams(
-                asset,
-                amount,
-                message,
-                SOURCE_CHAIN_ID
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
             )
         );
         assertEq(fleetCommanderMock.totalAssets(), amount);
@@ -304,13 +310,16 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
-        vm.prank(address(mockAdapter));
-        proxy.receiveMessageWithAssets(
-            _buildDeliveredTransferParams(
-                asset,
-                amount,
-                message,
-                SOURCE_CHAIN_ID
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
             )
         );
 
@@ -333,13 +342,16 @@ contract CrossChainFleetProxyTest is Test {
         params.originator = address(0x123);
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
         vm.expectRevert(abi.encodeWithSignature("InvalidRequestor()"));
-        proxy.receiveMessageWithAssets(params);
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
     }
     function test_SupportsInterface() public view {
-        // Should support ICrossChainAssetReceiver interface
-        bytes4 interfaceId = type(ICrossChainAssetReceiver).interfaceId;
+        // Should support ICrossChainReceiver interface
+        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
         assertTrue(proxy.supportsInterface(interfaceId));
 
         // Should support IERC165 interface
@@ -369,13 +381,16 @@ contract CrossChainFleetProxyTest is Test {
         );
 
         // Call from the bridge router address (via adapter)
-        vm.prank(address(mockAdapter));
-        proxy.receiveMessageWithAssets(
-            _buildDeliveredTransferParams(
-                asset,
-                amount,
-                message,
-                SOURCE_CHAIN_ID
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
             )
         );
 
@@ -399,15 +414,16 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(unauthorizedCaller);
 
         // Should revert with CallerNotRegisteredAdapter error
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerNotRegisteredAdapter()")
-        );
-        proxy.receiveMessageWithAssets(
-            _buildDeliveredTransferParams(
-                asset,
-                amount,
-                message,
-                SOURCE_CHAIN_ID
+        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
             )
         );
     }
@@ -423,16 +439,19 @@ contract CrossChainFleetProxyTest is Test {
         invalidToken.mint(address(proxy), amount);
 
         // Call from the adapter but with invalid asset
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
 
         // Should revert with InvalidAsset error
         vm.expectRevert(abi.encodeWithSignature("InvalidAsset()"));
-        proxy.receiveMessageWithAssets(
-            _buildDeliveredTransferParams(
-                address(invalidToken),
-                amount,
-                message,
-                SOURCE_CHAIN_ID
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    address(invalidToken),
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
             )
         );
     }
@@ -445,16 +464,19 @@ contract CrossChainFleetProxyTest is Test {
         bytes memory message = _buildDeliverPayload(asset);
 
         // Call from the adapter with zero amount
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
 
         // Should revert with NoAssets error
         vm.expectRevert(abi.encodeWithSignature("NoAssets()"));
-        proxy.receiveMessageWithAssets(
-            _buildDeliveredTransferParams(
-                asset,
-                amount,
-                message,
-                SOURCE_CHAIN_ID
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
             )
         );
     }
@@ -470,17 +492,20 @@ contract CrossChainFleetProxyTest is Test {
 
         // Call from the adapter with empty message
         // This should emit the in-code message warning but still process the assets
-        vm.prank(address(mockAdapter));
+        vm.prank(address(mockBridgeRouter));
 
         // No event expectation since MessageContentNotExpected isn't declared as an event
 
         // Call should succeed
-        proxy.receiveMessageWithAssets(
-            _buildDeliveredTransferParams(
-                asset,
-                amount,
-                emptyMessage,
-                SOURCE_CHAIN_ID
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    emptyMessage,
+                    SOURCE_CHAIN_ID
+                )
             )
         );
 

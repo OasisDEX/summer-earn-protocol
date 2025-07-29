@@ -4,9 +4,7 @@ pragma solidity 0.8.28;
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 
-import {ICrossChainAssetReceiver} from "../interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainMessageReceiver} from "../interfaces/ICrossChainMessageReceiver.sol";
-import {ICrossChainStateReadReceiver} from "../interfaces/ICrossChainStateReadReceiver.sol";
+import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -577,8 +575,9 @@ contract BridgeRouter is
             IERC20(data.asset).safeTransfer(data.recipient, data.amount);
 
             // Call appropriate receiver interface
-            ICrossChainAssetReceiver(data.recipient).receiveMessageWithAssets(
-                data
+            ICrossChainReceiver(data.recipient).receiveOperation(
+                BridgeTypes.OperationType.TRANSFER_ASSET,
+                operationPayload
             );
 
             emit TransferReceived(
@@ -594,7 +593,10 @@ contract BridgeRouter is
                 (BridgeTypes.DeliveredMessageParams)
             );
 
-            ICrossChainMessageReceiver(data.recipient).receiveMessage(data);
+            ICrossChainReceiver(data.recipient).receiveOperation(
+                BridgeTypes.OperationType.MESSAGE,
+                operationPayload
+            );
 
             emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
@@ -611,7 +613,10 @@ contract BridgeRouter is
             address originator = readRequestToOriginator[data.operationId];
             if (originator == address(0)) revert InvalidParams();
 
-            ICrossChainStateReadReceiver(originator).receiveStateRead(data);
+            ICrossChainReceiver(originator).receiveOperation(
+                BridgeTypes.OperationType.READ_STATE,
+                operationPayload
+            );
 
             emit ReadResponseDelivered(data.operationId, originator, true);
         } else {

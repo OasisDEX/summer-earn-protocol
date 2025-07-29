@@ -3,9 +3,9 @@ pragma solidity ^0.8.28;
 
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {ICrossChainAssetReceiver} from "../../src/interfaces/ICrossChainAssetReceiver.sol";
-import {ICrossChainMessageReceiver} from "../../src/interfaces/ICrossChainMessageReceiver.sol";
-import {ICrossChainStateReadReceiver} from "../../src/interfaces/ICrossChainStateReadReceiver.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -272,8 +272,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             }
 
             // Call appropriate receiver interface
-            ICrossChainAssetReceiver(data.recipient).receiveMessageWithAssets(
-                data
+            ICrossChainReceiver(data.recipient).receiveOperation(
+                BridgeTypes.OperationType.TRANSFER_ASSET,
+                abi.encode(data)
             );
 
             emit TransferReceived(
@@ -292,7 +293,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             // Track the handling adapter
             operationAdapters[data.operationId] = msg.sender;
 
-            ICrossChainMessageReceiver(data.recipient).receiveMessage(data);
+            ICrossChainReceiver(data.recipient).receiveOperation(
+                BridgeTypes.OperationType.MESSAGE,
+                abi.encode(data)
+            );
 
             emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
@@ -308,7 +312,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             // In real implementation, this comes from readRequestToOriginator mapping
             address originator = operationOriginators[data.operationId]; // Use originator from payload for mock
 
-            ICrossChainStateReadReceiver(originator).receiveStateRead(data);
+            ICrossChainReceiver(originator).receiveOperation(
+                BridgeTypes.OperationType.READ_STATE,
+                abi.encode(data)
+            );
 
             emit ReadResponseDelivered(data.operationId, originator, true);
         } else {

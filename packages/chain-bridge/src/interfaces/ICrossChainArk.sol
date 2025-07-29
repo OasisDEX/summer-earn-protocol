@@ -17,9 +17,6 @@ interface ICrossChainArk is IInflightAssetTracking {
     /// @notice Thrown when the provided satellite chain ID is zero.
     error InvalidSatelliteChain();
 
-    /// @notice Thrown when the caller is not authorized to perform the action.
-    error Unauthorized();
-
     /// @notice Thrown when a message ID is invalid.
     error InvalidMessageId();
 
@@ -35,7 +32,7 @@ interface ICrossChainArk is IInflightAssetTracking {
     /// @notice Thrown when the requestor address is invalid.
     error InvalidRequestor();
 
-    /// @notice Thrown when receiveMessageWithAssets is called (not supported for this Ark).
+    /// @notice Thrown when receiveOperation(BridgeTypes.OperationType.TRANSFER_ASSET,abi.encode( is called (not supported for this Ark).
     error ReceiveMessageWithAssetsNotSupported();
 
     /// @notice Thrown when there are insufficient assets on the contract to perform the withdrawal.
