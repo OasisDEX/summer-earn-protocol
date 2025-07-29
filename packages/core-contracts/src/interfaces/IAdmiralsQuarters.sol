@@ -201,4 +201,18 @@ interface IAdmiralsQuarters is
         address[] calldata fleetCommanders,
         address rewardToken
     ) external;
+
+    /**
+     * @notice Claims rewards from a merkl distributor
+     * @param users Array of users to claim rewards for
+     * @param tokens Array of tokens to claim rewards for
+     * @param amounts Array of amounts to claim rewards for
+     * @param proofs Array of merkle proofs
+     */
+    function claimFromMerklDistributor(
+        address[] calldata users,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external;
 }
