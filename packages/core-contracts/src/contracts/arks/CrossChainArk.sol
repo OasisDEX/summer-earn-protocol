@@ -3,13 +3,14 @@ pragma solidity 0.8.28;
 
 import "../Ark.sol";
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
-import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {CrossChainReceiverBase} from "../base/CrossChainReceiverBase.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 /**
  * @title CrossChainArk
@@ -20,7 +21,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 contract CrossChainArk is
     Ark,
     CrossChainConfigManaged,
-    ICrossChainReceiver,
+    CrossChainReceiverBase,
     ICrossChainArk
 {
     /// @notice Relationship type constant for ARK-FLEET relationships
@@ -123,14 +124,11 @@ contract CrossChainArk is
     }
 
     /**
-     * @inheritdoc ICrossChainReceiver
-     * @notice Checks if this contract supports the CrossChainReceiver interface
-     * @param interfaceId The interface ID to check
-     * @return True if the contract implements ICrossChainReceiver or ICrossChainReceiver
+     * @inheritdoc IERC165
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure override(ICrossChainReceiver, IERC165) returns (bool) {
+    ) external pure override(CrossChainReceiverBase, IERC165) returns (bool) {
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
@@ -213,35 +211,42 @@ contract CrossChainArk is
         // No cross-chain message is required as satellite chain withdrawals are keeper-managed
     }
 
-    error InvalidSender();
+    /*//////////////////////////////////////////////////////////////
+                        CROSS-CHAIN RECEIVER OVERRIDES
+    //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc ICrossChainReceiver
+     * @notice Validates that the caller is authorized (only bridge router)
+     * @dev Implementation of abstract method from CrossChainReceiverBase
      */
-    function receiveOperation(
-        BridgeTypes.OperationType operationType,
-        bytes calldata encodedParams
-    ) external onlyRouter {
-        if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.DeliveredMessageParams memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.DeliveredMessageParams)
-            );
-            _receiveMessage(params);
-        } else if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.DeliveredTransferParams memory params = abi.decode(
-                encodedParams,
-                (BridgeTypes.DeliveredTransferParams)
-            );
-            _receiveMessageWithAssets(params);
-        } else {
-            revert InvalidOperationType();
+    function _requireAuthorizedCaller() internal view override {
+        if (msg.sender != bridgeRouter()) {
+            revert Unauthorized();
         }
     }
 
-    function _receiveMessage(
+    /**
+     * @notice Returns the operation types supported by CrossChainArk
+     * @return supportedTypes Array containing MESSAGE and TRANSFER_ASSET operation types
+     */
+    function _getSupportedOperationTypes()
+        internal
+        pure
+        override
+        returns (BridgeTypes.OperationType[] memory supportedTypes)
+    {
+        supportedTypes = new BridgeTypes.OperationType[](2);
+        supportedTypes[0] = BridgeTypes.OperationType.MESSAGE;
+        supportedTypes[1] = BridgeTypes.OperationType.TRANSFER_ASSET;
+    }
+
+    /**
+     * @notice Handles MESSAGE operation type (balance updates from FleetProxy)
+     * @param params Decoded message parameters
+     */
+    function _handleMessage(
         BridgeTypes.DeliveredMessageParams memory params
-    ) internal {
+    ) internal override {
         if (params.sourceChainId != satelliteChainId)
             revert InvalidSourceChain();
         if (params.originator != _getTargetProxy()) revert InvalidSender();
@@ -258,7 +263,6 @@ contract CrossChainArk is
             );
             return;
         }
-        if (params.originator != _getTargetProxy()) revert InvalidSender();
 
         lastRemoteAssetBalance = newRemoteBalance;
         emit RemoteAssetBalanceUpdated(
@@ -273,9 +277,13 @@ contract CrossChainArk is
         }
     }
 
-    function _receiveMessageWithAssets(
+    /**
+     * @notice Handles TRANSFER_ASSET operation type (asset withdrawals from FleetProxy)
+     * @param params Decoded transfer parameters
+     */
+    function _handleTransferAsset(
         BridgeTypes.DeliveredTransferParams memory params
-    ) internal {
+    ) internal override {
         if (params.operationId == bytes32(0)) {
             emit MessageContentNotExpected();
         }
@@ -291,6 +299,12 @@ contract CrossChainArk is
 
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    error InvalidSender();
 
     /**
      * @notice Gets the target proxy address from the registry

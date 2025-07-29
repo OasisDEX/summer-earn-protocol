@@ -107,9 +107,6 @@ interface IFleetProxy is ICrossChainReceiver {
     /// @notice Error thrown when withdrawal failed
     error WithdrawalFailed();
 
-    /// @notice Thrown when the caller is not authorized to perform the action.
-    error Unauthorized();
-
     /// @notice Error thrown when the amount is invalid
     error InvalidAmount();
     /// @notice Error thrown when the recipient is invalid

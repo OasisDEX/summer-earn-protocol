@@ -17,9 +17,6 @@ interface ICrossChainArk is IInflightAssetTracking {
     /// @notice Thrown when the provided satellite chain ID is zero.
     error InvalidSatelliteChain();
 
-    /// @notice Thrown when the caller is not authorized to perform the action.
-    error Unauthorized();
-
     /// @notice Thrown when a message ID is invalid.
     error InvalidMessageId();
 

@@ -19,6 +19,7 @@ import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInfligh
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
+import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainArk ark;
@@ -585,7 +586,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Test unauthorized caller
         vm.prank(address(0x999));
-        vm.expectRevert(ICrossChainConfigManaged.OnlyBridgeRouter.selector);
+        vm.expectRevert(ICrossChainReceiver.Unauthorized.selector);
         ark.receiveOperation(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(params)
