@@ -69,6 +69,10 @@ contract StargateAdapter is
     mapping(address asset => address stargateContract)
         public assetToStargateContract;
 
+    /// @notice Mapping of Stargate contracts to their assets on THIS chain only
+    mapping(address stargateContract => address asset)
+        public stargateContractToAsset;
+
     /// @notice Default transport mode (true = taxi, false = bus)
     /// @dev Taxi mode is required for composability - bus mode does not support compose
     bool public defaultUseTaxi = true;
@@ -224,14 +228,22 @@ contract StargateAdapter is
 
         // Verify this is a valid Stargate V2 contract (only for current chain)
         try IStargateV2(stargateContract).stargateType() returns (
-            IStargateV2.StargateType
+            IStargateV2.StargateType stargateTypeValue
         ) {
-            // Valid Stargate V2 contract
+            if (stargateTypeValue != IStargateV2.StargateType.Pool) {
+                revert InvalidParams();
+            }
         } catch {
             revert InvalidParams();
         }
 
+        address stargatePoolToken = IStargateV2(stargateContract).token();
+        if (stargatePoolToken != asset) {
+            revert InvalidParams();
+        }
+
         assetToStargateContract[asset] = stargateContract;
+        stargateContractToAsset[stargateContract] = asset;
 
         emit AssetSupported(uint16(block.chainid), asset, stargateContract);
     }
@@ -625,26 +637,15 @@ contract StargateAdapter is
     /**
      * @dev Validates that a contract is a legitimate registered Stargate V2 pool
      * @param _from Address of the contract to validate
-     * @return token The ERC20 token handled by this Stargate pool
+     * @return assetAddress The ERC20 token handled by this Stargate pool
      * @dev Reverts with Untrusted if validation fails
      */
     function _validateStargatePool(
         address _from
-    ) internal view returns (address token) {
-        // 1. Verify _from is a valid Stargate V2 contract by checking token() call
-        try IStargateV2(_from).token() returns (address _token) {
-            token = _token;
-        } catch {
-            // If token() call fails, this is not a valid Stargate V2 contract
+    ) internal view returns (address assetAddress) {
+        assetAddress = stargateContractToAsset[_from];
+        if (assetAddress == address(0))
             revert Untrusted("Stargate pool", _from, address(0));
-        }
-
-        // 2. Verify this exact Stargate contract is registered for this token
-        if (assetToStargateContract[token] != _from) {
-            revert Untrusted("Stargate pool", _from, token);
-        }
-
-        return token;
     }
 
     /**
