@@ -50,7 +50,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
                 asset: address(token),
                 amount: TRANSFER_AMOUNT,
                 target: user,
-                originator: user,
+                originator: keeper,
                 refundAddress: address(keeper),
                 message: ""
             }),
@@ -135,7 +135,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
                 asset: address(token),
                 amount: TRANSFER_AMOUNT,
                 target: user,
-                originator: user,
+                originator: keeper,
                 refundAddress: address(keeper),
                 message: ""
             }),

@@ -5,6 +5,7 @@ import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol"
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
@@ -16,6 +17,12 @@ abstract contract BaseBridgeAdapter is
 
     /// @notice Error thrown when source adapter is not trusted
     error UntrustedSourceAdapter(address srcAdapter, uint16 srcChain);
+
+    /// @notice Error thrown when the amount is invalid
+    error InvalidAmount();
+
+    /// @notice Error thrown when the source chain ID is invalid
+    error InvalidSourceChainId();
 
     /// @notice Error thrown when chain ID exceeds uint16 max value
     error ChainIdTooLarge(uint256 chainId);
@@ -94,5 +101,85 @@ abstract contract BaseBridgeAdapter is
         ) {
             revert UntrustedSourceAdapter(srcAdapter, srcChain);
         }
+    }
+
+    function _assertReceivedAmount(
+        uint256 amountSD,
+        uint256 amount
+    ) internal pure {
+        if (amountSD != amount) revert InvalidAmount();
+    }
+
+    function _assertSourceChainId(
+        uint16 sourceChainId,
+        uint16 expectedChainId
+    ) internal pure {
+        if (sourceChainId != expectedChainId) revert InvalidSourceChainId();
+    }
+
+    function _decodeRelayedMessageParams(
+        bytes memory _message
+    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
+        return abi.decode(_message, (BridgeTypes.RelayedMessageParams));
+    }
+
+    function _decodeRelayedTransferParams(
+        bytes memory _message
+    ) internal pure returns (BridgeTypes.RelayedTransferParams memory) {
+        return abi.decode(_message, (BridgeTypes.RelayedTransferParams));
+    }
+
+    function _decodeRelayedReadResponse(
+        bytes memory _message
+    ) internal pure returns (BridgeTypes.RelayedReadResponse memory) {
+        return abi.decode(_message, (BridgeTypes.RelayedReadResponse));
+    }
+
+    function _encodeRelayedMessageParams(
+        BridgeTypes.RelayedMessageParams memory _params
+    ) internal pure returns (bytes memory) {
+        return abi.encode(_params);
+    }
+
+    function _encodeRelayedTransferParams(
+        BridgeTypes.RelayedTransferParams memory _params
+    ) internal pure returns (bytes memory) {
+        return abi.encode(_params);
+    }
+
+    function _encodeRelayedReadResponse(
+        BridgeTypes.RelayedReadResponse memory _params
+    ) internal pure returns (bytes memory) {
+        return abi.encode(_params);
+    }
+
+    function _encodeRelayedMessageParamsWithType(
+        BridgeTypes.RelayedMessageParams memory _params
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodePacked(
+                uint16(BridgeTypes.OperationType.MESSAGE),
+                _encodeRelayedMessageParams(_params)
+            );
+    }
+
+    function _encodeRelayedTransferParamsWithType(
+        BridgeTypes.RelayedTransferParams memory _params
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodePacked(
+                uint16(BridgeTypes.OperationType.TRANSFER_ASSET),
+                _encodeRelayedTransferParams(_params)
+            );
+    }
+
+    function _encodeRelayedReadResponseWithType(
+        BridgeTypes.RelayedReadResponse memory _params
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodePacked(
+                uint16(BridgeTypes.OperationType.READ_STATE),
+                _encodeRelayedReadResponse(_params)
+            );
     }
 }

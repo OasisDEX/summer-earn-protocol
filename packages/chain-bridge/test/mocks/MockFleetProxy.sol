@@ -57,7 +57,7 @@ contract MockFleetProxy is CrossChainReceiverBase {
      * @notice Handles TRANSFER_ASSET operations (asset deposits)
      */
     function _handleTransferAsset(
-        BridgeTypes.DeliveredTransferParams memory params
+        BridgeTypes.RelayedTransferParams memory params
     ) internal override {
         if (shouldRevert) {
             revert("MockFleetProxy: forced revert");

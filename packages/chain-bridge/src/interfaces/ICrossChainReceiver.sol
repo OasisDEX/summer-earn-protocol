@@ -41,9 +41,9 @@ interface ICrossChainReceiver is IERC165 {
      * @param encodedParams Encoded operation parameters specific to the operation type
      * @dev This is the unified entry point for all cross-chain operations
      * @dev The implementation should decode encodedParams based on operationType:
-     *      - MESSAGE: BridgeTypes.DeliveredMessageParams
-     *      - TRANSFER_ASSET: BridgeTypes.DeliveredTransferParams
-     *      - READ_STATE: BridgeTypes.DeliveredReadResponse
+     *      - MESSAGE: BridgeTypes.RelayedMessageParams
+     *      - TRANSFER_ASSET: BridgeTypes.RelayedTransferParams
+     *      - READ_STATE: BridgeTypes.RelayedReadResponse
      */
     function receiveOperation(
         BridgeTypes.OperationType operationType,

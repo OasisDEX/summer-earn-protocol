@@ -57,36 +57,7 @@ library BridgeTypes {
         bytes message;
         address refundAddress;
     }
-    struct DeliveredTransferParams {
-        bytes32 operationId;
-        address originator;
-        uint16 sourceChainId;
-        address recipient;
-        address asset;
-        uint256 amount;
-        bytes message;
-    }
-    struct DeliveredMessageParams {
-        bytes32 operationId;
-        address originator;
-        uint16 sourceChainId;
-        address recipient;
-        bytes message;
-    }
 
-    /**
-     * @notice Generic wrapper for a cross-chain state–read response
-     * @dev Keeps result bytes in a typed container so every contract
-     *      that consumes the response can simply:
-     *          BridgeTypes.ReadResponse memory r =
-     *              abi.decode(resultData, (BridgeTypes.ReadResponse));
-     *      and then decode `r.data` to whatever concrete type it expects.
-     */
-    struct DeliveredReadResponse {
-        bytes readResponseData; // ABI-encoded return data of the read call
-        bytes32 operationId;
-        uint16 sourceChainId;
-    }
     /**
      * @notice Parameters for executeReadState
      * @dev This struct is used to read state from a contract on a destination chain.
@@ -121,6 +92,36 @@ library BridgeTypes {
         address target;
         bytes message;
         address refundAddress;
+    }
+
+    /**
+     * @notice Generic wrapper for a cross-chain state–read response
+     * @dev Keeps result bytes in a typed container so every contract
+     *      that consumes the response can simply:
+     *          BridgeTypes.ReadResponse memory r =
+     *              abi.decode(resultData, (BridgeTypes.ReadResponse));
+     *      and then decode `r.data` to whatever concrete type it expects.
+     */
+    struct RelayedReadResponse {
+        bytes readResponseData; // ABI-encoded return data of the read call
+        bytes32 operationId;
+        uint16 sourceChainId;
+    }
+    struct RelayedTransferParams {
+        bytes32 operationId;
+        address originator;
+        uint16 sourceChainId;
+        address recipient;
+        address asset;
+        uint256 amount;
+        bytes message;
+    }
+    struct RelayedMessageParams {
+        bytes32 operationId;
+        address originator;
+        uint16 sourceChainId;
+        address recipient;
+        bytes message;
     }
 
     struct DeliverPayload {

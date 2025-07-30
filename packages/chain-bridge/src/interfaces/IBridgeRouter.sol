@@ -110,6 +110,9 @@ interface IBridgeRouter is IERC165 {
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
 
+    /// @notice Error thrown when the originator is not the caller
+    error InvalidOriginator();
+
     /// @notice Error thrown when trying to update status in invalid direction
     error InvalidStatusProgression();
 

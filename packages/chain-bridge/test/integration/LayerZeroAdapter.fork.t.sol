@@ -157,8 +157,8 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
                 destinationChainId: DEST_CHAIN_ID,
                 target: user,
                 message: message,
-                originator: user,
-                refundAddress: address(keeper)
+                originator: keeper,
+                refundAddress: keeper
             }),
             options
         );
@@ -204,7 +204,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
                 target: address(1),
                 selector: selector,
                 readParams: callData,
-                originator: user,
+                originator: keeper,
                 refundAddress: address(keeper)
             }),
             options

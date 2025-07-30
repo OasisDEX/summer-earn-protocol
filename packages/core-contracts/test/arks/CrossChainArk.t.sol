@@ -46,9 +46,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal pure returns (BridgeTypes.DeliveredMessageParams memory) {
+    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
         return
-            BridgeTypes.DeliveredMessageParams({
+            BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
@@ -414,7 +414,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function testReceiveStateReadUpdatesRemoteBalanceAndEmitsEvent() public {
         uint256 remoteBalance = 12345;
         bytes32 requestId = keccak256("test-request");
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),
@@ -453,7 +453,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         bytes memory message = abi.encode(remoteBalanceAfterWithdrawal);
 
         // Set initial remote balance
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),
@@ -479,7 +479,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         ark.receiveOperation(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
-                BridgeTypes.DeliveredTransferParams({
+                BridgeTypes.RelayedTransferParams({
                     operationId: requestId,
                     originator: address(proxy),
                     sourceChainId: sourceChain,
@@ -502,7 +502,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     function testReceiveStateReadWithCorrectParameterOrder() public {
         uint256 remoteBalance = 54321;
         bytes32 requestId = keccak256("parameter-order-test");
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),
@@ -535,7 +535,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         bytes32 requestId = keccak256("inflight-reset-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
 
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),
@@ -575,7 +575,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 remoteBalance = 1000;
         bytes32 requestId = keccak256("unauthorized-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),
@@ -597,7 +597,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         uint256 remoteBalance = 1000;
         bytes32 requestId = keccak256("wrong-chain-test");
         uint16 wrongSourceChain = 9999;
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),
@@ -637,7 +637,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         deal(address(mockToken), address(ark), localBalance);
 
         // Setup remote balance via state read
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             bytes32(0),
             address(proxy),
             address(ark),
@@ -669,7 +669,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // and that results in CrossChainArk.receiveOperation(BridgeTypes.OperationType.READ_STATE,abi.encode( being called
         uint256 remoteBalance = 7777;
         bytes32 requestId = keccak256("delivery-flow-test");
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),

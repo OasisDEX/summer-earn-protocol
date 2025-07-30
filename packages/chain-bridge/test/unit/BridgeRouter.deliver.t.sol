@@ -27,7 +27,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
                 ICrossChainReceiver.receiveOperation.selector,
                 BridgeTypes.OperationType.TRANSFER_ASSET,
                 abi.encode(
-                    BridgeTypes.DeliveredTransferParams({
+                    BridgeTypes.RelayedTransferParams({
                         operationId: operationId,
                         originator: address(mockAdapter),
                         sourceChainId: uint16(SOURCE_CHAIN_ID),
@@ -44,7 +44,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
-                BridgeTypes.DeliveredTransferParams({
+                BridgeTypes.RelayedTransferParams({
                     operationId: operationId,
                     originator: address(mockAdapter),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
@@ -74,7 +74,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
                 ICrossChainReceiver.receiveOperation.selector,
                 BridgeTypes.OperationType.MESSAGE,
                 abi.encode(
-                    BridgeTypes.DeliveredMessageParams({
+                    BridgeTypes.RelayedMessageParams({
                         operationId: operationId,
                         originator: address(mockAdapter),
                         sourceChainId: uint16(SOURCE_CHAIN_ID),
@@ -89,7 +89,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.DeliveredMessageParams({
+                BridgeTypes.RelayedMessageParams({
                     operationId: operationId,
                     originator: address(mockAdapter),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
@@ -113,7 +113,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.DeliveredReadResponse({
+                BridgeTypes.RelayedReadResponse({
                     operationId: operationId,
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
                     readResponseData: responseData
@@ -134,7 +134,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.DeliveredMessageParams({
+                BridgeTypes.RelayedMessageParams({
                     operationId: operationId,
                     originator: address(mockAdapter2),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
@@ -154,7 +154,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.DeliveredMessageParams({
+                BridgeTypes.RelayedMessageParams({
                     operationId: operationId,
                     originator: address(mockAdapter),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),

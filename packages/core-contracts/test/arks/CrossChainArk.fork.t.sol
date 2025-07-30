@@ -37,7 +37,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                               HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Wraps a uint256 in BridgeTypes.DeliveredMessageParams so that
+    /// @dev Wraps a uint256 in BridgeTypes.RelayedMessageParams so that
     ///      CrossChainArk.receiveMessage can decode it.
     function _encodeMessage(
         bytes32 operationId,
@@ -46,9 +46,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint256 balance,
         uint16 sourceChainId,
         bytes32 latestOutgoingTransferId
-    ) internal pure returns (BridgeTypes.DeliveredMessageParams memory) {
+    ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
         return
-            BridgeTypes.DeliveredMessageParams({
+            BridgeTypes.RelayedMessageParams({
                 operationId: operationId,
                 originator: originator,
                 sourceChainId: sourceChainId,
@@ -616,7 +616,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // === STEP 4: Simulate LayerZero response delivery ===
         // The response should contain the encoded remote balance
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             bytes32(0),
             ARB_STARGATE_PROXY,
             address(ark),
@@ -651,7 +651,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
-                BridgeTypes.DeliveredMessageParams({
+                BridgeTypes.RelayedMessageParams({
                     operationId: params.operationId,
                     originator: ARB_STARGATE_PROXY,
                     sourceChainId: DEST_CHAIN_ID,
@@ -725,7 +725,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.deal(commander, fee);
 
         // === STEP 3: Test error handling scenarios ===
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             bytes32(0),
             ARB_STARGATE_PROXY,
             address(ark),
@@ -772,7 +772,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint16 invalidSourceChain = 9999;
         bytes32 operationId = keccak256("test-validation");
 
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             operationId,
             ARB_STARGATE_PROXY,
             address(ark),
@@ -941,7 +941,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             bridgeRouter.deliver(
                 BridgeTypes.OperationType.MESSAGE,
                 abi.encode(
-                    BridgeTypes.DeliveredMessageParams({
+                    BridgeTypes.RelayedMessageParams({
                         operationId: TEST_OP_ID,
                         originator: ARB_STARGATE_PROXY,
                         recipient: address(ark),
@@ -1014,7 +1014,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         vm.deal(commander, fee);
 
         // === STEP 2: Test LayerZero adapter's response handling directly ===
-        BridgeTypes.DeliveredMessageParams memory params = _encodeMessage(
+        BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             bytes32(0),
             ARB_STARGATE_PROXY,
             address(ark),

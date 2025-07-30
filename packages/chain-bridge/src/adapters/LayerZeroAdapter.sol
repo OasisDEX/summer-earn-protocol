@@ -257,30 +257,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         // todo: should the read reponse also contain the operation type and the originator?
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
             _relayReadResponse(_origin, _guid, _payload);
-            return;
         } else if (_payload.length >= 2) {
             // If the payload starts with a uint16 message type marker
             BridgeTypes.OperationType operationType = BridgeTypes.OperationType(
                 uint8(uint16(bytes2(_payload)))
-            ); // Takes first 2 bytes
-            bytes memory actualPayload = _payload[2:]; // Creates slice starting at index 2
+            );
             if (operationType == BridgeTypes.OperationType.MESSAGE) {
-                // Get the source chain ID from the origin
-                uint16 srcChainId = lzEidToChain[_origin.srcEid];
-                // IMPORTANT: Use actualPayload here instead of _payload
-                // This ensures we decode only the message data without the message type prefix
-                (
-                    bytes memory message,
-                    address recipient,
-                    bytes32 operationId
-                ) = abi.decode(actualPayload, (bytes, address, bytes32));
-
-                _relayGeneralMessage(
-                    message,
-                    recipient,
-                    operationId,
-                    srcChainId
-                );
+                _relayMessage(_origin, _payload[2:]);
             } else {
                 revert UnsupportedMessageType();
             }
@@ -290,29 +273,23 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     }
 
     /**
-     * @dev Handles general messages
-     * @param message The message payload
-     * @param recipient The recipient address of the message
-     * @param operationId The message ID
-     * @param srcChainId The source chain ID
+     * @dev Handles messages from lzRead operations
+     * @param _origin Source chain information
+     * @param _payload Message payload
      */
-    function _relayGeneralMessage(
-        bytes memory message,
-        address recipient,
-        bytes32 operationId,
-        uint16 srcChainId
+    function _relayMessage(
+        Origin calldata _origin,
+        bytes memory _payload
     ) internal {
+        BridgeTypes.RelayedMessageParams
+            memory relayedMessageParams = _decodeRelayedMessageParams(_payload);
+        _assertSourceChainId(
+            lzEidToChain[_origin.srcEid],
+            relayedMessageParams.sourceChainId
+        );
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.MESSAGE,
-            abi.encode(
-                BridgeTypes.DeliveredMessageParams({
-                    operationId: operationId,
-                    originator: address(this),
-                    sourceChainId: srcChainId,
-                    recipient: recipient,
-                    message: message
-                })
-            )
+            _payload
         );
     }
 
@@ -335,8 +312,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             emit ReadOperationNotFound(_guid, "No operationId found");
             return;
         }
-        bytes memory operationPayload = abi.encode(
-            BridgeTypes.DeliveredReadResponse({
+        bytes memory operationPayload = _encodeRelayedReadResponse(
+            BridgeTypes.RelayedReadResponse({
                 readResponseData: _payload,
                 operationId: operationId,
                 sourceChainId: lzEidToChain[_origin.srcEid]
@@ -404,9 +381,14 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             bytes memory dummyMessage = abi.encode(
                 "dummy message for fee estimation"
             );
-            payload = abi.encodePacked(
-                uint16(BridgeTypes.OperationType.MESSAGE),
-                abi.encode(dummyMessage, address(0), bytes32(0))
+            payload = _encodeRelayedMessageParamsWithType(
+                BridgeTypes.RelayedMessageParams({
+                    recipient: address(0),
+                    message: dummyMessage,
+                    operationId: bytes32(0),
+                    originator: address(0),
+                    sourceChainId: uint16(0)
+                })
             );
         }
 
@@ -524,11 +506,17 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (options.msgValue > 0 && msg.value < options.msgValue) {
             revert InsufficientMsgValue(options.msgValue, msg.value);
         }
-
+        BridgeTypes.RelayedMessageParams
+            memory relayedMessageParams = BridgeTypes.RelayedMessageParams({
+                recipient: params.target,
+                message: params.message,
+                operationId: operationId,
+                originator: params.originator,
+                sourceChainId: uint16(block.chainid)
+            });
         // Encode payload for LayerZero with BridgeTypes.OperationType.MESSAGE message type
-        bytes memory payload = abi.encodePacked(
-            uint16(BridgeTypes.OperationType.MESSAGE), // BridgeTypes.OperationType.MESSAGE message type
-            abi.encode(params.message, params.target, operationId)
+        bytes memory payload = _encodeRelayedMessageParamsWithType(
+            relayedMessageParams
         );
 
         // Create options with appropriate gas limit

@@ -193,9 +193,9 @@ contract CrossChainFleetProxyTest is Test {
         uint256 amount,
         bytes memory message,
         uint16 sourceChainId
-    ) internal view returns (BridgeTypes.DeliveredTransferParams memory) {
+    ) internal view returns (BridgeTypes.RelayedTransferParams memory) {
         return
-            BridgeTypes.DeliveredTransferParams({
+            BridgeTypes.RelayedTransferParams({
                 operationId: keccak256(
                     abi.encodePacked("op", asset, block.timestamp)
                 ),
@@ -332,7 +332,7 @@ contract CrossChainFleetProxyTest is Test {
         uint256 amount = 1000;
         bytes memory message = _buildDeliverPayload(asset);
 
-        BridgeTypes.DeliveredTransferParams
+        BridgeTypes.RelayedTransferParams
             memory params = _buildDeliveredTransferParams(
                 asset,
                 amount,
