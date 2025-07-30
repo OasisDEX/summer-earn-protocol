@@ -131,7 +131,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
 
-        vm.stopPrank(); // User stops queueing
+        vm.stopPrank();
 
         vm.startPrank(executor);
         // approve tokens for transfer
@@ -143,7 +143,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
                 asset: address(token),
                 amount: TRANSFER_AMOUNT,
                 target: user,
-                originator: user,
+                originator: executor,
                 refundAddress: address(executor),
                 message: ""
             }),

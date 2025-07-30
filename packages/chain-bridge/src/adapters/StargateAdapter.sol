@@ -297,8 +297,8 @@ contract StargateAdapter is
         address destinationAdapter = _peerAdapter(params.destinationChainId);
         if (destinationAdapter == address(0)) revert UnsupportedChain();
 
-        BridgeTypes.DeliveredTransferParams memory atm = BridgeTypes
-            .DeliveredTransferParams({
+        BridgeTypes.RelayedTransferParams memory atm = BridgeTypes
+            .RelayedTransferParams({
                 recipient: params.target,
                 asset: params.asset,
                 amount: params.amount,
@@ -313,7 +313,7 @@ contract StargateAdapter is
             params.destinationChainId,
             destinationAdapter,
             params.amount,
-            abi.encode(atm)
+            _encodeRelayedTransferParams(atm)
         );
 
         // Update minAmountLD based on quote
@@ -586,7 +586,7 @@ contract StargateAdapter is
         if (msg.sender != LZ_ENDPOINT) revert Unauthorized();
 
         // Validate the Stargate pool contract
-        _validateStargatePool(_from);
+        address receivedAsset = _validateStargatePool(_from);
 
         // ---------------------------------------------------------------
         // 1. Taxi header must be present
@@ -594,24 +594,32 @@ contract StargateAdapter is
         if (!SummerTaxiCodec.isTaxi(_message)) revert InvalidMessage();
 
         // Decode taxi message (includes srcSender & compose payload)
-        (, , , address srcSender, bytes memory composeMsg) = SummerTaxiCodec
-            .decodeTaxi(_message);
+        (
+            ,
+            ,
+            uint amountSD,
+            address srcSender,
+            bytes memory composeMsg
+        ) = SummerTaxiCodec.decodeTaxi(_message);
 
         // ---------------------------------------------------------------
         // 2. Verify peer adapter relationship
         // ---------------------------------------------------------------
-        BridgeTypes.DeliveredTransferParams memory atm = abi.decode(
-            composeMsg,
-            (BridgeTypes.DeliveredTransferParams)
-        );
+        BridgeTypes.RelayedTransferParams
+            memory atm = _decodeRelayedTransferParams(composeMsg);
 
         _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
-
+        _assertReceivedAmount(amountSD, atm.amount);
         // ---------------------------------------------------------------
         // 3. Continue normal handling (the SD amount from the Taxi header is
         // informational; the real LD amount lives inside the composeMsg)
         // ---------------------------------------------------------------
-        _handleComposedMessage(_from, composeMsg);
+
+        IERC20(receivedAsset).safeTransfer(bridgeRouter(), atm.amount);
+        IBridgeRouter(bridgeRouter()).deliver(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            composeMsg
+        );
     }
 
     /**
@@ -637,46 +645,6 @@ contract StargateAdapter is
         }
 
         return token;
-    }
-
-    /**
-     * @dev Internal function to handle the composed message logic - EXTENDED for Fleet Deposits
-     */
-    function _handleComposedMessage(
-        address _from,
-        bytes memory composeMsg
-    ) internal {
-        // Get the received asset from the Stargate contract
-        address receivedAsset = IStargateV2(_from).token();
-
-        _handleAssetTransferMessage(receivedAsset, composeMsg);
-    }
-
-    /**
-     * @dev Handle asset transfer compose messages
-     */
-    function _handleAssetTransferMessage(
-        address receivedAsset,
-        bytes memory composeMsg
-    ) internal {
-        // Decode the compose message
-        BridgeTypes.DeliveredTransferParams memory atm = abi.decode(
-            composeMsg,
-            (BridgeTypes.DeliveredTransferParams)
-        );
-
-        // -----------------------------------------------------------------
-        // 1. Forward the tokens the adapter just received to the router
-        // -----------------------------------------------------------------
-        IERC20(receivedAsset).safeTransfer(bridgeRouter(), atm.amount);
-
-        // -----------------------------------------------------------------
-        // 3. Let the BridgeRouter finish the delivery
-        // -----------------------------------------------------------------
-        IBridgeRouter(bridgeRouter()).deliver(
-            BridgeTypes.OperationType.TRANSFER_ASSET,
-            composeMsg
-        );
     }
 
     /**
@@ -717,7 +685,7 @@ contract StargateAdapter is
                 ICrossChainReceiver(recipient).receiveOperation(
                     BridgeTypes.OperationType.TRANSFER_ASSET,
                     abi.encode(
-                        BridgeTypes.DeliveredTransferParams({
+                        BridgeTypes.RelayedTransferParams({
                             operationId: operationId,
                             originator: address(this),
                             sourceChainId: uint16(block.chainid),

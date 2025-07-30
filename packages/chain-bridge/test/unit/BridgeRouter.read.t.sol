@@ -11,7 +11,7 @@ import {console} from "forge-std/console.sol";
 contract BridgeRouterReadStateTest is BridgeRouterSetup {
     // ---- READ STATE TESTS ----
 
-    function testReadStateLOL() public {
+    function testReadState() public {
         address targetContract = address(token); // Use a valid address for setup
         bytes4 targetSelector = bytes4(keccak256("getBalance(address)"));
         bytes memory targetCalldata = abi.encode(user);
@@ -54,8 +54,8 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 target: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
-                originator: address(mockReceiver),
-                refundAddress: address(keeper)
+                originator: keeper,
+                refundAddress: keeper
             }),
             options
         );
@@ -108,7 +108,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 target: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
-                originator: address(mockReceiver),
+                originator: keeper,
                 refundAddress: address(keeper)
             }),
             options
@@ -134,7 +134,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 ICrossChainReceiver.receiveOperation.selector,
                 BridgeTypes.OperationType.READ_STATE,
                 abi.encode(
-                    BridgeTypes.DeliveredReadResponse({
+                    BridgeTypes.RelayedReadResponse({
                         readResponseData: abi.encode(uint256(100)),
                         operationId: operationId,
                         sourceChainId: DEST_CHAIN_ID
@@ -145,7 +145,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.DeliveredReadResponse({
+                BridgeTypes.RelayedReadResponse({
                     readResponseData: abi.encode(uint256(100)),
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -198,7 +198,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 target: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
-                originator: address(mockReceiver),
+                originator: keeper,
                 refundAddress: address(keeper)
             }),
             options
@@ -223,7 +223,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.DeliveredReadResponse({
+                BridgeTypes.RelayedReadResponse({
                     readResponseData: abi.encode(uint256(100)),
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID
@@ -273,7 +273,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 target: targetContract,
                 selector: targetSelector,
                 readParams: targetCalldata,
-                originator: address(mockReceiver),
+                originator: keeper,
                 refundAddress: address(keeper)
             }),
             options
@@ -299,7 +299,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 IBridgeRouter.deliver.selector,
                 BridgeTypes.OperationType.READ_STATE,
                 abi.encode(
-                    BridgeTypes.DeliveredReadResponse({
+                    BridgeTypes.RelayedReadResponse({
                         readResponseData: abi.encode(uint256(100)),
                         operationId: operationId,
                         sourceChainId: DEST_CHAIN_ID
@@ -314,7 +314,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 ICrossChainReceiver.receiveOperation.selector,
                 BridgeTypes.OperationType.READ_STATE,
                 abi.encode(
-                    BridgeTypes.DeliveredReadResponse({
+                    BridgeTypes.RelayedReadResponse({
                         readResponseData: abi.encode(uint256(100)),
                         operationId: operationId,
                         sourceChainId: DEST_CHAIN_ID
@@ -328,7 +328,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
-                BridgeTypes.DeliveredReadResponse({
+                BridgeTypes.RelayedReadResponse({
                     readResponseData: abi.encode(uint256(100)),
                     operationId: operationId,
                     sourceChainId: DEST_CHAIN_ID

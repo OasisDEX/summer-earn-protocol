@@ -148,6 +148,10 @@ contract BridgeRouter is
         }
     }
 
+    function _validateOriginator(address originator) internal view {
+        if (originator != msg.sender) revert InvalidOriginator();
+    }
+
     /**
      * @dev Internal function to validate if an adapter supports a specific operation type
      * @param adapter The adapter address to validate
@@ -259,6 +263,7 @@ contract BridgeRouter is
             BridgeTypes.OperationType.TRANSFER_ASSET
         );
         _validateTransferParams(params);
+        _validateOriginator(params.originator);
 
         // Get required base fee and specified adapter (no multiplier)
         (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
@@ -359,6 +364,7 @@ contract BridgeRouter is
             BridgeTypes.OperationType.READ_STATE
         );
         _validateReadStateParams(params);
+        _validateOriginator(params.originator);
 
         // Get required base fee and specified adapter (no multiplier)
         (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
@@ -566,9 +572,9 @@ contract BridgeRouter is
         bytes calldata operationPayload
     ) external onlyRegisteredAdapter nonReentrant {
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.DeliveredTransferParams memory data = abi.decode(
+            BridgeTypes.RelayedTransferParams memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.DeliveredTransferParams)
+                (BridgeTypes.RelayedTransferParams)
             );
 
             // Transfer the asset
@@ -588,9 +594,9 @@ contract BridgeRouter is
                 data.sourceChainId
             );
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.DeliveredMessageParams memory data = abi.decode(
+            BridgeTypes.RelayedMessageParams memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.DeliveredMessageParams)
+                (BridgeTypes.RelayedMessageParams)
             );
 
             ICrossChainReceiver(data.recipient).receiveOperation(
@@ -601,9 +607,9 @@ contract BridgeRouter is
             emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
             // Handle read response delivery (this already exists as deliverReadResponse)
-            BridgeTypes.DeliveredReadResponse memory data = abi.decode(
+            BridgeTypes.RelayedReadResponse memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.DeliveredReadResponse)
+                (BridgeTypes.RelayedReadResponse)
             );
 
             if (operationToAdapter[data.operationId] != msg.sender) {

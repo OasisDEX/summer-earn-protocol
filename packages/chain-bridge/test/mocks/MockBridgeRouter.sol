@@ -258,9 +258,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         bytes calldata operationPayload
     ) external {
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.DeliveredTransferParams memory data = abi.decode(
+            BridgeTypes.RelayedTransferParams memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.DeliveredTransferParams)
+                (BridgeTypes.RelayedTransferParams)
             );
 
             // Track the handling adapter
@@ -285,9 +285,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
                 data.sourceChainId
             );
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.DeliveredMessageParams memory data = abi.decode(
+            BridgeTypes.RelayedMessageParams memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.DeliveredMessageParams)
+                (BridgeTypes.RelayedMessageParams)
             );
 
             // Track the handling adapter
@@ -300,9 +300,9 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
             emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            BridgeTypes.DeliveredReadResponse memory data = abi.decode(
+            BridgeTypes.RelayedReadResponse memory data = abi.decode(
                 operationPayload,
-                (BridgeTypes.DeliveredReadResponse)
+                (BridgeTypes.RelayedReadResponse)
             );
 
             // Track the handling adapter

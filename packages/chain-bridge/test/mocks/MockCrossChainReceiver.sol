@@ -59,7 +59,7 @@ contract MockCrossChainReceiver is CrossChainReceiverBase {
      * @notice Handles MESSAGE operations
      */
     function _handleMessage(
-        BridgeTypes.DeliveredMessageParams memory params
+        BridgeTypes.RelayedMessageParams memory params
     ) internal override {
         _processReceipt(
             params.message,
@@ -74,7 +74,7 @@ contract MockCrossChainReceiver is CrossChainReceiverBase {
      * @notice Handles TRANSFER_ASSET operations
      */
     function _handleTransferAsset(
-        BridgeTypes.DeliveredTransferParams memory params
+        BridgeTypes.RelayedTransferParams memory params
     ) internal override {
         _processReceipt(
             params.message,
@@ -89,7 +89,7 @@ contract MockCrossChainReceiver is CrossChainReceiverBase {
      * @notice Handles READ_STATE response operations
      */
     function _handleReadStateResponse(
-        BridgeTypes.DeliveredReadResponse memory params
+        BridgeTypes.RelayedReadResponse memory params
     ) internal override {
         _processReceipt(
             params.readResponseData,

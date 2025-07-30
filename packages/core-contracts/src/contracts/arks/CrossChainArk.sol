@@ -245,7 +245,7 @@ contract CrossChainArk is
      * @param params Decoded message parameters
      */
     function _handleMessage(
-        BridgeTypes.DeliveredMessageParams memory params
+        BridgeTypes.RelayedMessageParams memory params
     ) internal override {
         if (params.sourceChainId != satelliteChainId)
             revert InvalidSourceChain();
@@ -282,7 +282,7 @@ contract CrossChainArk is
      * @param params Decoded transfer parameters
      */
     function _handleTransferAsset(
-        BridgeTypes.DeliveredTransferParams memory params
+        BridgeTypes.RelayedTransferParams memory params
     ) internal override {
         if (params.operationId == bytes32(0)) {
             emit MessageContentNotExpected();

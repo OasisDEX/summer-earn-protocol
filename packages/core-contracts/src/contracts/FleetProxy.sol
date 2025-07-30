@@ -252,7 +252,7 @@ contract FleetProxy is
      * @param params Decoded transfer parameters
      */
     function _handleTransferAsset(
-        BridgeTypes.DeliveredTransferParams memory params
+        BridgeTypes.RelayedTransferParams memory params
     ) internal override whenNotPaused {
         if (params.operationId == bytes32(0)) {
             emit MessageContentNotExpected();

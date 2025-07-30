@@ -183,7 +183,15 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         // Format the payload as MESSAGE type with recipient info
         bytes memory payload = abi.encodePacked(
             uint16(BridgeTypes.OperationType.MESSAGE),
-            abi.encode(message, address(mockReceiver), operationId)
+            abi.encode(
+                BridgeTypes.RelayedMessageParams({
+                    operationId: operationId,
+                    originator: address(mockReceiver),
+                    sourceChainId: uint16(CHAIN_ID_B),
+                    recipient: address(mockReceiver),
+                    message: message
+                })
+            )
         );
 
         adapterA.setLzMessageToOperationId(guid, operationId);

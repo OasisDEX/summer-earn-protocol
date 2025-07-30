@@ -97,7 +97,15 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         // Create payload with GENERAL_MESSAGE type
         bytes memory payload = abi.encodePacked(
             uint16(BridgeTypes.OperationType.MESSAGE), // GENERAL_MESSAGE type
-            abi.encode(message, recipient, messageId)
+            abi.encode(
+                BridgeTypes.RelayedMessageParams({
+                    operationId: messageId,
+                    originator: address(adapterA),
+                    sourceChainId: uint16(CHAIN_ID_B),
+                    recipient: recipient,
+                    message: message
+                })
+            )
         );
 
         // Mock expectations for BridgeRouter.deliver call
@@ -108,7 +116,7 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
                 (
                     BridgeTypes.OperationType.MESSAGE,
                     abi.encode(
-                        BridgeTypes.DeliveredMessageParams({
+                        BridgeTypes.RelayedMessageParams({
                             operationId: messageId,
                             originator: address(adapterA),
                             sourceChainId: uint16(CHAIN_ID_B),

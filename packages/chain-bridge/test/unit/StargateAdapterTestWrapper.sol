@@ -23,16 +23,6 @@ contract StargateAdapterTestWrapper is StargateAdapter {
     {}
 
     /**
-     * @notice Exposes the internal _handleComposedMessage method for testing
-     */
-    function handleComposedMessage(
-        address _from,
-        bytes memory composeMsg
-    ) external {
-        _handleComposedMessage(_from, composeMsg);
-    }
-
-    /**
      * @notice Manually add a failed compose for testing
      */
     function addTestFailedCompose(
