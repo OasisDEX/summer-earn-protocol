@@ -369,20 +369,21 @@ interface AuctionConfig {
   maxMultiplier: number
   minMultiplier: number
 }
-const spkArkAddresses = ["0xC9dd080C9ecCFcdbf379714D84CdC8Bd01046AE1",
-  "0xDB6d68d571FbEF7D67827844DD800884EA9cc02E",
-  "0xCCBd61b6c2fB58Da5bbD8937Ca25164eF29c1cc4",
-  "0x165D1accC5C6326e7EE4deeF75Ac3ffC8ce4D79B",
-  "0x78f466314b2A69685e464431eDF7688cB77De131",
-  "0x1Ae10e9425653177282E6054a5c828391a533aC7",
-  "0x8948a5F3D24F7A6d50FF36064e8cff33B2aF062f",
-  "0x9890C99f504337C3500AC05c267c38dfcd41C3e2",
-  "0xf8Db64D39D1c7382fE47De8B72435c7e9DFB2894",
-  "0x6A60336bc45aE0C9aabAe13acc4bcc0cbd962e44",
-  "0x26c50781f592Cf4c7389615A38Dc927C81F8a0a4",
-  "0xf28b3262E2bB0F11eD25A4c4dC87f7F33DD1b5c5",
-  "0x650012Ba5369d051e381435e8161454C1A0fcbdc",
-  "0x570957bC84b5607e2412dE72461FbbD02844b042",
+const spkArkAddresses = [
+  '0xC9dd080C9ecCFcdbf379714D84CdC8Bd01046AE1',
+  '0xDB6d68d571FbEF7D67827844DD800884EA9cc02E',
+  '0xCCBd61b6c2fB58Da5bbD8937Ca25164eF29c1cc4',
+  '0x165D1accC5C6326e7EE4deeF75Ac3ffC8ce4D79B',
+  '0x78f466314b2A69685e464431eDF7688cB77De131',
+  '0x1Ae10e9425653177282E6054a5c828391a533aC7',
+  '0x8948a5F3D24F7A6d50FF36064e8cff33B2aF062f',
+  '0x9890C99f504337C3500AC05c267c38dfcd41C3e2',
+  '0xf8Db64D39D1c7382fE47De8B72435c7e9DFB2894',
+  '0x6A60336bc45aE0C9aabAe13acc4bcc0cbd962e44',
+  '0x26c50781f592Cf4c7389615A38Dc927C81F8a0a4',
+  '0xf28b3262E2bB0F11eD25A4c4dC87f7F33DD1b5c5',
+  '0x650012Ba5369d051e381435e8161454C1A0fcbdc',
+  '0x570957bC84b5607e2412dE72461FbbD02844b042',
 ].map((address) => address.toLowerCase())
 async function loadConfigurations() {
   const arksConfigPath = path.join(__dirname, '../../config/curation/arks.json')
@@ -500,7 +501,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
     compound_v3: [Token.COMP, Token.SPK],
     fluid: [Token.SPK],
     spark: [Token.SPK],
-    sky: [ Token.SPK],
+    sky: [Token.SPK],
   },
   base: {
     morpho: [Token.MORPHO, Token.WELL, Token.SEAM],
@@ -609,7 +610,10 @@ async function handleSingleRewardToken(
   chain: SupportedChain,
   arkConfig: ArkConfig,
 ) {
-  if (rewardTokenSymbol === 'spk' && !spkArkAddresses.includes(arkConfig.arkAddress.toLowerCase())) {
+  if (
+    rewardTokenSymbol === 'spk' &&
+    !spkArkAddresses.includes(arkConfig.arkAddress.toLowerCase())
+  ) {
     console.log(
       `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it is a SPK ark`,
     )
