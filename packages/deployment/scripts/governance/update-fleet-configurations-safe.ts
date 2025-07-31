@@ -30,6 +30,7 @@ enum Token {
   SKY = 'sky',
   XSILO = 'xsilo',
   COMP = 'comp',
+  SPK = 'spk',
 }
 const addresses: Record<
   SupportedChain,
@@ -57,6 +58,7 @@ const addresses: Record<
       usde: '0x0000000000000000000000000000000000000000',
       xsilo: '0x0000000000000000000000000000000000000000',
       comp: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
+      spk: '0x0000000000000000000000000000000000000000',
     },
   },
   mainnet: {
@@ -77,6 +79,7 @@ const addresses: Record<
       xsilo: '0xdd4c6fd31ccf66e250790643947675153c221a91',
       silo: '0xF0B2dd79324A66d2108C961d680F7616E1486bB0',
       comp: '0xc00e94cb662c3520282e6f5717214004a7f26888',
+      spk: '0xc20059e0317DE91738d13af027DfC4a50781b066',
     },
   },
   sonic: {
@@ -94,6 +97,7 @@ const addresses: Record<
       silo: '0xb098AFC30FCE67f1926e735Db6fDadFE433E61db',
       xsilo: '0x4451765739b2D7BCe5f8BC95Beaf966c45E1Dcc9',
       comp: '0x0000000000000000000000000000000000000000',
+      spk: '0x0000000000000000000000000000000000000000',
     },
   },
   arbitrum: {
@@ -111,6 +115,7 @@ const addresses: Record<
       ws: '0x0000000000000000000000000000000000000000',
       xsilo: '0xf3775f959bc64923bd809085299dbc984d3e6c8a',
       comp: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
+      spk: '0x0000000000000000000000000000000000000000',
     },
   },
 }
@@ -364,7 +369,21 @@ interface AuctionConfig {
   maxMultiplier: number
   minMultiplier: number
 }
-
+const spkArkAddresses = ["0xC9dd080C9ecCFcdbf379714D84CdC8Bd01046AE1",
+  "0xDB6d68d571FbEF7D67827844DD800884EA9cc02E",
+  "0xCCBd61b6c2fB58Da5bbD8937Ca25164eF29c1cc4",
+  "0x165D1accC5C6326e7EE4deeF75Ac3ffC8ce4D79B",
+  "0x78f466314b2A69685e464431eDF7688cB77De131",
+  "0x1Ae10e9425653177282E6054a5c828391a533aC7",
+  "0x8948a5F3D24F7A6d50FF36064e8cff33B2aF062f",
+  "0x9890C99f504337C3500AC05c267c38dfcd41C3e2",
+  "0xf8Db64D39D1c7382fE47De8B72435c7e9DFB2894",
+  "0x6A60336bc45aE0C9aabAe13acc4bcc0cbd962e44",
+  "0x26c50781f592Cf4c7389615A38Dc927C81F8a0a4",
+  "0xf28b3262E2bB0F11eD25A4c4dC87f7F33DD1b5c5",
+  "0x650012Ba5369d051e381435e8161454C1A0fcbdc",
+  "0x570957bC84b5607e2412dE72461FbbD02844b042",
+].map((address) => address.toLowerCase())
 async function loadConfigurations() {
   const arksConfigPath = path.join(__dirname, '../../config/curation/arks.json')
   const arksConfig: ArkConfig[] = JSON.parse(fs.readFileSync(arksConfigPath, 'utf-8'))
@@ -408,6 +427,7 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'silo':
     case 'xsilo':
     case 'comp':
+    case 'spk':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -472,12 +492,15 @@ function calculateAuctionMultipliers(
 }
 const rewardsConfig: Record<string, Record<string, Token[]>> = {
   mainnet: {
-    'sky-rewards': [Token.SKY],
-    morpho: [Token.MORPHO, Token.SYRUP],
-    euler: [Token.REUL],
-    gearbox: [Token.GEAR],
-    siloV2: [Token.SILO, Token.XSILO],
-    compound_v3: [Token.COMP],
+    'sky-rewards': [Token.SKY, Token.SPK],
+    morpho: [Token.MORPHO, Token.SYRUP, Token.SPK],
+    euler: [Token.REUL, Token.SPK],
+    gearbox: [Token.GEAR, Token.SPK],
+    siloV2: [Token.SILO, Token.XSILO, Token.SPK],
+    compound_v3: [Token.COMP, Token.SPK],
+    fluid: [Token.SPK],
+    spark: [Token.SPK],
+    sky: [ Token.SPK],
   },
   base: {
     morpho: [Token.MORPHO, Token.WELL, Token.SEAM],
@@ -586,6 +609,12 @@ async function handleSingleRewardToken(
   chain: SupportedChain,
   arkConfig: ArkConfig,
 ) {
+  if (rewardTokenSymbol === 'spk' && !spkArkAddresses.includes(arkConfig.arkAddress.toLowerCase())) {
+    console.log(
+      `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it is a SPK ark`,
+    )
+    return []
+  }
   if (rewardTokenSymbol === 'well' && !arkConfig.arkSymbol.includes('moonwell')) {
     console.log(
       `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it does not support moonwell`,

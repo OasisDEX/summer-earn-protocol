@@ -196,5 +196,23 @@
     "decayType": "linear",
     "maxMultiplier": 2,
     "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "spk",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.000026,
+      "usdt": 0.1,
+      "usdc": 0.1,
+      "dai": 0.1,
+      "usde": 0.1,
+      "usdce": 0.1,
+      "eurc": 0.1
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
   }
 ]
