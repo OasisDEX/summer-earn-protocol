@@ -35,6 +35,9 @@ contract StargateV2PoolArk is Ark {
     /// @notice The convert rate for the Ark
     uint256 public immutable convertRate;
 
+    /// @notice Whether the asset is native ETH
+    bool public immutable isNativeAsset;
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -70,6 +73,7 @@ contract StargateV2PoolArk is Ark {
         stargateStaking = IStargateStaking(_stargateStaking);
         lpToken = IERC20(stargatePool.lpToken());
         weth = IWETH(_weth);
+        isNativeAsset = address(config.asset) == address(weth);
 
         // Approve the pool to spend the Ark's tokens
         config.asset.forceApprove(_stargatePool, Constants.MAX_UINT256);
@@ -131,9 +135,15 @@ contract StargateV2PoolArk is Ark {
      * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
+        if (isNativeAsset) {
+            weth.withdraw(amount);
+        }
         stargateStaking.deposit(
             lpToken,
-            stargatePool.deposit(address(this), amount)
+            stargatePool.deposit{value: isNativeAsset ? amount : 0}(
+                address(this),
+                amount
+            )
         );
     }
 
@@ -145,6 +155,9 @@ contract StargateV2PoolArk is Ark {
     function _disembark(uint256 amount, bytes calldata) internal override {
         stargateStaking.withdraw(lpToken, amount);
         stargatePool.redeem(amount, address(this));
+        if (isNativeAsset) {
+            weth.deposit{value: amount}();
+        }
     }
 
     /**

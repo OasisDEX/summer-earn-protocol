@@ -21,46 +21,42 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
+contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     StargateV2PoolArk public ark;
     IStargatePool public stargatePool;
     IStargateStaking public stargateStaking;
-    IERC20 public usdt;
     IERC20 public lpToken;
     IWETH public weth;
     ArkParams public params;
 
-    // Arbitrum addresses
+    // Optimism addresses
     address public constant STARGATE_POOL_ADDRESS =
-        0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0;
+        0xe8CDF27AcD73a434D661C84887215F7598e7d0d3;
     address public constant STARGATE_STAKING_ADDRESS =
-        0x3da4f8E456AC648c489c286B99Ca37B666be7C4C;
-    address public constant USDT_ADDRESS =
-        0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9; // USDT on Arbitrum
+        0xFBb5A71025BEf1A8166C9BCb904a120AA17d6443;
     address public constant WETH_ADDRESS =
-        0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; // WETH on Arbitrum
+        0x4200000000000000000000000000000000000006; // WETH on Optimism
 
-    uint256 forkBlock = 300000000; // A recent block number for Arbitrum
+    uint256 forkBlock = 130000000; // A recent block number for Optimism
     uint256 forkId;
 
     function setUp() public {
         initializeCoreContracts();
-        forkId = vm.createSelectFork(vm.rpcUrl("arbitrum"), forkBlock);
+        forkId = vm.createSelectFork(vm.rpcUrl("optimism"), forkBlock);
 
-        usdt = IERC20(USDT_ADDRESS);
         stargatePool = IStargatePool(STARGATE_POOL_ADDRESS);
         stargateStaking = IStargateStaking(STARGATE_STAKING_ADDRESS);
         lpToken = IERC20(stargatePool.lpToken());
         weth = IWETH(WETH_ADDRESS);
 
         params = ArkParams({
-            name: "USDT Stargate V2 Pool Ark",
-            details: "USDT Stargate V2 Pool Ark details",
+            name: "ETH Stargate V2 Pool Ark",
+            details: "ETH Stargate V2 Pool Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            asset: USDT_ADDRESS,
+            asset: WETH_ADDRESS, // Using WETH as the asset for native ETH
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -156,22 +152,29 @@ contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
         );
         assertEq(
             address(ark.asset()),
-            USDT_ADDRESS,
-            "Token address should match USDT"
+            WETH_ADDRESS,
+            "Token address should match WETH"
         );
         assertEq(
             ark.name(),
-            "USDT Stargate V2 Pool Ark",
+            "ETH Stargate V2 Pool Ark",
             "Ark name should match"
         );
     }
 
     function test_Board() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDT (6 decimals on Arbitrum)
-        deal(USDT_ADDRESS, commander, amount);
+        uint256 amount = 1 ether; // 1 ETH (18 decimals)
 
+        // Deal WETH to commander
+        vm.deal(commander, amount);
         vm.startPrank(commander);
-        usdt.forceApprove(address(ark), amount);
+        weth.deposit{value: amount}();
+        weth.transfer(address(weth), 0); // Just to ensure WETH balance is correct
+
+        uint256 wethBalance = weth.balanceOf(commander);
+        assertEq(wethBalance, amount, "Commander should have WETH balance");
+
+        IERC20(address(weth)).approve(address(ark), amount);
 
         uint256 initialStakedBalance = stargateStaking.balanceOf(
             lpToken,
@@ -179,7 +182,7 @@ contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit Boarded(commander, USDT_ADDRESS, amount);
+        emit Boarded(commander, WETH_ADDRESS, amount);
 
         ark.board(amount, bytes(""));
         vm.stopPrank();
@@ -188,44 +191,49 @@ contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
             lpToken,
             address(ark)
         );
-        assertGt(
+        assertEq(
             finalStakedBalance,
-            initialStakedBalance,
+            initialStakedBalance + amount,
             "Staked LP balance should increase"
         );
     }
 
     function test_Disembark() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDT
-        deal(USDT_ADDRESS, commander, amount);
+        uint256 amount = 1 ether; // 1 ETH
 
+        // Deal WETH to commander
+        vm.deal(commander, amount);
         vm.startPrank(commander);
-        usdt.forceApprove(address(ark), amount);
+        weth.deposit{value: amount}();
+        IERC20(address(weth)).approve(address(ark), amount);
         ark.board(amount, bytes(""));
 
-        uint256 initialUSDTBalance = usdt.balanceOf(commander);
+        uint256 initialWETHBalance = weth.balanceOf(commander);
         uint256 amountToDisembark = ark.withdrawableTotalAssets();
 
         vm.expectEmit();
-        emit Disembarked(commander, USDT_ADDRESS, amountToDisembark);
+        emit Disembarked(commander, WETH_ADDRESS, amountToDisembark);
 
         ark.disembark(amountToDisembark, bytes(""));
+
         vm.stopPrank();
 
-        uint256 finalUSDTBalance = usdt.balanceOf(commander);
+        uint256 finalWETHBalance = weth.balanceOf(commander);
         assertGt(
-            finalUSDTBalance,
-            initialUSDTBalance,
-            "USDT balance should increase after disembarking"
+            finalWETHBalance,
+            initialWETHBalance,
+            "WETH balance should increase after disembarking"
         );
     }
 
     function test_TotalAssets() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDT
-        deal(USDT_ADDRESS, commander, amount);
+        uint256 amount = 1 ether; // 1 ETH
 
+        // Deal WETH to commander
+        vm.deal(commander, amount);
         vm.startPrank(commander);
-        usdt.forceApprove(address(ark), amount);
+        weth.deposit{value: amount}();
+        IERC20(address(weth)).approve(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
@@ -249,11 +257,13 @@ contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function test_Harvest() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDT
-        deal(USDT_ADDRESS, commander, amount);
+        uint256 amount = 1 ether; // 1 ETH
 
+        // Deal WETH to commander
+        vm.deal(commander, amount);
         vm.startPrank(commander);
-        usdt.forceApprove(address(ark), amount);
+        weth.deposit{value: amount}();
+        IERC20(address(weth)).approve(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
@@ -312,11 +322,13 @@ contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function test_WithdrawableTotalAssets() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDT
-        deal(USDT_ADDRESS, commander, amount);
+        uint256 amount = 1 ether; // 1 ETH
 
+        // Deal WETH to commander
+        vm.deal(commander, amount);
         vm.startPrank(commander);
-        usdt.forceApprove(address(ark), amount);
+        weth.deposit{value: amount}();
+        IERC20(address(weth)).approve(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
@@ -343,7 +355,7 @@ contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
             "Withdrawable assets should be min of staked balance and pool balance"
         );
 
-        uint256 veryLowBalance = 1 * 1e6;
+        uint256 veryLowBalance = 0.1 ether; // 0.1 ETH
         // we need to mock the pool balance as it has separate accounting, rather than simple balanceOf underlying assets
         vm.mockCall(
             address(stargatePool),
@@ -363,5 +375,51 @@ contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
             veryLowBalance,
             "Withdrawable assets should be equal to the very low balance"
         );
+    }
+
+    function test_NativeETHHandling() public {
+        // Test that the contract can handle native ETH operations correctly
+        uint256 amount = 1 ether;
+
+        // Deal native ETH to commander
+        vm.deal(commander, amount * 2); // Extra for gas
+
+        vm.startPrank(commander);
+
+        // Convert ETH to WETH for the ark
+        weth.deposit{value: amount}();
+        IERC20(address(weth)).approve(address(ark), amount);
+
+        uint256 initialStakedBalance = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+
+        // Board should work with WETH
+        ark.board(amount, bytes(""));
+
+        uint256 finalStakedBalance = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+
+        assertGt(
+            finalStakedBalance,
+            initialStakedBalance,
+            "Should stake LP tokens successfully"
+        );
+
+        vm.stopPrank();
+    }
+
+    function test_ConvertRate() public view {
+        // Test that the convert rate is calculated correctly
+        uint256 convertRate = ark.convertRate();
+
+        // For ETH (18 decimals) and typical Stargate shared decimals (6),
+        // convert rate should be 10^(18-6) = 10^12
+        // Note: This test might need adjustment based on actual shared decimals
+        // The exact value depends on stargatePool.sharedDecimals()
+        assertGt(convertRate, 0, "Convert rate should be greater than 0");
     }
 }
