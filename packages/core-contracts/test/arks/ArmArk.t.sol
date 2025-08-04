@@ -176,12 +176,11 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         );
 
         // Should equal ARM balance + WETH balance + withdrawal queue assets
-        uint256 expectedAssets = weth.balanceOf(address(ark)) +
-            arm.balanceOf(address(ark)) +
-            ark.assetsInWithdrawalQueue();
-        assertEq(
+        uint256 expectedAssets = amount;
+        assertApproxEqAbs(
             totalAssets,
             expectedAssets,
+            1,
             "Total assets calculation should be correct"
         );
     }
@@ -250,7 +249,7 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
     function test_RequestWithdrawal_MaxAmount() public {
         test_Board();
 
-        uint256 armBalance = arm.balanceOf(address(ark));
+        uint256 armBalance = arm.convertToAssets(arm.balanceOf(address(ark)));
 
         vm.startPrank(keeper);
         ark.requestWithdrawal(type(uint256).max);
@@ -305,9 +304,8 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         uint256 withdrawAmount = 0.5 ether;
 
         vm.startPrank(keeper);
-        // Note: This test might fail with actual swap data since we don't have real liquidity
-        // In a real test, you'd need to mock the swap or use actual swap data
-        vm.expectRevert(); // Expect revert due to no actual swap data
+        // todo: add a test for this
+        vm.expectRevert();
         ark.withdrawUsingSwap(withdrawAmount, data);
         vm.stopPrank();
     }
@@ -365,10 +363,9 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
     function test_WithdrawableTotalAssets() public {
         test_Board();
 
-        uint256 withdrawableAssets = ark.totalAssets(); // This calls _withdrawableTotalAssets internally
-        uint256 expectedAssets = weth.balanceOf(address(ark)) +
-            arm.balanceOf(address(ark));
-
+        uint256 withdrawableAssets = ark.withdrawableTotalAssets();
+        uint256 expectedAssets = weth.balanceOf(address(ark));
+        assertEq(0, expectedAssets, "Should be 0 - all assets are boarded");
         assertGe(
             withdrawableAssets,
             expectedAssets,

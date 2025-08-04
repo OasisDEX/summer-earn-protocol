@@ -47,7 +47,6 @@ contract ArmArk is ArkWithWithdrawalRequest {
         if (_arm == address(0)) {
             revert InvalidArmAddress();
         }
-
         if (_armZapper == address(0)) {
             revert InvalidArmZapperAddress();
         }
@@ -55,16 +54,11 @@ contract ArmArk is ArkWithWithdrawalRequest {
         arm = IArm(_arm);
         armZapper = IArmZapper(_armZapper);
         weth = IWETH(address(_params.asset));
-
-        // Validate that the asset is WETH (since we're dealing with ETH deposits)
-        if (address(_params.asset) == address(0)) {
-            revert InvalidAssetAddress();
-        }
     }
 
     /**
      * @inheritdoc IArk
-     * @notice Returns the total assets managed by this Ark in the ARM protocol
+     * @notice Returns the total assets managed by thi  s Ark in the ARM protocol
      * @return assets The total balance of underlying assets held in the vault for this Ark,
      *                including any pending withdrawal amounts
      */
@@ -75,7 +69,7 @@ contract ArmArk is ArkWithWithdrawalRequest {
         returns (uint256 assets)
     {
         assets += config.asset.balanceOf(address(this));
-        assets += arm.balanceOf(address(this));
+        assets += arm.previewRedeem(arm.balanceOf(address(this)));
         assets += assetsInWithdrawalQueue();
     }
 
@@ -118,10 +112,12 @@ contract ArmArk is ArkWithWithdrawalRequest {
         if (withdrawalRequestId > 0) {
             revert WithdrawalAlreadyRequested();
         }
+        uint256 shares;
         if (amount == type(uint256).max) {
-            amount = arm.balanceOf(address(this));
+            shares = arm.balanceOf(address(this));
+        } else {
+            shares = arm.convertToShares(amount);
         }
-        uint256 shares = arm.convertToShares(amount);
         (uint256 requestId, ) = arm.requestRedeem(shares);
         withdrawalRequestId = requestId;
         emit WithdrawalRequested(amount, withdrawalRequestId);
@@ -136,6 +132,7 @@ contract ArmArk is ArkWithWithdrawalRequest {
         if (withdrawalRequestId == 0) {
             revert NoWithdrawalToClaim();
         }
+        // arm returns weth - no need to wrap
         arm.claimRedeem(withdrawalRequestId);
         withdrawalRequestId = 0;
     }
@@ -154,8 +151,8 @@ contract ArmArk is ArkWithWithdrawalRequest {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev Returns the sum of the direct asset balance and ARM LP shares balance
-     * @return withdrawableAssets Assets that can be immediately withdrawn via swap
+     * @dev Returns the sum of the direct asset balance
+     * @return withdrawableAssets Assets that can be immediately withdrawn by users or rebalanced
      */
     function _withdrawableTotalAssets()
         internal
@@ -235,13 +232,4 @@ contract ArmArk is ArkWithWithdrawalRequest {
 
     /// @notice Error thrown when an invalid ARM zapper address is provided
     error InvalidArmZapperAddress();
-
-    /// @notice Error thrown when an invalid asset address is provided
-    error InvalidAssetAddress();
-
-    /// @notice Error thrown when there is insufficient ARM balance
-    error InsufficientArmBalance();
-
-    /// @notice Error thrown when withdrawal is not yet claimable
-    error WithdrawalNotYetClaimable();
 }
