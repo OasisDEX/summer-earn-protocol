@@ -37,11 +37,18 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
-    /// @notice Mapping of supported chains to their LayerZero chain IDs
-    mapping(uint16 chainId => uint32 lzEid) public chainToLzEid;
+    // Chain mappings moved to BaseBridgeAdapter
 
-    /// @notice Inverse mapping of LayerZero chain IDs to our chain IDs
-    mapping(uint32 lzEid => uint16 chainId) public lzEidToChain;
+    // LayerZero-specific public interface that delegates to base class generic mappings
+    /// @notice Mapping of supported chains to their LayerZero chain IDs (public view)
+    function chainToLzEid(uint16 chainId) public view returns (uint32) {
+        return chainToExternalId[chainId];
+    }
+
+    /// @notice Inverse mapping of LayerZero chain IDs to our chain IDs (public view)
+    function lzEidToChain(uint32 lzEid) public view returns (uint16) {
+        return externalIdToChain[lzEid];
+    }
 
     /// @notice Read channel identifier for lzRead operations
     uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Used to identify responses
@@ -103,10 +110,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     {
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();
 
-        // Setup chain ID mappings
+        // Setup chain ID mappings using base functionality
         for (uint256 i = 0; i < _supportedChains.length; i++) {
-            chainToLzEid[_supportedChains[i]] = _lzEids[i];
-            lzEidToChain[_lzEids[i]] = _supportedChains[i];
+            _addChain(_supportedChains[i], _lzEids[i]);
         }
     }
 
@@ -134,8 +140,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint16 chainId,
         uint32 lzEid
     ) external onlyGovernor {
-        chainToLzEid[chainId] = lzEid;
-        lzEidToChain[lzEid] = chainId;
+        _addChain(chainId, lzEid);
     }
 
     /**
@@ -144,9 +149,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @dev Can only be called by the contract owner
      */
     function removeSupportedChain(uint16 chainId) external onlyGovernor {
-        uint32 lzEid = chainToLzEid[chainId];
-        delete chainToLzEid[chainId];
-        delete lzEidToChain[lzEid];
+        uint32 lzEid = chainToExternalId[chainId];
+        delete chainToExternalId[chainId];
+        delete externalIdToChain[lzEid];
     }
 
     /**
@@ -284,7 +289,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         BridgeTypes.RelayedMessageParams
             memory relayedMessageParams = _decodeRelayedMessageParams(_payload);
         _assertSourceChainId(
-            lzEidToChain[_origin.srcEid],
+            externalIdToChain[_origin.srcEid],
             relayedMessageParams.sourceChainId
         );
         IBridgeRouter(bridgeRouter()).deliver(
@@ -316,7 +321,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             BridgeTypes.RelayedReadResponse({
                 readResponseData: _payload,
                 operationId: operationId,
-                sourceChainId: lzEidToChain[_origin.srcEid]
+                sourceChainId: externalIdToChain[_origin.srcEid]
             })
         );
         IBridgeRouter(bridgeRouter()).deliver(
@@ -560,7 +565,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint16 chainId
     ) internal view returns (uint32 lzEid) {
         // Get the LayerZero EID from our mapping
-        lzEid = chainToLzEid[chainId];
+        lzEid = chainToExternalId[chainId];
 
         // If not found in the mapping, revert
         if (lzEid == 0) {
@@ -580,9 +585,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         BridgeTypes.BridgeOptions calldata options,
         BridgeTypes.OperationType operationType
     ) internal view returns (bytes memory) {
-        uint128 gasLimit = options.gasLimit > 0
-            ? uint128(options.gasLimit)
-            : uint128(defaultGasLimit());
+        uint128 gasLimit = uint128(_normalizeGas(options.gasLimit));
 
         // Use the helper to create messaging options with minimum gas limit enforcement
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
@@ -651,7 +654,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint32 _lzEid
     ) internal view returns (uint16 chainId) {
         // Get the chain ID from our mapping
-        chainId = lzEidToChain[_lzEid];
+        chainId = externalIdToChain[_lzEid];
 
         // If not found in the mapping, revert
         if (chainId == 0) {

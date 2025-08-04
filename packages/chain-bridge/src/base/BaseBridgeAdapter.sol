@@ -35,6 +35,12 @@ abstract contract BaseBridgeAdapter is
 
     uint16 public immutable THIS_CHAIN;
 
+    /// @notice Mapping of supported chains to their external bridge protocol IDs
+    mapping(uint16 chainId => uint32 externalId) public chainToExternalId;
+
+    /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
+    mapping(uint32 externalId => uint16 chainId) public externalIdToChain;
+
     /**
      * @param _registry Address of the CrossChainRegistry contract
      * @param _accessManager Address of the AccessManager contract
@@ -117,6 +123,25 @@ abstract contract BaseBridgeAdapter is
         if (sourceChainId != expectedChainId) revert InvalidSourceChainId();
     }
 
+    /**
+     * @notice Adds a chain mapping
+     * @param chainId Chain ID to add
+     * @param externalId External bridge protocol ID for the chain
+     */
+    function _addChain(uint16 chainId, uint32 externalId) internal {
+        chainToExternalId[chainId] = externalId;
+        externalIdToChain[externalId] = chainId;
+    }
+
+    /**
+     * @notice Normalizes gas limit using user input or default
+     * @param userGas User-provided gas limit
+     * @return Normalized gas limit
+     */
+    function _normalizeGas(uint64 userGas) internal view returns (uint64) {
+        return userGas > 0 ? userGas : uint64(defaultGasLimit());
+    }
+
     function _decodeRelayedMessageParams(
         bytes memory _message
     ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
@@ -153,12 +178,26 @@ abstract contract BaseBridgeAdapter is
         return abi.encode(_params);
     }
 
+    /**
+     * @notice Generic function to encode operation with type
+     * @param op Operation type
+     * @param abiBytes ABI-encoded bytes of the operation parameters
+     * @return Encoded bytes with operation type prefix
+     */
+    function _encodeWithType(
+        BridgeTypes.OperationType op,
+        bytes memory abiBytes
+    ) internal pure returns (bytes memory) {
+        return abi.encodePacked(uint16(op), abiBytes);
+    }
+
+    // Legacy functions maintained for backward compatibility
     function _encodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.MESSAGE),
+            _encodeWithType(
+                BridgeTypes.OperationType.MESSAGE,
                 _encodeRelayedMessageParams(_params)
             );
     }
@@ -167,8 +206,8 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedTransferParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.TRANSFER_ASSET),
+            _encodeWithType(
+                BridgeTypes.OperationType.TRANSFER_ASSET,
                 _encodeRelayedTransferParams(_params)
             );
     }
@@ -177,8 +216,8 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedReadResponse memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.READ_STATE),
+            _encodeWithType(
+                BridgeTypes.OperationType.READ_STATE,
                 _encodeRelayedReadResponse(_params)
             );
     }
