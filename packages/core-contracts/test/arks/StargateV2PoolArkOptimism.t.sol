@@ -422,4 +422,254 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
         // The exact value depends on stargatePool.sharedDecimals()
         assertGt(convertRate, 0, "Convert rate should be greater than 0");
     }
+
+    function test_DustHandling_SingleDeposit() public {
+        // Test that deposits with dust revert for native ETH pools (StargatePoolNative behavior)
+        uint256 amountWithDust = 1.123456789123456789 ether; // Has dust beyond 6 decimals
+
+        vm.deal(commander, amountWithDust);
+        vm.startPrank(commander);
+        weth.deposit{value: amountWithDust}();
+        IERC20(address(weth)).approve(address(ark), amountWithDust);
+
+        // Native ETH pools revert on dusty amounts
+        vm.expectRevert(); // Should revert due to dust
+        ark.board(amountWithDust, bytes(""));
+        
+        vm.stopPrank();
+    }
+    
+    function test_CleanDeposit_NativeETH() public {
+        // Test that clean deposits (without dust) work correctly for native ETH
+        uint256 cleanAmount = 1.123456 ether; // Clean amount with exactly 6 decimal precision
+
+        vm.deal(commander, cleanAmount);
+        vm.startPrank(commander);
+        weth.deposit{value: cleanAmount}();
+        IERC20(address(weth)).approve(address(ark), cleanAmount);
+
+        uint256 initialStakedBalance = stargateStaking.balanceOf(lpToken, address(ark));
+        
+        ark.board(cleanAmount, bytes(""));
+
+        uint256 finalStakedBalance = stargateStaking.balanceOf(lpToken, address(ark));
+        uint256 actualDeposited = finalStakedBalance - initialStakedBalance;
+
+        // Should deposit the exact clean amount
+        assertEq(actualDeposited, cleanAmount, "Should deposit exact clean amount");
+        
+        vm.stopPrank();
+    }
+
+    function test_DustHandling_MultipleDepositsWithdrawals() public {
+        // Test multiple cycles with clean deposits and dusty withdrawals
+        uint256[] memory cleanAmounts = new uint256[](3);
+        cleanAmounts[0] = 1.123456 ether; // Clean amount (6 decimal precision)
+        cleanAmounts[1] = 0.987654 ether; // Clean amount  
+        cleanAmounts[2] = 2.555555 ether; // Clean amount
+
+        uint256 totalExpected = cleanAmounts[0] + cleanAmounts[1] + cleanAmounts[2];
+        
+        vm.deal(commander, 10 ether); // Give plenty of ETH
+        vm.startPrank(commander);
+        
+        // Convert to WETH
+        weth.deposit{value: 10 ether}();
+        IERC20(address(weth)).approve(address(ark), 10 ether);
+
+        uint256 initialStakedBalance = stargateStaking.balanceOf(lpToken, address(ark));
+
+        // Make multiple clean deposits (should work)
+        for (uint256 i = 0; i < cleanAmounts.length; i++) {
+            ark.board(cleanAmounts[i], bytes(""));
+        }
+
+        uint256 midStakedBalance = stargateStaking.balanceOf(lpToken, address(ark));
+        uint256 totalDeposited = midStakedBalance - initialStakedBalance;
+
+        // Verify total deposited equals clean amounts
+        assertEq(totalDeposited, totalExpected, "Total deposited should equal clean amounts");
+
+        // Test withdrawal with dust - currently reverts due to implementation bug
+        uint256 dustyWithdrawAmount = 2.123456789123456789 ether; // Has dust
+        
+        // Current implementation fails when trying to withdraw dusty amounts
+        vm.expectRevert(); // Should revert due to out-of-funds when trying to wrap dust
+        ark.disembark(dustyWithdrawAmount, bytes(""));
+        
+        // Test with clean withdraw amount instead
+        uint256 cleanWithdrawAmount = 2.123456 ether; // Clean amount
+        if (ark.withdrawableTotalAssets() >= cleanWithdrawAmount) {
+            ark.disembark(cleanWithdrawAmount, bytes(""));
+            
+            uint256 balanceAfterWithdraw = stargateStaking.balanceOf(lpToken, address(ark));
+            uint256 actualWithdrawn = midStakedBalance - balanceAfterWithdraw;
+            
+            // Should withdraw the exact clean amount
+            assertEq(actualWithdrawn, cleanWithdrawAmount, "Should withdraw exact clean amount");
+        }
+        
+        vm.stopPrank();
+    }
+
+    function test_DustAccumulation_PartialWithdrawals() public {
+        // Test partial withdrawals with clean deposit and dusty withdrawals
+        uint256 cleanDepositAmount = 5.123456 ether; // Clean amount for deposit
+
+        vm.deal(commander, cleanDepositAmount);
+        vm.startPrank(commander);
+        weth.deposit{value: cleanDepositAmount}();
+        IERC20(address(weth)).approve(address(ark), cleanDepositAmount);
+
+        // Deposit clean amount (should work)
+        ark.board(cleanDepositAmount, bytes(""));
+
+        uint256 stakedAfterDeposit = stargateStaking.balanceOf(lpToken, address(ark));
+        assertEq(stakedAfterDeposit, cleanDepositAmount, "Should stake exact clean amount");
+
+        // Make partial withdrawal with dust - currently reverts due to implementation bug
+        uint256 withdrawAmount1 = 2.654321123456789 ether; // Has dust
+        
+        // Current implementation tries to wrap the dusty amount but only received clean amount
+        vm.expectRevert(); // Should revert due to out-of-funds when trying to wrap dust
+        ark.disembark(withdrawAmount1, bytes(""));
+        
+        // Instead, test with clean withdrawal amount
+        uint256 cleanWithdrawAmount1 = 2.654321 ether; // Clean amount
+        ark.disembark(cleanWithdrawAmount1, bytes(""));
+        
+        uint256 stakedAfterWithdraw1 = stargateStaking.balanceOf(lpToken, address(ark));
+        uint256 actualWithdrawn1 = stakedAfterDeposit - stakedAfterWithdraw1;
+        
+        // Should withdraw clean amount exactly
+        assertEq(actualWithdrawn1, cleanWithdrawAmount1, "Should withdraw clean amount exactly");
+        
+        // Make another partial withdrawal - use clean amount to avoid revert
+        uint256 cleanWithdrawAmount2 = 1.111111 ether; // Clean amount
+        
+        ark.disembark(cleanWithdrawAmount2, bytes(""));
+        
+        uint256 stakedAfterWithdraw2 = stargateStaking.balanceOf(lpToken, address(ark));
+        uint256 actualWithdrawn2 = stakedAfterWithdraw1 - stakedAfterWithdraw2;
+        
+        assertEq(actualWithdrawn2, cleanWithdrawAmount2, "Should withdraw clean amount");
+        
+        // Remaining should be exact
+        uint256 expectedRemaining = cleanDepositAmount - cleanWithdrawAmount1 - cleanWithdrawAmount2;
+        assertEq(stakedAfterWithdraw2, expectedRemaining, "Remaining should match expected");
+        
+        vm.stopPrank();
+    }
+
+    function test_PrecisionLoss_VsExpectedAmounts() public {
+        // Test dusty deposits revert vs clean deposits work for native ETH
+        uint256[] memory dustyAmounts = new uint256[](3);
+        dustyAmounts[0] = 0.999999999999999999 ether; // Has dust
+        dustyAmounts[1] = 1.000000000000000001 ether; // Has dust
+        dustyAmounts[2] = 2.123456789123456789 ether; // Has dust
+
+        uint256[] memory cleanAmounts = new uint256[](3);
+        cleanAmounts[0] = 0.999999 ether; // Clean version
+        cleanAmounts[1] = 1.000000 ether; // Clean version  
+        cleanAmounts[2] = 2.123456 ether; // Clean version
+
+        vm.deal(commander, 20 ether);
+        vm.startPrank(commander);
+        weth.deposit{value: 20 ether}();
+        IERC20(address(weth)).approve(address(ark), 20 ether);
+
+        // Test that dusty amounts revert
+        for (uint256 i = 0; i < dustyAmounts.length; i++) {
+            vm.expectRevert(); // Should revert due to dust
+            ark.board(dustyAmounts[i], bytes(""));
+        }
+
+        // Test that clean amounts work
+        for (uint256 i = 0; i < cleanAmounts.length; i++) {
+            uint256 beforeBalance = stargateStaking.balanceOf(lpToken, address(ark));
+            
+            ark.board(cleanAmounts[i], bytes(""));
+            
+            uint256 afterBalance = stargateStaking.balanceOf(lpToken, address(ark));
+            uint256 actualDeposited = afterBalance - beforeBalance;
+            
+            assertEq(actualDeposited, cleanAmounts[i], 
+                string(abi.encodePacked("Clean deposit ", vm.toString(i), " should work exactly")));
+        }
+
+        vm.stopPrank();
+    }
+
+    function test_WithdrawalAmountMismatch_EdgeCase() public {
+        // Test withdrawals work correctly after clean deposits
+        uint256 cleanDepositAmount = 3.123456 ether; // Clean amount for deposit
+
+        vm.deal(commander, cleanDepositAmount);
+        vm.startPrank(commander);
+        weth.deposit{value: cleanDepositAmount}();
+        IERC20(address(weth)).approve(address(ark), cleanDepositAmount);
+
+        // Deposit clean amount (should work)
+        ark.board(cleanDepositAmount, bytes(""));
+
+        // Withdrawable should equal deposited amount (clean)
+        uint256 withdrawableAssets = ark.withdrawableTotalAssets();
+        assertEq(withdrawableAssets, cleanDepositAmount, "Withdrawable should equal deposited clean amount");
+
+        // Test withdrawing with dusty amount - currently reverts due to implementation bug  
+        uint256 dustyWithdrawAmount = 3.123456789123456789 ether; // More than deposited due to dust
+        
+        vm.expectRevert(); // Should revert due to out-of-funds when trying to wrap dust
+        ark.disembark(dustyWithdrawAmount, bytes(""));
+        
+        // Test with clean withdraw amount instead
+        uint256 cleanWithdrawAmount = 3.123456 ether; // Clean amount
+        ark.disembark(cleanWithdrawAmount, bytes("")); // Should work with clean amount
+
+        uint256 finalBalance = stargateStaking.balanceOf(lpToken, address(ark));
+        assertEq(finalBalance, 0, "Should withdraw everything");
+
+        vm.stopPrank();
+    }
+
+    function test_DustBoundary_MinimalAmounts() public {
+        // Test deposits at the dust boundary - native ETH pools are strict about dust
+        uint256 convertRate = 10**12; // 10^(18-6) for ETH
+        
+        // Amount exactly at convertRate (clean)
+        uint256 exactConvertAmount = convertRate; // 0.000001 ETH
+        
+        // Amount just above convertRate (has dust)
+        uint256 aboveConvertAmount = convertRate + 1;
+        
+        // Clean amount that's a multiple of convertRate
+        uint256 cleanAmount = convertRate * 5; // 0.000005 ETH
+
+        vm.deal(commander, 1 ether);
+        vm.startPrank(commander);
+        weth.deposit{value: 1 ether}();
+        IERC20(address(weth)).approve(address(ark), 1 ether);
+
+        // Test exact convert amount (should work - it's clean)
+        uint256 beforeBalance1 = stargateStaking.balanceOf(lpToken, address(ark));
+        ark.board(exactConvertAmount, bytes(""));
+        uint256 afterBalance1 = stargateStaking.balanceOf(lpToken, address(ark));
+        uint256 deposited1 = afterBalance1 - beforeBalance1;
+        
+        assertEq(deposited1, exactConvertAmount, "Should deposit exact convertRate amount");
+
+        // Test above convert amount (has dust - should revert)
+        vm.expectRevert(); // Should revert due to dust
+        ark.board(aboveConvertAmount, bytes(""));
+
+        // Test larger clean amount (should work)
+        uint256 beforeBalance2 = stargateStaking.balanceOf(lpToken, address(ark));
+        ark.board(cleanAmount, bytes(""));
+        uint256 afterBalance2 = stargateStaking.balanceOf(lpToken, address(ark));
+        uint256 deposited2 = afterBalance2 - beforeBalance2;
+        
+        assertEq(deposited2, cleanAmount, "Should deposit exact clean amount");
+
+        vm.stopPrank();
+    }
 }

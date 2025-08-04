@@ -80,14 +80,6 @@ contract StargateV2PoolArk is Ark {
 
         // Approve the staking contract to spend LP tokens
         lpToken.forceApprove(_stargateStaking, Constants.MAX_UINT256);
-
-        // todo: is that needed? consult with stargate adapter team ( SD / LD conversions)
-        convertRate =
-            10 **
-                uint256(
-                    IERC20Extended(_params.asset).decimals() -
-                        stargatePool.sharedDecimals()
-                );
     }
 
     /**
@@ -99,7 +91,6 @@ contract StargateV2PoolArk is Ark {
     function totalAssets() public view override returns (uint256 assets) {
         // For rebasing tokens, the staked LP balance directly represents the underlying asset value
         assets += stargateStaking.balanceOf(lpToken, address(this));
-        assets += config.asset.balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -127,7 +118,6 @@ contract StargateV2PoolArk is Ark {
             withdrawableAssets = stakedLpBalance > poolBalance
                 ? poolBalance
                 : stakedLpBalance;
-            withdrawableAssets += config.asset.balanceOf(address(this));
         }
     }
 
