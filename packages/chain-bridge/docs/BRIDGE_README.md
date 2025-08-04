@@ -129,9 +129,11 @@ function _applyFeeBuffer(uint256 baseFee) internal pure returns (uint256) {
 Adapters must implement:
 - `IBridgeAdapter.estimateFee()`: Fee estimation
 - `IBridgeAdapter.supportsOperation()`: Operation type support
-- `ISendAdapter.transferAsset()`: Asset transfer execution
-- `ISendAdapter.sendMessage()`: Message sending execution  
-- `ISendAdapter.readState()`: State reading execution
+
+Plus some of:
+- `IAssetAdapter.transferAsset()`: Asset transfer execution
+- `IMessageAdapter.sendMessage()`: Message sending execution  
+- `IMessageAdapter.readState()`: State reading execution
 
 ### Adapter Callbacks
 

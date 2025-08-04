@@ -403,40 +403,9 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             options: ""
         });
 
-        // Test readState (unsupported)
-        vm.prank(address(routerA));
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
-            .ExecuteReadStateParams({
-                destinationChainId: CHAIN_ID_B,
-                target: address(tokenA),
-                selector: bytes4(0),
-                readParams: "",
-                originator: user,
-                refundAddress: user
-            });
-        adapterA.readState(
-            bytes32(0), // Fake operation ID
-            params,
-            options
-        );
-
-        // Test sendMessage (unsupported)
-        vm.prank(address(routerA));
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        BridgeTypes.ExecuteSendMessageParams memory params2 = BridgeTypes
-            .ExecuteSendMessageParams({
-                destinationChainId: CHAIN_ID_B,
-                target: recipient,
-                message: "",
-                originator: user,
-                refundAddress: user
-            });
-        adapterA.sendMessage(
-            bytes32(0), // Fake operation ID
-            params2,
-            options
-        );
+        // Note: StargateAdapter only implements IAssetAdapter and IBridgeAdapter
+        // It does not implement IMessageAdapter, so readState and sendMessage
+        // methods are not available (which is the correct split-by-concern behavior)
     }
 
     function testTransferAssetMsgValueConsistencyX() public {

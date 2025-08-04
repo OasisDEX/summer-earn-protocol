@@ -2,7 +2,9 @@
 pragma solidity 0.8.28;
 
 /// forge-lint: disable-start(unused-import)
-import {IBridgeAdapter, ISendAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {IAssetAdapter} from "../../src/interfaces/IAssetAdapter.sol";
+import {IMessageAdapter} from "../../src/interfaces/IMessageAdapter.sol";
 /// forge-lint: disable-end(unused-import)
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
@@ -12,7 +14,12 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {console} from "forge-std/console.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 
-contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
+contract MockAdapter is
+    BaseBridgeAdapter,
+    IAssetAdapter,
+    IMessageAdapter,
+    IBridgeAdapter
+{
     using SafeERC20 for IERC20;
 
     // Add a fee multiplier state variable with a default value of 100 (100%)
@@ -95,11 +102,11 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
         supportedOperations[operationType] = supported;
     }
 
-    /// @inheritdoc ISendAdapter
+    /// @inheritdoc IAssetAdapter
     function transferAsset(
         bytes32 operationId, // Accept from router
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata
+        BridgeTypes.BridgeOptions calldata options
     ) external payable onlyRouter {
         // Verify chain and asset are supported
         if (!this.supportsChain(params.destinationChainId)) {
@@ -126,11 +133,11 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
         // No return value needed
     }
 
-    /// @inheritdoc ISendAdapter
+    /// @inheritdoc IMessageAdapter
     function readState(
         bytes32 operationId, // Accept from router
         BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata
+        BridgeTypes.BridgeOptions calldata options
     ) external payable onlyRouter {
         // Verify chain is supported
         if (!this.supportsChain(params.destinationChainId))
@@ -152,10 +159,10 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
         uint16 destinationChainId,
-        address,
-        uint256,
-        BridgeTypes.BridgeOptions calldata,
-        BridgeTypes.OperationType
+        address asset,
+        uint256 amount,
+        BridgeTypes.BridgeOptions calldata options,
+        BridgeTypes.OperationType operationType
     ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Check if chain is supported
         if (!supportedChains[destinationChainId]) {
@@ -209,11 +216,11 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
         bytes readParams
     );
 
-    /// @inheritdoc ISendAdapter
+    /// @inheritdoc IMessageAdapter
     function sendMessage(
         bytes32 operationId, // Accept from router
         BridgeTypes.ExecuteSendMessageParams calldata params,
-        BridgeTypes.BridgeOptions calldata
+        BridgeTypes.BridgeOptions calldata options
     ) external payable onlyRouter {
         // Verify chain is supported
         if (!this.supportsChain(params.destinationChainId))
@@ -278,4 +285,65 @@ contract MockAdapter is BaseBridgeAdapter, IBridgeAdapter {
     }
 
     function testSkipper() public {}
+
+    /// @inheritdoc IAssetAdapter
+    function estimateTransferFee(
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        BridgeTypes.BridgeOptions calldata options
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        // Check if chain is supported
+        if (!supportedChains[destinationChainId]) {
+            revert UnsupportedChain();
+        }
+
+        // Return base fee of 0.1 ETH multiplied by the fee multiplier for asset transfers
+        nativeFee = (0.1 ether * feeMultiplier) / 100;
+        tokenFee = 0;
+    }
+
+    /// @inheritdoc IAssetAdapter
+    function supportsAssetTransfer(
+        uint16 destinationChainId,
+        address asset
+    ) external view returns (bool) {
+        return
+            supportedChains[destinationChainId] &&
+            supportedOperations[BridgeTypes.OperationType.TRANSFER_ASSET];
+    }
+
+    /// @inheritdoc IMessageAdapter
+    function estimateMessageFee(
+        uint16 destinationChainId,
+        uint256 messageSize,
+        BridgeTypes.BridgeOptions calldata options,
+        BridgeTypes.OperationType operationType
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        // Check if chain is supported
+        if (!supportedChains[destinationChainId]) {
+            revert UnsupportedChain();
+        }
+
+        // Check if operation type is supported
+        if (!supportedOperations[operationType]) {
+            revert UnsupportedOperation();
+        }
+
+        // Return base fee of 0.05 ETH multiplied by the fee multiplier for message operations
+        nativeFee = (0.05 ether * feeMultiplier) / 100;
+        tokenFee = 0;
+    }
+
+    /// @inheritdoc IMessageAdapter
+    function supportsMessageOperation(
+        uint16 destinationChainId,
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool) {
+        return
+            supportedChains[destinationChainId] &&
+            supportedOperations[operationType] &&
+            (operationType == BridgeTypes.OperationType.MESSAGE ||
+                operationType == BridgeTypes.OperationType.READ_STATE);
+    }
 }

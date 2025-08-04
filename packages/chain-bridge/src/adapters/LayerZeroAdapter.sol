@@ -3,9 +3,8 @@ pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-
-import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
@@ -24,9 +23,14 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
- * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OAppRead standard
+ * @dev Implements IMessageAdapter and IBridgeAdapter interfaces and connects to LayerZero's messaging service using OAppRead standard
  */
-contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
+contract LayerZeroAdapter is
+    OAppRead,
+    IMessageAdapter,
+    IBridgeAdapter,
+    BaseBridgeAdapter
+{
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -73,8 +77,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         address indexed executor,
         uint32 maxMessageSize
     );
-
-    // Note: Other events are inherited from IBridgeAdapter and ISendAdapter interfaces
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -329,16 +331,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISendAdapter
-    function transferAsset(
-        bytes32, // operationId - not used by LayerZero adapter
-        BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlySupportedDestination(params.destinationChainId) {
-        // This adapter doesn't support asset transfers directly
-        // It should never be called for this purpose due to capability flags
-        revert OperationNotSupported();
-    }
+    // LayerZero adapter does not support asset transfers
+    // It only implements IMessageAdapter and IBridgeAdapter
 
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
@@ -421,7 +415,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
     }
 
-    /// @inheritdoc ISendAdapter
+    /// @inheritdoc IMessageAdapter
     function readState(
         bytes32 operationId,
         BridgeTypes.ExecuteReadStateParams calldata params,
@@ -487,7 +481,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         );
     }
 
-    /// @inheritdoc ISendAdapter
+    /// @inheritdoc IMessageAdapter
     function sendMessage(
         bytes32 operationId, // Accept from router
         BridgeTypes.ExecuteSendMessageParams calldata params,
@@ -669,5 +663,34 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         return
             operationType == BridgeTypes.OperationType.MESSAGE ||
             operationType == BridgeTypes.OperationType.READ_STATE;
+    }
+
+    /// @inheritdoc IMessageAdapter
+    function estimateMessageFee(
+        uint16 destinationChainId,
+        uint256 messageSize,
+        BridgeTypes.BridgeOptions calldata options,
+        BridgeTypes.OperationType operationType
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        // Delegate to the unified estimateFee method
+        return
+            this.estimateFee(
+                destinationChainId,
+                address(0),
+                0,
+                options,
+                operationType
+            );
+    }
+
+    /// @inheritdoc IMessageAdapter
+    function supportsMessageOperation(
+        uint16 destinationChainId,
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool) {
+        // Check if the destination chain is supported and operation type is supported
+        return
+            chainToLzEid[destinationChainId] != 0 &&
+            supportsOperation(operationType);
     }
 }

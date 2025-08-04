@@ -3,7 +3,8 @@ pragma solidity ^0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// forge-lint: disable-start(unused-import)
-import {IBridgeAdapter, ISendAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 /// forge-lint: disable-end(unused-import)
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
@@ -25,9 +26,10 @@ import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
 /**
  * @title StargateAdapter
  * @notice Adapter for Stargate V2 Protocol - all V2 contracts are OFT-enabled
- * @dev Implements IBridgeAdapter interface and connects to Stargate V2 for efficient cross-chain transfers
+ * @dev Implements IAssetAdapter and IBridgeAdapter interfaces and connects to Stargate V2 for efficient cross-chain transfers
  */
 contract StargateAdapter is
+    IAssetAdapter,
     IBridgeAdapter,
     ILayerZeroComposer,
     Nonces,
@@ -252,7 +254,7 @@ contract StargateAdapter is
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISendAdapter
+    /// @inheritdoc IAssetAdapter
     function transferAsset(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params,
@@ -555,26 +557,31 @@ contract StargateAdapter is
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 
-    /*//////////////////////////////////////////////////////////////
-                      UNSUPPORTED OPERATIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc ISendAdapter
-    function readState(
-        bytes32,
-        BridgeTypes.ExecuteReadStateParams calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external payable {
-        revert OperationNotSupported();
+    /// @inheritdoc IAssetAdapter
+    function estimateTransferFee(
+        uint16 destinationChainId,
+        address asset,
+        uint256 amount,
+        BridgeTypes.BridgeOptions calldata options
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        // Delegate to the unified estimateFee method
+        return
+            this.estimateFee(
+                destinationChainId,
+                asset,
+                amount,
+                options,
+                BridgeTypes.OperationType.TRANSFER_ASSET
+            );
     }
 
-    /// @inheritdoc ISendAdapter
-    function sendMessage(
-        bytes32,
-        BridgeTypes.ExecuteSendMessageParams calldata,
-        BridgeTypes.BridgeOptions calldata
-    ) external payable {
-        revert OperationNotSupported();
+    /// @inheritdoc IAssetAdapter
+    function supportsAssetTransfer(
+        uint16 destinationChainId,
+        address asset
+    ) external view returns (bool) {
+        // Check if both destination chain and asset are supported
+        return isAssetSupported(destinationChainId, asset);
     }
 
     /*//////////////////////////////////////////////////////////////
