@@ -340,8 +340,6 @@ contract BridgeRouter is
             specifiedAdapter
         );
 
-        // No refund needed - adapter will handle refunding excess back through the chain
-
         return operationId;
     }
 
@@ -418,8 +416,6 @@ contract BridgeRouter is
             specifiedAdapter
         );
 
-        // No refund needed - adapter will handle refunding excess back through the chain
-
         return operationId;
     }
 
@@ -484,8 +480,6 @@ contract BridgeRouter is
             specifiedAdapter
         );
 
-        // No refund needed - adapter will handle refunding excess back through the chain
-
         return operationId;
     }
 
@@ -503,6 +497,9 @@ contract BridgeRouter is
      * @return nativeFee Base fee in native token required by the adapter.
      * @return tokenFee Base fee in the asset token required by the adapter.
      * @return specifiedAdapter Address of the specified adapter.
+     *
+     * @dev Specified adapter is part of the return values in case
+     * adapter auto-select is added in future.
      */
     function _quote(
         uint16 destinationChainId,
@@ -606,7 +603,6 @@ contract BridgeRouter is
 
             emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            // Handle read response delivery (this already exists as deliverReadResponse)
             BridgeTypes.RelayedReadResponse memory data = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedReadResponse)

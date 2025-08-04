@@ -37,6 +37,10 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
         _;
     }
 
+    /**
+     * @dev Modifier ensuring the caller (`msg.sender`) is the bridge router.
+     * Reverts with `OnlyBridgeRouter` if the caller is not the bridge router.
+     */
     modifier onlyRouter() {
         if (msg.sender != bridgeRouter()) revert OnlyBridgeRouter();
         _;
