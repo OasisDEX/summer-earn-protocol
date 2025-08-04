@@ -8,6 +8,7 @@ import {IMultiRewarder} from "../../interfaces/stargate/IMultiRewarder.sol";
 import {IWETH} from "../../interfaces/misc/IWETH.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Extended} from "../../interfaces/IERC20Extended.sol";
+
 /**
  * @title StargateV2PoolArk
  * @notice Ark contract for managing token supply and yield generation through Stargate V2 pools and staking
@@ -68,7 +69,6 @@ contract StargateV2PoolArk is Ark {
         if (_weth == address(0)) {
             revert InvalidAddress("weth", _weth);
         }
-
         stargatePool = IStargatePool(_stargatePool);
         stargateStaking = IStargateStaking(_stargateStaking);
         lpToken = IERC20(stargatePool.lpToken());
@@ -98,7 +98,8 @@ contract StargateV2PoolArk is Ark {
      */
     function totalAssets() public view override returns (uint256 assets) {
         // For rebasing tokens, the staked LP balance directly represents the underlying asset value
-        assets = stargateStaking.balanceOf(lpToken, address(this));
+        assets += stargateStaking.balanceOf(lpToken, address(this));
+        assets += config.asset.balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -126,6 +127,7 @@ contract StargateV2PoolArk is Ark {
             withdrawableAssets = stakedLpBalance > poolBalance
                 ? poolBalance
                 : stakedLpBalance;
+            withdrawableAssets += config.asset.balanceOf(address(this));
         }
     }
 
