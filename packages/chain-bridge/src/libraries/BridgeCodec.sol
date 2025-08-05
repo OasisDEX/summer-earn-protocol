@@ -35,7 +35,7 @@ library BridgeCodec {
      * @return data The remaining payload data after removing the prefix
      */
     function decodePayload(
-        bytes memory raw
+        bytes calldata raw
     )
         internal
         pure
@@ -55,10 +55,7 @@ library BridgeCodec {
 
         operationType = BridgeTypes.OperationType(opTypeRaw);
 
-        // Create a new bytes array with the remaining data
-        data = new bytes(raw.length - 2);
-        for (uint256 i = 0; i < data.length; i++) {
-            data[i] = raw[i + 2];
-        }
+        // Use slice notation to get the remaining data
+        data = raw[2:];
     }
 }

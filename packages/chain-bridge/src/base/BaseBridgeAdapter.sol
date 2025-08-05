@@ -191,7 +191,7 @@ abstract contract BaseBridgeAdapter is
      * @return data The remaining payload data after removing the prefix
      */
     function _decodePayload(
-        bytes memory payload
+        bytes calldata payload
     )
         internal
         pure
