@@ -64,9 +64,6 @@ contract StargateAdapter is
     /// @notice LayerZero endpoint for compose functionality
     address public immutable LZ_ENDPOINT;
 
-    /// @notice Mapping of supported chains to their LayerZero Endpoint IDs
-    mapping(uint16 chainId => uint32 lzEid) public chainToLzEid;
-
     /// @notice Mapping of assets to their Stargate contracts on THIS chain only
     mapping(address asset => address stargateContract)
         public assetToStargateContract;
@@ -201,7 +198,7 @@ contract StargateAdapter is
             revert InvalidParams();
         }
 
-        chainToLzEid[chainId] = lzEid;
+        _addChain(chainId, lzEid);
         emit EndpointIdSet(chainId, lzEid);
     }
 
@@ -211,7 +208,7 @@ contract StargateAdapter is
      * @dev Can only be called by the contract owner
      */
     function removeSupportedChain(uint16 chainId) external onlyGovernor {
-        delete chainToLzEid[chainId];
+        _removeChain(chainId);
         emit EndpointIdSet(chainId, 0);
     }
 
@@ -360,7 +357,7 @@ contract StargateAdapter is
 
         return
             SendParam({
-                dstEid: chainToLzEid[destinationChainId],
+                dstEid: chainToExternalId[destinationChainId],
                 to: destinationAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount,
@@ -483,9 +480,7 @@ contract StargateAdapter is
         address stargateContract = assetToStargateContract[asset];
 
         // Use compose gas limit from adapter params if provided, otherwise use default
-        uint256 gasLimit = options.gasLimit > 0
-            ? options.gasLimit
-            : defaultGasLimit();
+        uint256 gasLimit = _normalizeGas(options.gasLimit);
 
         // Always include compose options in fee estimation
         bytes memory extraOptions = OptionsBuilder
@@ -508,7 +503,7 @@ contract StargateAdapter is
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
-            dstEid: chainToLzEid[dstChainId],
+            dstEid: chainToExternalId[dstChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
@@ -631,7 +626,7 @@ contract StargateAdapter is
      * @notice Get the LayerZero Endpoint ID for a given chain
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainToLzEid[chainId];
+        return chainToExternalId[chainId];
     }
 
     /**
