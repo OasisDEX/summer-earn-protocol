@@ -8,7 +8,6 @@ import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {IArm} from "../../src/interfaces/origin/IArm.sol";
-import {IArmZapper} from "../../src/interfaces/origin/IArmZapper.sol";
 import {IArkWithWithdrawalRequest} from "../../src/interfaces/IArkWithWithdrawalRequest.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
@@ -26,7 +25,6 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
 
     ArmArk public ark;
     IArm public arm;
-    IArmZapper public armZapper;
     IERC20 public weth;
     ArkParams public params;
     address public bufferArk;
@@ -34,8 +32,6 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
     // ARM and ARM Zapper addresses from the provided information
     address public constant ARM_ADDRESS =
         0x85B78AcA6Deae198fBF201c82DAF6Ca21942acc6; // ARM address
-    address public constant ARM_ZAPPER_ADDRESS =
-        0x01F30B7358Ba51f637d1aa05D9b4A60f76DAD680; // ARM Zapper address
     address public constant WETH_ADDRESS =
         0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // Mainnet WETH address
 
@@ -54,7 +50,6 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
 
         weth = IERC20(WETH_ADDRESS);
         arm = IArm(ARM_ADDRESS);
-        armZapper = IArmZapper(ARM_ZAPPER_ADDRESS);
 
         params = ArkParams({
             name: "WETH ARM Ark",
@@ -69,7 +64,7 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new ArmArk(ARM_ADDRESS, ARM_ZAPPER_ADDRESS, params);
+        ark = new ArmArk(ARM_ADDRESS, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -89,7 +84,6 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
 
         vm.makePersistent(ARM_ADDRESS);
-        vm.makePersistent(ARM_ZAPPER_ADDRESS);
         vm.makePersistent(WETH_ADDRESS);
         vm.makePersistent(commander);
         vm.makePersistent(curator);
@@ -100,21 +94,12 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
     function test_Constructor() public {
         // Invalid ARM address
         vm.expectRevert(abi.encodeWithSignature("InvalidArmAddress()"));
-        ark = new ArmArk(address(0), ARM_ZAPPER_ADDRESS, params);
-
-        // Invalid ARM zapper address
-        vm.expectRevert(abi.encodeWithSignature("InvalidArmZapperAddress()"));
-        ark = new ArmArk(ARM_ADDRESS, address(0), params);
+        ark = new ArmArk(address(0), params);
 
         // Valid constructor
-        ark = new ArmArk(ARM_ADDRESS, ARM_ZAPPER_ADDRESS, params);
+        ark = new ArmArk(ARM_ADDRESS, params);
 
         assertEq(address(ark.arm()), ARM_ADDRESS, "ARM address should match");
-        assertEq(
-            address(ark.armZapper()),
-            ARM_ZAPPER_ADDRESS,
-            "ARM Zapper address should match"
-        );
         assertEq(
             address(ark.asset()),
             WETH_ADDRESS,
@@ -410,20 +395,6 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
             rewardAmounts.length,
             0,
             "Should return empty reward amounts array"
-        );
-    }
-
-    function test_ReceiveETH() public {
-        // Test that contract can receive ETH (for ARM zapper functionality)
-        uint256 amount = 1 ether;
-        vm.deal(address(this), amount);
-
-        (bool success, ) = address(ark).call{value: amount}("");
-        assertTrue(success, "Contract should be able to receive ETH");
-        assertEq(
-            address(ark).balance,
-            amount,
-            "Contract ETH balance should match sent amount"
         );
     }
 

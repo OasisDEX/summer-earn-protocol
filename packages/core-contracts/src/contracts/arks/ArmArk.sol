@@ -3,13 +3,12 @@ pragma solidity 0.8.28;
 
 import "../ArkWithWithdrawalRequest.sol";
 import {IArm} from "../../interfaces/origin/IArm.sol";
-import {IArmZapper} from "../../interfaces/origin/IArmZapper.sol";
 import {IWETH} from "../../interfaces/misc/IWETH.sol";
 
 /**
  * @title ArmArk
- * @notice Ark contract for managing ETH deposits into ARM protocol via zapper
- * @dev Implements strategy for depositing ETH through ARM zapper, withdrawing ARM LP shares, and tracking yield
+ * @notice Ark contract for managing ETH deposits into ARM protocol via the ARM contract
+ * @dev Implements strategy for depositing ETH through the ARM contract, withdrawing ARM LP shares, and tracking yield
  */
 contract ArmArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
@@ -20,9 +19,6 @@ contract ArmArk is ArkWithWithdrawalRequest {
 
     /// @notice The ARM contract this Ark interacts with
     IArm public immutable arm;
-
-    /// @notice The ARM Zapper contract for deposits
-    IArmZapper public immutable armZapper;
 
     /// @notice The WETH contract
     IWETH public immutable weth;
@@ -36,23 +32,17 @@ contract ArmArk is ArkWithWithdrawalRequest {
     /**
      * @notice Constructor to set up the ArmArk
      * @param _arm Address of the ARM contract
-     * @param _armZapper Address of the ARM Zapper contract
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
     constructor(
         address _arm,
-        address _armZapper,
         ArkParams memory _params
     ) ArkWithWithdrawalRequest(_params, 15) {
         if (_arm == address(0)) {
             revert InvalidArmAddress();
         }
-        if (_armZapper == address(0)) {
-            revert InvalidArmZapperAddress();
-        }
 
         arm = IArm(_arm);
-        armZapper = IArmZapper(_armZapper);
         weth = IWETH(address(_params.asset));
     }
 
@@ -164,16 +154,13 @@ contract ArmArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @notice Deposits assets into the ARM protocol via the zapper
+     * @notice Deposits assets into the ARM protocol via the ARM contract
      * @param amount The amount of assets to deposit
      * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        // Convert WETH to ETH for the zapper
-        weth.withdraw(amount);
-
-        // Deposit ETH through the ARM zapper to receive ARM LP shares
-        armZapper.deposit{value: amount}();
+        config.asset.forceApprove(address(arm), amount);
+        arm.deposit(amount, address(this));
     }
 
     /**
@@ -218,18 +205,10 @@ contract ArmArk is ArkWithWithdrawalRequest {
      */
     function _validateDisembarkData(bytes calldata) internal pure override {}
 
-    /**
-     * @notice Allow contract to receive ETH for ARM zapper deposits
-     */
-    receive() external payable {}
-
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Error thrown when an invalid ARM address is provided
     error InvalidArmAddress();
-
-    /// @notice Error thrown when an invalid ARM zapper address is provided
-    error InvalidArmZapperAddress();
 }

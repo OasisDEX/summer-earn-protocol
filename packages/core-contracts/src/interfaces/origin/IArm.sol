@@ -51,4 +51,6 @@ interface IArm {
     function convertToShares(uint256 assets) external view returns (uint256);
 
     function previewRedeem(uint256 shares) external view returns (uint256);
+
+    function deposit(uint256 assets, address receiver) external;
 }
