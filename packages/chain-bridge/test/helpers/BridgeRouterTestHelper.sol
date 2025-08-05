@@ -12,6 +12,7 @@ import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 contract BridgeRouterTestHelper is BridgeRouter {
     /// @notice Flag to simulate revert behavior for testing
     bool public shouldRevert = false;
+
     /**
      * @notice Constructor for BridgeRouterTestHelper
      * @param _accessManager Address of the access manager
@@ -77,19 +78,6 @@ contract BridgeRouterTestHelper is BridgeRouter {
         bytes32 requestId
     ) external view returns (address) {
         return readRequestToOriginator[requestId];
-    }
-
-    /**
-     * @notice Sets the operation status directly for testing purposes
-     * @param operationId ID of the operation
-     * @param status Status to set
-     * @dev This bypasses the normal status progression checks and should only be used in tests
-     */
-    function setOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external {
-        operationStatuses[operationId] = status;
     }
 
     /**

@@ -56,58 +56,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     }
 
     /*//////////////////////////////////////////////////////////////
-                          OPERATION STATUS TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testGetOperationStatus() public {
-        useNetworkA();
-
-        // First, setup the mapping in the router to allow the adapter to update this operation
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            testTransferId,
-            address(adapterA)
-        );
-
-        // Now setup a mock operation status in the router using the test helper
-        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
-            testTransferId,
-            BridgeTypes.OperationStatus.SENT
-        );
-
-        // Get operation status through adapter
-        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(
-            testTransferId
-        );
-
-        // Verify status matches what was set
-        assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.SENT));
-    }
-
-    function testGetOperationStatusFailed() public {
-        useNetworkA();
-
-        // Setup the mapping in the router
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            testTransferId,
-            address(adapterA)
-        );
-
-        // Set operation status to failed
-        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
-            testTransferId,
-            BridgeTypes.OperationStatus.FAILED
-        );
-
-        // Get operation status through adapter
-        BridgeTypes.OperationStatus status = adapterA.getOperationStatus(
-            testTransferId
-        );
-
-        // Verify status matches what was set
-        assertEq(uint8(status), uint8(BridgeTypes.OperationStatus.FAILED));
-    }
-
-    /*//////////////////////////////////////////////////////////////
                           TRANSPORT MODE TESTS
     //////////////////////////////////////////////////////////////*/
 

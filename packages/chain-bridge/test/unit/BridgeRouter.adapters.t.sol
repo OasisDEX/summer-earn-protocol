@@ -150,12 +150,6 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
             options
         );
         vm.stopPrank();
-
-        // Verify queue status updated post-execution
-        assertEq(
-            uint256(router.getOperationStatus(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT) // Should be SENT as it's sent to adapter
-        );
     }
 
     function testInvalidSpecifiedAdapter() public {

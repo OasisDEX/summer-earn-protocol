@@ -217,15 +217,6 @@ interface IBridgeRouter is IERC165 {
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter);
 
     /**
-     * @notice Get the status of an operation
-     * @param operationId ID of the operation
-     * @return Status of the operation
-     */
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view returns (BridgeTypes.OperationStatus);
-
-    /**
      * @notice Get all registered adapters
      * @return Array of registered adapter addresses
      */
