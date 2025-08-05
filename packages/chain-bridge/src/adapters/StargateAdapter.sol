@@ -511,14 +511,11 @@ contract StargateAdapter is
         });
 
         // Get messaging fee quote
-        try IStargateV2(stargateContract).quoteSend(sendParam, false) returns (
-            MessagingFee memory msgFee
-        ) {
-            return (msgFee.nativeFee, 0); // Stargate V2 uses only native fees
-        } catch {
-            // Fallback estimation (higher due to compose overhead)
-            return (0.015 ether, 0); // Conservative estimate with compose overhead
-        }
+        MessagingFee memory msgFee = IStargateV2(stargateContract).quoteSend(
+            sendParam,
+            false
+        );
+        return (msgFee.nativeFee, 0);
     }
 
     /**
