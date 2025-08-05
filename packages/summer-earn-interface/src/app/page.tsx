@@ -20,9 +20,9 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-400 p-8">
+      <div className="min-h-screen bg-black p-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center">Loading fleets...</div>
+          <div className="text-center text-gray-300">Loading fleets...</div>
         </div>
       </div>
     )
@@ -30,9 +30,9 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8">
+      <div className="min-h-screen bg-black p-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center text-red-600">Error loading fleets: {error.message}</div>
+          <div className="text-center text-red-400">Error loading fleets: {error.message}</div>
         </div>
       </div>
     )
@@ -41,14 +41,47 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-4">Summer Earn Protocol</h1>
-          <div className="flex flex-col gap-4">
-            <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
-            <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
+          <h1 className="text-3xl font-bold text-white mb-2">Summer Earn Protocol</h1>
+          <p className="text-gray-300 mb-6">
+            Manage your DeFi positions and protocol roles across multiple chains
+          </p>
+          
+          <div className="bg-gray-900 p-6 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
+              <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
+            </div>
           </div>
         </div>
 
+        {/* Navigation Links */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
+          <div className="flex flex-wrap gap-4">
+            <a
+              href={`/access-manager/${selectedChain}`}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              🔐 Access Manager
+            </a>
+            <a
+              href={`/interest-rates`}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              📊 Interest Rates
+            </a>
+          </div>
+        </div>
+
+        {/* Fleet Cards Section */}
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-white mb-4">
+            Available Fleets ({fleets.length})
+          </h2>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {fleets.map((fleet) => (
             <FleetCard
