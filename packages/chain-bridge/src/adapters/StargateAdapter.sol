@@ -336,9 +336,7 @@ contract StargateAdapter is
             options
         );
 
-        // Update minAmountLD based on quote with proper validation
-        (, , ctx.oftReceipt) = ctx.stargate.quoteOFT(ctx.sendParam);
-        (ctx.oftLimit, , ) = ctx.stargate.quoteOFT(ctx.sendParam);
+        (ctx.oftLimit, , ctx.oftReceipt) = ctx.stargate.quoteOFT(ctx.sendParam);
 
         // Validate OFT limits first
         if (params.amount < ctx.oftLimit.minAmountLD) {
