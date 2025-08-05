@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.29;
+pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -124,14 +124,6 @@ interface IPriceAndFeeCalculator {
         address vault,
         uint256 unitsAmount
     ) external view returns (uint256 numeraireAmount);
-
-    /// @notice Return the state of the vault
-    /// @param vault Address of the vault
-    /// @return vaultPriceState The price state of the vault
-    /// @return vaultAccruals The accruals state of the vault
-    function getVaultState(
-        address vault
-    ) external view returns (VaultPriceState memory, VaultAccruals memory);
 
     /// @notice Returns the age of the last submitted price for a vault
     /// @param vault Address of the vault

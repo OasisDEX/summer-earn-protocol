@@ -32,13 +32,13 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
 
     // Base addresses
     address public constant PROVISIONER_ADDRESS =
-        0x18cf8d963e1a727f9bbf3aeffa0bd04fb4dbda07;
+        0x18CF8d963E1a727F9bbF3AEffa0Bd04FB4dBdA07;
     address public constant VAULT_ADDRESS =
-        0x000000000001cdb57e58fa75fe420a0f4d6640d5;
+        0x000000000001CdB57E58Fa75Fe420a0f4D6640D5;
     address public constant USDC_ADDRESS =
         0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913; // Base USDC
 
-    uint256 forkBlock = 23000000; // A recent block number for Base
+    uint256 forkBlock = 33809569; // A recent block number for Base
     uint256 forkId;
 
     function setUp() public {
@@ -185,31 +185,8 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        uint256 vaultUnits = ark.vaultUnitsBalance();
+        uint256 vaultUnits = vault.balanceOf(address(ark));
         assertGt(vaultUnits, 0, "Vault units should be greater than 0");
-
-        // Verify that vault units balance matches actual vault balance
-        assertEq(
-            vaultUnits,
-            vault.balanceOf(address(ark)),
-            "Vault units should match vault balance"
-        );
-    }
-
-    function test_GetVaultState() public {
-        (VaultPriceState memory priceState, VaultAccruals memory accruals) = ark
-            .getVaultState();
-
-        // Basic checks on vault state
-        assertGt(priceState.price, 0, "Vault price should be greater than 0");
-        assertGt(priceState.timestamp, 0, "Price timestamp should be set");
-    }
-
-    function test_IsVaultPaused() public {
-        bool isPaused = ark.isVaultPaused();
-        // We assume vault is not paused in normal operation
-        // This test mainly checks that the function doesn't revert
-        console.log("Vault paused status:", isPaused);
     }
 
     function test_Harvest() public {

@@ -6,33 +6,7 @@ import {IProvisioner} from "../../interfaces/gauntlet/IProvisioner.sol";
 import {IPriceAndFeeCalculator} from "../../interfaces/gauntlet/IPriceFeeCalculator.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-
-// Required structs for the interfaces (not defined in the provided interfaces)
-struct Request {
-    address user;
-    uint256 amount;
-    uint256 minOut;
-    uint256 deadline;
-    uint256 tip;
-    bool isDeposit;
-}
-
-struct TokenDetails {
-    uint256 minDeposit;
-    uint256 maxDeposit;
-    bool enabled;
-}
-
-struct VaultPriceState {
-    uint128 price;
-    uint32 timestamp;
-    bool paused;
-}
-
-struct VaultAccruals {
-    uint256 totalFees;
-    uint256 lastUpdate;
-}
+import {RequestType} from "../../interfaces/gauntlet/Types.sol";
 
 /**
  * @title AeraArk
@@ -61,13 +35,22 @@ contract AeraArk is ArkWithWithdrawalRequest {
     /// @notice Tracks pending redeem requests
     mapping(bytes32 => uint256) public pendingRedeemRequests;
 
+    struct ArkRequest {
+        bytes32 hash;
+        uint256 amount;
+    }
+
+    ArkRequest public asyncDepositRequest;
+
+    ArkRequest public asyncRedeemRequest;
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     error InvalidAddress(string name, address addr);
-    error InsufficientUnits();
-    error VaultPaused();
+    error AsyncDepositAlreadyExists();
+    error AsyncRedeemAlreadyExists();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -154,19 +137,36 @@ contract AeraArk is ArkWithWithdrawalRequest {
      * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
+        if (provisioner.asyncDepositHashes(asyncDepositRequest.hash)) {
+            revert AsyncDepositAlreadyExists();
+        }
         // Create async deposit request
-        // Parameters: token, tokensIn, minUnitsOut, solverTip, deadline, maxPriceAge, isFixedPrice
+        uint256 shareAtTheTimeOfDeposit = priceCalculator.convertTokenToUnits(
+            address(vault),
+            config.asset,
+            amount
+        );
+        config.asset.forceApprove(address(provisioner), amount);
         provisioner.requestDeposit(
             config.asset,
             amount,
-            0, // minUnitsOut - calculated by solver
-            0, // solverTip - no tip for now
-            12 hours, // deadline - 12 hour window for Aera
-            1 hours, // maxPriceAge - accept prices up to 1 hour old
+            shareAtTheTimeOfDeposit, // minUnitsOut - calculated by solver
+            0, // either solverTip == 0 or isFixedPrice == true
+            block.timestamp + 24 hours,
+            1 hours,
             false // isFixedPrice - allow dynamic pricing
         );
-
-        emit UnitsReceived(amount, 0); // Units will be received after solving
+        bytes32 requestHash = _getRequestHashParams(
+            config.asset,
+            address(this),
+            RequestType.DEPOSIT_AUTO_PRICE,
+            amount,
+            shareAtTheTimeOfDeposit,
+            0,
+            block.timestamp + 24 hours,
+            1 hours
+        );
+        asyncDepositRequest = ArkRequest({hash: requestHash, amount: amount});
     }
 
     /**
@@ -222,9 +222,17 @@ contract AeraArk is ArkWithWithdrawalRequest {
      * @notice Returns assets currently in the withdrawal queue
      */
     function assetsInWithdrawalQueue() public view returns (uint256) {
-        // For Aera, we'd need to track pending redemption requests
-        // This is a simplified implementation - in production would track actual request states
-        return 0; // TODO: Implement based on actual Aera request tracking
+        if (provisioner.asyncRedeemHashes(asyncRedeemRequest.hash)) {
+            return asyncRedeemRequest.amount;
+        }
+        return 0;
+    }
+
+    function assetsInDepositQueue() public view returns (uint256) {
+        if (provisioner.asyncDepositHashes(asyncDepositRequest.hash)) {
+            return asyncDepositRequest.amount;
+        }
+        return 0;
     }
 
     /**
@@ -232,30 +240,50 @@ contract AeraArk is ArkWithWithdrawalRequest {
      * @notice Request withdrawal from Aera vault
      */
     function requestWithdrawal(uint256 amount) external onlyKeeper {
-        uint256 unitsToRedeem;
+        if (provisioner.asyncRedeemHashes(asyncRedeemRequest.hash)) {
+            revert AsyncRedeemAlreadyExists();
+        }
+        uint256 sharesToRedeem;
 
         if (amount == type(uint256).max) {
-            unitsToRedeem = vault.balanceOf(address(this));
+            sharesToRedeem = vault.balanceOf(address(this));
         } else {
-            unitsToRedeem = priceCalculator.convertTokenToUnits(
+            sharesToRedeem = priceCalculator.convertTokenToUnits(
                 address(vault),
                 config.asset,
                 amount
             );
         }
 
-        if (unitsToRedeem == 0) return;
-
+        if (sharesToRedeem == 0) return;
+        uint256 minTokensOut = priceCalculator.convertUnitsToToken(
+            address(vault),
+            config.asset,
+            sharesToRedeem
+        );
+        vault.forceApprove(address(provisioner), sharesToRedeem);
         // Create async redeem request
         provisioner.requestRedeem(
             config.asset,
-            unitsToRedeem,
-            0, // minTokensOut - calculated by solver
+            sharesToRedeem,
+            minTokensOut,
             0, // solverTip - no tip for now
-            12 hours, // deadline - 12 hour window
-            1 hours, // maxPriceAge
+            block.timestamp + 24 hours,
+            1 hours,
             false // isFixedPrice
         );
+
+        bytes32 requestHash = _getRequestHashParams(
+            config.asset,
+            address(this),
+            RequestType.REDEEM_AUTO_PRICE,
+            sharesToRedeem,
+            0,
+            0,
+            block.timestamp + 24 hours,
+            1 hours
+        );
+        asyncRedeemRequest = ArkRequest({hash: requestHash, amount: amount});
 
         emit WithdrawalRequested(amount, 0); // Request ID would come from provisioner
     }
@@ -317,35 +345,38 @@ contract AeraArk is ArkWithWithdrawalRequest {
                                 VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Get the current vault units balance
-     * @return units The amount of vault units held by this Ark
-     */
-    function vaultUnitsBalance() external view returns (uint256 units) {
-        return vault.balanceOf(address(this));
-    }
-
-    /**
-     * @notice Get the current vault state
-     * @return priceState The current price state of the vault
-     * @return accruals The current accruals state of the vault
-     */
-    function getVaultState()
-        external
-        view
-        returns (
-            VaultPriceState memory priceState,
-            VaultAccruals memory accruals
-        )
-    {
-        return priceCalculator.getVaultState(address(vault));
-    }
-
-    /**
-     * @notice Check if the vault is currently paused
-     * @return paused True if the vault is paused
-     */
-    function isVaultPaused() external view returns (bool paused) {
-        return priceCalculator.isVaultPaused(address(vault));
+    /// @notice Get the hash of a request from parameters
+    /// @param token The token that was deposited or redeemed
+    /// @param user The user who made the request
+    /// @param requestType The type of request
+    /// @param tokens The amount of tokens in the request
+    /// @param units The amount of units in the request
+    /// @param solverTip The tip paid to the solver
+    /// @param deadline The deadline of the request
+    /// @param maxPriceAge The maximum age of the price data
+    /// @return The hash of the request
+    function _getRequestHashParams(
+        IERC20 token,
+        address user,
+        RequestType requestType,
+        uint256 tokens,
+        uint256 units,
+        uint256 solverTip,
+        uint256 deadline,
+        uint256 maxPriceAge
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    token,
+                    user,
+                    requestType,
+                    tokens,
+                    units,
+                    solverTip,
+                    deadline,
+                    maxPriceAge
+                )
+            );
     }
 }

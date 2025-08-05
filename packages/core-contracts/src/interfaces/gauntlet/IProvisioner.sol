@@ -1,11 +1,46 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.29;
+pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {Request} from "./Types.sol";
+import {TokenDetails} from "./Types.sol";
 
 /// @title IProvisioner
 /// @notice Interface for the contract that can mint and burn vault units in exchange for tokens
 interface IProvisioner {
+    error Aera__SyncDepositDisabled();
+    error Aera__AsyncDepositDisabled();
+    error Aera__AsyncRedeemDisabled();
+    error Aera__DepositCapExceeded();
+    error Aera__MinUnitsOutNotMet();
+    error Aera__TokensInZero();
+    error Aera__UnitsInZero();
+    error Aera__UnitsOutZero();
+    error Aera__MinUnitsOutZero();
+    error Aera__MaxTokensInZero();
+    error Aera__MaxTokensInExceeded();
+    error Aera__MaxDepositRefundTimeoutExceeded();
+    error Aera__DepositHashNotFound();
+    error Aera__HashNotFound();
+    error Aera__RefundPeriodExpired();
+    error Aera__DeadlineInPast();
+    error Aera__DeadlineTooFarInFuture();
+    error Aera__DeadlineInFutureAndUnauthorized();
+    error Aera__MinTokenOutZero();
+    error Aera__HashCollision();
+    error Aera__ZeroAddressPriceAndFeeCalculator();
+    error Aera__ZeroAddressMultiDepositorVault();
+    error Aera__DepositMultiplierTooLow();
+    error Aera__DepositMultiplierTooHigh();
+    error Aera__RedeemMultiplierTooLow();
+    error Aera__RedeemMultiplierTooHigh();
+    error Aera__DepositCapZero();
+    error Aera__PriceAndFeeCalculatorVaultPaused();
+    error Aera__AutoPriceSolveNotAllowed();
+    error Aera__FixedPriceSolverTipNotAllowed();
+    error Aera__TokenCantBePriced();
+    error Aera__CallerIsVault();
+    error Aera__InvalidToken();
     ////////////////////////////////////////////////////////////
     //                         Functions                      //
     ////////////////////////////////////////////////////////////
@@ -159,4 +194,14 @@ interface IProvisioner {
         IERC20 token,
         Request calldata request
     ) external pure returns (bytes32);
+
+    /// @notice Check if a deposit request is pending
+    /// @param hash The hash of the deposit request
+    /// @return True if the request is pending, false otherwise
+    function asyncDepositHashes(bytes32 hash) external view returns (bool);
+
+    /// @notice Check if a redeem request is pending
+    /// @param hash The hash of the redeem request
+    /// @return True if the request is pending, false otherwise
+    function asyncRedeemHashes(bytes32 hash) external view returns (bool);
 }
