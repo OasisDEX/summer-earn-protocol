@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { formatDecimalOutput, parseDecimalInput, MAX_UINT256 } from '../utils/decimals'
+import { formatUnits } from 'viem'
 
 interface AmountInputProps {
   value: string
@@ -63,7 +64,9 @@ export function AmountInput({
   }
 
   const handleMaxUintClick = () => {
-    const maxValue = 'MAX'
+    // For MAX_UINT256, format it as a proper decimal string and display the actual value
+    // Use formatUnits directly to avoid the "MAX" special handling in formatDecimalOutput
+    const maxValue = formatUnits(MAX_UINT256, decimals)
     setDisplayValue(maxValue)
     onChange(maxValue, MAX_UINT256)
   }

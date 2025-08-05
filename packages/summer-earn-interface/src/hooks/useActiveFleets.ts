@@ -42,13 +42,17 @@ export function useActiveFleets({ chainId, harborCommandAddress }: UseActiveFlee
       if (isLoading || !activeFleets) {
         return
       }
+      const allFleets = [...activeFleets]
+      if (chainId === '8453') {
+        allFleets.push('0x29f13a877F3d1A14AC0B15B07536D4423b35E198')
+      }
 
       try {
         const client = createPublicClient({
           transport: http(CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]),
         })
 
-        const fleetInfoPromises = (activeFleets as `0x${string}`[]).map(async (fleetAddress) => {
+        const fleetInfoPromises = (allFleets as `0x${string}`[]).map(async (fleetAddress) => {
           const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets] =
             await Promise.all([
               client.readContract({

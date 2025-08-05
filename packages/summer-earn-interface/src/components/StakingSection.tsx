@@ -9,6 +9,7 @@ import type { ChainId, UserFleetInfo } from '../types'
 interface StakingSectionProps {
   fleetAddress: string
   fleetSymbol: string
+  fleetDecimals: number
   chainId: ChainId
   userInfo: UserFleetInfo | null
 }
@@ -16,6 +17,7 @@ interface StakingSectionProps {
 export function StakingSection({
   fleetAddress,
   fleetSymbol,
+  fleetDecimals,
   chainId,
   userInfo,
 }: StakingSectionProps) {
@@ -48,13 +50,13 @@ export function StakingSection({
 
   const handleStake = () => {
     if (parsedStakeAmount > BigInt(0)) {
-      stake(stakeAmount)
+      stake(stakeAmount, fleetDecimals)
     }
   }
 
   const handleUnstake = () => {
     if (parsedUnstakeAmount > BigInt(0)) {
-      unstake(unstakeAmount)
+      unstake(unstakeAmount, fleetDecimals)
     }
   }
 
@@ -71,14 +73,14 @@ export function StakingSection({
         <div className="p-4 bg-gray-800 rounded-lg">
           <p className="text-sm text-gray-400">Your Staked Balance</p>
           <p className="text-lg font-semibold text-white">
-            {formatDecimalOutput(stakedBalance, 18)} {fleetSymbol}
+            {formatDecimalOutput(stakedBalance, fleetDecimals)} {fleetSymbol}
           </p>
         </div>
         
         <div className="p-4 bg-gray-800 rounded-lg">
           <p className="text-sm text-gray-400">Total Staked</p>
           <p className="text-lg font-semibold text-white">
-            {formatDecimalOutput(totalStakedSupply, 18)} {fleetSymbol}
+            {formatDecimalOutput(totalStakedSupply, fleetDecimals)} {fleetSymbol}
           </p>
         </div>
         
@@ -117,7 +119,7 @@ export function StakingSection({
               setParsedStakeAmount(parsed)
             }}
             symbol={fleetSymbol}
-            decimals={18}
+            decimals={fleetDecimals}
             balance={userInfo.balance} // Use fleet token balance for staking
             showMaxButton={true}
             label="Amount to Stake"
@@ -156,7 +158,7 @@ export function StakingSection({
               setParsedUnstakeAmount(parsed)
             }}
             symbol={fleetSymbol}
-            decimals={18}
+            decimals={fleetDecimals}
             balance={stakedBalance} // Use staked balance for unstaking
             showMaxButton={true}
             label="Amount to Unstake"

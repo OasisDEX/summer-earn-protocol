@@ -8,6 +8,13 @@ export const fleetCommanderAbi = [
   },
   {
     type: 'function',
+    name: 'bufferArk',
+    inputs: [],
+    outputs: [{ type: 'address', name: '' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
     name: 'totalAssets',
     inputs: [],
     outputs: [{ type: 'uint256', name: '' }],

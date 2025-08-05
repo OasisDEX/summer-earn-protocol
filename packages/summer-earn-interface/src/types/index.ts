@@ -24,6 +24,7 @@ export interface ArkInfo {
   totalAssets: bigint
   withdrawableTotalAssets: bigint
   name: string
+  isBufferArk?: boolean
 }
 
 export interface RebalanceData {
