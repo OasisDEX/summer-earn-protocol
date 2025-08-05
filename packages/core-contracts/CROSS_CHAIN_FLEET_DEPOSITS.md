@@ -615,7 +615,7 @@ function checkSupport(
     address asset
 ) external view returns (bool chainSupported, bool assetSupported) {
     chainSupported = IStargateAdapter(stargateAdapter).supportsChain(chainId);
-    assetSupported = IStargateAdapter(stargateAdapter).isAssetSupported(chainId, asset);
+    assetSupported = IStargateAdapter(stargateAdapter).supportsAssetTransfer(chainId, asset);
 }
 
 // Estimate fees for multiple amounts
