@@ -521,13 +521,6 @@ contract StargateAdapter is
         }
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view override returns (BridgeTypes.OperationStatus) {
-        return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
-    }
-
     /**
      * @dev Helper function to check if an asset is supported on a specific chain
      */

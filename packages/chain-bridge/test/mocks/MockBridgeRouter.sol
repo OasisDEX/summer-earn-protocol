@@ -104,14 +104,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         shouldRevert = _shouldRevert;
     }
 
-    function setMockOperationStatus(
-        bytes32 _operationId,
-        BridgeTypes.OperationStatus _status
-    ) external {
-        operationStatuses[_operationId] = _status;
-        emit OperationStatusUpdated(_operationId, _status); // Simulate update
-    }
-
     // Add registerAdapter function
     function registerAdapter(address adapter) external {
         registeredAdapters[adapter] = true;
@@ -176,10 +168,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             params.target,
             MOCK_ADAPTER_ADDRESS
         );
-        emit OperationStatusUpdated(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
 
         // Refund any excess native fee to the keeper
         uint256 baseFee = 0.1 ether; // Base fee from quote
@@ -208,10 +196,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             params.readParams,
             MOCK_ADAPTER_ADDRESS
         );
-        emit OperationStatusUpdated(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
 
         // Refund any excess native fee to the keeper
         uint256 baseFee = 0.1 ether; // Base fee from quote
@@ -237,10 +221,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             params.destinationChainId,
             params.target,
             MOCK_ADAPTER_ADDRESS
-        );
-        emit OperationStatusUpdated(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
         );
 
         // Refund any excess native fee to the keeper

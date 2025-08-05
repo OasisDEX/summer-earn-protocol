@@ -163,13 +163,6 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             options
         );
         vm.stopPrank();
-
-        // --- Assertions ---
-        // Verify queue status updated post-execution
-        assertEq(
-            uint256(router.getOperationStatus(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT)
-        );
     }
 
     // Helper function to execute a bridge state read operation
@@ -209,10 +202,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             }),
             options
         );
-        assertEq(
-            uint256(router.getOperationStatus(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT)
-        );
+
         // todo: expect calls to lz endpoint to be made
     }
 }

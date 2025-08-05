@@ -61,12 +61,6 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         );
         vm.stopPrank();
 
-        // Verify queue status updated post-execution
-        assertEq(
-            uint256(router.getOperationStatus(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT) // Should be SENT as it's sent to adapter
-        );
-
         // todo: expect calls to lz endpoint to be made
     }
 
@@ -119,11 +113,6 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.prank(address(router));
         router.setOperationToAdapter(operationId, address(mockAdapter));
         router.setReadRequestOriginator(operationId, address(mockReceiver));
-        // Set initial status to SENT
-        router.setOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
 
         // Now deliver the response from the adapter
         vm.prank(address(mockAdapter));
@@ -284,11 +273,6 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.prank(address(router));
         router.setOperationToAdapter(operationId, address(mockAdapter));
         router.setReadRequestOriginator(operationId, address(mockReceiver));
-        // Set initial status to SENT
-        router.setOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
 
         // Attempt to deliver the response
         vm.prank(address(mockAdapter));

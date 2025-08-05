@@ -54,14 +54,6 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             options
         );
         vm.stopPrank();
-
-        // Verify final state
-        assertEq(
-            uint256(router.getOperationStatus(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT)
-        );
-
-        console.log("[SUCCESS] Message sent via queue successfully");
     }
 
     function testSendMessageDirectViaAdapter() public {

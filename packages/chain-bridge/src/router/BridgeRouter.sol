@@ -42,10 +42,6 @@ contract BridgeRouter is
     /// @notice Set of registered adapters
     EnumerableSet.AddressSet private adapters;
 
-    /// @notice Mapping of operation IDs to their current status
-    mapping(bytes32 operationId => BridgeTypes.OperationStatus status)
-        public operationStatuses;
-
     /// @notice Mapping of operation IDs to the adapter that processed them
     mapping(bytes32 operationId => address adapterAddress)
         public operationToAdapter;
@@ -640,13 +636,6 @@ contract BridgeRouter is
         return adapters.contains(adapter);
     }
 
-    /// @inheritdoc IBridgeRouter
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view returns (BridgeTypes.OperationStatus) {
-        return operationStatuses[operationId];
-    }
-
     /*//////////////////////////////////////////////////////////////
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -689,18 +678,6 @@ contract BridgeRouter is
         if (!success) revert TransferFailed();
 
         emit RouterFundsRecovered(recipient, amount);
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function recoverOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus newStatus
-    ) external onlyGovernor {
-        // Update the operation status
-        operationStatuses[operationId] = newStatus;
-
-        // Emit the status update event
-        emit OperationStatusUpdated(operationId, newStatus);
     }
 
     /// @inheritdoc IERC165
