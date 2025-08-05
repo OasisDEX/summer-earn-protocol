@@ -36,6 +36,12 @@ abstract contract BaseBridgeAdapter is
 
     uint16 public immutable THIS_CHAIN;
 
+    /// @notice Mapping of supported chains to their external bridge protocol IDs
+    mapping(uint16 chainId => uint32 externalId) public chainToExternalId;
+
+    /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
+    mapping(uint32 externalId => uint16 chainId) public externalIdToChain;
+
     /**
      * @param _registry Address of the CrossChainRegistry contract
      * @param _accessManager Address of the AccessManager contract
@@ -116,6 +122,35 @@ abstract contract BaseBridgeAdapter is
         uint16 expectedChainId
     ) internal pure {
         if (sourceChainId != expectedChainId) revert InvalidSourceChainId();
+    }
+
+    /**
+     * @notice Adds a chain mapping
+     * @param chainId Chain ID to add
+     * @param externalId External bridge protocol ID for the chain
+     */
+    function _addChain(uint16 chainId, uint32 externalId) internal {
+        chainToExternalId[chainId] = externalId;
+        externalIdToChain[externalId] = chainId;
+    }
+
+    /**
+     * @notice Removes a chain mapping
+     * @param chainId Chain ID to remove
+     */
+    function _removeChain(uint16 chainId) internal {
+        uint32 externalId = chainToExternalId[chainId];
+        delete chainToExternalId[chainId];
+        delete externalIdToChain[externalId];
+    }
+
+    /**
+     * @notice Normalizes gas limit using user input or default
+     * @param userGas User-provided gas limit
+     * @return Normalized gas limit
+     */
+    function _normalizeGas(uint64 userGas) internal view returns (uint64) {
+        return userGas > 0 ? userGas : uint64(defaultGasLimit());
     }
 
     function _decodeRelayedMessageParams(
