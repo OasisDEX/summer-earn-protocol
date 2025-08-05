@@ -63,13 +63,11 @@ contract LayerZeroAdapter is
     );
 
     /// @notice Emitted when read DVNs are configured
-    /// forge-lint: disable-start(mixed-case-variable, mixed-case-function)
     event ReadDVNsConfigured(
         uint32 indexed readChannelId,
         address[] readDVNs,
         uint64 confirmations
     );
-    /// forge-lint: disable-end(mixed-case-variable, mixed-case-function)
 
     /// @notice Emitted when read executor is configured
     event ReadExecutorConfigured(
@@ -77,6 +75,9 @@ contract LayerZeroAdapter is
         address indexed executor,
         uint32 maxMessageSize
     );
+
+    /// @notice Mapping of chains that support read operations
+    mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -187,7 +188,6 @@ contract LayerZeroAdapter is
      * @param executor Address of the executor for read operations
      * @dev Must be called to enable read operations with proper DVN and executor configuration
      */
-    /// forge-lint: disable-start(mixed-case-variable, mixed-case-function)
     function configureReadDVNs(
         address readLib1002Address,
         address[] memory readDVNs,
@@ -231,7 +231,18 @@ contract LayerZeroAdapter is
         emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
     }
 
-    /// forge-lint: disable-end(mixed-case-variable, mixed-case-function)
+    /**
+     * @notice Configure read support for specific chains
+     * @param chainId The chain ID to configure
+     * @param supported Whether read operations are supported on this chain
+     * @dev Can only be called by the contract owner
+     */
+    function setChainReadSupport(
+        uint16 chainId,
+        bool supported
+    ) external onlyGovernor {
+        chainSupportsRead[chainId] = supported;
+    }
 
     /*//////////////////////////////////////////////////////////////
                             OAPP RECEIVER
@@ -666,31 +677,26 @@ contract LayerZeroAdapter is
     }
 
     /// @inheritdoc IMessageAdapter
-    function estimateMessageFee(
-        uint16 destinationChainId,
-        uint256 messageSize,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Delegate to the unified estimateFee method
-        return
-            this.estimateFee(
-                destinationChainId,
-                address(0),
-                0,
-                options,
-                operationType
-            );
-    }
-
-    /// @inheritdoc IMessageAdapter
     function supportsMessageOperation(
         uint16 destinationChainId,
         BridgeTypes.OperationType operationType
     ) external view returns (bool) {
-        // Check if the destination chain is supported and operation type is supported
-        return
-            chainToLzEid[destinationChainId] != 0 &&
-            supportsOperation(operationType);
+        // First check if the destination chain is supported
+        if (chainToLzEid[destinationChainId] == 0) {
+            return false;
+        }
+
+        // Check if the adapter supports this operation type in general
+        if (!supportsOperation(operationType)) {
+            return false;
+        }
+
+        // For READ_STATE operations, check both global config and chain-specific support
+        if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            return readChannelId != 0 && chainSupportsRead[destinationChainId];
+        }
+
+        // For MESSAGE operations, no additional requirements beyond chain support
+        return true;
     }
 }

@@ -106,7 +106,7 @@ contract MockAdapter is
     function transferAsset(
         bytes32 operationId, // Accept from router
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata /* options */
     ) external payable onlyRouter {
         // Verify chain and asset are supported
         if (!this.supportsChain(params.destinationChainId)) {
@@ -137,7 +137,7 @@ contract MockAdapter is
     function readState(
         bytes32 operationId, // Accept from router
         BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata /* options */
     ) external payable onlyRouter {
         // Verify chain is supported
         if (!this.supportsChain(params.destinationChainId))
@@ -159,10 +159,10 @@ contract MockAdapter is
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
         uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+        address /* asset */,
+        uint256 /* amount */,
+        BridgeTypes.BridgeOptions calldata /* options */,
+        BridgeTypes.OperationType /* operationType */
     ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Check if chain is supported
         if (!supportedChains[destinationChainId]) {
@@ -220,7 +220,7 @@ contract MockAdapter is
     function sendMessage(
         bytes32 operationId, // Accept from router
         BridgeTypes.ExecuteSendMessageParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata /* options */
     ) external payable onlyRouter {
         // Verify chain is supported
         if (!this.supportsChain(params.destinationChainId))
@@ -287,52 +287,13 @@ contract MockAdapter is
     function testSkipper() public {}
 
     /// @inheritdoc IAssetAdapter
-    function estimateTransferFee(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Check if chain is supported
-        if (!supportedChains[destinationChainId]) {
-            revert UnsupportedChain();
-        }
-
-        // Return base fee of 0.1 ETH multiplied by the fee multiplier for asset transfers
-        nativeFee = (0.1 ether * feeMultiplier) / 100;
-        tokenFee = 0;
-    }
-
-    /// @inheritdoc IAssetAdapter
     function supportsAssetTransfer(
         uint16 destinationChainId,
-        address asset
+        address /* asset */
     ) external view returns (bool) {
         return
             supportedChains[destinationChainId] &&
             supportedOperations[BridgeTypes.OperationType.TRANSFER_ASSET];
-    }
-
-    /// @inheritdoc IMessageAdapter
-    function estimateMessageFee(
-        uint16 destinationChainId,
-        uint256 messageSize,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Check if chain is supported
-        if (!supportedChains[destinationChainId]) {
-            revert UnsupportedChain();
-        }
-
-        // Check if operation type is supported
-        if (!supportedOperations[operationType]) {
-            revert UnsupportedOperation();
-        }
-
-        // Return base fee of 0.05 ETH multiplied by the fee multiplier for message operations
-        nativeFee = (0.05 ether * feeMultiplier) / 100;
-        tokenFee = 0;
     }
 
     /// @inheritdoc IMessageAdapter

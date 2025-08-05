@@ -84,22 +84,6 @@ interface IMessageAdapter {
     ) external payable;
 
     /**
-     * @notice Estimate fees for a message operation
-     * @param destinationChainId ID of the destination chain
-     * @param messageSize Size of the message in bytes (0 for read operations)
-     * @param options Bridge options including adapter selection and parameters
-     * @param operationType Type of operation (MESSAGE or READ_STATE)
-     * @return nativeFee Fee in the chain's native token
-     * @return tokenFee Fee in the transferred token (if applicable)
-     */
-    function estimateMessageFee(
-        uint16 destinationChainId,
-        uint256 messageSize,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
-    ) external view returns (uint256 nativeFee, uint256 tokenFee);
-
-    /**
      * @notice Check if the adapter supports a specific message operation type to a destination
      * @param destinationChainId ID of the destination chain
      * @param operationType Type of operation (MESSAGE or READ_STATE)

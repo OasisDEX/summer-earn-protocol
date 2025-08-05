@@ -391,23 +391,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
     }
 
-    function testUnsupportedOperations() public {
-        useNetworkA();
-
-        // Setup adapter params
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            gasLimit: 500000,
-            calldataSize: 0,
-            msgValue: 0,
-            options: ""
-        });
-
-        // Note: StargateAdapter only implements IAssetAdapter and IBridgeAdapter
-        // It does not implement IMessageAdapter, so readState and sendMessage
-        // methods are not available (which is the correct split-by-concern behavior)
-    }
-
     function testTransferAssetMsgValueConsistencyX() public {
         useNetworkA();
         vm.deal(address(routerA), 10 ether); // Provide enough ETH

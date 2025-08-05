@@ -535,20 +535,6 @@ contract StargateAdapter is
         return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
     }
 
-    /**
-     * @dev Helper function to check if an asset is supported on a specific chain
-     */
-    function isAssetSupported(
-        uint16 chainId,
-        address asset
-    ) public view returns (bool) {
-        if (chainId == uint16(block.chainid)) {
-            // For current chain, check if asset has a Stargate contract
-            return assetToStargateContract[asset] != address(0);
-        }
-        return _peerAdapter(chainId) != address(0);
-    }
-
     /// @inheritdoc IBridgeAdapter
     function supportsOperation(
         BridgeTypes.OperationType operationType
@@ -558,30 +544,16 @@ contract StargateAdapter is
     }
 
     /// @inheritdoc IAssetAdapter
-    function estimateTransferFee(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Delegate to the unified estimateFee method
-        return
-            this.estimateFee(
-                destinationChainId,
-                asset,
-                amount,
-                options,
-                BridgeTypes.OperationType.TRANSFER_ASSET
-            );
-    }
-
-    /// @inheritdoc IAssetAdapter
     function supportsAssetTransfer(
         uint16 destinationChainId,
         address asset
     ) external view returns (bool) {
         // Check if both destination chain and asset are supported
-        return isAssetSupported(destinationChainId, asset);
+        if (destinationChainId == uint16(block.chainid)) {
+            // For current chain, check if asset has a Stargate contract
+            return assetToStargateContract[asset] != address(0);
+        }
+        return _peerAdapter(destinationChainId) != address(0);
     }
 
     /*//////////////////////////////////////////////////////////////

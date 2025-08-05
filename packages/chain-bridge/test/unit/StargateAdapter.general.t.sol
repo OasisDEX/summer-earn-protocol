@@ -253,7 +253,9 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Check the asset directly:
-        assertTrue(adapterA.isAssetSupported(CHAIN_ID_A, address(newToken)));
+        assertTrue(
+            adapterA.supportsAssetTransfer(CHAIN_ID_A, address(newToken))
+        );
     }
 
     function testAddDuplicateAsset() public {
@@ -278,7 +280,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Check the asset directly:
-        assertTrue(adapterA.isAssetSupported(CHAIN_ID_A, address(tokenA)));
+        assertTrue(adapterA.supportsAssetTransfer(CHAIN_ID_A, address(tokenA)));
     }
 
     function testAddInvalidAsset() public {

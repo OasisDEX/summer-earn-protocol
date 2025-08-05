@@ -55,22 +55,6 @@ interface IAssetAdapter {
     ) external payable;
 
     /**
-     * @notice Estimate fees for an asset transfer operation
-     * @param destinationChainId ID of the destination chain
-     * @param asset Address of the asset to transfer
-     * @param amount Amount of the asset to transfer
-     * @param options Bridge options including adapter selection and parameters
-     * @return nativeFee Fee in the chain's native token
-     * @return tokenFee Fee in the transferred token (if applicable)
-     */
-    function estimateTransferFee(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options
-    ) external view returns (uint256 nativeFee, uint256 tokenFee);
-
-    /**
      * @notice Check if the adapter supports asset transfers to a specific chain
      * @param destinationChainId ID of the destination chain
      * @param asset Address of the asset to transfer
