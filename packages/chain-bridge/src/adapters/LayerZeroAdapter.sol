@@ -353,39 +353,23 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         onlySupportedDestination(destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        // Convert destinationChainId to LayerZero EID
-        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
-
         if (!supportsOperation(operationType)) revert OperationNotSupported();
 
-        // Create appropriate payload based on operation type
+        // Use operation-specific builders
+        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
         bytes memory payload;
+
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            // Use dummy values for fee estimation
             payload = _createReadStatePayload(
                 lzDstEid,
-                address(0x1), // dummy address
-                new bytes(0) // dummy callData
+                address(0x1),
+                new bytes(0)
             );
         } else {
-            // Use dummy values for fee estimation
-            bytes memory dummyMessage = abi.encode(
-                "dummy message for fee estimation"
-            );
-            payload = _createMessagePayload(
-                BridgeTypes.RelayedMessageParams({
-                    recipient: address(0),
-                    message: dummyMessage,
-                    operationId: bytes32(0),
-                    originator: address(0),
-                    sourceChainId: uint16(0)
-                })
-            );
+            payload = _createMessagePayload(_createDummyMessageParams());
         }
 
-        bytes memory lzOptions = _prepareOptions(options, operationType);
-
-        // Get the fee using consolidated quoting logic
+        bytes memory lzOptions = _createLzOptions(options, operationType);
         EndpointFee memory fee = _quoteOperationFee(
             lzDstEid,
             payload,
@@ -427,14 +411,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         bytes32 guid;
         {
-            // Create payload using helper method
+            // Clean, focused payload creation for read operations
             bytes memory cmd = _createReadStatePayload(
                 lzDstEid,
                 params.target,
                 abi.encodePacked(params.selector, params.readParams)
             );
-
-            bytes memory lzOptions = _prepareOptions(
+            bytes memory lzOptions = _createLzOptions(
                 options,
                 BridgeTypes.OperationType.READ_STATE
             );
@@ -480,7 +463,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (options.msgValue > 0 && msg.value < options.msgValue) {
             revert InsufficientMsgValue(options.msgValue, msg.value);
         }
-        // Create payload using helper method
+
+        // Clean, focused payload creation for message operations
         bytes memory payload = _createMessagePayload(
             BridgeTypes.RelayedMessageParams({
                 recipient: params.target,
@@ -490,9 +474,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                 sourceChainId: uint16(block.chainid)
             })
         );
-
-        // Create options with appropriate gas limit
-        bytes memory lzOptions = _prepareOptions(
+        bytes memory lzOptions = _createLzOptions(
             options,
             BridgeTypes.OperationType.MESSAGE
         );
@@ -543,20 +525,19 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     }
 
     /**
-     * @notice Creates options with gas limit at least as high as the configured minimum
-     * @param options User-provided adapter parameters
+     * @notice Creates LayerZero options with appropriate gas limits
+     * @param options User-provided bridge options
      * @param operationType The operation type being sent
-     * @return options The prepared options with appropriate minimum gas limits
+     * @return lzOptions The prepared LayerZero options
      */
-    function _prepareOptions(
-        BridgeTypes.BridgeOptions calldata options,
+    function _createLzOptions(
+        BridgeTypes.BridgeOptions memory options,
         BridgeTypes.OperationType operationType
-    ) internal view returns (bytes memory) {
+    ) internal view returns (bytes memory lzOptions) {
         uint128 gasLimit = options.gasLimit > 0
             ? uint128(options.gasLimit)
             : uint128(defaultGasLimit());
 
-        // Use the helper to create messaging options with minimum gas limit enforcement
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             return
                 LayerZeroOptionsHelper.createLzReadOptions(options, gasLimit);
@@ -705,5 +686,24 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         return
             operationType == BridgeTypes.OperationType.MESSAGE ||
             operationType == BridgeTypes.OperationType.READ_STATE;
+    }
+
+    /**
+     * @notice Creates dummy message parameters for fee estimation
+     * @return params Dummy RelayedMessageParams for estimation
+     */
+    function _createDummyMessageParams()
+        internal
+        pure
+        returns (BridgeTypes.RelayedMessageParams memory)
+    {
+        return
+            BridgeTypes.RelayedMessageParams({
+                recipient: address(0),
+                message: abi.encode("dummy message for fee estimation"),
+                operationId: bytes32(0),
+                originator: address(0),
+                sourceChainId: uint16(0)
+            });
     }
 }
