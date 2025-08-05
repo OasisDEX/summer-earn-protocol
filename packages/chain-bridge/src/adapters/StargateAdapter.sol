@@ -260,7 +260,7 @@ contract StargateAdapter is
     function transferAsset(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
@@ -282,7 +282,7 @@ contract StargateAdapter is
             params.amount
         );
 
-        _executeSendToken(operationId, params, providedFee);
+        _executeSendToken(operationId, params, providedFee, options);
 
         // Emit the TransferInitiated event
         emit TransferInitiated(
@@ -300,7 +300,8 @@ contract StargateAdapter is
     function _executeSendToken(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams memory params,
-        uint256 providedFee
+        uint256 providedFee,
+        BridgeTypes.BridgeOptions memory options
     ) internal {
         LocalContext memory ctx;
 
@@ -331,7 +332,8 @@ contract StargateAdapter is
             params.destinationChainId,
             ctx.destinationAdapter,
             params.amount,
-            _encodeRelayedTransferParams(ctx.atm)
+            _encodeRelayedTransferParams(ctx.atm),
+            options
         );
 
         // Update minAmountLD based on quote with proper validation
@@ -408,14 +410,15 @@ contract StargateAdapter is
         uint16 destinationChainId,
         address destinationAdapter,
         uint256 amount,
-        bytes memory composeMsg
+        bytes memory composeMsg,
+        BridgeTypes.BridgeOptions memory options
     ) internal view returns (SendParam memory) {
         // Always use taxi mode for compose functionality and reliability
         bytes memory oftCmd = OftCmdHelper.taxi(); // Always use taxi mode like in the example
 
         // Add compose options when compose message is present
         bytes memory extraOptions = composeMsg.length > 0
-            ? _composeOptions(uint128(defaultGasLimit()))
+            ? _composeOptions(uint128(_normalizeGas(options.gasLimit)))
             : bytes("");
 
         return
