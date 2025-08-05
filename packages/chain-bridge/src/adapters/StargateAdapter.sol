@@ -132,13 +132,7 @@ contract StargateAdapter is
     event ComposeCallFailed(
         bytes32 indexed operationId,
         address indexed fleetProxy,
-        bytes reason
-    );
-
-    /// @notice Emitted when compose call fails (alternate version with source chain)
-    event ComposeCallFailedWithSource(
-        bytes32 indexed operationId,
-        address indexed fleetProxy,
+        bytes reason,
         uint16 sourceChainId
     );
 
@@ -401,6 +395,16 @@ contract StargateAdapter is
     }
 
     /**
+     * @dev Helper function to create compose options with the given gas limit
+     * @param gas Gas limit for the compose execution
+     * @return Encoded options for LayerZero compose functionality
+     */
+    function _composeOptions(uint128 gas) internal pure returns (bytes memory) {
+        return
+            OptionsBuilder.newOptions().addExecutorLzComposeOption(0, gas, 0);
+    }
+
+    /**
      * @dev Build SendParam struct
      */
     function _buildSendParam(
@@ -414,11 +418,7 @@ contract StargateAdapter is
 
         // Add compose options when compose message is present
         bytes memory extraOptions = composeMsg.length > 0
-            ? OptionsBuilder.newOptions().addExecutorLzComposeOption(
-                0,
-                uint128(defaultGasLimit()),
-                0
-            )
+            ? _composeOptions(uint128(defaultGasLimit()))
             : bytes("");
 
         return
@@ -483,9 +483,7 @@ contract StargateAdapter is
             : defaultGasLimit();
 
         // Always include compose options in fee estimation
-        bytes memory extraOptions = OptionsBuilder
-            .newOptions()
-            .addExecutorLzComposeOption(0, uint128(gasLimit), 0);
+        bytes memory extraOptions = _composeOptions(uint128(gasLimit));
 
         // Check if a compose message is provided in adapter params
         bytes memory composeMsg;
@@ -698,7 +696,12 @@ contract StargateAdapter is
                 // Success - call completed
             } catch (bytes memory reason) {
                 // Log failure but continue - tokens were already sent
-                emit ComposeCallFailed(operationId, recipient, reason);
+                emit ComposeCallFailed(
+                    operationId,
+                    recipient,
+                    reason,
+                    uint16(block.chainid)
+                );
             }
         }
 
