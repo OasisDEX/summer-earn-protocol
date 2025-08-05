@@ -6,6 +6,7 @@ import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {BridgeCodec} from "../libraries/BridgeCodec.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
@@ -34,6 +35,12 @@ abstract contract BaseBridgeAdapter is
     error InvalidMessage();
 
     uint16 public immutable THIS_CHAIN;
+
+    /// @notice Mapping of supported chains to their external bridge protocol IDs
+    mapping(uint16 chainId => uint32 externalId) public chainToExternalId;
+
+    /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
+    mapping(uint32 externalId => uint16 chainId) public externalIdToChain;
 
     /**
      * @param _registry Address of the CrossChainRegistry contract
@@ -117,6 +124,35 @@ abstract contract BaseBridgeAdapter is
         if (sourceChainId != expectedChainId) revert InvalidSourceChainId();
     }
 
+    /**
+     * @notice Adds a chain mapping
+     * @param chainId Chain ID to add
+     * @param externalId External bridge protocol ID for the chain
+     */
+    function _addChain(uint16 chainId, uint32 externalId) internal {
+        chainToExternalId[chainId] = externalId;
+        externalIdToChain[externalId] = chainId;
+    }
+
+    /**
+     * @notice Removes a chain mapping
+     * @param chainId Chain ID to remove
+     */
+    function _removeChain(uint16 chainId) internal {
+        uint32 externalId = chainToExternalId[chainId];
+        delete chainToExternalId[chainId];
+        delete externalIdToChain[externalId];
+    }
+
+    /**
+     * @notice Normalizes gas limit using user input or default
+     * @param userGas User-provided gas limit
+     * @return Normalized gas limit
+     */
+    function _normalizeGas(uint64 userGas) internal view returns (uint64) {
+        return userGas > 0 ? userGas : uint64(defaultGasLimit());
+    }
+
     function _decodeRelayedMessageParams(
         bytes memory _message
     ) internal pure returns (BridgeTypes.RelayedMessageParams memory) {
@@ -157,8 +193,8 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.MESSAGE),
+            BridgeCodec.encodePayload(
+                BridgeTypes.OperationType.MESSAGE,
                 _encodeRelayedMessageParams(_params)
             );
     }
@@ -167,8 +203,8 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedTransferParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.TRANSFER_ASSET),
+            BridgeCodec.encodePayload(
+                BridgeTypes.OperationType.TRANSFER_ASSET,
                 _encodeRelayedTransferParams(_params)
             );
     }
@@ -177,9 +213,25 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedReadResponse memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.READ_STATE),
+            BridgeCodec.encodePayload(
+                BridgeTypes.OperationType.READ_STATE,
                 _encodeRelayedReadResponse(_params)
             );
+    }
+
+    /**
+     * @notice Decodes a payload to extract OperationType and data
+     * @param payload The encoded payload with OperationType prefix
+     * @return operationType The extracted operation type
+     * @return data The remaining payload data after removing the prefix
+     */
+    function _decodePayload(
+        bytes calldata payload
+    )
+        internal
+        pure
+        returns (BridgeTypes.OperationType operationType, bytes memory data)
+    {
+        return BridgeCodec.decodePayload(payload);
     }
 }
