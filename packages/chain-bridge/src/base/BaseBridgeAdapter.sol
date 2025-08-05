@@ -134,6 +134,16 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
+     * @notice Removes a chain mapping
+     * @param chainId Chain ID to remove
+     */
+    function _removeChain(uint16 chainId) internal {
+        uint32 externalId = chainToExternalId[chainId];
+        delete chainToExternalId[chainId];
+        delete externalIdToChain[externalId];
+    }
+
+    /**
      * @notice Normalizes gas limit using user input or default
      * @param userGas User-provided gas limit
      * @return Normalized gas limit

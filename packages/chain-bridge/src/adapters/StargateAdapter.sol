@@ -62,14 +62,6 @@ contract StargateAdapter is
     /// @notice LayerZero endpoint for compose functionality
     address public immutable LZ_ENDPOINT;
 
-    // Chain mapping moved to BaseBridgeAdapter
-
-    // LayerZero-specific public interface that delegates to base class generic mappings
-    /// @notice Mapping of supported chains to their LayerZero Endpoint IDs (public view)
-    function chainToLzEid(uint16 chainId) public view returns (uint32) {
-        return chainToExternalId[chainId];
-    }
-
     /// @notice Mapping of assets to their Stargate contracts on THIS chain only
     mapping(address asset => address stargateContract)
         public assetToStargateContract;
@@ -214,9 +206,7 @@ contract StargateAdapter is
      * @dev Can only be called by the contract owner
      */
     function removeSupportedChain(uint16 chainId) external onlyGovernor {
-        uint32 lzEid = chainToExternalId[chainId];
-        delete chainToExternalId[chainId];
-        delete externalIdToChain[lzEid];
+        _removeChain(chainId);
         emit EndpointIdSet(chainId, 0);
     }
 

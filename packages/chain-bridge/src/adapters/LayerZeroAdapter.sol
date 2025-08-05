@@ -37,19 +37,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
-    // Chain mappings moved to BaseBridgeAdapter
-
-    // LayerZero-specific public interface that delegates to base class generic mappings
-    /// @notice Mapping of supported chains to their LayerZero chain IDs (public view)
-    function chainToLzEid(uint16 chainId) public view returns (uint32) {
-        return chainToExternalId[chainId];
-    }
-
-    /// @notice Inverse mapping of LayerZero chain IDs to our chain IDs (public view)
-    function lzEidToChain(uint32 lzEid) public view returns (uint16) {
-        return externalIdToChain[lzEid];
-    }
-
     /// @notice Read channel identifier for lzRead operations
     uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Used to identify responses
 
@@ -149,9 +136,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @dev Can only be called by the contract owner
      */
     function removeSupportedChain(uint16 chainId) external onlyGovernor {
-        uint32 lzEid = chainToExternalId[chainId];
-        delete chainToExternalId[chainId];
-        delete externalIdToChain[lzEid];
+        _removeChain(chainId);
     }
 
     /**
