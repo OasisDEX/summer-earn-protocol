@@ -124,14 +124,16 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
     }
 
     function test_Board() public {
-        uint256 amount = 1 ether; // 1 WETH
+        _test_Board(1 ether);
+    }
 
+    function _test_Board(uint amount) internal {
         // Fund the commander with WETH
-        vm.deal(commander, 2 ether);
+        vm.deal(commander, amount * 2);
         vm.startPrank(commander);
 
         // Wrap ETH to WETH
-        IWETH(WETH_ADDRESS).deposit{value: 2 ether}();
+        IWETH(WETH_ADDRESS).deposit{value: amount}();
 
         // Approve the ark to spend WETH
         weth.forceApprove(address(ark), amount);
@@ -202,9 +204,16 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
     }
 
     function test_RequestWithdrawal() public {
-        test_Board();
+        _test_RequestWithdrawal(1 ether, 0.5 ether);
+    }
 
-        uint256 armBalance = arm.balanceOf(address(ark));
+    function _test_RequestWithdrawal(
+        uint depositAmount,
+        uint withdrawalAmount
+    ) internal returns (uint assetsInWithdrawalQueue) {
+        _test_Board(depositAmount);
+
+        uint256 armBalance = arm.convertToAssets(arm.balanceOf(address(ark)));
         assertGt(
             armBalance,
             0,
@@ -223,11 +232,11 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
         );
 
         vm.startPrank(keeper);
-
-        uint256 withdrawalAmount = armBalance / 2; // Request half
-
+        uint balanceBeforeWithdrawal = ark.totalAssets();
         ark.requestWithdrawal(withdrawalAmount);
         vm.stopPrank();
+
+        assetsInWithdrawalQueue = ark.assetsInWithdrawalQueue();
 
         // Check state after withdrawal request
         assertGt(
@@ -239,13 +248,71 @@ contract ArmArkTest is Test, IArkEvents, ArkTestBase {
             ark.isWithdrawalClaimRequired(),
             "Should require withdrawal claim after request"
         );
-        assertGt(
-            ark.assetsInWithdrawalQueue(),
-            0,
+
+        assertEq(
+            assetsInWithdrawalQueue,
+            withdrawalAmount == type(uint256).max
+                ? balanceBeforeWithdrawal
+                : withdrawalAmount - 1, // -1 to account for rounding down
             "Should have assets in withdrawal queue"
         );
     }
 
+    function test_ClaimWithdrawal() public {
+        uint assetsInWithdrawalQueue = _test_RequestWithdrawal(
+            1 ether,
+            0.5 ether
+        );
+
+        vm.startPrank(keeper);
+        vm.expectRevert(abi.encode("Claim delay not met"));
+        ark.claimWithdrawal();
+
+        vm.warp(block.timestamp + 1 days);
+        ark.claimWithdrawal();
+        vm.stopPrank();
+
+        uint256 wethInArkAfterClaim = weth.balanceOf(address(ark));
+        assertApproxEqAbs(
+            wethInArkAfterClaim,
+            assetsInWithdrawalQueue,
+            1,
+            "WETH in Ark should be equal to assets in withdrawal queue"
+        );
+    }
+
+    function test_ClaimWithdrawal_MaxAmount() public {
+        uint assetsInWithdrawalQueue = _test_RequestWithdrawal(
+            100 ether,
+            type(uint256).max
+        );
+
+        vm.startPrank(keeper);
+        vm.expectRevert(abi.encode("Claim delay not met"));
+        ark.claimWithdrawal();
+
+        vm.warp(block.timestamp + 1 days);
+        ark.claimWithdrawal();
+        vm.stopPrank();
+
+        uint256 wethInArkAfterClaim = weth.balanceOf(address(ark));
+        assertEq(wethInArkAfterClaim, assetsInWithdrawalQueue);
+    }
+    function test_ClaimWithdrawal_MaxAmountNoLiquidity() public {
+        _test_RequestWithdrawal(100 ether, type(uint256).max);
+
+        vm.startPrank(keeper);
+        vm.expectRevert(abi.encode("Claim delay not met"));
+        ark.claimWithdrawal();
+
+        // overwrite the WETH balance of the ARM address
+        deal(WETH_ADDRESS, ARM_ADDRESS, 50 ether);
+
+        vm.warp(block.timestamp + 1 days);
+        vm.expectRevert(abi.encode("Queue pending liquidity"));
+        ark.claimWithdrawal();
+        vm.stopPrank();
+    }
     function test_RequestWithdrawal_MaxAmount() public {
         test_Board();
 
