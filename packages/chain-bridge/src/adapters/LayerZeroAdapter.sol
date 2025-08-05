@@ -49,9 +49,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
 
-    /// @notice Current count of pending operations (for monitoring)
-    uint256 public pendingOperationsCount;
-
     /// @notice Minimum gas limit for operations
     uint128 public minGasLimit;
 
@@ -330,7 +327,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // Clean up mapping after successful delivery to prevent storage bloat
         delete lzMessageToOperationId[_guid];
-        pendingOperationsCount--;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -341,7 +337,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function transferAsset(
         bytes32, // operationId - not used by LayerZero adapter
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
+        BridgeTypes.BridgeOptions calldata // options
     ) external payable onlySupportedDestination(params.destinationChainId) {
         // This adapter doesn't support asset transfers directly
         // It should never be called for this purpose due to capability flags
@@ -442,9 +438,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[guid] = operationId;
-        pendingOperationsCount++;
 
-        // todo : fix event
         emit ReadRequestInitiated(
             operationId,
             uint16(block.chainid),
