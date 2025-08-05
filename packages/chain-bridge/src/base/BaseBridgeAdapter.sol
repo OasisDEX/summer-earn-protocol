@@ -6,6 +6,7 @@ import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {BridgeCodec} from "../libraries/BridgeCodec.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
@@ -157,8 +158,8 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.MESSAGE),
+            BridgeCodec.encodePayload(
+                BridgeTypes.OperationType.MESSAGE,
                 _encodeRelayedMessageParams(_params)
             );
     }
@@ -167,8 +168,8 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedTransferParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.TRANSFER_ASSET),
+            BridgeCodec.encodePayload(
+                BridgeTypes.OperationType.TRANSFER_ASSET,
                 _encodeRelayedTransferParams(_params)
             );
     }
@@ -177,9 +178,25 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedReadResponse memory _params
     ) internal pure returns (bytes memory) {
         return
-            abi.encodePacked(
-                uint16(BridgeTypes.OperationType.READ_STATE),
+            BridgeCodec.encodePayload(
+                BridgeTypes.OperationType.READ_STATE,
                 _encodeRelayedReadResponse(_params)
             );
+    }
+
+    /**
+     * @notice Decodes a payload to extract OperationType and data
+     * @param payload The encoded payload with OperationType prefix
+     * @return operationType The extracted operation type
+     * @return data The remaining payload data after removing the prefix
+     */
+    function _decodePayload(
+        bytes calldata payload
+    )
+        internal
+        pure
+        returns (BridgeTypes.OperationType operationType, bytes memory data)
+    {
+        return BridgeCodec.decodePayload(payload);
     }
 }
