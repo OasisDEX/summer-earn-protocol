@@ -49,6 +49,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
 
+    /// @notice Current count of pending operations (for monitoring)
+    uint256 public pendingOperationsCount;
+
     /// @notice Minimum gas limit for operations
     uint128 public minGasLimit;
 
@@ -305,13 +308,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes memory _payload
     ) internal {
         // Extract requestId from the guid mapping
-
         bytes32 operationId = lzMessageToOperationId[_guid];
         if (operationId == bytes32(0)) {
             // Silently fail so it doesn't get locked with DVN
             emit ReadOperationNotFound(_guid, "No operationId found");
             return;
         }
+
         bytes memory operationPayload = _encodeRelayedReadResponse(
             BridgeTypes.RelayedReadResponse({
                 readResponseData: _payload,
@@ -319,10 +322,15 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                 sourceChainId: lzEidToChain[_origin.srcEid]
             })
         );
+
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.READ_STATE,
             operationPayload
         );
+
+        // Clean up mapping after successful delivery to prevent storage bloat
+        delete lzMessageToOperationId[_guid];
+        pendingOperationsCount--;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -434,7 +442,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[guid] = operationId;
+        pendingOperationsCount++;
 
+        // todo : fix event
         emit ReadRequestInitiated(
             operationId,
             uint16(block.chainid),
