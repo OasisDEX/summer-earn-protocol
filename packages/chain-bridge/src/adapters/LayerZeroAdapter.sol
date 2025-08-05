@@ -248,12 +248,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
             _relayReadResponse(_origin, _guid, _payload);
         } else if (_payload.length >= 2) {
-            // If the payload starts with a uint16 message type marker
-            BridgeTypes.OperationType operationType = BridgeTypes.OperationType(
-                uint8(uint16(bytes2(_payload)))
-            );
+            // Decode the payload to extract operation type and data
+            (
+                BridgeTypes.OperationType operationType,
+                bytes memory data
+            ) = _decodePayload(_payload);
             if (operationType == BridgeTypes.OperationType.MESSAGE) {
-                _relayMessage(_origin, _payload[2:]);
+                _relayMessage(_origin, data);
             } else {
                 revert UnsupportedMessageType();
             }

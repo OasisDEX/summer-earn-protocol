@@ -6,6 +6,7 @@ import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {BridgeCodec} from "../libraries/BridgeCodec.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
@@ -188,25 +189,11 @@ abstract contract BaseBridgeAdapter is
         return abi.encode(_params);
     }
 
-    /**
-     * @notice Generic function to encode operation with type
-     * @param op Operation type
-     * @param abiBytes ABI-encoded bytes of the operation parameters
-     * @return Encoded bytes with operation type prefix
-     */
-    function _encodeWithType(
-        BridgeTypes.OperationType op,
-        bytes memory abiBytes
-    ) internal pure returns (bytes memory) {
-        return abi.encodePacked(uint16(op), abiBytes);
-    }
-
-    // Legacy functions maintained for backward compatibility
     function _encodeRelayedMessageParamsWithType(
         BridgeTypes.RelayedMessageParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            _encodeWithType(
+            BridgeCodec.encodePayload(
                 BridgeTypes.OperationType.MESSAGE,
                 _encodeRelayedMessageParams(_params)
             );
@@ -216,7 +203,7 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedTransferParams memory _params
     ) internal pure returns (bytes memory) {
         return
-            _encodeWithType(
+            BridgeCodec.encodePayload(
                 BridgeTypes.OperationType.TRANSFER_ASSET,
                 _encodeRelayedTransferParams(_params)
             );
@@ -226,9 +213,25 @@ abstract contract BaseBridgeAdapter is
         BridgeTypes.RelayedReadResponse memory _params
     ) internal pure returns (bytes memory) {
         return
-            _encodeWithType(
+            BridgeCodec.encodePayload(
                 BridgeTypes.OperationType.READ_STATE,
                 _encodeRelayedReadResponse(_params)
             );
+    }
+
+    /**
+     * @notice Decodes a payload to extract OperationType and data
+     * @param payload The encoded payload with OperationType prefix
+     * @return operationType The extracted operation type
+     * @return data The remaining payload data after removing the prefix
+     */
+    function _decodePayload(
+        bytes calldata payload
+    )
+        internal
+        pure
+        returns (BridgeTypes.OperationType operationType, bytes memory data)
+    {
+        return BridgeCodec.decodePayload(payload);
     }
 }
