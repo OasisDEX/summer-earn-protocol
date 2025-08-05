@@ -43,6 +43,13 @@ export const fleetCommanderAbi = [
   },
   {
     type: 'function',
+    name: 'decimals',
+    inputs: [],
+    outputs: [{ type: 'uint8', name: '' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
     name: 'balanceOf',
     inputs: [{ type: 'address', name: 'account' }],
     outputs: [{ type: 'uint256', name: '' }],

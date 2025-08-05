@@ -101,6 +101,7 @@ export function useActiveFleets({ chainId, harborCommandAddress }: UseActiveFlee
             depositCap: BigInt(0), // Placeholder
             assetDecimals,
             assetSymbol,
+            fleetDecimals: assetDecimals,
           }
         })
 
