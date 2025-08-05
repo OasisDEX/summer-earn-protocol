@@ -66,13 +66,21 @@ export function RebalanceForm({
             <option value="0x">Select source ark...</option>
             {arks.map((ark) => (
               <option key={`from-${ark.address}`} value={ark.address}>
-                {ark.name} - {ark.address.slice(0, 6)}...{ark.address.slice(-4)}
+                {ark.name}{ark.isBufferArk ? ' (Buffer)' : ''} - {ark.address.slice(0, 6)}...{ark.address.slice(-4)}
               </option>
             ))}
           </select>
           {selectedFromArk && (
             <div className="mt-2 p-3 bg-gray-800 rounded-lg">
               <div className="text-sm text-gray-300">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium">{selectedFromArk.name}</span>
+                  {selectedFromArk.isBufferArk && (
+                    <span className="px-2 py-1 bg-blue-600 text-blue-100 text-xs rounded-full">
+                      Buffer Ark
+                    </span>
+                  )}
+                </div>
                 <div>Total Assets: {(Number(selectedFromArk.totalAssets) / Math.pow(10, assetDecimals)).toFixed(4)} {assetSymbol}</div>
                 <div>Withdrawable: {(Number(selectedFromArk.withdrawableTotalAssets) / Math.pow(10, assetDecimals)).toFixed(4)} {assetSymbol}</div>
               </div>
@@ -93,7 +101,7 @@ export function RebalanceForm({
             <option value="0x">Select destination ark...</option>
             {arks.filter(ark => ark.address !== fromArk).map((ark) => (
               <option key={`to-${ark.address}`} value={ark.address}>
-                {ark.name} - {ark.address.slice(0, 6)}...{ark.address.slice(-4)}
+                {ark.name}{ark.isBufferArk ? ' (Buffer)' : ''} - {ark.address.slice(0, 6)}...{ark.address.slice(-4)}
               </option>
             ))}
           </select>
@@ -110,6 +118,7 @@ export function RebalanceForm({
           decimals={assetDecimals}
           balance={selectedFromArk?.withdrawableTotalAssets}
           showMaxButton={true}
+          showMaxUintButton={true}
           label="Amount to Rebalance"
           placeholder={`Enter amount in ${assetSymbol}`}
         />

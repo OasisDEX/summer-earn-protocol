@@ -30,11 +30,22 @@ export function formatDecimalOutput(
   maxDecimals: number = 6
 ): string {
   try {
+    // Handle MAX_UINT256 specially to avoid scientific notation
+    if (value === MAX_UINT256) {
+      return 'MAX'
+    }
+    
     const formatted = formatUnits(value, decimals)
     const num = parseFloat(formatted)
     
     // If it's exactly zero, return "0"
     if (num === 0) return '0'
+    
+    // Check for scientific notation and handle very large numbers
+    if (formatted.includes('e') || num > 1e15) {
+      // For very large numbers, show a truncated version
+      return formatLargeNumber(value, decimals)
+    }
     
     // If it's a whole number, don't show decimals
     if (num % 1 === 0) return num.toString()

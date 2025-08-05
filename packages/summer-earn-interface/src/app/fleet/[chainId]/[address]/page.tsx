@@ -180,7 +180,6 @@ export default function FleetDetail() {
               </h1>
             </div>
           </div>
-          <ConnectButton />
         </div>
 
         {/* Chain Selector */}
@@ -276,27 +275,13 @@ export default function FleetDetail() {
               </div>
             )}
 
-            {/* Stake After Deposit Prompt */}
-            {isConnected && userInfo && userInfo.balance > BigInt(0) && (
-              <StakeAfterDepositPrompt
-                userInfo={userInfo}
-                fleetSymbol={fleetInfo.symbol}
-                fleetDecimals={fleetInfo.fleetDecimals}
-                stakedBalance={stakedBalance}
-                stakingRewardsManagerAddress={stakingRewardsManagerAddress}
-                onApproveStaking={approveStaking}
-                onStake={(amount, parsed) => stakeShares(amount)}
-                isApproveStakingLoading={isApproveStakingLoading}
-                isStakeLoading={isStakeLoading}
-                needsStakingApproval={needsStakingApproval}
-              />
-            )}
 
             {/* Staking Section */}
             {isConnected && userInfo && (
               <StakingSection
                 fleetAddress={address}
                 fleetSymbol={fleetInfo.symbol}
+                fleetDecimals={fleetInfo.fleetDecimals}
                 chainId={selectedChain}
                 userInfo={userInfo}
               />
@@ -319,7 +304,14 @@ export default function FleetDetail() {
                     <div key={ark.address} className="p-4 bg-gray-800 rounded-lg">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h4 className="text-white font-semibold">{ark.name}</h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-white font-semibold">{ark.name}</h4>
+                            {ark.isBufferArk && (
+                              <span className="px-2 py-1 bg-blue-600 text-blue-100 text-xs rounded-full">
+                                Buffer Ark
+                              </span>
+                            )}
+                          </div>
                           <p className="text-gray-400 text-sm font-mono">{ark.address}</p>
                         </div>
                       </div>
