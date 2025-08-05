@@ -522,27 +522,6 @@ contract StargateAdapter is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view override returns (BridgeTypes.OperationStatus) {
-        return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
-    }
-
-    /**
-     * @dev Helper function to check if an asset is supported on a specific chain
-     */
-    function isAssetSupported(
-        uint16 chainId,
-        address asset
-    ) public view returns (bool) {
-        if (chainId == uint16(block.chainid)) {
-            // For current chain, check if asset has a Stargate contract
-            return assetToStargateContract[asset] != address(0);
-        }
-        return _peerAdapter(chainId) != address(0);
-    }
-
-    /// @inheritdoc IBridgeAdapter
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) external pure override returns (bool) {

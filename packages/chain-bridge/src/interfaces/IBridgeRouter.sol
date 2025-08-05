@@ -40,12 +40,6 @@ interface IBridgeRouter is IERC165 {
         address adapter
     );
 
-    /// @notice Emitted when an operation status is updated
-    event OperationStatusUpdated(
-        bytes32 indexed operationId,
-        BridgeTypes.OperationStatus status
-    );
-
     /// @notice Emitted when a transfer is received on the destination chain
     event TransferReceived(
         bytes32 indexed operationId,
@@ -273,17 +267,6 @@ interface IBridgeRouter is IERC165 {
      * @dev Governor role required.
      */
     function unpause() external;
-
-    /**
-     * @notice Manually recover/update the status of an operation if automated flow failed
-     * @param operationId ID of the operation to update
-     * @param newStatus New status to set for the operation
-     * @dev Governor role required. Use with caution.
-     */
-    function recoverOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus newStatus // Renamed param
-    ) external;
 
     /**
      * @notice Withdraw accumulated native tokens (e.g., from fee margins) from the router
