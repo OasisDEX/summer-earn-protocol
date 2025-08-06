@@ -42,12 +42,6 @@ contract AeraArk is ArkWithWithdrawalRequest {
     /// @notice The vault contract (multi-depositor vault)
     IERC20 public immutable vault;
 
-    /// @notice Tracks pending deposit requests
-    mapping(bytes32 => uint256) public pendingDepositRequests;
-
-    /// @notice Tracks pending redeem requests
-    mapping(bytes32 => uint256) public pendingRedeemRequests;
-
     struct ArkRequest {
         bytes32 hash;
         uint256 amount;
@@ -64,13 +58,6 @@ contract AeraArk is ArkWithWithdrawalRequest {
     error InvalidAddress(string name, address addr);
     error AsyncDepositAlreadyExists();
     error AsyncRedeemAlreadyExists();
-
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event UnitsReceived(uint256 tokensIn, uint256 unitsOut);
-    event TokensRedeemed(uint256 unitsIn, uint256 tokensOut);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
