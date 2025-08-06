@@ -13,8 +13,8 @@ abstract contract BaseBridgeAdapter is
     ReentrancyGuard,
     ProtocolAccessManaged
 {
-    /// @notice Error thrown when destination chain is not supported
-    error UnsupportedDestinationChain(uint16 chainId);
+    /// @notice Error thrown when destination chain peer is not trusted by governance
+    error UntrustedDestinationChain(uint16 chainId);
 
     /// @notice Error thrown when source adapter is not trusted
     error UntrustedSourceAdapter(address srcAdapter, uint16 srcChain);
@@ -34,13 +34,26 @@ abstract contract BaseBridgeAdapter is
     /// @notice Error thrown when the message is invalid
     error InvalidMessage();
 
+    /// @notice Error thrown when invalid parameters are provided
+    error InvalidParams();
+
     uint16 public immutable THIS_CHAIN;
 
-    /// @notice Mapping of supported chains to their external bridge protocol IDs
-    mapping(uint16 chainId => uint32 externalId) public chainToExternalId;
+    /// @notice Mapping of chain IDs to their bridge-specific endpoint IDs (e.g., LayerZero EIDs, Stargate pool IDs)
+    mapping(uint16 chainId => uint32 endpointId) public chainIdToEndpointId;
 
-    /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
-    mapping(uint32 externalId => uint16 chainId) public externalIdToChain;
+    /// @notice Reverse mapping of bridge-specific endpoint IDs to chain IDs
+    mapping(uint32 endpointId => uint16 chainId) public endpointIdToChainId;
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a chain endpoint mapping is added
+    event EndpointMapped(uint16 indexed chainId, uint32 indexed endpointId);
+
+    /// @notice Emitted when a chain endpoint mapping is removed
+    event EndpointUnmapped(uint16 indexed chainId, uint32 indexed endpointId);
 
     /**
      * @param _registry Address of the CrossChainRegistry contract
@@ -56,14 +69,24 @@ abstract contract BaseBridgeAdapter is
         THIS_CHAIN = uint16(block.chainid);
     }
 
-    modifier onlySupportedDestination(uint16 dstChain) {
+    /**
+     * @notice Ensures that governance has registered a trusted peer adapter for `dstChain` in the CrossChainRegistry.
+     * @dev This check validates that the destination chain has been authorized by governance through the registry.
+     * It does NOT check whether this adapter knows how to translate chain IDs to bridge-specific endpoint IDs—that
+     * validation is handled by the internal endpoint mapping (chainIdToEndpointId).
+     *
+     * This creates a two-layer security model:
+     * 1. Registry check: "Am I allowed to talk to that peer?" (governance authorization)
+     * 2. Endpoint mapping: "Do I know how to talk to the bridge on that chain?" (technical capability)
+     */
+    modifier onlyTrustedDestination(uint16 dstChain) {
         if (
             ICrossChainRegistry(CROSS_CHAIN_REGISTRY).getAdapterPeer(
                 address(this),
                 dstChain
             ) == address(0)
         ) {
-            revert UnsupportedDestinationChain(dstChain);
+            revert UntrustedDestinationChain(dstChain);
         }
         _;
     }
@@ -74,19 +97,28 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Get the list of supported chains
+     * @notice Get the list of chains that governance has registered as trusted peers
+     * @dev This queries the CrossChainRegistry for chains we are authorized to talk to
+     * @return chains Array of chain IDs with registered peer adapters
      */
-    function getSupportedChains()
-        external
-        view
-        returns (uint16[] memory chains)
-    {
+    function getTrustedPeers() external view returns (uint16[] memory chains) {
         (, uint16[] memory targetChainIds) = CROSS_CHAIN_REGISTRY
             .getTargetsForSource(
                 address(this),
                 CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
             );
         return targetChainIds;
+    }
+
+    /**
+     * @notice Check if this adapter has a local endpoint mapping for the given chain ID
+     * @dev This only checks if we know how to translate chainId to bridge-specific endpoint ID.
+     * It does NOT check if governance has authorized communication with that chain.
+     * @param chainId The chain ID to check
+     * @return true if we have a local mapping for this chain ID
+     */
+    function knowsEndpoint(uint16 chainId) public view returns (bool) {
+        return chainIdToEndpointId[chainId] != 0;
     }
 
     function _peerAdapter(uint16 dstChain) internal view returns (address) {
@@ -125,23 +157,25 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Adds a chain mapping
-     * @param chainId Chain ID to add
-     * @param externalId External bridge protocol ID for the chain
+     * @notice Maps a chain ID to its bridge-specific endpoint ID
+     * @param chainId Chain ID to map
+     * @param endpointId Bridge-specific endpoint ID for the chain (e.g., LayerZero EID)
      */
-    function _addChain(uint16 chainId, uint32 externalId) internal {
-        chainToExternalId[chainId] = externalId;
-        externalIdToChain[externalId] = chainId;
+    function _mapChainEndpoint(uint16 chainId, uint32 endpointId) internal {
+        chainIdToEndpointId[chainId] = endpointId;
+        endpointIdToChainId[endpointId] = chainId;
+        emit EndpointMapped(chainId, endpointId);
     }
 
     /**
-     * @notice Removes a chain mapping
-     * @param chainId Chain ID to remove
+     * @notice Removes a chain endpoint mapping
+     * @param chainId Chain ID to unmap
      */
-    function _removeChain(uint16 chainId) internal {
-        uint32 externalId = chainToExternalId[chainId];
-        delete chainToExternalId[chainId];
-        delete externalIdToChain[externalId];
+    function _unmapChainEndpoint(uint16 chainId) internal {
+        uint32 endpointId = chainIdToEndpointId[chainId];
+        delete chainIdToEndpointId[chainId];
+        delete endpointIdToChainId[endpointId];
+        emit EndpointUnmapped(chainId, endpointId);
     }
 
     /**
@@ -151,6 +185,38 @@ abstract contract BaseBridgeAdapter is
      */
     function _normalizeGas(uint64 userGas) internal view returns (uint64) {
         return userGas > 0 ? userGas : uint64(defaultGasLimit());
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                   GOVERNOR-ONLY PUBLIC HELPERS
+//////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Map a new chain-id → endpoint-id pair.
+     * @dev Governance utility. This only updates the local mapping; it does NOT
+     *      grant permission to send. That second layer of permission is still
+     *      enforced via the CrossChainRegistry.
+     *
+     * @param chainId     Canonical EVM chain ID.
+     * @param endpointId  Bridge-specific endpoint identifier
+     *                    (LayerZero EID, Wormhole chainId, etc.).
+     */
+    function mapEndpoint(
+        uint16 chainId,
+        uint32 endpointId
+    ) external onlyGovernor {
+        if (endpointId == 0) {
+            revert InvalidParams();
+        }
+        _mapChainEndpoint(chainId, endpointId);
+    }
+
+    /**
+     * @notice Delete the mapping for a chain.
+     * @param chainId Chain ID whose mapping should be removed.
+     */
+    function unmapEndpoint(uint16 chainId) external onlyGovernor {
+        _unmapChainEndpoint(chainId);
     }
 
     function _decodeRelayedMessageParams(

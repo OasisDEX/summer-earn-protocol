@@ -94,7 +94,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Configure mainnet adapter with basic chain support only
-        adapterMainnet.addSupportedChain(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
+        adapterMainnet.mapEndpoint(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
         // Don't add CHAIN_ID_ARBITRUM yet - will add after arbitrum adapter is deployed
 
         // Deploy mock Stargate contract for mainnet USDC
@@ -148,8 +148,8 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Configure Arbitrum adapter with basic chain support only
-        adapterArbitrum.addSupportedChain(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
-        adapterArbitrum.addSupportedChain(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
+        adapterArbitrum.mapEndpoint(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
+        adapterArbitrum.mapEndpoint(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
 
         routerArbitrum.registerAdapter(address(adapterArbitrum));
 
@@ -171,7 +171,7 @@ contract StargateAdapterComposeForkTest is Test {
         vm.selectFork(0);
         vm.startPrank(governor);
 
-        adapterMainnet.addSupportedChain(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
+        adapterMainnet.mapEndpoint(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
         registryMainnet.registerAdapterPeer(
             address(adapterMainnet),
             address(adapterArbitrum),

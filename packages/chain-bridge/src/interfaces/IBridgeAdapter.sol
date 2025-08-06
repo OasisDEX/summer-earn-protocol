@@ -47,9 +47,6 @@ interface IBridgeAdapter is ISendAdapter {
     /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
     error InsufficientMsgValue(uint128 required, uint256 provided);
 
-    /// @notice Thrown when provided parameters are invalid
-    error InvalidParams();
-
     /// @notice Thrown when a chain is not supported
     error UnsupportedChain();
 

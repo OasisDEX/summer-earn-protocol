@@ -68,38 +68,39 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint32 maxMessageSize
     );
 
-    // Note: Other events are inherited from IBridgeAdapter and ISendAdapter interfaces
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Initializes the LayerZeroAdapter
-     * @param _endpoint Address of the LayerZero endpoint
-     * @param _crossChainRegistry Address of the CrossChainRegistry contract
-     * @param _accessManager Address of the AccessManager contract
-     * @param _supportedChains Array of chain IDs supported by this adapter
-     * @param _lzEids Array of corresponding LayerZero endpoint IDs
-     * @param _initialOwner Address of the contract owner
+     * @param _endpoint LayerZero endpoint on THIS chain
+     * @param _crossChainRegistry Global CrossChainRegistry address
+     * @param _accessManager Summer protocol access manager
+     * @param _endpointChains Chain IDs to map at deploy-time
+     * @param _endpointIds Corresponding LayerZero endpoint IDs
+     *                     (Adds only the *mapping*; talking to a peer
+     *                     still requires governance to register it in the registry.)
+     * @param _initialOwner Owner for Ownable/OAppRead
      */
     constructor(
         address _endpoint,
         address _crossChainRegistry,
         address _accessManager,
-        uint16[] memory _supportedChains,
-        uint32[] memory _lzEids,
+        uint16[] memory _endpointChains,
+        uint32[] memory _endpointIds,
         address _initialOwner
     )
         OAppRead(_endpoint, _initialOwner)
         Ownable(_initialOwner)
         BaseBridgeAdapter(_crossChainRegistry, _accessManager)
     {
-        if (_supportedChains.length != _lzEids.length) revert InvalidParams();
+        if (_endpointChains.length != _endpointIds.length)
+            revert InvalidParams();
 
-        // Setup chain ID mappings using base functionality
-        for (uint256 i = 0; i < _supportedChains.length; i++) {
-            _addChain(_supportedChains[i], _lzEids[i]);
+        // Setup chain ID to LayerZero EID mappings using base functionality
+        for (uint256 i = 0; i < _endpointChains.length; i++) {
+            _mapChainEndpoint(_endpointChains[i], _endpointIds[i]);
         }
     }
 
@@ -115,28 +116,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function activateReadChannel(uint32 _readChannelId) external onlyGovernor {
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
-    }
-
-    /**
-     * @notice Adds a supported chain
-     * @param chainId Chain ID to add
-     * @param lzEid LayerZero endpoint ID for the chain
-     * @dev Can only be called by the contract owner
-     */
-    function addSupportedChain(
-        uint16 chainId,
-        uint32 lzEid
-    ) external onlyGovernor {
-        _addChain(chainId, lzEid);
-    }
-
-    /**
-     * @notice Removes a supported chain
-     * @param chainId Chain ID to remove
-     * @dev Can only be called by the contract owner
-     */
-    function removeSupportedChain(uint16 chainId) external onlyGovernor {
-        _removeChain(chainId);
     }
 
     /**
@@ -175,7 +154,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param executor Address of the executor for read operations
      * @dev Must be called to enable read operations with proper DVN and executor configuration
      */
-    /// forge-lint: disable-start(mixed-case-variable, mixed-case-function)
     function configureReadDVNs(
         address readLib1002Address,
         address[] memory readDVNs,
@@ -218,8 +196,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
     }
-
-    /// forge-lint: disable-end(mixed-case-variable, mixed-case-function)
 
     /*//////////////////////////////////////////////////////////////
                             OAPP RECEIVER
@@ -275,7 +251,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         BridgeTypes.RelayedMessageParams
             memory relayedMessageParams = _decodeRelayedMessageParams(_payload);
         _assertSourceChainId(
-            externalIdToChain[_origin.srcEid],
+            endpointIdToChainId[_origin.srcEid],
             relayedMessageParams.sourceChainId
         );
         IBridgeRouter(bridgeRouter()).deliver(
@@ -307,7 +283,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             BridgeTypes.RelayedReadResponse({
                 readResponseData: _payload,
                 operationId: operationId,
-                sourceChainId: externalIdToChain[_origin.srcEid]
+                sourceChainId: endpointIdToChainId[_origin.srcEid]
             })
         );
         IBridgeRouter(bridgeRouter()).deliver(
@@ -325,7 +301,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes32, // operationId - not used by LayerZero adapter
         BridgeTypes.ExecuteTransferParams calldata params,
         BridgeTypes.BridgeOptions calldata options
-    ) external payable onlySupportedDestination(params.destinationChainId) {
+    ) external payable onlyTrustedDestination(params.destinationChainId) {
         // This adapter doesn't support asset transfers directly
         // It should never be called for this purpose due to capability flags
         revert OperationNotSupported();
@@ -341,7 +317,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     )
         external
         view
-        onlySupportedDestination(destinationChainId)
+        onlyTrustedDestination(destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
         // Convert destinationChainId to LayerZero EID
@@ -413,7 +389,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     )
         external
         payable
-        onlySupportedDestination(params.destinationChainId)
+        onlyTrustedDestination(params.destinationChainId)
         onlyRouter
         nonReentrant
     {
@@ -479,7 +455,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     )
         external
         payable
-        onlySupportedDestination(params.destinationChainId)
+        onlyTrustedDestination(params.destinationChainId)
         onlyRouter
         nonReentrant
     {
@@ -543,8 +519,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function _getLayerZeroEid(
         uint16 chainId
     ) internal view returns (uint32 lzEid) {
-        // Get the LayerZero EID from our mapping
-        lzEid = chainToExternalId[chainId];
+        // Get the LayerZero EID from our endpoint mapping
+        lzEid = chainIdToEndpointId[chainId];
 
         // If not found in the mapping, revert
         if (lzEid == 0) {
@@ -632,8 +608,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function _getLzChainId(
         uint32 _lzEid
     ) internal view returns (uint16 chainId) {
-        // Get the chain ID from our mapping
-        chainId = externalIdToChain[_lzEid];
+        // Get the chain ID from our endpoint mapping
+        chainId = endpointIdToChainId[_lzEid];
 
         // If not found in the mapping, revert
         if (chainId == 0) {

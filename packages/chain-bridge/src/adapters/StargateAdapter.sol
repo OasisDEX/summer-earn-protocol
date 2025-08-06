@@ -87,9 +87,6 @@ contract StargateAdapter is
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when an endpoint ID is set
-    event EndpointIdSet(uint16 chainId, uint32 endpointId);
-
     /// @notice Emitted when an asset support is added
     event AssetSupported(
         uint16 chainId,
@@ -184,33 +181,6 @@ contract StargateAdapter is
     }
 
     /**
-     * @notice Sets the LayerZero endpoint ID for a chain
-     * @param chainId Chain ID in our system
-     * @param lzEid Corresponding LayerZero Endpoint ID
-     */
-    function addSupportedChain(
-        uint16 chainId,
-        uint32 lzEid
-    ) external onlyGovernor {
-        if (lzEid == 0) {
-            revert InvalidParams();
-        }
-
-        _addChain(chainId, lzEid);
-        emit EndpointIdSet(chainId, lzEid);
-    }
-
-    /**
-     * @notice Removes a supported chain
-     * @param chainId Chain ID to remove
-     * @dev Can only be called by the contract owner
-     */
-    function removeSupportedChain(uint16 chainId) external onlyGovernor {
-        _removeChain(chainId);
-        emit EndpointIdSet(chainId, 0);
-    }
-
-    /**
      * @notice Adds support for an asset on a specific chain
      * @param asset Address of the asset to support
      * @param stargateContract Address of the Stargate V2 contract for this asset
@@ -257,7 +227,7 @@ contract StargateAdapter is
     )
         external
         payable
-        onlySupportedDestination(params.destinationChainId)
+        onlyTrustedDestination(params.destinationChainId)
         onlyRouter
         nonReentrant
     {
@@ -355,7 +325,7 @@ contract StargateAdapter is
 
         return
             SendParam({
-                dstEid: chainToExternalId[destinationChainId],
+                dstEid: chainIdToEndpointId[destinationChainId],
                 to: destinationAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount,
@@ -463,7 +433,7 @@ contract StargateAdapter is
     )
         public
         view
-        onlySupportedDestination(dstChainId)
+        onlyTrustedDestination(dstChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
         // Check if asset is supported on current chain
@@ -501,7 +471,7 @@ contract StargateAdapter is
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
-            dstEid: chainToExternalId[dstChainId],
+            dstEid: chainIdToEndpointId[dstChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
@@ -637,7 +607,7 @@ contract StargateAdapter is
      * @notice Get the LayerZero Endpoint ID for a given chain
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainToExternalId[chainId];
+        return chainIdToEndpointId[chainId];
     }
 
     /**

@@ -110,7 +110,7 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
 
         // Verify chain mapping
         assertEq(
-            layerZeroAdapter.chainToExternalId(DEST_CHAIN_ID),
+            layerZeroAdapter.chainIdToEndpointId(DEST_CHAIN_ID),
             ARB_LZ_EID,
             "Chain to LZ EID mapping should be correct"
         );
