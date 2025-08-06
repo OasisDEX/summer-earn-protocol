@@ -106,10 +106,11 @@ contract AeraArk is ArkWithWithdrawalRequest {
         // Include value of vault units held by Ark - can't revert
         uint256 vaultUnits = vault.balanceOf(address(this));
         if (vaultUnits > 0) {
-            assets += priceCalculator.convertUnitsToToken(
+            assets += priceCalculator.convertUnitsToTokenIfActive(
                 address(vault),
                 config.asset,
-                vaultUnits
+                vaultUnits,
+                Math.Rounding.Floor
             );
         }
     }
@@ -142,11 +143,13 @@ contract AeraArk is ArkWithWithdrawalRequest {
             revert AsyncDepositAlreadyExists();
         }
         // Create async deposit request
-        uint256 shareAtTheTimeOfDeposit = priceCalculator.convertTokenToUnits(
-            address(vault),
-            config.asset,
-            amount
-        );
+        uint256 shareAtTheTimeOfDeposit = priceCalculator
+            .convertTokenToUnitsIfActive(
+                address(vault),
+                config.asset,
+                amount,
+                Math.Rounding.Floor
+            );
         config.asset.forceApprove(address(provisioner), amount);
         provisioner.requestDeposit(
             config.asset,
@@ -248,16 +251,18 @@ contract AeraArk is ArkWithWithdrawalRequest {
 
         if (amount == type(uint256).max) {
             sharesToRedeem = vault.balanceOf(address(this));
-            amount = priceCalculator.convertUnitsToToken(
+            amount = priceCalculator.convertUnitsToTokenIfActive(
                 address(vault),
                 config.asset,
-                sharesToRedeem
+                sharesToRedeem,
+                Math.Rounding.Floor
             );
         } else {
-            sharesToRedeem = priceCalculator.convertTokenToUnits(
+            sharesToRedeem = priceCalculator.convertTokenToUnitsIfActive(
                 address(vault),
                 config.asset,
-                amount
+                amount,
+                Math.Rounding.Ceil
             );
         }
 
@@ -323,10 +328,11 @@ contract AeraArk is ArkWithWithdrawalRequest {
         uint256 amount,
         bytes calldata data
     ) external onlyKeeper nonReentrant {
-        uint256 unitsToSwap = priceCalculator.convertTokenToUnits(
+        uint256 unitsToSwap = priceCalculator.convertTokenToUnitsIfActive(
             address(vault),
             config.asset,
-            amount
+            amount,
+            Math.Rounding.Ceil
         );
 
         SwapData memory swapData = abi.decode(data, (SwapData));
