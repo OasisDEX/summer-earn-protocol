@@ -209,12 +209,12 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
 
         // Test LayerZero EID mapping
         assertEq(
-            layerZeroAdapter.chainIdToEndpointId(DEST_CHAIN_ID),
+            layerZeroAdapter.chainToExternalId(DEST_CHAIN_ID),
             ARB_LZ_EID,
             "Chain to LZ EID mapping incorrect"
         );
         assertEq(
-            layerZeroAdapter.endpointIdToChainId(ARB_LZ_EID),
+            layerZeroAdapter.externalIdToChainId(ARB_LZ_EID),
             DEST_CHAIN_ID,
             "LZ EID to chain mapping incorrect"
         );
