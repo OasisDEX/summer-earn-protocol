@@ -215,6 +215,33 @@ contract StargateAdapter is
         emit AssetSupported(uint16(block.chainid), asset, stargateContract);
     }
 
+    /**
+     * @notice Map a new chain-id → endpoint-id pair for LayerZero endpoints.
+     * @dev Governance utility. This only updates the local mapping; it does NOT
+     *      grant permission to send. That second layer of permission is still
+     *      enforced via the CrossChainRegistry.
+     *
+     * @param chainId     Canonical EVM chain ID.
+     * @param endpointId  LayerZero endpoint identifier (EID).
+     */
+    function mapEndpoint(
+        uint16 chainId,
+        uint32 endpointId
+    ) external onlyGovernor {
+        if (endpointId == 0) {
+            revert InvalidParams();
+        }
+        _mapChainExternalId(chainId, endpointId);
+    }
+
+    /**
+     * @notice Delete the endpoint mapping for a chain.
+     * @param chainId Chain ID whose mapping should be removed.
+     */
+    function unmapEndpoint(uint16 chainId) external onlyGovernor {
+        _unmapChainExternalId(chainId);
+    }
+
     /*//////////////////////////////////////////////////////////////
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
@@ -325,7 +352,7 @@ contract StargateAdapter is
 
         return
             SendParam({
-                dstEid: chainIdToEndpointId[destinationChainId],
+                dstEid: chainToExternalId[destinationChainId],
                 to: destinationAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount,
@@ -471,7 +498,7 @@ contract StargateAdapter is
 
         // Prepare SendParam for quote
         SendParam memory sendParam = SendParam({
-            dstEid: chainIdToEndpointId[dstChainId],
+            dstEid: chainToExternalId[dstChainId],
             to: address(0xdead).toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
@@ -607,7 +634,7 @@ contract StargateAdapter is
      * @notice Get the LayerZero Endpoint ID for a given chain
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
-        return chainIdToEndpointId[chainId];
+        return chainToExternalId[chainId];
     }
 
     /**

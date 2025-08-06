@@ -100,7 +100,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // Setup chain ID to LayerZero EID mappings using base functionality
         for (uint256 i = 0; i < _endpointChains.length; i++) {
-            _mapChainEndpoint(_endpointChains[i], _endpointIds[i]);
+            _mapChainExternalId(_endpointChains[i], _endpointIds[i]);
         }
     }
 
@@ -197,6 +197,33 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         emit ReadDVNsConfigured(readChannelId, readDVNs, confirmations);
     }
 
+    /**
+     * @notice Map a new chain-id → endpoint-id pair for LayerZero endpoints.
+     * @dev Governance utility. This only updates the local mapping; it does NOT
+     *      grant permission to send. That second layer of permission is still
+     *      enforced via the CrossChainRegistry.
+     *
+     * @param chainId     Canonical EVM chain ID.
+     * @param endpointId  LayerZero endpoint identifier (EID).
+     */
+    function mapEndpoint(
+        uint16 chainId,
+        uint32 endpointId
+    ) external onlyGovernor {
+        if (endpointId == 0) {
+            revert InvalidParams();
+        }
+        _mapChainExternalId(chainId, endpointId);
+    }
+
+    /**
+     * @notice Delete the endpoint mapping for a chain.
+     * @param chainId Chain ID whose mapping should be removed.
+     */
+    function unmapEndpoint(uint16 chainId) external onlyGovernor {
+        _unmapChainExternalId(chainId);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             OAPP RECEIVER
     //////////////////////////////////////////////////////////////*/
@@ -251,7 +278,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         BridgeTypes.RelayedMessageParams
             memory relayedMessageParams = _decodeRelayedMessageParams(_payload);
         _assertSourceChainId(
-            endpointIdToChainId[_origin.srcEid],
+            externalIdToChainId[_origin.srcEid],
             relayedMessageParams.sourceChainId
         );
         IBridgeRouter(bridgeRouter()).deliver(
@@ -283,7 +310,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
             BridgeTypes.RelayedReadResponse({
                 readResponseData: _payload,
                 operationId: operationId,
-                sourceChainId: endpointIdToChainId[_origin.srcEid]
+                sourceChainId: externalIdToChainId[_origin.srcEid]
             })
         );
         IBridgeRouter(bridgeRouter()).deliver(
@@ -520,7 +547,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint16 chainId
     ) internal view returns (uint32 lzEid) {
         // Get the LayerZero EID from our endpoint mapping
-        lzEid = chainIdToEndpointId[chainId];
+        lzEid = chainToExternalId[chainId];
 
         // If not found in the mapping, revert
         if (lzEid == 0) {
@@ -609,7 +636,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         uint32 _lzEid
     ) internal view returns (uint16 chainId) {
         // Get the chain ID from our endpoint mapping
-        chainId = endpointIdToChainId[_lzEid];
+        chainId = externalIdToChainId[_lzEid];
 
         // If not found in the mapping, revert
         if (chainId == 0) {
