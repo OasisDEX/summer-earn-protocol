@@ -8,6 +8,134 @@ import {TokenDetails} from "./Types.sol";
 /// @title IProvisioner
 /// @notice Interface for the contract that can mint and burn vault units in exchange for tokens
 interface IProvisioner {
+    /// @notice Emitted when a user deposits tokens directly into the vault
+    /// @param user The address of the depositor
+    /// @param token The token being deposited
+    /// @param tokensIn The amount of tokens deposited
+    /// @param unitsOut The amount of units minted
+    /// @param depositHash Unique identifier for this deposit
+    event Deposited(
+        address indexed user,
+        IERC20 indexed token,
+        uint256 tokensIn,
+        uint256 unitsOut,
+        bytes32 depositHash
+    );
+
+    /// @notice Emitted when a deposit is refunded
+    /// @param depositHash The hash of the deposit being refunded
+    event DepositRefunded(bytes32 indexed depositHash);
+
+    /// @notice Emitted when a direct (sync) deposit is refunded
+    /// @param depositHash The hash of the deposit being refunded
+    event DirectDepositRefunded(bytes32 indexed depositHash);
+
+    /// @notice Emitted when a user creates a deposit request
+    /// @param user The address requesting the deposit
+    /// @param token The token being deposited
+    /// @param tokensIn The amount of tokens to deposit
+    /// @param minUnitsOut The minimum amount of units expected
+    /// @param solverTip The tip offered to the solver in deposit token terms
+    /// @param deadline Timestamp until which the request is valid
+    /// @param maxPriceAge Maximum age of price data that solver can use
+    /// @param isFixedPrice Whether the request is a fixed price request
+    /// @param depositRequestHash The hash of the deposit request
+    event DepositRequested(
+        address indexed user,
+        IERC20 indexed token,
+        uint256 tokensIn,
+        uint256 minUnitsOut,
+        uint256 solverTip,
+        uint256 deadline,
+        uint256 maxPriceAge,
+        bool isFixedPrice,
+        bytes32 depositRequestHash
+    );
+
+    /// @notice Emitted when a user creates a redeem request
+    /// @param user The address requesting the redemption
+    /// @param token The token requested in return for units
+    /// @param minTokensOut The minimum amount of tokens the user expects to receive
+    /// @param unitsIn The amount of units being redeemed
+    /// @param solverTip The tip offered to the solver in redeem token terms
+    /// @param deadline The timestamp until which this request is valid
+    /// @param maxPriceAge Maximum age of price data that solver can use
+    /// @param isFixedPrice Whether the request is a fixed price request
+    /// @param redeemRequestHash The hash of the redeem request
+    event RedeemRequested(
+        address indexed user,
+        IERC20 indexed token,
+        uint256 minTokensOut,
+        uint256 unitsIn,
+        uint256 solverTip,
+        uint256 deadline,
+        uint256 maxPriceAge,
+        bool isFixedPrice,
+        bytes32 redeemRequestHash
+    );
+
+    /// @notice Emitted when a deposit request is solved successfully
+    /// @param depositHash The unique identifier of the deposit request that was solved
+    event DepositSolved(bytes32 indexed depositHash);
+
+    /// @notice Emitted when a redeem request is solved successfully
+    /// @param redeemHash The unique identifier of the redeem request that was solved
+    event RedeemSolved(bytes32 indexed redeemHash);
+
+    /// @notice Emitted when an unrecognized async deposit hash is used
+    /// @param depositHash The deposit hash that was not found in async records
+    event InvalidRequestHash(bytes32 indexed depositHash);
+
+    /// @notice Emitted when async deposits are disabled and a deposit request cannot be processed
+    /// @param index The index of the deposit request that was rejected
+    event AsyncDepositDisabled(uint256 indexed index);
+
+    /// @notice Emitted when async redeems are disabled and a redeem request cannot be processed
+    /// @param index The index of the redeem request that was rejected
+    event AsyncRedeemDisabled(uint256 indexed index);
+
+    /// @notice Emitted when the price age exceeds the maximum allowed for a request
+    /// @param index The index of the request that was rejected
+    event PriceAgeExceeded(uint256 indexed index);
+
+    /// @notice Emitted when a deposit exceeds the vault's configured deposit cap
+    /// @param index The index of the request that was rejected
+    event DepositCapExceeded(uint256 indexed index);
+
+    /// @notice Emitted when there are not enough tokens to cover the required solver tip
+    /// @param index The index of the request that was rejected
+    event InsufficientTokensForTip(uint256 indexed index);
+
+    /// @notice Emitted when the output units are less than the amount requested
+    /// @param index The index of the request that was rejected
+    /// @param amount The actual amount
+    /// @param bound The minimum amount
+    event AmountBoundExceeded(
+        uint256 indexed index,
+        uint256 amount,
+        uint256 bound
+    );
+
+    /// @notice Emitted when a redeem request is refunded due to expiration or cancellation
+    /// @param redeemHash The unique identifier of the redeem request that was refunded
+    event RedeemRefunded(bytes32 indexed redeemHash);
+
+    /// @notice Emitted when the vault's deposit limits are updated
+    /// @param depositCap The new maximum total value that can be deposited into the vault
+    /// @param depositRefundTimeout The new time window during which deposits can be refunded
+    event DepositDetailsUpdated(
+        uint256 depositCap,
+        uint256 depositRefundTimeout
+    );
+
+    /// @notice Emitted when a token's deposit/withdrawal settings are updated
+    /// @param token The token whose settings are being updated
+    /// @param tokensDetails The new token details
+    event TokenDetailsSet(IERC20 indexed token, TokenDetails tokensDetails);
+
+    /// @notice Emitted when a token is removed from the provisioner
+    /// @param token The token that was removed
+    event TokenRemoved(IERC20 indexed token);
     error Aera__SyncDepositDisabled();
     error Aera__AsyncDepositDisabled();
     error Aera__AsyncRedeemDisabled();

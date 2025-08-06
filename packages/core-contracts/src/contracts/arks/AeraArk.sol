@@ -101,6 +101,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
 
         // Include assets in withdrawal queue
         assets += assetsInWithdrawalQueue();
+        assets += assetsInDepositQueue();
 
         // Include value of vault units held by Ark
         uint256 vaultUnits = vault.balanceOf(address(this));
@@ -247,6 +248,11 @@ contract AeraArk is ArkWithWithdrawalRequest {
 
         if (amount == type(uint256).max) {
             sharesToRedeem = vault.balanceOf(address(this));
+            amount = priceCalculator.convertUnitsToToken(
+                address(vault),
+                config.asset,
+                sharesToRedeem
+            );
         } else {
             sharesToRedeem = priceCalculator.convertTokenToUnits(
                 address(vault),
@@ -256,17 +262,13 @@ contract AeraArk is ArkWithWithdrawalRequest {
         }
 
         if (sharesToRedeem == 0) return;
-        uint256 minTokensOut = priceCalculator.convertUnitsToToken(
-            address(vault),
-            config.asset,
-            sharesToRedeem
-        );
+
         vault.forceApprove(address(provisioner), sharesToRedeem);
         // Create async redeem request
         provisioner.requestRedeem(
             config.asset,
             sharesToRedeem,
-            minTokensOut,
+            amount,
             0, // solverTip - no tip for now
             block.timestamp + 24 hours,
             1 hours,
@@ -277,15 +279,15 @@ contract AeraArk is ArkWithWithdrawalRequest {
             config.asset,
             address(this),
             RequestType.REDEEM_AUTO_PRICE,
+            amount,
             sharesToRedeem,
-            0,
-            0,
+            0, // solverTip - no tip for now
             block.timestamp + 24 hours,
             1 hours
         );
         asyncRedeemRequest = ArkRequest({hash: requestHash, amount: amount});
 
-        emit WithdrawalRequested(amount, 0); // Request ID would come from provisioner
+        emit WithdrawalRequested(amount, uint256(requestHash)); // Request ID would come from provisioner
     }
 
     /**

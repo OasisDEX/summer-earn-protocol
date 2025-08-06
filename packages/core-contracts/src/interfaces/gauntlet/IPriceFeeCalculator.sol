@@ -3,10 +3,32 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {VaultPriceState, VaultAccruals} from "./Types.sol";
 
 /// @title IPriceAndFeeCalculator
 /// @notice Interface for the unit price provider
 interface IPriceAndFeeCalculator {
+    ////////////////////////////////////////////////////////////
+    //                         Errors                         //
+    ////////////////////////////////////////////////////////////
+
+    error Aera__StalePrice();
+    error Aera__TimestampMustBeAfterLastUpdate();
+    error Aera__TimestampCantBeInFuture();
+    error Aera__ZeroAddressOracleRegistry();
+    error Aera__InvalidMaxPriceToleranceRatio();
+    error Aera__InvalidMinPriceToleranceRatio();
+    error Aera__InvalidMaxPriceAge();
+    error Aera__InvalidMaxUpdateDelayDays();
+    error Aera__ThresholdNotSet();
+    error Aera__VaultPaused();
+    error Aera__VaultNotPaused();
+    error Aera__UnitPriceMismatch();
+    error Aera__TimestampMismatch();
+    error Aera__VaultAlreadyInitialized();
+    error Aera__VaultNotInitialized();
+    error Aera__InvalidPrice();
+    error Aera__CurrentPriceAboveHighestPrice();
     ////////////////////////////////////////////////////////////
     //                       Functions                        //
     ////////////////////////////////////////////////////////////
@@ -134,4 +156,8 @@ interface IPriceAndFeeCalculator {
     /// @param vault The address of the vault
     /// @return True if the vault is paused, false otherwise
     function isVaultPaused(address vault) external view returns (bool);
+
+    function getVaultState(
+        address vault
+    ) external view returns (VaultPriceState memory, VaultAccruals memory);
 }
