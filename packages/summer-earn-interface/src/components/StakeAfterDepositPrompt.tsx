@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { AmountInput } from './AmountInput'
-import { formatDecimalOutput } from '../utils/decimals'
 import type { UserFleetInfo } from '../types'
+import { formatDecimalOutput } from '../utils/decimals'
+import { AmountInput } from './AmountInput'
 
 interface StakeAfterDepositPromptProps {
   userInfo: UserFleetInfo
@@ -55,11 +55,11 @@ export function StakeAfterDepositPrompt({
       >
         ×
       </button>
-      
+
       <h3 className="text-lg font-semibold text-green-100 mb-3">
         🎉 Ready to Stake for Bonus Rewards?
       </h3>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div className="p-3 bg-green-800 rounded-lg">
           <p className="text-sm text-green-300">Your {fleetSymbol} Balance</p>
@@ -115,7 +115,7 @@ export function StakeAfterDepositPrompt({
               {isApproveStakingLoading ? 'Approving...' : `Approve ${fleetSymbol} for Staking`}
             </button>
           )}
-          
+
           <div className="flex space-x-3">
             <button
               onClick={handleStake}
@@ -128,7 +128,7 @@ export function StakeAfterDepositPrompt({
             >
               {isStakeLoading ? 'Staking...' : `Stake ${fleetSymbol}`}
             </button>
-            
+
             <button
               onClick={() => setShowStakePrompt(false)}
               className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"

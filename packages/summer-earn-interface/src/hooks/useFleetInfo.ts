@@ -86,7 +86,7 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
           fleetDecimals,
           assetDecimals,
           assetSymbol,
-          fleetSymbol: symbol
+          fleetSymbol: symbol,
         })
 
         // Get deposit cap

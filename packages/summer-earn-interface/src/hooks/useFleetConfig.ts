@@ -9,11 +9,15 @@ interface UseFleetConfigProps {
 
 export function useFleetConfig({ fleetAddress, chainId }: UseFleetConfigProps) {
   // Get the fleet config from fleet commander
-  const { data: fleetConfig, error: configError, isLoading: configLoading } = useReadContract({
+  const {
+    data: fleetConfig,
+    error: configError,
+    isLoading: configLoading,
+  } = useReadContract({
     abi: fleetCommanderConfigAbi,
     address: fleetAddress as `0x${string}`,
     functionName: 'getConfig',
-    chainId: +chainId ,
+    chainId: +chainId,
     query: {
       enabled: !!fleetAddress,
     },
