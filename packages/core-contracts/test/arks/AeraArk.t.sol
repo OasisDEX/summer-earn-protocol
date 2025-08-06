@@ -49,6 +49,25 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
     uint256 forkBlock = 33809569; // A recent block number for Base
     uint256 forkId;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Request deadline used in tests (24 hours)
+    uint256 private REQUEST_DEADLINE = 0;
+
+    /// @notice Maximum price age used in tests (1 hour)
+    uint256 private MAX_PRICE_AGE = 0;
+
+    /// @notice Default solver tip (0 for auto-price requests)
+    uint256 private DEFAULT_SOLVER_TIP = 0;
+
+    /// @notice Buffer time for expired request tests (1 hour past deadline)
+    uint256 private constant EXPIRY_BUFFER = 1 hours;
+
+    /// @notice Price increase for unit price manipulation (in BPS)
+    uint256 private constant PRICE_INCREASE_BPS = 10001; // 0.01%
+
     address solver = address(0x999); // Mock solver address
     address provisionerOwner;
     address provisionerAuthority;
@@ -87,6 +106,15 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         });
 
         ark = new AeraArk(PROVISIONER_ADDRESS, params);
+        REQUEST_DEADLINE = ark.REQUEST_DEADLINE();
+        assertGt(
+            REQUEST_DEADLINE,
+            0,
+            "REQUEST_DEADLINE should be greater than 0"
+        );
+        MAX_PRICE_AGE = ark.MAX_PRICE_AGE();
+        assertGt(MAX_PRICE_AGE, 0, "MAX_PRICE_AGE should be greater than 0");
+        DEFAULT_SOLVER_TIP = ark.DEFAULT_SOLVER_TIP();
 
         // Permissioning
         vm.startPrank(governor);
@@ -121,9 +149,9 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: minUnitsOut,
             tokens: tokensIn,
-            solverTip: 0,
-            deadline: block.timestamp + 24 hours,
-            maxPriceAge: 1 hours
+            solverTip: DEFAULT_SOLVER_TIP,
+            deadline: block.timestamp + REQUEST_DEADLINE,
+            maxPriceAge: MAX_PRICE_AGE
         });
 
         Request[] memory requests = new Request[](1);
@@ -148,9 +176,9 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: sharesToRedeem,
             tokens: withdrawAmount, // This should now be solvable due to higher unit price
-            solverTip: 0,
+            solverTip: DEFAULT_SOLVER_TIP,
             deadline: deadline,
-            maxPriceAge: 1 hours
+            maxPriceAge: MAX_PRICE_AGE
         });
 
         console.log("Solving redeem request:");
@@ -214,7 +242,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
 
         console.log("Initial unit price:", initialPrice);
 
-        vm.warp(block.timestamp + 1 hours);
+        vm.warp(block.timestamp + MAX_PRICE_AGE);
         // Increase price by 5%
         _increaseUnitPrice(10005);
 
@@ -699,7 +727,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         // 3. Request withdrawal
         uint256 withdrawAmount = 500 * 1e6;
         uint sharesToRedeem;
-        uint deadline = block.timestamp + 24 hours;
+        uint deadline = block.timestamp + REQUEST_DEADLINE;
         if (withdrawAmount == type(uint256).max) {
             sharesToRedeem = vault.balanceOf(address(ark));
             withdrawAmount = priceCalculator.convertUnitsToToken(
@@ -721,9 +749,9 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 assetsInQueue = ark.assetsInWithdrawalQueue();
         assertGt(assetsInQueue, 0, "Assets should be in withdrawal queue");
 
-        vm.warp(block.timestamp + 1 hours);
+        vm.warp(block.timestamp + MAX_PRICE_AGE);
         // 4. Increase unit price to make redeem request solvable
-        _increaseUnitPrice(10001); // Increase by 1% to account for rounding
+        _increaseUnitPrice(PRICE_INCREASE_BPS); // Increase by 0.01% to account for rounding
 
         // 5. Solve async redeem request
         console.log("Assets in queue before solving:", assetsInQueue);
@@ -789,7 +817,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         );
 
         // 2. Fast forward time past the deadline (24 hours + buffer)
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + REQUEST_DEADLINE + EXPIRY_BUFFER);
         console.log("Fast forwarded past deadline");
 
         // 3. Try to solve the expired request (should result in refund)
@@ -805,9 +833,9 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: expectedUnits,
             tokens: depositAmount,
-            solverTip: 0,
-            deadline: block.timestamp - 1 hours, // Deadline in the past
-            maxPriceAge: 1 hours
+            solverTip: DEFAULT_SOLVER_TIP,
+            deadline: block.timestamp - EXPIRY_BUFFER, // Deadline in the past
+            maxPriceAge: MAX_PRICE_AGE
         });
 
         console.log("Refunding expired deposit request");
@@ -901,13 +929,13 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: expectedUnits,
             tokens: amount,
-            solverTip: 0,
-            deadline: block.timestamp + 24 hours,
-            maxPriceAge: 1 hours
+            solverTip: DEFAULT_SOLVER_TIP,
+            deadline: block.timestamp + REQUEST_DEADLINE,
+            maxPriceAge: MAX_PRICE_AGE
         });
 
         // 4. Fast forward past deadline to allow refund
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + REQUEST_DEADLINE + EXPIRY_BUFFER);
 
         // 5. Refund the request directly
         console.log("Refunding deposit request directly");
@@ -991,7 +1019,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         );
 
         // 3. Fast forward past deadline to expire the request
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + REQUEST_DEADLINE + EXPIRY_BUFFER);
 
         // 4. Create expired withdrawal request for refund
         uint256 sharesToRedeem = priceCalculator.convertTokenToUnits(
@@ -1005,9 +1033,9 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
             user: address(ark),
             units: sharesToRedeem,
             tokens: withdrawAmount,
-            solverTip: 0,
-            deadline: block.timestamp - 1 hours, // Deadline in the past
-            maxPriceAge: 1 hours
+            solverTip: DEFAULT_SOLVER_TIP,
+            deadline: block.timestamp - EXPIRY_BUFFER, // Deadline in the past
+            maxPriceAge: MAX_PRICE_AGE
         });
 
         // 5. Refund expired request (should refund vault units to ark)
@@ -1094,15 +1122,15 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         console.log("After second board (pending):", afterSecondBoard);
 
         // Fast forward and refund
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + REQUEST_DEADLINE + EXPIRY_BUFFER);
         Request memory expiredRequest = Request({
             requestType: RequestType.DEPOSIT_AUTO_PRICE,
             user: address(ark),
             units: expectedUnits,
             tokens: amount,
-            solverTip: 0,
+            solverTip: DEFAULT_SOLVER_TIP,
             deadline: block.timestamp - 1 hours,
-            maxPriceAge: 1 hours
+            maxPriceAge: MAX_PRICE_AGE
         });
 
         console.log("Refunding second deposit request");
@@ -1151,7 +1179,7 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         // 3. Request withdrawal
         uint256 withdrawAmount = type(uint256).max;
         uint sharesToRedeem;
-        uint deadline = block.timestamp + 24 hours;
+        uint deadline = block.timestamp + REQUEST_DEADLINE;
         if (withdrawAmount == type(uint256).max) {
             sharesToRedeem = vault.balanceOf(address(ark));
             withdrawAmount = priceCalculator.convertUnitsToToken(
@@ -1173,9 +1201,9 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 assetsInQueue = ark.assetsInWithdrawalQueue();
         assertGt(assetsInQueue, 0, "Assets should be in withdrawal queue");
 
-        vm.warp(block.timestamp + 1 hours);
+        vm.warp(block.timestamp + MAX_PRICE_AGE);
         // 4. Increase unit price to make redeem request solvable
-        _increaseUnitPrice(10001); // Increase by 1% to account for rounding
+        _increaseUnitPrice(PRICE_INCREASE_BPS); // Increase by 0.01% to account for rounding
 
         // 5. Solve async redeem request
         console.log("Assets in queue before solving:", assetsInQueue);

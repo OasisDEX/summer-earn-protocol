@@ -17,6 +17,19 @@ contract AeraArk is ArkWithWithdrawalRequest {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Deadline for async deposit/redeem requests (24 hours)
+    uint256 public constant REQUEST_DEADLINE = 24 hours;
+
+    /// @notice Maximum allowed price age for requests (1 hour)
+    uint256 public constant MAX_PRICE_AGE = 1 hours;
+
+    /// @notice Default solver tip (0 for auto-price requests)
+    uint256 public constant DEFAULT_SOLVER_TIP = 0;
+
+    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -152,9 +165,9 @@ contract AeraArk is ArkWithWithdrawalRequest {
             config.asset,
             amount,
             shareAtTheTimeOfDeposit, // minUnitsOut - calculated by solver
-            0, // either solverTip == 0 or isFixedPrice == true
-            block.timestamp + 24 hours,
-            1 hours,
+            DEFAULT_SOLVER_TIP, // either solverTip == 0 or isFixedPrice == true
+            block.timestamp + REQUEST_DEADLINE,
+            MAX_PRICE_AGE,
             false // isFixedPrice - allow dynamic pricing
         );
         bytes32 requestHash = _getRequestHashParams(
@@ -163,9 +176,9 @@ contract AeraArk is ArkWithWithdrawalRequest {
             RequestType.DEPOSIT_AUTO_PRICE,
             amount,
             shareAtTheTimeOfDeposit,
-            0,
-            block.timestamp + 24 hours,
-            1 hours
+            DEFAULT_SOLVER_TIP,
+            block.timestamp + REQUEST_DEADLINE,
+            MAX_PRICE_AGE
         );
         asyncDepositRequest = ArkRequest({hash: requestHash, amount: amount});
     }
@@ -269,9 +282,9 @@ contract AeraArk is ArkWithWithdrawalRequest {
             config.asset,
             sharesToRedeem,
             amount,
-            0, // solverTip - no tip for now
-            block.timestamp + 24 hours,
-            1 hours,
+            DEFAULT_SOLVER_TIP, // solverTip - no tip for now
+            block.timestamp + REQUEST_DEADLINE,
+            MAX_PRICE_AGE,
             false // isFixedPrice
         );
 
@@ -281,9 +294,9 @@ contract AeraArk is ArkWithWithdrawalRequest {
             RequestType.REDEEM_AUTO_PRICE,
             amount,
             sharesToRedeem,
-            0, // solverTip - no tip for now
-            block.timestamp + 24 hours,
-            1 hours
+            DEFAULT_SOLVER_TIP, // solverTip - no tip for now
+            block.timestamp + REQUEST_DEADLINE,
+            MAX_PRICE_AGE
         );
         asyncRedeemRequest = ArkRequest({hash: requestHash, amount: amount});
 
