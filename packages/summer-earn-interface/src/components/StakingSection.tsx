@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { AmountInput } from './AmountInput'
 import { useStakingRewards } from '../hooks/useStakingRewards'
-import { formatDecimalOutput } from '../utils/decimals'
 import type { ChainId, UserFleetInfo } from '../types'
+import { formatDecimalOutput } from '../utils/decimals'
+import { AmountInput } from './AmountInput'
 
 interface StakingSectionProps {
   fleetAddress: string
@@ -67,7 +67,7 @@ export function StakingSection({
   return (
     <div className="bg-gray-900 p-6 rounded-lg">
       <h3 className="text-xl font-semibold text-white mb-6">Staking Rewards</h3>
-      
+
       {/* Staking Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-gray-800 rounded-lg">
@@ -76,14 +76,14 @@ export function StakingSection({
             {formatDecimalOutput(stakedBalance, fleetDecimals)} {fleetSymbol}
           </p>
         </div>
-        
+
         <div className="p-4 bg-gray-800 rounded-lg">
           <p className="text-sm text-gray-400">Total Staked</p>
           <p className="text-lg font-semibold text-white">
             {formatDecimalOutput(totalStakedSupply, fleetDecimals)} {fleetSymbol}
           </p>
         </div>
-        
+
         {rewardTokensLength > 0 && (
           <div className="p-4 bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-400">Earned Rewards</p>
@@ -111,7 +111,7 @@ export function StakingSection({
         {/* Stake Section */}
         <div className="space-y-4">
           <h4 className="text-lg font-medium text-white">Stake Fleet Shares</h4>
-          
+
           <AmountInput
             value={stakeAmount}
             onChange={(value, parsed) => {
@@ -125,7 +125,7 @@ export function StakingSection({
             label="Amount to Stake"
             placeholder={`Enter ${fleetSymbol} amount`}
           />
-          
+
           <button
             onClick={handleStake}
             disabled={isStakeLoading || parsedStakeAmount === BigInt(0)}
@@ -137,7 +137,7 @@ export function StakingSection({
           >
             {isStakeLoading ? 'Staking...' : `Stake ${fleetSymbol}`}
           </button>
-          
+
           {isStakeConfirmed && (
             <div className="p-3 bg-green-900 border border-green-600 rounded-lg">
               <p className="text-green-200 text-sm">
@@ -150,7 +150,7 @@ export function StakingSection({
         {/* Unstake Section */}
         <div className="space-y-4">
           <h4 className="text-lg font-medium text-white">Unstake Fleet Shares</h4>
-          
+
           <AmountInput
             value={unstakeAmount}
             onChange={(value, parsed) => {
@@ -164,7 +164,7 @@ export function StakingSection({
             label="Amount to Unstake"
             placeholder={`Enter ${fleetSymbol} amount`}
           />
-          
+
           <button
             onClick={handleUnstake}
             disabled={isUnstakeLoading || parsedUnstakeAmount === BigInt(0)}
@@ -176,7 +176,7 @@ export function StakingSection({
           >
             {isUnstakeLoading ? 'Unstaking...' : `Unstake ${fleetSymbol}`}
           </button>
-          
+
           {isUnstakeConfirmed && (
             <div className="p-3 bg-green-900 border border-green-600 rounded-lg">
               <p className="text-green-200 text-sm">

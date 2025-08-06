@@ -47,7 +47,7 @@ export default function Home() {
           <p className="text-gray-300 mb-6">
             Manage your DeFi positions and protocol roles across multiple chains
           </p>
-          
+
           <div className="bg-gray-900 p-6 rounded-lg">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
@@ -81,7 +81,7 @@ export default function Home() {
             Available Fleets ({fleets.length})
           </h2>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {fleets.map((fleet) => (
             <FleetCard

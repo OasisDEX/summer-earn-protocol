@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
-import { useFleetConfig } from './useFleetConfig'
-import { useStakingData } from './useStakingData'
-import { useStakingActions } from './useStakingActions'
 import type { ChainId } from '../types'
+import { useFleetConfig } from './useFleetConfig'
+import { useStakingActions } from './useStakingActions'
+import { useStakingData } from './useStakingData'
 
 interface UseStakingRewardsProps {
   fleetAddress: string
@@ -11,12 +11,10 @@ interface UseStakingRewardsProps {
 
 export function useStakingRewards({ fleetAddress, chainId }: UseStakingRewardsProps) {
   // Step 1: Get fleet config and staking rewards manager address
-  const { 
-    fleetConfig, 
-    stakingRewardsManagerAddress, 
-    configError, 
-    configLoading 
-  } = useFleetConfig({ fleetAddress, chainId })
+  const { fleetConfig, stakingRewardsManagerAddress, configError, configLoading } = useFleetConfig({
+    fleetAddress,
+    chainId,
+  })
 
   // Step 2: Get staking data (only if we have the staking rewards manager address)
   const {
@@ -30,10 +28,10 @@ export function useStakingRewards({ fleetAddress, chainId }: UseStakingRewardsPr
     refetchStakedBalance,
     refetchEarnedRewards,
     refetchStakingAllowance,
-  } = useStakingData({ 
+  } = useStakingData({
     stakingRewardsManagerAddress,
-    fleetAddress,       
-    chainId
+    fleetAddress,
+    chainId,
   })
 
   // Step 3: Get staking actions (only if we have the staking rewards manager address)
@@ -55,10 +53,10 @@ export function useStakingRewards({ fleetAddress, chainId }: UseStakingRewardsPr
     stakeTxHash,
     unstakeTxHash,
     claimTxHash,
-  } = useStakingActions({ 
+  } = useStakingActions({
     stakingRewardsManagerAddress,
-    fleetAddress ,
-    chainId
+    fleetAddress,
+    chainId,
   })
 
   // Refetch data after successful transactions
@@ -73,7 +71,13 @@ export function useStakingRewards({ fleetAddress, chainId }: UseStakingRewardsPr
       refetchStakedBalance()
       refetchEarnedRewards()
     }
-  }, [isStakeConfirmed, isUnstakeConfirmed, isClaimConfirmed, refetchStakedBalance, refetchEarnedRewards])
+  }, [
+    isStakeConfirmed,
+    isUnstakeConfirmed,
+    isClaimConfirmed,
+    refetchStakedBalance,
+    refetchEarnedRewards,
+  ])
 
   // Debug logging
   console.log('🔍 Combined Staking Debug:', {
@@ -93,36 +97,36 @@ export function useStakingRewards({ fleetAddress, chainId }: UseStakingRewardsPr
     stakingTokenAddress,
     rewardTokens,
     fleetConfig,
-    
+
     // Balances and rewards
     stakedBalance,
     totalStakedSupply,
     earnedRewards,
     rewardTokensLength,
     stakingAllowance,
-    
+
     // Actions
     approveStaking,
     stake,
     unstake,
     claimRewards,
-    
+
     // Helper functions
-    needsStakingApproval: (amount: string, fleetDecimals: number = 18) => 
+    needsStakingApproval: (amount: string, fleetDecimals: number = 18) =>
       needsStakingApproval(amount, stakingAllowance, fleetDecimals),
-    
+
     // Loading states
     isApproveStakingLoading,
     isStakeLoading,
     isUnstakeLoading,
     isClaimLoading,
-    
+
     // Transaction states
     isApproveStakingConfirmed,
     isStakeConfirmed,
     isUnstakeConfirmed,
     isClaimConfirmed,
-    
+
     // Transaction hashes
     approveStakingTxHash,
     stakeTxHash,

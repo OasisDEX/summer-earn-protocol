@@ -44,12 +44,12 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
             address: fleetAddress,
             abi: fleetCommanderAbi,
             functionName: 'bufferArk',
-          })
+          }),
         ])
 
         // Combine active arks with buffer ark
         const allArks = [...activeArks, bufferArkAddress]
-        
+
         if (allArks.length === 0) {
           setArks([])
           setLoading(false)
@@ -116,7 +116,7 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
           if (!a.isBufferArk && b.isBufferArk) return 1
           return 0
         })
-        
+
         setArks(sortedArks)
         setLoading(false)
       } catch (err) {

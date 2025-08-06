@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { formatDecimalOutput, parseDecimalInput, MAX_UINT256 } from '../utils/decimals'
+import { useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
+import { MAX_UINT256, formatDecimalOutput, parseDecimalInput } from '../utils/decimals'
 
 interface AmountInputProps {
   value: string
@@ -73,12 +73,8 @@ export function AmountInput({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      {label && (
-        <label className="block text-sm font-medium text-gray-300">
-          {label}
-        </label>
-      )}
-      
+      {label && <label className="block text-sm font-medium text-gray-300">{label}</label>}
+
       <div className="relative">
         <input
           type="text"
@@ -88,7 +84,7 @@ export function AmountInput({
           disabled={disabled}
           className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-16"
         />
-        
+
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
           {symbol}
         </div>
@@ -105,7 +101,7 @@ export function AmountInput({
             Max Balance ({formatDecimalOutput(balance, decimals, 4)} {symbol})
           </button>
         )}
-        
+
         {showMaxUintButton && (
           <button
             type="button"

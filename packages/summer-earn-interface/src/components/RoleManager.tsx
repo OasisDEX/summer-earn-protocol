@@ -26,7 +26,12 @@ export function RoleManager({
   const [userAddress, setUserAddress] = useState('')
   const [action, setAction] = useState<'grant' | 'revoke'>('grant')
 
-  const { writeContract, isPending: isWriting, error: writeError, data: txHash } = useWriteContract()
+  const {
+    writeContract,
+    isPending: isWriting,
+    error: writeError,
+    data: txHash,
+  } = useWriteContract()
   const { getRoleHash } = useRoleConstants({ contractAddress, chainId })
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
@@ -120,7 +125,7 @@ export function RoleManager({
         throw new Error(`Unsupported role: ${selectedRole}`)
       }
 
-      (writeContract as any)({
+      ;(writeContract as any)({
         abi: protocolAccessManagerAbi,
         address: contractAddress as `0x${string}`,
         functionName,
