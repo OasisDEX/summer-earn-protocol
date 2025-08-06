@@ -174,13 +174,6 @@ contract MockAdapter is
         tokenFee = 0;
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view override returns (BridgeTypes.OperationStatus) {
-        return operationStatuses[operationId];
-    }
-
     function supportsChain(uint16 chainId) external view returns (bool) {
         return supportedChains[chainId];
     }

@@ -410,13 +410,6 @@ contract LayerZeroAdapter is
         }
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view override returns (BridgeTypes.OperationStatus) {
-        return IBridgeRouter(bridgeRouter()).getOperationStatus(operationId);
-    }
-
     /// @inheritdoc IMessageAdapter
     function readState(
         bytes32 operationId,

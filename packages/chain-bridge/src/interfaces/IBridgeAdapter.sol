@@ -99,16 +99,7 @@ interface IBridgeAdapter {
     ) external view returns (uint256 nativeFee, uint256 tokenFee);
 
     /**
-     * @notice Get the status of an operation
-     * @param operationId ID of the operation to check
-     * @return Status of the operation
-     */
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view returns (BridgeTypes.OperationStatus);
-
-    /**
-     * @notice Check if an adapter supports a specific operation type (unified interface)
+     * @notice Check if an adapter supports a specific operation type
      * @param operationType Type of operation to check support for
      * @return Whether the adapter supports the operation type
      * @dev This method should check both asset and message capabilities based on operationType

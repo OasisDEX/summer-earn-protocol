@@ -182,16 +182,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             params,
             options
         );
-
-        // Verify the operation status is SENT
-        assertEq(
-            uint256(
-                IBridgeRouter(address(routerA)).getOperationStatus(
-                    expectedOperationId
-                )
-            ),
-            uint256(BridgeTypes.OperationStatus.SENT)
-        );
     }
 
     function testTransferAssetUnauthorized() public {

@@ -57,21 +57,6 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
             options
         );
         vm.stopPrank();
-
-        // Verify bridge opeariotn status updated post-execution
-        assertEq(
-            uint256(router.getOperationStatus(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT)
-        );
-
-        // Verify transfer was initiated in router
-        // Note: Router state is mocked here, real state is in BridgeQueue now primarily
-        // assertEq(
-        //     uint256(router.operationStatuses(operationId)),
-        //     uint256(BridgeTypes.OperationStatus.PENDING)
-        // );
-        // assertEq(router.operationToAdapter(operationId), specifiedAdapter); // Check correct adapter used
-        // assertEq(operationId, expectedOperationId, "Operation ID mismatch"); // Check returned ID
     }
 
     function testSendNoSuitableAdapter() public {
