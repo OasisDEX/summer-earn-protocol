@@ -754,6 +754,378 @@ contract AeraArkTestFork is Test, IArkEvents, ArkTestBase {
         );
     }
 
+    /// @notice Test deposit refund scenario when request expires
+    function test_DepositRefund_ExpiredRequest() public {
+        uint256 depositAmount = 1000 * 1e6; // 1000 USDC
+        deal(USDC_ADDRESS, commander, depositAmount);
+
+        // Record initial state
+        uint256 initialCommanderBalance = usdc.balanceOf(commander);
+        uint256 initialArkBalance = usdc.balanceOf(address(ark));
+        uint256 initialTotalAssets = ark.totalAssets();
+
+        console.log("Initial commander USDC balance:", initialCommanderBalance);
+        console.log("Initial ark USDC balance:", initialArkBalance);
+        console.log("Initial ark total assets:", initialTotalAssets);
+
+        // 1. Board tokens (creates async deposit request)
+        vm.startPrank(commander);
+        usdc.approve(address(ark), depositAmount);
+        ark.board(depositAmount, bytes(""));
+        vm.stopPrank();
+
+        // Verify assets are in deposit queue
+        uint256 assetsInDepositQueue = ark.assetsInDepositQueue();
+        assertGt(assetsInDepositQueue, 0, "Assets should be in deposit queue");
+        console.log("Assets in deposit queue:", assetsInDepositQueue);
+
+        // Total assets should include the pending deposit
+        uint256 totalAssetsAfterBoard = ark.totalAssets();
+        console.log("Total assets after board:", totalAssetsAfterBoard);
+        assertGt(
+            totalAssetsAfterBoard,
+            initialTotalAssets,
+            "Total assets should increase after boarding"
+        );
+
+        // 2. Fast forward time past the deadline (24 hours + buffer)
+        vm.warp(block.timestamp + 25 hours);
+        console.log("Fast forwarded past deadline");
+
+        // 3. Try to solve the expired request (should result in refund)
+        uint256 expectedUnits = priceCalculator.convertTokenToUnits(
+            address(vault),
+            usdc,
+            depositAmount
+        );
+
+        // Create the expired request for solving
+        Request memory request = Request({
+            requestType: RequestType.DEPOSIT_AUTO_PRICE,
+            user: address(ark),
+            units: expectedUnits,
+            tokens: depositAmount,
+            solverTip: 0,
+            deadline: block.timestamp - 1 hours, // Deadline in the past
+            maxPriceAge: 1 hours
+        });
+
+        console.log("Refunding expired deposit request");
+        // For expired requests, use refundRequest directly
+        vm.expectEmit(false, false, false, true);
+        emit IProvisioner.DepositRefunded(bytes32(0));
+        provisioner.refundRequest(usdc, request);
+
+        // 4. Verify refund was processed
+        uint256 finalAssetsInDepositQueue = ark.assetsInDepositQueue();
+        console.log(
+            "Assets in deposit queue after refund:",
+            finalAssetsInDepositQueue
+        );
+        assertEq(
+            finalAssetsInDepositQueue,
+            0,
+            "Assets should no longer be in deposit queue"
+        );
+
+        // 5. Verify total assets continuity
+        uint256 finalTotalAssets = ark.totalAssets();
+        uint256 finalCommanderBalance = usdc.balanceOf(commander);
+        uint256 finalArkBalance = usdc.balanceOf(address(ark));
+
+        console.log("Final commander USDC balance:", finalCommanderBalance);
+        console.log("Final ark USDC balance:", finalArkBalance);
+        console.log("Final ark total assets:", finalTotalAssets);
+
+        // Commander balance should remain unchanged (they already gave tokens to ark)
+        assertEq(
+            finalCommanderBalance,
+            initialCommanderBalance - depositAmount,
+            "Commander balance should be reduced by deposit amount"
+        );
+
+        // Ark should get the USDC back from the provisioner refund
+        assertEq(
+            finalArkBalance,
+            depositAmount,
+            "Ark should receive refunded USDC from provisioner"
+        );
+
+        // Total assets should include the refunded USDC sitting in the ark
+        // This should be the same as totalAssetsAfterBoard since the pending deposit is now refunded USDC
+        assertEq(
+            finalTotalAssets,
+            totalAssetsAfterBoard,
+            "Total assets should include refunded USDC in ark balance"
+        );
+
+        // Verify no vault units were minted
+        uint256 vaultUnits = vault.balanceOf(address(ark));
+        assertEq(vaultUnits, 0, "No vault units should be minted after refund");
+    }
+
+    /// @notice Test deposit refund using refundRequest function directly
+    function test_DepositRefund_DirectRefund() public {
+        uint256 amount = 500 * 1e6; // 500 USDC
+        deal(USDC_ADDRESS, commander, amount);
+
+        // Record initial balances
+        uint256 initialCommanderBalance = usdc.balanceOf(commander);
+        uint256 initialTotalAssets = ark.totalAssets();
+
+        // 1. Board tokens
+        vm.startPrank(commander);
+        usdc.approve(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        // Verify deposit is pending
+        uint256 assetsInQueue = ark.assetsInDepositQueue();
+        assertGt(assetsInQueue, 0, "Assets should be in deposit queue");
+
+        // 2. Get the request details for refund
+        (bytes32 depositHash, uint256 depositAmount) = ark
+            .asyncDepositRequest();
+        console.log("Deposit hash:", vm.toString(depositHash));
+        console.log("Deposit amount:", depositAmount);
+
+        // 3. Create request struct for refund
+        uint256 expectedUnits = priceCalculator.convertTokenToUnits(
+            address(vault),
+            usdc,
+            amount
+        );
+
+        Request memory request = Request({
+            requestType: RequestType.DEPOSIT_AUTO_PRICE,
+            user: address(ark),
+            units: expectedUnits,
+            tokens: amount,
+            solverTip: 0,
+            deadline: block.timestamp + 24 hours,
+            maxPriceAge: 1 hours
+        });
+
+        // 4. Fast forward past deadline to allow refund
+        vm.warp(block.timestamp + 25 hours);
+
+        // 5. Refund the request directly
+        console.log("Refunding deposit request directly");
+        provisioner.refundRequest(usdc, request);
+
+        // 6. Verify refund results
+        uint256 finalAssetsInQueue = ark.assetsInDepositQueue();
+        uint256 finalCommanderBalance = usdc.balanceOf(commander);
+        uint256 finalTotalAssets = ark.totalAssets();
+
+        assertEq(finalAssetsInQueue, 0, "Assets should no longer be in queue");
+        assertEq(
+            finalCommanderBalance,
+            initialCommanderBalance - amount,
+            "Commander balance should be reduced by deposit amount"
+        );
+
+        // Total assets should include the refunded USDC in the ark
+        uint256 finalArkBalance = usdc.balanceOf(address(ark));
+        assertEq(finalArkBalance, amount, "Ark should receive refunded USDC");
+        assertGt(
+            finalTotalAssets,
+            initialTotalAssets,
+            "Total assets should include refunded USDC"
+        );
+    }
+
+    /// @notice Test withdrawal refund scenario when redeem request expires
+    function test_WithdrawalRefund_ExpiredRequest() public {
+        uint256 depositAmount = 1000 * 1e6; // 1000 USDC
+        deal(USDC_ADDRESS, commander, depositAmount);
+
+        // 1. First, successfully deposit and get vault units
+        vm.startPrank(commander);
+        usdc.approve(address(ark), depositAmount);
+        ark.board(depositAmount, bytes(""));
+        vm.stopPrank();
+
+        // Solve the deposit request to get vault units
+        uint256 expectedUnits = priceCalculator.convertTokenToUnits(
+            address(vault),
+            usdc,
+            depositAmount
+        );
+        _solveAsyncDepositRequest(depositAmount, expectedUnits);
+
+        // Verify we have vault units
+        uint256 vaultUnits = vault.balanceOf(address(ark));
+        assertGt(vaultUnits, 0, "Should have vault units after deposit");
+
+        // Record state before withdrawal request
+        uint256 initialTotalAssets = ark.totalAssets();
+        uint256 initialVaultUnits = vaultUnits;
+
+        console.log("Initial total assets:", initialTotalAssets);
+        console.log("Initial vault units:", initialVaultUnits);
+
+        // 2. Request withdrawal
+        uint256 withdrawAmount = 500 * 1e6; // Withdraw half
+        vm.prank(keeper);
+        ark.requestWithdrawal(withdrawAmount);
+
+        // Verify withdrawal is pending
+        uint256 assetsInWithdrawalQueue = ark.assetsInWithdrawalQueue();
+        assertGt(
+            assetsInWithdrawalQueue,
+            0,
+            "Assets should be in withdrawal queue"
+        );
+
+        // Total assets should still include the pending withdrawal
+        uint256 totalAssetsAfterRequest = ark.totalAssets();
+        console.log(
+            "Total assets after withdrawal request:",
+            totalAssetsAfterRequest
+        );
+        assertEq(
+            totalAssetsAfterRequest,
+            initialTotalAssets,
+            "Total assets should remain same during pending withdrawal"
+        );
+
+        // 3. Fast forward past deadline to expire the request
+        vm.warp(block.timestamp + 25 hours);
+
+        // 4. Create expired withdrawal request for refund
+        uint256 sharesToRedeem = priceCalculator.convertTokenToUnits(
+            address(vault),
+            usdc,
+            withdrawAmount
+        );
+
+        Request memory request = Request({
+            requestType: RequestType.REDEEM_AUTO_PRICE,
+            user: address(ark),
+            units: sharesToRedeem,
+            tokens: withdrawAmount,
+            solverTip: 0,
+            deadline: block.timestamp - 1 hours, // Deadline in the past
+            maxPriceAge: 1 hours
+        });
+
+        // 5. Refund expired request (should refund vault units to ark)
+        console.log("Refunding expired withdrawal request");
+        console.log(
+            "Vault units before refund:",
+            vault.balanceOf(address(ark))
+        );
+        console.log(
+            "Assets in queue before refund:",
+            ark.assetsInWithdrawalQueue()
+        );
+
+        vm.expectEmit(false, false, false, true);
+        emit IProvisioner.RedeemRefunded(bytes32(0));
+        provisioner.refundRequest(usdc, request);
+
+        // 6. Verify refund was processed
+        uint256 finalAssetsInWithdrawalQueue = ark.assetsInWithdrawalQueue();
+        uint256 finalVaultUnits = vault.balanceOf(address(ark));
+        uint256 finalTotalAssets = ark.totalAssets();
+
+        console.log(
+            "Final assets in withdrawal queue:",
+            finalAssetsInWithdrawalQueue
+        );
+        console.log("Final vault units:", finalVaultUnits);
+        console.log("Final total assets:", finalTotalAssets);
+
+        // Assertions for withdrawal refund
+        assertEq(
+            finalAssetsInWithdrawalQueue,
+            0,
+            "Assets should no longer be in withdrawal queue"
+        );
+        assertEq(
+            finalVaultUnits,
+            initialVaultUnits,
+            "Vault units should be restored to ark"
+        );
+        assertEq(
+            finalTotalAssets,
+            initialTotalAssets,
+            "Total assets should be restored"
+        );
+    }
+
+    /// @notice Test total assets continuity across multiple scenarios
+    function test_TotalAssetsContinuity_MultipleScenarios() public {
+        uint256 amount = 1000 * 1e6; // 1000 USDC
+        deal(USDC_ADDRESS, commander, amount * 3); // Give enough for multiple operations
+
+        uint256 initialTotalAssets = ark.totalAssets();
+        console.log("Starting total assets:", initialTotalAssets);
+
+        // Scenario 1: Successful deposit and withdrawal
+        vm.startPrank(commander);
+        usdc.approve(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 expectedUnits = priceCalculator.convertTokenToUnits(
+            address(vault),
+            usdc,
+            amount
+        );
+        _solveAsyncDepositRequest(amount, expectedUnits);
+
+        uint256 afterDepositAssets = ark.totalAssets();
+        console.log("After successful deposit:", afterDepositAssets);
+        assertGt(
+            afterDepositAssets,
+            initialTotalAssets,
+            "Assets should increase after deposit"
+        );
+
+        // Scenario 2: Refunded deposit
+        vm.startPrank(commander);
+        usdc.approve(address(ark), amount);
+        ark.board(amount, bytes(""));
+        vm.stopPrank();
+
+        uint256 afterSecondBoard = ark.totalAssets();
+        console.log("After second board (pending):", afterSecondBoard);
+
+        // Fast forward and refund
+        vm.warp(block.timestamp + 25 hours);
+        Request memory expiredRequest = Request({
+            requestType: RequestType.DEPOSIT_AUTO_PRICE,
+            user: address(ark),
+            units: expectedUnits,
+            tokens: amount,
+            solverTip: 0,
+            deadline: block.timestamp - 1 hours,
+            maxPriceAge: 1 hours
+        });
+
+        console.log("Refunding second deposit request");
+        provisioner.refundRequest(usdc, expiredRequest);
+
+        uint256 afterRefundAssets = ark.totalAssets();
+        console.log("After deposit refund:", afterRefundAssets);
+
+        // After refund: vault units (~1000) + refunded USDC (1000) ≈ 2000 total
+        // Before refund: vault units (~1000) + pending deposit (1000) ≈ 2000 total
+        // Total should remain approximately the same, just composition changed
+        assertApproxEqAbs(
+            afterRefundAssets,
+            afterSecondBoard,
+            1,
+            "Total assets should remain same - refunded USDC replaces pending deposit"
+        );
+
+        // Final verification
+        console.log("Final total assets:", ark.totalAssets());
+        console.log("Commander USDC balance:", usdc.balanceOf(commander));
+    }
+
     function test_CompleteAsyncWithdrawalFlow_MaxWithdrawal() public {
         uint256 amount = 1000 * 1e6; // 1000 USDC
         deal(USDC_ADDRESS, commander, amount);

@@ -99,11 +99,11 @@ contract AeraArk is ArkWithWithdrawalRequest {
         // Include withdrawable assets (processed tokens)
         assets += _withdrawableTotalAssets();
 
-        // Include assets in withdrawal queue
+        // Include assets in withdrawal/deposit queue
         assets += assetsInWithdrawalQueue();
         assets += assetsInDepositQueue();
 
-        // Include value of vault units held by Ark
+        // Include value of vault units held by Ark - can't revert
         uint256 vaultUnits = vault.balanceOf(address(this));
         if (vaultUnits > 0) {
             assets += priceCalculator.convertUnitsToToken(
