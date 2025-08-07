@@ -564,11 +564,15 @@ contract BridgeRouter is
         BridgeTypes.OperationType operationType,
         bytes calldata operationPayload
     ) external onlyRegisteredAdapter nonReentrant {
+        bytes32 operationId;
+
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory data = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedTransferParams)
             );
+
+            operationId = data.operationId;
 
             // Transfer the asset
             IERC20(data.asset).safeTransfer(data.recipient, data.amount);
@@ -578,31 +582,25 @@ contract BridgeRouter is
                 BridgeTypes.OperationType.TRANSFER_ASSET,
                 operationPayload
             );
-
-            emit TransferReceived(
-                data.operationId,
-                data.asset,
-                data.amount,
-                data.recipient,
-                data.sourceChainId
-            );
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
             BridgeTypes.RelayedMessageParams memory data = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedMessageParams)
             );
 
+            operationId = data.operationId;
+
             ICrossChainReceiver(data.recipient).receiveOperation(
                 BridgeTypes.OperationType.MESSAGE,
                 operationPayload
             );
-
-            emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
             BridgeTypes.RelayedReadResponse memory data = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedReadResponse)
             );
+
+            operationId = data.operationId;
 
             if (operationToAdapter[data.operationId] != msg.sender) {
                 revert Unauthorized();
@@ -615,11 +613,11 @@ contract BridgeRouter is
                 BridgeTypes.OperationType.READ_STATE,
                 operationPayload
             );
-
-            emit ReadResponseDelivered(data.operationId, originator, true);
         } else {
             revert UnsupportedOperationType();
         }
+
+        emit OperationDelivered(operationId, operationType, true);
     }
 
     /*//////////////////////////////////////////////////////////////
