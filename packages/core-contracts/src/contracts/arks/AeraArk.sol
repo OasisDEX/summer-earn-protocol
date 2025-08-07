@@ -157,7 +157,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
         provisioner.requestDeposit(
             config.asset,
             amount,
-            _applySlippage(shareAtTheTimeOfDeposit), // minUnitsOut - calculated by solver
+            _applySlippage(shareAtTheTimeOfDeposit), // apply slippage to account for the price going up
             DEFAULT_SOLVER_TIP, // either solverTip == 0 or isFixedPrice == true
             block.timestamp + REQUEST_DEADLINE,
             MAX_PRICE_AGE,
@@ -276,7 +276,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
         provisioner.requestRedeem(
             config.asset,
             sharesToRedeem,
-            _applySlippage(amount),
+            _applySlippage(amount), // apply slippage to account for the price going down
             DEFAULT_SOLVER_TIP, // solverTip - no tip for now
             block.timestamp + REQUEST_DEADLINE,
             MAX_PRICE_AGE,
