@@ -93,6 +93,8 @@ interface IBridgeRouter is IERC165 {
                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Added as an extra layer of defense in BridgeRouter
+    error UntrustedAdapter(uint16 sourceChainId, address adapter);
     /// @notice Error thrown when an adapter is already registered
     error AdapterAlreadyRegistered();
     /// @notice Error thrown when an adapter is not registered

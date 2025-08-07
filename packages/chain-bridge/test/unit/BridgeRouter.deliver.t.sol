@@ -10,6 +10,23 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 contract BridgeRouterDeliverTest is BridgeRouterSetup {
     uint256 public constant AMOUNT = 500e18;
 
+    function setUp() public override {
+        super.setUp();
+
+        // Set up proper adapter peer relationships for successful delivery tests
+        vm.startPrank(governor);
+
+        // Register peer relationship: mockAdapter on SOURCE_CHAIN_ID -> mockAdapter on CURRENT_CHAIN_ID
+        registry.registerAdapterPeer(
+            address(mockAdapter), // source adapter
+            address(mockAdapter), // target adapter (same adapter for simplicity)
+            SOURCE_CHAIN_ID, // source chain
+            CURRENT_CHAIN_ID // target chain (current chain)
+        );
+
+        vm.stopPrank();
+    }
+
     /* -------------------------------------------------------------------------- */
     /*                               success paths                                */
     /* -------------------------------------------------------------------------- */
@@ -117,6 +134,186 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
                     operationId: operationId,
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
                     readResponseData: responseData
+                })
+            )
+        );
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /*                         adapter peer verification tests                    */
+    /* -------------------------------------------------------------------------- */
+
+    function testDeliverTransferAssetUntrustedAdapterReverts() public {
+        bytes32 operationId = keccak256("untrustedTransferAsset");
+        uint16 untrustedSourceChain = 999; // Chain with no peer relationship
+
+        vm.prank(address(mockAdapter));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBridgeRouter.UntrustedAdapter.selector,
+                untrustedSourceChain,
+                address(mockAdapter)
+            )
+        );
+        router.deliver(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                BridgeTypes.RelayedTransferParams({
+                    operationId: operationId,
+                    originator: address(mockAdapter),
+                    sourceChainId: untrustedSourceChain,
+                    recipient: address(mockReceiver),
+                    asset: address(token),
+                    amount: AMOUNT,
+                    message: abi.encode("test")
+                })
+            )
+        );
+    }
+
+    function testDeliverMessageUntrustedAdapterReverts() public {
+        bytes32 operationId = keccak256("untrustedMessage");
+        uint16 untrustedSourceChain = 999; // Chain with no peer relationship
+
+        vm.prank(address(mockAdapter));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBridgeRouter.UntrustedAdapter.selector,
+                untrustedSourceChain,
+                address(mockAdapter)
+            )
+        );
+        router.deliver(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(
+                BridgeTypes.RelayedMessageParams({
+                    operationId: operationId,
+                    originator: address(mockAdapter),
+                    sourceChainId: untrustedSourceChain,
+                    recipient: address(mockReceiver),
+                    message: abi.encode("test")
+                })
+            )
+        );
+    }
+
+    function testDeliverReadResponseUntrustedAdapterReverts() public {
+        bytes32 operationId = keccak256("untrustedReadResponse");
+        uint16 untrustedSourceChain = 999; // Chain with no peer relationship
+        bytes memory responseData = abi.encode(uint256(123), "test response");
+
+        // Set up the operation mapping even though it will fail on peer verification
+        router.setOperationToAdapter(operationId, address(mockAdapter));
+        router.setReadRequestOriginator(operationId, address(mockReceiver));
+
+        vm.prank(address(mockAdapter));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBridgeRouter.UntrustedAdapter.selector,
+                untrustedSourceChain,
+                address(mockAdapter)
+            )
+        );
+        router.deliver(
+            BridgeTypes.OperationType.READ_STATE,
+            abi.encode(
+                BridgeTypes.RelayedReadResponse({
+                    operationId: operationId,
+                    sourceChainId: untrustedSourceChain,
+                    readResponseData: responseData
+                })
+            )
+        );
+    }
+
+    function testDeliverWithUnregisteredAdapterButValidPeerReverts() public {
+        // This tests that both adapter registration AND peer relationship are required
+        bytes32 operationId = keccak256("unregisteredAdapterValidPeer");
+
+        // First register a peer relationship for mockAdapter2 (which is not registered as an adapter)
+        vm.prank(governor);
+        registry.registerAdapterPeer(
+            address(mockAdapter2), // source adapter (not registered with router)
+            address(mockAdapter2), // target adapter
+            SOURCE_CHAIN_ID, // source chain
+            CURRENT_CHAIN_ID // target chain
+        );
+
+        // The call should fail with UnknownAdapter even though peer relationship exists
+        vm.prank(address(mockAdapter2)); // mockAdapter2 is not registered
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
+        router.deliver(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                BridgeTypes.RelayedTransferParams({
+                    operationId: operationId,
+                    originator: address(mockAdapter2),
+                    sourceChainId: uint16(SOURCE_CHAIN_ID),
+                    recipient: address(mockReceiver),
+                    asset: address(token),
+                    amount: AMOUNT,
+                    message: abi.encode("test")
+                })
+            )
+        );
+    }
+
+    function testDeliverValidAdapterButInvalidPeerRelationship() public {
+        // This tests the specific case where adapter is registered but peer relationship is missing
+        bytes32 operationId = keccak256("validAdapterInvalidPeer");
+        uint16 sourceChainWithNoPeer = 777; // Different chain with no peer relationship
+
+        // mockAdapter is registered with router but has no peer relationship with sourceChainWithNoPeer
+        vm.prank(address(mockAdapter));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IBridgeRouter.UntrustedAdapter.selector,
+                sourceChainWithNoPeer,
+                address(mockAdapter)
+            )
+        );
+        router.deliver(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                BridgeTypes.RelayedTransferParams({
+                    operationId: operationId,
+                    originator: address(mockAdapter),
+                    sourceChainId: sourceChainWithNoPeer,
+                    recipient: address(mockReceiver),
+                    asset: address(token),
+                    amount: AMOUNT,
+                    message: abi.encode("test")
+                })
+            )
+        );
+    }
+
+    function testDeliverValidPeerRelationshipDifferentChains() public {
+        // Test that peer verification works across different chain configurations
+        uint16 anotherSourceChain = 555;
+
+        // Register peer relationship for a different source chain
+        vm.prank(governor);
+        registry.registerAdapterPeer(
+            address(mockAdapter), // source adapter
+            address(mockAdapter), // target adapter
+            anotherSourceChain, // different source chain
+            CURRENT_CHAIN_ID // target chain
+        );
+
+        bytes32 operationId = keccak256("differentChainPeer");
+
+        // This should succeed because we have a valid peer relationship
+        vm.prank(address(mockAdapter));
+        router.deliver(
+            BridgeTypes.OperationType.MESSAGE,
+            abi.encode(
+                BridgeTypes.RelayedMessageParams({
+                    operationId: operationId,
+                    originator: address(mockAdapter),
+                    sourceChainId: anotherSourceChain,
+                    recipient: address(mockReceiver),
+                    message: abi.encode("success")
                 })
             )
         );

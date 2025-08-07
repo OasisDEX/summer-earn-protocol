@@ -90,6 +90,29 @@ contract BridgeRouter is
     }
 
     /*//////////////////////////////////////////////////////////////
+                    ADAPTER PEER VERIFICATION
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Verifies that the calling adapter has a registered peer relationship with the source chain
+     * @param sourceChainId The source chain ID from the cross-chain operation
+     * @dev This provides an additional layer of defense beyond the peer relationships checked within adapters
+     */
+    function _verifyAdapterPeer(uint16 sourceChainId) internal view {
+        // Will return zero if (srcChainId, msg.sender) is NOT a registered pair
+        address srcAdapter = CROSS_CHAIN_REGISTRY.getSourceForTarget(
+            sourceChainId,
+            uint16(block.chainid),
+            msg.sender,
+            CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
+        );
+
+        if (srcAdapter == address(0)) {
+            revert UntrustedAdapter(sourceChainId, msg.sender);
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
                        INTERNAL UTILITY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -317,9 +340,6 @@ contract BridgeRouter is
             abi.encode(params.originator) // Additional data for uniqueness
         );
 
-        // Set up operation to adapter mapping BEFORE the adapter call
-        operationToAdapter[operationId] = specifiedAdapter;
-
         // Call adapter with the full msg.value
         ISendAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
             operationId, // Pass the router-generated ID
@@ -390,7 +410,7 @@ contract BridgeRouter is
             )
         );
 
-        // Set operation to adapter mapping BEFORE the adapter call
+        // Only relevant for read operations
         operationToAdapter[operationId] = specifiedAdapter;
 
         // Store the originator for response delivery
@@ -460,8 +480,6 @@ contract BridgeRouter is
             params.target,
             abi.encode(params.message, params.originator)
         );
-
-        operationToAdapter[operationId] = specifiedAdapter;
 
         // Call adapter with the full msg.value
         ISendAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
@@ -571,6 +589,9 @@ contract BridgeRouter is
                 (BridgeTypes.RelayedTransferParams)
             );
 
+            // Additional defense: verify adapter has peer relationship with source chain
+            _verifyAdapterPeer(data.sourceChainId);
+
             // Transfer the asset
             IERC20(data.asset).safeTransfer(data.recipient, data.amount);
 
@@ -593,6 +614,9 @@ contract BridgeRouter is
                 (BridgeTypes.RelayedMessageParams)
             );
 
+            // Additional defense: verify adapter has peer relationship with source chain
+            _verifyAdapterPeer(data.sourceChainId);
+
             ICrossChainReceiver(data.recipient).receiveOperation(
                 BridgeTypes.OperationType.MESSAGE,
                 operationPayload
@@ -605,6 +629,10 @@ contract BridgeRouter is
                 (BridgeTypes.RelayedReadResponse)
             );
 
+            // Additional defense: verify adapter has peer relationship with source chain
+            _verifyAdapterPeer(data.sourceChainId);
+
+            // Only relevant for read operations which receive on the same chain as the originator
             if (operationToAdapter[data.operationId] != msg.sender) {
                 revert Unauthorized();
             }
