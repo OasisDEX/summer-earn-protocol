@@ -78,6 +78,7 @@ export function useStakingRewards({ fleetAddress, chainId }: UseStakingRewardsPr
     refetchStakedBalance,
     refetchEarnedRewards,
   ])
+
   return {
     // Contract addresses
     stakingRewardsManagerAddress,

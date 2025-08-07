@@ -20,10 +20,7 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
-interface IERC20Extended is IERC20 {
-    function decimals() external view returns (uint8);
-}
+import {IERC20Extended} from "../../interfaces/IERC20Extended.sol";
 
 /**
  * @title PendlePtOracleArk

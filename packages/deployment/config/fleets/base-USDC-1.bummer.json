@@ -1,0 +1,35 @@
+{
+  "fleetName": "BummerLazyVault_LowerRisk_USDC_1",
+  "symbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "100000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "base",
+  "details": "",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "AeraArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "Aera",
+        "vaultName": "Gauntlet_Alpha"
+      }
+    }
+  ]
+}

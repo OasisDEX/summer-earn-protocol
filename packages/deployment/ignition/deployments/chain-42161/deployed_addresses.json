@@ -31,5 +31,10 @@
   "LazyVault_LowerRisk_USDC_SiloManagedVault_varlamore_usdc_42161#SiloManagedVaultArk": "0x125dAE47930c1118cf2dB5A140877C64B408783C",
   "RaftModule_20250710T100427630#DutchAuctionLibrary": "0x4e9F71df95D3924966eaf3e777630576E4117AD5",
   "RaftModule_20250710T100427630#Raft": "0x2E6FBcefA0480cF9f7920d98804A9BD72e1eFEc9",
-  "AdmiralsQuartersModule_20250729T085349320#AdmiralsQuarters": "0x1db04f01386c6BE2d22b7947236d8ACc05901219"
+  "AdmiralsQuartersModule_20250729T085349320#AdmiralsQuarters": "0x1db04f01386c6BE2d22b7947236d8ACc05901219",
+  "FleetModule_BummerLazyVault_LowerRisk_USDT#FleetCommander": "0x45342A8ac1e9Ef6877D7566ed7be5FC98F7e7cae",
+  "BummerLazyVault_LowerRisk_USDT_AaveV3_usdt_42161#AaveV3Ark": "0x457436fdb96fb234A91c5516e1eb9303E3374a29",
+  "BummerLazyVault_LowerRisk_USDT_CompoundV3_usdt_42161#CompoundV3Ark": "0xeBA9b3d4336802CcfbDB80AfBDA820e9Eef97f8e",
+  "BummerLazyVault_LowerRisk_USDT_ERC4626_Fluid_usdt_42161#ERC4626Ark": "0xd0aAdDe147b6D683cBb80bFE0Fb9e8dB9De1958F",
+  "BummerLazyVault_LowerRisk_USDT_StargateV2_usdt_42161#StargateV2PoolArk": "0x81f025C87367033d87B6d3A95289B36106770B25"
 }

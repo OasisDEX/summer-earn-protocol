@@ -78,6 +78,15 @@
       }
     },
     "protocolSpecific": {
+      "gauntlet": {
+        "vaults": {
+          "usdc": {
+            "Gauntlet_Alpha": {
+              "provisioner": "0x18CF8d963E1a727F9bbF3AEffa0Bd04FB4dBdA07"
+            }
+          }
+        }
+      },
       "originETH": {
         "originETH": "0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3"
       },
@@ -311,6 +320,12 @@
           }
         },
         "rewards": "0x88730d254A2f7e6AC8388c3198aFd694bA9f7fae"
+      },
+      "stargate": {
+        "staking": "0x3da4f8E456AC648c489c286B99Ca37B666be7C4C",
+        "pools": {
+          "usdt": "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0"
+        }
       }
     }
   },

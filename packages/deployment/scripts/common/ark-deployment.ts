@@ -1,6 +1,7 @@
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
+import { deployAeraArk } from '../arks/deploy-aera-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
@@ -17,6 +18,7 @@ import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
+import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import {
   validateAddress,
@@ -250,6 +252,32 @@ export async function deployArk(
       deployedArk = await deploySiloManagedVaultArk(config, siloManagedVaultParams)
       break
     }
+    case ArkType.AeraArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const provisioner = validateAddress(
+        config.protocolSpecific.gauntlet.vaults[token][vaultName].provisioner,
+        `Aera-${vaultName}`,
+      )
+      const ark = await deployAeraArk(config, {
+        ...baseArkParams,
+        provisioner: provisioner,
+        vaultName: vaultName,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.StargateV2PoolArk: {
+      const stargatePoolAddress = validateAddress(
+        config.protocolSpecific.stargate.pools[token],
+        `StargateV2-${token}`,
+      )
+      const ark = await deployStargateV2PoolArk(config, {
+        ...baseArkParams,
+        stargatePoolAddress: stargatePoolAddress,
+      })
+      deployedArk = ark
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -327,8 +355,18 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       break
     }
 
+    case ArkType.AeraArk: {
+      deployedArk = await deployAeraArk(config)
+      break
+    }
+
     case ArkType.SiloManagedVaultArk: {
       deployedArk = await deploySiloManagedVaultArk(config)
+      break
+    }
+
+    case ArkType.StargateV2PoolArk: {
+      deployedArk = await deployStargateV2PoolArk(config)
       break
     }
 
