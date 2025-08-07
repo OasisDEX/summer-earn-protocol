@@ -298,8 +298,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             revert("UnsupportedOperationType");
         }
 
-        // Single unified event emission focusing on operation type
-        emit OperationDelivered(operationId, operationType, true);
+        emit OperationDelivered(operationId, operationType);
     }
 
     // --- View Functions ---

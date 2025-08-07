@@ -54,8 +54,7 @@ interface IBridgeRouter is IERC165 {
     /// @notice Emitted when any cross-chain operation is delivered
     event OperationDelivered(
         bytes32 indexed operationId,
-        BridgeTypes.OperationType indexed operationType,
-        bool delivered
+        BridgeTypes.OperationType indexed operationType
     );
 
     /// @notice Emitted when a chain's router address is updated

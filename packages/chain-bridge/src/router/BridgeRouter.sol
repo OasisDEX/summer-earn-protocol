@@ -617,7 +617,7 @@ contract BridgeRouter is
             revert UnsupportedOperationType();
         }
 
-        emit OperationDelivered(operationId, operationType, true);
+        emit OperationDelivered(operationId, operationType);
     }
 
     /*//////////////////////////////////////////////////////////////
