@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { createAeraArkModule, AeraArkContracts } from '../../ignition/modules/arks/aera-ark'
+import { AeraArkContracts, createAeraArkModule } from '../../ignition/modules/arks/aera-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
@@ -37,7 +37,8 @@ async function getUserInput(config: BaseConfig): Promise<AeraArkUserInput> {
   }
   for (const token in config.protocolSpecific.gauntlet.vaults) {
     for (const vaultName in config.protocolSpecific.gauntlet.vaults[token as Token]) {
-      const provisioner = config.protocolSpecific.gauntlet.vaults[token as Token][vaultName].provisioner
+      const provisioner =
+        config.protocolSpecific.gauntlet.vaults[token as Token][vaultName].provisioner
       provisioners.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, provisioner, vaultName },
@@ -112,7 +113,8 @@ async function deployAeraArkContract(
   const arkName = `Aera-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
   const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
-  const provisionerContract = config.protocolSpecific.gauntlet.vaults[userInput.token.symbol][userInput.vaultName].provisioner
+  const provisionerContract =
+    config.protocolSpecific.gauntlet.vaults[userInput.token.symbol][userInput.vaultName].provisioner
   // call provisioner to get MULTI_DEPOSITOR_VAULT() as it's the pool address
   const multiDepositorVault = await hre.viem.getContractAt('IProvisioner', provisionerContract)
   const poolAddress = await multiDepositorVault.read.MULTI_DEPOSITOR_VAULT()
@@ -130,7 +132,7 @@ async function deployAeraArkContract(
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
             pool: poolAddress,
-            chainId: chainId
+            chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager

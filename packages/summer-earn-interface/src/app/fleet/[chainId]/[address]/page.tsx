@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { useRaftContract } from '../../../../components/../contracts/Raft'
-import { AmountInput } from '../../../../components/AmountInput'
 import { Ark } from '../../../../components/Ark'
 import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
 import { ChainSelector } from '../../../../components/ChainSelector'
@@ -13,7 +12,6 @@ import { ConnectButton } from '../../../../components/ConnectButton'
 import { DebugStakingInfo } from '../../../../components/DebugStakingInfo'
 import { DepositWithdrawTabs } from '../../../../components/DepositWithdrawTabs'
 import { RebalanceForm } from '../../../../components/RebalanceForm'
-import { StakeAfterDepositPrompt } from '../../../../components/StakeAfterDepositPrompt'
 import { StakingSection } from '../../../../components/StakingSection'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
 import { useFleetArks } from '../../../../hooks/useFleetArks'
@@ -62,7 +60,10 @@ export default function FleetDetail() {
     }
   }
 
-  const { rebalance, isRebalanceLoading } = useRebalance({ fleetAddress: address, chainId: selectedChain })
+  const { rebalance, isRebalanceLoading } = useRebalance({
+    fleetAddress: address,
+    chainId: selectedChain,
+  })
 
   // Staking rewards hook
   const {
@@ -147,7 +148,9 @@ export default function FleetDetail() {
             <ConnectButton />
           </div>
           <div className="text-center text-red-400 mb-4">
-            {fleetError ? 'Error loading fleet:' : 'Fleet not found. Please check the address and try again.'}
+            {fleetError
+              ? 'Error loading fleet:'
+              : 'Fleet not found. Please check the address and try again.'}
           </div>
           {fleetError && (
             <div className="text-center text-gray-400 text-sm mb-4 bg-gray-800 p-4 rounded">
@@ -208,14 +211,16 @@ export default function FleetDetail() {
                   <div className="p-4 bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-400">Total Assets</p>
                     <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                      {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)}{' '}
+                      {assetInfo.symbol}
                     </p>
                   </div>
 
                   <div className="p-4 bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-400">Withdrawable Assets</p>
                     <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                      {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
+                      {assetInfo.symbol}
                     </p>
                   </div>
                 </div>
@@ -230,26 +235,23 @@ export default function FleetDetail() {
                   <div className="p-4 bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-400">Your Fleet Tokens</p>
                     <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals)} {fleetInfo.symbol}
+                      {formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals)}{' '}
+                      {fleetInfo.symbol}
                     </p>
                   </div>
                   <div className="p-4 bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-400">Your {assetInfo.symbol} Balance</p>
                     <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(userInfo.underlyingBalance, assetInfo.decimals)} {assetInfo.symbol}
+                      {formatDecimalOutput(userInfo.underlyingBalance, assetInfo.decimals)}{' '}
+                      {assetInfo.symbol}
                     </p>
                   </div>
                 </div>
-
               </div>
             )}
 
             {/* Debug Info (Development Only) */}
-            <DebugStakingInfo 
-              fleetAddress={address}
-              chainId={selectedChain}
-              userInfo={userInfo}
-            />
+            <DebugStakingInfo fleetAddress={address} chainId={selectedChain} userInfo={userInfo} />
 
             {/* Deposit/Withdraw Tabs */}
             {isConnected && userInfo && (
@@ -270,11 +272,7 @@ export default function FleetDetail() {
             )}
 
             {/* Old interface removed - now using tabs above */}
-            {false && (
-              <div className="hidden">
-              </div>
-            )}
-
+            {false && <div className="hidden"></div>}
 
             {/* Staking Section */}
             {isConnected && userInfo && (
@@ -319,13 +317,15 @@ export default function FleetDetail() {
                         <div>
                           <p className="text-gray-400">Total Assets</p>
                           <p className="text-white font-medium">
-                            {formatDecimalOutput(ark.totalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                            {formatDecimalOutput(ark.totalAssets, assetInfo.decimals)}{' '}
+                            {assetInfo.symbol}
                           </p>
                         </div>
                         <div>
                           <p className="text-gray-400">Withdrawable</p>
                           <p className="text-white font-medium">
-                            {formatDecimalOutput(ark.withdrawableTotalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                            {formatDecimalOutput(ark.withdrawableTotalAssets, assetInfo.decimals)}{' '}
+                            {assetInfo.symbol}
                           </p>
                         </div>
                       </div>

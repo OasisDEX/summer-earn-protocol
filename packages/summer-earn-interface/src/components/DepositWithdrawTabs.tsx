@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { AmountInput } from './AmountInput'
 import type { UserFleetInfo } from '../types'
+import { AmountInput } from './AmountInput'
 
 interface DepositWithdrawTabsProps {
   userInfo: UserFleetInfo
@@ -56,7 +56,7 @@ export function DepositWithdrawTabs({
   return (
     <div className="bg-gray-900 p-6 rounded-lg">
       <h3 className="text-xl font-semibold text-white mb-6">Deposit & Withdraw</h3>
-      
+
       {/* Tab Navigation */}
       <div className="flex space-x-1 mb-6 bg-gray-800 p-1 rounded-lg">
         <button
@@ -89,8 +89,10 @@ export function DepositWithdrawTabs({
               <strong>Deposit Process:</strong>
             </p>
             <p className="text-xs text-blue-300">
-              1. Deposit {assetSymbol} → Get {fleetSymbol} shares<br/>
-              2. {fleetSymbol} shares earn yield from fleet strategies<br/>
+              1. Deposit {assetSymbol} → Get {fleetSymbol} shares
+              <br />
+              2. {fleetSymbol} shares earn yield from fleet strategies
+              <br />
               3. Optionally stake {fleetSymbol} shares for bonus rewards
             </p>
           </div>
@@ -123,10 +125,12 @@ export function DepositWithdrawTabs({
                 {isApproveLoading ? 'Approving...' : `Approve ${assetSymbol}`}
               </button>
             )}
-            
+
             <button
               onClick={handleDeposit}
-              disabled={isDepositLoading || parsedDepositAmount === BigInt(0) || depositNeedsApproval}
+              disabled={
+                isDepositLoading || parsedDepositAmount === BigInt(0) || depositNeedsApproval
+              }
               className={`w-full p-3 rounded-lg font-semibold transition-colors ${
                 isDepositLoading || parsedDepositAmount === BigInt(0) || depositNeedsApproval
                   ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -146,8 +150,10 @@ export function DepositWithdrawTabs({
               <strong>Withdraw Process:</strong>
             </p>
             <p className="text-xs text-orange-300">
-              1. Burn {fleetSymbol} shares → Get {assetSymbol}<br/>
-              2. You'll receive your share of fleet performance<br/>
+              1. Burn {fleetSymbol} shares → Get {assetSymbol}
+              <br />
+              2. You'll receive your share of fleet performance
+              <br />
               3. Note: Unstake first if you have staked shares
             </p>
           </div>

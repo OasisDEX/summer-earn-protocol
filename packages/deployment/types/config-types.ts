@@ -30,6 +30,7 @@ export enum ArkType {
   OriginETHArk = 'OriginETHArk',
   FluidLiteArk = 'FluidLiteArk',
   AeraArk = 'AeraArk',
+  StargateV2PoolArk = 'StargateV2PoolArk',
 }
 
 export const arkTypes = [
@@ -52,6 +53,7 @@ export const arkTypes = [
   { title: 'OriginETHArk', value: ArkType.OriginETHArk },
   { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
   { title: 'AeraArk', value: ArkType.AeraArk },
+  { title: 'StargateV2PoolArk', value: ArkType.StargateV2PoolArk },
 ]
 
 export interface Config {
@@ -211,7 +213,7 @@ export interface BaseConfig {
     originETH: {
       originETH: Address
       arm: Address
-    },
+    }
     gauntlet: {
       vaults: {
         [key in Token]: {
@@ -219,6 +221,12 @@ export interface BaseConfig {
             provisioner: Address
           }
         }
+      }
+    }
+    stargate: {
+      staking: Address
+      pools: {
+        [key in Token]: Address
       }
     }
   }

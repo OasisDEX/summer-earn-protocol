@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { AmountInput } from './AmountInput'
 import type { ArkInfo } from '../types'
+import { AmountInput } from './AmountInput'
 
 interface RebalanceFormProps {
   arks: ArkInfo[]
@@ -32,7 +32,7 @@ export function RebalanceForm({
   const [boardData, setBoardData] = useState('0x')
   const [disembarkData, setDisembarkData] = useState('0x')
 
-  const selectedFromArk = arks.find(ark => ark.address === fromArk)
+  const selectedFromArk = arks.find((ark) => ark.address === fromArk)
 
   const handleSubmit = () => {
     if (!fromArk || !toArk || !parsedAmount || fromArk === '0x' || toArk === '0x') return
@@ -51,13 +51,11 @@ export function RebalanceForm({
   return (
     <div className="bg-gray-900 p-6 rounded-lg">
       <h3 className="text-xl font-semibold text-white mb-6">Rebalance Assets</h3>
-      
+
       <div className="space-y-6">
         {/* From Ark Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            From Ark
-          </label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">From Ark</label>
           <select
             value={fromArk}
             onChange={(e) => setFromArk(e.target.value as `0x${string}`)}
@@ -66,7 +64,9 @@ export function RebalanceForm({
             <option value="0x">Select source ark...</option>
             {arks.map((ark) => (
               <option key={`from-${ark.address}`} value={ark.address}>
-                {ark.name}{ark.isBufferArk ? ' (Buffer)' : ''} - {ark.address.slice(0, 6)}...{ark.address.slice(-4)}
+                {ark.name}
+                {ark.isBufferArk ? ' (Buffer)' : ''} - {ark.address.slice(0, 6)}...
+                {ark.address.slice(-4)}
               </option>
             ))}
           </select>
@@ -81,8 +81,18 @@ export function RebalanceForm({
                     </span>
                   )}
                 </div>
-                <div>Total Assets: {(Number(selectedFromArk.totalAssets) / Math.pow(10, assetDecimals)).toFixed(4)} {assetSymbol}</div>
-                <div>Withdrawable: {(Number(selectedFromArk.withdrawableTotalAssets) / Math.pow(10, assetDecimals)).toFixed(4)} {assetSymbol}</div>
+                <div>
+                  Total Assets:{' '}
+                  {(Number(selectedFromArk.totalAssets) / Math.pow(10, assetDecimals)).toFixed(4)}{' '}
+                  {assetSymbol}
+                </div>
+                <div>
+                  Withdrawable:{' '}
+                  {(
+                    Number(selectedFromArk.withdrawableTotalAssets) / Math.pow(10, assetDecimals)
+                  ).toFixed(4)}{' '}
+                  {assetSymbol}
+                </div>
               </div>
             </div>
           )}
@@ -90,20 +100,22 @@ export function RebalanceForm({
 
         {/* To Ark Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            To Ark
-          </label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">To Ark</label>
           <select
             value={toArk}
             onChange={(e) => setToArk(e.target.value as `0x${string}`)}
             className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="0x">Select destination ark...</option>
-            {arks.filter(ark => ark.address !== fromArk).map((ark) => (
-              <option key={`to-${ark.address}`} value={ark.address}>
-                {ark.name}{ark.isBufferArk ? ' (Buffer)' : ''} - {ark.address.slice(0, 6)}...{ark.address.slice(-4)}
-              </option>
-            ))}
+            {arks
+              .filter((ark) => ark.address !== fromArk)
+              .map((ark) => (
+                <option key={`to-${ark.address}`} value={ark.address}>
+                  {ark.name}
+                  {ark.isBufferArk ? ' (Buffer)' : ''} - {ark.address.slice(0, 6)}...
+                  {ark.address.slice(-4)}
+                </option>
+              ))}
           </select>
         </div>
 

@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { formatUnits } from 'viem'
 import { useFleetActions } from '../hooks/useFleetActions'
 import { useStakingRewards } from '../hooks/useStakingRewards'
-import { FleetCommanderInfo, UserFleetInfo, ChainId } from '../types'
+import { ChainId, FleetCommanderInfo, UserFleetInfo } from '../types'
 import { formatDecimalOutput } from '../utils/decimals'
 
 interface FleetCardProps {
@@ -102,9 +102,7 @@ export function FleetCard({
                 <p className="font-semibold text-blue-100">
                   {formatDecimalOutput(stakedBalance, 18)} {fleetInfo.symbol}
                 </p>
-                <p className="text-xs text-blue-400 mt-1">
-                  Earning additional rewards
-                </p>
+                <p className="text-xs text-blue-400 mt-1">Earning additional rewards</p>
               </div>
             </div>
           )}
