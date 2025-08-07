@@ -109,7 +109,7 @@ async function deployAeraArkContract(
 ): Promise<AeraArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const arkName = `Aera-${userInput.provisioner}-${userInput.token.symbol}-${chainId}`
+  const arkName = `Aera-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
   const moduleName = userInput.fleetName + '_' + arkName.replace(/-/g, '_')
 
   const provisionerContract = config.protocolSpecific.gauntlet.vaults[userInput.token.symbol][userInput.vaultName].provisioner
