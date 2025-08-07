@@ -29,6 +29,9 @@ contract AeraArk is ArkWithWithdrawalRequest {
     /// @notice Default solver tip (0 for auto-price requests)
     uint256 public constant DEFAULT_SOLVER_TIP = 0;
 
+    /// @notice Default slippage (0.02%)
+    uint256 public constant DEFAULT_SLIPPAGE = 2;
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -70,7 +73,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
     constructor(
         address _provisioner,
         ArkParams memory _params
-    ) ArkWithWithdrawalRequest(_params, 15) {
+    ) ArkWithWithdrawalRequest(_params, DEFAULT_SLIPPAGE) {
         if (_provisioner == address(0)) {
             revert InvalidAddress("provisioner", _provisioner);
         }
@@ -154,7 +157,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
         provisioner.requestDeposit(
             config.asset,
             amount,
-            shareAtTheTimeOfDeposit, // minUnitsOut - calculated by solver
+            _applySlippage(shareAtTheTimeOfDeposit), // minUnitsOut - calculated by solver
             DEFAULT_SOLVER_TIP, // either solverTip == 0 or isFixedPrice == true
             block.timestamp + REQUEST_DEADLINE,
             MAX_PRICE_AGE,
@@ -165,7 +168,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
             address(this),
             RequestType.DEPOSIT_AUTO_PRICE,
             amount,
-            shareAtTheTimeOfDeposit,
+            _applySlippage(shareAtTheTimeOfDeposit),
             DEFAULT_SOLVER_TIP,
             block.timestamp + REQUEST_DEADLINE,
             MAX_PRICE_AGE
@@ -273,7 +276,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
         provisioner.requestRedeem(
             config.asset,
             sharesToRedeem,
-            amount,
+            _applySlippage(amount),
             DEFAULT_SOLVER_TIP, // solverTip - no tip for now
             block.timestamp + REQUEST_DEADLINE,
             MAX_PRICE_AGE,
@@ -284,7 +287,7 @@ contract AeraArk is ArkWithWithdrawalRequest {
             config.asset,
             address(this),
             RequestType.REDEEM_AUTO_PRICE,
-            amount,
+            _applySlippage(amount),
             sharesToRedeem,
             DEFAULT_SOLVER_TIP, // solverTip - no tip for now
             block.timestamp + REQUEST_DEADLINE,
