@@ -79,18 +79,6 @@ export function useStakingRewards({ fleetAddress, chainId }: UseStakingRewardsPr
     refetchEarnedRewards,
   ])
 
-  // Debug logging
-  console.log('🔍 Combined Staking Debug:', {
-    fleetAddress,
-    chainId,
-    configLoading,
-    configError: configError?.message || configError,
-    stakingRewardsManagerAddress,
-    hasStakingManager: !!stakingRewardsManagerAddress,
-    stakedBalance: stakedBalance?.toString(),
-    stakingAllowance: stakingAllowance?.toString(),
-  })
-
   return {
     // Contract addresses
     stakingRewardsManagerAddress,

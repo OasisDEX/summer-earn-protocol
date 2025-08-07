@@ -1,13 +1,18 @@
+import { ChainId } from '@/types'
 import { useState } from 'react'
 import { Address } from 'viem'
 import { useChainId } from 'wagmi'
 import { useRaftContract } from '../contracts/Raft'
+import { ArkManagementForm } from './ArkManagementForm'
 import { AuctionConfigModal } from './AuctionConfigModal'
 
 interface ArkProps {
   arkAddress: Address
   rewardToken: Address
   name: string
+  fleetAddress: Address
+  assetDecimals: number
+  assetSymbol: string
 }
 
 interface ObtainedToken {
@@ -15,10 +20,19 @@ interface ObtainedToken {
   amount: bigint
 }
 
-export function Ark({ arkAddress, rewardToken, name }: ArkProps) {
+export function Ark({
+  arkAddress,
+  rewardToken,
+  name,
+  fleetAddress,
+  assetDecimals,
+  assetSymbol,
+}: ArkProps) {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false)
   const [obtainedTokens, setObtainedTokens] = useState<ObtainedToken[]>([])
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
+  const [isAuctionControlsOpen, setIsAuctionControlsOpen] = useState(false)
+  const [isArkManagementOpen, setIsArkManagementOpen] = useState(false)
   const { harvest, harvestAndStartAuction, getObtainedTokens } = useRaftContract()
   const chainId = useChainId()
 
@@ -56,47 +70,91 @@ export function Ark({ arkAddress, rewardToken, name }: ArkProps) {
         <h2 className="text-xl font-bold">{name}</h2>
       </div>
 
-      <div className="flex space-x-2 mb-4">
+      {/* Auction Controls Section - Foldable */}
+      <div className="mb-4">
         <button
-          onClick={handleHarvest}
-          className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+          onClick={() => setIsAuctionControlsOpen(!isAuctionControlsOpen)}
+          className="w-full flex items-center justify-between bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 mb-2"
         >
-          Harvest
+          <span className="font-semibold">Auction Controls</span>
+          <span
+            className={`transform transition-transform ${isAuctionControlsOpen ? 'rotate-180' : ''}`}
+          >
+            ▼
+          </span>
         </button>
-        <button
-          onClick={handleHarvestAndStartAuction}
-          className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
-        >
-          Harvest & Start Auction
-        </button>
-        <button
-          onClick={() => setIsConfigModalOpen(true)}
-          className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700"
-        >
-          Configure Auction
-        </button>
+
+        {isAuctionControlsOpen && (
+          <div className="bg-gray-300 p-4 rounded-md space-y-3">
+            <div className="flex space-x-2">
+              <button
+                onClick={handleHarvest}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+              >
+                Harvest
+              </button>
+              <button
+                onClick={handleHarvestAndStartAuction}
+                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
+              >
+                Harvest & Start Auction
+              </button>
+              <button
+                onClick={() => setIsConfigModalOpen(true)}
+                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700"
+              >
+                Configure Auction
+              </button>
+            </div>
+
+            <button
+              onClick={handleFetchObtainedTokens}
+              disabled={isLoadingTokens}
+              className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 disabled:opacity-50"
+            >
+              {isLoadingTokens ? 'Loading...' : 'Fetch Obtained Tokens'}
+            </button>
+
+            {obtainedTokens.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold mb-2">Obtained Tokens:</h3>
+                <div className="space-y-2">
+                  {obtainedTokens.map((token) => (
+                    <div key={token.tokenAddress} className="bg-gray-500 p-3 rounded">
+                      <p className="text-sm">Token: {token.tokenAddress}</p>
+                      <p className="text-sm">Amount: {token.amount.toString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="mt-4">
+      {/* Ark Management Section - Foldable */}
+      <div className="mb-4">
         <button
-          onClick={handleFetchObtainedTokens}
-          disabled={isLoadingTokens}
-          className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 disabled:opacity-50"
+          onClick={() => setIsArkManagementOpen(!isArkManagementOpen)}
+          className="w-full flex items-center justify-between bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 mb-2"
         >
-          {isLoadingTokens ? 'Loading...' : 'Fetch Obtained Tokens'}
+          <span className="font-semibold">Ark Management</span>
+          <span
+            className={`transform transition-transform ${isArkManagementOpen ? 'rotate-180' : ''}`}
+          >
+            ▼
+          </span>
         </button>
 
-        {obtainedTokens.length > 0 && (
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">Obtained Tokens:</h3>
-            <div className="space-y-2">
-              {obtainedTokens.map((token) => (
-                <div key={token.tokenAddress} className="bg-gray-500 p-3 rounded">
-                  <p className="text-sm">Token: {token.tokenAddress}</p>
-                  <p className="text-sm">Amount: {token.amount.toString()}</p>
-                </div>
-              ))}
-            </div>
+        {isArkManagementOpen && (
+          <div className="bg-gray-300 p-4 rounded-md">
+            <ArkManagementForm
+              arkAddress={arkAddress}
+              fleetAddress={fleetAddress}
+              chainId={chainId.toString() as ChainId}
+              assetDecimals={assetDecimals}
+              assetSymbol={assetSymbol}
+            />
           </div>
         )}
       </div>

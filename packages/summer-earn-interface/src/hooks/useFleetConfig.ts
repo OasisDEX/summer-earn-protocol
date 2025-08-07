@@ -26,17 +26,6 @@ export function useFleetConfig({ fleetAddress, chainId }: UseFleetConfigProps) {
   // Extract staking rewards manager address from config
   const stakingRewardsManagerAddress = fleetConfig?.stakingRewardsManager as string | undefined // stakingRewardsManager is the 5th element (index 4)
 
-  // Debug logging
-  console.log('🔍 Fleet Config Debug:', {
-    fleetAddress,
-    configLoading,
-    configError: configError?.message || configError,
-    fleetConfig,
-    stakingManagerFromConfig: stakingRewardsManagerAddress,
-    chainId,
-    functionBeingCalled: 'config',
-  })
-
   return {
     fleetConfig,
     stakingRewardsManagerAddress,

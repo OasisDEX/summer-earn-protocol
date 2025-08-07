@@ -56,22 +56,42 @@ export function FleetCard({
     <div className="bg-gray-900 rounded-lg p-6 mb-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-white">{fleetInfo.name}</h2>
-        <span className="text-sm bg-blue-600 text-blue-100 py-1 px-2 rounded">
+        <span className="text-xs bg-blue-600 text-blue-100 py-0.5 px-1.5 rounded">
           {fleetInfo.symbol}
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="p-3 bg-gray-800 rounded-lg">
-          <p className="text-sm text-gray-400">Total Assets</p>
-          <p className="font-semibold text-white">
-            {formatUnits(fleetInfo.totalAssets, assetDecimals).slice(0, 10)} {assetSymbol}
+      <div className="space-y-4 mb-4">
+        <div className="p-4 bg-gray-800 rounded-lg">
+          <p className="text-sm text-gray-400 mb-2">Total Assets</p>
+          <p className="text-xl font-semibold text-white">
+            {parseFloat(formatUnits(fleetInfo.totalAssets, assetDecimals)).toLocaleString('en-US', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 6,
+            })}{' '}
+            {assetSymbol}
           </p>
         </div>
-        <div className="p-3 bg-gray-800 rounded-lg">
-          <p className="text-sm text-gray-400">Withdrawable Assets</p>
-          <p className="font-semibold text-white">
-            {formatUnits(fleetInfo.withdrawableTotalAssets, assetDecimals).slice(0, 10)}{' '}
+        <div className="p-4 bg-gray-800 rounded-lg">
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-sm text-gray-400">Withdrawable Assets</p>
+            <span className="text-xs bg-green-600 text-green-100 px-2 py-1 rounded">
+              {fleetInfo.totalAssets > BigInt(0)
+                ? (
+                    (Number(fleetInfo.withdrawableTotalAssets) / Number(fleetInfo.totalAssets)) *
+                    100
+                  ).toFixed(1)
+                : '0.0'}
+              % available
+            </span>
+          </div>
+          <p className="text-xl font-semibold text-white">
+            {parseFloat(
+              formatUnits(fleetInfo.withdrawableTotalAssets, assetDecimals),
+            ).toLocaleString('en-US', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 6,
+            })}{' '}
             {assetSymbol}
           </p>
         </div>

@@ -48,16 +48,22 @@ export function formatDecimalOutput(
     }
 
     // If it's a whole number, don't show decimals
-    if (num % 1 === 0) return num.toString()
+    if (num % 1 === 0) return num.toLocaleString('en-US')
 
     // For very small numbers, use more decimal places
     if (num > 0 && num < 0.000001) {
       const significantDecimals = Math.max(6, decimals - Math.floor(Math.log10(num)))
-      return num.toFixed(Math.min(significantDecimals, 18)).replace(/\.?0+$/, '')
+      return parseFloat(num.toFixed(Math.min(significantDecimals, 18))).toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: Math.min(significantDecimals, 18),
+      })
     }
 
     // Otherwise, limit decimal places
-    return num.toFixed(maxDecimals).replace(/\.?0+$/, '')
+    return parseFloat(num.toFixed(maxDecimals)).toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: maxDecimals,
+    })
   } catch (error) {
     console.error('Error formatting decimal output:', error)
     return '0'
@@ -78,11 +84,26 @@ export function formatLargeNumber(value: bigint, decimals: number): string {
   const num = parseFloat(formatUnits(value, decimals))
 
   if (num >= 1_000_000_000) {
-    return (num / 1_000_000_000).toFixed(2) + 'B'
+    return (
+      (num / 1_000_000_000).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + 'B'
+    )
   } else if (num >= 1_000_000) {
-    return (num / 1_000_000).toFixed(2) + 'M'
+    return (
+      (num / 1_000_000).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + 'M'
+    )
   } else if (num >= 1_000) {
-    return (num / 1_000).toFixed(2) + 'K'
+    return (
+      (num / 1_000).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + 'K'
+    )
   }
 
   return formatDecimalOutput(value, decimals)
