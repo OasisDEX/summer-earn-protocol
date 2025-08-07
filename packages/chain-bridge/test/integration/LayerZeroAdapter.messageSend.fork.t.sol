@@ -48,7 +48,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
                 destinationChainId: DEST_CHAIN_ID,
                 target: user,
                 message: message,
-                originator: user,
+                originator: keeper,
                 refundAddress: address(keeper)
             }),
             options
