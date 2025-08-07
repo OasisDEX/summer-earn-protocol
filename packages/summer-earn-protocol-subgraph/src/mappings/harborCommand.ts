@@ -143,7 +143,7 @@ function processHourlyVaultUpdate(
     const ownersOfPositions: string[] = []
     for (let i = 0; i < positions.length; i++) {
       const position = getOrCreatePosition(positions[i], block)
-      if (position.stakedInputTokenBalanceNormalized.gt(BigDecimalConstants.ZERO)) {
+      if (position.stakedInputTokenBalanceNormalizedInUSD.gt(BigDecimalConstants.ONE)) {
         positionsToUpdate.push(positions[i])
         ownersOfPositions.push(position.account)
       }

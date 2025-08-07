@@ -4,13 +4,14 @@ import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
-import { RebalanceData } from '../types'
+import { ChainId, RebalanceData } from '../types'
 
 interface UseRebalanceProps {
   fleetAddress: `0x${string}`
+  chainId: ChainId
 }
 
-export function useRebalance({ fleetAddress }: UseRebalanceProps) {
+export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
   const [rebalancePending, setRebalancePending] = useState(false)
 
   // Rebalance
@@ -20,7 +21,6 @@ export function useRebalance({ fleetAddress }: UseRebalanceProps) {
     error: rebalanceError,
     isPending: isRebalanceWritePending,
   } = useWriteContract()
-  const { chainId } = useAccount()
   const { address } = useAccount()
 
   // Waiting for transaction

@@ -33,14 +33,24 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
           transport: http(CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]),
         })
 
-        // Get all active arks for the fleet
-        const activeArks = await client.readContract({
-          address: fleetAddress,
-          abi: fleetCommanderAbi,
-          functionName: 'getActiveArks',
-        })
+        // Get all active arks and buffer ark for the fleet
+        const [activeArks, bufferArkAddress] = await Promise.all([
+          client.readContract({
+            address: fleetAddress,
+            abi: fleetCommanderAbi,
+            functionName: 'getActiveArks',
+          }),
+          client.readContract({
+            address: fleetAddress,
+            abi: fleetCommanderAbi,
+            functionName: 'bufferArk',
+          })
+        ])
 
-        if (activeArks.length === 0) {
+        // Combine active arks with buffer ark
+        const allArks = [...activeArks, bufferArkAddress]
+        
+        if (allArks.length === 0) {
           setArks([])
           setLoading(false)
           return
@@ -50,7 +60,7 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
         const multicallData: MulticallContract[] = []
 
         // For each ark, we want totalAssets and withdrawableTotalAssets
-        for (const arkAddress of activeArks) {
+        for (const arkAddress of allArks) {
           multicallData.push({
             address: arkAddress,
             abi: arkAbi as Abi,
@@ -77,7 +87,7 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
 
         // Process results
         const arksData: ArkInfo[] = []
-        for (let i = 0; i < activeArks.length; i++) {
+        for (let i = 0; i < allArks.length; i++) {
           const totalAssetsResult = results[i * 3]
           const withdrawableAssetsResult = results[i * 3 + 1]
           const nameResult = results[i * 3 + 2]
@@ -86,18 +96,28 @@ export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
             withdrawableAssetsResult.status === 'success' &&
             nameResult.status === 'success'
           ) {
+            // Check if this is the buffer ark (last in the allArks array)
+            const isBufferArk = i === allArks.length - 1
             arksData.push({
-              address: activeArks[i],
+              address: allArks[i],
               totalAssets: totalAssetsResult.result as bigint,
               withdrawableTotalAssets: withdrawableAssetsResult.result as bigint,
               name: nameResult.result as string,
+              isBufferArk,
             })
           } else {
-            console.error('Error fetching ark data:', activeArks[i])
+            console.error('Error fetching ark data:', allArks[i])
           }
         }
 
-        setArks(arksData)
+        // Sort arks to show buffer ark first
+        const sortedArks = arksData.sort((a, b) => {
+          if (a.isBufferArk && !b.isBufferArk) return -1
+          if (!a.isBufferArk && b.isBufferArk) return 1
+          return 0
+        })
+        
+        setArks(sortedArks)
         setLoading(false)
       } catch (err) {
         console.error('Error fetching ark data:', err)

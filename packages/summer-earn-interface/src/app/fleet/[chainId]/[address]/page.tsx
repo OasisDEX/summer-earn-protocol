@@ -1,41 +1,43 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useRaftContract } from '../../../../components/../contracts/Raft'
+import { AmountInput } from '../../../../components/AmountInput'
 import { Ark } from '../../../../components/Ark'
 import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
 import { ChainSelector } from '../../../../components/ChainSelector'
 import { ConnectButton } from '../../../../components/ConnectButton'
+import { DebugStakingInfo } from '../../../../components/DebugStakingInfo'
+import { DepositWithdrawTabs } from '../../../../components/DepositWithdrawTabs'
+import { RebalanceForm } from '../../../../components/RebalanceForm'
+import { StakeAfterDepositPrompt } from '../../../../components/StakeAfterDepositPrompt'
+import { StakingSection } from '../../../../components/StakingSection'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
 import { useFleetArks } from '../../../../hooks/useFleetArks'
 import { useFleetInfo } from '../../../../hooks/useFleetInfo'
 import { useRebalance } from '../../../../hooks/useRebalance'
+import { useStakingRewards } from '../../../../hooks/useStakingRewards'
 import { ChainId, RebalanceData } from '../../../../types'
+import { formatDecimalOutput, parseDecimalInput } from '../../../../utils/decimals'
 
 export default function FleetDetail() {
   const params = useParams()
+  const router = useRouter()
   const address = params.address as `0x${string}`
   const chainId = params.chainId as ChainId
   const [selectedChain, setSelectedChain] = useState<ChainId>(chainId)
   const [assetInfo, setAssetInfo] = useState({ symbol: '', decimals: 18 })
-  const [amount, setAmount] = useState('')
-
-  // For rebalance operations
-  const [fromArk, setFromArk] = useState<`0x${string}`>('0x')
-  const [toArk, setToArk] = useState<`0x${string}`>('0x')
-  const [rebalanceAmount, setRebalanceAmount] = useState('')
-  const [boardData, setBoardData] = useState('0x')
-  const [disembarkData, setDisembarkData] = useState('0x')
+  // Amount state removed - now handled in individual tab components
 
   const { isConnected } = useAccount()
   const {
     fleetInfo,
     userInfo,
     loading: fleetLoading,
+    error: fleetError,
   } = useFleetInfo({ address, chainId: selectedChain })
   const { arks, loading: arksLoading } = useFleetArks({
     fleetAddress: address,
@@ -49,7 +51,34 @@ export default function FleetDetail() {
       assetDecimals: assetInfo.decimals,
     })
 
-  const { rebalance, isRebalanceLoading } = useRebalance({ fleetAddress: address })
+  // Calculate if approval is needed
+  const needsApproval = (amount: string) => {
+    if (!userInfo || !amount || amount === '0') return false
+    try {
+      const parsedAmount = parseDecimalInput(amount, assetInfo.decimals)
+      return userInfo.allowance < parsedAmount
+    } catch {
+      return false
+    }
+  }
+
+  const { rebalance, isRebalanceLoading } = useRebalance({ fleetAddress: address, chainId: selectedChain })
+
+  // Staking rewards hook
+  const {
+    stakingRewardsManagerAddress,
+    stakedBalance,
+    approveStaking,
+    stake: stakeShares,
+    needsStakingApproval,
+    isApproveStakingLoading,
+    isStakeLoading,
+    isApproveStakingConfirmed,
+    isStakeConfirmed,
+  } = useStakingRewards({
+    fleetAddress: address,
+    chainId: selectedChain,
+  })
 
   const { harvest, harvestAndStartAuction } = useRaftContract()
   const [auctionModalArk, setAuctionModalArk] = useState<null | {
@@ -58,36 +87,30 @@ export default function FleetDetail() {
     name: string
   }>(null)
 
-  const needsApproval =
-    userInfo && userInfo.allowance < BigInt(amount || '0') && BigInt(amount || '0') > BigInt(0)
+  const handleApprove = () => {
+    approve('1000000000') // Use a default large amount for approval
+  }
 
-  const handleDeposit = () => {
-    if (!fleetInfo) return
-    if (needsApproval) {
-      approve(amount)
-    } else {
+  const handleDeposit = (amount: string, parsedAmount: bigint) => {
+    if (parsedAmount > BigInt(0)) {
       deposit(amount)
     }
   }
 
-  const handleWithdraw = () => {
-    if (!fleetInfo) return
-    withdraw(amount)
+  const handleWithdraw = (amount: string, parsedAmount: bigint) => {
+    if (parsedAmount > BigInt(0)) {
+      withdraw(amount)
+    }
   }
 
-  const handleRebalance = () => {
-    if (!fromArk || !toArk || !rebalanceAmount || !fleetInfo) return
-
-    const rebalanceData: RebalanceData[] = [
-      {
-        fromArk,
-        toArk,
-        amount: BigInt(rebalanceAmount),
-        boardData: boardData as `0x${string}`,
-        disembarkData: disembarkData as `0x${string}`,
-      },
-    ]
-
+  const handleRebalance = (data: {
+    fromArk: `0x${string}`
+    toArk: `0x${string}`
+    amount: bigint
+    boardData: `0x${string}`
+    disembarkData: `0x${string}`
+  }) => {
+    const rebalanceData: RebalanceData[] = [data]
     rebalance(rebalanceData)
   }
 
@@ -103,275 +126,237 @@ export default function FleetDetail() {
 
   if (fleetLoading) {
     return (
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Fleet Details</h1>
-          <ConnectButton />
+      <main className="min-h-screen bg-black p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-white">Fleet Details</h1>
+            <ConnectButton />
+          </div>
+          <div className="text-center text-gray-300">Loading fleet information...</div>
         </div>
-        <p>Loading fleet information...</p>
       </main>
     )
   }
 
-  if (!fleetInfo) {
+  if (fleetError || (!fleetLoading && !fleetInfo)) {
     return (
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8 bg-gray-400">
-          <h1 className="text-3xl font-bold">Fleet Details</h1>
-          <ConnectButton />
+      <main className="min-h-screen bg-black p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-white">Fleet Details</h1>
+            <ConnectButton />
+          </div>
+          <div className="text-center text-red-400 mb-4">
+            {fleetError ? 'Error loading fleet:' : 'Fleet not found. Please check the address and try again.'}
+          </div>
+          {fleetError && (
+            <div className="text-center text-gray-400 text-sm mb-4 bg-gray-800 p-4 rounded">
+              <strong>Error details:</strong> {fleetError.message}
+            </div>
+          )}
+          <Link href="/" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
+            ← Back to Home
+          </Link>
         </div>
-        <p>Fleet not found. Please check the address and try again.</p>
-        <Link href="/" className="text-blue-600 hover:underline mt-4 inline-block">
-          Back to Home
-        </Link>
       </main>
     )
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <Link href="/" className="text-blue-600 hover:underline mb-2 inline-block">
-            &larr; Back to Home
-          </Link>
-          <h1 className="text-3xl font-bold">
-            {fleetInfo.name} ({fleetInfo.symbol})
-          </h1>
-        </div>
-        <ConnectButton />
-      </div>
-
-      <div className="mb-8">
-        <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-gray-400 shadow rounded-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Fleet Information</h2>
-
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-800">Address</p>
-              <p className="font-medium break-all">{fleetInfo.address}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-800">Asset</p>
-              <p className="font-medium break-all">{fleetInfo.asset}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-800">Total Assets</p>
-                <p className="font-medium">
-                  {formatUnits(fleetInfo.totalAssets, assetInfo.decimals)} {assetInfo.symbol}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-800">Withdrawable Assets</p>
-                <p className="font-medium">
-                  {formatUnits(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
-                  {assetInfo.symbol}
-                </p>
-              </div>
+    <main className="min-h-screen bg-black p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <div className="flex items-center gap-4 mb-4">
+              <button
+                onClick={() => router.back()}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                ← Back
+              </button>
+              <h1 className="text-3xl font-bold text-white">
+                {fleetInfo.name} ({fleetInfo.symbol})
+              </h1>
             </div>
           </div>
-
-          {isConnected && userInfo && (
-            <div className="mt-6 border-t pt-4">
-              <h3 className="text-lg font-semibold mb-3">Your Position</h3>
-
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-gray-800">Your Balance</p>
-                  <p className="font-medium">
-                    {formatUnits(userInfo.balance, assetInfo.decimals)} {fleetInfo.symbol}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-800">Your {assetInfo.symbol} Balance</p>
-                  <p className="font-medium">
-                    {formatUnits(userInfo.underlyingBalance, assetInfo.decimals)} {assetInfo.symbol}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="amount" className="block text-sm font-medium text-gray-800 mb-1">
-                  Amount
-                </label>
-                <input
-                  type="text"
-                  id="amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder={`Amount in ${assetInfo.symbol}`}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleDeposit}
-                  disabled={isApproveLoading || isDepositLoading || !amount}
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400"
-                >
-                  {isApproveLoading
-                    ? 'Approving...'
-                    : isDepositLoading
-                      ? 'Depositing...'
-                      : needsApproval
-                        ? 'Approve'
-                        : 'Deposit'}
-                </button>
-                <button
-                  onClick={handleWithdraw}
-                  disabled={isWithdrawLoading || !amount}
-                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400"
-                >
-                  {isWithdrawLoading ? 'Withdrawing...' : 'Withdraw'}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        <div className="bg-gray-400 shadow rounded-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Arks</h2>
+        {/* Chain Selector */}
+        <div className="mb-8">
+          <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
+        </div>
 
-          {arksLoading ? (
-            <p>Loading arks...</p>
-          ) : arks.length === 0 ? (
-            <p>No arks found for this fleet.</p>
-          ) : (
-            <div className="space-y-4">
-              {arks.map((ark) => (
-                <Ark
-                  key={ark.address}
-                  arkAddress={ark.address as `0x${string}`}
-                  rewardToken={fleetInfo.asset as `0x${string}`}
-                  name={ark.name}
-                />
-              ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Fleet Information & User Actions */}
+          <div className="space-y-6">
+            <div className="bg-gray-900 p-6 rounded-lg">
+              <h2 className="text-xl font-semibold text-white mb-6">Fleet Information</h2>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <p className="text-sm text-gray-400">Fleet Address</p>
+                  <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.address}</p>
+                </div>
+
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <p className="text-sm text-gray-400">Asset Address</p>
+                  <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.asset}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-400">Total Assets</p>
+                    <p className="text-lg font-semibold text-white">
+                      {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-400">Withdrawable Assets</p>
+                    <p className="text-lg font-semibold text-white">
+                      {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
 
-          {auctionModalArk && (
-            <AuctionConfigModal
-              isOpen={!!auctionModalArk}
-              onClose={() => setAuctionModalArk(null)}
-              arkAddress={auctionModalArk.address as `0x${string}`}
-              rewardToken={auctionModalArk.rewardToken as `0x${string}`}
+            {isConnected && userInfo && (
+              <div className="bg-gray-900 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-white mb-6">Your Position</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="p-4 bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-400">Your Fleet Tokens</p>
+                    <p className="text-lg font-semibold text-white">
+                      {formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals)} {fleetInfo.symbol}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-400">Your {assetInfo.symbol} Balance</p>
+                    <p className="text-lg font-semibold text-white">
+                      {formatDecimalOutput(userInfo.underlyingBalance, assetInfo.decimals)} {assetInfo.symbol}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* Debug Info (Development Only) */}
+            <DebugStakingInfo 
+              fleetAddress={address}
+              chainId={selectedChain}
+              userInfo={userInfo}
             />
-          )}
 
-          <div className="mt-8 border-t pt-4">
-            <h3 className="text-lg font-semibold mb-3">Rebalance</h3>
+            {/* Deposit/Withdraw Tabs */}
+            {isConnected && userInfo && (
+              <DepositWithdrawTabs
+                userInfo={userInfo}
+                assetSymbol={assetInfo.symbol}
+                assetDecimals={assetInfo.decimals}
+                fleetSymbol={fleetInfo.symbol}
+                fleetDecimals={fleetInfo.fleetDecimals}
+                onDeposit={handleDeposit}
+                onWithdraw={handleWithdraw}
+                onApprove={handleApprove}
+                isApproveLoading={isApproveLoading}
+                isDepositLoading={isDepositLoading}
+                isWithdrawLoading={isWithdrawLoading}
+                needsApproval={needsApproval}
+              />
+            )}
 
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="fromArk" className="block text-sm font-medium text-gray-800 mb-1">
-                  From Ark
-                </label>
-                <select
-                  id="fromArk"
-                  value={fromArk}
-                  onChange={(e) => setFromArk(e.target.value as `0x${string}`)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-400"
-                >
-                  <option value="0x">Select Ark</option>
+            {/* Old interface removed - now using tabs above */}
+            {false && (
+              <div className="hidden">
+              </div>
+            )}
+
+
+            {/* Staking Section */}
+            {isConnected && userInfo && (
+              <StakingSection
+                fleetAddress={address}
+                fleetSymbol={fleetInfo.symbol}
+                fleetDecimals={fleetInfo.fleetDecimals}
+                chainId={selectedChain}
+                userInfo={userInfo}
+              />
+            )}
+          </div>
+
+          {/* Right Column - Arks and Rebalance */}
+          <div className="space-y-6">
+            {/* Arks Section */}
+            <div className="bg-gray-900 p-6 rounded-lg">
+              <h2 className="text-xl font-semibold text-white mb-6">Fleet Arks</h2>
+
+              {arksLoading ? (
+                <div className="text-center text-gray-300">Loading arks...</div>
+              ) : arks.length === 0 ? (
+                <div className="text-center text-gray-400">No arks found for this fleet.</div>
+              ) : (
+                <div className="space-y-4">
                   {arks.map((ark) => (
-                    <option key={`from-${ark.address}`} value={ark.address as `0x${string}`}>
-                      {ark.address} - {ark.name}
-                    </option>
+                    <div key={ark.address} className="p-4 bg-gray-800 rounded-lg">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-white font-semibold">{ark.name}</h4>
+                            {ark.isBufferArk && (
+                              <span className="px-2 py-1 bg-blue-600 text-blue-100 text-xs rounded-full">
+                                Buffer Ark
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-gray-400 text-sm font-mono">{ark.address}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-400">Total Assets</p>
+                          <p className="text-white font-medium">
+                            {formatDecimalOutput(ark.totalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400">Withdrawable</p>
+                          <p className="text-white font-medium">
+                            {formatDecimalOutput(ark.withdrawableTotalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                          </p>
+                        </div>
+                      </div>
+                      <Ark
+                        arkAddress={ark.address as `0x${string}`}
+                        rewardToken={fleetInfo.asset as `0x${string}`}
+                        name={ark.name}
+                      />
+                    </div>
                   ))}
-                </select>
-              </div>
+                </div>
+              )}
 
-              <div>
-                <label htmlFor="toArk" className="block text-sm font-medium text-gray-800 mb-1">
-                  To Ark
-                </label>
-                <select
-                  id="toArk"
-                  value={toArk}
-                  onChange={(e) => setToArk(e.target.value as `0x${string}`)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-400"
-                >
-                  <option value="0x">Select Ark</option>
-                  {arks.map((ark) => (
-                    <option key={`to-${ark.address}`} value={ark.address as `0x${string}`}>
-                      {ark.address} - {ark.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="rebalanceAmount"
-                  className="block text-sm font-medium text-gray-800 mb-1"
-                >
-                  Amount
-                </label>
-                <input
-                  type="text"
-                  id="rebalanceAmount"
-                  value={rebalanceAmount}
-                  onChange={(e) => setRebalanceAmount(e.target.value)}
-                  placeholder={`Amount in ${assetInfo.symbol}`}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              {auctionModalArk && (
+                <AuctionConfigModal
+                  isOpen={!!auctionModalArk}
+                  onClose={() => setAuctionModalArk(null)}
+                  arkAddress={auctionModalArk.address as `0x${string}`}
+                  rewardToken={auctionModalArk.rewardToken as `0x${string}`}
                 />
-              </div>
-
-              <div>
-                <label htmlFor="boardData" className="block text-sm font-medium text-gray-800 mb-1">
-                  Board Data
-                </label>
-                <input
-                  type="text"
-                  id="boardData"
-                  value={boardData}
-                  onChange={(e) => setBoardData(e.target.value)}
-                  placeholder="0x"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="disembarkData"
-                  className="block text-sm font-medium text-gray-800 mb-1"
-                >
-                  Disembark Data
-                </label>
-                <input
-                  type="text"
-                  id="disembarkData"
-                  value={disembarkData}
-                  onChange={(e) => setDisembarkData(e.target.value)}
-                  placeholder="0x"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <button
-                onClick={handleRebalance}
-                disabled={
-                  isRebalanceLoading ||
-                  !fromArk ||
-                  !toArk ||
-                  !rebalanceAmount ||
-                  fromArk === '0x' ||
-                  toArk === '0x'
-                }
-                className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400"
-              >
-                {isRebalanceLoading ? 'Rebalancing...' : 'Rebalance'}
-              </button>
+              )}
             </div>
+
+            {/* Rebalance Section */}
+            <RebalanceForm
+              arks={arks}
+              assetSymbol={assetInfo.symbol}
+              assetDecimals={assetInfo.decimals}
+              onRebalance={handleRebalance}
+              isLoading={isRebalanceLoading}
+            />
           </div>
         </div>
       </div>
