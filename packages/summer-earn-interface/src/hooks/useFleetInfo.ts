@@ -24,11 +24,17 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
   useEffect(() => {
     const fetchFleetInfo = async () => {
       try {
+        console.log('🔍 Fleet Info Debug:', {
+          address,
+          chainId,
+          rpcUrl: CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS],
+        })
+
         const client = createPublicClient({
           transport: http(CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]),
         })
 
-        const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets] =
+        const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, fleetDecimals] =
           await Promise.all([
             client.readContract({
               address,
@@ -55,6 +61,11 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
               abi: fleetCommanderAbi,
               functionName: 'withdrawableTotalAssets',
             }),
+            client.readContract({
+              address,
+              abi: fleetCommanderAbi,
+              functionName: 'decimals',
+            }),
           ])
         const [assetDecimals, assetSymbol] = await Promise.all([
           client.readContract({
@@ -69,6 +80,15 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
           }),
         ])
 
+        // Debug logging to compare decimals
+        console.log('🔍 Decimals Debug:', {
+          fleetAddress: address,
+          fleetDecimals,
+          assetDecimals,
+          assetSymbol,
+          fleetSymbol: symbol
+        })
+
         // Get deposit cap
         const depositCap = BigInt(0) // This is a placeholder, we need to implement this
 
@@ -82,6 +102,7 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
           depositCap,
           assetDecimals,
           assetSymbol,
+          fleetDecimals, // Add fleet decimals to the info
         })
 
         // If user is connected, fetch user-specific info
@@ -116,7 +137,12 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
 
         setLoading(false)
       } catch (err) {
-        console.error('Error fetching fleet info:', err)
+        console.error('❌ Error fetching fleet info:', {
+          error: err,
+          address,
+          chainId,
+          rpcUrl: CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS],
+        })
         setError(err instanceof Error ? err : new Error(String(err)))
         setLoading(false)
       }

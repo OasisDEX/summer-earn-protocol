@@ -494,14 +494,16 @@ function calculateAuctionMultipliers(
 const rewardsConfig: Record<string, Record<string, Token[]>> = {
   mainnet: {
     'sky-rewards': [Token.SKY, Token.SPK],
-    morpho: [Token.MORPHO, Token.SYRUP, Token.SPK],
+    // morpho: [Token.MORPHO, Token.SYRUP, Token.SPK],
     euler: [Token.REUL, Token.SPK],
     gearbox: [Token.GEAR, Token.SPK],
     siloV2: [Token.SILO, Token.XSILO, Token.SPK],
     compound_v3: [Token.COMP, Token.SPK],
+    maple: [Token.SYRUP],
     fluid: [Token.SPK],
     spark: [Token.SPK],
     sky: [Token.SPK],
+    aave_v3: [Token.SPK],
   },
   base: {
     morpho: [Token.MORPHO, Token.WELL, Token.SEAM],
@@ -631,12 +633,12 @@ async function handleSingleRewardToken(
     )
     return []
   }
-  if (rewardTokenSymbol === 'syrup' && !arkConfig.arkSymbol.includes('usdc')) {
-    console.log(
-      `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it does not support usdc`,
-    )
-    return []
-  }
+  // if (rewardTokenSymbol === 'syrup' && !arkConfig.arkSymbol.includes('usdc')) {
+  //   console.log(
+  //     `Skipping ${rewardTokenSymbol.toUpperCase()} for ${arkConfig.arkSymbol} as it does not support usdc`,
+  //   )
+  //   return []
+  // }
   // Find matching auction config
   const auctionConfig = auctionsConfig.find(
     (config) => config.rewardTokenSymbol.toLowerCase() === rewardTokenSymbol,

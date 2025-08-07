@@ -87,10 +87,15 @@ export async function addArkToFleet(
       deployer.account.address,
     ])
     if (hasGovernorRole) {
-      const hash = await fleetContract.write.addArk([arkAddress])
-      await publicClient.waitForTransactionReceipt({
-        hash: hash,
-      })
+      try {
+        const hash = await fleetContract.write.addArk([arkAddress])
+        await publicClient.waitForTransactionReceipt({
+          hash: hash,
+        })
+        console.log(kleur.green('Ark added to fleet successfully!'))
+      } catch (error) {
+        console.log(kleur.red('Ark already added to fleet. Skipping adding Ark to fleet.'))
+      }
     } else {
       console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
       console.log(

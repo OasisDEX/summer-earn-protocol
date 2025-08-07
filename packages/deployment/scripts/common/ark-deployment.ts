@@ -26,6 +26,7 @@ import {
   validateToken,
 } from '../helpers/validation'
 import { ZERO_STRING } from './constants'
+import { deployAeraArk } from '../arks/deploy-aera-ark'
 
 export type ArkConfig = {
   type: ArkType
@@ -250,6 +251,20 @@ export async function deployArk(
       deployedArk = await deploySiloManagedVaultArk(config, siloManagedVaultParams)
       break
     }
+    case ArkType.AeraArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const provisioner = validateAddress(
+        config.protocolSpecific.gauntlet.vaults[token][vaultName].provisioner,
+        `Aera-${vaultName}`,
+      )
+      const ark = await deployAeraArk(config, {
+        ...baseArkParams,
+        provisioner: provisioner,
+        vaultName: vaultName,
+      })
+      deployedArk = ark
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -324,6 +339,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SiloArk: {
       deployedArk = await deploySiloArk(config)
+      break
+    }
+
+    case ArkType.AeraArk: {
+      deployedArk = await deployAeraArk(config)
       break
     }
 

@@ -29,3 +29,4 @@ apps/**/types/generated/*
 **/book/**
 **/deployments/**
 **/build-info/**
+**/lib/**

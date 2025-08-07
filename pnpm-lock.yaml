@@ -18498,7 +18498,7 @@ packages:
     dev: true
 
   git@github.com+dapphub/ds-test/e282159d5170298eb2455a6c05280ab5a73a4ef0:
-    resolution: {commit: e282159d5170298eb2455a6c05280ab5a73a4ef0, repo: git@github.com:dapphub/ds-test.git, type: git}
+    resolution: {commit: e282159d5170298eb2455a6c05280ab5a73a4ef0, repo: https://github.com/dapphub/ds-test.git, type: git}
     name: ds-test
     version: 1.0.0
 

@@ -8,6 +8,13 @@ export const fleetCommanderAbi = [
   },
   {
     type: 'function',
+    name: 'bufferArk',
+    inputs: [],
+    outputs: [{ type: 'address', name: '' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
     name: 'totalAssets',
     inputs: [],
     outputs: [{ type: 'uint256', name: '' }],
@@ -39,6 +46,13 @@ export const fleetCommanderAbi = [
     name: 'symbol',
     inputs: [],
     outputs: [{ type: 'string', name: '' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'decimals',
+    inputs: [],
+    outputs: [{ type: 'uint8', name: '' }],
     stateMutability: 'view'
   },
   {
