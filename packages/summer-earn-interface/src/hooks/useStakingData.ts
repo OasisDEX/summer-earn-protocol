@@ -103,19 +103,6 @@ export function useStakingData({
     },
   })
 
-  // Debug logging
-  console.log('🔍 Staking Data Debug:', {
-    stakingRewardsManagerAddress,
-    isEnabled,
-    stakedBalance: stakedBalance?.toString(),
-    totalStakedSupply: totalStakedSupply?.toString(),
-    stakingAllowance: stakingAllowance?.toString(),
-    earnedRewards: earnedRewards?.toString(),
-    rewardTokens,
-    rewardTokensLength: Number(rewardTokensLength) || 0,
-    chainId: +chainId,
-  })
-
   return {
     // Contract addresses
     stakingTokenAddress,

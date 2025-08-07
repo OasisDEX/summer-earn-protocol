@@ -115,5 +115,127 @@ export const fleetCommanderAbi = [
     ],
     outputs: [],
     stateMutability: 'nonpayable'
+  },
+  // Ark Management Methods
+  {
+    type: 'function',
+    name: 'setArkDepositCap',
+    inputs: [
+      { type: 'address', name: 'ark' },
+      { type: 'uint256', name: 'newDepositCap' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setArkMaxDepositPercentageOfTVL',
+    inputs: [
+      { type: 'address', name: 'ark' },
+      { type: 'uint256', name: 'newMaxDepositPercentageOfTVL' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setArkMaxRebalanceOutflow',
+    inputs: [
+      { type: 'address', name: 'ark' },
+      { type: 'uint256', name: 'newMaxRebalanceOutflow' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setArkMaxRebalanceInflow',
+    inputs: [
+      { type: 'address', name: 'ark' },
+      { type: 'uint256', name: 'newMaxRebalanceInflow' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  // Fleet-level Management Methods
+  {
+    type: 'function',
+    name: 'setMinimumBufferBalance',
+    inputs: [
+      { type: 'uint256', name: 'newMinimumBalance' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setFleetDepositCap',
+    inputs: [
+      { type: 'uint256', name: 'newCap' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setMaxRebalanceOperations',
+    inputs: [
+      { type: 'uint256', name: 'newMaxRebalanceOperations' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setFleetTokenTransferability',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  // Add/Remove Arks
+  {
+    type: 'function',
+    name: 'addArk',
+    inputs: [
+      { type: 'address', name: 'ark' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'removeArk',
+    inputs: [
+      { type: 'address', name: 'ark' }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  // View methods for current values
+  {
+    type: 'function',
+    name: 'getConfig',
+    inputs: [],
+    outputs: [
+      {
+        type: 'tuple',
+        name: '',
+        components: [
+          { type: 'address', name: 'bufferArk' },
+          { type: 'uint256', name: 'minimumBufferBalance' },
+          { type: 'uint256', name: 'depositCap' },
+          { type: 'uint256', name: 'maxRebalanceOperations' },
+          { type: 'address', name: 'stakingRewardsManager' }
+        ]
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'transfersEnabled',
+    inputs: [],
+    outputs: [{ type: 'bool', name: '' }],
+    stateMutability: 'view'
   }
 ] as const; 
