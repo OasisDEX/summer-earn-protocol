@@ -80,6 +80,13 @@ contract StargateV2PoolArk is Ark {
 
         // Approve the staking contract to spend LP tokens
         lpToken.forceApprove(_stargateStaking, Constants.MAX_UINT256);
+
+        convertRate =
+            10 **
+                uint256(
+                    IERC20Extended(address(config.asset)).decimals() -
+                        stargatePool.sharedDecimals()
+                );
     }
 
     /**
@@ -89,8 +96,8 @@ contract StargateV2PoolArk is Ark {
      * @return assets The total balance of underlying assets held in the pool for this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        // For rebasing tokens, the staked LP balance directly represents the underlying asset value
         assets += stargateStaking.balanceOf(lpToken, address(this));
+        assets += config.asset.balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -113,12 +120,13 @@ contract StargateV2PoolArk is Ark {
         );
         if (stakedLpBalance > 0) {
             // For rebasing tokens, check the pool's available balance vs our position
-            uint256 poolBalance = stargatePool.poolBalance();
+            uint256 poolBalance = stargatePool.redeemable(address(0));
             // Return the minimum of our position or available pool liquidity
             withdrawableAssets = stakedLpBalance > poolBalance
                 ? poolBalance
                 : stakedLpBalance;
         }
+        withdrawableAssets += config.asset.balanceOf(address(this));
     }
 
     /**
@@ -128,8 +136,10 @@ contract StargateV2PoolArk is Ark {
      */
     function _board(uint256 amount, bytes calldata) internal override {
         if (isNativeAsset) {
+            amount = (amount / convertRate) * convertRate;
             weth.withdraw(amount);
         }
+
         stargateStaking.deposit(
             lpToken,
             stargatePool.deposit{value: isNativeAsset ? amount : 0}(
@@ -145,6 +155,10 @@ contract StargateV2PoolArk is Ark {
      * @param /// data Additional data (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
+        uint tokenBalanceInArk = config.asset.balanceOf(address(this));
+        if (tokenBalanceInArk > 0) {
+            amount -= tokenBalanceInArk;
+        }
         stargateStaking.withdraw(lpToken, amount);
         stargatePool.redeem(amount, address(this));
         if (isNativeAsset) {

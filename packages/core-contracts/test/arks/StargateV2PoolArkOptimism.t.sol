@@ -763,4 +763,72 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
 
         vm.stopPrank();
     }
+
+    function test_DustHandling_ArkShouldCleanDustAndKeepForWithdrawal() public {
+        // Test that the ark should handle dusty deposits by cleaning the dust
+        // and keeping it in the ark for later withdrawal
+        uint256 dustyAmount = 1.123456789123456789 ether; // Has dust beyond 6 decimals
+
+        vm.deal(commander, dustyAmount);
+        vm.startPrank(commander);
+        weth.deposit{value: dustyAmount}();
+        IERC20(address(weth)).approve(address(ark), dustyAmount);
+
+        uint256 cleanAmount = (dustyAmount / ark.convertRate()) *
+            ark.convertRate(); // Clean amount = 1.123456 ether
+        uint256 dustAmount = dustyAmount - cleanAmount; // Dust = 0.000000789123456789 ether
+
+        uint256 initialStakedBalance = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+        uint256 initialWethInArk = weth.balanceOf(address(ark));
+
+        ark.board(dustyAmount, bytes(""));
+
+        uint256 finalStakedBalance = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+        uint256 finalWethInArk = weth.balanceOf(address(ark));
+        uint256 actualStaked = finalStakedBalance - initialStakedBalance;
+        uint256 dustInArk = finalWethInArk - initialWethInArk;
+
+        assertEq(
+            actualStaked,
+            cleanAmount,
+            "Should stake only the clean amount"
+        );
+        assertEq(dustInArk, dustAmount, "Should keep dust in the ark as WETH");
+
+        // Verify total assets includes both staked amount and dust
+        uint256 totalAssets = ark.totalAssets();
+        assertEq(
+            totalAssets,
+            dustyAmount,
+            "Total assets should include staked + dust"
+        );
+
+        // Verify we can withdraw the full dusty amount
+        uint256 withdrawableAssets = ark.withdrawableTotalAssets();
+        assertEq(
+            withdrawableAssets,
+            dustyAmount,
+            "Should be able to withdraw full dusty amount"
+        );
+
+        // Test actual withdrawal
+        uint256 commanderWethBefore = weth.balanceOf(commander);
+        ark.disembark(dustyAmount, bytes(""));
+        uint256 commanderWethAfter = weth.balanceOf(commander);
+        uint256 actualWithdrawn = commanderWethAfter - commanderWethBefore;
+
+        assertEq(
+            actualWithdrawn,
+            dustyAmount,
+            "Should withdraw full dusty amount including dust"
+        );
+
+        vm.stopPrank();
+    }
 }
