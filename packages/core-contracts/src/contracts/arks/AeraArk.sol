@@ -83,9 +83,6 @@ contract AeraArk is ArkWithWithdrawalRequest {
         priceCalculator = IPriceAndFeeCalculator(
             provisioner.PRICE_FEE_CALCULATOR()
         );
-
-        // Approve the provisioner to spend the Ark's tokens
-        config.asset.forceApprove(_provisioner, Constants.MAX_UINT256);
     }
 
     /**
