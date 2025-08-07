@@ -9,8 +9,8 @@ import { Ark } from '../../../../components/Ark'
 import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
 import { ChainSelector } from '../../../../components/ChainSelector'
 import { ConnectButton } from '../../../../components/ConnectButton'
-import { DebugStakingInfo } from '../../../../components/DebugStakingInfo'
 import { DepositWithdrawTabs } from '../../../../components/DepositWithdrawTabs'
+import { FleetManagementForm } from '../../../../components/FleetManagementForm'
 import { RebalanceForm } from '../../../../components/RebalanceForm'
 import { StakingSection } from '../../../../components/StakingSection'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
@@ -28,6 +28,7 @@ export default function FleetDetail() {
   const chainId = params.chainId as ChainId
   const [selectedChain, setSelectedChain] = useState<ChainId>(chainId)
   const [assetInfo, setAssetInfo] = useState({ symbol: '', decimals: 18 })
+  const [isFleetManagementOpen, setIsFleetManagementOpen] = useState(false)
   // Amount state removed - now handled in individual tab components
 
   const { isConnected } = useAccount()
@@ -251,7 +252,7 @@ export default function FleetDetail() {
             )}
 
             {/* Debug Info (Development Only) */}
-            <DebugStakingInfo fleetAddress={address} chainId={selectedChain} userInfo={userInfo} />
+            {/* <DebugStakingInfo fleetAddress={address} chainId={selectedChain} userInfo={userInfo} /> */}
 
             {/* Deposit/Withdraw Tabs */}
             {isConnected && userInfo && (
@@ -333,6 +334,9 @@ export default function FleetDetail() {
                         arkAddress={ark.address as `0x${string}`}
                         rewardToken={fleetInfo.asset as `0x${string}`}
                         name={ark.name}
+                        fleetAddress={address}
+                        assetDecimals={assetInfo.decimals}
+                        assetSymbol={assetInfo.symbol}
                       />
                     </div>
                   ))}
@@ -357,6 +361,30 @@ export default function FleetDetail() {
               onRebalance={handleRebalance}
               isLoading={isRebalanceLoading}
             />
+
+            {/* Fleet Management Section */}
+            <div className="bg-white shadow rounded-lg p-6 mt-6">
+              <button
+                onClick={() => setIsFleetManagementOpen(!isFleetManagementOpen)}
+                className="w-full flex items-center justify-between bg-gray-600 text-white py-3 px-4 rounded-md hover:bg-gray-700 mb-4"
+              >
+                <span className="text-lg font-semibold">Fleet Management</span>
+                <span
+                  className={`transform transition-transform ${isFleetManagementOpen ? 'rotate-180' : ''}`}
+                >
+                  ▼
+                </span>
+              </button>
+
+              {isFleetManagementOpen && (
+                <FleetManagementForm
+                  fleetAddress={address}
+                  chainId={selectedChain}
+                  assetDecimals={assetInfo.decimals}
+                  assetSymbol={assetInfo.symbol}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
