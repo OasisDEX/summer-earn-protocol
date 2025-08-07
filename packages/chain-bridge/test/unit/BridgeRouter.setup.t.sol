@@ -113,6 +113,7 @@ contract BridgeRouterSetup is Test {
         vm.deal(keeper, 1 ether);
         vm.deal(executor, 1 ether);
         vm.deal(address(mockReceiver), 10 ether);
+        vm.deal(address(0x999), 1 ether); // Fund unauthorizedCaller for tests
 
         vm.stopPrank();
 

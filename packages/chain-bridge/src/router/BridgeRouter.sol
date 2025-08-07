@@ -434,6 +434,7 @@ contract BridgeRouter is
             BridgeTypes.OperationType.MESSAGE
         );
         _validateSendMessageParams(params);
+        _validateOriginator(params.originator);
 
         // Get required base fee and specified adapter (no multiplier)
         (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
