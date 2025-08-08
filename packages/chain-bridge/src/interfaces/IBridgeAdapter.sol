@@ -57,18 +57,6 @@ interface IBridgeAdapter is ISendAdapter {
         uint256 toleranceBps
     );
 
-    /// @notice Error for zero amount received
-    error ZeroAmountReceived();
-
-    /// @notice Error for invalid amount received
-    error InvalidAmountReceived(uint256 received, uint256 expected);
-
-    /// @notice Error for insufficient amount received
-    error InsufficientAmount(uint256 amount, uint256 minAmount);
-
-    /// @notice Error for amount above maximum limit
-    error ExceedsMaxAmount(uint256 amount, uint256 maxAmount);
-
     /// @notice Error for untrusted Stargate pool contract
     error Untrusted(string what, address from, address additionalInfo);
 

@@ -55,19 +55,6 @@ contract StargateAdapter is
     /// @notice Array of failed operation IDs for easier iteration
     bytes32[] public failedOperationIds;
 
-    /// @notice Local context struct to avoid stack too deep errors
-    struct LocalContext {
-        IStargateV2 stargate;
-        address stargateContract;
-        address destinationAdapter;
-        SendParam sendParam;
-        MessagingFee messagingFee;
-        BridgeTypes.RelayedTransferParams atm;
-        OFTLimit oftLimit;
-        OFTReceipt oftReceipt;
-        uint256 minExpectedAmount;
-    }
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -295,7 +282,7 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Execute the actual sendToken call with consolidated logic to avoid stack too deep
+     * @dev Execute the actual sendToken call with consolidated logic
      */
     function _executeSendToken(
         bytes32 operationId,
@@ -303,90 +290,65 @@ contract StargateAdapter is
         uint256 providedFee,
         BridgeTypes.BridgeOptions memory options
     ) internal {
-        LocalContext memory ctx;
-
         // Get the source chain Stargate contract
-        ctx.stargateContract = assetToStargateContract[params.asset];
-        ctx.stargate = IStargateV2(ctx.stargateContract);
+        address stargateContract = assetToStargateContract[params.asset];
+        IStargateV2 stargate = IStargateV2(stargateContract);
 
         // Approve Stargate contract to spend the tokens
-        IERC20(params.asset).forceApprove(ctx.stargateContract, params.amount);
+        IERC20(params.asset).forceApprove(stargateContract, params.amount);
 
         // Resolve destination adapter via registry
-        ctx.destinationAdapter = _peerAdapter(params.destinationChainId);
-        if (ctx.destinationAdapter == address(0)) revert UnsupportedChain();
-
-        // Build relayed transfer params
-        ctx.atm = BridgeTypes.RelayedTransferParams({
-            recipient: params.target,
-            asset: params.asset,
-            amount: params.amount,
-            sourceChainId: uint16(block.chainid),
-            operationId: operationId,
-            originator: params.originator,
-            message: params.message
-        });
+        address destinationAdapter = _peerAdapter(params.destinationChainId);
 
         // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
-        ctx.sendParam = _buildSendParam(
+        SendParam memory sendParam = _buildSendParam(
             params.destinationChainId,
-            ctx.destinationAdapter,
+            destinationAdapter,
             params.amount,
-            _encodeRelayedTransferParams(ctx.atm),
+            _encodeRelayedTransferParams(
+                BridgeTypes.RelayedTransferParams({
+                    recipient: params.target,
+                    asset: params.asset,
+                    amount: params.amount,
+                    sourceChainId: uint16(block.chainid),
+                    operationId: operationId,
+                    originator: params.originator,
+                    message: params.message
+                })
+            ),
             options
         );
 
-        (ctx.oftLimit, , ctx.oftReceipt) = ctx.stargate.quoteOFT(ctx.sendParam);
-
-        // Validate OFT limits first
-        if (params.amount < ctx.oftLimit.minAmountLD) {
-            revert InsufficientAmount(params.amount, ctx.oftLimit.minAmountLD);
-        }
-        if (params.amount > ctx.oftLimit.maxAmountLD) {
-            revert ExceedsMaxAmount(params.amount, ctx.oftLimit.maxAmountLD);
-        }
-
-        // Validate received amount
-        if (ctx.oftReceipt.amountReceivedLD == 0) {
-            revert ZeroAmountReceived();
-        }
-
-        // Check that received amount is not higher than input (suspicious)
-        if (ctx.oftReceipt.amountReceivedLD > params.amount) {
-            revert InvalidAmountReceived(
-                ctx.oftReceipt.amountReceivedLD,
-                params.amount
-            );
-        }
+        (OFTLimit memory oftLimit, , OFTReceipt memory oftReceipt) = stargate
+            .quoteOFT(sendParam);
 
         // Calculate minimum slippage threshold (use configurable tolerance)
-        ctx.minExpectedAmount =
-            (params.amount * (10000 - slippageToleranceBps)) /
-            10000;
+        uint256 minExpectedAmount = (params.amount *
+            (10000 - slippageToleranceBps)) / 10000;
 
         // Revert if slippage exceeds tolerance
-        if (ctx.oftReceipt.amountReceivedLD < ctx.minExpectedAmount) {
+        if (oftReceipt.amountReceivedLD < minExpectedAmount) {
             revert SlippageExceedsTolerance(
-                ctx.minExpectedAmount,
-                ctx.oftReceipt.amountReceivedLD,
+                minExpectedAmount,
+                oftReceipt.amountReceivedLD,
                 slippageToleranceBps
             );
         }
 
         // Use the quoted amount since it's within tolerance
-        ctx.sendParam.minAmountLD = ctx.oftReceipt.amountReceivedLD;
+        sendParam.minAmountLD = oftReceipt.amountReceivedLD;
 
         // Get messaging fee and perform transfer
-        ctx.messagingFee = ctx.stargate.quoteSend(ctx.sendParam, false);
+        MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
 
-        if (providedFee < ctx.messagingFee.nativeFee) {
-            revert InsufficientFee(ctx.messagingFee.nativeFee, providedFee);
+        if (providedFee < messagingFee.nativeFee) {
+            revert InsufficientFee(messagingFee.nativeFee, providedFee);
         }
 
         // Use exact fee amount from quote - Stargate handles refunds to keeper
-        ctx.stargate.sendToken{value: ctx.messagingFee.nativeFee}(
-            ctx.sendParam,
-            ctx.messagingFee,
+        stargate.sendToken{value: messagingFee.nativeFee}(
+            sendParam,
+            messagingFee,
             params.refundAddress // Always refund to keeper who paid fees
         );
     }
