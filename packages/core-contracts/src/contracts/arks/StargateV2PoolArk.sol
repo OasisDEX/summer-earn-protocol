@@ -8,7 +8,6 @@ import {IMultiRewarder} from "../../interfaces/stargate/IMultiRewarder.sol";
 import {IWETH} from "../../interfaces/misc/IWETH.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Extended} from "../../interfaces/IERC20Extended.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @title StargateV2PoolArk
@@ -121,14 +120,11 @@ contract StargateV2PoolArk is Ark {
         );
         if (stakedLpBalance > 0) {
             uint256 poolBalance = stargatePool.redeemable(address(0));
-            console.log("poolBalance", poolBalance);
-            console.log("stakedLpBalance", stakedLpBalance);
             // Return the minimum of our position or available pool liquidity
             withdrawableAssets = stakedLpBalance > poolBalance
                 ? poolBalance
                 : stakedLpBalance;
         }
-        console.log("token balance", config.asset.balanceOf(address(this)));
         withdrawableAssets += config.asset.balanceOf(address(this));
     }
 
