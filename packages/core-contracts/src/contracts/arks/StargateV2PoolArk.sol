@@ -155,13 +155,15 @@ contract StargateV2PoolArk is Ark {
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
         uint tokenBalanceInArk = config.asset.balanceOf(address(this));
-        if (tokenBalanceInArk > 0) {
-            amount -= tokenBalanceInArk;
-        }
-        stargateStaking.withdraw(lpToken, amount);
-        stargatePool.redeem(amount, address(this));
-        if (isNativeAsset) {
-            weth.deposit{value: amount}();
+        if (tokenBalanceInArk < amount) {
+            uint256 toPull = amount - tokenBalanceInArk;
+            if (toPull > 0) {
+                stargateStaking.withdraw(lpToken, toPull);
+                stargatePool.redeem(toPull, address(this));
+                if (isNativeAsset) {
+                    weth.deposit{value: toPull}();
+                }
+            }
         }
     }
 
