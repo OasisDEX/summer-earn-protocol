@@ -103,7 +103,6 @@ export function useStakingData({
     },
   })
 
-
   return {
     // Contract addresses
     stakingTokenAddress,

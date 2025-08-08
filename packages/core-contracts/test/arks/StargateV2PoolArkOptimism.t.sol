@@ -359,11 +359,14 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
         // we need to mock the pool balance as it has separate accounting, rather than simple balanceOf underlying assets
         vm.mockCall(
             address(stargatePool),
-            abi.encodeWithSelector(IStargatePool.poolBalance.selector),
+            abi.encodeWithSelector(
+                IStargatePool.redeemable.selector,
+                address(0)
+            ),
             abi.encode(veryLowBalance)
         );
         assertEq(
-            stargatePool.poolBalance(),
+            stargatePool.redeemable(address(0)),
             veryLowBalance,
             "Pool balance should be equal to the very low balance"
         );
@@ -424,7 +427,7 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function test_DustHandling_SingleDeposit() public {
-        // Test that deposits with dust revert for native ETH pools (StargatePoolNative behavior)
+        // Dusty deposits should be cleaned: stake clean portion, keep dust in Ark as WETH
         uint256 amountWithDust = 1.123456789123456789 ether; // Has dust beyond 6 decimals
 
         vm.deal(commander, amountWithDust);
@@ -432,9 +435,34 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
         weth.deposit{value: amountWithDust}();
         IERC20(address(weth)).approve(address(ark), amountWithDust);
 
-        // Native ETH pools revert on dusty amounts
-        vm.expectRevert(); // Should revert due to dust
+        uint256 cleanAmount = (amountWithDust / ark.convertRate()) *
+            ark.convertRate();
+        uint256 dustAmount = amountWithDust - cleanAmount;
+
+        uint256 initialStakedBalance = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+        uint256 initialWethInArk = weth.balanceOf(address(ark));
+
         ark.board(amountWithDust, bytes(""));
+
+        uint256 finalStakedBalance = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+        uint256 finalWethInArk = weth.balanceOf(address(ark));
+
+        assertEq(
+            finalStakedBalance - initialStakedBalance,
+            cleanAmount,
+            "Should stake clean portion only"
+        );
+        assertEq(
+            finalWethInArk - initialWethInArk,
+            dustAmount,
+            "Dust should remain in Ark as WETH"
+        );
 
         vm.stopPrank();
     }
@@ -618,7 +646,7 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function test_PrecisionLoss_VsExpectedAmounts() public {
-        // Test dusty deposits revert vs clean deposits work for native ETH
+        // Dusty deposits should floor to clean amount; clean deposits should be exact
         uint256[] memory dustyAmounts = new uint256[](3);
         dustyAmounts[0] = 0.999999999999999999 ether; // Has dust
         dustyAmounts[1] = 1.000000000000000001 ether; // Has dust
@@ -634,27 +662,62 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
         weth.deposit{value: 20 ether}();
         IERC20(address(weth)).approve(address(ark), 20 ether);
 
-        // Test that dusty amounts revert
+        // Dusty amounts: only clean portion is staked, dust remains as WETH in Ark
         for (uint256 i = 0; i < dustyAmounts.length; i++) {
-            vm.expectRevert(); // Should revert due to dust
+            uint256 cleanPortion = (dustyAmounts[i] / ark.convertRate()) *
+                ark.convertRate();
+            uint256 dustPortion = dustyAmounts[i] - cleanPortion;
+
+            uint256 stakedBefore = stargateStaking.balanceOf(
+                lpToken,
+                address(ark)
+            );
+            uint256 wethInArkBefore = weth.balanceOf(address(ark));
+
             ark.board(dustyAmounts[i], bytes(""));
+
+            uint256 stakedAfter = stargateStaking.balanceOf(
+                lpToken,
+                address(ark)
+            );
+            uint256 wethInArkAfter = weth.balanceOf(address(ark));
+
+            assertEq(
+                stakedAfter - stakedBefore,
+                cleanPortion,
+                string(
+                    abi.encodePacked(
+                        "Dusty deposit ",
+                        vm.toString(i),
+                        " should stake clean portion"
+                    )
+                )
+            );
+            assertEq(
+                wethInArkAfter - wethInArkBefore,
+                dustPortion,
+                string(
+                    abi.encodePacked(
+                        "Dusty deposit ",
+                        vm.toString(i),
+                        " dust should remain as WETH"
+                    )
+                )
+            );
         }
 
-        // Test that clean amounts work
+        // Clean amounts: full amount is staked
         for (uint256 i = 0; i < cleanAmounts.length; i++) {
             uint256 beforeBalance = stargateStaking.balanceOf(
                 lpToken,
                 address(ark)
             );
-
             ark.board(cleanAmounts[i], bytes(""));
-
             uint256 afterBalance = stargateStaking.balanceOf(
                 lpToken,
                 address(ark)
             );
             uint256 actualDeposited = afterBalance - beforeBalance;
-
             assertEq(
                 actualDeposited,
                 cleanAmounts[i],
@@ -708,8 +771,8 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function test_DustBoundary_MinimalAmounts() public {
-        // Test deposits at the dust boundary - native ETH pools are strict about dust
-        uint256 convertRate = 10 ** 12; // 10^(18-6) for ETH
+        // Test deposits at the dust boundary: clean at boundary, floor when just above
+        uint256 convertRate = ark.convertRate();
 
         // Amount exactly at convertRate (clean)
         uint256 exactConvertAmount = convertRate; // 0.000001 ETH
@@ -743,9 +806,25 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
             "Should deposit exact convertRate amount"
         );
 
-        // Test above convert amount (has dust - should revert)
-        vm.expectRevert(); // Should revert due to dust
+        // Test above convert amount (has 1 wei dust) - should stake convertRate and keep 1 wei dust
+        uint256 stakedBefore2 = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+        uint256 wethInArkBefore2 = weth.balanceOf(address(ark));
         ark.board(aboveConvertAmount, bytes(""));
+        uint256 stakedAfter2 = stargateStaking.balanceOf(lpToken, address(ark));
+        uint256 wethInArkAfter2 = weth.balanceOf(address(ark));
+        assertEq(
+            stakedAfter2 - stakedBefore2,
+            convertRate,
+            "Should stake floor(convertRate) for above-convert amount"
+        );
+        assertEq(
+            wethInArkAfter2 - wethInArkBefore2,
+            1,
+            "Should retain 1 wei dust in Ark as WETH"
+        );
 
         // Test larger clean amount (should work)
         uint256 beforeBalance2 = stargateStaking.balanceOf(
@@ -761,6 +840,184 @@ contract StargateV2PoolArkOptimismTestFork is Test, IArkEvents, ArkTestBase {
 
         assertEq(deposited2, cleanAmount, "Should deposit exact clean amount");
 
+        vm.stopPrank();
+    }
+
+    function test_DustHandling_ArkShouldCleanDustAndKeepForWithdrawal() public {
+        // Test that the ark should handle dusty deposits by cleaning the dust
+        // and keeping it in the ark for later withdrawal
+        uint256 dustyAmount = 1.123456789123456789 ether; // Has dust beyond 6 decimals
+
+        vm.deal(commander, dustyAmount);
+        vm.startPrank(commander);
+        weth.deposit{value: dustyAmount}();
+        IERC20(address(weth)).approve(address(ark), dustyAmount);
+
+        uint256 cleanAmount = (dustyAmount / ark.convertRate()) *
+            ark.convertRate(); // Clean amount = 1.123456 ether
+        uint256 dustAmount = dustyAmount - cleanAmount; // Dust = 0.000000789123456789 ether
+
+        uint256 initialStakedBalance = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+        uint256 initialWethInArk = weth.balanceOf(address(ark));
+
+        ark.board(dustyAmount, bytes(""));
+
+        uint256 finalStakedBalance = stargateStaking.balanceOf(
+            lpToken,
+            address(ark)
+        );
+        uint256 finalWethInArk = weth.balanceOf(address(ark));
+        uint256 actualStaked = finalStakedBalance - initialStakedBalance;
+        uint256 dustInArk = finalWethInArk - initialWethInArk;
+
+        assertEq(
+            actualStaked,
+            cleanAmount,
+            "Should stake only the clean amount"
+        );
+        assertEq(dustInArk, dustAmount, "Should keep dust in the ark as WETH");
+
+        // Verify total assets includes both staked amount and dust
+        uint256 totalAssets = ark.totalAssets();
+        assertEq(
+            totalAssets,
+            dustyAmount,
+            "Total assets should include staked + dust"
+        );
+
+        // Verify we can withdraw the full dusty amount
+        uint256 withdrawableAssets = ark.withdrawableTotalAssets();
+        assertEq(
+            withdrawableAssets,
+            dustyAmount,
+            "Should be able to withdraw full dusty amount"
+        );
+
+        // Test actual withdrawal
+        uint256 commanderWethBefore = weth.balanceOf(commander);
+        ark.disembark(dustyAmount, bytes(""));
+        uint256 commanderWethAfter = weth.balanceOf(commander);
+        uint256 actualWithdrawn = commanderWethAfter - commanderWethBefore;
+
+        assertEq(
+            actualWithdrawn,
+            dustyAmount,
+            "Should withdraw full dusty amount including dust"
+        );
+
+        vm.stopPrank();
+    }
+
+    function testFuzz_MultiDepositsWithdrawals(
+        uint256[5] memory depositAmts,
+        uint256[5] memory withdrawAmts
+    ) public {
+        uint256 convertRate = ark.convertRate();
+
+        // Provision commander and approve
+        uint256 provision = 50 ether;
+        vm.deal(commander, provision);
+        vm.startPrank(commander);
+        weth.deposit{value: provision}();
+        IERC20(address(weth)).approve(address(ark), type(uint256).max);
+
+        // Track via totalAssets invariants
+
+        // Fuzz deposits (may include dust). Invariant: totalAssets increases by full deposited amount.
+        for (uint256 i = 0; i < depositAmts.length; i++) {
+            // Bound each deposit to a reasonable size
+            uint256 amt = bound(depositAmts[i], 0, 5 ether);
+            if (amt == 0) continue;
+
+            uint256 taPrev = ark.totalAssets();
+            ark.board(amt, bytes(""));
+            uint256 taAfter = ark.totalAssets();
+
+            assertEq(
+                taAfter - taPrev,
+                amt,
+                "Deposit should increase totalAssets by full amount (clean + dust)"
+            );
+        }
+
+        // Fuzz withdrawals. Construct safe amounts: withdraw = dust + k*convertRate, capped by pool & staked.
+        for (uint256 i = 0; i < withdrawAmts.length; i++) {
+            // Current dust in Ark (WETH already held)
+            uint256 dustInArk = weth.balanceOf(address(ark));
+
+            // Clean availability from pool and staked position
+            uint256 poolAvail = IStargatePool(STARGATE_POOL_ADDRESS).redeemable(
+                address(0)
+            );
+            uint256 stakedAvail = stargateStaking.balanceOf(
+                lpToken,
+                address(ark)
+            );
+            uint256 cleanAvail = (
+                poolAvail < stakedAvail ? poolAvail : stakedAvail
+            );
+            // cleanAvail = (cleanAvail / convertRate) * convertRate; // floor to clean multiple
+
+            if (dustInArk == 0 && cleanAvail == 0) continue;
+
+            // Choose k based on fuzzed input but bounded by available clean units
+            uint256 req = bound(withdrawAmts[i], 0, 5 ether);
+            uint256 kTarget = req / convertRate;
+            uint256 kMax = cleanAvail / convertRate;
+            uint256 k = kTarget <= kMax ? kTarget : kMax;
+
+            uint256 withdrawAmt = dustInArk + (k * convertRate);
+            if (withdrawAmt == 0) continue;
+
+            // Final safety cap: do not exceed withdrawableTotalAssets
+            uint256 maxAvail = ark.withdrawableTotalAssets();
+            if (withdrawAmt > maxAvail) {
+                // reduce k accordingly
+                if (maxAvail <= dustInArk) {
+                    // withdraw only dust if possible
+                    withdrawAmt = dustInArk <= maxAvail ? dustInArk : 0;
+                } else {
+                    uint256 extra = maxAvail - dustInArk;
+                    uint256 kCap = extra / convertRate;
+                    withdrawAmt = dustInArk + (kCap * convertRate);
+                }
+            }
+
+            if (withdrawAmt == 0) continue;
+
+            uint256 taPrev = ark.totalAssets();
+            uint256 commanderBeforePartialWithdraw = weth.balanceOf(commander);
+
+            ark.disembark(withdrawAmt, bytes(""));
+
+            uint256 taAfter = ark.totalAssets();
+            uint256 commanderAfterPartialWithdraw = weth.balanceOf(commander);
+
+            // Invariants per operation
+            assertEq(
+                taPrev - taAfter,
+                withdrawAmt,
+                "Withdraw should decrease totalAssets by the withdrawn amount"
+            );
+            assertEq(
+                commanderAfterPartialWithdraw - commanderBeforePartialWithdraw,
+                withdrawAmt,
+                "Commander should receive the withdrawn amount"
+            );
+        }
+
+        uint256 arkAssetsAfter = ark.totalAssets();
+        uint256 commanderBeforeFullWithdraw = weth.balanceOf(commander);
+        ark.disembark(arkAssetsAfter, bytes(""));
+        uint256 commanderAfterFullWithdraw = weth.balanceOf(commander);
+        assertEq(
+            commanderAfterFullWithdraw - commanderBeforeFullWithdraw,
+            arkAssetsAfter,
+            "Commander should receive the remaining dust - if any"
+        );
         vm.stopPrank();
     }
 }
