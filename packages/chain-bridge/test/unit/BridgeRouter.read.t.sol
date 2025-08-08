@@ -204,10 +204,10 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
 
         // Register second adapter
         vm.prank(governor);
-        router.registerAdapter(address(mockAdapter2));
+        router.registerAdapter(address(mockAdapterDest));
 
         // Test case 2: Different adapter trying to deliver response
-        vm.prank(address(mockAdapter2));
+        vm.prank(address(mockAdapterDest));
         vm.expectRevert(IBridgeRouter.Unauthorized.selector);
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,

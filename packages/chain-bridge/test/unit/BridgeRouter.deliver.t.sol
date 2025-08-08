@@ -4,27 +4,16 @@ pragma solidity ^0.8.28;
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {console} from "forge-std/console.sol";
 
 contract BridgeRouterDeliverTest is BridgeRouterSetup {
     uint256 public constant AMOUNT = 500e18;
 
     function setUp() public override {
         super.setUp();
-
-        // Set up proper adapter peer relationships for successful delivery tests
-        vm.startPrank(governor);
-
-        // Register peer relationship: mockAdapter on SOURCE_CHAIN_ID -> mockAdapter on CURRENT_CHAIN_ID
-        registry.registerAdapterPeer(
-            address(mockAdapter), // source adapter
-            address(mockAdapter), // target adapter (same adapter for simplicity)
-            SOURCE_CHAIN_ID, // source chain
-            CURRENT_CHAIN_ID // target chain (current chain)
-        );
-
-        vm.stopPrank();
     }
 
     /* -------------------------------------------------------------------------- */
@@ -143,16 +132,17 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
     /*                         adapter peer verification tests                    */
     /* -------------------------------------------------------------------------- */
 
-    function testDeliverTransferAssetUntrustedAdapterReverts() public {
-        bytes32 operationId = keccak256("untrustedTransferAsset");
+    function testDeliverTransferAssetNoPeerRelationshipReverts() public {
+        bytes32 operationId = keccak256("noPeerRelationshipTransferAsset");
         uint16 untrustedSourceChain = 999; // Chain with no peer relationship
 
-        vm.prank(address(mockAdapter));
+        vm.startPrank(address(mockAdapter)); // registered adapter
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBridgeRouter.UntrustedAdapter.selector,
-                untrustedSourceChain,
-                address(mockAdapter)
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(0),
+                registry.PEER_RELATIONSHIP(),
+                uint16(CURRENT_CHAIN_ID)
             )
         );
         router.deliver(
@@ -169,18 +159,20 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
                 })
             )
         );
+        vm.stopPrank();
     }
 
-    function testDeliverMessageUntrustedAdapterReverts() public {
-        bytes32 operationId = keccak256("untrustedMessage");
+    function testDeliverMessageNoPeerRelationshipReverts() public {
+        bytes32 operationId = keccak256("noPeerRelationshipMessage");
         uint16 untrustedSourceChain = 999; // Chain with no peer relationship
 
-        vm.prank(address(mockAdapter));
+        vm.startPrank(address(mockAdapter)); // registered adapter
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBridgeRouter.UntrustedAdapter.selector,
-                untrustedSourceChain,
-                address(mockAdapter)
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(0),
+                registry.PEER_RELATIONSHIP(),
+                uint16(CURRENT_CHAIN_ID)
             )
         );
         router.deliver(
@@ -195,25 +187,19 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
                 })
             )
         );
+        vm.stopPrank();
     }
 
-    function testDeliverReadResponseUntrustedAdapterReverts() public {
+    function testDeliverReadResponseIgnoresPeerVerification() public {
         bytes32 operationId = keccak256("untrustedReadResponse");
         uint16 untrustedSourceChain = 999; // Chain with no peer relationship
         bytes memory responseData = abi.encode(uint256(123), "test response");
 
-        // Set up the operation mapping even though it will fail on peer verification
+        // Set up mappings so READ_STATE delivery is authorized and succeeds
         router.setOperationToAdapter(operationId, address(mockAdapter));
         router.setReadRequestOriginator(operationId, address(mockReceiver));
 
         vm.prank(address(mockAdapter));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IBridgeRouter.UntrustedAdapter.selector,
-                untrustedSourceChain,
-                address(mockAdapter)
-            )
-        );
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
@@ -230,24 +216,15 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         // This tests that both adapter registration AND peer relationship are required
         bytes32 operationId = keccak256("unregisteredAdapterValidPeer");
 
-        // First register a peer relationship for mockAdapter2 (which is not registered as an adapter)
-        vm.prank(governor);
-        registry.registerAdapterPeer(
-            address(mockAdapter2), // source adapter (not registered with router)
-            address(mockAdapter2), // target adapter
-            SOURCE_CHAIN_ID, // source chain
-            CURRENT_CHAIN_ID // target chain
-        );
-
         // The call should fail with UnknownAdapter even though peer relationship exists
-        vm.prank(address(mockAdapter2)); // mockAdapter2 is not registered
+        vm.startPrank(address(mockAdapterSource)); // mockAdapterSource is not registered
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.deliver(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
                 BridgeTypes.RelayedTransferParams({
                     operationId: operationId,
-                    originator: address(mockAdapter2),
+                    originator: address(mockAdapterSource),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
                     recipient: address(mockReceiver),
                     asset: address(token),
@@ -256,6 +233,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
                 })
             )
         );
+        vm.stopPrank();
     }
 
     function testDeliverValidAdapterButInvalidPeerRelationship() public {
@@ -264,12 +242,13 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         uint16 sourceChainWithNoPeer = 777; // Different chain with no peer relationship
 
         // mockAdapter is registered with router but has no peer relationship with sourceChainWithNoPeer
-        vm.prank(address(mockAdapter));
+        vm.startPrank(address(mockAdapter));
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBridgeRouter.UntrustedAdapter.selector,
-                sourceChainWithNoPeer,
-                address(mockAdapter)
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(0),
+                registry.PEER_RELATIONSHIP(),
+                uint16(CURRENT_CHAIN_ID)
             )
         );
         router.deliver(
@@ -286,6 +265,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
                 })
             )
         );
+        vm.stopPrank();
     }
 
     function testDeliverValidPeerRelationshipDifferentChains() public {
@@ -326,14 +306,14 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
     function testDeliverUnknownAdapterReverts() public {
         bytes32 operationId = keccak256("unknownAdapter");
 
-        vm.prank(address(mockAdapter2)); // not registered
+        vm.prank(address(mockAdapterSource)); // not registered
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
                 BridgeTypes.RelayedMessageParams({
                     operationId: operationId,
-                    originator: address(mockAdapter2),
+                    originator: address(mockAdapterSource),
                     sourceChainId: uint16(SOURCE_CHAIN_ID),
                     recipient: address(mockReceiver),
                     message: abi.encode("test")

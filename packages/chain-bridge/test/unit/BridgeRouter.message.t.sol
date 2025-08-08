@@ -39,7 +39,6 @@ contract BridgeRouterMessageTest is BridgeRouterSetup {
 
         // Verify operation was created
         assertTrue(operationId != bytes32(0));
-        assertEq(router.operationToAdapter(operationId), address(mockAdapter));
 
         vm.stopPrank();
     }

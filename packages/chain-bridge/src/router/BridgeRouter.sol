@@ -99,17 +99,13 @@ contract BridgeRouter is
      * @dev This provides an additional layer of defense beyond the peer relationships checked within adapters
      */
     function _verifyAdapterPeer(uint16 sourceChainId) internal view {
-        // Will return zero if (srcChainId, msg.sender) is NOT a registered pair
-        address srcAdapter = CROSS_CHAIN_REGISTRY.getSourceForTarget(
+        // Will revert if (srcChainId, msg.sender) is NOT a registered pair
+        CROSS_CHAIN_REGISTRY.getSourceForTarget(
             sourceChainId,
             uint16(block.chainid),
             msg.sender,
             CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
         );
-
-        if (srcAdapter == address(0)) {
-            revert UntrustedAdapter(sourceChainId, msg.sender);
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -629,8 +625,10 @@ contract BridgeRouter is
                 (BridgeTypes.RelayedReadResponse)
             );
 
-            // Additional defense: verify adapter has peer relationship with source chain
-            _verifyAdapterPeer(data.sourceChainId);
+            // For read operations, skip peer verification since:
+            // 1. Read responses are delivered by the same adapter that sent the request
+            // 2. Authorization is already handled by operationToAdapter check below
+            // 3. sourceChainId represents where the read was performed, not message origin
 
             // Only relevant for read operations which receive on the same chain as the originator
             if (operationToAdapter[data.operationId] != msg.sender) {
