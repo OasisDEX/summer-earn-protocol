@@ -8,6 +8,7 @@ import {IMultiRewarder} from "../../interfaces/stargate/IMultiRewarder.sol";
 import {IWETH} from "../../interfaces/misc/IWETH.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Extended} from "../../interfaces/IERC20Extended.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title StargateV2PoolArk
@@ -119,13 +120,15 @@ contract StargateV2PoolArk is Ark {
             address(this)
         );
         if (stakedLpBalance > 0) {
-            // For rebasing tokens, check the pool's available balance vs our position
             uint256 poolBalance = stargatePool.redeemable(address(0));
+            console.log("poolBalance", poolBalance);
+            console.log("stakedLpBalance", stakedLpBalance);
             // Return the minimum of our position or available pool liquidity
             withdrawableAssets = stakedLpBalance > poolBalance
                 ? poolBalance
                 : stakedLpBalance;
         }
+        console.log("token balance", config.asset.balanceOf(address(this)));
         withdrawableAssets += config.asset.balanceOf(address(this));
     }
 
@@ -135,11 +138,11 @@ contract StargateV2PoolArk is Ark {
      * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
+        // Remove dust according to shared decimals - dust stays in the ark
+        amount = (amount / convertRate) * convertRate;
         if (isNativeAsset) {
-            amount = (amount / convertRate) * convertRate;
             weth.withdraw(amount);
         }
-
         stargateStaking.deposit(
             lpToken,
             stargatePool.deposit{value: isNativeAsset ? amount : 0}(

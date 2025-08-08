@@ -347,11 +347,14 @@ contract StargateV2PoolArkTestFork is Test, IArkEvents, ArkTestBase {
         // we need to mock the pool balance as it has separate accounting, rather than simple balanceOf underlying assets
         vm.mockCall(
             address(stargatePool),
-            abi.encodeWithSelector(IStargatePool.poolBalance.selector),
+            abi.encodeWithSelector(
+                IStargatePool.redeemable.selector,
+                address(0)
+            ),
             abi.encode(veryLowBalance)
         );
         assertEq(
-            stargatePool.poolBalance(),
+            stargatePool.redeemable(address(0)),
             veryLowBalance,
             "Pool balance should be equal to the very low balance"
         );
