@@ -32,18 +32,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         // Set the originator for the read request to our mock receiver instead of user
         routerA.setReadRequestOriginator(operationId, address(mockReceiver));
 
-        // Set the initial status using the test helper
-        BridgeRouterTestHelper(address(routerA)).setOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
-
-        // Verify SENT status on chain A
-        assertEq(
-            uint256(routerA.operationStatuses(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT)
-        );
-
         // Create read response payload
         uint256 mockReadValue = 123456; // Mock balance value
         bytes memory responseData = abi.encode(mockReadValue);
@@ -68,12 +56,6 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
             payload,
             address(adapterB),
             bytes("")
-        );
-
-        // Verify the request status is now SENT (since we only have QUEUED, SENT, and FAILED)
-        assertEq(
-            uint256(routerA.operationStatuses(operationId)),
-            uint256(BridgeTypes.OperationStatus.SENT)
         );
 
         assertEq(

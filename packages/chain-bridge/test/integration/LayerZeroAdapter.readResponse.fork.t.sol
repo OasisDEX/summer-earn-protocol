@@ -28,12 +28,6 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         bytes32 guid = keccak256(abi.encodePacked("test_guid_1"));
         bytes memory responseData = abi.encode(uint256(12345), "test_response");
 
-        // Set up the operation in the router (simulating a previous read request)
-        router.setOperationStatus(
-            operationId,
-            BridgeTypes.OperationStatus.SENT
-        );
-
         // Associate the operation with the layerZeroAdapter (required for authorization)
         router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
@@ -226,12 +220,6 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             operationIds[i] = keccak256(abi.encodePacked("operation", i));
             guids[i] = keccak256(abi.encodePacked("guid", i));
             _setOperationMapping(guids[i], operationIds[i]);
-
-            // Set up each operation in the router
-            router.setOperationStatus(
-                operationIds[i],
-                BridgeTypes.OperationStatus.SENT
-            );
 
             // Associate the operation with the layerZeroAdapter (required for authorization)
             router.setOperationToAdapter(
