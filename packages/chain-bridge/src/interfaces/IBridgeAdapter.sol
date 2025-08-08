@@ -13,32 +13,8 @@ interface IBridgeAdapter is ISendAdapter {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a transfer is received through the adapter
-    event TransferReceived(
-        bytes32 indexed transferId,
-        address asset,
-        uint256 amount,
-        address recipient
-    );
-
     /// @notice Emitted when a read operation is not found through the adapter
     event ReadOperationNotFound(bytes32 indexed guid, string reason);
-
-    /// @notice Emitted when a message is delivered through the adapter
-    event MessageDelivered(
-        bytes32 indexed messageId,
-        address recipient,
-        bool delivered
-    );
-
-    /// @notice Emitted when a read response is delivered through the adapter
-    event ReadResponseDelivered(bytes32 indexed requestId, bytes response);
-
-    /// @notice Emitted when a relay or messaging operation fails
-    event RelayFailed(bytes32 indexed transferId, bytes reason);
-
-    /// @notice Emitted when bridge router is updated
-    event BridgeRouterUpdated(address oldRouter, address newRouter);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS

@@ -83,11 +83,11 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
 
     /**
      * @notice Handles MESSAGE operation type
-     * @param params Decoded message parameters
+     * @param // params // Decoded message parameters
      * @dev Override this function to handle message operations
      */
     function _handleMessage(
-        BridgeTypes.RelayedMessageParams memory params
+        BridgeTypes.RelayedMessageParams memory // params
     ) internal virtual {
         // Default implementation reverts for unsupported operation
         revert UnsupportedOperationType();
@@ -95,11 +95,11 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
 
     /**
      * @notice Handles TRANSFER_ASSET operation type
-     * @param params Decoded transfer parameters
+     * @param // params // Decoded transfer parameters
      * @dev Override this function to handle asset transfer operations
      */
     function _handleTransferAsset(
-        BridgeTypes.RelayedTransferParams memory params
+        BridgeTypes.RelayedTransferParams memory // params
     ) internal virtual {
         // Default implementation reverts for unsupported operation
         revert UnsupportedOperationType();
