@@ -2,9 +2,9 @@
 
 import { CHAIN_BLOCK_EXPLORERS, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { parseUnits } from 'viem'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
-import { toast } from 'sonner'
 import { erc20Abi } from '../abis/ERC20'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
 import type { ChainId } from '../types'
@@ -59,20 +59,29 @@ export function useFleetActions({
   } = useWriteContract()
 
   // Waiting for transactions
-  const { isLoading: isApproveLoading, isSuccess: isApproveSuccess, isError: isApproveError } =
-    useWaitForTransactionReceipt({
-      hash: approveHash,
-    })
+  const {
+    isLoading: isApproveLoading,
+    isSuccess: isApproveSuccess,
+    isError: isApproveError,
+  } = useWaitForTransactionReceipt({
+    hash: approveHash,
+  })
 
-  const { isLoading: isDepositLoading, isSuccess: isDepositSuccess, isError: isDepositError } =
-    useWaitForTransactionReceipt({
-      hash: depositHash,
-    })
+  const {
+    isLoading: isDepositLoading,
+    isSuccess: isDepositSuccess,
+    isError: isDepositError,
+  } = useWaitForTransactionReceipt({
+    hash: depositHash,
+  })
 
-  const { isLoading: isWithdrawLoading, isSuccess: isWithdrawSuccess, isError: isWithdrawError } =
-    useWaitForTransactionReceipt({
-      hash: withdrawHash,
-    })
+  const {
+    isLoading: isWithdrawLoading,
+    isSuccess: isWithdrawSuccess,
+    isError: isWithdrawError,
+  } = useWaitForTransactionReceipt({
+    hash: withdrawHash,
+  })
 
   const openTx = (hash?: `0x${string}`) => {
     if (!hash) return

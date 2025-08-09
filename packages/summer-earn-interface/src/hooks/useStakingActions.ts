@@ -1,9 +1,9 @@
+import { CHAIN_BLOCK_EXPLORERS } from '@/config/chains'
 import { ChainId } from '@/types'
+import { toast } from 'sonner'
 import { erc20Abi, parseUnits } from 'viem'
 import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
-import { toast } from 'sonner'
 import { stakingRewardsManagerAbi } from '../abis/StakingRewardsManager'
-import { CHAIN_BLOCK_EXPLORERS } from '@/config/chains'
 
 interface UseStakingActionsProps {
   stakingRewardsManagerAddress?: string
@@ -39,25 +39,37 @@ export function useStakingActions({
   } = useWriteContract()
 
   // Transaction receipts
-  const { isLoading: isApproveStakingConfirming, isSuccess: isApproveStakingConfirmed, isError: isApproveStakingError } =
-    useWaitForTransactionReceipt({
-      hash: approveStakingTxData,
-    })
+  const {
+    isLoading: isApproveStakingConfirming,
+    isSuccess: isApproveStakingConfirmed,
+    isError: isApproveStakingError,
+  } = useWaitForTransactionReceipt({
+    hash: approveStakingTxData,
+  })
 
-  const { isLoading: isStakeConfirming, isSuccess: isStakeConfirmed, isError: isStakeError } =
-    useWaitForTransactionReceipt({
-      hash: stakeTxData,
-    })
+  const {
+    isLoading: isStakeConfirming,
+    isSuccess: isStakeConfirmed,
+    isError: isStakeError,
+  } = useWaitForTransactionReceipt({
+    hash: stakeTxData,
+  })
 
-  const { isLoading: isUnstakeConfirming, isSuccess: isUnstakeConfirmed, isError: isUnstakeError } =
-    useWaitForTransactionReceipt({
-      hash: unstakeTxData,
-    })
+  const {
+    isLoading: isUnstakeConfirming,
+    isSuccess: isUnstakeConfirmed,
+    isError: isUnstakeError,
+  } = useWaitForTransactionReceipt({
+    hash: unstakeTxData,
+  })
 
-  const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed, isError: isClaimError } =
-    useWaitForTransactionReceipt({
-      hash: claimTxData,
-    })
+  const {
+    isLoading: isClaimConfirming,
+    isSuccess: isClaimConfirmed,
+    isError: isClaimError,
+  } = useWaitForTransactionReceipt({
+    hash: claimTxData,
+  })
 
   const openTx = (hash?: `0x${string}`) => {
     if (!hash) return

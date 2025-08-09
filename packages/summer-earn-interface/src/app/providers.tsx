@@ -5,9 +5,9 @@ import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import '@rainbow-me/rainbowkit/styles.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Toaster } from 'sonner'
 import { http, WagmiProvider } from 'wagmi'
 import { arbitrum, base, mainnet, sonic } from 'wagmi/chains'
-import { Toaster } from 'sonner'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())

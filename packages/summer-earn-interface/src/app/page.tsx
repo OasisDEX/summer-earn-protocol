@@ -1,15 +1,15 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChainSelector } from '../components/ChainSelector'
 import { EnvironmentSelector } from '../components/EnvironmentSelector'
 import { FleetCard } from '../components/FleetCard'
 import { Skeleton } from '../components/Skeleton'
 import { useActiveFleets } from '../hooks/useActiveFleets'
 import { useEnvironment } from '../hooks/useEnvironment'
+import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useSyncWalletChain } from '../hooks/useSyncWalletChain'
 import type { ChainId } from '../types'
-import { useLocalStorage } from '../hooks/useLocalStorage'
 
 export default function Home() {
   const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '1')
@@ -84,7 +84,10 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
+                <div
+                  key={i}
+                  className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur"
+                >
                   <Skeleton className="h-6 w-40 mb-4" />
                   <Skeleton className="h-4 w-24 mb-6" />
                   <div className="space-y-4">

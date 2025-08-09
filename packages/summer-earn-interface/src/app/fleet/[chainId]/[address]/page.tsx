@@ -2,12 +2,10 @@
 
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
-import { useLocalStorage } from '../../../../hooks/useLocalStorage'
+import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { useRaftContract } from '../../../../components/../contracts/Raft'
 import { Ark } from '../../../../components/Ark'
-import { Skeleton } from '../../../../components/Skeleton'
 import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
 import { ChainSelector } from '../../../../components/ChainSelector'
 import { ConnectButton } from '../../../../components/ConnectButton'
@@ -18,6 +16,7 @@ import { StakingSection } from '../../../../components/StakingSection'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
 import { useFleetArks } from '../../../../hooks/useFleetArks'
 import { useFleetInfo } from '../../../../hooks/useFleetInfo'
+import { useLocalStorage } from '../../../../hooks/useLocalStorage'
 import { useRebalance } from '../../../../hooks/useRebalance'
 import { useStakingRewards } from '../../../../hooks/useStakingRewards'
 import { useSyncWalletChain } from '../../../../hooks/useSyncWalletChain'
@@ -214,14 +213,16 @@ export default function FleetDetail() {
                     <div className="p-4 bg-gray-800 rounded-lg">
                       <p className="text-sm text-gray-400">Total Assets</p>
                       <p className="text-lg font-semibold text-white">
-                        {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                        {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)}{' '}
+                        {assetInfo.symbol}
                       </p>
                     </div>
 
                     <div className="p-4 bg-gray-800 rounded-lg">
                       <p className="text-sm text-gray-400">Withdrawable Assets</p>
                       <p className="text-lg font-semibold text-white">
-                        {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                        {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
+                        {assetInfo.symbol}
                       </p>
                     </div>
                   </div>

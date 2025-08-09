@@ -2,8 +2,8 @@
 
 import { CHAIN_BLOCK_EXPLORERS, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
-import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { toast } from 'sonner'
+import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
 import { ChainId, RebalanceData } from '../types'
 

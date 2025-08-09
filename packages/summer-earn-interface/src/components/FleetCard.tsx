@@ -152,7 +152,13 @@ export function FleetCard({
                   : 'bg-magenta-600 hover:bg-magenta-700 text-white'
               }`}
             >
-              {isApproveLoading ? 'Approving…' : isDepositLoading ? 'Depositing…' : needsApproval ? 'Approve' : 'Deposit'}
+              {isApproveLoading
+                ? 'Approving…'
+                : isDepositLoading
+                  ? 'Depositing…'
+                  : needsApproval
+                    ? 'Approve'
+                    : 'Deposit'}
             </button>
             <button
               onClick={handleWithdraw}

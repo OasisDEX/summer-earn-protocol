@@ -76,7 +76,9 @@ export function AmountInput({
     <div className={`space-y-2 ${className}`}>
       {label && <label className="block text-sm font-medium text-gray-300">{label}</label>}
 
-      <div className={`relative transition-shadow ${isFocused ? 'shadow-[0_0_0_3px_rgba(37,99,235,0.35)] rounded-lg' : ''}`}>
+      <div
+        className={`relative transition-shadow ${isFocused ? 'shadow-[0_0_0_3px_rgba(37,99,235,0.35)] rounded-lg' : ''}`}
+      >
         <input
           type="text"
           value={displayValue}
