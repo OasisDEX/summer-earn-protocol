@@ -54,16 +54,16 @@ export function FleetCard({
   }
 
   return (
-    <div className="bg-gray-900 rounded-lg p-6 mb-4">
+    <div className="bg-charcoal-800/70 rounded-xl p-6 mb-4 border border-white/10 shadow-card backdrop-blur">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-white">{fleetInfo.name}</h2>
-        <span className="text-xs bg-blue-600 text-blue-100 py-0.5 px-1.5 rounded">
+        <span className="text-xs bg-violet-500/20 text-violet-400 py-0.5 px-1.5 rounded-full border border-violet-500/30">
           {fleetInfo.symbol}
         </span>
       </div>
 
       <div className="space-y-4 mb-4">
-        <div className="p-4 bg-gray-800 rounded-lg">
+        <div className="p-4 bg-charcoal-800/70 rounded-xl border border-white/10">
           <p className="text-sm text-gray-400 mb-2">Total Assets</p>
           <p className="text-xl font-semibold text-white">
             {parseFloat(formatUnits(fleetInfo.totalAssets, assetDecimals)).toLocaleString('en-US', {
@@ -73,10 +73,10 @@ export function FleetCard({
             {assetSymbol}
           </p>
         </div>
-        <div className="p-4 bg-gray-800 rounded-lg">
+        <div className="p-4 bg-charcoal-800/70 rounded-xl border border-white/10">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm text-gray-400">Withdrawable Assets</p>
-            <span className="text-xs bg-green-600 text-green-100 px-2 py-1 rounded">
+            <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
               {fleetInfo.totalAssets > BigInt(0)
                 ? (
                     (Number(fleetInfo.withdrawableTotalAssets) / Number(fleetInfo.totalAssets)) *
@@ -146,16 +146,16 @@ export function FleetCard({
             <button
               onClick={handleDeposit}
               disabled={isApproveLoading || isDepositLoading || !amount}
-              className={`flex-1 p-3 rounded-lg font-semibold transition-colors ${
+              className={`flex-1 p-3 rounded-lg font-semibold transition-colors shadow-glow ${
                 isApproveLoading || isDepositLoading || !amount
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 text-white'
+                  ? 'bg-magenta-700/40 text-gray-400 cursor-not-allowed'
+                  : 'bg-magenta-600 hover:bg-magenta-700 text-white'
               }`}
             >
               {isApproveLoading
-                ? 'Approving...'
+                ? 'Approving…'
                 : isDepositLoading
-                  ? 'Depositing...'
+                  ? 'Depositing…'
                   : needsApproval
                     ? 'Approve'
                     : 'Deposit'}
@@ -169,7 +169,7 @@ export function FleetCard({
                   : 'bg-red-600 hover:bg-red-700 text-white'
               }`}
             >
-              {isWithdrawLoading ? 'Withdrawing...' : 'Withdraw'}
+              {isWithdrawLoading ? 'Withdrawing…' : 'Withdraw'}
             </button>
           </div>
         </div>

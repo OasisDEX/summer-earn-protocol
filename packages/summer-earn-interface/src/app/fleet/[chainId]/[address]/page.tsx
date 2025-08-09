@@ -16,6 +16,7 @@ import { StakingSection } from '../../../../components/StakingSection'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
 import { useFleetArks } from '../../../../hooks/useFleetArks'
 import { useFleetInfo } from '../../../../hooks/useFleetInfo'
+import { useLocalStorage } from '../../../../hooks/useLocalStorage'
 import { useRebalance } from '../../../../hooks/useRebalance'
 import { useStakingRewards } from '../../../../hooks/useStakingRewards'
 import { useSyncWalletChain } from '../../../../hooks/useSyncWalletChain'
@@ -27,7 +28,11 @@ export default function FleetDetail() {
   const router = useRouter()
   const address = params.address as `0x${string}`
   const chainId = params.chainId as ChainId
-  const [selectedChain, setSelectedChain] = useState<ChainId>(chainId)
+  const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', chainId)
+  const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
+  useEffect(() => {
+    setStoredChain(selectedChain)
+  }, [selectedChain, setStoredChain])
   const [assetInfo, setAssetInfo] = useState({ symbol: '', decimals: 18 })
   useSyncWalletChain(selectedChain)
   const [isFleetManagementOpen, setIsFleetManagementOpen] = useState(false)
@@ -129,19 +134,7 @@ export default function FleetDetail() {
     }
   }, [fleetInfo])
 
-  if (fleetLoading) {
-    return (
-      <main className="min-h-screen bg-black p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-white">Fleet Details</h1>
-            <ConnectButton />
-          </div>
-          <div className="text-center text-gray-300">Loading fleet information...</div>
-        </div>
-      </main>
-    )
-  }
+  const isLoading = fleetLoading
 
   if (fleetError || (!fleetLoading && !fleetInfo)) {
     return (
@@ -182,9 +175,13 @@ export default function FleetDetail() {
               >
                 ← Back
               </button>
-              <h1 className="text-3xl font-bold text-white">
-                {fleetInfo.name} ({fleetInfo.symbol})
-              </h1>
+              {fleetInfo ? (
+                <h1 className="text-3xl font-bold text-white">
+                  {fleetInfo.name} ({fleetInfo.symbol})
+                </h1>
+              ) : (
+                <div className="h-8 w-64 bg-gray-800 rounded-md animate-pulse" />
+              )}
             </div>
           </div>
         </div>
@@ -200,38 +197,61 @@ export default function FleetDetail() {
             <div className="bg-gray-900 p-6 rounded-lg">
               <h2 className="text-xl font-semibold text-white mb-6">Fleet Information</h2>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-400">Fleet Address</p>
-                  <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.address}</p>
-                </div>
-
-                <div className="p-4 bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-400">Asset Address</p>
-                  <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.asset}</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fleetInfo ? (
+                <div className="space-y-4">
                   <div className="p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-400">Total Assets</p>
-                    <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)}{' '}
-                      {assetInfo.symbol}
-                    </p>
+                    <p className="text-sm text-gray-400">Fleet Address</p>
+                    <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.address}</p>
                   </div>
 
                   <div className="p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-400">Withdrawable Assets</p>
-                    <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
-                      {assetInfo.symbol}
-                    </p>
+                    <p className="text-sm text-gray-400">Asset Address</p>
+                    <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.asset}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <p className="text-sm text-gray-400">Total Assets</p>
+                      <p className="text-lg font-semibold text-white">
+                        {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)}{' '}
+                        {assetInfo.symbol}
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <p className="text-sm text-gray-400">Withdrawable Assets</p>
+                      <p className="text-lg font-semibold text-white">
+                        {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
+                        {assetInfo.symbol}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-800 rounded-lg">
+                    <div className="h-4 w-24 bg-gray-700 rounded mb-2 animate-pulse" />
+                    <div className="h-4 w-full bg-gray-700 rounded animate-pulse" />
+                  </div>
+                  <div className="p-4 bg-gray-800 rounded-lg">
+                    <div className="h-4 w-24 bg-gray-700 rounded mb-2 animate-pulse" />
+                    <div className="h-4 w-full bg-gray-700 rounded animate-pulse" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <div className="h-4 w-28 bg-gray-700 rounded mb-2 animate-pulse" />
+                      <div className="h-6 w-40 bg-gray-700 rounded animate-pulse" />
+                    </div>
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <div className="h-4 w-32 bg-gray-700 rounded mb-2 animate-pulse" />
+                      <div className="h-6 w-40 bg-gray-700 rounded animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {isConnected && userInfo && (
+            {isConnected && userInfo && fleetInfo && (
               <div className="bg-gray-900 p-6 rounded-lg">
                 <h3 className="text-xl font-semibold text-white mb-6">Your Position</h3>
 
@@ -258,7 +278,7 @@ export default function FleetDetail() {
             {/* <DebugStakingInfo fleetAddress={address} chainId={selectedChain} userInfo={userInfo} /> */}
 
             {/* Deposit/Withdraw Tabs */}
-            {isConnected && userInfo && (
+            {isConnected && userInfo && fleetInfo && (
               <DepositWithdrawTabs
                 userInfo={userInfo}
                 assetSymbol={assetInfo.symbol}
@@ -279,7 +299,7 @@ export default function FleetDetail() {
             {false && <div className="hidden"></div>}
 
             {/* Staking Section */}
-            {isConnected && userInfo && (
+            {isConnected && userInfo && fleetInfo && (
               <StakingSection
                 fleetAddress={address}
                 fleetSymbol={fleetInfo.symbol}
@@ -335,7 +355,7 @@ export default function FleetDetail() {
                       </div>
                       <Ark
                         arkAddress={ark.address as `0x${string}`}
-                        rewardToken={fleetInfo.asset as `0x${string}`}
+                        rewardToken={(fleetInfo?.asset as `0x${string}`) || '0x'}
                         name={ark.name}
                         fleetAddress={address}
                         assetDecimals={assetInfo.decimals}
