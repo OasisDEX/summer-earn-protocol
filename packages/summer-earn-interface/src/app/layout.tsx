@@ -15,15 +15,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <div className="min-h-screen bg-gray-900">
+          <div className="min-h-screen bg-charcoal-900">
             {/* Header */}
-            <header className="bg-gray-800 border-b border-gray-700 shadow-lg">
+            <header className="bg-charcoal-800 border-b border-white/10 shadow-card backdrop-blur">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                   {/* Logo/Title */}
                   <div className="flex items-center">
                     <h1 className="text-2xl font-bold text-white">Summer Earn Protocol</h1>
-                    <span className="ml-3 px-2 py-1 bg-blue-600 text-blue-100 text-xs font-medium rounded-full">
+                    <span className="ml-3 px-2 py-1 bg-violet-500/20 text-violet-400 text-xs font-medium rounded-full border border-violet-500/30">
                       v1.0
                     </span>
                   </div>

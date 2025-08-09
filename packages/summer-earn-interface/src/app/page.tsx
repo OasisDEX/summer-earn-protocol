@@ -38,7 +38,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-black p-8">
+    <main className="min-h-screen bg-charcoal-900 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="mb-8">
@@ -47,7 +47,7 @@ export default function Home() {
             Manage your DeFi positions and protocol roles across multiple chains
           </p>
 
-          <div className="bg-gray-900 p-6 rounded-lg">
+          <div className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
               <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
@@ -84,7 +84,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-gray-900 p-6 rounded-lg">
+                <div key={i} className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
                   <Skeleton className="h-6 w-40 mb-4" />
                   <Skeleton className="h-4 w-24 mb-6" />
                   <div className="space-y-4">
