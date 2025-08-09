@@ -3,6 +3,7 @@ import { erc20Abi, parseUnits } from 'viem'
 import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { toast } from 'sonner'
 import { stakingRewardsManagerAbi } from '../abis/StakingRewardsManager'
+import { CHAIN_BLOCK_EXPLORERS } from '@/config/chains'
 
 interface UseStakingActionsProps {
   stakingRewardsManagerAddress?: string
@@ -38,31 +39,39 @@ export function useStakingActions({
   } = useWriteContract()
 
   // Transaction receipts
-  const { isLoading: isApproveStakingConfirming, isSuccess: isApproveStakingConfirmed } =
+  const { isLoading: isApproveStakingConfirming, isSuccess: isApproveStakingConfirmed, isError: isApproveStakingError } =
     useWaitForTransactionReceipt({
       hash: approveStakingTxData,
     })
 
-  const { isLoading: isStakeConfirming, isSuccess: isStakeConfirmed } =
+  const { isLoading: isStakeConfirming, isSuccess: isStakeConfirmed, isError: isStakeError } =
     useWaitForTransactionReceipt({
       hash: stakeTxData,
     })
 
-  const { isLoading: isUnstakeConfirming, isSuccess: isUnstakeConfirmed } =
+  const { isLoading: isUnstakeConfirming, isSuccess: isUnstakeConfirmed, isError: isUnstakeError } =
     useWaitForTransactionReceipt({
       hash: unstakeTxData,
     })
 
-  const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } =
+  const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed, isError: isClaimError } =
     useWaitForTransactionReceipt({
       hash: claimTxData,
     })
+
+  const openTx = (hash?: `0x${string}`) => {
+    if (!hash) return
+    const urlBase = CHAIN_BLOCK_EXPLORERS[chainId]
+    const url = `${urlBase}/tx/${hash}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
   // Approve staking function
   const approveStaking = async () => {
     if (!stakingRewardsManagerAddress || !fleetAddress) return
 
     try {
+      toast.loading('Approving staking…', { id: 'approve-staking' })
       writeApproveStaking({
         abi: erc20Abi,
         address: fleetAddress as `0x${string}`,
@@ -85,7 +94,7 @@ export function useStakingActions({
 
     try {
       const parsedAmount = parseUnits(amount, fleetDecimals)
-
+      toast.loading('Staking…', { id: 'stake' })
       writeStake({
         abi: stakingRewardsManagerAbi,
         address: stakingRewardsManagerAddress as `0x${string}`,
@@ -105,7 +114,7 @@ export function useStakingActions({
 
     try {
       const parsedAmount = parseUnits(amount, fleetDecimals)
-
+      toast.loading('Unstaking…', { id: 'unstake' })
       writeUnstake({
         abi: stakingRewardsManagerAbi,
         address: stakingRewardsManagerAddress as `0x${string}`,
@@ -124,6 +133,7 @@ export function useStakingActions({
     if (!stakingRewardsManagerAddress) return
 
     try {
+      toast.loading('Claiming rewards…', { id: 'claim' })
       writeClaim({
         abi: stakingRewardsManagerAbi,
         address: stakingRewardsManagerAddress as `0x${string}`,
@@ -135,6 +145,39 @@ export function useStakingActions({
       console.error('Error claiming rewards:', error)
       toast.error('Claim rewards failed')
     }
+  }
+
+  if (isApproveStakingConfirmed) {
+    toast.success('Staking approval confirmed', {
+      id: 'approve-staking',
+      action: { label: 'View', onClick: () => openTx(approveStakingTxData as `0x${string}`) },
+    })
+  } else if (isApproveStakingError) {
+    toast.error('Approve staking failed on-chain', { id: 'approve-staking' })
+  }
+  if (isStakeConfirmed) {
+    toast.success('Stake confirmed', {
+      id: 'stake',
+      action: { label: 'View', onClick: () => openTx(stakeTxData as `0x${string}`) },
+    })
+  } else if (isStakeError) {
+    toast.error('Stake failed on-chain', { id: 'stake' })
+  }
+  if (isUnstakeConfirmed) {
+    toast.success('Unstake confirmed', {
+      id: 'unstake',
+      action: { label: 'View', onClick: () => openTx(unstakeTxData as `0x${string}`) },
+    })
+  } else if (isUnstakeError) {
+    toast.error('Unstake failed on-chain', { id: 'unstake' })
+  }
+  if (isClaimConfirmed) {
+    toast.success('Claim confirmed', {
+      id: 'claim',
+      action: { label: 'View', onClick: () => openTx(claimTxData as `0x${string}`) },
+    })
+  } else if (isClaimError) {
+    toast.error('Claim failed on-chain', { id: 'claim' })
   }
 
   // Helper functions

@@ -1,6 +1,6 @@
 'use client'
 
-import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
+import { CHAIN_BLOCK_EXPLORERS, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { toast } from 'sonner'
@@ -25,9 +25,20 @@ export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
   const { address } = useAccount()
 
   // Waiting for transaction
-  const { isLoading: isRebalanceLoading } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isRebalanceLoading,
+    isSuccess: isRebalanceSuccess,
+    isError: isRebalanceError,
+  } = useWaitForTransactionReceipt({
     hash: rebalanceHash,
   })
+
+  const openTx = (hash?: `0x${string}`) => {
+    if (!hash) return
+    const urlBase = CHAIN_BLOCK_EXPLORERS[chainId]
+    const url = `${urlBase}/tx/${hash}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
   // Rebalance action
   const rebalance = async (rebalanceData: RebalanceData[]) => {
@@ -56,6 +67,14 @@ export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
     } finally {
       setRebalancePending(false)
     }
+  }
+
+  if (isRebalanceSuccess) {
+    toast.success('Rebalance confirmed', {
+      action: { label: 'View', onClick: () => openTx(rebalanceHash as `0x${string}`) },
+    })
+  } else if (isRebalanceError) {
+    toast.error('Rebalance failed on-chain')
   }
 
   return {
