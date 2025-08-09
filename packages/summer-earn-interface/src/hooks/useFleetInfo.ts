@@ -1,12 +1,8 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { createPublicClient, http } from 'viem'
-import { useAccount } from 'wagmi'
-import { erc20Abi } from '../abis/ERC20'
-import { fleetCommanderAbi } from '../abis/FleetCommander'
-import { CHAIN_RPC_URLS } from '../config/chains'
-import { FleetCommanderInfo, UserFleetInfo } from '../types'
+import { useQuery } from "@tanstack/react-query"
+import { useAccount } from "wagmi"
+import { FleetCommanderInfo, UserFleetInfo } from "../types"
 
 interface UseFleetInfoProps {
   address: `0x${string}`
@@ -14,147 +10,45 @@ interface UseFleetInfoProps {
 }
 
 export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
-  const [fleetInfo, setFleetInfo] = useState<FleetCommanderInfo | null>(null)
-  const [userInfo, setUserInfo] = useState<UserFleetInfo | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
   const { address: userAddress, isConnected } = useAccount()
 
-  useEffect(() => {
-    const fetchFleetInfo = async () => {
-      try {
-        console.log('🔍 Fleet Info Debug:', {
-          address,
-          chainId,
-          rpcUrl: CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS],
-        })
-
-        const client = createPublicClient({
-          transport: http(CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]),
-        })
-
-        const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets, fleetDecimals] =
-          await Promise.all([
-            client.readContract({
-              address,
-              abi: fleetCommanderAbi,
-              functionName: 'name',
-            }),
-            client.readContract({
-              address,
-              abi: fleetCommanderAbi,
-              functionName: 'symbol',
-            }),
-            client.readContract({
-              address,
-              abi: fleetCommanderAbi,
-              functionName: 'asset',
-            }),
-            client.readContract({
-              address,
-              abi: fleetCommanderAbi,
-              functionName: 'totalAssets',
-            }),
-            client.readContract({
-              address,
-              abi: fleetCommanderAbi,
-              functionName: 'withdrawableTotalAssets',
-            }),
-            client.readContract({
-              address,
-              abi: fleetCommanderAbi,
-              functionName: 'decimals',
-            }),
-          ])
-        const [assetDecimals, assetSymbol] = await Promise.all([
-          client.readContract({
-            address: assetAddress,
-            abi: erc20Abi,
-            functionName: 'decimals',
-          }),
-          client.readContract({
-            address: assetAddress,
-            abi: erc20Abi,
-            functionName: 'symbol',
-          }),
-        ])
-
-        // Debug logging to compare decimals
-        console.log('🔍 Decimals Debug:', {
-          fleetAddress: address,
-          fleetDecimals,
-          assetDecimals,
-          assetSymbol,
-          fleetSymbol: symbol,
-        })
-
-        // Get deposit cap
-        const depositCap = BigInt(0) // This is a placeholder, we need to implement this
-
-        setFleetInfo({
-          address,
-          name,
-          symbol,
-          asset: assetAddress,
-          totalAssets,
-          withdrawableTotalAssets,
-          depositCap,
-          assetDecimals,
-          assetSymbol,
-          fleetDecimals, // Add fleet decimals to the info
-        })
-
-        // If user is connected, fetch user-specific info
-        if (isConnected && userAddress) {
-          const [balance, underlyingBalance, allowance] = await Promise.all([
-            client.readContract({
-              address,
-              abi: fleetCommanderAbi,
-              functionName: 'balanceOf',
-              args: [userAddress],
-            }),
-            client.readContract({
-              address: assetAddress,
-              abi: erc20Abi,
-              functionName: 'balanceOf',
-              args: [userAddress],
-            }),
-            client.readContract({
-              address: assetAddress,
-              abi: erc20Abi,
-              functionName: 'allowance',
-              args: [userAddress, address],
-            }),
-          ])
-
-          setUserInfo({
-            balance,
-            underlyingBalance,
-            allowance,
-          })
-        }
-
-        setLoading(false)
-      } catch (err) {
-        console.error('❌ Error fetching fleet info:', {
-          error: err,
-          address,
-          chainId,
-          rpcUrl: CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS],
-        })
-        setError(err instanceof Error ? err : new Error(String(err)))
-        setLoading(false)
+  const query = useQuery({
+    queryKey: ["fleetInfo", chainId, address, isConnected ? userAddress : undefined],
+    queryFn: async () => {
+      const qs = new URLSearchParams()
+      if (isConnected && userAddress) qs.set("user", userAddress)
+      const res = await fetch(`/api/fleets/${encodeURIComponent(chainId)}/${address}?${qs.toString()}`)
+      if (!res.ok) throw new Error(`Failed to load fleet info: ${res.status}`)
+      const data = await res.json()
+      const fleet: FleetCommanderInfo = {
+        address: data.address,
+        name: data.name,
+        symbol: data.symbol,
+        asset: data.asset,
+        totalAssets: BigInt(data.totalAssets),
+        withdrawableTotalAssets: BigInt(data.withdrawableTotalAssets),
+        depositCap: BigInt(data.depositCap ?? "0"),
+        assetDecimals: Number(data.assetDecimals),
+        assetSymbol: String(data.assetSymbol),
+        fleetDecimals: Number(data.fleetDecimals ?? data.assetDecimals),
       }
-    }
-
-    fetchFleetInfo()
-  }, [address, chainId, isConnected, userAddress])
+      const user: UserFleetInfo | null = data.userInfo
+        ? {
+            balance: BigInt(data.userInfo.balance),
+            underlyingBalance: BigInt(data.userInfo.underlyingBalance),
+            allowance: BigInt(data.userInfo.allowance),
+          }
+        : null
+      return { fleet, user }
+    },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
 
   return {
-    fleetInfo,
-    userInfo,
-    loading,
-    error,
+    fleetInfo: query.data?.fleet ?? null,
+    userInfo: query.data?.user ?? null,
+    loading: query.isLoading,
+    error: (query.error as Error) ?? null,
   }
 }

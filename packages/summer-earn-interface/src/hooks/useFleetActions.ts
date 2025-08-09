@@ -1,27 +1,29 @@
 'use client'
 
-import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
 import { parseUnits } from 'viem'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { erc20Abi } from '../abis/ERC20'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
+import type { ChainId } from '../types'
+import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
 interface UseFleetActionsProps {
   fleetAddress: `0x${string}`
   assetAddress: `0x${string}`
   assetDecimals: number
+  chainId: ChainId
 }
 
 export function useFleetActions({
   fleetAddress,
   assetAddress,
   assetDecimals,
+  chainId,
 }: UseFleetActionsProps) {
   const [depositPending, setDepositPending] = useState(false)
   const [withdrawPending, setWithdrawPending] = useState(false)
   const [approvePending, setApprovePending] = useState(false)
-  const { chainId } = useAccount()
   const { address } = useAccount()
 
   // Ensure we have valid addresses before proceeding
@@ -77,7 +79,7 @@ export function useFleetActions({
         abi: erc20Abi,
         functionName: 'approve',
         args: [fleetAddress, parsedAmount],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {
@@ -98,7 +100,7 @@ export function useFleetActions({
         abi: fleetCommanderAbi,
         functionName: 'deposit',
         args: [parsedAmount, address],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {
@@ -119,7 +121,7 @@ export function useFleetActions({
         abi: fleetCommanderAbi,
         functionName: 'withdraw',
         args: [parsedAmount, address, address],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {

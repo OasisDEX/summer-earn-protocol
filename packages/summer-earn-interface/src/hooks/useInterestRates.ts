@@ -1,38 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import { CHAIN_SUBGRAPH_URLS } from '../config/chains'
+// Now proxied via Next API routes with server-side caching
 import { ChainId } from '../types'
 import { DailyInterestRate, HourlyInterestRate, InterestRate, Product } from '../types/subgraph'
 
 const fetchProducts = async (chainId: ChainId): Promise<Product[]> => {
-  const response = await fetch(CHAIN_SUBGRAPH_URLS[chainId], {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `
-        query {
-          products {
-            id
-            name
-            protocol
-            token {
-              id
-              address
-              symbol
-              decimals
-              precision
-            }
-            network
-            pool
-          }
-        }
-      `,
-    }),
+  const response = await fetch(`/api/interest/products?chainId=${encodeURIComponent(chainId)}`, {
+    cache: 'no-store',
   })
-
   const data = await response.json()
-  return data.data.products
+  return data as Product[]
 }
 
 const fetchInterestRates = async (
@@ -40,51 +16,12 @@ const fetchInterestRates = async (
   productId: string,
   fromTimestamp: number,
 ): Promise<InterestRate[]> => {
-  const response = await fetch(CHAIN_SUBGRAPH_URLS[chainId], {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `
-        query($productId: String!, $fromTimestamp: BigInt!) {
-          interestRates(
-            where: {
-              productId: $productId,
-              timestamp_gte: $fromTimestamp
-            }
-            orderBy: timestamp
-            orderDirection: asc
-            first:1000
-          ) {
-            id
-            type
-            rate
-            timestamp
-            protocol
-            token {
-              id
-              symbol
-              decimals
-            }
-            product {
-              id
-              name
-              protocol
-            }
-          }
-        }
-      `,
-      variables: {
-        productId,
-        fromTimestamp: fromTimestamp.toString(),
-      },
-    }),
-  })
-
+  const response = await fetch(
+    `/api/interest/rates?chainId=${encodeURIComponent(chainId)}&productId=${encodeURIComponent(productId)}&from=${encodeURIComponent(fromTimestamp.toString())}`,
+    { cache: 'no-store' },
+  )
   const data = await response.json()
-  console.log(data)
-  return data.data.interestRates
+  return data as InterestRate[]
 }
 
 const fetchDailyInterestRates = async (
@@ -92,58 +29,12 @@ const fetchDailyInterestRates = async (
   productId: string,
   fromTimestamp: number,
 ): Promise<DailyInterestRate[]> => {
-  const response = await fetch(CHAIN_SUBGRAPH_URLS[chainId], {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `
-        query($productId: String!, $fromTimestamp: BigInt!) {
-          dailyInterestRates(
-            where: {
-              productId: $productId,
-              date_gte: $fromTimestamp
-            }
-            orderBy: date
-            orderDirection: asc
-          ) {
-            id
-            date
-            sumRates
-            updateCount
-            averageRate
-            protocol
-            token
-            productId
-            product {
-              id
-              name
-              protocol
-              token {
-                id
-                symbol
-                decimals
-              }
-            }
-            interestRates {
-              id
-              type
-              rate
-              timestamp
-            }
-          }
-        }
-      `,
-      variables: {
-        productId,
-        fromTimestamp: fromTimestamp.toString(),
-      },
-    }),
-  })
-
+  const response = await fetch(
+    `/api/interest/daily?chainId=${encodeURIComponent(chainId)}&productId=${encodeURIComponent(productId)}&from=${encodeURIComponent(fromTimestamp.toString())}`,
+    { cache: 'no-store' },
+  )
   const data = await response.json()
-  return data.data.dailyInterestRates
+  return data as DailyInterestRate[]
 }
 
 const fetchHourlyInterestRates = async (
@@ -151,64 +42,20 @@ const fetchHourlyInterestRates = async (
   productId: string,
   fromTimestamp: number,
 ): Promise<HourlyInterestRate[]> => {
-  const response = await fetch(CHAIN_SUBGRAPH_URLS[chainId], {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `
-        query($productId: String!, $fromTimestamp: BigInt!) {
-          hourlyInterestRates(
-            where: {
-              productId: $productId,
-              date_gte: $fromTimestamp
-            }
-            orderBy: date
-            orderDirection: asc
-          ) {
-            id
-            date
-            sumRates
-            updateCount
-            averageRate
-            protocol
-            token
-            productId
-            product {
-              id
-              name
-              protocol
-              token {
-                id
-                symbol
-                decimals
-              }
-            }
-            interestRates {
-              id
-              type
-              rate
-              timestamp
-            }
-          }
-        }
-      `,
-      variables: {
-        productId,
-        fromTimestamp: fromTimestamp.toString(),
-      },
-    }),
-  })
-
+  const response = await fetch(
+    `/api/interest/hourly?chainId=${encodeURIComponent(chainId)}&productId=${encodeURIComponent(productId)}&from=${encodeURIComponent(fromTimestamp.toString())}`,
+    { cache: 'no-store' },
+  )
   const data = await response.json()
-  return data.data.hourlyInterestRates
+  return data as HourlyInterestRate[]
 }
 
 export const useProducts = (chainId: ChainId) => {
   return useQuery({
     queryKey: ['products', chainId],
     queryFn: () => fetchProducts(chainId),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -217,6 +64,8 @@ export const useInterestRates = (chainId: ChainId, productId: string, fromTimest
     queryKey: ['interestRates', chainId, productId, fromTimestamp],
     queryFn: () => fetchInterestRates(chainId, productId, fromTimestamp),
     enabled: !!productId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -229,6 +78,8 @@ export const useDailyInterestRates = (
     queryKey: ['dailyInterestRates', chainId, productId, fromTimestamp],
     queryFn: () => fetchDailyInterestRates(chainId, productId, fromTimestamp),
     enabled: !!productId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -241,5 +92,7 @@ export const useHourlyInterestRates = (
     queryKey: ['hourlyInterestRates', chainId, productId, fromTimestamp],
     queryFn: () => fetchHourlyInterestRates(chainId, productId, fromTimestamp),
     enabled: !!productId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 }

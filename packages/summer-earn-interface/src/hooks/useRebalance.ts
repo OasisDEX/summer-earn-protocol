@@ -1,10 +1,10 @@
 'use client'
 
-import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
 import { ChainId, RebalanceData } from '../types'
+import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
 interface UseRebalanceProps {
   fleetAddress: `0x${string}`
@@ -46,7 +46,7 @@ export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
         abi: fleetCommanderAbi,
         functionName: 'rebalance',
         args: [formattedData],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {

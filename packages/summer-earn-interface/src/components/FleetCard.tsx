@@ -30,6 +30,7 @@ export function FleetCard({
       fleetAddress: fleetInfo.address as `0x${string}`,
       assetAddress: fleetInfo.asset as `0x${string}`,
       assetDecimals,
+      chainId: chainId as ChainId,
     })
 
   const { stakedBalance, stakingRewardsManagerAddress } = useStakingRewards({
