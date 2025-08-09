@@ -18,6 +18,7 @@ import { useFleetArks } from '../../../../hooks/useFleetArks'
 import { useFleetInfo } from '../../../../hooks/useFleetInfo'
 import { useRebalance } from '../../../../hooks/useRebalance'
 import { useStakingRewards } from '../../../../hooks/useStakingRewards'
+import { useSyncWalletChain } from '../../../../hooks/useSyncWalletChain'
 import { ChainId, RebalanceData } from '../../../../types'
 import { formatDecimalOutput, parseDecimalInput } from '../../../../utils/decimals'
 
@@ -28,6 +29,7 @@ export default function FleetDetail() {
   const chainId = params.chainId as ChainId
   const [selectedChain, setSelectedChain] = useState<ChainId>(chainId)
   const [assetInfo, setAssetInfo] = useState({ symbol: '', decimals: 18 })
+  useSyncWalletChain(selectedChain)
   const [isFleetManagementOpen, setIsFleetManagementOpen] = useState(false)
   // Amount state removed - now handled in individual tab components
 
@@ -48,6 +50,7 @@ export default function FleetDetail() {
       fleetAddress: address,
       assetAddress: (fleetInfo?.asset as `0x${string}`) || '0x',
       assetDecimals: assetInfo.decimals,
+      chainId: selectedChain,
     })
 
   // Calculate if approval is needed
@@ -363,10 +366,10 @@ export default function FleetDetail() {
             />
 
             {/* Fleet Management Section */}
-            <div className="bg-white shadow rounded-lg p-6 mt-6">
+            <div className="bg-gray-900 rounded-lg p-6 mt-6 border border-gray-800">
               <button
                 onClick={() => setIsFleetManagementOpen(!isFleetManagementOpen)}
-                className="w-full flex items-center justify-between bg-gray-600 text-white py-3 px-4 rounded-md hover:bg-gray-700 mb-4"
+                className="w-full flex items-center justify-between bg-gray-700 text-white py-3 px-4 rounded-md hover:bg-gray-600 mb-4"
               >
                 <span className="text-lg font-semibold">Fleet Management</span>
                 <span

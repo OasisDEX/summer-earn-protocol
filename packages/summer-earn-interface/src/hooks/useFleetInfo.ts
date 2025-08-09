@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { useQuery } from "@tanstack/react-query"
-import { useAccount } from "wagmi"
-import { FleetCommanderInfo, UserFleetInfo } from "../types"
+import { useQuery } from '@tanstack/react-query'
+import { useAccount } from 'wagmi'
+import { FleetCommanderInfo, UserFleetInfo } from '../types'
 
 interface UseFleetInfoProps {
   address: `0x${string}`
@@ -13,11 +13,13 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
   const { address: userAddress, isConnected } = useAccount()
 
   const query = useQuery({
-    queryKey: ["fleetInfo", chainId, address, isConnected ? userAddress : undefined],
+    queryKey: ['fleetInfo', chainId, address, isConnected ? userAddress : undefined],
     queryFn: async () => {
       const qs = new URLSearchParams()
-      if (isConnected && userAddress) qs.set("user", userAddress)
-      const res = await fetch(`/api/fleets/${encodeURIComponent(chainId)}/${address}?${qs.toString()}`)
+      if (isConnected && userAddress) qs.set('user', userAddress)
+      const res = await fetch(
+        `/api/fleets/${encodeURIComponent(chainId)}/${address}?${qs.toString()}`,
+      )
       if (!res.ok) throw new Error(`Failed to load fleet info: ${res.status}`)
       const data = await res.json()
       const fleet: FleetCommanderInfo = {
@@ -27,7 +29,7 @@ export function useFleetInfo({ address, chainId }: UseFleetInfoProps) {
         asset: data.asset,
         totalAssets: BigInt(data.totalAssets),
         withdrawableTotalAssets: BigInt(data.withdrawableTotalAssets),
-        depositCap: BigInt(data.depositCap ?? "0"),
+        depositCap: BigInt(data.depositCap ?? '0'),
         assetDecimals: Number(data.assetDecimals),
         assetSymbol: String(data.assetSymbol),
         fleetDecimals: Number(data.fleetDecimals ?? data.assetDecimals),

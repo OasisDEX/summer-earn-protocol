@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useQuery } from "@tanstack/react-query"
-import { ArkInfo } from "../types"
+import { useQuery } from '@tanstack/react-query'
+import { ArkInfo } from '../types'
 
 interface UseFleetArksProps {
   fleetAddress: `0x${string}`
@@ -12,7 +12,7 @@ interface UseFleetArksProps {
 
 export function useFleetArks({ fleetAddress, chainId }: UseFleetArksProps) {
   const query = useQuery({
-    queryKey: ["arks", chainId, fleetAddress],
+    queryKey: ['arks', chainId, fleetAddress],
     queryFn: async () => {
       const res = await fetch(`/api/fleets/${encodeURIComponent(chainId)}/${fleetAddress}/arks`)
       if (!res.ok) throw new Error(`Failed to load arks: ${res.status}`)

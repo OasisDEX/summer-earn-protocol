@@ -1,11 +1,11 @@
 'use client'
 
+import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
 import { parseUnits } from 'viem'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
 import type { ChainId } from '../types'
-import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 
 interface UseFleetManagementProps {
   fleetAddress: `0x${string}`

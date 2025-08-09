@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
 import { CHAIN_SUBGRAPH_URLS } from '@/config/chains'
+import { NextResponse } from 'next/server'
 
 const TTL_MS = 5 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()

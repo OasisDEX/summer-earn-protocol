@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { useEffect } from "react"
-import { useAccount, useChainId, useSwitchChain } from "wagmi"
-import type { ChainId } from "@/types"
+import type { ChainId } from '@/types'
+import { useEffect } from 'react'
+import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 
 /**
  * Keeps the connected wallet network in sync with the selected app chain.
@@ -26,7 +26,7 @@ export function useSyncWalletChain(selectedChainId: ChainId | undefined) {
       } catch (err) {
         // Non-fatal: user can decline; UI should still function for read-only
         // eslint-disable-next-line no-console
-        console.warn("Failed to switch chain:", err)
+        console.warn('Failed to switch chain:', err)
       }
     }
   }, [isConnected, selectedChainId, currentWalletChainId, switchChain])

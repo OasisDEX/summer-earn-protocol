@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
 import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
 import { harborCommandAbi } from '@/abis/HarborCommand'
 import { CHAIN_RPC_URLS } from '@/config/chains'
 import { HARBOR_COMMAND_ADDRESSES, type Environment } from '@/config/environments'
+import { NextResponse } from 'next/server'
+import { createPublicClient, http } from 'viem'
 
 const TTL_MS = 10 * 60 * 1000 // 10 minutes
 const cache = new Map<string, { data: unknown; expiry: number }>()
@@ -53,16 +53,44 @@ export async function GET(request: Request) {
       allFleets.map(async (fleetAddress) => {
         const [name, symbol, assetAddress, totalAssets, withdrawableTotalAssets] =
           await Promise.all([
-            client.readContract({ address: fleetAddress, abi: fleetCommanderAbi, functionName: 'name' }),
-            client.readContract({ address: fleetAddress, abi: fleetCommanderAbi, functionName: 'symbol' }),
-            client.readContract({ address: fleetAddress, abi: fleetCommanderAbi, functionName: 'asset' }),
-            client.readContract({ address: fleetAddress, abi: fleetCommanderAbi, functionName: 'totalAssets' }),
-            client.readContract({ address: fleetAddress, abi: fleetCommanderAbi, functionName: 'withdrawableTotalAssets' }),
+            client.readContract({
+              address: fleetAddress,
+              abi: fleetCommanderAbi,
+              functionName: 'name',
+            }),
+            client.readContract({
+              address: fleetAddress,
+              abi: fleetCommanderAbi,
+              functionName: 'symbol',
+            }),
+            client.readContract({
+              address: fleetAddress,
+              abi: fleetCommanderAbi,
+              functionName: 'asset',
+            }),
+            client.readContract({
+              address: fleetAddress,
+              abi: fleetCommanderAbi,
+              functionName: 'totalAssets',
+            }),
+            client.readContract({
+              address: fleetAddress,
+              abi: fleetCommanderAbi,
+              functionName: 'withdrawableTotalAssets',
+            }),
           ])
 
         const [assetDecimals, assetSymbol] = await Promise.all([
-          client.readContract({ address: assetAddress as `0x${string}`, abi: erc20Abi, functionName: 'decimals' }),
-          client.readContract({ address: assetAddress as `0x${string}`, abi: erc20Abi, functionName: 'symbol' }),
+          client.readContract({
+            address: assetAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'decimals',
+          }),
+          client.readContract({
+            address: assetAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'symbol',
+          }),
         ])
 
         return {

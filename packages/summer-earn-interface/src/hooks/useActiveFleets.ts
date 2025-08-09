@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { useQuery } from "@tanstack/react-query"
-import type { Environment } from "@/config/environments"
-import type { FleetCommanderInfo } from "@/types"
+import type { Environment } from '@/config/environments'
+import type { FleetCommanderInfo } from '@/types'
+import { useQuery } from '@tanstack/react-query'
 
 interface UseActiveFleetsProps {
   chainId: string
@@ -11,11 +11,11 @@ interface UseActiveFleetsProps {
 
 export function useActiveFleets({ chainId, environment }: UseActiveFleetsProps) {
   const query = useQuery({
-    queryKey: ["fleets", chainId, environment],
+    queryKey: ['fleets', chainId, environment],
     queryFn: async () => {
       const res = await fetch(
         `/api/fleets?chainId=${encodeURIComponent(chainId)}&environment=${encodeURIComponent(environment)}`,
-        { cache: "no-store" },
+        { cache: 'no-store' },
       )
       if (!res.ok) throw new Error(`Failed to load fleets: ${res.status}`)
       const data = (await res.json()) as { fleets: any[] }
@@ -26,7 +26,7 @@ export function useActiveFleets({ chainId, environment }: UseActiveFleetsProps) 
         asset: f.asset,
         totalAssets: BigInt(f.totalAssets),
         withdrawableTotalAssets: BigInt(f.withdrawableTotalAssets),
-        depositCap: BigInt(f.depositCap ?? "0"),
+        depositCap: BigInt(f.depositCap ?? '0'),
         assetDecimals: Number(f.assetDecimals),
         assetSymbol: String(f.assetSymbol),
         fleetDecimals: Number(f.fleetDecimals ?? f.assetDecimals),

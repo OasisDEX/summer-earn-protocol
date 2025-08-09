@@ -1,13 +1,16 @@
-import { NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
 import { arkAbi } from '@/abis/Ark'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
 import { CHAIN_RPC_URLS } from '@/config/chains'
+import { NextResponse } from 'next/server'
+import { createPublicClient, http } from 'viem'
 
 const TTL_MS = 10 * 60 * 1000
 const cache = new Map<string, { data: unknown; expiry: number }>()
 
-export async function GET(_request: Request, { params }: { params: { chainId: string; address: string } }) {
+export async function GET(
+  _request: Request,
+  { params }: { params: { chainId: string; address: string } },
+) {
   const { chainId, address } = params
   const key = `arks:${chainId}:${address}`
   const now = Date.now()
@@ -20,8 +23,16 @@ export async function GET(_request: Request, { params }: { params: { chainId: st
   const client = createPublicClient({ transport: http(rpcUrl) })
 
   const [activeArks, bufferArkAddress] = await Promise.all([
-    client.readContract({ address: address as `0x${string}`, abi: fleetCommanderAbi, functionName: 'getActiveArks' }) as Promise<`0x${string}`[]>,
-    client.readContract({ address: address as `0x${string}`, abi: fleetCommanderAbi, functionName: 'bufferArk' }) as Promise<`0x${string}`>,
+    client.readContract({
+      address: address as `0x${string}`,
+      abi: fleetCommanderAbi,
+      functionName: 'getActiveArks',
+    }) as Promise<`0x${string}`[]>,
+    client.readContract({
+      address: address as `0x${string}`,
+      abi: fleetCommanderAbi,
+      functionName: 'bufferArk',
+    }) as Promise<`0x${string}`>,
   ])
 
   const allArks = [...activeArks, bufferArkAddress]
@@ -31,7 +42,11 @@ export async function GET(_request: Request, { params }: { params: { chainId: st
     allArks.map(async (arkAddress) => {
       const [totalAssets, withdrawableTotalAssets, name] = await Promise.all([
         client.readContract({ address: arkAddress, abi: arkAbi, functionName: 'totalAssets' }),
-        client.readContract({ address: arkAddress, abi: arkAbi, functionName: 'withdrawableTotalAssets' }),
+        client.readContract({
+          address: arkAddress,
+          abi: arkAbi,
+          functionName: 'withdrawableTotalAssets',
+        }),
         client.readContract({ address: arkAddress, abi: arkAbi, functionName: 'name' }),
       ])
       return {
