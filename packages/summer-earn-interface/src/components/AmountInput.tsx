@@ -32,6 +32,7 @@ export function AmountInput({
   className = '',
 }: AmountInputProps) {
   const [displayValue, setDisplayValue] = useState(value)
+  const [isFocused, setIsFocused] = useState(false)
 
   useEffect(() => {
     setDisplayValue(value)
@@ -75,14 +76,16 @@ export function AmountInput({
     <div className={`space-y-2 ${className}`}>
       {label && <label className="block text-sm font-medium text-gray-300">{label}</label>}
 
-      <div className="relative">
+      <div className={`relative transition-shadow ${isFocused ? 'shadow-[0_0_0_3px_rgba(37,99,235,0.35)] rounded-lg' : ''}`}>
         <input
           type="text"
           value={displayValue}
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder={placeholder || `Amount in ${symbol}`}
           disabled={disabled}
-          className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-16"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-16 placeholder-gray-500"
         />
 
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
@@ -91,7 +94,7 @@ export function AmountInput({
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {showMaxButton && balance && balance > BigInt(0) && (
           <button
             type="button"

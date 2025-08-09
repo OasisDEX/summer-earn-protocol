@@ -3,6 +3,7 @@
 import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { toast } from 'sonner'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
 import { ChainId, RebalanceData } from '../types'
 
@@ -51,6 +52,7 @@ export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
       })
     } catch (error) {
       console.error('Error performing rebalance:', error)
+      toast.error('Rebalance failed')
     } finally {
       setRebalancePending(false)
     }

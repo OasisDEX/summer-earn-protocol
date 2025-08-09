@@ -4,6 +4,7 @@ import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
 import { parseUnits } from 'viem'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { toast } from 'sonner'
 import { erc20Abi } from '../abis/ERC20'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
 import type { ChainId } from '../types'
@@ -84,6 +85,7 @@ export function useFleetActions({
       })
     } catch (error) {
       console.error('Error approving tokens:', error)
+      toast.error('Approval failed')
     } finally {
       setApprovePending(false)
     }
@@ -105,6 +107,7 @@ export function useFleetActions({
       })
     } catch (error) {
       console.error('Error depositing:', error)
+      toast.error('Deposit failed')
     } finally {
       setDepositPending(false)
     }
@@ -126,6 +129,7 @@ export function useFleetActions({
       })
     } catch (error) {
       console.error('Error withdrawing:', error)
+      toast.error('Withdraw failed')
     } finally {
       setWithdrawPending(false)
     }

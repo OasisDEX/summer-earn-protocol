@@ -1,6 +1,7 @@
 import { ChainId } from '@/types'
 import { erc20Abi, parseUnits } from 'viem'
 import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { toast } from 'sonner'
 import { stakingRewardsManagerAbi } from '../abis/StakingRewardsManager'
 
 interface UseStakingActionsProps {
@@ -74,6 +75,7 @@ export function useStakingActions({
       } as any)
     } catch (error) {
       console.error('Error approving staking:', error)
+      toast.error('Approve staking failed')
     }
   }
 
@@ -93,6 +95,7 @@ export function useStakingActions({
       } as any)
     } catch (error) {
       console.error('Error staking:', error)
+      toast.error('Stake failed')
     }
   }
 
@@ -112,6 +115,7 @@ export function useStakingActions({
       } as any)
     } catch (error) {
       console.error('Error unstaking:', error)
+      toast.error('Unstake failed')
     }
   }
 
@@ -129,6 +133,7 @@ export function useStakingActions({
       } as any)
     } catch (error) {
       console.error('Error claiming rewards:', error)
+      toast.error('Claim rewards failed')
     }
   }
 
