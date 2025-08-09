@@ -46,7 +46,7 @@ export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
         abi: fleetCommanderAbi,
         functionName: 'rebalance',
         args: [formattedData],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {

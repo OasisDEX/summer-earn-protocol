@@ -6,12 +6,10 @@ import { ChainSelector } from '../../../components/ChainSelector'
 import { EnvironmentSelector } from '../../../components/EnvironmentSelector'
 import { FleetSelector } from '../../../components/FleetSelector'
 import { RoleManager } from '../../../components/RoleManager'
-import {
-  HARBOR_COMMAND_ADDRESSES,
-  PROTOCOL_ACCESS_MANAGER_ADDRESSES,
-} from '../../../config/environments'
+import { PROTOCOL_ACCESS_MANAGER_ADDRESSES } from '../../../config/environments'
 import { useActiveFleets } from '../../../hooks/useActiveFleets'
 import { useEnvironment } from '../../../hooks/useEnvironment'
+import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import type { ArkRole, ChainId, FleetRole, GlobalRole } from '../../../types'
 
 interface AccessManagerPageProps {}
@@ -21,6 +19,7 @@ export default function AccessManagerPage({}: AccessManagerPageProps) {
   const router = useRouter()
   const chainId = params.chainId as ChainId
   const { environment, setEnvironment } = useEnvironment()
+  useSyncWalletChain(chainId)
   const [selectedRole, setSelectedRole] = useState<GlobalRole | FleetRole | ArkRole>(
     'GOVERNOR_ROLE',
   )
@@ -28,7 +27,7 @@ export default function AccessManagerPage({}: AccessManagerPageProps) {
 
   const { fleets, loading: fleetsLoading } = useActiveFleets({
     chainId,
-    harborCommandAddress: HARBOR_COMMAND_ADDRESSES[environment][Number(chainId)],
+    environment,
   })
 
   const protocolAccessManagerAddress =

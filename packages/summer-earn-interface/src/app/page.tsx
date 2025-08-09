@@ -4,18 +4,19 @@ import { useState } from 'react'
 import { ChainSelector } from '../components/ChainSelector'
 import { EnvironmentSelector } from '../components/EnvironmentSelector'
 import { FleetCard } from '../components/FleetCard'
-import { HARBOR_COMMAND_ADDRESSES } from '../config/environments'
 import { useActiveFleets } from '../hooks/useActiveFleets'
 import { useEnvironment } from '../hooks/useEnvironment'
+import { useSyncWalletChain } from '../hooks/useSyncWalletChain'
 import type { ChainId } from '../types'
 
 export default function Home() {
   const [selectedChain, setSelectedChain] = useState<ChainId>('1')
   const { environment, setEnvironment } = useEnvironment()
+  useSyncWalletChain(selectedChain)
 
   const { fleets, loading, error } = useActiveFleets({
     chainId: selectedChain,
-    harborCommandAddress: HARBOR_COMMAND_ADDRESSES[environment][Number(selectedChain)],
+    environment,
   })
 
   if (loading) {

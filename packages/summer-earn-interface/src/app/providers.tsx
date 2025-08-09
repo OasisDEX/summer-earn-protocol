@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const config = getDefaultConfig({
     appName: 'Summer Earn Protocol Interface',
-    projectId: '1', // Replace with a real WalletConnect project ID
+    projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_ID || 'demo',
     chains: [mainnet, arbitrum, base, sonic],
     transports: {
       [mainnet.id]: http(CHAIN_RPC_URLS[mainnet.id]),
