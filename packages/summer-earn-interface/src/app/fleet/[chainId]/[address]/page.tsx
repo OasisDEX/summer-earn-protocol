@@ -176,9 +176,13 @@ export default function FleetDetail() {
               >
                 ← Back
               </button>
-              <h1 className="text-3xl font-bold text-white">
-                {fleetInfo.name} ({fleetInfo.symbol})
-              </h1>
+              {fleetInfo ? (
+                <h1 className="text-3xl font-bold text-white">
+                  {fleetInfo.name} ({fleetInfo.symbol})
+                </h1>
+              ) : (
+                <div className="h-8 w-64 bg-gray-800 rounded-md animate-pulse" />
+              )}
             </div>
           </div>
         </div>
@@ -194,38 +198,59 @@ export default function FleetDetail() {
             <div className="bg-gray-900 p-6 rounded-lg">
               <h2 className="text-xl font-semibold text-white mb-6">Fleet Information</h2>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-400">Fleet Address</p>
-                  <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.address}</p>
-                </div>
-
-                <div className="p-4 bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-400">Asset Address</p>
-                  <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.asset}</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fleetInfo ? (
+                <div className="space-y-4">
                   <div className="p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-400">Total Assets</p>
-                    <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)}{' '}
-                      {assetInfo.symbol}
-                    </p>
+                    <p className="text-sm text-gray-400">Fleet Address</p>
+                    <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.address}</p>
                   </div>
 
                   <div className="p-4 bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-400">Withdrawable Assets</p>
-                    <p className="text-lg font-semibold text-white">
-                      {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
-                      {assetInfo.symbol}
-                    </p>
+                    <p className="text-sm text-gray-400">Asset Address</p>
+                    <p className="font-mono text-blue-300 break-all text-sm">{fleetInfo.asset}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <p className="text-sm text-gray-400">Total Assets</p>
+                      <p className="text-lg font-semibold text-white">
+                        {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <p className="text-sm text-gray-400">Withdrawable Assets</p>
+                      <p className="text-lg font-semibold text-white">
+                        {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)} {assetInfo.symbol}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-800 rounded-lg">
+                    <div className="h-4 w-24 bg-gray-700 rounded mb-2 animate-pulse" />
+                    <div className="h-4 w-full bg-gray-700 rounded animate-pulse" />
+                  </div>
+                  <div className="p-4 bg-gray-800 rounded-lg">
+                    <div className="h-4 w-24 bg-gray-700 rounded mb-2 animate-pulse" />
+                    <div className="h-4 w-full bg-gray-700 rounded animate-pulse" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <div className="h-4 w-28 bg-gray-700 rounded mb-2 animate-pulse" />
+                      <div className="h-6 w-40 bg-gray-700 rounded animate-pulse" />
+                    </div>
+                    <div className="p-4 bg-gray-800 rounded-lg">
+                      <div className="h-4 w-32 bg-gray-700 rounded mb-2 animate-pulse" />
+                      <div className="h-6 w-40 bg-gray-700 rounded animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {isConnected && userInfo && (
+            {isConnected && userInfo && fleetInfo && (
               <div className="bg-gray-900 p-6 rounded-lg">
                 <h3 className="text-xl font-semibold text-white mb-6">Your Position</h3>
 
@@ -252,7 +277,7 @@ export default function FleetDetail() {
             {/* <DebugStakingInfo fleetAddress={address} chainId={selectedChain} userInfo={userInfo} /> */}
 
             {/* Deposit/Withdraw Tabs */}
-            {isConnected && userInfo && (
+            {isConnected && userInfo && fleetInfo && (
               <DepositWithdrawTabs
                 userInfo={userInfo}
                 assetSymbol={assetInfo.symbol}
@@ -273,7 +298,7 @@ export default function FleetDetail() {
             {false && <div className="hidden"></div>}
 
             {/* Staking Section */}
-            {isConnected && userInfo && (
+            {isConnected && userInfo && fleetInfo && (
               <StakingSection
                 fleetAddress={address}
                 fleetSymbol={fleetInfo.symbol}
