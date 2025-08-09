@@ -354,7 +354,7 @@ export default function FleetDetail() {
                       </div>
                       <Ark
                         arkAddress={ark.address as `0x${string}`}
-                        rewardToken={fleetInfo.asset as `0x${string}`}
+                        rewardToken={(fleetInfo?.asset as `0x${string}`) || '0x'}
                         name={ark.name}
                         fleetAddress={address}
                         assetDecimals={assetInfo.decimals}
