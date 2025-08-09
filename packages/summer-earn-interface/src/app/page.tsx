@@ -1,33 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChainSelector } from '../components/ChainSelector'
 import { EnvironmentSelector } from '../components/EnvironmentSelector'
 import { FleetCard } from '../components/FleetCard'
+import { Skeleton } from '../components/Skeleton'
 import { useActiveFleets } from '../hooks/useActiveFleets'
 import { useEnvironment } from '../hooks/useEnvironment'
 import { useSyncWalletChain } from '../hooks/useSyncWalletChain'
 import type { ChainId } from '../types'
+import { useLocalStorage } from '../hooks/useLocalStorage'
 
 export default function Home() {
-  const [selectedChain, setSelectedChain] = useState<ChainId>('1')
+  const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '1')
+  const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
   const { environment, setEnvironment } = useEnvironment()
   useSyncWalletChain(selectedChain)
+  useEffect(() => {
+    setStoredChain(selectedChain)
+  }, [selectedChain, setStoredChain])
 
   const { fleets, loading, error } = useActiveFleets({
     chainId: selectedChain,
     environment,
   })
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center text-gray-300">Loading fleets...</div>
-        </div>
-      </div>
-    )
-  }
+  const isLoading = loading
 
   if (error) {
     return (
@@ -84,16 +82,27 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {fleets.map((fleet) => (
-            <FleetCard
-              key={fleet.address}
-              fleetInfo={fleet}
-              userInfo={null}
-              assetDecimals={fleet.assetDecimals}
-              assetSymbol={fleet.assetSymbol}
-              chainId={selectedChain}
-            />
-          ))}
+          {isLoading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-gray-900 p-6 rounded-lg">
+                  <Skeleton className="h-6 w-40 mb-4" />
+                  <Skeleton className="h-4 w-24 mb-6" />
+                  <div className="space-y-4">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                </div>
+              ))
+            : fleets.map((fleet) => (
+                <FleetCard
+                  key={fleet.address}
+                  fleetInfo={fleet}
+                  userInfo={null}
+                  assetDecimals={fleet.assetDecimals}
+                  assetSymbol={fleet.assetSymbol}
+                  chainId={selectedChain}
+                />
+              ))}
         </div>
       </div>
     </main>

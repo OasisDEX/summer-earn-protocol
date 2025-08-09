@@ -152,13 +152,7 @@ export function FleetCard({
                   : 'bg-green-600 hover:bg-green-700 text-white'
               }`}
             >
-              {isApproveLoading
-                ? 'Approving...'
-                : isDepositLoading
-                  ? 'Depositing...'
-                  : needsApproval
-                    ? 'Approve'
-                    : 'Deposit'}
+              {isApproveLoading ? 'Approving…' : isDepositLoading ? 'Depositing…' : needsApproval ? 'Approve' : 'Deposit'}
             </button>
             <button
               onClick={handleWithdraw}
@@ -169,7 +163,7 @@ export function FleetCard({
                   : 'bg-red-600 hover:bg-red-700 text-white'
               }`}
             >
-              {isWithdrawLoading ? 'Withdrawing...' : 'Withdraw'}
+              {isWithdrawLoading ? 'Withdrawing…' : 'Withdraw'}
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { InterestRateChart } from '../../components/InterestRateChart'
 import { CHAIN_NAMES } from '../../config/chains'
 import { useProducts } from '../../hooks/useInterestRates'
 import { useSyncWalletChain } from '../../hooks/useSyncWalletChain'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { ChainId } from '../../types'
 
 type TimeInterval = '10min' | 'hourly' | 'daily'
@@ -15,17 +16,22 @@ export default function InterestRatesPage() {
   const { switchChain } = useSwitchChain()
   const [selectedProductId, setSelectedProductId] = useState<string>('')
   const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('daily')
+  const [storedChain, setStoredChain] = useLocalStorage<ChainId>(
+    'selectedChain',
+    (chain?.id.toString() as ChainId) ?? '1',
+  )
 
   // Get timestamp for 24 hours ago
   const fromTimestamp = Math.floor(Date.now() / 1000) - 24 * 60 * 60
 
-  const currentChainId = (chain?.id.toString() as ChainId) ?? '1'
+  const currentChainId = storedChain
   useSyncWalletChain(currentChainId)
   const { data: products, isLoading: isLoadingProducts } = useProducts(currentChainId)
 
   const handleChainChange = async (chainId: ChainId) => {
     try {
       await switchChain({ chainId: Number(chainId) })
+      setStoredChain(chainId)
     } catch (error) {
       console.error('Failed to switch chain:', error)
     }
@@ -49,7 +55,7 @@ export default function InterestRatesPage() {
             <label className="block text-sm font-medium mb-2 text-gray-500">Select Chain</label>
             <select
               className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              value={chain.id.toString()}
+              value={currentChainId}
               onChange={(e) => handleChainChange(e.target.value as ChainId)}
             >
               {Object.entries(CHAIN_NAMES).map(([id, name]) => (
@@ -94,7 +100,7 @@ export default function InterestRatesPage() {
           <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
             <h2 className="text-xl font-semibold mb-4 text-white">24h Interest Rate History</h2>
             <InterestRateChart
-              chainId={chain.id.toString() as ChainId}
+              chainId={currentChainId}
               productId={selectedProductId}
               fromTimestamp={fromTimestamp}
               interval={selectedInterval}

@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocalStorage } from '../../../../hooks/useLocalStorage'
 import { useAccount } from 'wagmi'
 import { useRaftContract } from '../../../../components/../contracts/Raft'
 import { Ark } from '../../../../components/Ark'
+import { Skeleton } from '../../../../components/Skeleton'
 import { AuctionConfigModal } from '../../../../components/AuctionConfigModal'
 import { ChainSelector } from '../../../../components/ChainSelector'
 import { ConnectButton } from '../../../../components/ConnectButton'
@@ -27,7 +29,11 @@ export default function FleetDetail() {
   const router = useRouter()
   const address = params.address as `0x${string}`
   const chainId = params.chainId as ChainId
-  const [selectedChain, setSelectedChain] = useState<ChainId>(chainId)
+  const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', chainId)
+  const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
+  useEffect(() => {
+    setStoredChain(selectedChain)
+  }, [selectedChain, setStoredChain])
   const [assetInfo, setAssetInfo] = useState({ symbol: '', decimals: 18 })
   useSyncWalletChain(selectedChain)
   const [isFleetManagementOpen, setIsFleetManagementOpen] = useState(false)
@@ -129,19 +135,7 @@ export default function FleetDetail() {
     }
   }, [fleetInfo])
 
-  if (fleetLoading) {
-    return (
-      <main className="min-h-screen bg-black p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-white">Fleet Details</h1>
-            <ConnectButton />
-          </div>
-          <div className="text-center text-gray-300">Loading fleet information...</div>
-        </div>
-      </main>
-    )
-  }
+  const isLoading = fleetLoading
 
   if (fleetError || (!fleetLoading && !fleetInfo)) {
     return (
