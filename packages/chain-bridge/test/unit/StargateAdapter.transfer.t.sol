@@ -381,54 +381,6 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
     }
 
-    function testUnsupportedOperations() public {
-        useNetworkA();
-
-        // Setup adapter params
-        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(adapterA),
-            gasLimit: 500000,
-            calldataSize: 0,
-            msgValue: 0,
-            options: ""
-        });
-
-        // Test readState (unsupported)
-        vm.prank(address(routerA));
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
-            .ExecuteReadStateParams({
-                destinationChainId: CHAIN_ID_B,
-                target: address(tokenA),
-                selector: bytes4(0),
-                readParams: "",
-                originator: user,
-                refundAddress: user
-            });
-        adapterA.readState(
-            bytes32(0), // Fake operation ID
-            params,
-            options
-        );
-
-        // Test sendMessage (unsupported)
-        vm.prank(address(routerA));
-        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
-        BridgeTypes.ExecuteSendMessageParams memory params2 = BridgeTypes
-            .ExecuteSendMessageParams({
-                destinationChainId: CHAIN_ID_B,
-                target: recipient,
-                message: "",
-                originator: user,
-                refundAddress: user
-            });
-        adapterA.sendMessage(
-            bytes32(0), // Fake operation ID
-            params2,
-            options
-        );
-    }
-
     function testTransferAssetMsgValueConsistencyX() public {
         useNetworkA();
         vm.deal(address(routerA), 10 ether); // Provide enough ETH

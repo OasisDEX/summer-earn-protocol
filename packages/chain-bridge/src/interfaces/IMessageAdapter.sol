@@ -4,23 +4,14 @@ pragma solidity 0.8.28;
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
- * @title ISendAdapter
- * @notice Interface for bridge adapters that can send messages and assets across chains
- * @dev This interface defines methods for initiating various cross-chain operations
+ * @title IMessageAdapter
+ * @notice Interface for bridge adapters that can send messages and read state across chains
+ * @dev This interface defines methods for messaging and read operations only
  */
-interface ISendAdapter {
+interface IMessageAdapter {
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when a transfer is initiated through the adapter
-    event TransferInitiated(
-        bytes32 indexed transferId,
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        address recipient
-    );
 
     /// @notice Emitted when a message is initiated through the adapter
     event MessageInitiated(
@@ -39,25 +30,32 @@ interface ISendAdapter {
         bytes4 selector
     );
 
+    /// @notice Emitted when a read operation is not found through the adapter
+    event ReadOperationNotFound(bytes32 indexed guid, string reason);
+
+    /// @notice Emitted when a message is delivered through the adapter
+    event MessageDelivered(
+        bytes32 indexed messageId,
+        address recipient,
+        bool delivered
+    );
+
+    /// @notice Emitted when a read response is delivered through the adapter
+    event ReadResponseDelivered(bytes32 indexed requestId, bytes response);
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when a transfer operation fails
-    error TransferFailed();
+    /// @notice Thrown when a message operation fails
+    error MessageFailed();
 
-    /**
-     * @notice Transfer an asset to a destination chain
-     * @param operationId Router-provided operation ID for tracking
-     * @param params Parameters for the transfer
-     * @param options Bridge options including adapter selection and parameters
-     * @dev Initiates a cross-chain asset transfer
-     */
-    function transferAsset(
-        bytes32 operationId,
-        BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable;
+    /// @notice Thrown when a read operation fails
+    error ReadFailed();
+
+    /*//////////////////////////////////////////////////////////////
+                           CORE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Read state from a contract on a source chain
@@ -84,4 +82,15 @@ interface ISendAdapter {
         BridgeTypes.ExecuteSendMessageParams calldata params,
         BridgeTypes.BridgeOptions calldata options
     ) external payable;
+
+    /**
+     * @notice Check if the adapter supports a specific message operation type to a destination
+     * @param destinationChainId ID of the destination chain
+     * @param operationType Type of operation (MESSAGE or READ_STATE)
+     * @return Whether the operation is supported
+     */
+    function supportsMessageOperation(
+        uint16 destinationChainId,
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool);
 }

@@ -477,8 +477,8 @@ FN:723,StargateAdapter.getOperationStatus
 FNDA:2,StargateAdapter.getOperationStatus
 DA:726,2
 DA:732,2
-FN:732,StargateAdapter.isAssetSupported
-FNDA:2,StargateAdapter.isAssetSupported
+FN:732,StargateAdapter.supportsAssetTransfer
+FNDA:2,StargateAdapter.supportsAssetTransfer
 DA:736,2
 BRDA:736,20,0,2
 DA:738,2

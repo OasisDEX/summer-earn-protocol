@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
+import {IAssetAdapter} from "../../src/interfaces/IAssetAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {console} from "forge-std/Test.sol";
@@ -176,7 +176,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         }
 
         // Check function selectors
-        bytes4 transferAssetSelector = ISendAdapter.transferAsset.selector;
+        bytes4 transferAssetSelector = IAssetAdapter.transferAsset.selector;
         console.log("transferAsset selector:");
         console.logBytes4(transferAssetSelector);
 
