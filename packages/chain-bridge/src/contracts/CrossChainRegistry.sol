@@ -528,12 +528,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceAdapter,
         uint16 targetChainId
     ) external view returns (address targetAdapter) {
-        (targetAdapter, ) = getTargetForSource(
-            sourceAdapter,
-            PEER_RELATIONSHIP
-        );
-
-        // Validate the target chain matches
         bytes32 relationshipKey = _getRelationshipKey(
             sourceAdapter,
             PEER_RELATIONSHIP,
@@ -542,6 +536,13 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         CrossChainRelation memory relation = crossChainRelations[
             relationshipKey
         ];
+        if (relation.sourceContract == address(0)) {
+            revert RelationshipDoesNotExist(
+                sourceAdapter,
+                PEER_RELATIONSHIP,
+                targetChainId
+            );
+        }
         if (relation.targetChainId != targetChainId) {
             revert InvalidChainRelationship(
                 relation.sourceChainId,
@@ -549,6 +550,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
                 CURRENT_CHAIN_ID
             );
         }
+        return relation.targetContract;
     }
 
     /**

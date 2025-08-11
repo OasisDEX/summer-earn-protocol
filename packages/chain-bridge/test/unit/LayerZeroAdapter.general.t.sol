@@ -36,17 +36,16 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             "Chain B should be supported"
         );
 
-        // Expect revert with InvalidChainRelationship error
-
+        // Expect revert when unsupported chain is queried
         ICrossChainRegistry registryA = ICrossChainRegistry(
             address(adapterA.CROSS_CHAIN_REGISTRY())
         );
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICrossChainRegistry.InvalidChainRelationship.selector,
-                0, // sourceChainId - fallback when no relationship is found
-                2, // targetChainId
-                CHAIN_ID_A // currentChainId
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(adapterA),
+                registryA.PEER_RELATIONSHIP(),
+                2
             )
         );
         registryA.getAdapterPeer(address(adapterA), 2);

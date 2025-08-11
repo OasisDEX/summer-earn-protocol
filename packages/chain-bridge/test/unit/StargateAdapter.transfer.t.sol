@@ -63,13 +63,13 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             options: ""
         });
 
-        // Should revert with InvalidChainRelationship when estimating fee for unsupported chain
+        // Should revert when estimating fee for unsupported chain
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICrossChainRegistry.InvalidChainRelationship.selector,
-                0, // sourceChainId
-                9999, // targetChainId
-                CHAIN_ID_A // currentChainId
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(adapterA),
+                registryA.PEER_RELATIONSHIP(),
+                9999
             )
         );
         adapterA.estimateFee(
@@ -234,14 +234,14 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             options: ""
         });
 
-        // Should revert with InvalidChainRelationship when transferring to unsupported chain
+        // Should revert when transferring to unsupported chain
         vm.prank(address(routerA));
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICrossChainRegistry.InvalidChainRelationship.selector,
-                0, // sourceChainId
-                9999, // targetChainId
-                CHAIN_ID_A // currentChainId
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(adapterA),
+                registryA.PEER_RELATIONSHIP(),
+                9999
             )
         );
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
