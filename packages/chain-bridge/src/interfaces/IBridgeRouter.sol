@@ -40,15 +40,6 @@ interface IBridgeRouter is IERC165 {
         address adapter
     );
 
-    /// @notice Emitted when a transfer is received on the destination chain
-    event TransferReceived(
-        bytes32 indexed operationId,
-        address indexed asset,
-        uint256 amount,
-        address indexed recipient,
-        uint16 sourceChainId
-    );
-
     /// @notice Emitted when a read request is initiated by the BridgeQueue
     event ReadRequestInitiated(
         // Corrected from sourceChainId for clarity
@@ -60,18 +51,10 @@ interface IBridgeRouter is IERC165 {
         address adapter
     );
 
-    /// @notice Emitted when a read response is delivered to the requester
-    event ReadResponseDelivered(
+    /// @notice Emitted when any cross-chain operation is delivered
+    event OperationDelivered(
         bytes32 indexed operationId,
-        address recipient,
-        bool delivered
-    );
-
-    /// @notice Emitted when a message is delivered to its recipient
-    event MessageDelivered(
-        bytes32 indexed operationId,
-        address recipient,
-        bool delivered
+        BridgeTypes.OperationType indexed operationType
     );
 
     /// @notice Emitted when a chain's router address is updated

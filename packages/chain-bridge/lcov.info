@@ -62,8 +62,8 @@ FNDA:33,LayerZeroAdapter.activateReadChannel
 DA:179,33
 DA:180,33
 DA:189,0
-FN:189,LayerZeroAdapter.addSupportedChain
-FNDA:0,LayerZeroAdapter.addSupportedChain
+FN:189,LayerZeroAdapter.mapEndpoint
+FNDA:0,LayerZeroAdapter.mapEndpoint
 DA:193,0
 DA:194,0
 DA:195,0

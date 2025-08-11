@@ -87,7 +87,7 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
      * @dev Override this function to handle message operations
      */
     function _handleMessage(
-        BridgeTypes.RelayedMessageParams memory /* params */
+        BridgeTypes.RelayedMessageParams memory // params
     ) internal virtual {
         // Default implementation reverts for unsupported operation
         revert UnsupportedOperationType();
@@ -99,7 +99,7 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
      * @dev Override this function to handle asset transfer operations
      */
     function _handleTransferAsset(
-        BridgeTypes.RelayedTransferParams memory /* params */
+        BridgeTypes.RelayedTransferParams memory // params
     ) internal virtual {
         // Default implementation reverts for unsupported operation
         revert UnsupportedOperationType();
@@ -111,7 +111,7 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
      * @dev Override this function to handle read state responses
      */
     function _handleReadStateResponse(
-        BridgeTypes.RelayedReadResponse memory /* params */
+        BridgeTypes.RelayedReadResponse memory // params
     ) internal virtual {
         // Default implementation reverts for unsupported operation
         revert UnsupportedOperationType();

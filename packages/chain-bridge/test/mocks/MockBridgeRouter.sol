@@ -237,11 +237,15 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.OperationType operationType,
         bytes calldata operationPayload
     ) external {
+        bytes32 operationId;
+
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory data = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedTransferParams)
             );
+
+            operationId = data.operationId;
 
             // Track the handling adapter
             operationAdapters[data.operationId] = msg.sender;
@@ -256,19 +260,13 @@ contract MockBridgeRouter is Test, IBridgeRouter {
                 BridgeTypes.OperationType.TRANSFER_ASSET,
                 abi.encode(data)
             );
-
-            emit TransferReceived(
-                data.operationId,
-                data.asset,
-                data.amount,
-                data.recipient,
-                data.sourceChainId
-            );
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
             BridgeTypes.RelayedMessageParams memory data = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedMessageParams)
             );
+
+            operationId = data.operationId;
 
             // Track the handling adapter
             operationAdapters[data.operationId] = msg.sender;
@@ -277,13 +275,13 @@ contract MockBridgeRouter is Test, IBridgeRouter {
                 BridgeTypes.OperationType.MESSAGE,
                 abi.encode(data)
             );
-
-            emit MessageDelivered(data.operationId, data.recipient, true);
         } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
             BridgeTypes.RelayedReadResponse memory data = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedReadResponse)
             );
+
+            operationId = data.operationId;
 
             // Track the handling adapter
             operationAdapters[data.operationId] = msg.sender;
@@ -296,11 +294,11 @@ contract MockBridgeRouter is Test, IBridgeRouter {
                 BridgeTypes.OperationType.READ_STATE,
                 abi.encode(data)
             );
-
-            emit ReadResponseDelivered(data.operationId, originator, true);
         } else {
             revert("UnsupportedOperationType");
         }
+
+        emit OperationDelivered(operationId, operationType);
     }
 
     // --- View Functions ---
