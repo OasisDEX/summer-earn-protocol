@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {StargateAdapterSetupTest} from "./StargateAdapter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
+import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {MockStargateV2Pool} from "../mocks/MockStargateV2.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 
@@ -138,7 +138,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Set the endpoint ID
-        adapterA.addSupportedChain(newChainId, newEndpointId);
+        adapterA.mapEndpoint(newChainId, newEndpointId);
 
         // Register the peer relationship in the registry
         registryA.registerAdapterPeer(
@@ -239,7 +239,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Try to add address(0) as an asset
         vm.prank(governor);
-        vm.expectRevert(IBridgeAdapter.InvalidParams.selector);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
         adapterA.addSupportedAsset(address(0), address(mockStargateContract));
     }
 

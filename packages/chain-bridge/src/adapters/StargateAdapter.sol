@@ -87,9 +87,6 @@ contract StargateAdapter is
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when an endpoint ID is set
-    event EndpointIdSet(uint16 chainId, uint32 endpointId);
-
     /// @notice Emitted when an asset support is added
     event AssetSupported(
         uint16 chainId,
@@ -178,33 +175,6 @@ contract StargateAdapter is
     }
 
     /**
-     * @notice Sets the LayerZero endpoint ID for a chain
-     * @param chainId Chain ID in our system
-     * @param lzEid Corresponding LayerZero Endpoint ID
-     */
-    function addSupportedChain(
-        uint16 chainId,
-        uint32 lzEid
-    ) external onlyGovernor {
-        if (lzEid == 0) {
-            revert InvalidParams();
-        }
-
-        _addChain(chainId, lzEid);
-        emit EndpointIdSet(chainId, lzEid);
-    }
-
-    /**
-     * @notice Removes a supported chain
-     * @param chainId Chain ID to remove
-     * @dev Can only be called by the contract owner
-     */
-    function removeSupportedChain(uint16 chainId) external onlyGovernor {
-        _removeChain(chainId);
-        emit EndpointIdSet(chainId, 0);
-    }
-
-    /**
      * @notice Adds support for an asset on a specific chain
      * @param asset Address of the asset to support
      * @param stargateContract Address of the Stargate V2 contract for this asset
@@ -239,6 +209,33 @@ contract StargateAdapter is
         emit AssetSupported(uint16(block.chainid), asset, stargateContract);
     }
 
+    /**
+     * @notice Map a new chain-id → endpoint-id pair for LayerZero endpoints.
+     * @dev Governance utility. This only updates the local mapping; it does NOT
+     *      grant permission to send. That second layer of permission is still
+     *      enforced via the CrossChainRegistry.
+     *
+     * @param chainId     Canonical EVM chain ID.
+     * @param endpointId  LayerZero endpoint identifier (EID).
+     */
+    function mapEndpoint(
+        uint16 chainId,
+        uint32 endpointId
+    ) external onlyGovernor {
+        if (endpointId == 0) {
+            revert InvalidParams();
+        }
+        _mapChainExternalId(chainId, endpointId);
+    }
+
+    /**
+     * @notice Delete the endpoint mapping for a chain.
+     * @param chainId Chain ID whose mapping should be removed.
+     */
+    function unmapEndpoint(uint16 chainId) external onlyGovernor {
+        _unmapChainExternalId(chainId);
+    }
+
     /*//////////////////////////////////////////////////////////////
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
@@ -251,7 +248,7 @@ contract StargateAdapter is
     )
         external
         payable
-        onlySupportedDestination(params.destinationChainId)
+        onlyTrustedDestination(params.destinationChainId)
         onlyRouter
         nonReentrant
     {
@@ -423,7 +420,7 @@ contract StargateAdapter is
     )
         public
         view
-        onlySupportedDestination(dstChainId)
+        onlyTrustedDestination(dstChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
         // Check if asset is supported on current chain
