@@ -431,6 +431,13 @@ contract StargateAdapter is
             messagingFee,
             params.refundAddress // Always refund to keeper who paid fees
         );
+
+        // Refund any unused native value (buffer) back to the designated refund address
+        uint256 refundAmount = providedFee - messagingFee.nativeFee;
+        if (refundAmount > 0) {
+            (bool ok, ) = params.refundAddress.call{value: refundAmount}("");
+            if (!ok) revert InvalidParams();
+        }
     }
 
     /**
