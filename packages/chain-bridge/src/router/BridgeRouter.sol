@@ -343,6 +343,9 @@ contract BridgeRouter is
             options
         );
 
+        // Refund any excess native fees to designated refund address
+        _refund(params.refundAddress, msg.value - bufferedFee);
+
         emit TransferInitiated(
             operationId,
             params.destinationChainId,
@@ -419,6 +422,9 @@ contract BridgeRouter is
             options
         );
 
+        // Refund any excess native fees to designated refund address
+        _refund(params.refundAddress, msg.value - bufferedFee);
+
         emit ReadRequestInitiated(
             operationId,
             params.destinationChainId,
@@ -483,6 +489,9 @@ contract BridgeRouter is
             params,
             options
         );
+
+        // Refund any excess native fees to designated refund address
+        _refund(params.refundAddress, msg.value - bufferedFee);
 
         emit MessageInitiated(
             operationId,
