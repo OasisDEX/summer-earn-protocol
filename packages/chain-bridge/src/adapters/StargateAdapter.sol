@@ -113,13 +113,7 @@ contract StargateAdapter is
     event ComposeCallFailed(
         bytes32 indexed operationId,
         address indexed fleetProxy,
-        bytes reason
-    );
-
-    /// @notice Emitted when compose call fails (alternate version with source chain)
-    event ComposeCallFailedWithSource(
-        bytes32 indexed operationId,
-        address indexed fleetProxy,
+        bytes reason,
         uint16 sourceChainId
     );
 
@@ -250,7 +244,7 @@ contract StargateAdapter is
     function transferAsset(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         payable
@@ -272,7 +266,7 @@ contract StargateAdapter is
             params.amount
         );
 
-        _executeSendToken(operationId, params, providedFee);
+        _executeSendToken(operationId, params, providedFee, options);
 
         // Emit the TransferInitiated event
         emit TransferInitiated(
@@ -285,12 +279,13 @@ contract StargateAdapter is
     }
 
     /**
-     * @dev Execute the actual sendToken call
+     * @dev Execute the actual sendToken call with consolidated logic
      */
     function _executeSendToken(
         bytes32 operationId,
         BridgeTypes.ExecuteTransferParams memory params,
-        uint256 providedFee
+        uint256 providedFee,
+        BridgeTypes.BridgeOptions memory options
     ) internal {
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[params.asset];
@@ -301,98 +296,32 @@ contract StargateAdapter is
 
         // Resolve destination adapter via registry
         address destinationAdapter = _peerAdapter(params.destinationChainId);
-        if (destinationAdapter == address(0)) revert UnsupportedChain();
-
-        BridgeTypes.RelayedTransferParams memory atm = BridgeTypes
-            .RelayedTransferParams({
-                recipient: params.target,
-                asset: params.asset,
-                amount: params.amount,
-                sourceChainId: uint16(block.chainid),
-                operationId: operationId,
-                originator: params.originator,
-                message: params.message
-            });
 
         // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
         SendParam memory sendParam = _buildSendParam(
             params.destinationChainId,
             destinationAdapter,
             params.amount,
-            _encodeRelayedTransferParams(atm)
+            _encodeRelayedTransferParams(
+                BridgeTypes.RelayedTransferParams({
+                    recipient: params.target,
+                    asset: params.asset,
+                    amount: params.amount,
+                    sourceChainId: uint16(block.chainid),
+                    operationId: operationId,
+                    originator: params.originator,
+                    message: params.message
+                })
+            ),
+            options
         );
 
-        // Update minAmountLD based on quote
-        _updateMinAmount(stargate, sendParam, params.amount);
-
-        // Execute transfer
-        _performTransfer(stargate, sendParam, params, providedFee);
-    }
-
-    /**
-     * @dev Build SendParam struct
-     */
-    function _buildSendParam(
-        uint16 destinationChainId,
-        address destinationAdapter,
-        uint256 amount,
-        bytes memory composeMsg
-    ) internal view returns (SendParam memory) {
-        // Always use taxi mode for compose functionality and reliability
-        bytes memory oftCmd = OftCmdHelper.taxi(); // Always use taxi mode like in the example
-
-        // Add compose options when compose message is present
-        bytes memory extraOptions = composeMsg.length > 0
-            ? OptionsBuilder.newOptions().addExecutorLzComposeOption(
-                0,
-                uint128(defaultGasLimit()),
-                0
-            )
-            : bytes("");
-
-        return
-            SendParam({
-                dstEid: chainToExternalId[destinationChainId],
-                to: destinationAdapter.toBytes32(),
-                amountLD: amount,
-                minAmountLD: amount,
-                extraOptions: extraOptions,
-                composeMsg: composeMsg,
-                oftCmd: oftCmd // Always "" for taxi mode
-            });
-    }
-
-    /**
-     * @dev Update minimum amount based on quote with proper validation
-     */
-    function _updateMinAmount(
-        IStargateV2 stargate,
-        SendParam memory sendParam,
-        uint256 amount
-    ) internal view {
         (OFTLimit memory oftLimit, , OFTReceipt memory oftReceipt) = stargate
             .quoteOFT(sendParam);
-        // Validate OFT limits first
-        if (amount < oftLimit.minAmountLD) {
-            revert InsufficientAmount(amount, oftLimit.minAmountLD);
-        }
-        if (amount > oftLimit.maxAmountLD) {
-            revert ExceedsMaxAmount(amount, oftLimit.maxAmountLD);
-        }
-
-        // Validate received amount
-        if (oftReceipt.amountReceivedLD == 0) {
-            revert ZeroAmountReceived();
-        }
-
-        // Check that received amount is not higher than input (suspicious)
-        if (oftReceipt.amountReceivedLD > amount) {
-            revert InvalidAmountReceived(oftReceipt.amountReceivedLD, amount);
-        }
 
         // Calculate minimum slippage threshold (use configurable tolerance)
-        uint256 minExpectedAmount = (amount * (10000 - slippageToleranceBps)) /
-            10000;
+        uint256 minExpectedAmount = (params.amount *
+            (10000 - slippageToleranceBps)) / 10000;
 
         // Revert if slippage exceeds tolerance
         if (oftReceipt.amountReceivedLD < minExpectedAmount) {
@@ -405,17 +334,8 @@ contract StargateAdapter is
 
         // Use the quoted amount since it's within tolerance
         sendParam.minAmountLD = oftReceipt.amountReceivedLD;
-    }
 
-    /**
-     * @dev Perform the actual transfer
-     */
-    function _performTransfer(
-        IStargateV2 stargate,
-        SendParam memory sendParam,
-        BridgeTypes.ExecuteTransferParams memory params,
-        uint256 providedFee
-    ) internal {
+        // Get messaging fee and perform transfer
         MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
 
         if (providedFee < messagingFee.nativeFee) {
@@ -428,6 +348,46 @@ contract StargateAdapter is
             messagingFee,
             params.refundAddress // Always refund to keeper who paid fees
         );
+    }
+
+    /**
+     * @dev Helper function to create compose options with the given gas limit
+     * @param gas Gas limit for the compose execution
+     * @return Encoded options for LayerZero compose functionality
+     */
+    function _composeOptions(uint128 gas) internal pure returns (bytes memory) {
+        return
+            OptionsBuilder.newOptions().addExecutorLzComposeOption(0, gas, 0);
+    }
+
+    /**
+     * @dev Build SendParam struct
+     */
+    function _buildSendParam(
+        uint16 destinationChainId,
+        address destinationAdapter,
+        uint256 amount,
+        bytes memory composeMsg,
+        BridgeTypes.BridgeOptions memory options
+    ) internal view returns (SendParam memory) {
+        // Always use taxi mode for compose functionality and reliability
+        bytes memory oftCmd = OftCmdHelper.taxi(); // Always use taxi mode like in the example
+
+        // Add compose options when compose message is present
+        bytes memory extraOptions = composeMsg.length > 0
+            ? _composeOptions(uint128(_normalizeGas(options.gasLimit)))
+            : bytes("");
+
+        return
+            SendParam({
+                dstEid: chainToExternalId[destinationChainId],
+                to: destinationAdapter.toBytes32(),
+                amountLD: amount,
+                minAmountLD: amount,
+                extraOptions: extraOptions,
+                composeMsg: composeMsg,
+                oftCmd: oftCmd // Always "" for taxi mode
+            });
     }
 
     /**
@@ -478,9 +438,7 @@ contract StargateAdapter is
         uint256 gasLimit = _normalizeGas(options.gasLimit);
 
         // Always include compose options in fee estimation
-        bytes memory extraOptions = OptionsBuilder
-            .newOptions()
-            .addExecutorLzComposeOption(0, uint128(gasLimit), 0);
+        bytes memory extraOptions = _composeOptions(uint128(gasLimit));
 
         // Check if a compose message is provided in adapter params
         bytes memory composeMsg;
@@ -683,7 +641,12 @@ contract StargateAdapter is
                 // Success - call completed
             } catch (bytes memory reason) {
                 // Log failure but continue - tokens were already sent
-                emit ComposeCallFailed(operationId, recipient, reason);
+                emit ComposeCallFailed(
+                    operationId,
+                    recipient,
+                    reason,
+                    uint16(block.chainid)
+                );
             }
         }
 

@@ -299,13 +299,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         bytes memory _payload
     ) internal {
         // Extract requestId from the guid mapping
-
         bytes32 operationId = lzMessageToOperationId[_guid];
         if (operationId == bytes32(0)) {
             // Silently fail so it doesn't get locked with DVN
             emit ReadOperationNotFound(_guid, "No operationId found");
             return;
         }
+
         bytes memory operationPayload = _encodeRelayedReadResponse(
             BridgeTypes.RelayedReadResponse({
                 readResponseData: _payload,
@@ -313,10 +313,14 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                 sourceChainId: externalIdToChainId[_origin.srcEid]
             })
         );
+
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.READ_STATE,
             operationPayload
         );
+
+        // Clean up mapping after successful delivery to prevent storage bloat
+        delete lzMessageToOperationId[_guid];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -327,8 +331,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     function transferAsset(
         bytes32, // operationId - not used by LayerZero adapter
         BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata options
-    ) external payable onlyTrustedDestination(params.destinationChainId) {
+        BridgeTypes.BridgeOptions calldata // options
+    ) external payable onlySupportedDestination(params.destinationChainId) {
         // This adapter doesn't support asset transfers directly
         // It should never be called for this purpose due to capability flags
         revert OperationNotSupported();
@@ -347,65 +351,30 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         onlyTrustedDestination(destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        // Convert destinationChainId to LayerZero EID
-        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
-
         if (!supportsOperation(operationType)) revert OperationNotSupported();
 
-        // Create appropriate payload based on message type
+        // Use operation-specific builders
+        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
         bytes memory payload;
-        bytes memory lzOptions;
 
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            // Construct a READ payload identical to readState implementation
-            EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
-            readRequests[0] = EVMCallRequestV1({
-                appRequestLabel: 1,
-                targetEid: lzDstEid,
-                isBlockNum: false,
-                blockNumOrTimestamp: uint64(block.timestamp),
-                confirmations: 15,
-                to: address(0x1), // Use a dummy address
-                callData: new bytes(0)
-            });
-
-            payload = ReadCodecV1.encode(0, readRequests);
+            payload = _createReadStatePayload(
+                lzDstEid,
+                address(0x1),
+                new bytes(0)
+            );
         } else {
-            // For BridgeTypes.OperationType.MESSAGE, use same encoding format as sendMessage
-            bytes memory dummyMessage = abi.encode(
-                "dummy message for fee estimation"
-            );
-            payload = _encodeRelayedMessageParamsWithType(
-                BridgeTypes.RelayedMessageParams({
-                    recipient: address(0),
-                    message: dummyMessage,
-                    operationId: bytes32(0),
-                    originator: address(0),
-                    sourceChainId: uint16(0)
-                })
-            );
+            payload = _createMessagePayload(_createDummyMessageParams());
         }
 
-        lzOptions = _prepareOptions(options, operationType);
-
-        // Quote should use the same destination target as real message
-        uint32 dstEid = lzDstEid;
-
-        // Get the fee required
-        if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            if (readChannelId == 0) revert ReadChannelNotConfigured();
-
-            EndpointFee memory fee = _quote(
-                readChannelId,
-                payload,
-                lzOptions,
-                false
-            );
-            return (fee.nativeFee, fee.lzTokenFee);
-        } else {
-            EndpointFee memory fee = _quote(dstEid, payload, lzOptions, false);
-            return (fee.nativeFee, fee.lzTokenFee);
-        }
+        bytes memory lzOptions = _createLzOptions(options, operationType);
+        EndpointFee memory fee = _quoteOperationFee(
+            lzDstEid,
+            payload,
+            lzOptions,
+            operationType
+        );
+        return (fee.nativeFee, fee.lzTokenFee);
     }
 
     /// @inheritdoc ISendAdapter
@@ -433,21 +402,13 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         bytes32 guid;
         {
-            // Create EVMCallRequestV1 for the read request (scope to avoid stack too deep)
-            EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
-            readRequests[0] = EVMCallRequestV1({
-                appRequestLabel: 1,
-                targetEid: lzDstEid,
-                isBlockNum: false,
-                blockNumOrTimestamp: uint64(block.timestamp),
-                confirmations: 15,
-                to: params.target,
-                callData: abi.encodePacked(params.selector, params.readParams)
-            });
-
-            // Encode and send
-            bytes memory cmd = ReadCodecV1.encode(0, readRequests);
-            bytes memory lzOptions = _prepareOptions(
+            // Clean, focused payload creation for read operations
+            bytes memory cmd = _createReadStatePayload(
+                lzDstEid,
+                params.target,
+                abi.encodePacked(params.selector, params.readParams)
+            );
+            bytes memory lzOptions = _createLzOptions(
                 options,
                 BridgeTypes.OperationType.READ_STATE
             );
@@ -464,10 +425,10 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[guid] = operationId;
-        // todo : fix event
+
         emit ReadRequestInitiated(
             operationId,
-            uint16(0),
+            uint16(block.chainid),
             params.destinationChainId,
             params.target,
             params.selector
@@ -493,21 +454,18 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         if (options.msgValue > 0 && msg.value < options.msgValue) {
             revert InsufficientMsgValue(options.msgValue, msg.value);
         }
-        BridgeTypes.RelayedMessageParams
-            memory relayedMessageParams = BridgeTypes.RelayedMessageParams({
+
+        // Clean, focused payload creation for message operations
+        bytes memory payload = _createMessagePayload(
+            BridgeTypes.RelayedMessageParams({
                 recipient: params.target,
                 message: params.message,
                 operationId: operationId,
                 originator: params.originator,
                 sourceChainId: uint16(block.chainid)
-            });
-        // Encode payload for LayerZero with BridgeTypes.OperationType.MESSAGE message type
-        bytes memory payload = _encodeRelayedMessageParamsWithType(
-            relayedMessageParams
+            })
         );
-
-        // Create options with appropriate gas limit
-        bytes memory lzOptions = _prepareOptions(
+        bytes memory lzOptions = _createLzOptions(
             options,
             BridgeTypes.OperationType.MESSAGE
         );
@@ -558,18 +516,17 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     }
 
     /**
-     * @notice Creates options with gas limit at least as high as the configured minimum
-     * @param options User-provided adapter parameters
+     * @notice Creates LayerZero options with appropriate gas limits
+     * @param options User-provided bridge options
      * @param operationType The operation type being sent
-     * @return options The prepared options with appropriate minimum gas limits
+     * @return lzOptions The prepared LayerZero options
      */
-    function _prepareOptions(
-        BridgeTypes.BridgeOptions calldata options,
+    function _createLzOptions(
+        BridgeTypes.BridgeOptions memory options,
         BridgeTypes.OperationType operationType
     ) internal view returns (bytes memory) {
         uint128 gasLimit = uint128(_normalizeGas(options.gasLimit));
 
-        // Use the helper to create messaging options with minimum gas limit enforcement
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             return
                 LayerZeroOptionsHelper.createLzReadOptions(options, gasLimit);
@@ -579,6 +536,65 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                     options,
                     gasLimit
                 );
+        }
+    }
+
+    /**
+     * @notice Creates a read state payload for LayerZero operations
+     * @param lzDstEid LayerZero destination endpoint ID
+     * @param target Target contract address (use address(0x1) for estimation)
+     * @param callData Call data (use empty bytes for estimation)
+     * @return payload Encoded read state payload
+     */
+    function _createReadStatePayload(
+        uint32 lzDstEid,
+        address target,
+        bytes memory callData
+    ) internal view returns (bytes memory payload) {
+        EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
+        readRequests[0] = EVMCallRequestV1({
+            appRequestLabel: 1,
+            targetEid: lzDstEid,
+            isBlockNum: false,
+            blockNumOrTimestamp: uint64(block.timestamp),
+            confirmations: 15,
+            to: target,
+            callData: callData
+        });
+
+        return ReadCodecV1.encode(0, readRequests);
+    }
+
+    /**
+     * @notice Creates a message payload for LayerZero operations
+     * @param params Message parameters (use dummy values for estimation)
+     * @return payload Encoded message payload
+     */
+    function _createMessagePayload(
+        BridgeTypes.RelayedMessageParams memory params
+    ) internal pure returns (bytes memory payload) {
+        return _encodeRelayedMessageParamsWithType(params);
+    }
+
+    /**
+     * @notice Quotes fee for a specific operation type
+     * @param lzDstEid LayerZero destination endpoint ID
+     * @param payload Operation payload
+     * @param lzOptions LayerZero options
+     * @param operationType Type of operation
+     * @return fee Quoted fee structure
+     */
+    function _quoteOperationFee(
+        uint32 lzDstEid,
+        bytes memory payload,
+        bytes memory lzOptions,
+        BridgeTypes.OperationType operationType
+    ) internal view returns (EndpointFee memory fee) {
+        if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            if (readChannelId == 0) revert ReadChannelNotConfigured();
+            return _quote(readChannelId, payload, lzOptions, false);
+        } else {
+            return _quote(lzDstEid, payload, lzOptions, false);
         }
     }
 
@@ -623,7 +639,12 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         }
 
         // Quote the fee with our generated options
-        EndpointFee memory quoteFee = _quote(_dstEid, _payload, options, false);
+        EndpointFee memory quoteFee = _quoteOperationFee(
+            _dstEid,
+            _payload,
+            options,
+            operationType
+        );
         return quoteFee.nativeFee;
     }
 
@@ -654,5 +675,24 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         return
             operationType == BridgeTypes.OperationType.MESSAGE ||
             operationType == BridgeTypes.OperationType.READ_STATE;
+    }
+
+    /**
+     * @notice Creates dummy message parameters for fee estimation
+     * @return params Dummy RelayedMessageParams for estimation
+     */
+    function _createDummyMessageParams()
+        internal
+        pure
+        returns (BridgeTypes.RelayedMessageParams memory)
+    {
+        return
+            BridgeTypes.RelayedMessageParams({
+                recipient: address(0),
+                message: abi.encode("dummy message for fee estimation"),
+                operationId: bytes32(0),
+                originator: address(0),
+                sourceChainId: uint16(0)
+            });
     }
 }
