@@ -63,8 +63,13 @@ interface IBridgeRouter is IERC165 {
         address routerAddress
     );
 
-    /// @notice Emitted when funds are recovered from the router by governance
-    event RouterFundsRecovered(address indexed recipient, uint256 amount);
+    /// @notice Emitted when assets (ERC20 or native) are recovered from the router by governance
+    /// @dev If `token` is address(0), the recovery represents native ETH.
+    event RouterAssetsRecovered(
+        address indexed token,
+        address indexed recipient,
+        uint256 amount
+    );
 
     /// @notice Emitted when the default gas limit is updated
     event DefaultGasLimitUpdated(uint256 newDefaultGasLimit);
@@ -243,10 +248,15 @@ interface IBridgeRouter is IERC165 {
     function unpause() external;
 
     /**
-     * @notice Withdraw accumulated native tokens (e.g., from fee margins) from the router
-     * @param recipient Address to send the native tokens to
-     * @param amount Amount of native tokens to withdraw
-     * @dev Governor role required. This is the standard governance rescue mechanism for native tokens.
+     * @notice Recover stuck assets (native ETH or ERC20) from the router
+     * @param token Address of the ERC20 token to recover; use address(0) for native ETH
+     * @param recipient Address to receive the recovered assets
+     * @param amount Amount of assets to recover
+     * @dev Governor role required. Uses SafeERC20 for token transfers and a low-level call for native ETH.
      */
-    function recoverFunds(address recipient, uint256 amount) external;
+    function recoverAssets(
+        address token,
+        address recipient,
+        uint256 amount
+    ) external;
 }

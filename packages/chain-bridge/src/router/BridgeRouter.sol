@@ -699,17 +699,24 @@ contract BridgeRouter is
     }
 
     /// @inheritdoc IBridgeRouter
-    function recoverFunds(
+    function recoverAssets(
+        address token,
         address recipient,
         uint256 amount
     ) external nonReentrant onlyGovernor {
         if (recipient == address(0)) revert InvalidParams();
-        if (address(this).balance < amount) revert InsufficientBalance();
 
-        (bool success, ) = recipient.call{value: amount}("");
-        if (!success) revert TransferFailed();
+        if (token == address(0)) {
+            // Recover native ETH
+            if (address(this).balance < amount) revert InsufficientBalance();
+            (bool success, ) = recipient.call{value: amount}("");
+            if (!success) revert TransferFailed();
+        } else {
+            // Recover ERC20 using SafeERC20
+            IERC20(token).safeTransfer(recipient, amount);
+        }
 
-        emit RouterFundsRecovered(recipient, amount);
+        emit RouterAssetsRecovered(token, recipient, amount);
     }
 
     /// @inheritdoc IERC165

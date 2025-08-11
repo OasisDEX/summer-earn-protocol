@@ -177,6 +177,6 @@ function receiveOperation(
 
 - `registerAdapter()` / `removeAdapter()`: Manage adapter registry
 - `pause()` / `unpause()`: Emergency controls
-- `recoverFunds()`: Withdraw accumulated native tokens
+- `recoverAssets(token, recipient, amount)`: Recover native ETH (token = address(0)) or ERC20 tokens held by the router
 
 > **Note**: The BridgeRouter is designed to be extended with additional functionality like automatic adapter selection, fee optimization, and advanced routing logic as the protocol evolves.
