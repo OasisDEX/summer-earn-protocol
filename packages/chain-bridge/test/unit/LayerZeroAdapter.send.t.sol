@@ -57,7 +57,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         routerA.setOperationToAdapter(operationId, address(adapterA));
 
         vm.startPrank(governor);
-        adapterA.activateReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1);
+        adapterA.activateReadChannel(adapterA.readChannelThreshold() + 1);
         vm.stopPrank();
 
         // We expect this call to revert with LZ_DefaultSendLibUnavailable
@@ -331,7 +331,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         routerA.setOperationToAdapter(operationId, address(adapterA));
 
         vm.startPrank(governor);
-        adapterA.activateReadChannel(adapterA.READ_CHANNEL_THRESHOLD() + 1);
+        adapterA.activateReadChannel(adapterA.readChannelThreshold() + 1);
         vm.stopPrank();
 
         // We expect this call to revert with LZ_DefaultSendLibUnavailable

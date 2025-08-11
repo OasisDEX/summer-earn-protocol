@@ -37,8 +37,8 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
-    /// @notice Read channel identifier for lzRead operations
-    uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Used to identify responses
+    /// @notice Read channel threshold identifier for lzRead operations (configurable)
+    uint32 public immutable readChannelThreshold; // Used to identify responses
 
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
@@ -82,6 +82,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
      * @param _supportedChains Array of chain IDs supported by this adapter
      * @param _lzEids Array of corresponding LayerZero endpoint IDs
      * @param _initialOwner Address of the contract owner
+     * @param _readChannelThreshold Threshold for determining read-channel responses
      */
     constructor(
         address _endpoint,
@@ -89,13 +90,16 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         address _accessManager,
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
-        address _initialOwner
+        address _initialOwner,
+        uint32 _readChannelThreshold
     )
         OAppRead(_endpoint, _initialOwner)
         Ownable(_initialOwner)
         BaseBridgeAdapter(_crossChainRegistry, _accessManager)
     {
         if (_supportedChains.length != _lzEids.length) revert InvalidParams();
+        if (_readChannelThreshold == 0) revert InvalidParams();
+        readChannelThreshold = _readChannelThreshold;
 
         // Setup chain ID mappings using base functionality
         for (uint256 i = 0; i < _supportedChains.length; i++) {
@@ -245,7 +249,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         // https://docs.layerzero.network/v2/developers/evm/lzread/overview#hybrid-messaging--read
 
         // todo: should the read reponse also contain the operation type and the originator?
-        if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
+        if (_origin.srcEid > readChannelThreshold) {
             _relayReadResponse(_origin, _guid, _payload);
         } else if (_payload.length >= 2) {
             // Decode the payload to extract operation type and data

@@ -131,7 +131,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             address(accessManager),
             supportedChains,
             lzEids,
-            governor
+            governor,
+            4294965694
         );
 
         // Setup Stargate adapter
@@ -883,7 +884,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create the LayerZero Origin struct for the read response
         // Read responses come from srcEid > READ_CHANNEL_THRESHOLD
         // We use a simple increment to stay within uint32 bounds
-        uint32 readResponseEid = layerZeroAdapter.READ_CHANNEL_THRESHOLD() + 1;
+        uint32 readResponseEid = layerZeroAdapter.readChannelThreshold() + 1;
 
         // Create the response payload (encoded remote balance)
         bytes memory responsePayload = _encodeMessage(

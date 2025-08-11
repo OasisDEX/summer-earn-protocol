@@ -26,7 +26,8 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
         address _accessManager,
         uint16[] memory _supportedChains,
         uint32[] memory _lzEids,
-        address _initialOwner
+         address _initialOwner,
+         uint32 _readChannelThreshold
     )
         LayerZeroAdapter(
             _endpoint,
@@ -34,7 +35,8 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
             _accessManager,
             _supportedChains,
             _lzEids,
-            _initialOwner
+             _initialOwner,
+             _readChannelThreshold
         )
     {}
 
