@@ -6,7 +6,8 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
-import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
+import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
+import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
@@ -337,7 +338,7 @@ contract BridgeRouter is
         );
 
         // Call adapter with the full msg.value
-        ISendAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
+        IAssetAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params,
             options
@@ -416,7 +417,7 @@ contract BridgeRouter is
         readRequestToOriginator[operationId] = params.originator;
 
         // Call adapter with the full msg.value
-        ISendAdapter(specifiedAdapter).readState{value: bufferedFee}(
+        IMessageAdapter(specifiedAdapter).readState{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params,
             options
@@ -484,7 +485,7 @@ contract BridgeRouter is
         );
 
         // Call adapter with the full msg.value
-        ISendAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
+        IMessageAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
             operationId, // Pass the router-generated ID
             params,
             options

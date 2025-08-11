@@ -343,8 +343,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
     }
 
     function testDeliverUnsupportedOperationTypeReverts() public {
-        bytes32 operationId = keccak256("unsupportedOperation");
-
         vm.prank(address(mockAdapter));
         vm.expectRevert(); // Should revert for unsupported operation type
         router.deliver(

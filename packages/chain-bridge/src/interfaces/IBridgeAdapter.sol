@@ -2,19 +2,23 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {ISendAdapter} from "./ISendAdapter.sol";
 
 /**
  * @title IBridgeAdapter
  * @notice Core interface for bridge adapters with shared functionality
+ * @dev Provides unified methods for bridge adapters. Adapters should also inherit from
+ * @dev IAssetAdapter and/or IMessageAdapter based on their capabilities
  */
-interface IBridgeAdapter is ISendAdapter {
+interface IBridgeAdapter {
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a read operation is not found through the adapter
-    event ReadOperationNotFound(bytes32 indexed guid, string reason);
+    /// @notice Emitted when a relay or messaging operation fails
+    event RelayFailed(bytes32 indexed transferId, bytes reason);
+
+    /// @notice Emitted when bridge router is updated
+    event BridgeRouterUpdated(address oldRouter, address newRouter);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -25,6 +29,9 @@ interface IBridgeAdapter is ISendAdapter {
 
     /// @notice Thrown when a chain is not supported
     error UnsupportedChain();
+
+    /// @notice Thrown when the operation is not supported by the adapter
+    error UnsupportedOperation();
 
     /// @notice Thrown when the operation is not supported by the adapter
     error OperationNotSupported();
@@ -58,7 +65,7 @@ interface IBridgeAdapter is ISendAdapter {
     error Untrusted(string what, address from, address additionalInfo);
 
     /**
-     * @notice Estimate fees for a cross-chain operation
+     * @notice Estimate fees for a cross-chain operation (unified interface)
      * @param destinationChainId ID of the destination chain
      * @param asset Address of the asset to transfer (address(0) for non-asset operations)
      * @param amount Amount of the asset to transfer (0 for non-asset operations)
@@ -66,6 +73,7 @@ interface IBridgeAdapter is ISendAdapter {
      * @param operationType Type of operation (0=MESSAGE, 1=READ_STATE, 2=TRANSFER_ASSET)
      * @return nativeFee Fee in the chain's native token
      * @return tokenFee Fee in the transferred token (if applicable)
+     * @dev This method delegates to estimateTransferFee or estimateMessageFee based on operationType
      */
     function estimateFee(
         uint16 destinationChainId,
@@ -79,6 +87,7 @@ interface IBridgeAdapter is ISendAdapter {
      * @notice Check if an adapter supports a specific operation type
      * @param operationType Type of operation to check support for
      * @return Whether the adapter supports the operation type
+     * @dev This method should check both asset and message capabilities based on operationType
      */
     function supportsOperation(
         BridgeTypes.OperationType operationType

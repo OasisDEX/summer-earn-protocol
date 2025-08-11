@@ -3,9 +3,8 @@ pragma solidity 0.8.28;
 
 import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-
-import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
@@ -24,9 +23,14 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 /**
  * @title LayerZeroAdapter
  * @notice Adapter for the LayerZero bridge protocol
- * @dev Implements IBridgeAdapter interface and connects to LayerZero's messaging service using OAppRead standard
+ * @dev Implements IMessageAdapter and IBridgeAdapter interfaces and connects to LayerZero's messaging service using OAppRead standard
  */
-contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
+contract LayerZeroAdapter is
+    OAppRead,
+    IMessageAdapter,
+    IBridgeAdapter,
+    BaseBridgeAdapter
+{
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -53,13 +57,11 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     );
 
     /// @notice Emitted when read DVNs are configured
-    /// forge-lint: disable-start(mixed-case-variable, mixed-case-function)
     event ReadDVNsConfigured(
         uint32 indexed readChannelId,
         address[] readDVNs,
         uint64 confirmations
     );
-    /// forge-lint: disable-end(mixed-case-variable, mixed-case-function)
 
     /// @notice Emitted when read executor is configured
     event ReadExecutorConfigured(
@@ -67,6 +69,9 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         address indexed executor,
         uint32 maxMessageSize
     );
+
+    /// @notice Mapping of chains that support read operations
+    mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -202,6 +207,19 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
     }
 
     /**
+     * @notice Configure read support for specific chains
+     * @param chainId The chain ID to configure
+     * @param supported Whether read operations are supported on this chain
+     * @dev Can only be called by the contract owner
+     */
+    function setChainReadSupport(
+        uint16 chainId,
+        bool supported
+    ) external onlyGovernor {
+        chainSupportsRead[chainId] = supported;
+    }
+
+    /**
      * @notice Map a new chain-id → endpoint-id pair for LayerZero endpoints.
      * @dev Governance utility. This only updates the local mapping; it does NOT
      *      grant permission to send. That second layer of permission is still
@@ -331,17 +349,6 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISendAdapter
-    function transferAsset(
-        bytes32, // operationId - not used by LayerZero adapter
-        BridgeTypes.ExecuteTransferParams calldata params,
-        BridgeTypes.BridgeOptions calldata // options
-    ) external payable onlySupportedDestination(params.destinationChainId) {
-        // This adapter doesn't support asset transfers directly
-        // It should never be called for this purpose due to capability flags
-        revert OperationNotSupported();
-    }
-
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
         uint16 destinationChainId,
@@ -381,7 +388,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         return (fee.nativeFee, fee.lzTokenFee);
     }
 
-    /// @inheritdoc ISendAdapter
+    /// @inheritdoc IMessageAdapter
     function readState(
         bytes32 operationId,
         BridgeTypes.ExecuteReadStateParams calldata params,
@@ -439,7 +446,7 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         );
     }
 
-    /// @inheritdoc ISendAdapter
+    /// @inheritdoc IMessageAdapter
     function sendMessage(
         bytes32 operationId, // Accept from router
         BridgeTypes.ExecuteSendMessageParams calldata params,
@@ -679,6 +686,30 @@ contract LayerZeroAdapter is OAppRead, IBridgeAdapter, BaseBridgeAdapter {
         return
             operationType == BridgeTypes.OperationType.MESSAGE ||
             operationType == BridgeTypes.OperationType.READ_STATE;
+    }
+
+    /// @inheritdoc IMessageAdapter
+    function supportsMessageOperation(
+        uint16 destinationChainId,
+        BridgeTypes.OperationType operationType
+    ) external view returns (bool) {
+        // First check if the destination chain is supported
+        if (chainToExternalId[destinationChainId] == 0) {
+            return false;
+        }
+
+        // Check if the adapter supports this operation type in general
+        if (!supportsOperation(operationType)) {
+            return false;
+        }
+
+        // For READ_STATE operations, check both global config and chain-specific support
+        if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            return readChannelId != 0 && chainSupportsRead[destinationChainId];
+        }
+
+        // For MESSAGE operations, no additional requirements beyond chain support
+        return true;
     }
 
     /**
