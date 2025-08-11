@@ -185,12 +185,13 @@ contract CrossChainArk is
         bytes32 operationId = bridgeRouter.executeTransferAssets{
             value: msg.value
         }(pendingTransferParams, pendingTransferOptions);
-        _resetPendingTransferParams();
+
         latestOutgoingTransferId = operationId;
         emit PendingTransferQueued(
             pendingTransferParams,
             pendingTransferOptions
         );
+        _resetPendingTransferParams();
     }
 
     /**
