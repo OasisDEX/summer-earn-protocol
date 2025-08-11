@@ -690,7 +690,7 @@ contract LayerZeroAdapter is
         BridgeTypes.OperationType operationType
     ) external view returns (bool) {
         // First check if the destination chain is supported
-        if (chainToLzEid[destinationChainId] == 0) {
+        if (chainToExternalId[destinationChainId] == 0) {
             return false;
         }
 

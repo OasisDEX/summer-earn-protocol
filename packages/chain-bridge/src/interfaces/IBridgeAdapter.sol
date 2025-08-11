@@ -20,9 +20,6 @@ interface IBridgeAdapter {
     /// @notice Emitted when bridge router is updated
     event BridgeRouterUpdated(address oldRouter, address newRouter);
 
-    /// @notice Emitted when a read operation is not found through the adapter
-    event ReadOperationNotFound(bytes32 indexed guid, string reason);
-
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
