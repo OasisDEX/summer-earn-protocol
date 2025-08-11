@@ -23,9 +23,6 @@ interface IBridgeAdapter is ISendAdapter {
     /// @notice Thrown when insufficient msg.value is provided for the specified msgValue
     error InsufficientMsgValue(uint128 required, uint256 provided);
 
-    /// @notice Thrown when provided parameters are invalid
-    error InvalidParams();
-
     /// @notice Thrown when a chain is not supported
     error UnsupportedChain();
 
@@ -56,18 +53,6 @@ interface IBridgeAdapter is ISendAdapter {
         uint256 receivedAmount,
         uint256 toleranceBps
     );
-
-    /// @notice Error for zero amount received
-    error ZeroAmountReceived();
-
-    /// @notice Error for invalid amount received
-    error InvalidAmountReceived(uint256 received, uint256 expected);
-
-    /// @notice Error for insufficient amount received
-    error InsufficientAmount(uint256 amount, uint256 minAmount);
-
-    /// @notice Error for amount above maximum limit
-    error ExceedsMaxAmount(uint256 amount, uint256 maxAmount);
 
     /// @notice Error for untrusted Stargate pool contract
     error Untrusted(string what, address from, address additionalInfo);

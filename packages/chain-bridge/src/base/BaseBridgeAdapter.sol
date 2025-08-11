@@ -13,8 +13,8 @@ abstract contract BaseBridgeAdapter is
     ReentrancyGuard,
     ProtocolAccessManaged
 {
-    /// @notice Error thrown when destination chain is not supported
-    error UnsupportedDestinationChain(uint16 chainId);
+    /// @notice Error thrown when destination chain peer is not trusted by governance
+    error UntrustedDestinationChain(uint16 chainId);
 
     /// @notice Error thrown when source adapter is not trusted
     error UntrustedSourceAdapter(address srcAdapter, uint16 srcChain);
@@ -34,13 +34,26 @@ abstract contract BaseBridgeAdapter is
     /// @notice Error thrown when the message is invalid
     error InvalidMessage();
 
+    /// @notice Error thrown when invalid parameters are provided
+    error InvalidParams();
+
     uint16 public immutable THIS_CHAIN;
 
     /// @notice Mapping of supported chains to their external bridge protocol IDs
     mapping(uint16 chainId => uint32 externalId) public chainToExternalId;
 
     /// @notice Reverse mapping of external bridge protocol IDs to chain IDs
-    mapping(uint32 externalId => uint16 chainId) public externalIdToChain;
+    mapping(uint32 externalId => uint16 chainId) public externalIdToChainId;
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a chain external ID mapping is added
+    event ExternalIdMapped(uint16 indexed chainId, uint32 indexed externalId);
+
+    /// @notice Emitted when a chain external ID mapping is removed
+    event ExternalIdUnmapped(uint16 indexed chainId, uint32 indexed externalId);
 
     /**
      * @param _registry Address of the CrossChainRegistry contract
@@ -56,14 +69,24 @@ abstract contract BaseBridgeAdapter is
         THIS_CHAIN = uint16(block.chainid);
     }
 
-    modifier onlySupportedDestination(uint16 dstChain) {
+    /**
+     * @notice Ensures that governance has registered a trusted peer adapter for `dstChain` in the CrossChainRegistry.
+     * @dev This check validates that the destination chain has been authorized by governance through the registry.
+     * It does NOT check whether this adapter knows how to translate chain IDs to bridge-specific external IDs—that
+     * validation is handled by the internal external ID mapping (chainToExternalId).
+     *
+     * This creates a two-layer security model:
+     * 1. Registry check: "Am I allowed to talk to that peer?" (governance authorization)
+     * 2. External ID mapping: "Do I know how to talk to the bridge on that chain?" (technical capability)
+     */
+    modifier onlyTrustedDestination(uint16 dstChain) {
         if (
             ICrossChainRegistry(CROSS_CHAIN_REGISTRY).getAdapterPeer(
                 address(this),
                 dstChain
             ) == address(0)
         ) {
-            revert UnsupportedDestinationChain(dstChain);
+            revert UntrustedDestinationChain(dstChain);
         }
         _;
     }
@@ -74,9 +97,11 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Get the list of supported chains
+     * @notice Get the list of chain IDs that governance has registered as having trusted peer adapters
+     * @dev This queries the CrossChainRegistry for chains we are authorized to talk to
+     * @return chains Array of chain IDs with registered peer adapters
      */
-    function getSupportedChains()
+    function getPeeredChainIds()
         external
         view
         returns (uint16[] memory chains)
@@ -125,23 +150,25 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Adds a chain mapping
-     * @param chainId Chain ID to add
-     * @param externalId External bridge protocol ID for the chain
+     * @notice Maps a chain ID to its bridge-specific external ID
+     * @param chainId Chain ID to map
+     * @param externalId Bridge-specific external ID for the chain (e.g., LayerZero EID)
      */
-    function _addChain(uint16 chainId, uint32 externalId) internal {
+    function _mapChainExternalId(uint16 chainId, uint32 externalId) internal {
         chainToExternalId[chainId] = externalId;
-        externalIdToChain[externalId] = chainId;
+        externalIdToChainId[externalId] = chainId;
+        emit ExternalIdMapped(chainId, externalId);
     }
 
     /**
-     * @notice Removes a chain mapping
-     * @param chainId Chain ID to remove
+     * @notice Removes a chain external ID mapping
+     * @param chainId Chain ID to unmap
      */
-    function _removeChain(uint16 chainId) internal {
+    function _unmapChainExternalId(uint16 chainId) internal {
         uint32 externalId = chainToExternalId[chainId];
         delete chainToExternalId[chainId];
-        delete externalIdToChain[externalId];
+        delete externalIdToChainId[externalId];
+        emit ExternalIdUnmapped(chainId, externalId);
     }
 
     /**

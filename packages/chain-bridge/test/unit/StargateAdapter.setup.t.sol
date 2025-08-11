@@ -101,7 +101,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         );
 
         // Set endpoint ID instead of addSupportedChain
-        adapterA.addSupportedChain(CHAIN_ID_A, ENDPOINT_ID_A);
+        adapterA.mapEndpoint(CHAIN_ID_A, ENDPOINT_ID_A);
 
         adapterA.addSupportedAsset(address(tokenA), address(stargateA));
 
@@ -140,8 +140,8 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         );
 
         // Set endpoint ID instead of addSupportedChain
-        adapterB.addSupportedChain(CHAIN_ID_B, ENDPOINT_ID_B);
-        adapterB.addSupportedChain(CHAIN_ID_A, ENDPOINT_ID_A);
+        adapterB.mapEndpoint(CHAIN_ID_B, ENDPOINT_ID_B);
+        adapterB.mapEndpoint(CHAIN_ID_A, ENDPOINT_ID_A);
 
         // Register the cross-chain relationship between adapters ON CHAIN B
         registryB.registerAdapterPeer(
