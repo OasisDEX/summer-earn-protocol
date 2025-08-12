@@ -11,6 +11,7 @@ import {
 import { BaseConfig } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { saveCrossChainConfig } from '../helpers/cross-chain-config'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
@@ -30,7 +31,6 @@ export { CrossChainArkContracts } from '../../ignition/modules/arks/cross-chain-
 export async function deployCrossChainArk(
   config: BaseConfig,
   arkParams?: BaseArkParams & {
-    bridgeQueue?: Address
     bridgeRouter?: Address
     crossChainRegistry?: Address
     targetChainId?: number
@@ -213,10 +213,6 @@ export async function deployCrossChainArk(
 
   // Validate required parameters if arkParams was provided
   if (arkParams) {
-    if (!arkParams.bridgeQueue) {
-      console.error(kleur.red('Bridge Queue address is required in arkParams.'))
-      throw new Error('Bridge Queue address is required')
-    }
     if (!arkParams.bridgeRouter) {
       console.error(kleur.red('Bridge Router address is required in arkParams.'))
       throw new Error('Bridge Router address is required')
@@ -384,7 +380,6 @@ async function getUserInput(
       address: assetAddress,
     },
     configName,
-    bridgeQueue: bridgeQueueAddress,
     bridgeRouter: bridgeRouterAddress,
     crossChainRegistry: crossChainRegistryAddress,
     targetChainId,
@@ -409,7 +404,7 @@ async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated
   console.log(kleur.blue('Deposit Cap:'), kleur.cyan(userInput.depositCap))
   console.log(kleur.blue('Max Rebalance Outflow:'), kleur.cyan(userInput.maxRebalanceOutflow))
   console.log(kleur.blue('Max Rebalance Inflow:'), kleur.cyan(userInput.maxRebalanceInflow))
-  console.log(kleur.blue('Bridge Queue:'), kleur.cyan(userInput.bridgeQueue))
+  // Bridge Queue is not required by CrossChainArk constructor
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(userInput.bridgeRouter))
   console.log(kleur.blue('CrossChain Registry:'), kleur.cyan(userInput.crossChainRegistry))
   console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))
@@ -449,7 +444,6 @@ async function deployCrossChainArkContract(
   const result = await hre.ignition.deploy(module, {
     parameters: {
       [moduleName]: {
-        bridgeQueue: userInput.bridgeQueue,
         bridgeRouter: userInput.bridgeRouter,
         crossChainRegistry: crossChainRegistryAddress,
         targetChainId: userInput.targetChainId,
@@ -470,26 +464,25 @@ async function deployCrossChainArkContract(
     deploymentId,
   })
 
-  // Set target proxy if provided
-  if (
-    userInput.fleetProxyAddress &&
-    userInput.fleetProxyAddress !== '0x0000000000000000000000000000000000000000'
-  ) {
-    console.log(kleur.yellow('Setting target proxy...'))
-    const crossChainArkContract = await hre.viem.getContractAt(
-      'CrossChainArk' as string,
-      result.crossChainArk.address,
-    )
-    const publicClient = await hre.viem.getPublicClient()
+  // Note: target proxy registration is now handled via CrossChainRegistry governance
+  console.log(
+    kleur.yellow(
+      'Reminder: Register ARK-FLEET relationship in CrossChainRegistry via governance after both sides are deployed.',
+    ),
+  )
 
-    const proxyHash = await crossChainArkContract.write.setTargetProxy([
-      userInput.fleetProxyAddress,
-    ])
-    console.log(kleur.yellow('Waiting for target proxy transaction to confirm...'))
-    await publicClient.waitForTransactionReceipt({ hash: proxyHash })
-    console.log(kleur.green('Target proxy set successfully'))
-  } else {
-    console.log(kleur.yellow('No target proxy provided. You will need to set it later.'))
+  // Record the deployed CrossChainArk address in the cross-chain config
+  try {
+    saveCrossChainConfig(fleetName, {
+      chainId: userInput.targetChainId,
+      protocol: userInput.targetProtocol,
+      crossChainArkAddress: result.crossChainArk.address,
+    })
+  } catch (e) {
+    console.warn(
+      kleur.yellow('Warning: failed to update cross-chain config with CrossChainArk address'),
+      e,
+    )
   }
 
   return { crossChainArk: result.crossChainArk }

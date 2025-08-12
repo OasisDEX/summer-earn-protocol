@@ -49,14 +49,12 @@ async function deployArk() {
     if (selectedArkType !== ArkType.CrossChainArk) {
       await addArkToFleet(arkAddress, config, hre)
     } else {
-      console.log(kleur.yellow().bold('IMPORTANT: Final step required!'))
-      console.log(kleur.cyan('To complete the cross-chain deployment:'))
-      console.log(kleur.cyan('1. Switch to the satellite chain network'))
+      console.log(kleur.yellow().bold('IMPORTANT: Post-deploy step required!'))
       console.log(
-        kleur.cyan(
-          '2. Run: npx hardhat run scripts/arks/update-fleet-proxy.ts --network <satellite-chain>',
-        ),
+        kleur.cyan('Register ARK-FLEET relationship in CrossChainRegistry via governance after:'),
       )
+      console.log(kleur.cyan('- FleetProxy is deployed on the satellite chain'))
+      console.log(kleur.cyan('- CrossChainArk is deployed on the source chain'))
     }
   } catch (error) {
     console.log(kleur.red().bold('Ark deployment failed or was cancelled.'))
