@@ -2,11 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../types/config-types'
-import {
-  configureLayerZeroAdapter,
-  configureStargateAdapter,
-  deployBridgeAdapters,
-} from './bridge/bridge-adapters'
+import { configureLayerZeroAdapter } from './bridge/adapters/layerzero'
+import { configureStargateAdapter } from './bridge/adapters/stargate'
+import { deployBridgeAdapters } from './bridge/bridge-adapters'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType, promptYesNo } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
@@ -169,7 +167,12 @@ async function deployAdapters() {
       console.log(kleur.green().bold('Bridge adapters reconfiguration completed successfully!'))
     } else {
       // Deploy and configure adapters
-      deployedAdapters = await deployBridgeAdapters(bridgeRouterAddress as Address, config)
+      deployedAdapters = await deployBridgeAdapters(
+        bridgeRouterAddress as Address,
+        config,
+        allNetworkConfigs,
+        { performPostDeployGovConfig: useBummerConfig },
+      )
       console.log(kleur.green().bold('Bridge adapters deployment completed successfully!'))
     }
 

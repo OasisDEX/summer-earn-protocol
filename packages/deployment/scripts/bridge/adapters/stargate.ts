@@ -286,8 +286,6 @@ export async function configureStargateAdapter(
 
   console.log(kleur.blue(`Configured ${assetsConfigured} asset mappings`))
 
-  // Note: compose gas limit is internalized via options; StargateAdapter doesn't expose setter
-
   // Set default transport mode from Stargate config (with check)
   try {
     const defaultUseTaxi = stargateConfig.defaultUseTaxi || false
