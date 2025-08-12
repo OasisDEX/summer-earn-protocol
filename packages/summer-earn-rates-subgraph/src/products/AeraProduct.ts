@@ -21,7 +21,7 @@ export class AeraProduct extends BaseVaultProduct {
       return BigDecimalConstants.ZERO
     }
     const unitPrice = tryUnitPrice.value
-    return unitPrice.toBigDecimal()
+    return formatAmount(unitPrice, this.token.decimals)
   }
 
   getTvl(currentTimestamp: BigInt, currentBlock: BigInt): TvlData {
