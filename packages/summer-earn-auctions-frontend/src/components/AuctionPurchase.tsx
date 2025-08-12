@@ -45,7 +45,7 @@ export function AuctionPurchase({ purchase, rewardToken, buyToken }: AuctionPurc
             <TokenAmount
               amount={purchase.tokensPurchasedNormalized}
               symbol={rewardToken.symbol}
-              decimals={rewardToken.decimals}
+              decimals={0}
             />
           </div>
 
@@ -55,26 +55,21 @@ export function AuctionPurchase({ purchase, rewardToken, buyToken }: AuctionPurc
               <TokenAmount
                 amount={purchase.pricePerTokenNormalized}
                 symbol={buyToken.symbol}
-                decimals={buyToken.decimals}
+                decimals={0}
               />
-
               <span className="text-xs text-green-500">({discount.toFixed(2)}% vs market)</span>
             </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Price per token (USD)</div>
             <div className="flex items-center gap-2">
-              <TokenAmount amount={purchase.buyPriceInUSDNormalized} symbol="USD" decimals={18} />
+              <TokenAmount amount={purchase.buyPriceInUSDNormalized} symbol="USD" decimals={0} />
             </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Market price (USD)</div>
             <div className="flex items-center gap-2">
-              <TokenAmount
-                amount={purchase.marketPriceInUSDNormalized}
-                symbol="USD"
-                decimals={18}
-              />
+              <TokenAmount amount={purchase.marketPriceInUSDNormalized} symbol="USD" decimals={0} />
             </div>
           </div>
           <div>
@@ -82,7 +77,7 @@ export function AuctionPurchase({ purchase, rewardToken, buyToken }: AuctionPurc
             <TokenAmount
               amount={purchase.totalCostNormalized}
               symbol={buyToken.symbol}
-              decimals={buyToken.decimals}
+              decimals={0}
             />
           </div>
         </div>

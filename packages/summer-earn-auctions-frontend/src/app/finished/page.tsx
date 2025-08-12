@@ -1,4 +1,4 @@
-import { FinishedAuctionCard } from '@/components/FinishedAuctionCard'
+import FinishedAuctionsView from '@/components/FinishedAuctionsView'
 import { getAllFinishedAuctions } from '@/lib/getters/getFinishedAuctions'
 
 interface Auction {
@@ -43,17 +43,7 @@ export default async function FinishedAuctionsPage() {
   return (
     <div className="container py-8 space-y-6">
       <h1 className="text-3xl font-bold">Finished Auctions</h1>
-      <div className="space-y-4">
-        {auctions.map(({ chainId, auctions }) =>
-          auctions.map((auction) => (
-            <FinishedAuctionCard
-              key={`${chainId}-${auction.id}`}
-              auction={auction}
-              chainId={chainId}
-            />
-          )),
-        )}
-      </div>
+      <FinishedAuctionsView data={auctions} />
     </div>
   )
 }
