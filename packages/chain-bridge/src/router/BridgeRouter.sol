@@ -91,15 +91,22 @@ contract BridgeRouter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                    ADAPTER PEER VERIFICATION
+                    ADAPTER PEER RELATIONSHIP CHECK
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Verifies that the calling adapter has a registered peer relationship with the source chain
+     * @dev Asserts that a peer mapping exists in the registry for `(sourceChainId, msg.sender)`.
      * @param sourceChainId The source chain ID from the cross-chain operation
-     * @dev This provides an additional layer of defense beyond the peer relationships checked within adapters
+     *
+     * NOTE: This only verifies that governance has registered a peer relationship for the
+     *       calling adapter on the given source chain. It does NOT authenticate the
+     *       specific source adapter that originated the packet. Identity binding is enforced
+     *       within adapters using bridge-native metadata (e.g. LayerZero Origin.sender, Taxi srcSender)
+     *       via the registry's `isValidAdapterPeer` checks.
      */
-    function _verifyAdapterPeer(uint16 sourceChainId) internal view {
+    function _assertPeerMappingExistsForChain(
+        uint16 sourceChainId
+    ) internal view {
         // Will revert if (srcChainId, msg.sender) is NOT a registered pair
         CROSS_CHAIN_REGISTRY.getSourceForTarget(
             sourceChainId,
@@ -598,7 +605,7 @@ contract BridgeRouter is
             );
 
             // Additional defense: verify adapter has peer relationship with source chain
-            _verifyAdapterPeer(data.sourceChainId);
+            _assertPeerMappingExistsForChain(data.sourceChainId);
             operationId = data.operationId;
 
             // Transfer the asset
@@ -616,7 +623,7 @@ contract BridgeRouter is
             );
 
             // Additional defense: verify adapter has peer relationship with source chain
-            _verifyAdapterPeer(data.sourceChainId);
+            _assertPeerMappingExistsForChain(data.sourceChainId);
             operationId = data.operationId;
 
             ICrossChainReceiver(data.recipient).receiveOperation(

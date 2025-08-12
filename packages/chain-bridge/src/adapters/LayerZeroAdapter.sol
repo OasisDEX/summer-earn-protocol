@@ -315,6 +315,13 @@ contract LayerZeroAdapter is
             externalIdToChainId[_origin.srcEid],
             relayedMessageParams.sourceChainId
         );
+        // Defense-in-depth: bind the source OApp identity to the registry-declared peer.
+        // LayerZero's Origin.sender is the remote OApp address proven by DVNs.
+        // Ensure governance has registered that OApp as our peer for the source chain.
+        _assertTrustedSource(
+            _origin.sender,
+            relayedMessageParams.sourceChainId
+        );
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.MESSAGE,
             _payload
@@ -346,6 +353,13 @@ contract LayerZeroAdapter is
                 operationId: operationId,
                 sourceChainId: externalIdToChainId[_origin.srcEid]
             })
+        );
+
+        // Optional binding for read responses: the response comes back from the same OApp
+        // that issued the read on the remote chain. Enforce registry peer mapping here too.
+        _assertTrustedSource(
+            _origin.sender,
+            externalIdToChainId[_origin.srcEid]
         );
 
         IBridgeRouter(bridgeRouter()).deliver(
