@@ -28,6 +28,7 @@ export async function GET(request: Request) {
             where: { productId: $productId, date_gte: $fromTimestamp }
             orderBy: date
             orderDirection: asc
+            first: 1000
           ) {
             id date sumRates updateCount averageRate protocol token productId
             product { id name protocol token { id symbol decimals } }

@@ -1,8 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { InterestRateChart } from '../../components/InterestRateChart'
+import {
+  RangeOption,
+  RangeSelector,
+  getFromTimestampForRange,
+} from '../../components/RangeSelector'
 import { CHAIN_NAMES } from '../../config/chains'
 import { useProducts } from '../../hooks/useInterestRates'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
@@ -15,14 +20,14 @@ export default function InterestRatesPage() {
   const { chain } = useAccount()
   const { switchChain } = useSwitchChain()
   const [selectedProductId, setSelectedProductId] = useState<string>('')
-  const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('daily')
+  const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('hourly')
   const [storedChain, setStoredChain] = useLocalStorage<ChainId>(
     'selectedChain',
     (chain?.id.toString() as ChainId) ?? '1',
   )
 
-  // Get timestamp for 24 hours ago
-  const fromTimestamp = Math.floor(Date.now() / 1000) - 24 * 60 * 60
+  const [range, setRange] = useState<RangeOption>('24h')
+  const fromTimestamp = useMemo(() => getFromTimestampForRange(range), [range])
 
   const currentChainId = storedChain
   useSyncWalletChain(currentChainId)
@@ -94,11 +99,15 @@ export default function InterestRatesPage() {
               <option value="daily">Daily</option>
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-500">Range</label>
+            <RangeSelector value={range} onChange={setRange} />
+          </div>
         </div>
 
         {selectedProductId && (
           <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
-            <h2 className="text-xl font-semibold mb-4 text-white">24h Interest Rate History</h2>
+            <h2 className="text-xl font-semibold mb-4 text-white">Interest Rate History</h2>
             <InterestRateChart
               chainId={currentChainId}
               productId={selectedProductId}
