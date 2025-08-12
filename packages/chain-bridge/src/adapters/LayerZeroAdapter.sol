@@ -41,8 +41,13 @@ contract LayerZeroAdapter is
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
-    /// @notice Read channel threshold identifier for lzRead operations (configurable)
-    uint32 public immutable readChannelThreshold; // Used to identify responses
+    /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
+    /// @dev LayerZero routes read responses through a reserved "read channel" range
+    ///      near the top of the uint32 EID space (commonly with READ_CHANNEL_ID at
+    ///      4294967295). Any `srcEid` strictly greater than this threshold is treated
+    ///      as a read response. This value is set at deploy time to allow
+    ///      forward-compatibility and testing across different environments.
+    uint32 public immutable readChannelThreshold;
 
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
@@ -120,9 +125,16 @@ contract LayerZeroAdapter is
     /**
      * @notice Activates a read channel for state reading operations
      * @param _readChannelId The ID of the read channel to activate
-     * @dev Can only be called by the contract owner
+     * @dev Requirements:
+     *      - `_readChannelId` must be non-zero
+     *      - `_readChannelId` must be strictly greater than `readChannelThreshold`
+     *      These checks prevent misconfiguration where read responses would not be
+     *      properly classified by `_lzReceive`.
      */
     function activateReadChannel(uint32 _readChannelId) external onlyGovernor {
+        if (_readChannelId == 0 || _readChannelId <= readChannelThreshold) {
+            revert InvalidParams();
+        }
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
     }

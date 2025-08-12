@@ -127,6 +127,13 @@ contract StargateAdapter is
     );
 
     /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when refunding excess native fee to `refundAddress` fails
+    error RefundFailed(address recipient, uint256 amount);
+
+    /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
@@ -355,7 +362,7 @@ contract StargateAdapter is
         uint256 refundAmount = providedFee - messagingFee.nativeFee;
         if (refundAmount > 0) {
             (bool ok, ) = params.refundAddress.call{value: refundAmount}("");
-            if (!ok) revert InvalidParams();
+            if (!ok) revert RefundFailed(params.refundAddress, refundAmount);
         }
     }
 
