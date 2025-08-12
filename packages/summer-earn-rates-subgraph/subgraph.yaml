@@ -5,16 +5,16 @@ schema:
 features:
   - grafting
 graft:
-  base: QmZF2rRiwya1bAstzUaBWkbfCeEmnHpdc7NoJCySUaBRWV
-  block: 22822692
+  base: QmQfyfPuECP2v8wfRBKTmUjC4o1ovsgEN6j1RJ5HVwB833
+  block: 33307995
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: mainnet
+    network: base
     source:
       abi: Comet
-      startBlock: 21575816
-      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
+      startBlock: 24744895
+      address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -85,9 +85,13 @@ dataSources:
           file: ./abis/silo/ISiloVaultIncentivesModule.json
         - name: ERC4626FluidLite
           file: ./abis/ERC4626FluidLite.json
+        - name: AeraVault
+          file: ./abis/aera/Vault.json
+        - name: AeraFeeCalculator
+          file: ./abis/aera/PriceAndFeeCalculator.json
       blockHandlers:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 50    
+            every: 300    
       file: ./src/mapping.ts
