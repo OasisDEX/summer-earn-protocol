@@ -75,6 +75,13 @@ export async function deployBridgeAdapters(
   const accessManagerAddress: Address | undefined =
     networkConfig.deployedContracts?.gov?.protocolAccessManager?.address
 
+  if (!crossChainRegistryAddress) {
+    throw new Error('crossChainRegistry address missing in network config')
+  }
+  if (!accessManagerAddress) {
+    throw new Error('protocolAccessManager address missing in network config')
+  }
+
   // Check if LayerZero adapter is already registered
   const existingLayerZeroAddress =
     networkConfig.deployedContracts.bridge?.adapters?.layerZero?.address
@@ -88,10 +95,8 @@ export async function deployBridgeAdapters(
       deployedAdapters.layerZero = { address: existingLayerZeroAddress as Address }
     } else {
       try {
-        if (!crossChainRegistryAddress)
-          throw new Error('crossChainRegistry address missing in network config')
         const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-          crossChainRegistryAddress,
+          crossChainRegistryAddress as Address,
           networkConfig,
           allNetworkConfigs,
         )
@@ -103,10 +108,8 @@ export async function deployBridgeAdapters(
     }
   } else {
     try {
-      if (!crossChainRegistryAddress)
-        throw new Error('crossChainRegistry address missing in network config')
       const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-        crossChainRegistryAddress,
+        crossChainRegistryAddress as Address,
         networkConfig,
         allNetworkConfigs,
       )
@@ -134,13 +137,9 @@ export async function deployBridgeAdapters(
       deployedAdapters.stargate = { address: existingStargateAddress as Address }
     } else {
       try {
-        if (!crossChainRegistryAddress)
-          throw new Error('crossChainRegistry address missing in network config')
-        if (!accessManagerAddress)
-          throw new Error('protocolAccessManager address missing in network config')
         const stargateAdapterAddress = await deployStargateAdapter(
-          crossChainRegistryAddress,
-          accessManagerAddress,
+          crossChainRegistryAddress as Address,
+          accessManagerAddress as Address,
           networkConfig,
         )
         deployedAdapters.stargate = { address: stargateAdapterAddress }
@@ -156,13 +155,9 @@ export async function deployBridgeAdapters(
     }
   } else {
     try {
-      if (!crossChainRegistryAddress)
-        throw new Error('crossChainRegistry address missing in network config')
-      if (!accessManagerAddress)
-        throw new Error('protocolAccessManager address missing in network config')
       const stargateAdapterAddress = await deployStargateAdapter(
-        crossChainRegistryAddress,
-        accessManagerAddress,
+        crossChainRegistryAddress as Address,
+        accessManagerAddress as Address,
         networkConfig,
       )
       deployedAdapters.stargate = { address: stargateAdapterAddress }
