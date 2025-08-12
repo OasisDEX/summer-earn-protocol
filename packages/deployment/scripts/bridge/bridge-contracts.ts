@@ -6,8 +6,6 @@ import { DeployedBridge } from '../../types/bridge-types'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getChainId } from '../helpers/get-chainid'
 
-// No router-only flow needed anymore since BridgeQueue was removed
-
 /**
  * Check if address exists and is not zero
  */
