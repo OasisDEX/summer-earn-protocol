@@ -73,6 +73,7 @@ export async function deployLayerZeroAdapter(
 async function activateReadChannel(
   layerZeroAdapter: any,
   walletClient: any,
+  publicClient: any,
   layerZeroAdapterAddress: Address,
   readChannelId: number,
 ): Promise<void> {
@@ -96,6 +97,9 @@ async function activateReadChannel(
         args: [readChannelId],
       })
       console.log(kleur.green(`Read channel activated successfully, tx: ${hash}`))
+
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green(`Read channel activation transaction confirmed`))
 
       const verifyReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
       console.log(kleur.blue(`Read channel ID verified: ${verifyReadChannelId}`))
@@ -264,67 +268,47 @@ async function configureDVNsAndExecutor(
   }
 }
 
-// Helper function to set minimum gas limits
-async function setMinimumGasLimits(
+// Helper: set per-chain read support flags if provided in config
+async function setReadSupportForChains(
   layerZeroAdapter: any,
   walletClient: any,
   layerZeroAdapterAddress: Address,
-  minGasLimits: Record<string, number>,
+  supportedReadChains?: number[],
 ): Promise<void> {
-  const messageTypeMap: Record<string, number> = {
-    stateRead: 2,
-    generalMessage: 3,
+  if (!supportedReadChains || supportedReadChains.length === 0) {
+    return
   }
 
-  for (const [strMsgType, gasLimit] of Object.entries(minGasLimits)) {
-    const numMsgType = messageTypeMap[strMsgType]
-    if (numMsgType === undefined) {
-      console.error(kleur.red(`Unknown message type: ${strMsgType}, skipping`))
-      continue
-    }
-
+  for (const chainId of supportedReadChains) {
     try {
-      const currentGasLimit = BigInt(String(await layerZeroAdapter.read.minGasLimits([numMsgType])))
-      const configuredGasLimit = BigInt(gasLimit)
+      const alreadySupported = Boolean(
+        await layerZeroAdapter.read.chainSupportsRead([Number(chainId)]),
+      )
 
-      if (currentGasLimit !== configuredGasLimit) {
-        console.log(
-          `Setting minimum gas limit for message type ${strMsgType} (${numMsgType}) to ${gasLimit}`,
-        )
+      if (!alreadySupported) {
         const hash = await walletClient.writeContract({
           address: getAddress(layerZeroAdapterAddress),
           abi: [
             {
               inputs: [
-                { internalType: 'uint16', name: 'msgType', type: 'uint16' },
-                { internalType: 'uint128', name: 'gasLimit', type: 'uint128' },
+                { internalType: 'uint16', name: 'chainId', type: 'uint16' },
+                { internalType: 'bool', name: 'supported', type: 'bool' },
               ],
-              name: 'setMinGasLimit',
+              name: 'setChainReadSupport',
               outputs: [],
               stateMutability: 'nonpayable',
               type: 'function',
             },
           ] as const,
-          functionName: 'setMinGasLimit',
-          args: [numMsgType, configuredGasLimit],
+          functionName: 'setChainReadSupport',
+          args: [Number(chainId), true],
         })
-        console.log(
-          kleur.green(
-            `Minimum gas limit for message type ${strMsgType} updated successfully, tx: ${hash}`,
-          ),
-        )
+        console.log(kleur.green(`Enabled read support for chain ${chainId}, tx: ${hash}`))
       } else {
-        console.log(
-          kleur.yellow(
-            `Minimum gas limit for message type ${strMsgType} already set to ${currentGasLimit}, skipping`,
-          ),
-        )
+        console.log(kleur.yellow(`Read support already enabled for chain ${chainId}, skipping`))
       }
     } catch (error) {
-      console.error(
-        kleur.red(`Error setting minimum gas limit for message type ${strMsgType}:`),
-        error,
-      )
+      console.error(kleur.red(`Error enabling read support for chain ${chainId}:`), error)
     }
   }
 }
@@ -405,6 +389,7 @@ export async function configureLayerZeroAdapter(
     await activateReadChannel(
       layerZeroAdapter,
       walletClient,
+      publicClient,
       layerZeroAdapterAddress,
       chainConfig.readChannelId,
     )
@@ -455,13 +440,13 @@ export async function configureLayerZeroAdapter(
     if (!chainConfig.confirmations) console.log(kleur.yellow('  - Missing confirmations'))
   }
 
-  // Step 4: Set minimum gas limits
-  if (chainConfig.minGasLimits) {
-    await setMinimumGasLimits(
+  // Step 4: Optionally enable read support flags for destination chains (if provided)
+  if (Array.isArray(chainConfig.readSupportedChains)) {
+    await setReadSupportForChains(
       layerZeroAdapter,
       walletClient,
       layerZeroAdapterAddress,
-      chainConfig.minGasLimits,
+      chainConfig.readSupportedChains as number[],
     )
   }
 

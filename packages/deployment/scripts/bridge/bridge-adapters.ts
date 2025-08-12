@@ -58,16 +58,20 @@ async function isAdapterRegistered(
  * @param bridgeRouterAddress Address of the deployed BridgeRouter
  * @param networkConfig Network configuration from general config
  * @param allNetworkConfigs All network configurations for cross-chain setup
+ * @param options Optional flags; set performPostDeployGovConfig=true for bummer deployments
  * @returns Deployed bridge adapters
  */
 export async function deployBridgeAdapters(
   bridgeRouterAddress: Address,
   networkConfig: any,
   allNetworkConfigs?: Record<string, any>,
+  options?: { performPostDeployGovConfig?: boolean },
 ): Promise<DeployedBridgeAdapters> {
   console.log(kleur.cyan().bold('Starting bridge adapters deployment...'))
 
   const deployedAdapters: DeployedBridgeAdapters = {}
+  // Default to performing post-deploy config for backward compatibility; callers can disable
+  const performGovConfig = options?.performPostDeployGovConfig !== false
 
   // Resolve common addresses from config
   const crossChainRegistryAddress: Address | undefined =
@@ -101,7 +105,25 @@ export async function deployBridgeAdapters(
           allNetworkConfigs,
         )
         deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
-        await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
+        // Wait for deployment to be confirmed before any post-deploy configuration
+        console.log(
+          kleur.blue('Waiting for LayerZero adapter deployment transactions to be confirmed...'),
+        )
+        await waitForPendingTransactions()
+
+        if (performGovConfig) {
+          await configureLayerZeroAdapter(
+            layerZeroAdapterAddress,
+            bridgeRouterAddress,
+            networkConfig,
+          )
+        } else {
+          console.log(
+            kleur.yellow(
+              'Skipping LayerZero post-deploy governor configuration (prod/governance-managed).',
+            ),
+          )
+        }
       } catch (error) {
         console.error(kleur.red('Error deploying LayerZero adapter:'), error)
       }
@@ -114,7 +136,21 @@ export async function deployBridgeAdapters(
         allNetworkConfigs,
       )
       deployedAdapters.layerZero = { address: layerZeroAdapterAddress }
-      await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
+      // Wait for deployment to be confirmed before any post-deploy configuration
+      console.log(
+        kleur.blue('Waiting for LayerZero adapter deployment transactions to be confirmed...'),
+      )
+      await waitForPendingTransactions()
+
+      if (performGovConfig) {
+        await configureLayerZeroAdapter(layerZeroAdapterAddress, bridgeRouterAddress, networkConfig)
+      } else {
+        console.log(
+          kleur.yellow(
+            'Skipping LayerZero post-deploy governor configuration (prod/governance-managed).',
+          ),
+        )
+      }
     } catch (error) {
       console.error(kleur.red('Error deploying LayerZero adapter:'), error)
     }
@@ -143,12 +179,26 @@ export async function deployBridgeAdapters(
           networkConfig,
         )
         deployedAdapters.stargate = { address: stargateAdapterAddress }
-        await configureStargateAdapter(
-          stargateAdapterAddress,
-          bridgeRouterAddress,
-          networkConfig,
-          allNetworkConfigs,
+        // Wait for deployment to be confirmed before any post-deploy configuration
+        console.log(
+          kleur.blue('Waiting for Stargate adapter deployment transactions to be confirmed...'),
         )
+        await waitForPendingTransactions()
+
+        if (performGovConfig) {
+          await configureStargateAdapter(
+            stargateAdapterAddress,
+            bridgeRouterAddress,
+            networkConfig,
+            allNetworkConfigs,
+          )
+        } else {
+          console.log(
+            kleur.yellow(
+              'Skipping Stargate post-deploy governor configuration (prod/governance-managed).',
+            ),
+          )
+        }
       } catch (error) {
         console.error(kleur.red('Error deploying Stargate adapter:'), error)
       }
@@ -161,12 +211,26 @@ export async function deployBridgeAdapters(
         networkConfig,
       )
       deployedAdapters.stargate = { address: stargateAdapterAddress }
-      await configureStargateAdapter(
-        stargateAdapterAddress,
-        bridgeRouterAddress,
-        networkConfig,
-        allNetworkConfigs,
+      // Wait for deployment to be confirmed before any post-deploy configuration
+      console.log(
+        kleur.blue('Waiting for Stargate adapter deployment transactions to be confirmed...'),
       )
+      await waitForPendingTransactions()
+
+      if (performGovConfig) {
+        await configureStargateAdapter(
+          stargateAdapterAddress,
+          bridgeRouterAddress,
+          networkConfig,
+          allNetworkConfigs,
+        )
+      } else {
+        console.log(
+          kleur.yellow(
+            'Skipping Stargate post-deploy governor configuration (prod/governance-managed).',
+          ),
+        )
+      }
     } catch (error) {
       console.error(kleur.red('Error deploying Stargate adapter:'), error)
     }
