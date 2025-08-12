@@ -404,7 +404,7 @@ async function confirmDeployment(userInput: any, config: BaseConfig, isAutomated
   console.log(kleur.blue('Deposit Cap:'), kleur.cyan(userInput.depositCap))
   console.log(kleur.blue('Max Rebalance Outflow:'), kleur.cyan(userInput.maxRebalanceOutflow))
   console.log(kleur.blue('Max Rebalance Inflow:'), kleur.cyan(userInput.maxRebalanceInflow))
-  // Bridge Queue is not required by CrossChainArk constructor
+
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(userInput.bridgeRouter))
   console.log(kleur.blue('CrossChain Registry:'), kleur.cyan(userInput.crossChainRegistry))
   console.log(kleur.blue('Target Chain ID:'), kleur.cyan(userInput.targetChainId))

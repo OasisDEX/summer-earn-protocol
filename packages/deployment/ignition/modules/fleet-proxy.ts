@@ -18,17 +18,17 @@ export function createFleetProxyModule(moduleName: string) {
     // Get parameters - including the CrossChainRegistry
     const accessManager = m.getParameter('accessManager')
     const bridgeRouter = m.getParameter('bridgeRouter')
-    const bridgeQueue = m.getParameter('bridgeQueue')
     const crossChainRegistry = m.getParameter('crossChainRegistry')
     const fleetContract = m.getParameter('fleetContract')
+    const sourceChainId = m.getParameter('sourceChainId')
 
-    // Deploy FleetProxy with all 5 required constructor parameters
+    // Deploy FleetProxy with required constructor parameters
     const fleetProxy = m.contract('FleetProxy', [
       accessManager, // _accessManager
       bridgeRouter, // _bridgeRouter
-      bridgeQueue, // _bridgeQueue
       crossChainRegistry, // _crossChainRegistry
-      fleetContract, // _fleetContract
+      fleetContract, // _fleetAddress
+      sourceChainId, // _sourceChainId (uint16)
     ])
 
     return { fleetProxy }

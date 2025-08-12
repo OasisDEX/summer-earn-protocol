@@ -18,7 +18,6 @@ import { continueDeploymentCheck } from './helpers/prompt-helpers'
 interface FleetProxyParams {
   accessManager: Address
   bridgeRouter: Address
-  bridgeQueue: Address
   fleetContract: Address
   sourceChainId: number
   protocol: string
@@ -95,18 +94,12 @@ async function getUserInput(
 ): Promise<FleetProxyParams> {
   // Validate required addresses from config
   const bridgeRouterAddress = config.deployedContracts.bridge?.bridgeRouter.address as Address
-  const bridgeQueueAddress = config.deployedContracts.bridge?.bridgeQueue.address as Address
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address as Address
   const crossChainRegistryAddress = config.deployedContracts.bridge?.crossChainRegistry.address
 
   if (!bridgeRouterAddress) {
     throw new Error(
       'Bridge Router address not found in config. Make sure bridge contracts are deployed.',
-    )
-  }
-  if (!bridgeQueueAddress) {
-    throw new Error(
-      'Bridge Queue address not found in config. Make sure bridge contracts are deployed.',
     )
   }
   if (!crossChainRegistryAddress) {
@@ -116,7 +109,6 @@ async function getUserInput(
   }
 
   const currentNetwork = hre.network.name
-  const currentChainId = getChainIdByNetwork(currentNetwork)
 
   // List available fleet deployments
   const deploymentsDir = path.resolve(__dirname, '../../deployments/fleets')
@@ -128,33 +120,19 @@ async function getUserInput(
     throw new Error('No fleet deployments found. Deploy a fleet on the source chain first.')
   }
 
-  // Filter deployments based on current chain and bummer config
-  const filteredDeploymentFiles = []
-  for (const file of deploymentFiles) {
+  // Filter deployments based on bummer config only; the fleet is on the hub chain, not current chain
+  const filteredDeploymentFiles = deploymentFiles.filter((file) => {
     const deploymentPath = path.join(deploymentsDir, file)
     const deploymentContent = fs.readFileSync(deploymentPath, 'utf8')
     const fleetDeployment = JSON.parse(deploymentContent)
-
-    // Check if deployment is for current chain
-    const sourceNetwork = fleetDeployment.network
-    const sourceChainId = getChainIdByNetwork(sourceNetwork)
-
-    // Check if fleet name contains "bummer"
-    const isBummerFleet = fleetDeployment.fleetName.toLowerCase().includes('bummer')
-
-    // Allow bummer configs to connect to both bummer and prod fleets
-    // But restrict prod configs to only prod fleets for safety
-    const shouldInclude = sourceChainId === currentChainId && (useBummerConfig || !isBummerFleet)
-
-    if (shouldInclude) {
-      filteredDeploymentFiles.push(file)
-    }
-  }
+    const isBummerFleet = String(fleetDeployment.fleetName || '')
+      .toLowerCase()
+      .includes('bummer')
+    return useBummerConfig || !isBummerFleet
+  })
 
   if (filteredDeploymentFiles.length === 0) {
-    throw new Error(
-      `No compatible fleet deployments found for ${currentNetwork}${useBummerConfig ? ' with bummer config' : ''}.`,
-    )
+    throw new Error('No compatible fleet deployments found for the selected configuration.')
   }
 
   // Allow user to select a deployment file
@@ -184,12 +162,14 @@ async function getUserInput(
 
   const fleetProxyProtocol = 'summerfi'
 
+  // Source chain is the hub chain where the fleet was deployed
+  const hubChainId = getChainIdByNetwork(sourceNetwork)
+
   return {
     accessManager: accessManagerAddress,
     bridgeRouter: bridgeRouterAddress,
-    bridgeQueue: bridgeQueueAddress,
     fleetContract: fleetAddress,
-    sourceChainId: currentChainId,
+    sourceChainId: hubChainId,
     fleetName,
     protocol: fleetProxyProtocol,
     asset: {
@@ -207,7 +187,6 @@ async function confirmDeployment(params: FleetProxyParams, config: BaseConfig): 
   console.log(kleur.blue('Fleet Name:'), kleur.cyan(params.fleetName))
   console.log(kleur.blue('Access Manager:'), kleur.cyan(params.accessManager))
   console.log(kleur.blue('Bridge Router:'), kleur.cyan(params.bridgeRouter))
-  console.log(kleur.blue('Bridge Queue:'), kleur.cyan(params.bridgeQueue))
   console.log(
     kleur.blue('CrossChain Registry:'),
     kleur.cyan(config.deployedContracts.bridge?.crossChainRegistry.address as string),
@@ -249,9 +228,9 @@ async function deployFleetProxyContract(
         [moduleName]: {
           accessManager: params.accessManager,
           bridgeRouter: params.bridgeRouter,
-          bridgeQueue: params.bridgeQueue,
           crossChainRegistry: crossChainRegistryAddress,
           fleetContract: params.fleetContract,
+          sourceChainId: params.sourceChainId,
         },
       },
       deploymentId,
