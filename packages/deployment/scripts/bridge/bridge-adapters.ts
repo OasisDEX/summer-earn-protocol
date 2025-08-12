@@ -1,9 +1,11 @@
+import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import {
   configureLayerZeroAdapter,
   configureLayerZeroAdapterPeersWithConfig,
   deployLayerZeroAdapter,
+  updateLayerZeroAdapterPeers,
 } from './adapters/layerzero'
 import {
   configureStargateAdapter,
@@ -67,6 +69,12 @@ export async function deployBridgeAdapters(
 
   const deployedAdapters: DeployedBridgeAdapters = {}
 
+  // Resolve common addresses from config
+  const crossChainRegistryAddress: Address | undefined =
+    networkConfig.deployedContracts?.bridge?.crossChainRegistry?.address
+  const accessManagerAddress: Address | undefined =
+    networkConfig.deployedContracts?.gov?.protocolAccessManager?.address
+
   // Check if LayerZero adapter is already registered
   const existingLayerZeroAddress =
     networkConfig.deployedContracts.bridge?.adapters?.layerZero?.address
@@ -80,8 +88,10 @@ export async function deployBridgeAdapters(
       deployedAdapters.layerZero = { address: existingLayerZeroAddress as Address }
     } else {
       try {
+        if (!crossChainRegistryAddress)
+          throw new Error('crossChainRegistry address missing in network config')
         const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-          bridgeRouterAddress,
+          crossChainRegistryAddress,
           networkConfig,
           allNetworkConfigs,
         )
@@ -93,8 +103,10 @@ export async function deployBridgeAdapters(
     }
   } else {
     try {
+      if (!crossChainRegistryAddress)
+        throw new Error('crossChainRegistry address missing in network config')
       const layerZeroAdapterAddress = await deployLayerZeroAdapter(
-        bridgeRouterAddress,
+        crossChainRegistryAddress,
         networkConfig,
         allNetworkConfigs,
       )
@@ -122,8 +134,13 @@ export async function deployBridgeAdapters(
       deployedAdapters.stargate = { address: existingStargateAddress as Address }
     } else {
       try {
+        if (!crossChainRegistryAddress)
+          throw new Error('crossChainRegistry address missing in network config')
+        if (!accessManagerAddress)
+          throw new Error('protocolAccessManager address missing in network config')
         const stargateAdapterAddress = await deployStargateAdapter(
-          bridgeRouterAddress,
+          crossChainRegistryAddress,
+          accessManagerAddress,
           networkConfig,
         )
         deployedAdapters.stargate = { address: stargateAdapterAddress }
@@ -139,7 +156,15 @@ export async function deployBridgeAdapters(
     }
   } else {
     try {
-      const stargateAdapterAddress = await deployStargateAdapter(bridgeRouterAddress, networkConfig)
+      if (!crossChainRegistryAddress)
+        throw new Error('crossChainRegistry address missing in network config')
+      if (!accessManagerAddress)
+        throw new Error('protocolAccessManager address missing in network config')
+      const stargateAdapterAddress = await deployStargateAdapter(
+        crossChainRegistryAddress,
+        accessManagerAddress,
+        networkConfig,
+      )
       deployedAdapters.stargate = { address: stargateAdapterAddress }
       await configureStargateAdapter(
         stargateAdapterAddress,
@@ -157,7 +182,7 @@ export async function deployBridgeAdapters(
 }
 
 export {
-  configureLayerZeroAdapterPeers,
   configureLayerZeroAdapterPeersWithConfig,
+  updateLayerZeroAdapterPeers,
   updateStargateAdapterAddresses,
 }
