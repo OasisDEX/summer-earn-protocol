@@ -1,4 +1,4 @@
-import { arbitrum, base, mainnet, sonic } from 'viem/chains'
+import { arbitrum, base, mainnet, optimism, sonic, unichain } from 'viem/chains'
 
 // Centralized RPC URL mapping
 export const RPC_URL_MAP = {
@@ -6,6 +6,8 @@ export const RPC_URL_MAP = {
   base: process.env.BASE_RPC_URL,
   arbitrum: process.env.ARBITRUM_RPC_URL,
   sonic: process.env.SONIC_RPC_URL,
+  unichain: process.env.UNICHAIN_RPC_URL,
+  optimism: process.env.OPTIMISM_RPC_URL,
 }
 
 // Standard chain mapping
@@ -14,6 +16,8 @@ export const CHAIN_CONFIG_MAP = {
   base,
   arbitrum,
   sonic: sonic,
+  unichain,
+  optimism,
 }
 
 export const CHAIN_MAP_BY_ID = Object.fromEntries(
