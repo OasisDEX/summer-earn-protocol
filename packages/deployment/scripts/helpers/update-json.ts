@@ -14,6 +14,26 @@ export async function updateIndexJson<T extends Record<string, any>>(
   const indexPath = path.join(__dirname, '..', '..', 'config', configFile)
   let indexJson = JSON.parse(fs.readFileSync(indexPath, 'utf8'))
 
+  // Sanitize deployed contracts by converting any contract-like proxies
+  // to plain objects containing only their address. This avoids JSON.stringify
+  // interacting with viem proxies (which can trap property access like toJSON).
+  const sanitize = (value: any): any => {
+    if (Array.isArray(value)) return value.map(sanitize)
+    if (value && typeof value === 'object') {
+      if (typeof (value as any).address === 'string') {
+        return { address: (value as any).address }
+      }
+      const result: Record<string, any> = {}
+      for (const [k, v] of Object.entries(value)) {
+        result[k] = sanitize(v)
+      }
+      return result
+    }
+    return value
+  }
+
+  const sanitizedContracts = sanitize(deployedContracts)
+
   if (!indexJson[network]) {
     indexJson[network] = { deployedContracts: {} }
   }
@@ -48,7 +68,7 @@ export async function updateIndexJson<T extends Record<string, any>>(
   // Apply the merged config
   indexJson[network].deployedContracts[moduleType] = mergeObjects(
     { ...existingConfig },
-    deployedContracts,
+    sanitizedContracts,
   )
 
   fs.writeFileSync(indexPath, JSON.stringify(indexJson, null, 2))
