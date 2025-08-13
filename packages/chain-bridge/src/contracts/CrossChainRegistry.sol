@@ -438,20 +438,12 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         bytes32 relationshipType,
         uint16 targetChainId
     ) external view returns (CrossChainRelation memory relation) {
-        bytes32 relationshipKey = _getRelationshipKey(
-            sourceContract,
-            relationshipType,
-            targetChainId
-        );
-
-        relation = crossChainRelations[relationshipKey];
-        if (relation.sourceContract == address(0)) {
-            revert RelationshipDoesNotExist(
+        return
+            _getRelationshipByTarget(
                 sourceContract,
                 relationshipType,
                 targetChainId
             );
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -528,28 +520,11 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         address sourceAdapter,
         uint16 targetChainId
     ) external view returns (address targetAdapter) {
-        bytes32 relationshipKey = _getRelationshipKey(
+        CrossChainRelation memory relation = _getRelationshipByTarget(
             sourceAdapter,
             PEER_RELATIONSHIP,
             targetChainId
         );
-        CrossChainRelation memory relation = crossChainRelations[
-            relationshipKey
-        ];
-        if (relation.sourceContract == address(0)) {
-            revert RelationshipDoesNotExist(
-                sourceAdapter,
-                PEER_RELATIONSHIP,
-                targetChainId
-            );
-        }
-        if (relation.targetChainId != targetChainId) {
-            revert InvalidChainRelationship(
-                relation.sourceChainId,
-                targetChainId,
-                CURRENT_CHAIN_ID
-            );
-        }
         return relation.targetContract;
     }
 
@@ -606,6 +581,30 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             keccak256(
                 abi.encode(sourceContract, relationshipType, targetChainId)
             );
+    }
+
+    /**
+     * @notice Internal helper to load a relationship by explicit target chain
+     */
+    function _getRelationshipByTarget(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    ) internal view returns (CrossChainRelation memory relation) {
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType,
+            targetChainId
+        );
+
+        relation = crossChainRelations[relationshipKey];
+        if (relation.sourceContract == address(0)) {
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                targetChainId
+            );
+        }
     }
 
     /**

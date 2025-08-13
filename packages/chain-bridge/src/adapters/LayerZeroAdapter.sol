@@ -41,8 +41,13 @@ contract LayerZeroAdapter is
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
-    /// @notice Read channel threshold identifier for lzRead operations (configurable)
-    uint32 public immutable readChannelThreshold; // Used to identify responses
+    /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
+    /// @dev LayerZero routes read responses through a reserved "read channel" range
+    ///      near the top of the uint32 EID space (commonly with READ_CHANNEL_ID at
+    ///      4294967295). Any `srcEid` strictly greater than this threshold is treated
+    ///      as a read response. This value is set at deploy time to allow
+    ///      forward-compatibility and testing across different environments.
+    uint32 public immutable readChannelThreshold;
 
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
@@ -120,9 +125,16 @@ contract LayerZeroAdapter is
     /**
      * @notice Activates a read channel for state reading operations
      * @param _readChannelId The ID of the read channel to activate
-     * @dev Can only be called by the contract owner
+     * @dev Requirements:
+     *      - `_readChannelId` must be non-zero
+     *      - `_readChannelId` must be strictly greater than `readChannelThreshold`
+     *      These checks prevent misconfiguration where read responses would not be
+     *      properly classified by `_lzReceive`.
      */
     function activateReadChannel(uint32 _readChannelId) external onlyGovernor {
+        if (_readChannelId == 0 || _readChannelId <= readChannelThreshold) {
+            revert InvalidParams();
+        }
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
     }
@@ -303,6 +315,13 @@ contract LayerZeroAdapter is
             externalIdToChainId[_origin.srcEid],
             relayedMessageParams.sourceChainId
         );
+        // Defense-in-depth: bind the source OApp identity to the registry-declared peer.
+        // LayerZero's Origin.sender is the remote OApp address proven by DVNs.
+        // Ensure governance has registered that OApp as our peer for the source chain.
+        _assertTrustedSource(
+            _origin.sender,
+            relayedMessageParams.sourceChainId
+        );
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.MESSAGE,
             _payload
@@ -334,6 +353,13 @@ contract LayerZeroAdapter is
                 operationId: operationId,
                 sourceChainId: externalIdToChainId[_origin.srcEid]
             })
+        );
+
+        // Optional binding for read responses: the response comes back from the same OApp
+        // that issued the read on the remote chain. Enforce registry peer mapping here too.
+        _assertTrustedSource(
+            _origin.sender,
+            externalIdToChainId[_origin.srcEid]
         );
 
         IBridgeRouter(bridgeRouter()).deliver(

@@ -758,5 +758,139 @@
         }
       }
     }
+  },
+  "optimism": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0xc5cAB79A195497ec19495a7ffa8E263557c41AAC"
+        },
+        "summerToken": {
+          "address": "0x244D9AffCCA2EaFD689b0393Bf15F26f79364c25"
+        },
+        "timelock": {
+          "address": "0x25B97896A1d731875B3aec785977E421029Fc90A"
+        },
+        "protocolAccessManager": {
+          "address": "0xf7D6fBD250EF3EB083c7Bca2998AD82E1946E479"
+        },
+        "rewardsRedeemer": {
+          "address": "0x424aA31D64cabd39ea8B133BE844d935d666f40e"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE"
+        },
+        "raft": {
+          "address": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57"
+        },
+        "configurationManager": {
+          "address": "0x31d12954b4F8c2cd9029F0CC36d82fd01B42876c"
+        },
+        "harborCommand": {
+          "address": "0x3fA7E5D6515fD06Cfe5a393bB07f04cEC6f9Da77"
+        },
+        "admiralsQuarters": {
+          "address": "0x7160287dA4c544907011C0548c0818F7a9DbA7D1"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0x49f1541C43cF7039d47a09Ce3BFaee3c554326d8"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      "usdt": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "weth": "0x4200000000000000000000000000000000000006"
+    },
+    "common": {
+      "chainId": "10",
+      "initialSupply": "0",
+      "swapProvider": "0x1111111254760F7ab3F16433eea9304126DCd199",
+      "tipRate": "100",
+      "layerZero": {
+        "eID": "30111",
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "lzExecutor": "0x2D2ea0697bdbede3F01553D2Ae4B8d0c486B666e",
+        "sendUln302": "0x1322871e4ab09Bc7f5717189434f97bBD9546e95",
+        "receiveUln302": "0x3c4962Ff6258dcfCafD23a814237B7d6Eb712063",
+        "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
+        "lzDeadDVN": "0xEbc3065003e67CaaC747836dA272d9E5271A37e1"
+      }
+    },
+    "protocolSpecific": {}
+  },
+  "unichain": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0xc5cAB79A195497ec19495a7ffa8E263557c41AAC"
+        },
+        "summerToken": {
+          "address": "0x244D9AffCCA2EaFD689b0393Bf15F26f79364c25"
+        },
+        "timelock": {
+          "address": "0x25B97896A1d731875B3aec785977E421029Fc90A"
+        },
+        "protocolAccessManager": {
+          "address": "0xf7D6fBD250EF3EB083c7Bca2998AD82E1946E479"
+        },
+        "rewardsRedeemer": {
+          "address": "0x424aA31D64cabd39ea8B133BE844d935d666f40e"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE"
+        },
+        "raft": {
+          "address": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57"
+        },
+        "configurationManager": {
+          "address": "0x31d12954b4F8c2cd9029F0CC36d82fd01B42876c"
+        },
+        "harborCommand": {
+          "address": "0x3fA7E5D6515fD06Cfe5a393bB07f04cEC6f9Da77"
+        },
+        "admiralsQuarters": {
+          "address": "0x7160287dA4c544907011C0548c0818F7a9DbA7D1"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0x49f1541C43cF7039d47a09Ce3BFaee3c554326d8"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0x078D782b760474a361dDA0AF3839290b0EF57AD6",
+      "weth": "0x4200000000000000000000000000000000000006"
+    },
+    "common": {
+      "chainId": "130",
+      "initialSupply": "0",
+      "swapProvider": "0x1111111254760F7ab3F16433eea9304126DCd199",
+      "tipRate": "100",
+      "layerZero": {
+        "eID": "30130",
+        "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
+        "lzExecutor": "0x4208D6E27538189bB48E603D6123A94b8Abe0A0b",
+        "sendUln302": "0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7",
+        "receiveUln302": "0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043",
+        "blockedMessageLib": "0xc1ce56b2099ca68720592583c7984cab4b6d7e7a",
+        "lzDeadDVN": "0x6788f52439ACA6BFF597d3eeC2DC9a44B8FEE842"
+      }
+    },
+    "protocolSpecific": {}
   }
 }
