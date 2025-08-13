@@ -318,6 +318,7 @@
       },
       "morpho": {
         "blue": "0x0000000000000000000000000000000000000000",
+        "urdFactory": "0x7b792Ef7e91fbc78Ef482E3bBB52193A73367fbf",
         "vaults": {
           "usdc": {
             "Gauntlet_USDC_Prime": "0x7c574174DA4b2be3f705c6244B4BfA0815a8B3Ed",
@@ -366,7 +367,7 @@
       "silo": {
         "pools": {
           "usdc": {
-            "Swaap_Lend_susdx_usdc_127": "0x6Cc53A49b2c50D2450D6c531a7B5C763BB9Cb758"
+            "Swaap_Lend_susdx_usdc_127": "0x2433D6AC11193b4695D9ca73530de93c538aD18a"
           },
           "dai": {},
           "usde": {},
