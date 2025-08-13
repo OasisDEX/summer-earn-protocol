@@ -54,7 +54,7 @@
   "dependencies": {
     "bignumber.js": "9.1.2",
     "sonner": "^2.0.7",
-    "viem": "2.21.55",
+    "viem": "2.33.3",
     "zod": "3.22.4"
   },
   "version": "1.0.0",
