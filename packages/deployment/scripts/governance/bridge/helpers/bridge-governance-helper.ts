@@ -2,12 +2,13 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
-import { getConfigByNetwork } from '../../helpers/config-handler'
-import { getHubChain } from '../../helpers/get-hub-chain'
-import { getSipMinorNumber } from '../../helpers/get-sip-minor-number'
-import { hashDescription } from '../../helpers/hash-description'
-import { constructLzOptions } from '../../helpers/layerzero-options'
-import { createGovernanceProposal } from '../../helpers/proposal-helpers'
+import type { BaseConfig } from '../../../../types/config-types'
+import { getConfigByNetwork } from '../../../helpers/config-handler'
+import { getHubChain } from '../../../helpers/get-hub-chain'
+import { getSipMinorNumber } from '../../../helpers/get-sip-minor-number'
+import { hashDescription } from '../../../helpers/hash-description'
+import { constructLzOptions } from '../../../helpers/layerzero-options'
+import { createGovernanceProposal } from '../../../helpers/proposal-helpers'
 import { LZ_ENDPOINT_ABI } from '../lz-endpoint-abi'
 import { checkLzAuthorization } from './lz-authorization-helper'
 import { generateAggregatedLzConfigProposalDescription } from './proposal-description-helper'
@@ -71,7 +72,11 @@ export async function createUnifiedLzConfigProposal(
   const hubChain = getHubChain()
 
   const [deployer] = await hre.viem.getWalletClients()
-  const hubConfig = getConfigByNetwork(hubChain, { common: true, gov: true }, useBummerConfig)
+  const hubConfig = getConfigByNetwork(
+    hubChain,
+    { common: true, gov: true },
+    useBummerConfig,
+  ) as BaseConfig
   const governorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
 
   // 1. Process hub chain configs - direct actions on hub chain
@@ -95,7 +100,7 @@ export async function createUnifiedLzConfigProposal(
       const { delegate } = await checkLzAuthorization(
         config.lzEndpointAddress,
         config.oAppAddress,
-        deployer.account.address,
+        deployer.account.address as Address,
         config.sourceChain,
       )
 
@@ -175,7 +180,11 @@ export async function createUnifiedLzConfigProposal(
     for (const peer of peerConfigurations.tokenPeers) {
       try {
         // Get the source chain config
-        const sourceConfig = getConfigByNetwork(peer.sourceChain, { gov: true }, useBummerConfig)
+        const sourceConfig = getConfigByNetwork(
+          peer.sourceChain,
+          { gov: true },
+          useBummerConfig,
+        ) as BaseConfig
         const tokenAddress = sourceConfig.deployedContracts.gov.summerToken.address as Address
 
         // Add to chain-specific collection
@@ -209,7 +218,11 @@ export async function createUnifiedLzConfigProposal(
     for (const peer of peerConfigurations.governorPeers) {
       try {
         // Get the source chain config
-        const sourceConfig = getConfigByNetwork(peer.sourceChain, { gov: true }, useBummerConfig)
+        const sourceConfig = getConfigByNetwork(
+          peer.sourceChain,
+          { gov: true },
+          useBummerConfig,
+        ) as BaseConfig
         const governorAddress = sourceConfig.deployedContracts.gov.summerGovernor.address as Address
 
         // Add to chain-specific collection
@@ -297,7 +310,11 @@ export async function createUnifiedLzConfigProposal(
     const targetConfigItems = []
 
     // Get target chain config
-    const targetChainConfig = getConfigByNetwork(targetChain, { common: true }, useBummerConfig)
+    const targetChainConfig = getConfigByNetwork(
+      targetChain,
+      { common: true },
+      useBummerConfig,
+    ) as BaseConfig
     const targetChainEndpointId = targetChainConfig.common.layerZero.eID
 
     for (const config of targetChainConfigs) {
@@ -306,7 +323,7 @@ export async function createUnifiedLzConfigProposal(
         const { delegate } = await checkLzAuthorization(
           config.lzEndpointAddress,
           config.oAppAddress,
-          deployer.account.address,
+          deployer.account.address as Address,
           config.sourceChain,
         )
 
@@ -449,7 +466,7 @@ The peering is necessary to enable cross-chain message passing between existing 
           const { delegate } = await checkLzAuthorization(
             config.lzEndpointAddress,
             config.oAppAddress,
-            deployer.account.address,
+            deployer.account.address as Address,
             config.sourceChain,
           )
 
