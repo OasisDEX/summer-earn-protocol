@@ -15,7 +15,6 @@ export async function deployGov(config: BaseConfig, useBummerConfig?: boolean) {
   ModuleLogger.logGov(deployedGov)
 
   console.log('Updating index.json...')
-  console.log('deployedGov', deployedGov)
   updateIndexJson('gov', hre.network.name, deployedGov, useBummerConfig)
 
   return deployedGov
