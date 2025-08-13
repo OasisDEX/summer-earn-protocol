@@ -104,16 +104,16 @@ export default function VestingPage() {
   )
 
   const formattedReleasable = useMemo(
-    () => formatDecimalOutput((releasableNow as bigint) ?? 0n, decimals),
+    () => formatDecimalOutput((releasableNow as bigint) ?? BigInt(0), decimals),
     [releasableNow, decimals],
   )
   const formattedReleased = useMemo(
-    () => formatDecimalOutput((releasedTotal as bigint) ?? 0n, decimals),
+    () => formatDecimalOutput((releasedTotal as bigint) ?? BigInt(0), decimals),
     [releasedTotal, decimals],
   )
 
   const canClaim = Boolean(
-    isConnected && vestingWalletAddress && tokenAddress && (releasableNow as bigint) > 0n,
+    isConnected && vestingWalletAddress && tokenAddress && (releasableNow as bigint) > BigInt(0),
   )
 
   const onClaim = () => {
@@ -141,18 +141,19 @@ export default function VestingPage() {
         abi: summerVestingWalletAbi,
         functionName: 'goalAmounts' as const,
         args: [i],
-      }))
+      })) as any[]
       const reachedCalls = indices.map((i) => ({
         address: vestingWalletAddress as `0x${string}`,
         abi: summerVestingWalletAbi,
         functionName: 'goalsReached' as const,
         args: [i],
-      }))
+      })) as any[]
 
       try {
+        const pc: any = publicClient
         const [amountRes, reachedRes] = await Promise.all([
-          publicClient.multicall({ contracts: amountCalls as any, allowFailure: true }),
-          publicClient.multicall({ contracts: reachedCalls as any, allowFailure: true }),
+          pc.multicall({ contracts: amountCalls as any, allowFailure: true }),
+          pc.multicall({ contracts: reachedCalls as any, allowFailure: true }),
         ])
 
         const items: { amount: bigint; reached: boolean }[] = []
@@ -289,7 +290,7 @@ export default function VestingPage() {
               <div className="flex items-center justify-between gap-3">
                 <span>Time-based Allocation</span>
                 <span className="text-blue-300">
-                  {formatDecimalOutput((timeBasedAmount as bigint) ?? 0n, decimals)}{' '}
+                  {formatDecimalOutput((timeBasedAmount as bigint) ?? BigInt(0), decimals)}{' '}
                   {(tokenSymbol as string) || ''}
                 </span>
               </div>
@@ -314,7 +315,7 @@ export default function VestingPage() {
                     <div className="text-gray-300">Goal #{idx + 1}</div>
                     <div className="flex items-center gap-3">
                       <span className="text-purple-300">
-                        {formatDecimalOutput(g.amount ?? 0n, decimals)}{' '}
+                        {formatDecimalOutput(g.amount ?? BigInt(0), decimals)}{' '}
                         {(tokenSymbol as string) || ''}
                       </span>
                       <span className={g.reached ? 'text-green-400' : 'text-red-400'}>
