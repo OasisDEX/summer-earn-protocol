@@ -34,6 +34,14 @@ const config: HardhatUserConfig = {
           browserURL: `https://sonicscan.org`,
         },
       },
+      {
+        network: 'unichain',
+        chainId: 130,
+        urls: {
+          apiURL: `https://api.unichainscan.org/api`,
+          browserURL: `https://uniscan.xyz`,
+        },
+      },
     ],
   },
   ignition: {
@@ -74,6 +82,11 @@ const config: HardhatUserConfig = {
       url: `${process.env.OPTIMISM_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
       chainId: 10,
+    },
+    unichain: {
+      url: `${process.env.UNICHAIN_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 130,
     },
     arbitrum: {
       url: `${process.env.ARBITRUM_RPC_URL}`,
