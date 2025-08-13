@@ -49,6 +49,14 @@ export async function deployLayerZeroAdapter(
     throw new Error(`ProtocolAccessManager address not found in config for chain ID ${chainId}`)
   }
 
+  // Determine readChannelThreshold from adapter config: if we have a configured readChannelId,
+  // set the threshold to one less (must be < read channel). Otherwise, default to max-1.
+  const chainAdapterCfg = (layerZeroConfig.chainConfig as any)?.[String(chainId)] ?? {}
+  const configuredReadChannelId: number | undefined = chainAdapterCfg.readChannelId
+  const readChannelThreshold: number = configuredReadChannelId
+    ? Math.max(1, Number(configuredReadChannelId) - 1)
+    : 4294967294 // uint32 max - 1
+
   // Deploy using Ignition module
   const deploymentResult = await hre.ignition.deploy(LayerZeroAdapterModule, {
     parameters: {
@@ -59,6 +67,7 @@ export async function deployLayerZeroAdapter(
         supportedChains: chainIds,
         lzEids,
         initialOwner: signerAddress,
+        readChannelThreshold,
       },
     },
   })
