@@ -119,6 +119,14 @@
         "vaultName": "apostro",
         "protocol": "silo"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gearbox_Invariant",
+        "protocol": "erc4626"
+      }
     }
   ]
 }

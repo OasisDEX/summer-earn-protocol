@@ -111,7 +111,13 @@
             "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
             "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183",
             "Spark_USDC": "0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A",
-            "Seamless_USDC": "0x616a4E1db48e22028f6bbf20444Cd3b8e3273738"
+            "Seamless_USDC": "0x616a4E1db48e22028f6bbf20444Cd3b8e3273738",
+            "Steakhouse_High_Yield_USDC": "0xBEEFA7B88064FeEF0cEe02AAeBBd95D30df3878F",
+            "Extrafi_XLend_USDC": "0x23479229e52Ab6aaD312D0B03DF9F33B46753B5e",
+            "Universal_USDC": "0xB7890CEE6CF4792cdCC13489D36D9d42726ab863",
+            "Clearstar_High_Yield_USDC": "0xE74c499fA461AF1844fCa84204490877787cED56",
+            "Clearstar_Reactor_OpenEden_Boosted_USDC": "0x1D3b1Cd0a0f242d598834b3F2d126dC6bd774657",
+            "Gauntlet_USDC_Frontier": "0x236919F11ff9eA9550A4287696C2FC9e18E6e890"
           },
           "eurc": {
             "Steakhouse_EURC": "0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5",
@@ -122,7 +128,9 @@
             "Moonwell_Flagship_WETH": "0xa0E430870c4604CcfC7B38Ca7845B1FF653D0ff1",
             "Steakhouse_WETH": "0xbEEf050a7485865A7a8d8Ca0CC5f7536b7a3443e",
             "Gauntlet_WETH_Core": "0x6b13c060F13Af1fdB319F52315BbbF3fb1D88844",
-            "Seamless_WETH": "0x27d8c7273fd3fcc6956a0b370ce5fd4a7fc65c18"
+            "Seamless_WETH": "0x27d8c7273fd3fcc6956a0b370ce5fd4a7fc65c18",
+            "Extrafi_XLend_WETH": "0x5A32099837D89E3a794a44fb131CBbAD41f87a8C",
+            "Yearn_OG_WETH": "0x1D795E29044A62Da42D927c4b179269139A28A6B"
           }
         },
         "markets": {
@@ -153,14 +161,16 @@
       },
       "erc4626": {
         "usdc": {
-          "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+          "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
+          "Euler_Base_USDC": "0x085178078796Da17B191f9081b5E2fCCc79A7eE7"
         },
         "eurc": {
           "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"
         },
         "weth": {
           "Fluid": "0x9272D6153133175175Bc276512B2336BE3931CE9",
-          "Euler_Base_WETH": "0x859160DB5841E5cfB8D3f144C6b3381A85A4b410"
+          "Euler_Base_WETH": "0x859160DB5841E5cfB8D3f144C6b3381A85A4b410",
+          "Euler_Alterscope_LRT_WETH": "0xF3BB6b0a9bEAF9240D7F4a91341d5Df6bF37cAea"
         }
       },
       "moonwell": {
@@ -273,13 +283,15 @@
         "usdc": {
           "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6",
           "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
-          "Sky_sUSDC": "0x940098b108fB7D0a7E374f6eDED7760787464609"
+          "Sky_sUSDC": "0x940098b108fB7D0a7E374f6eDED7760787464609",
+          "Euler_Arbitrum_USDC": "0x0a1eCC5Fe8C9be3C809844fcBe615B46A869b899"
         },
         "usdce": {
           "Gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
         },
         "usdt": {
-          "Fluid": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03"
+          "Fluid": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03",
+          "Euler_Arbitrum_USDT0": "0x37512F45B4ba8808910632323b73783Ca938CD51"
         }
       },
       "pendle": {
@@ -306,6 +318,20 @@
       },
       "morpho": {
         "blue": "0x0000000000000000000000000000000000000000",
+        "urdFactory": "0x7b792Ef7e91fbc78Ef482E3bBB52193A73367fbf",
+        "vaults": {
+          "usdc": {
+            "Gauntlet_USDC_Prime": "0x7c574174DA4b2be3f705c6244B4BfA0815a8B3Ed",
+            "Gauntlet_USDC_Core": "0x7e97fa6893871A2751B5fE961978DCCb2c201E65",
+            "Yearn_OG_USDC": "0x87DEAE530841A9671326C9D5B9f91bdB11F3162c",
+            "Steakhouse_Prime_USDC": "0x250CF7c82bAc7cB6cf899b6052979d4B5BA1f9ca",
+            "MEV_Capital_USDC": "0xa60643c90A542A95026C0F1dbdB0615fF42019Cf"
+          },
+          "usdt": {
+            "Gauntlet_USDT0_Core": "0x139250CdB310D657eAC506c7C7FC6AcDE34Af1ec",
+            "MEV_Capital_USDT0": "0x6d57dAd0F1c4da0C1d5443AE8F7f8a50BDb9Cf75"
+          }
+        },
         "markets": {
           "usdc": {
             "nomarket": "0x0000000000000000000000000000000000000000"
@@ -340,7 +366,9 @@
       },
       "silo": {
         "pools": {
-          "usdc": {},
+          "usdc": {
+            "Swaap_Lend_susdx_usdc_127": "0x2433D6AC11193b4695D9ca73530de93c538aD18a"
+          },
           "dai": {},
           "usde": {},
           "usdt": {},
@@ -348,7 +376,8 @@
         },
         "vaults": {
           "usdc": {
-            "varlamore": "0x2BA39e5388aC6C702Cb29AEA78d52aa66832f1ee"
+            "varlamore": "0x2BA39e5388aC6C702Cb29AEA78d52aa66832f1ee",
+            "greenhouse": "0x83b90F83afdFE24DDc4e300c8EB1C5b2c7544C81"
           }
         }
       },
@@ -478,7 +507,8 @@
           "Euler_Swaap_Lend": "0xf2f826c190D020A6D1EC422bF2269E63b8b315E0",
           "Euler_Resolv": "0xcBC9B61177444A793B85442D3a953B90f6170b7D",
           "Sky_sUSDC": "0xBc65ad17c5C0a2A4D159fa5a503f4992c7B545FE",
-          "Term_Summer_USDC": "0xA9ca4909700505585B1aD2a1579dA3b670FFA9c4"
+          "Term_Summer_USDC": "0xA9ca4909700505585B1aD2a1579dA3b670FFA9c4",
+          "Gearbox_Invariant": "0xc155444481854c60e7a29f4150373f479988f32d"
         },
         "dai": {},
         "usde": {},
