@@ -15,6 +15,7 @@ import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {EVMCallRequestV1, ReadCodecV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Bytes32AddressLib} from "solmate/src/utils/Bytes32AddressLib.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -319,7 +320,7 @@ contract LayerZeroAdapter is
         // LayerZero's Origin.sender is the remote OApp address proven by DVNs.
         // Ensure governance has registered that OApp as our peer for the source chain.
         _assertTrustedSource(
-            _origin.sender,
+            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
             relayedMessageParams.sourceChainId
         );
         IBridgeRouter(bridgeRouter()).deliver(
@@ -358,7 +359,7 @@ contract LayerZeroAdapter is
         // Optional binding for read responses: the response comes back from the same OApp
         // that issued the read on the remote chain. Enforce registry peer mapping here too.
         _assertTrustedSource(
-            _origin.sender,
+            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
             externalIdToChainId[_origin.srcEid]
         );
 
