@@ -37,6 +37,7 @@
     "deploy:pendle-pt-ark": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-pendle-pt-ark.ts --network $NETWORK",
     "deploy:pendle-lp-ark": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-pendle-lp-ark.ts --network $NETWORK",
     "deploy:erc4626-ark": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-erc4626-ark.ts --network $NETWORK",
+    "deploy:xchain:core": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-xchain-core.ts --network $NETWORK",
     "deploy:list": "hardhat ignition deployments",
     "deploy:status:arbitrum": "hardhat ignition status chain-42161",
     "deploy:status:base": "hardhat ignition status chain-8453",

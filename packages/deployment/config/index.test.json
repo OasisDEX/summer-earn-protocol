@@ -869,7 +869,8 @@
         "sendUln302": "0x1322871e4ab09Bc7f5717189434f97bBD9546e95",
         "receiveUln302": "0x3c4962Ff6258dcfCafD23a814237B7d6Eb712063",
         "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
-        "lzDeadDVN": "0xEbc3065003e67CaaC747836dA272d9E5271A37e1"
+        "lzDeadDVN": "0xEbc3065003e67CaaC747836dA272d9E5271A37e1",
+        "dvns": {}
       }
     },
     "protocolSpecific": {}
