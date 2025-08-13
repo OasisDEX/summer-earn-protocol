@@ -2,12 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
-import { getConfigByNetwork } from '../../helpers/config-handler'
-import { getHubChain } from '../../helpers/get-hub-chain'
-import { getSipMinorNumber } from '../../helpers/get-sip-minor-number'
-import { hashDescription } from '../../helpers/hash-description'
-import { constructLzOptions } from '../../helpers/layerzero-options'
-import { createGovernanceProposal } from '../../helpers/proposal-helpers'
+import { getConfigByNetwork } from '../../../helpers/config-handler'
+import { getHubChain } from '../../../helpers/get-hub-chain'
+import { getSipMinorNumber } from '../../../helpers/get-sip-minor-number'
+import { hashDescription } from '../../../helpers/hash-description'
+import { constructLzOptions } from '../../../helpers/layerzero-options'
+import { createGovernanceProposal } from '../../../helpers/proposal-helpers'
 import { LZ_ENDPOINT_ABI } from '../lz-endpoint-abi'
 import { checkLzAuthorization } from './lz-authorization-helper'
 import { generateAggregatedLzConfigProposalDescription } from './proposal-description-helper'
@@ -95,7 +95,7 @@ export async function createUnifiedLzConfigProposal(
       const { delegate } = await checkLzAuthorization(
         config.lzEndpointAddress,
         config.oAppAddress,
-        deployer.account.address,
+        deployer.account.address as Address,
         config.sourceChain,
       )
 
@@ -306,7 +306,7 @@ export async function createUnifiedLzConfigProposal(
         const { delegate } = await checkLzAuthorization(
           config.lzEndpointAddress,
           config.oAppAddress,
-          deployer.account.address,
+          deployer.account.address as Address,
           config.sourceChain,
         )
 
@@ -449,7 +449,7 @@ The peering is necessary to enable cross-chain message passing between existing 
           const { delegate } = await checkLzAuthorization(
             config.lzEndpointAddress,
             config.oAppAddress,
-            deployer.account.address,
+            deployer.account.address as Address,
             config.sourceChain,
           )
 
