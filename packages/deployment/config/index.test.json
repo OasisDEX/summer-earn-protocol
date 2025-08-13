@@ -802,6 +802,22 @@
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x49f1541C43cF7039d47a09Ce3BFaee3c554326d8"
         }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "adapters": {
+          "layerZero": {
+            "address": "0x0000000000000000000000000000000000000000"
+          },
+          "stargate": {
+            "address": "0x0000000000000000000000000000000000000000"
+          }
+        }
       }
     },
     "tokens": {
@@ -870,6 +886,22 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x49f1541C43cF7039d47a09Ce3BFaee3c554326d8"
+        }
+      },
+      "bridge": {
+        "bridgeRouter": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "bridgeQueue": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "adapters": {
+          "layerZero": {
+            "address": "0x0000000000000000000000000000000000000000"
+          },
+          "stargate": {
+            "address": "0x0000000000000000000000000000000000000000"
+          }
         }
       }
     },
