@@ -805,7 +805,7 @@
       },
       "bridge": {
         "bridgeRouter": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x8AB0a8E95A43633E7C424eE67F6E3fe66D4898B2"
         },
         "bridgeQueue": {
           "address": "0x0000000000000000000000000000000000000000"
@@ -817,6 +817,9 @@
           "stargate": {
             "address": "0x0000000000000000000000000000000000000000"
           }
+        },
+        "crossChainRegistry": {
+          "address": "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
         }
       }
     },
