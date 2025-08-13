@@ -9,12 +9,14 @@ export default buildModule('LayerZeroAdapterModule', (m) => {
   const supportedChains = m.getParameter<number[]>('supportedChains', [])
   const lzEids = m.getParameter<number[]>('lzEids', [])
   const initialOwner = m.getParameter<Address>('initialOwner', undefined)
+  const readChannelThreshold = m.getParameter<number>('readChannelThreshold', undefined)
 
   // Validate required parameters
   if (!endpoint) throw new Error('endpoint parameter is required')
   if (!crossChainRegistry) throw new Error('crossChainRegistry parameter is required')
   if (!accessManager) throw new Error('accessManager parameter is required')
   if (!initialOwner) throw new Error('initialOwner parameter is required')
+  if (!readChannelThreshold) throw new Error('readChannelThreshold parameter is required')
   if ((supportedChains as unknown as number[]).length === 0)
     throw new Error('supportedChains parameter is required')
   if ((lzEids as unknown as number[]).length === 0) throw new Error('lzEids parameter is required')
@@ -29,6 +31,7 @@ export default buildModule('LayerZeroAdapterModule', (m) => {
     supportedChains,
     lzEids,
     initialOwner,
+    readChannelThreshold,
   ])
 
   return {

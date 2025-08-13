@@ -173,8 +173,8 @@ export async function configureStargateAdapter(
   console.log(kleur.green(`Updated ${mappingsAdded} chain -> EID mappings`))
 
   // Only add delay if we actually added chains
-  if (chainsAdded > 0) {
-    console.log(kleur.blue(`Added ${chainsAdded} new chains, waiting for settlement...`))
+  if (mappingsAdded > 0) {
+    console.log(kleur.blue(`Added ${mappingsAdded} new chains, waiting for settlement...`))
     await new Promise((resolve) => setTimeout(resolve, 2000))
   }
 
