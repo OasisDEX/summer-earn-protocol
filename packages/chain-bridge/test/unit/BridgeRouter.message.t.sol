@@ -183,30 +183,6 @@ contract BridgeRouterMessageTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testExecuteSendMessage_InsufficientFee() public {
-        bytes memory testMessage = abi.encode("Insufficient fee message");
-
-        vm.startPrank(keeper);
-
-        BridgeTypes.BridgeOptions memory options = address(mockAdapter)
-            .defaultOptions();
-
-        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
-            .ExecuteSendMessageParams({
-                destinationChainId: DEST_CHAIN_ID,
-                target: user,
-                message: testMessage,
-                originator: keeper,
-                refundAddress: keeper
-            });
-
-        // Try with insufficient fee (should revert)
-        vm.expectRevert(IBridgeRouter.InsufficientFee.selector);
-        router.executeSendMessage{value: 0.001 ether}(params, options); // too low
-
-        vm.stopPrank();
-    }
-
     function testExecuteSendMessage_WhenPaused() public {
         // First pause the router
         vm.prank(governor);
@@ -253,8 +229,7 @@ contract BridgeRouterMessageTest is BridgeRouterSetup {
                 refundAddress: keeper
             });
 
-        // Should revert with NoSuitableAdapter
-        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
         router.executeSendMessage{value: 0.101 ether}(params, options);
 
         vm.stopPrank();

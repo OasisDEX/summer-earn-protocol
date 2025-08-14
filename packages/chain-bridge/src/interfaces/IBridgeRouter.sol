@@ -105,8 +105,6 @@ interface IBridgeRouter is IERC165 {
     error Paused();
     /// @notice Thrown when the provided fee is insufficient
     error InsufficientFee();
-    /// @notice Thrown when no suitable adapter is found for an operation
-    error NoSuitableAdapter();
     /// @notice Thrown when a native token transfer fails (e.g., refund)
     error TransferFailed();
     /// @notice Thrown when an adapter doesn't support a requested operation

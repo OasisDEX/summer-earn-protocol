@@ -90,6 +90,20 @@ contract BridgeRouter is
         _;
     }
 
+    /**
+     * @dev Modifier ensuring the adapter is valid and supports the operation type.
+     * Reverts with `UnknownAdapter` if the adapter is not valid.
+     * Reverts with `UnsupportedAdapterOperation` if the adapter does not support the operation type.
+     */
+    modifier validAdapter(
+        address adapter,
+        BridgeTypes.OperationType operationType
+    ) {
+        if (!this.isValidAdapter(adapter)) revert UnknownAdapter();
+        _validateAdapterSupportsOperation(adapter, operationType);
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                     ADAPTER PEER RELATIONSHIP CHECK
     //////////////////////////////////////////////////////////////*/
@@ -191,30 +205,6 @@ contract BridgeRouter is
     }
 
     /**
-     * @dev Internal function to validate provided fee against required fee
-     * @param providedFee The fee provided with the transaction
-     * @param requiredFee The required fee for the operation
-     */
-    function _validateFee(
-        uint256 providedFee,
-        uint256 requiredFee
-    ) internal pure {
-        if (providedFee < requiredFee) revert InsufficientFee();
-    }
-
-    /**
-     * @dev Internal function to handle refunds safely
-     * @param recipient Address to receive the refund
-     * @param amount Amount to refund
-     */
-    function _refund(address recipient, uint256 amount) internal {
-        if (amount > 0) {
-            (bool success, ) = recipient.call{value: amount}("");
-            if (!success) revert TransferFailed();
-        }
-    }
-
-    /**
      * @dev Internal function to generate a unique operation ID and set initial status
      * @param operationType Type of operation being performed
      * @param destinationChainId Target chain ID
@@ -279,29 +269,16 @@ contract BridgeRouter is
         onlyAuthorizedExecutor
         whenNotPaused
         nonReentrant
-        returns (bytes32 operationId)
-    {
-        _validateAdapterSupportsOperation(
+        validAdapter(
             options.specifiedAdapter,
             BridgeTypes.OperationType.TRANSFER_ASSET
-        );
+        )
+        returns (bytes32 operationId)
+    {
         _validateTransferParams(params);
         _validateOriginator(params.originator);
 
-        // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
-            params.destinationChainId,
-            params.asset,
-            params.amount,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
-
-        // Apply fee buffer to account for fee volatility
-        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
-
-        // Validate fee provided by authorized executor against buffered fee
-        _validateFee(msg.value, bufferedFee);
+        address specifiedAdapter = options.specifiedAdapter;
 
         // Pull tokens from authorized executor to Router first
         IERC20(params.asset).safeTransferFrom(
@@ -345,14 +322,11 @@ contract BridgeRouter is
         );
 
         // Call adapter with the full msg.value
-        IAssetAdapter(specifiedAdapter).transferAsset{value: bufferedFee}(
+        IAssetAdapter(specifiedAdapter).transferAsset{value: msg.value}(
             operationId, // Pass the router-generated ID
             params,
             options
         );
-
-        // Refund any excess native fees to designated refund address
-        _refund(params.refundAddress, msg.value - bufferedFee);
 
         emit TransferInitiated(
             operationId,
@@ -378,29 +352,16 @@ contract BridgeRouter is
         onlyAuthorizedExecutor
         whenNotPaused
         nonReentrant
-        returns (bytes32 operationId)
-    {
-        _validateAdapterSupportsOperation(
+        validAdapter(
             options.specifiedAdapter,
             BridgeTypes.OperationType.READ_STATE
-        );
+        )
+        returns (bytes32 operationId)
+    {
         _validateReadStateParams(params);
         _validateOriginator(params.originator);
 
-        // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
-            params.destinationChainId,
-            address(0), // No asset
-            0, // No amount
-            options,
-            BridgeTypes.OperationType.READ_STATE
-        );
-
-        // Apply fee buffer to account for fee volatility
-        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
-
-        // Validate fee provided by authorized executor against buffered fee
-        _validateFee(msg.value, bufferedFee);
+        address specifiedAdapter = options.specifiedAdapter;
 
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
@@ -424,14 +385,11 @@ contract BridgeRouter is
         readRequestToOriginator[operationId] = params.originator;
 
         // Call adapter with the full msg.value
-        IMessageAdapter(specifiedAdapter).readState{value: bufferedFee}(
+        IMessageAdapter(specifiedAdapter).readState{value: msg.value}(
             operationId, // Pass the router-generated ID
             params,
             options
         );
-
-        // Refund any excess native fees to designated refund address
-        _refund(params.refundAddress, msg.value - bufferedFee);
 
         emit ReadRequestInitiated(
             operationId,
@@ -457,29 +415,16 @@ contract BridgeRouter is
         onlyAuthorizedExecutor
         whenNotPaused
         nonReentrant
-        returns (bytes32 operationId)
-    {
-        _validateAdapterSupportsOperation(
+        validAdapter(
             options.specifiedAdapter,
             BridgeTypes.OperationType.MESSAGE
-        );
+        )
+        returns (bytes32 operationId)
+    {
         _validateSendMessageParams(params);
         _validateOriginator(params.originator);
 
-        // Get required base fee and specified adapter (no multiplier)
-        (uint256 requiredBaseFee, , address specifiedAdapter) = _quote(
-            params.destinationChainId,
-            address(0), // No asset
-            0, // No amount
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
-
-        // Apply fee buffer to account for fee volatility
-        uint256 bufferedFee = _applyFeeBuffer(requiredBaseFee);
-
-        // Validate fee provided by authorized executor against buffered fee
-        _validateFee(msg.value, bufferedFee);
+        address specifiedAdapter = options.specifiedAdapter;
 
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
@@ -492,14 +437,11 @@ contract BridgeRouter is
         );
 
         // Call adapter with the full msg.value
-        IMessageAdapter(specifiedAdapter).sendMessage{value: bufferedFee}(
+        IMessageAdapter(specifiedAdapter).sendMessage{value: msg.value}(
             operationId, // Pass the router-generated ID
             params,
             options
         );
-
-        // Refund any excess native fees to designated refund address
-        _refund(params.refundAddress, msg.value - bufferedFee);
 
         emit MessageInitiated(
             operationId,
@@ -515,55 +457,6 @@ contract BridgeRouter is
                         BRIDGE OPERATIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Internal implementation of quote that validates the specified adapter and gets the base fee.
-     * @param destinationChainId ID of the destination chain.
-     * @param asset Address of the asset to transfer.
-     * @param amount Amount of the asset to transfer.
-     * @param options Additional options for the transfer.
-     * @param operationType Type of operation being performed.
-     * @return nativeFee Base fee in native token required by the adapter.
-     * @return tokenFee Base fee in the asset token required by the adapter.
-     * @return specifiedAdapter Address of the specified adapter.
-     *
-     * @dev Specified adapter is part of the return values in case
-     * adapter auto-select is added in future.
-     */
-    function _quote(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions memory options,
-        BridgeTypes.OperationType operationType
-    )
-        internal
-        view
-        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
-    {
-        specifiedAdapter = options.specifiedAdapter;
-
-        // If no adapter specified, revert
-        if (specifiedAdapter == address(0)) {
-            revert NoSuitableAdapter();
-        } else {
-            // Validate specified adapter
-            if (!this.isValidAdapter(specifiedAdapter)) {
-                revert UnknownAdapter();
-            }
-        }
-
-        // Get base fee from the specified adapter
-        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter).estimateFee(
-            destinationChainId,
-            asset,
-            amount,
-            options,
-            operationType
-        );
-
-        return (nativeFee, tokenFee, specifiedAdapter);
-    }
-
     /// @inheritdoc IBridgeRouter
     function quote(
         uint16 destinationChainId,
@@ -576,8 +469,12 @@ contract BridgeRouter is
         view
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
-        // Get the base fee from internal quote
-        (uint256 baseFee, uint256 baseTokenFee, address adapter) = _quote(
+        specifiedAdapter = options.specifiedAdapter;
+
+        if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
+        if (!this.isValidAdapter(specifiedAdapter)) revert UnknownAdapter();
+
+        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter).estimateFee(
             destinationChainId,
             asset,
             amount,
@@ -585,10 +482,10 @@ contract BridgeRouter is
             operationType
         );
 
-        // Apply fee buffer to account for fee volatility
-        uint256 bufferedNativeFee = _applyFeeBuffer(baseFee);
+        nativeFee = _applyFeeBuffer(nativeFee);
+        tokenFee = _applyFeeBuffer(tokenFee);
 
-        return (bufferedNativeFee, baseTokenFee, adapter);
+        return (nativeFee, tokenFee, specifiedAdapter);
     }
 
     /// @inheritdoc IBridgeRouter
