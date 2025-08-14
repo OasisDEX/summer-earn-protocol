@@ -56,5 +56,7 @@
   "AdmiralsQuartersModule_20250506T105651491#AdmiralsQuarters": "0x16160Cd5C54dE1CaBa7C567C6D232c1A9D514515",
   "BummerLazyVault_WETH_Origin_weth_8453_gov#OriginSuperOETHArk": "0x1Fd588A01a04307AaF486cDe7568c057048a03EE",
   "LazyVault_LowerRisk_WETH_Origin_weth_8453_gov#OriginSuperOETHArk": "0xD9755f1541103333132E2C90C67f7e513060dc0e",
-  "LazyVault_LowerRisk_WETH_MorphoVault_weth_Seamless_WETH_8453#MorphoVaultArk": "0x7D3607937Fac84AA6d41beb67E252098E52EcD6b"
+  "LazyVault_LowerRisk_WETH_MorphoVault_weth_Seamless_WETH_8453#MorphoVaultArk": "0x7D3607937Fac84AA6d41beb67E252098E52EcD6b",
+  "BridgeModule#CrossChainRegistry": "0xFB7dad21B5BDd30D1317F20C63731dfbF834C010",
+  "BridgeModule#BridgeRouter": "0x11fDAa50347865F1E8e506529309364437EFf657"
 }

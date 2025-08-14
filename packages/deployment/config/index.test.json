@@ -45,10 +45,7 @@
       },
       "bridge": {
         "bridgeRouter": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
-        "bridgeQueue": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x11fDAa50347865F1E8e506529309364437EFf657"
         },
         "adapters": {
           "layerZero": {
@@ -57,6 +54,9 @@
           "stargate": {
             "address": "0x0000000000000000000000000000000000000000"
           }
+        },
+        "crossChainRegistry": {
+          "address": "0xFB7dad21B5BDd30D1317F20C63731dfbF834C010"
         }
       }
     },
@@ -232,9 +232,6 @@
         "bridgeRouter": {
           "address": "0x0000000000000000000000000000000000000000"
         },
-        "bridgeQueue": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
         "adapters": {
           "layerZero": {
             "address": "0x0000000000000000000000000000000000000000"
@@ -392,9 +389,6 @@
       },
       "bridge": {
         "bridgeRouter": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
-        "bridgeQueue": {
           "address": "0x0000000000000000000000000000000000000000"
         },
         "adapters": {
@@ -807,9 +801,6 @@
         "bridgeRouter": {
           "address": "0x8AB0a8E95A43633E7C424eE67F6E3fe66D4898B2"
         },
-        "bridgeQueue": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
         "adapters": {
           "layerZero": {
             "address": "0xf05e9f88f120185266eC0f813E9Bc7145fb2E854"
@@ -893,9 +884,6 @@
       },
       "bridge": {
         "bridgeRouter": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
-        "bridgeQueue": {
           "address": "0x0000000000000000000000000000000000000000"
         },
         "adapters": {
