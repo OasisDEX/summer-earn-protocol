@@ -37,6 +37,7 @@
     "deploy:erc4626-ark": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-erc4626-ark.ts --network $NETWORK",
     "deploy:xchain:core": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-xchain-core.ts --network $NETWORK",
     "deploy:xchain:adapters": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-xchain-adapters.ts --network $NETWORK",
+    "deploy:xchain:fleetproxy": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-xchain-fleetproxy.ts --network $NETWORK",
     "deploy:list": "hardhat ignition deployments",
     "deploy:status:arbitrum": "hardhat ignition status chain-42161",
     "deploy:status:base": "hardhat ignition status chain-8453",
