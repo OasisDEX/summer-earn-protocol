@@ -19,6 +19,9 @@
         },
         "oazoSummerRewardsRedeemer": {
           "address": "0xfb9A156F6E1C27Acf4AcEA019a2629F02B467251"
+        },
+        "summerVestingFactoryV2": {
+          "address": "0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB"
         }
       },
       "buyAndBurn": {
