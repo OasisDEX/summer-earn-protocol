@@ -107,11 +107,21 @@ async function activateReadChannel(
       })
       console.log(kleur.green(`Read channel activated successfully, tx: ${hash}`))
 
-      await publicClient.waitForTransactionReceipt({ hash })
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      if (receipt.status !== 'success') {
+        throw new Error(
+          `Read channel activation transaction reverted (status: ${receipt.status}). Check governor role and access manager configuration.`,
+        )
+      }
       console.log(kleur.green(`Read channel activation transaction confirmed`))
 
       const verifyReadChannelId = BigInt(String(await layerZeroAdapter.read.readChannelId()))
       console.log(kleur.blue(`Read channel ID verified: ${verifyReadChannelId}`))
+      if (verifyReadChannelId === BigInt(0)) {
+        throw new Error(
+          'Read channel activation did not take effect (readChannelId still 0). Ensure caller has GOVERNOR_ROLE and endpoint/readChannelThreshold are correct.',
+        )
+      }
     } else {
       console.log(kleur.yellow(`Read channel ${readChannelId} already active, skipping`))
     }

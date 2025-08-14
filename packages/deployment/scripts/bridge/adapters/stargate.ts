@@ -113,6 +113,7 @@ export async function configureStargateAdapter(
 
   // Get wallet client for transactions using proper setup
   const walletClient = await getWalletClient()
+  const publicClient = await hre.viem.getPublicClient()
 
   const currentChainId = Number(networkConfig.common.chainId)
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
@@ -230,6 +231,31 @@ export async function configureStargateAdapter(
         console.log(
           kleur.blue(`✓ Stargate contract ${checksummedStargateContract} already validated`),
         )
+      }
+
+      // Strict pre-validation: must be a Pool and its token() must match the local asset
+      try {
+        const poolToken = await publicClient.readContract({
+          address: checksummedStargateContract,
+          abi: IStargatePoolABI,
+          functionName: 'token',
+        })
+        const matches = String(poolToken).toLowerCase() === checksummedLocalAddress.toLowerCase()
+        if (!matches) {
+          console.log(
+            kleur.yellow(
+              `Skipping ${assetSymbol}: Stargate pool token ${poolToken} does not match local asset ${checksummedLocalAddress}`,
+            ),
+          )
+          continue
+        }
+      } catch (e) {
+        console.log(
+          kleur.yellow(
+            `Skipping ${assetSymbol}: Contract ${checksummedStargateContract} does not expose token() like a Stargate Pool`,
+          ),
+        )
+        continue
       }
 
       // Check current chain asset mapping

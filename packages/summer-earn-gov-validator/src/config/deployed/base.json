@@ -58,5 +58,7 @@
   "LazyVault_LowerRisk_WETH_Origin_weth_8453_gov#OriginSuperOETHArk": "0xD9755f1541103333132E2C90C67f7e513060dc0e",
   "LazyVault_LowerRisk_WETH_MorphoVault_weth_Seamless_WETH_8453#MorphoVaultArk": "0x7D3607937Fac84AA6d41beb67E252098E52EcD6b",
   "BridgeModule#CrossChainRegistry": "0xFB7dad21B5BDd30D1317F20C63731dfbF834C010",
-  "BridgeModule#BridgeRouter": "0x11fDAa50347865F1E8e506529309364437EFf657"
+  "BridgeModule#BridgeRouter": "0x11fDAa50347865F1E8e506529309364437EFf657",
+  "LayerZeroAdapterModule#LayerZeroAdapter": "0x3A276de475559Cf71F0bDB2867931c0C42687f1f",
+  "StargateAdapterModule#StargateAdapter": "0xd75dD4ab0A54ee169FEEF8f995B6A9d5Dd6CA51b"
 }
