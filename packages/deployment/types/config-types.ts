@@ -26,6 +26,7 @@ export enum ArkType {
   SyrupArk = 'SyrupArk',
   SkyRewardsArk = 'SkyRewardsArk',
   SiloArk = 'SiloArk',
+  SiloArkV2 = 'SiloArkV2',
   SiloManagedVaultArk = 'SiloManagedVaultArk',
   OriginETHArk = 'OriginETHArk',
   FluidLiteArk = 'FluidLiteArk',
