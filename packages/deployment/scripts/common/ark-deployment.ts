@@ -13,6 +13,7 @@ import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
+import { deploySiloArkV2 } from '../arks/deploy-silo-ark-v2'
 import { deploySiloManagedVaultArk } from '../arks/deploy-silo-managed-vault-ark'
 import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
@@ -231,6 +232,20 @@ export async function deployArk(
         siloName: vaultName,
       }
       deployedArk = await deploySiloArk(config, siloParams)
+      break
+    }
+    case ArkType.SiloArkV2: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.pools[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloParams = {
+        ...baseArkParams,
+        siloId: vaultId,
+        siloName: vaultName,
+      }
+      deployedArk = await deploySiloArkV2(config, siloParams)
       break
     }
     case ArkType.OriginETHArk: {

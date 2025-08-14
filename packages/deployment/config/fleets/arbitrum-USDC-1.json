@@ -119,7 +119,7 @@
       }
     },
     {
-      "type": "SiloArk",
+      "type": "SiloArkV2",
       "params": {
         "asset": "USDC",
         "vaultName": "Swaap_Lend_susdx_usdc_127",
