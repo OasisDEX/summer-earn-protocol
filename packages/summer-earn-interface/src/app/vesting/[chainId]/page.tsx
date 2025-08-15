@@ -13,9 +13,12 @@ import { base as baseChain } from 'wagmi/chains'
 import { erc20Abi } from '../../../abis/ERC20'
 import { summerVestingWalletAbi } from '../../../abis/SummerVestingWallet'
 import { summerVestingWalletFactoryAbi } from '../../../abis/SummerVestingWalletFactory'
-import { summerVestingWalletV2Abi } from '../../../abis/SummerVestingWalletV2'
 import { summerVestingWalletFactoryV2Abi } from '../../../abis/SummerVestingWalletFactoryV2'
-import { SUMMER_VESTING_WALLET_FACTORY_ADDRESSES, SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES } from '../../../config/environments'
+import { summerVestingWalletV2Abi } from '../../../abis/SummerVestingWalletV2'
+import {
+  SUMMER_VESTING_WALLET_FACTORY_ADDRESSES,
+  SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES,
+} from '../../../config/environments'
 import { useEnvironment } from '../../../hooks/useEnvironment'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
 import type { ChainId } from '../../../types'
@@ -137,11 +140,11 @@ export default function VestingPage() {
   )
 
   const canClaim = Boolean(
-    isConnected && 
-    vestingWalletAddress && 
-    tokenAddress && 
-    (releasableNow as bigint) > BigInt(0) &&
-    !(isV2Wallet && isRecalled),
+    isConnected &&
+      vestingWalletAddress &&
+      tokenAddress &&
+      (releasableNow as bigint) > BigInt(0) &&
+      !(isV2Wallet && isRecalled),
   )
 
   const onClaim = () => {
@@ -156,20 +159,22 @@ export default function VestingPage() {
 
   // Fetch dynamic arrays goalAmounts + goalsReached by probing indices via multicall
   const publicClient = usePublicClient({ chainId: Number(chainId) })
-  const [goals, setGoals] = useState<{ amount: bigint; reached: boolean; description?: string }[]>([])
+  const [goals, setGoals] = useState<{ amount: bigint; reached: boolean; description?: string }[]>(
+    [],
+  )
 
   useEffect(() => {
     let cancelled = false
     async function loadGoals() {
       if (!publicClient || !vestingWalletAddress) return
-      
+
       if (isV2Wallet) {
         // V2 contract: use performanceGoals function
         try {
           const pc: any = publicClient
           const maxProbe = 32 // reasonable upper bound; can raise if needed
           const indices = Array.from({ length: maxProbe }, (_, i) => BigInt(i + 1)) // V2 uses 1-indexed goals
-          
+
           const goalCalls = indices.map((i) => ({
             address: vestingWalletAddress as `0x${string}`,
             abi: summerVestingWalletV2Abi,
@@ -356,9 +361,7 @@ export default function VestingPage() {
             <div className="space-y-3 text-gray-300">
               <div className="flex items-center justify-between gap-3">
                 <span>Contract Version</span>
-                <span className="text-white">
-                  {isV2Wallet ? 'V2' : 'V1'}
-                </span>
+                <span className="text-white">{isV2Wallet ? 'V2' : 'V1'}</span>
               </div>
               {!isV2Wallet && (
                 <div className="flex items-center justify-between gap-3">
@@ -375,21 +378,33 @@ export default function VestingPage() {
               <div className="flex items-center justify-between gap-3">
                 <span>Time-based Allocation</span>
                 <span className="text-blue-300">
-                  {isV2Wallet && vestingType && typeof vestingType === 'object' && 'totalVestingAmount' in vestingType
-                    ? formatDecimalOutput((vestingType.totalVestingAmount as bigint) ?? BigInt(0), decimals)
+                  {isV2Wallet &&
+                  vestingType &&
+                  typeof vestingType === 'object' &&
+                  'totalVestingAmount' in vestingType
+                    ? formatDecimalOutput(
+                        (vestingType.totalVestingAmount as bigint) ?? BigInt(0),
+                        decimals,
+                      )
                     : formatDecimalOutput((timeBasedAmount as bigint) ?? BigInt(0), decimals)}{' '}
                   {(tokenSymbol as string) || ''}
                 </span>
               </div>
-              {isV2Wallet && vestingType && typeof vestingType === 'object' && 'cliffAmount' in vestingType && (
-                <div className="flex items-center justify-between gap-3">
-                  <span>Cliff Amount</span>
-                  <span className="text-purple-300">
-                    {formatDecimalOutput((vestingType.cliffAmount as bigint) ?? BigInt(0), decimals)}{' '}
-                    {(tokenSymbol as string) || ''}
-                  </span>
-                </div>
-              )}
+              {isV2Wallet &&
+                vestingType &&
+                typeof vestingType === 'object' &&
+                'cliffAmount' in vestingType && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span>Cliff Amount</span>
+                    <span className="text-purple-300">
+                      {formatDecimalOutput(
+                        (vestingType.cliffAmount as bigint) ?? BigInt(0),
+                        decimals,
+                      )}{' '}
+                      {(tokenSymbol as string) || ''}
+                    </span>
+                  </div>
+                )}
             </div>
           </div>
 
