@@ -130,8 +130,8 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
 
         // Register second adapter and configure it to support the chain
         vm.startPrank(governor);
-        router.registerAdapter(address(mockAdapter2));
-        mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
+        router.registerAdapter(address(mockAdapterDest));
+        mockAdapterDest.setSupportedChain(DEST_CHAIN_ID, true);
         vm.stopPrank();
     }
 

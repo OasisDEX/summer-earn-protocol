@@ -102,8 +102,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             address(registryA)
         );
 
-        registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
-
         // Initialize bridge configuration in registry
         registryA.initializeBridgeConfiguration(
             address(routerA),
@@ -118,7 +116,8 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             address(accessManagerA),
             chains,
             lzEids,
-            governor
+            governor,
+            4294965694
         );
 
         // Final configuration
@@ -154,9 +153,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             address(registryB)
         );
 
-        // Deploy registry
-        registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
-
         // Initialize bridge configuration in registry
         registryB.initializeBridgeConfiguration(
             address(routerB),
@@ -171,7 +167,8 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
             address(accessManagerB),
             chains,
             lzEids,
-            governor
+            governor,
+            4294965694
         );
 
         // Final configuration
@@ -182,31 +179,50 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     }
 
     function _configurePeers() internal {
-        // Set up peers between the two adapters
-        // First, set up Chain B's adapter to trust Chain A's adapter
-        useNetworkB();
-        vm.startPrank(governor);
-        // Set up both registry and LZ peer relationships
-        registryB.registerAdapterPeer(
-            address(adapterB),
-            address(adapterA),
-            CHAIN_ID_B,
-            CHAIN_ID_A
-        );
-        adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
-        vm.stopPrank();
-
-        // Then, set up Chain A's adapter to trust Chain B's adapter
+        // Configure Chain A registry
         useNetworkA();
         vm.startPrank(governor);
-        // Set up both registry and LZ peer relationships
+
+        // Outgoing: adapterA -> adapterB (for sending messages TO chain B)
         registryA.registerAdapterPeer(
             address(adapterA),
             address(adapterB),
             CHAIN_ID_A,
             CHAIN_ID_B
         );
+
+        // Incoming: adapterB -> adapterA (for receiving messages FROM chain B)
+        registryA.registerAdapterPeer(
+            address(adapterB), // source adapter (on chain B)
+            address(adapterA), // target adapter (on chain A)
+            CHAIN_ID_B, // source chain
+            CHAIN_ID_A // target chain
+        );
+
         adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
+        vm.stopPrank();
+
+        // Configure Chain B registry
+        useNetworkB();
+        vm.startPrank(governor);
+
+        // Outgoing: adapterB -> adapterA (for sending messages TO chain A)
+        registryB.registerAdapterPeer(
+            address(adapterB),
+            address(adapterA),
+            CHAIN_ID_B,
+            CHAIN_ID_A
+        );
+
+        // Incoming: adapterA -> adapterB (for receiving messages FROM chain A)
+        registryB.registerAdapterPeer(
+            address(adapterA), // source adapter (on chain A)
+            address(adapterB), // target adapter (on chain B)
+            CHAIN_ID_A, // source chain
+            CHAIN_ID_B // target chain
+        );
+
+        adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
         vm.stopPrank();
     }
 

@@ -109,7 +109,8 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             address(accessManager),
             supportedChains,
             lzEids,
-            governor
+            governor,
+            READ_CHANNEL_THRESHOLD
         );
 
         // Register layerZeroAdapter with bridge router
@@ -250,7 +251,8 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
                 address(accessManager),
                 supportedChains,
                 lzEids,
-                governor
+                governor,
+                READ_CHANNEL_THRESHOLD
             );
 
         vm.startPrank(governor);

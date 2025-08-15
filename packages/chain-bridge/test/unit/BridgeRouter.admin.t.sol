@@ -31,7 +31,7 @@ contract ReentrancyAttacker {
         callCount++;
         if (callCount == 1) {
             // Try to reenter
-            router.recoverFunds(address(this), 1 ether);
+            router.recoverAssets(address(0), address(this), 1 ether);
         }
     }
 
@@ -239,9 +239,13 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
 
         // Expect event emission
         vm.expectEmit(true, false, false, true);
-        emit IBridgeRouter.RouterFundsRecovered(governor, recoverAmount);
+        emit IBridgeRouter.RouterAssetsRecovered(
+            address(0),
+            governor,
+            recoverAmount
+        );
 
-        router.recoverFunds(governor, recoverAmount);
+        router.recoverAssets(address(0), governor, recoverAmount);
         vm.stopPrank();
 
         // Verify balances
@@ -262,7 +266,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
                 user
             )
         );
-        router.recoverFunds(user, 1 ether);
+        router.recoverAssets(address(0), user, 1 ether);
         vm.stopPrank();
 
         // Guardian tries to recover funds
@@ -273,7 +277,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
                 guardian
             )
         );
-        router.recoverFunds(guardian, 1 ether);
+        router.recoverAssets(address(0), guardian, 1 ether);
         vm.stopPrank();
     }
 
@@ -285,7 +289,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         // Governor tries to recover funds to zero address
         vm.startPrank(governor);
         vm.expectRevert(IBridgeRouter.InvalidParams.selector);
-        router.recoverFunds(address(0), 1 ether);
+        router.recoverAssets(address(0), address(0), 1 ether);
         vm.stopPrank();
     }
 
@@ -297,7 +301,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         // Governor tries to recover more than available
         vm.startPrank(governor);
         vm.expectRevert(IBridgeRouter.InsufficientBalance.selector);
-        router.recoverFunds(governor, 2 ether);
+        router.recoverAssets(address(0), governor, 2 ether);
         vm.stopPrank();
     }
 
@@ -312,7 +316,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         // Governor tries to recover funds to the reject contract
         vm.startPrank(governor);
         vm.expectRevert(IBridgeRouter.TransferFailed.selector);
-        router.recoverFunds(address(rejectContract), 1 ether);
+        router.recoverAssets(address(0), address(rejectContract), 1 ether);
         vm.stopPrank();
     }
 
@@ -330,9 +334,9 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
 
         // Expect event emission
         vm.expectEmit(true, false, false, true);
-        emit IBridgeRouter.RouterFundsRecovered(governor, 0);
+        emit IBridgeRouter.RouterAssetsRecovered(address(0), governor, 0);
 
-        router.recoverFunds(governor, 0);
+        router.recoverAssets(address(0), governor, 0);
         vm.stopPrank();
 
         // Verify balances remain unchanged
@@ -353,9 +357,13 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
 
         // Expect event emission
         vm.expectEmit(true, false, false, true);
-        emit IBridgeRouter.RouterFundsRecovered(governor, fundAmount);
+        emit IBridgeRouter.RouterAssetsRecovered(
+            address(0),
+            governor,
+            fundAmount
+        );
 
-        router.recoverFunds(governor, fundAmount);
+        router.recoverAssets(address(0), governor, fundAmount);
         vm.stopPrank();
 
         // Verify balances
@@ -374,7 +382,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         // Governor tries to recover funds to the attacker contract
         vm.startPrank(governor);
         vm.expectRevert(IBridgeRouter.TransferFailed.selector); // Should revert due to reentrancy guard
-        router.recoverFunds(address(attacker), 1 ether);
+        router.recoverAssets(address(0), address(attacker), 1 ether);
         vm.stopPrank();
 
         // Verify the attack was prevented
@@ -396,14 +404,22 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         // First recovery
         uint256 firstAmount = 3 ether;
         vm.expectEmit(true, false, false, true);
-        emit IBridgeRouter.RouterFundsRecovered(governor, firstAmount);
-        router.recoverFunds(governor, firstAmount);
+        emit IBridgeRouter.RouterAssetsRecovered(
+            address(0),
+            governor,
+            firstAmount
+        );
+        router.recoverAssets(address(0), governor, firstAmount);
 
         // Second recovery
         uint256 secondAmount = 2 ether;
         vm.expectEmit(true, false, false, true);
-        emit IBridgeRouter.RouterFundsRecovered(governor, secondAmount);
-        router.recoverFunds(governor, secondAmount);
+        emit IBridgeRouter.RouterAssetsRecovered(
+            address(0),
+            governor,
+            secondAmount
+        );
+        router.recoverAssets(address(0), governor, secondAmount);
 
         vm.stopPrank();
 
@@ -433,9 +449,13 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
 
         // Expect event emission
         vm.expectEmit(true, false, false, true);
-        emit IBridgeRouter.RouterFundsRecovered(externalAccount, recoverAmount);
+        emit IBridgeRouter.RouterAssetsRecovered(
+            address(0),
+            externalAccount,
+            recoverAmount
+        );
 
-        router.recoverFunds(externalAccount, recoverAmount);
+        router.recoverAssets(address(0), externalAccount, recoverAmount);
         vm.stopPrank();
 
         // Verify balances
@@ -444,5 +464,127 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
             externalAccount.balance,
             initialExternalBalance + recoverAmount
         );
+    }
+
+    // ---- NEW: RECOVER ASSETS (combined) TESTS ----
+
+    function testRecoverAssets_Native_Success() public {
+        uint256 fundAmount = 5 ether;
+        vm.deal(address(router), fundAmount);
+
+        uint256 initialRouterBalance = address(router).balance;
+        uint256 initialGovernorBalance = governor.balance;
+        uint256 recoverAmount = 2 ether;
+
+        vm.startPrank(governor);
+        vm.expectEmit(true, true, false, true);
+        emit IBridgeRouter.RouterAssetsRecovered(
+            address(0),
+            governor,
+            recoverAmount
+        );
+        router.recoverAssets(address(0), governor, recoverAmount);
+        vm.stopPrank();
+
+        assertEq(address(router).balance, initialRouterBalance - recoverAmount);
+        assertEq(governor.balance, initialGovernorBalance + recoverAmount);
+    }
+
+    function testRecoverAssets_ERC20_Success() public {
+        uint256 initialRouterToken = token.balanceOf(address(router));
+        uint256 initialGovernorToken = token.balanceOf(governor);
+        uint256 recoverAmount = 100 ether;
+
+        vm.startPrank(governor);
+        vm.expectEmit(true, true, false, true);
+        emit IBridgeRouter.RouterAssetsRecovered(
+            address(token),
+            governor,
+            recoverAmount
+        );
+        router.recoverAssets(address(token), governor, recoverAmount);
+        vm.stopPrank();
+
+        assertEq(
+            token.balanceOf(address(router)),
+            initialRouterToken - recoverAmount
+        );
+        assertEq(
+            token.balanceOf(governor),
+            initialGovernorToken + recoverAmount
+        );
+    }
+
+    function testRecoverAssets_InvalidRecipient() public {
+        vm.startPrank(governor);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.recoverAssets(address(0), address(0), 1 ether);
+        vm.stopPrank();
+    }
+
+    function testRecoverAssets_AccessControl() public {
+        // Native
+        vm.startPrank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
+        router.recoverAssets(address(0), user, 1 ether);
+        vm.stopPrank();
+
+        // ERC20
+        vm.startPrank(guardian);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                guardian
+            )
+        );
+        router.recoverAssets(address(token), guardian, 1 ether);
+        vm.stopPrank();
+    }
+
+    function testRecoverAssets_InsufficientNativeBalance() public {
+        vm.deal(address(router), 0.5 ether);
+        vm.startPrank(governor);
+        vm.expectRevert(IBridgeRouter.InsufficientBalance.selector);
+        router.recoverAssets(address(0), governor, 1 ether);
+        vm.stopPrank();
+    }
+
+    function testRecoverAssets_ZeroAmount_NativeAndERC20() public {
+        uint256 initialRouterEth = address(router).balance;
+        uint256 initialGovernorEth = governor.balance;
+        uint256 initialRouterToken = token.balanceOf(address(router));
+        uint256 initialGovernorToken = token.balanceOf(governor);
+
+        vm.startPrank(governor);
+        vm.expectEmit(true, true, false, true);
+        emit IBridgeRouter.RouterAssetsRecovered(address(0), governor, 0);
+        router.recoverAssets(address(0), governor, 0);
+
+        vm.expectEmit(true, true, false, true);
+        emit IBridgeRouter.RouterAssetsRecovered(address(token), governor, 0);
+        router.recoverAssets(address(token), governor, 0);
+        vm.stopPrank();
+
+        assertEq(address(router).balance, initialRouterEth);
+        assertEq(governor.balance, initialGovernorEth);
+        assertEq(token.balanceOf(address(router)), initialRouterToken);
+        assertEq(token.balanceOf(governor), initialGovernorToken);
+    }
+
+    function testRecoverAssets_Native_TransferFailed() public {
+        // Fund router
+        vm.deal(address(router), 1 ether);
+        // Recipient rejects ETH
+        RejectETH rejectContract = new RejectETH();
+
+        vm.startPrank(governor);
+        vm.expectRevert(IBridgeRouter.TransferFailed.selector);
+        router.recoverAssets(address(0), address(rejectContract), 1 ether);
+        vm.stopPrank();
     }
 }

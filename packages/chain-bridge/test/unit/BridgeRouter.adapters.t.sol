@@ -16,10 +16,10 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
     function testRegisterAdapter() public {
         vm.startPrank(governor);
 
-        // Register second adapter
-        assertFalse(router.isValidAdapter(address(mockAdapter2)));
-        router.registerAdapter(address(mockAdapter2));
-        assertTrue(router.isValidAdapter(address(mockAdapter2)));
+        // Register second adapter (use mockAdapterDest)
+        assertFalse(router.isValidAdapter(address(mockAdapterDest)));
+        router.registerAdapter(address(mockAdapterDest));
+        assertTrue(router.isValidAdapter(address(mockAdapterDest)));
 
         vm.stopPrank();
     }
@@ -34,7 +34,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
                 user
             )
         );
-        router.registerAdapter(address(mockAdapter2));
+        router.registerAdapter(address(mockAdapterDest));
 
         vm.stopPrank();
     }
@@ -80,7 +80,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
 
         // Should revert when removing non-existent adapter
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.removeAdapter(address(mockAdapter2));
+        router.removeAdapter(address(mockAdapterDest));
 
         vm.stopPrank();
     }
@@ -89,13 +89,13 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.startPrank(governor);
 
         // Register second adapter
-        router.registerAdapter(address(mockAdapter2));
+        router.registerAdapter(address(mockAdapterDest));
 
         // Get adapters
         address[] memory adapterList = router.getAdapters();
         assertEq(adapterList.length, 2);
         assertEq(adapterList[0], address(mockAdapter));
-        assertEq(adapterList[1], address(mockAdapter2));
+        assertEq(adapterList[1], address(mockAdapterDest));
 
         vm.stopPrank();
     }
@@ -104,18 +104,18 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
 
     function testSpecifiedAdapter() public {
         vm.startPrank(governor);
-        // Configure mockAdapter2 to support the destination chain and asset
-        mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
+        // Configure mockAdapterDest to support the destination chain and asset
+        mockAdapterDest.setSupportedChain(DEST_CHAIN_ID, true);
 
         // Register second adapter
-        router.registerAdapter(address(mockAdapter2));
+        router.registerAdapter(address(mockAdapterDest));
         vm.stopPrank();
 
         vm.startPrank(user);
 
         // Create bridge options with specified adapter
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            specifiedAdapter: address(mockAdapter2),
+            specifiedAdapter: address(mockAdapterDest),
             gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
@@ -187,8 +187,8 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.startPrank(governor);
 
         // Setup second adapter
-        mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
-        router.registerAdapter(address(mockAdapter2));
+        mockAdapterDest.setSupportedChain(DEST_CHAIN_ID, true);
+        router.registerAdapter(address(mockAdapterDest));
 
         // Create an adapter that doesn't support the chain
         MockAdapter unsupportedChainAdapter = new MockAdapter(

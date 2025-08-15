@@ -36,17 +36,16 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             "Chain B should be supported"
         );
 
-        // Expect revert with InvalidChainRelationship error
-
+        // Expect revert when unsupported chain is queried
         ICrossChainRegistry registryA = ICrossChainRegistry(
             address(adapterA.CROSS_CHAIN_REGISTRY())
         );
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICrossChainRegistry.InvalidChainRelationship.selector,
-                0, // sourceChainId - fallback when no relationship is found
-                2, // targetChainId
-                CHAIN_ID_A // currentChainId
+                ICrossChainRegistry.RelationshipDoesNotExist.selector,
+                address(adapterA),
+                registryA.PEER_RELATIONSHIP(),
+                2
             )
         );
         registryA.getAdapterPeer(address(adapterA), 2);
@@ -119,4 +118,26 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             adapterA.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)
         );
     }
+
+    function testActivateAndUpdateReadChannel() public {
+        useNetworkA();
+
+        // Initially unset
+        assertEq(adapterA.readChannelId(), 0);
+
+        uint32 baseThreshold = adapterA.readChannelThreshold();
+        uint32 firstChannelId = baseThreshold + 1;
+        uint32 secondChannelId = baseThreshold + 2;
+
+        vm.startPrank(governor);
+        adapterA.activateReadChannel(firstChannelId);
+        assertEq(adapterA.readChannelId(), firstChannelId);
+
+        // Update to a new read channel
+        adapterA.activateReadChannel(secondChannelId);
+        assertEq(adapterA.readChannelId(), secondChannelId);
+        vm.stopPrank();
+    }
+
+    // Note: Role enforcement for activating the read channel is covered elsewhere via access manager tests
 }

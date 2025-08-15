@@ -87,8 +87,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(registryA)
         );
 
-        // Replace configManagerA setup with registryA
-        registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
         registryA.initializeBridgeConfiguration(
             address(routerA),
             400000 // defaultGasLimit
@@ -128,8 +126,6 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(registryB)
         );
 
-        // Replace configManagerB setup with registryB
-        registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
         registryB.initializeBridgeConfiguration(
             address(routerB),
             400000 // defaultGasLimit
@@ -147,19 +143,19 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         adapterB.mapEndpoint(CHAIN_ID_B, ENDPOINT_ID_B);
         adapterB.mapEndpoint(CHAIN_ID_A, ENDPOINT_ID_A);
 
-        // Register the cross-chain relationship between adapters
+        // Register the cross-chain relationship between adapters ON CHAIN B
         registryB.registerAdapterPeer(
-            address(adapterB),
-            address(adapterA),
-            CHAIN_ID_B,
-            CHAIN_ID_A
+            address(adapterA), // sourceAdapter (on Chain A)
+            address(adapterB), // targetAdapter (on Chain B)
+            CHAIN_ID_A, // sourceChainId
+            CHAIN_ID_B // targetChainId
         );
 
         registryB.registerAdapterPeer(
-            address(adapterA), // sourceAdapter
-            address(adapterB), // targetAdapter
-            CHAIN_ID_A, // sourceChainId
-            CHAIN_ID_B // targetChainId
+            address(adapterB), // sourceAdapter (on Chain B)
+            address(adapterA), // targetAdapter (on Chain A)
+            CHAIN_ID_B, // sourceChainId
+            CHAIN_ID_A // targetChainId
         );
 
         adapterB.addSupportedAsset(address(tokenB), address(stargateB));
@@ -169,15 +165,23 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         vm.stopPrank();
 
-        // Back to Chain A to register the B->A relationship
+        // Back to Chain A to register BOTH relationships
         useNetworkA();
-        vm.prank(governor);
+        vm.startPrank(governor);
         registryA.registerAdapterPeer(
-            address(adapterA),
-            address(adapterB),
-            CHAIN_ID_A,
-            CHAIN_ID_B
+            address(adapterA), // sourceAdapter (on Chain A)
+            address(adapterB), // targetAdapter (on Chain B)
+            CHAIN_ID_A, // sourceChainId
+            CHAIN_ID_B // targetChainId
         );
+
+        registryA.registerAdapterPeer(
+            address(adapterB), // sourceAdapter (on Chain B)
+            address(adapterA), // targetAdapter (on Chain A)
+            CHAIN_ID_B, // sourceChainId
+            CHAIN_ID_A // targetChainId
+        );
+        vm.stopPrank();
 
         vm.label(address(tokenA), "Token A");
         vm.label(address(tokenB), "Token B");

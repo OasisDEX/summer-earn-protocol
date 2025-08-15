@@ -15,6 +15,7 @@ import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {EVMCallRequestV1, ReadCodecV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Bytes32AddressLib} from "solmate/src/utils/Bytes32AddressLib.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -41,8 +42,13 @@ contract LayerZeroAdapter is
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
-    /// @notice Read channel identifier for lzRead operations
-    uint32 public constant READ_CHANNEL_THRESHOLD = 4294965694; // Used to identify responses
+    /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
+    /// @dev LayerZero routes read responses through a reserved "read channel" range
+    ///      near the top of the uint32 EID space (commonly with READ_CHANNEL_ID at
+    ///      4294967295). Any `srcEid` strictly greater than this threshold is treated
+    ///      as a read response. This value is set at deploy time to allow
+    ///      forward-compatibility and testing across different environments.
+    uint32 public immutable readChannelThreshold;
 
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
@@ -87,6 +93,7 @@ contract LayerZeroAdapter is
      *                     (Adds only the *mapping*; talking to a peer
      *                     still requires governance to register it in the registry.)
      * @param _initialOwner Owner for Ownable/OAppRead
+     * @param _readChannelThreshold Threshold for determining read-channel responses
      */
     constructor(
         address _endpoint,
@@ -94,7 +101,8 @@ contract LayerZeroAdapter is
         address _accessManager,
         uint16[] memory _endpointChains,
         uint32[] memory _endpointIds,
-        address _initialOwner
+        address _initialOwner,
+        uint32 _readChannelThreshold
     )
         OAppRead(_endpoint, _initialOwner)
         Ownable(_initialOwner)
@@ -102,6 +110,8 @@ contract LayerZeroAdapter is
     {
         if (_endpointChains.length != _endpointIds.length)
             revert InvalidParams();
+        if (_readChannelThreshold == 0) revert InvalidParams();
+        readChannelThreshold = _readChannelThreshold;
 
         // Setup chain ID to LayerZero EID mappings using base functionality
         for (uint256 i = 0; i < _endpointChains.length; i++) {
@@ -116,9 +126,16 @@ contract LayerZeroAdapter is
     /**
      * @notice Activates a read channel for state reading operations
      * @param _readChannelId The ID of the read channel to activate
-     * @dev Can only be called by the contract owner
+     * @dev Requirements:
+     *      - `_readChannelId` must be non-zero
+     *      - `_readChannelId` must be strictly greater than `readChannelThreshold`
+     *      These checks prevent misconfiguration where read responses would not be
+     *      properly classified by `_lzReceive`.
      */
     function activateReadChannel(uint32 _readChannelId) external onlyGovernor {
+        if (_readChannelId == 0 || _readChannelId <= readChannelThreshold) {
+            revert InvalidParams();
+        }
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
     }
@@ -266,7 +283,7 @@ contract LayerZeroAdapter is
         // https://docs.layerzero.network/v2/developers/evm/lzread/overview#hybrid-messaging--read
 
         // todo: should the read reponse also contain the operation type and the originator?
-        if (_origin.srcEid > READ_CHANNEL_THRESHOLD) {
+        if (_origin.srcEid > readChannelThreshold) {
             _relayReadResponse(_origin, _guid, _payload);
         } else if (_payload.length >= 2) {
             // Decode the payload to extract operation type and data
@@ -297,6 +314,13 @@ contract LayerZeroAdapter is
             memory relayedMessageParams = _decodeRelayedMessageParams(_payload);
         _assertSourceChainId(
             externalIdToChainId[_origin.srcEid],
+            relayedMessageParams.sourceChainId
+        );
+        // Defense-in-depth: bind the source OApp identity to the registry-declared peer.
+        // LayerZero's Origin.sender is the remote OApp address proven by DVNs.
+        // Ensure governance has registered that OApp as our peer for the source chain.
+        _assertTrustedSource(
+            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
             relayedMessageParams.sourceChainId
         );
         IBridgeRouter(bridgeRouter()).deliver(
@@ -330,6 +354,13 @@ contract LayerZeroAdapter is
                 operationId: operationId,
                 sourceChainId: externalIdToChainId[_origin.srcEid]
             })
+        );
+
+        // Optional binding for read responses: the response comes back from the same OApp
+        // that issued the read on the remote chain. Enforce registry peer mapping here too.
+        _assertTrustedSource(
+            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
+            externalIdToChainId[_origin.srcEid]
         );
 
         IBridgeRouter(bridgeRouter()).deliver(

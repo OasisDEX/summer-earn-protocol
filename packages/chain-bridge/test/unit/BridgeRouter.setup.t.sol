@@ -24,8 +24,9 @@ contract BridgeRouterSetup is Test {
     ProtocolAccessManager public accessManager;
     CrossChainRegistry public registry;
 
-    MockAdapter public mockAdapter;
-    MockAdapter public mockAdapter2;
+    MockAdapter public mockAdapter; // CURRENT_CHAIN_ID adapter
+    MockAdapter public mockAdapterDest; // DEST_CHAIN_ID adapter
+    MockAdapter public mockAdapterSource; // SOURCE_CHAIN_ID adapter
     MockCrossChainReceiver public mockReceiver;
     ERC20Mock public token;
 
@@ -68,24 +69,69 @@ contract BridgeRouterSetup is Test {
         );
 
         /* --------- Mock adapters --------- */
+        // Each chain gets its own adapter instance
         mockAdapter = new MockAdapter(
             address(registry),
             address(accessManager)
-        );
-        mockAdapter2 = new MockAdapter(
+        ); // CURRENT_CHAIN_ID adapter
+
+        mockAdapterDest = new MockAdapter(
             address(registry),
             address(accessManager)
-        ); // left un-registered
+        ); // DEST_CHAIN_ID adapter
 
+        mockAdapterSource = new MockAdapter(
+            address(registry),
+            address(accessManager)
+        ); // SOURCE_CHAIN_ID adapter
+
+        // Configure supported chains for each adapter
         mockAdapter.setSupportedChain(SOURCE_CHAIN_ID, true);
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
+        mockAdapterDest.setSupportedChain(CURRENT_CHAIN_ID, true);
+        mockAdapterSource.setSupportedChain(CURRENT_CHAIN_ID, true);
 
+        // Only register the local adapter with the router
         router.registerAdapter(address(mockAdapter));
 
         /* --------- Registry initialisation --------- */
         registry.initializeBridgeConfiguration(
             address(router),
             DEFAULT_GAS_LIMIT
+        );
+
+        // Only register relationships where one end is CURRENT_CHAIN_ID
+
+        // Relationship: CURRENT_CHAIN_ID -> DEST_CHAIN_ID
+        registry.registerAdapterPeer(
+            address(mockAdapter), // sourceAdapter (local)
+            address(mockAdapterDest), // targetAdapter (remote)
+            CURRENT_CHAIN_ID, // sourceChainId
+            DEST_CHAIN_ID // targetChainId
+        );
+
+        // Relationship: DEST_CHAIN_ID -> CURRENT_CHAIN_ID
+        registry.registerAdapterPeer(
+            address(mockAdapterDest), // sourceAdapter (remote)
+            address(mockAdapter), // targetAdapter (local)
+            DEST_CHAIN_ID, // sourceChainId
+            CURRENT_CHAIN_ID // targetChainId
+        );
+
+        // Relationship: SOURCE_CHAIN_ID -> CURRENT_CHAIN_ID
+        registry.registerAdapterPeer(
+            address(mockAdapterSource), // sourceAdapter (remote)
+            address(mockAdapter), // targetAdapter (local)
+            SOURCE_CHAIN_ID, // sourceChainId
+            CURRENT_CHAIN_ID // targetChainId
+        );
+
+        // Relationship: CURRENT_CHAIN_ID -> SOURCE_CHAIN_ID
+        registry.registerAdapterPeer(
+            address(mockAdapter), // sourceAdapter (local)
+            address(mockAdapterSource), // targetAdapter (remote)
+            CURRENT_CHAIN_ID, // sourceChainId
+            SOURCE_CHAIN_ID // targetChainId
         );
 
         // Executors / keepers used by various tests
@@ -113,12 +159,14 @@ contract BridgeRouterSetup is Test {
         vm.deal(keeper, 1 ether);
         vm.deal(executor, 1 ether);
         vm.deal(address(mockReceiver), 10 ether);
+        vm.deal(address(0x999), 1 ether); // Fund unauthorizedCaller for tests
 
         vm.stopPrank();
 
         vm.label(address(mockReceiver), "mockReceiver");
         vm.label(address(mockAdapter), "mockAdapter");
-        vm.label(address(mockAdapter2), "mockAdapter2");
+        vm.label(address(mockAdapterDest), "mockAdapterDest");
+        vm.label(address(mockAdapterSource), "mockAdapterSource");
         vm.label(address(router), "router");
         vm.label(address(accessManager), "accessManager");
         vm.label(address(registry), "registry");

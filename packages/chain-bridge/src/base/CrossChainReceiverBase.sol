@@ -111,7 +111,7 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
      * @dev Override this function to handle read state responses
      */
     function _handleReadStateResponse(
-        BridgeTypes.RelayedReadResponse memory // params
+        BridgeTypes.RelayedReadResponse memory /*params*/
     ) internal virtual {
         // Default implementation reverts for unsupported operation
         revert UnsupportedOperationType();

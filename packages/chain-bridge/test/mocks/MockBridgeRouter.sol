@@ -342,10 +342,18 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockPaused = false;
     }
 
-    function recoverFunds(address target, uint256 amount) external override {
-        (bool s, ) = payable(target).call{value: amount}("");
-        require(s);
-        emit RouterFundsRecovered(target, amount);
+    function recoverAssets(
+        address token,
+        address recipient,
+        uint256 amount
+    ) external override {
+        if (token == address(0)) {
+            (bool s, ) = payable(recipient).call{value: amount}("");
+            require(s);
+        } else {
+            IERC20(token).safeTransfer(recipient, amount);
+        }
+        emit RouterAssetsRecovered(token, recipient, amount);
     }
 
     function recoverOperationStatus(
