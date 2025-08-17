@@ -4,14 +4,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@layerzerolabs/lz-definitions": "2.3.39",
-    "@layerzerolabs/lz-evm-messagelib-v2": "2.3.39",
-    "@layerzerolabs/lz-evm-protocol-v2": "2.3.39",
-    "@layerzerolabs/lz-evm-v1-0.7": "2.3.39",
-    "@layerzerolabs/lz-v2-utilities": "2.3.39",
-    "@layerzerolabs/oapp-evm": "0.0.4",
-    "@layerzerolabs/oft-evm": "0.0.11",
-    "@layerzerolabs/test-devtools-evm-foundry": "0.2.12",
+    "solidity-bytes-utils": "0.8.2",
+    "@layerzerolabs/lz-definitions": "3.0.81",
+    "@layerzerolabs/lz-evm-messagelib-v2": "3.0.81",
+    "@layerzerolabs/lz-evm-protocol-v2": "3.0.81",
+    "@layerzerolabs/lz-evm-v1-0.7": "3.0.81",
+    "@layerzerolabs/lz-v2-utilities": "3.0.81",
+    "@layerzerolabs/oapp-evm": "0.3.2",
+    "@layerzerolabs/oft-evm": "3.1.3",
+    "@layerzerolabs/test-devtools-evm-foundry": "6.0.3",
     "@layerzerolabs/toolbox-foundry": "0.1.9"
   }
 }

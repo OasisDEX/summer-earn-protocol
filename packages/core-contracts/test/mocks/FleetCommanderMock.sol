@@ -9,6 +9,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ERC4626, ERC4626Mock} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
 
 contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     using PercentageUtils for uint256;
@@ -171,6 +172,14 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function bufferArk() external view returns (address) {
         return address(config.bufferArk);
+    }
+
+    function setBufferArk(address newBufferArk) external {
+        // Update the bufferArk in the config
+        config.bufferArk = IArk(newBufferArk);
+
+        // Make sure the buffer ark is marked as active
+        isArkActiveOrBufferArk[newBufferArk] = true;
     }
 
     function test() public {}

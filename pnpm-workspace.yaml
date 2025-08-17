@@ -6,3 +6,4 @@ packages:
   - '!packages/dutch-auction/lib/**'
   - '!packages/voting-decay/lib/**'
   - '!packages/external-dependencies/lib/**'
+  - '!packages/chain-bridge/lib/**'

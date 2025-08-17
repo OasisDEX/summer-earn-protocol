@@ -17,3 +17,5 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho-local/src/
 @summerfi/rewards-contracts/=node_modules/@summerfi/rewards-contracts/src/
 @summerfi/dependencies/=node_modules/@summerfi/dependencies/lib/
 @summerfi/constants/=node_modules/@summerfi/constants/src/
+@summerfi/chain-bridge/=node_modules/@summerfi/chain-bridge-contracts/src/
+@summerfi/chain-bridge-test/=node_modules/@summerfi/chain-bridge-contracts/test/
