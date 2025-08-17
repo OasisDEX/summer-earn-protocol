@@ -33,7 +33,7 @@ export function updateAccountStakingRewards(block: BigInt): void {
   for (let i = 0; i < gov.accounts.length; i++) {
     const account = getOrCreateAccount(gov.accounts[i])
     if (
-      account.stakedSummerToken.gt(BigIntConstants.ZERO) &&
+      account.stakedSummerTokenNormalized.gt(BigDecimalConstants.TEN) &&
       account.lastUpdateBlock.notEqual(block)
     ) {
       accountsToUpdate.push(account.id)

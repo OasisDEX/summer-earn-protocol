@@ -144,6 +144,24 @@
     "minMultiplier": 0.1
   },
   {
+    "rewardTokenSymbol": "xsilo",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.0000148,
+      "usdt": 0.039,
+      "usdc": 0.039,
+      "dai": 0.039,
+      "usde": 0.039,
+      "usdce": 0.039,
+      "eurc": 0.039
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
+  },
+  {
     "rewardTokenSymbol": "sky",
     "rewardTokenDecimals": 18,
     "prices": {
@@ -154,6 +172,42 @@
       "usde": 0.08,
       "usdce": 0.08,
       "eurc": 0.08
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "comp",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.015,
+      "usdt": 52.5,
+      "usdc": 52.5,
+      "dai": 52.5,
+      "usde": 52.5,
+      "usdce": 52.5,
+      "eurc": 52.5
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "spk",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.000026,
+      "usdt": 0.1,
+      "usdc": 0.1,
+      "dai": 0.1,
+      "usde": 0.1,
+      "usdce": 0.1,
+      "eurc": 0.1
     },
     "duration": "1d",
     "kickerRewardPercentage": 0,

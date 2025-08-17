@@ -1,3 +1,6 @@
+
+[![](https://canada1.discourse-cdn.com/flex009/uploads/summer/original/1X/41245886b684401dfcfbc8db7642973e9f3f74e1.png)](https://summer.fi)
+
 # Summerfi Earn Protocol
 
 ## TLDR;

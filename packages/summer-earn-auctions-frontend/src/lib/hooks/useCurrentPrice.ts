@@ -18,6 +18,7 @@ export function useCurrentPrice(auction: Auction, chainId: number) {
             chainId,
             arkAddress: auction.ark.address,
             rewardAddress: auction.rewardToken.id,
+            raftAddress: auction.raft,
           }),
         })
 

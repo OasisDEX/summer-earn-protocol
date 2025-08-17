@@ -33,6 +33,59 @@ export const RAFT_CONTRACT_ADDRESSES: Record<Environment, Record<number, string>
 }
 
 // Token addresses per chain
+export const PROTOCOL_ACCESS_MANAGER_ADDRESSES: Record<Environment, Record<number, string>> = {
+  production: {
+    [mainnet.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694',
+    [arbitrum.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694', // TODO: Add actual address for arbitrum
+    [base.id]: '0xf389BCEa078acD9516414F5dabE3dDd5f7e39694', // TODO: Add actual address for base
+    [sonic.id]: '0xAFb8a8beA8F7CdB4b65437b0c5963dc7Cd270bC6', // TODO: Add actual address for sonic
+  },
+  staging: {
+    [mainnet.id]: '0x092C41C6e9A8A54577CeDe5d077971116DdD6F57', // TODO: Add actual staging address
+    [arbitrum.id]: '0x2e208e55075b1cF15A767C15Ee9bA14205CB8371', // TODO: Add actual staging address
+    [base.id]: '0x603821f86DeDC794A3225d62Afe1F175fe4AE861', // TODO: Add actual staging address
+    [sonic.id]: '0xA55cd6a6D882180E84DDb25F7c7Ae4e4Af0f3f27', // TODO: Add actual staging address
+  },
+}
+
+// Summer Vesting Wallet Factory addresses per environment/chain
+export const SUMMER_VESTING_WALLET_FACTORY_ADDRESSES: Record<
+  Environment,
+  Record<number, string>
+> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x5f3cd3a45E6B8c2B29DDC80411C58291740E8886',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x5f3cd3a45E6B8c2B29DDC80411C58291740E8886',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
+// Summer Vesting Wallet Factory V2 addresses per environment/chain
+export const SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES: Record<
+  Environment,
+  Record<number, string>
+> = {
+  production: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+  staging: {
+    [mainnet.id]: '0x0000000000000000000000000000000000000000',
+    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
+    [base.id]: '0x3aA85a023C0e935CDb5d1CBB2d7BC5EAC5c69BeB',
+    [sonic.id]: '0x0000000000000000000000000000000000000000',
+  },
+}
+
 export const REWARD_TOKENS: Record<number, string[]> = {
   [sonic.id]: [
     '0xb098AFC30FCE67f1926e735Db6fDadFE433E61db',

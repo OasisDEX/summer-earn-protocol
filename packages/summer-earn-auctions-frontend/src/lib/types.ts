@@ -32,6 +32,7 @@ export interface Auction {
   duration: string
   isFinalized: boolean
   purchases: TokensPurchased[]
+  raft: string
 }
 
 export interface TokensPurchased {

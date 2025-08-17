@@ -104,5 +104,9 @@
   "LazyVault_LowerRisk_USDC_SiloManagedVault_apostro_usdc_1#SiloManagedVaultArk": "0xe4917bC3dc12A77c941ad7fE00D0Ec363fefe268",
   "LazyVault_LowerRisk_USDC_MorphoVault_usdc_Hyperithm_USDC_1#MorphoVaultArk": "0x756ca6D02523c908972C4F82a4821c15F740D275",
   "LazyVault_LowerRisk_WETH_Origin_weth_1_gov#OriginETHArk": "0xD84247A3e0EE8480214A0472d6FBC5C04251404d",
-  "LazyVault_HigherRisk_USDC_SiloManagedVault_apostro_usdc_1#SiloManagedVaultArk": "0xd7038E29f353cc6AC601CFE56AF3e1AFFa80A170"
+  "LazyVault_HigherRisk_USDC_SiloManagedVault_apostro_usdc_1#SiloManagedVaultArk": "0xd7038E29f353cc6AC601CFE56AF3e1AFFa80A170",
+  "RaftModule_20250710T100520692#DutchAuctionLibrary": "0x0322CDE33A8C928C38594A5f75a53829540e717D",
+  "RaftModule_20250710T100520692#Raft": "0xB8BBC85cEE0ea08Cf35B63c23bfE95fA444C5F07",
+  "AdmiralsQuartersModule_20250729T085546453#AdmiralsQuarters": "0xD03bD9Ef8c72Aee3DBb5b8DF83c479D847622Dba",
+  "LazyVault_HigherRisk_USDC_ERC4626_Gearbox_Invariant_usdc_1#ERC4626Ark": "0x46955BC1EeCd65bf6C5c764EB158E2618Db72D47"
 }

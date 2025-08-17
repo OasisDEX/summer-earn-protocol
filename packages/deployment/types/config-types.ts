@@ -25,9 +25,12 @@ export enum ArkType {
   SyrupArk = 'SyrupArk',
   SkyRewardsArk = 'SkyRewardsArk',
   SiloArk = 'SiloArk',
+  SiloArkV2 = 'SiloArkV2',
   SiloManagedVaultArk = 'SiloManagedVaultArk',
   OriginETHArk = 'OriginETHArk',
   FluidLiteArk = 'FluidLiteArk',
+  AeraArk = 'AeraArk',
+  StargateV2PoolArk = 'StargateV2PoolArk',
 }
 
 export const arkTypes = [
@@ -50,6 +53,8 @@ export const arkTypes = [
   { title: 'SiloManagedVaultArk', value: ArkType.SiloManagedVaultArk },
   { title: 'OriginETHArk', value: ArkType.OriginETHArk },
   { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
+  { title: 'AeraArk', value: ArkType.AeraArk },
+  { title: 'StargateV2PoolArk', value: ArkType.StargateV2PoolArk },
 ]
 
 export interface Config {
@@ -76,6 +81,7 @@ export enum Token {
   SYRUP = 'syrup',
   SILO = 'silo',
   SKY = 'sky',
+  XSILO = 'xsilo',
 }
 
 export interface BaseConfig {
@@ -205,6 +211,21 @@ export interface BaseConfig {
     originETH: {
       originETH: Address
       arm: Address
+    }
+    gauntlet: {
+      vaults: {
+        [key in Token]: {
+          [key: string]: {
+            provisioner: Address
+          }
+        }
+      }
+    }
+    stargate: {
+      staking: Address
+      pools: {
+        [key in Token]: Address
+      }
     }
   }
   bridge?: DeployedBridge

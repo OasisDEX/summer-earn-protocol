@@ -224,15 +224,15 @@ async function handleNewFleetDeployment(
       }
 
       await addFleetToHarbor(
-        deployedFleet.fleetCommander.address,
+        deployedFleet.fleetCommander.address as Address,
         config.deployedContracts.core.harborCommand.address as Address,
         config.deployedContracts.gov.protocolAccessManager.address as Address,
       )
 
       await grantCommanderRole(
         config.deployedContracts.gov.protocolAccessManager.address as Address,
-        bufferArkAddress,
-        deployedFleet.fleetCommander.address,
+        bufferArkAddress as Address,
+        deployedFleet.fleetCommander.address as Address,
         hre,
       )
 

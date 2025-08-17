@@ -781,7 +781,9 @@ export function getOrCreatePositionHourlySnapshot(
     position.save()
   }
   position = null
-  snapshot.save()
+  if (snapshot.inputTokenBalanceNormalizedInUSD.gt(constants.SNAPSHOT_CREATION_THRESHOLD)) {
+    snapshot.save()
+  }
 }
 
 // Function to create or update position daily snapshots
@@ -825,7 +827,9 @@ export function getOrCreatePositionDailySnapshot(
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
   }
   position = null
-  snapshot.save()
+  if (snapshot.inputTokenBalanceNormalizedInUSD.gt(constants.SNAPSHOT_CREATION_THRESHOLD)) {
+    snapshot.save()
+  }
 }
 
 // Function to create or update position weekly snapshots
@@ -869,8 +873,9 @@ export function getOrCreatePositionWeeklySnapshot(
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
   }
   position = null
-
-  snapshot.save()
+  if (snapshot.inputTokenBalanceNormalizedInUSD.gt(constants.SNAPSHOT_CREATION_THRESHOLD)) {
+    snapshot.save()
+  }
 }
 
 export function getOrCreateVaultWeeklySnapshots(vault: Vault, block: ethereum.Block): void {

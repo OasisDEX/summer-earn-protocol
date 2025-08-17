@@ -21,6 +21,7 @@ import { formatAmount } from '../common/utils'
 export function handleArkRewardTokenAuctionStarted(event: ArkRewardTokenAuctionStarted): void {
   const auction = getOrCreateAuction(
     event.params.auctionId,
+    event.address,
     event.params.ark,
     event.params.rewardToken,
     event.block.timestamp,
@@ -35,12 +36,12 @@ export function handleArkRewardTokenAuctionStarted(event: ArkRewardTokenAuctionS
 }
 
 export function handleAuctionFinalized(event: AuctionFinalized): void {
-  const auction = getOrCreateAuction(event.params.auctionId)
+  const auction = getOrCreateAuction(event.params.auctionId, event.address)
   updateAuction(auction, Address.fromString(auction.ark), Address.fromString(auction.rewardToken))
 }
 
 export function handleTokensPurchased(event: TokensPurchased): void {
-  const auction = getOrCreateAuction(event.params.auctionId)
+  const auction = getOrCreateAuction(event.params.auctionId, event.address)
   updateAuction(auction, Address.fromString(auction.ark), Address.fromString(auction.rewardToken))
   const tokensPurchased = new TokensPurchasedEntity(
     event.params.auctionId.toString() +
@@ -89,6 +90,12 @@ export function handleArkAuctionParametersSet(event: ArkAuctionParametersSet): v
   const arkAuctionParameters = getOrCreateArkAuctionParameters(
     event.params.ark,
     event.params.rewardToken,
+    event.address,
   )
-  updateArkAuctionParameters(event.params.ark, event.params.rewardToken, arkAuctionParameters)
+  updateArkAuctionParameters(
+    event.params.ark,
+    event.params.rewardToken,
+    event.address,
+    arkAuctionParameters,
+  )
 }

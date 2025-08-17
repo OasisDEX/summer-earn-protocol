@@ -5,16 +5,16 @@ schema:
 features:
   - grafting
 graft:
-  base: QmenZH996Lx3e2ArzpJ8VgE5JoGRQzsPPjuFKkjGpAUKdX
-  block: 36683119
+  base: QmQfyfPuECP2v8wfRBKTmUjC4o1ovsgEN6j1RJ5HVwB833
+  block: 33307995
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: sonic-mainnet
+    network: base
     source:
       abi: Comet
-      startBlock: 12744800
-      address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
+      startBlock: 24744895
+      address: '0x7e860098F58bBFC8648a4311b374B1D669a2bc6B'
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -26,15 +26,15 @@ dataSources:
         - name: Comet
           file: ./abis/Comet.json
         - name: GearboxPool
-          file: ./abis/GearboxPool.json  
+          file: ./abis/GearboxPool.json
         - name: AaveV3Pool
-          file: ./abis/AaveV3Pool.json  
+          file: ./abis/AaveV3Pool.json
         - name: AaveV3PoolDataProvider
-          file: ./abis/AaveV3PoolDataProvider.json  
+          file: ./abis/AaveV3PoolDataProvider.json
         - name: ERC4626
-          file: ./abis/ERC4626.json  
+          file: ./abis/ERC4626.json
         - name: ERC20
-          file: ./abis/ERC20.json  
+          file: ./abis/ERC20.json
         - name: PendleOracle
           file: ./abis/PendleOracle.json
         - name: PendleMarket
@@ -76,7 +76,7 @@ dataSources:
         - name: SparkOracle
           file: ./abis/oracles/spark-oracle.json
         - name: AaveV2Oracle
-          file: ./abis/oracles/aave-v2-price-oracle.json  
+          file: ./abis/oracles/aave-v2-price-oracle.json
         - name: IStakingRewards
           file: ./abis/IStakingRewards.json
         - name: ISiloVault
@@ -85,9 +85,13 @@ dataSources:
           file: ./abis/silo/ISiloVaultIncentivesModule.json
         - name: ERC4626FluidLite
           file: ./abis/ERC4626FluidLite.json
+        - name: AeraVault
+          file: ./abis/aera/Vault.json
+        - name: AeraFeeCalculator
+          file: ./abis/aera/PriceAndFeeCalculator.json
       blockHandlers:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 20    
+            every: 300
       file: ./src/mapping.ts

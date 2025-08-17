@@ -58,6 +58,12 @@ export abstract class BaseVaultProduct extends Product {
     if (timeDiff.equals(BigIntConstants.ZERO)) {
       return previousRate
     }
+    if (
+      this.name.toLowerCase().includes('0xa0d3707c569ff8c87fa923d3823ec5d81c98be78') &&
+      timeDiff.lt(BigIntConstants.DAY_IN_SECONDS)
+    ) {
+      return previousRate
+    }
 
     const annualizedRate = priceChange
       .times(BigDecimalConstants.SECONDS_PER_YEAR)

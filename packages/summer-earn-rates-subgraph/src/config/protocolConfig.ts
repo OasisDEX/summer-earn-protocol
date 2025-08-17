@@ -2,6 +2,7 @@ import { Address, BigInt, dataSource } from '@graphprotocol/graph-ts'
 import { addresses } from '../constants/addresses'
 import { Protocol } from '../models/Protocol'
 import { AaveV3Product } from '../products/AaveV3Product'
+import { AeraProduct } from '../products/AeraProduct'
 import { CompoundProduct } from '../products/CompoundProduct'
 import { ERC4626FluidLiteProduct } from '../products/ERC4626FluidLiteProduct'
 import { ERC4626ManualAssetsProduct } from '../products/ERC4626ManualAssetsProduct'
@@ -788,6 +789,14 @@ class ProtocolConfig {
           Address.fromString('0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3'),
           BigInt.fromI32(29506052),
           'Origin',
+        ),
+      ]),
+      new Protocol('Aera', [
+        new AeraProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x000000000001cdb57e58fa75fe420a0f4d6640d5'),
+          BigInt.fromI32(33307996),
+          'Aera',
         ),
       ]),
     ]
