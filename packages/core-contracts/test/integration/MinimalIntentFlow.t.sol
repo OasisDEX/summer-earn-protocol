@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {AaveV3Adapter} from "../../src/contracts/adapters/AaveV3Adapter.sol";
+import {AaveV3Escrow} from "../../src/contracts/adapters/AaveV3Escrow.sol";
 import {IntentHandler} from "../../src/contracts/intent/IntentHandler.sol";
 import {IntentBondFactory} from "../../src/contracts/intent/IntentBondFactory.sol";
 import {SolverBond} from "../../src/contracts/intent/SolverBond.sol";
@@ -21,7 +21,7 @@ contract MinimalIntentFlowTest is Test {
     IntentHandler public intentHandler;
     IntentBondFactory public intentBondFactory;
     SolverBond public solverBond;
-    AaveV3Adapter public adapter;
+    AaveV3Escrow public adapter;
 
     MockERC20 public mockToken;
     MockIntentOracle public mockOracle;
@@ -69,7 +69,7 @@ contract MinimalIntentFlowTest is Test {
 
         // Deploy adapter with mock ark
         address mockArk = address(0x999);
-        adapter = new AaveV3Adapter(
+        adapter = new AaveV3Escrow(
             address(accessManager),
             address(0x300), // mock aave pool
             address(0x400), // mock rewards controller
@@ -164,17 +164,7 @@ contract MinimalIntentFlowTest is Test {
         assertEq(intent.solver, solver);
         assertTrue(intent.state == IIntentHandler.IntentState.Solved);
 
-        // Step 4: Activate
-        vm.startPrank(solver);
-        intentHandler.activateIntent(user);
-        vm.stopPrank();
-
-        assertTrue(
-            intentHandler.getIntent(user).state ==
-                IIntentHandler.IntentState.Active
-        );
-
-        // Step 5: Settle after term
+        // Step 4: Settle after term
         vm.warp(block.timestamp + term + 1);
 
         vm.startPrank(solver);

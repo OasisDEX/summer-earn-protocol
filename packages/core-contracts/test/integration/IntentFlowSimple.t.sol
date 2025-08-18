@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {AaveV3Adapter} from "../../src/contracts/adapters/AaveV3Adapter.sol";
+import {AaveV3Escrow} from "../../src/contracts/adapters/AaveV3Escrow.sol";
 import {GenericIntentArk} from "../../src/contracts/arks/GenericIntentArk.sol";
 import {IntentHandler} from "../../src/contracts/intent/IntentHandler.sol";
 import {IntentBondFactory} from "../../src/contracts/intent/IntentBondFactory.sol";
@@ -19,12 +19,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Simple Intent Flow Test
- * @notice Tests the core intent flow: GenericIntentArk -> IntentHandler -> AaveV3Adapter
+ * @notice Tests the core intent flow: GenericIntentArk -> IntentHandler -> AaveV3Escrow
  * @dev Focused test without complex configuration setup
  */
 contract IntentFlowSimpleTest is Test {
     // Core contracts
-    AaveV3Adapter public adapter;
+    AaveV3Escrow public adapter;
     GenericIntentArk public ark;
     IntentHandler public intentHandler;
     IntentBondFactory public intentBondFactory;
@@ -89,7 +89,7 @@ contract IntentFlowSimpleTest is Test {
 
         // Deploy adapter pointing to a mock ark address for now
         address mockArkAddress = address(0x999);
-        adapter = new AaveV3Adapter(
+        adapter = new AaveV3Escrow(
             address(accessManager),
             mockAaveV3Pool,
             mockRewardsController,
@@ -179,16 +179,7 @@ contract IntentFlowSimpleTest is Test {
         assertEq(intent.solver, solver);
         assertTrue(intent.state == IIntentHandler.IntentState.Solved);
 
-        // Step 3: Activate intent
-        vm.startPrank(solver);
-        intentHandler.activateIntent(user);
-        vm.stopPrank();
-
-        // Verify intent active
-        intent = intentHandler.getIntent(user);
-        assertTrue(intent.state == IIntentHandler.IntentState.Active);
-
-        // Step 4: Time passes
+        // Step 3: Time passes
         vm.warp(block.timestamp + TERM + 1);
 
         // Step 5: Settle intent
@@ -284,7 +275,7 @@ contract IntentFlowSimpleTest is Test {
         );
 
         // 2. Different solvers can use different adapters
-        // (In practice, one solver might use AaveV3Adapter, another CompoundAdapter, etc.)
+        // (In practice, one solver might use AaveV3Escrow, another CompoundAdapter, etc.)
 
         // 3. Intent flow is standardized regardless of underlying protocol
         // The same IntentHandler works with any IAdapter implementation

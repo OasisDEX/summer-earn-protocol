@@ -160,7 +160,9 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         intent.solver = solverAddress;
         intent.escrowedYield = escrowedYield;
         intent.state = IntentState.Solved;
+        intent.startTime = block.timestamp;
 
+        // Transfer the required notional to the adapter
         IAdapter adapter = solverAdapters[solverAddress];
         IERC20(intent.token).transferFrom(
             user,
@@ -173,25 +175,19 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         );
         adapter.deposit(intent.token, intent.requiredNotional, user);
 
+        // Transfer the escrowed yield to the adapter
+        IERC20(address(intent.token)).transferFrom(
+            msg.sender,
+            address(adapter),
+            escrowedYield
+        );
+
         emit IntentSolved(user, solverAddress, escrowedYield);
-    }
-
-    function activateIntent(address user) external override onlySolver {
-        Intent storage intent = intents[user];
-        if (intent.state != IntentState.Solved)
-            revert IntentHandler__IntentNotSolved();
-        if (intent.solver != msg.sender)
-            revert IntentHandler__UnauthorizedCaller();
-
-        intent.startTime = block.timestamp;
-        intent.state = IntentState.Active;
-
-        emit IntentActivated(user, intent.solver, block.timestamp);
     }
 
     function settleIntent(address user) external override onlySolver {
         Intent storage intent = intents[user];
-        if (intent.state != IntentState.Active)
+        if (intent.state != IntentState.Solved)
             revert IntentHandler__InvalidState();
         if (intent.solver != msg.sender)
             revert IntentHandler__UnauthorizedCaller();
@@ -206,7 +202,11 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
 
     function resignByArk(address user) external override onlyArk {
         Intent storage intent = intents[user];
-        if (intent.state != IntentState.Created)
+        if (intent.state == IntentState.Solved) {
+            // need to return the escrowed yield to the solver
+            IAdapter adapter = solverAdapters[intent.solver];
+            adapter.returnEscrowedYield(intent.token, intent.escrowedYield);
+        } else if (intent.state != IntentState.Created)
             revert IntentHandler__InvalidState();
 
         intent.state = IntentState.ResignedByArk;

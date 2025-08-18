@@ -128,12 +128,6 @@ interface IIntentHandler {
     ) external;
 
     /**
-     * @notice Activates an intent (can only be called by the solver)
-     * @param ark Address of the Ark contract
-     */
-    function activateIntent(address ark) external;
-
-    /**
      * @notice Settles an intent (can only be called by the solver)
      * @param ark Address of the Ark contract
      */

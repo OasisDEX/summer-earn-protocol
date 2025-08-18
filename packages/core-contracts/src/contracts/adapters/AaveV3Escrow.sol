@@ -11,13 +11,13 @@ import {GenericIntentArk} from "../arks/GenericIntentArk.sol";
 import {IAdapter} from "../../interfaces/intents/IAdapter.sol";
 
 /**
- * @title AaveV3Adapter
+ * @title AaveV3Escrow
  * @notice Adapter for Aave V3 protocol interactions
  * @dev Handles supply, withdraw, and reward claiming for Aave V3
  *      Uses ArkAccessManaged for access control through the GenericIntentArk
  * @dev end goal : make it erc4626 - can be used outside summer
  */
-contract AaveV3Adapter is ArkAccessManaged, ReentrancyGuard, IAdapter {
+contract AaveV3Escrow is ArkAccessManaged, ReentrancyGuard, IAdapter {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -26,6 +26,10 @@ contract AaveV3Adapter is ArkAccessManaged, ReentrancyGuard, IAdapter {
 
     /// @notice Aave V3 Pool contract
     IPoolV3 public immutable aaveV3Pool;
+    /// @notice The Aave V3 aToken address
+    address public immutable aToken;
+    /// @notice The Aave V3 asset address
+    address public immutable asset;
 
     /// @notice Aave V3 Rewards Controller
     IRewardsController public immutable rewardsController;
@@ -50,6 +54,11 @@ contract AaveV3Adapter is ArkAccessManaged, ReentrancyGuard, IAdapter {
         aaveV3Pool = IPoolV3(_aaveV3Pool);
         rewardsController = IRewardsController(_rewardsController);
         ark = GenericIntentArk(_ark);
+        DataTypes.ReserveData memory reserveData = aaveV3Pool.getReserveData(
+            address(ark.getConfig().asset)
+        );
+        aToken = reserveData.aTokenAddress;
+        asset = address(ark.getConfig().asset);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -68,6 +77,7 @@ contract AaveV3Adapter is ArkAccessManaged, ReentrancyGuard, IAdapter {
         address onBehalfOf // todo: remove this
     ) external onlyIntentHandler nonReentrant {
         // Approve Aave to spend the asset
+        IERC20(asset).transferFrom(msg.sender, address(this), amount);
         IERC20(asset).forceApprove(address(aaveV3Pool), amount);
 
         // Supply to Aave
@@ -103,7 +113,13 @@ contract AaveV3Adapter is ArkAccessManaged, ReentrancyGuard, IAdapter {
         onlyKeeper
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        return rewardsController.claimAllRewards(assets, user);
+        (rewardTokens, rewardAmounts) = rewardsController.claimAllRewards(
+            assets,
+            user
+        );
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            IERC20(rewardTokens[i]).transfer(address(ark), rewardAmounts[i]);
+        }
     }
 
     /**
@@ -115,6 +131,17 @@ contract AaveV3Adapter is ArkAccessManaged, ReentrancyGuard, IAdapter {
         address asset
     ) external view returns (DataTypes.ReserveData memory) {
         return aaveV3Pool.getReserveData(asset);
+    }
+
+    function totalAssets() external view returns (uint256) {
+        return IERC20(aToken).balanceOf(address(this));
+    }
+
+    function returnEscrowedYield(
+        address asset,
+        uint256 amount
+    ) external onlyIntentHandler {
+        IERC20(asset).transfer(msg.sender, amount);
     }
 
     /*//////////////////////////////////////////////////////////////

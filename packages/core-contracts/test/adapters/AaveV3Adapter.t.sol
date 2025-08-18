@@ -2,19 +2,19 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {AaveV3Adapter} from "../../src/contracts/adapters/AaveV3Adapter.sol";
+import {AaveV3Escrow} from "../../src/contracts/adapters/AaveV3Escrow.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * @title AaveV3Adapter Test
- * @notice Tests for the AaveV3Adapter contract with GenericIntentArk integration
+ * @title AaveV3Escrow Test
+ * @notice Tests for the AaveV3Escrow contract with GenericIntentArk integration
  * @dev Tests the adapter functionality and access control with onlyAuthorizedToBoard
  */
 contract AaveV3AdapterTest is Test {
-    AaveV3Adapter public adapter;
+    AaveV3Escrow public adapter;
     ProtocolAccessManager public accessManager;
     MockERC20 public mockToken;
 
@@ -33,7 +33,7 @@ contract AaveV3AdapterTest is Test {
         accessManager = new ProtocolAccessManager(governor);
 
         // Deploy adapter
-        adapter = new AaveV3Adapter(
+        adapter = new AaveV3Escrow(
             address(accessManager),
             mockAaveV3Pool,
             mockRewardsController,

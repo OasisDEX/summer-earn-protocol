@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {AaveV3Adapter} from "../../src/contracts/adapters/AaveV3Adapter.sol";
+import {AaveV3Escrow} from "../../src/contracts/adapters/AaveV3Escrow.sol";
 import {GenericIntentArk} from "../../src/contracts/arks/GenericIntentArk.sol";
 import {IntentHandler} from "../../src/contracts/intent/IntentHandler.sol";
 import {IntentBondFactory} from "../../src/contracts/intent/IntentBondFactory.sol";
@@ -23,12 +23,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title AaveV3 Intent Flow Integration Test
- * @notice Tests the complete intent flow using GenericIntentArk + AaveV3Adapter + IntentHandler
+ * @notice Tests the complete intent flow using GenericIntentArk + AaveV3Escrow + IntentHandler
  * @dev Recreates AaveV3IntentArk functionality using the new modular architecture
  */
 contract AaveV3IntentFlowTest is Test {
     // Core contracts
-    AaveV3Adapter public adapter;
+    AaveV3Escrow public adapter;
     GenericIntentArk public ark;
     IntentHandler public intentHandler;
     IntentBondFactory public intentBondFactory;
@@ -37,14 +37,20 @@ contract AaveV3IntentFlowTest is Test {
     // Infrastructure
     ProtocolAccessManager public accessManager;
     ConfigurationManager public configurationManager;
-    MockERC20 public mockToken;
+    IERC20 public usdc;
     MockIntentOracle public mockOracle;
     MockSummerToken public summerToken;
 
-    // Mock Aave contracts
-    address public mockAaveV3Pool = address(0x300);
-    address public mockRewardsController = address(0x400);
-    address public mockAToken = address(0x500);
+    address public constant USDC_MAINNET =
+        0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant aaveV3PoolAddress =
+        0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    address public aaveAddressProvider =
+        0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+    address public aaveV3DataProvider =
+        0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3;
+    address public rewardsController =
+        0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
 
     // Test addresses
     address public governor = address(0x1);
@@ -57,19 +63,24 @@ contract AaveV3IntentFlowTest is Test {
     address public treasury = address(0x8);
 
     // Test constants
-    uint256 public constant REQUIRED_NOTIONAL = 1000e18;
+    uint256 public constant REQUIRED_NOTIONAL = 1000e6;
     uint256 public constant TERM = 30 days;
-    uint256 public constant TARGET_YIELD = 100e18;
-    uint256 public constant BOND_AMOUNT = 1000e18;
-    uint256 public constant ESCROWED_YIELD = 100e18;
+    uint256 public constant TARGET_YIELD = 100e6;
+    uint256 public constant BOND_AMOUNT = 1000e6;
+    uint256 public constant ESCROWED_YIELD = 100e6;
+
+    uint256 forkBlock = 20006596;
+    uint256 forkId;
 
     function setUp() public {
+        forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
+        vm.selectFork(forkId);
+
         // Deploy infrastructure
         accessManager = new ProtocolAccessManager(governor);
 
         // Deploy mock tokens
-        mockToken = new MockERC20();
-        mockToken.initialize("Mock USDC", "USDC", 6);
+        usdc = IERC20(USDC_MAINNET);
         summerToken = new MockSummerToken();
 
         // Deploy configuration manager with minimal setup for testing
@@ -122,7 +133,7 @@ contract AaveV3IntentFlowTest is Test {
             details: "Aave V3 USDC yield generation via intent system",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            asset: address(mockToken),
+            asset: address(usdc),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -149,10 +160,10 @@ contract AaveV3IntentFlowTest is Test {
         vm.stopPrank();
 
         // Deploy adapter
-        adapter = new AaveV3Adapter(
+        adapter = new AaveV3Escrow(
             address(accessManager),
-            mockAaveV3Pool,
-            mockRewardsController,
+            aaveV3PoolAddress,
+            rewardsController,
             address(ark)
         );
 
@@ -161,75 +172,27 @@ contract AaveV3IntentFlowTest is Test {
         intentHandler.addSolverAdapter(solver, address(adapter));
         vm.stopPrank();
 
-        // Setup mock Aave responses
-        setupAaveMocks();
-
         // Setup balances
-        deal(address(mockToken), address(ark), 10000e6); // 10,000 USDC (6 decimals)
-        deal(address(mockToken), commander, 10000e6);
+        deal(address(usdc), address(ark), 10000e6); // 10,000 USDC (6 decimals)
+        deal(address(usdc), commander, 10000e6);
         deal(address(summerToken), solver, 10000e18);
 
         // Also give enough tokens to the intentHandler for transfers
-        deal(address(mockToken), address(intentHandler), 10000e6);
+        deal(address(usdc), address(intentHandler), 10000e6);
 
         // Solver adds bond
         vm.startPrank(solver);
         IERC20(address(summerToken)).approve(address(solverBond), BOND_AMOUNT);
         solverBond.addBond(BOND_AMOUNT);
         vm.stopPrank();
-    }
 
-    function setupAaveMocks() internal {
-        // Mock Aave pool responses
-        DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
-            configuration: DataTypes.ReserveConfigurationMap(0),
-            liquidityIndex: 1e27,
-            currentLiquidityRate: 1e27,
-            variableBorrowIndex: 1e27,
-            currentVariableBorrowRate: 1e27,
-            currentStableBorrowRate: 1e27,
-            lastUpdateTimestamp: uint40(block.timestamp),
-            id: 1,
-            aTokenAddress: mockAToken,
-            stableDebtTokenAddress: address(0),
-            variableDebtTokenAddress: address(0),
-            interestRateStrategyAddress: address(0),
-            accruedToTreasury: 0,
-            unbacked: 0,
-            isolationModeTotalDebt: 0
-        });
-
-        vm.mockCall(
-            mockAaveV3Pool,
-            abi.encodeWithSelector(IPoolV3.getReserveData.selector),
-            abi.encode(reserveData)
-        );
-
-        // Mock supply call - adapter will call this
-        vm.mockCall(
-            mockAaveV3Pool,
-            abi.encodeWithSelector(IPoolV3.supply.selector),
-            abi.encode()
-        );
-
-        // Mock withdraw call
-        vm.mockCall(
-            mockAaveV3Pool,
-            abi.encodeWithSelector(IPoolV3.withdraw.selector),
-            abi.encode(uint256(1000e6))
-        );
-
-        // Mock rewards controller
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(mockToken);
-        uint256[] memory rewardAmounts = new uint256[](1);
-        rewardAmounts[0] = 50e6; // 50 USDC rewards
-
-        vm.mockCall(
-            mockRewardsController,
-            abi.encodeWithSelector(IRewardsController.claimAllRewards.selector),
-            abi.encode(rewardTokens, rewardAmounts)
-        );
+        vm.label(address(ark), "IntentArk");
+        vm.label(address(adapter), "AaveV3Escrow");
+        vm.label(address(intentHandler), "IntentHandler");
+        vm.label(address(intentBondFactory), "IntentBondFactory");
+        vm.label(address(solverBond), "SolverBond");
+        vm.label(address(usdc), "USDC");
+        vm.label(address(summerToken), "SummerToken");
     }
 
     function test_CompleteAaveV3IntentFlow() public {
@@ -249,7 +212,7 @@ contract AaveV3IntentFlowTest is Test {
 
         // The ark should have approved the IntentHandler during postIntent (via forceApprove)
         // But let's ensure the ark has enough balance for the required notional
-        deal(address(mockToken), address(ark), REQUIRED_NOTIONAL);
+        deal(address(usdc), address(ark), REQUIRED_NOTIONAL);
 
         // Verify intent was created
         assertTrue(ark.isIntentActive(intentId));
@@ -259,11 +222,13 @@ contract AaveV3IntentFlowTest is Test {
         assertEq(intent.requiredNotional, REQUIRED_NOTIONAL);
         assertEq(intent.term, TERM);
         assertEq(intent.targetYield, TARGET_YIELD);
-        assertEq(intent.token, address(mockToken));
+        assertEq(intent.token, address(usdc));
         assertTrue(intent.state == IIntentHandler.IntentState.Created);
 
         // Step 2: Solver solves the intent (this triggers adapter.deposit)
         vm.startPrank(solver);
+        deal(USDC_MAINNET, address(solver), 10000e6);
+        IERC20(USDC_MAINNET).approve(address(intentHandler), 10000e6);
         intentHandler.solveIntent(address(ark), solver, ESCROWED_YIELD);
         vm.stopPrank();
 
@@ -272,16 +237,6 @@ contract AaveV3IntentFlowTest is Test {
         assertEq(intent.solver, solver);
         assertEq(intent.escrowedYield, ESCROWED_YIELD);
         assertTrue(intent.state == IIntentHandler.IntentState.Solved);
-
-        // Step 3: Solver activates the intent
-        vm.startPrank(solver);
-        intentHandler.activateIntent(address(ark));
-        vm.stopPrank();
-
-        // Verify intent is active
-        intent = intentHandler.getIntent(address(ark));
-        assertTrue(intent.state == IIntentHandler.IntentState.Active);
-        assertEq(intent.startTime, block.timestamp);
 
         // Step 4: Time passes - yield generation period
         vm.warp(block.timestamp + TERM + 1);
@@ -305,32 +260,17 @@ contract AaveV3IntentFlowTest is Test {
         uint256 depositAmount = 1000e6; // 1000 USDC
 
         // Setup: give adapter some tokens to work with
-        deal(address(mockToken), address(adapter), depositAmount);
+        deal(address(usdc), address(adapter), depositAmount);
 
         // Test deposit operation (called by IntentHandler during solveIntent)
         vm.startPrank(address(intentHandler));
-        adapter.deposit(address(mockToken), depositAmount, address(ark));
+        IERC20(address(usdc)).approve(address(adapter), depositAmount);
+        adapter.deposit(address(usdc), depositAmount, address(ark));
         vm.stopPrank();
 
         // Test withdraw operation
         vm.startPrank(address(intentHandler));
-        adapter.withdraw(address(mockToken), depositAmount / 2, address(ark));
-        vm.stopPrank();
-
-        // Test reward claiming (called by keeper - need to grant keeper role)
-        address[] memory assets = new address[](1);
-        assets[0] = mockAToken;
-
-        // Grant keeper role to the keeper address
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(address(adapter), keeper);
-        vm.stopPrank();
-
-        vm.startPrank(keeper);
-        (address[] memory tokens, uint256[] memory amounts) = adapter
-            .claimAllRewards(assets, address(ark));
-        assertEq(tokens.length, 1);
-        assertEq(amounts.length, 1);
+        adapter.withdraw(address(usdc), depositAmount / 2, address(ark));
         vm.stopPrank();
     }
 
@@ -376,11 +316,12 @@ contract AaveV3IntentFlowTest is Test {
         vm.stopPrank();
 
         // Ensure ark has enough balance for the required notional
-        deal(address(mockToken), address(ark), REQUIRED_NOTIONAL);
+        deal(address(usdc), address(ark), REQUIRED_NOTIONAL);
 
         vm.startPrank(solver);
+        deal(USDC_MAINNET, address(solver), 10000e6);
+        IERC20(USDC_MAINNET).approve(address(intentHandler), 10000e6);
         intentHandler.solveIntent(address(ark), solver, ESCROWED_YIELD);
-        intentHandler.activateIntent(address(ark));
 
         // Solver resigns (gets bond slashed)
         intentHandler.resignBySolver(address(ark));
@@ -435,27 +376,8 @@ contract AaveV3IntentFlowTest is Test {
         // Only IntentHandler can call adapter functions
         vm.startPrank(user);
         vm.expectRevert();
-        adapter.deposit(address(mockToken), 1000e6, address(ark));
+        adapter.deposit(address(usdc), 1000e6, address(ark));
         vm.stopPrank();
-    }
-
-    function test_YieldHarvesting() public {
-        // Grant keeper role to the keeper address
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(address(adapter), keeper);
-        vm.stopPrank();
-
-        // Harvest rewards (this would typically be called by raft or keeper)
-        address[] memory assets = new address[](1);
-        assets[0] = mockAToken;
-
-        vm.startPrank(keeper);
-        (address[] memory tokens, uint256[] memory amounts) = adapter
-            .claimAllRewards(assets, address(ark));
-        vm.stopPrank();
-
-        assertEq(tokens[0], address(mockToken));
-        assertEq(amounts[0], 50e6); // From our mock
     }
 
     function test_ArchitecturalBenefits() public {
@@ -488,6 +410,8 @@ contract AaveV3IntentFlowTest is Test {
         vm.stopPrank();
 
         vm.startPrank(solver);
+        deal(USDC_MAINNET, address(solver), 10000e6);
+        IERC20(USDC_MAINNET).approve(address(intentHandler), 10000e6);
         intentHandler.solveIntent(address(ark), solver, 10e6);
         vm.stopPrank();
 

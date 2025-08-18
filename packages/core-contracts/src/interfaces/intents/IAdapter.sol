@@ -9,4 +9,8 @@ interface IAdapter {
     ) external;
 
     function withdraw(address asset, uint256 amount, address to) external;
+
+    function returnEscrowedYield(address asset, uint256 amount) external;
+
+    function totalAssets() external view returns (uint256);
 }
