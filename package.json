@@ -57,11 +57,6 @@
     "viem": "2.21.55",
     "zod": "3.22.4"
   },
-  "pnpm": {
-    "patchedDependencies": {
-      "@nomicfoundation/hardhat-viem@2.0.6": "patches/@nomicfoundation__hardhat-viem@2.0.6.patch"
-    }
-  },
   "version": "1.0.0",
   "description": "## TLDR;",
   "main": "index.js",

@@ -109,6 +109,8 @@ interface IBridgeRouter is IERC165 {
     error TransferFailed();
     /// @notice Thrown when an adapter doesn't support a requested operation
     error UnsupportedAdapterOperation();
+    /// @notice Thrown when no suitable adapter is provided or available for the requested operation
+    error NoSuitableAdapter();
     /// @notice Thrown when there are insufficient native funds in the router
     error InsufficientBalance();
 
