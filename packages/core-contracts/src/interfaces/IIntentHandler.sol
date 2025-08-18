@@ -87,8 +87,8 @@ interface IIntentHandler {
         Solved,
         Active,
         Settled,
-        ResignedByArk,
-        ResignedBySolver
+        UserResigned,
+        SolverResigned
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -137,7 +137,7 @@ interface IIntentHandler {
      * @notice Resigns an intent by the Ark (can only be called before solving)
      * @param ark Address of the Ark contract
      */
-    function resignByArk(address ark) external;
+    function resignByUser(address ark) external;
 
     /**
      * @notice Resigns an intent by the solver (50% bond penalty)

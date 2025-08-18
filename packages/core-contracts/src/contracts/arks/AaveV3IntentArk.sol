@@ -212,7 +212,7 @@ contract AaveV3IntentArk is Ark {
      * @notice Resigns the Ark intent
      */
     function resignIntent() external onlyCommander {
-        intentHandler.resignByArk(address(this));
+        intentHandler.resignByUser(address(this));
     }
 
     function _isActive(uint256 configData) internal pure returns (bool) {

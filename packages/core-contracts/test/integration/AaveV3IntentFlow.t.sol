@@ -297,7 +297,7 @@ contract AaveV3IntentFlowTest is Test {
         IIntentHandler.Intent memory intent = intentHandler.getIntent(
             address(ark)
         );
-        assertTrue(intent.state == IIntentHandler.IntentState.ResignedByArk);
+        assertTrue(intent.state == IIntentHandler.IntentState.UserResigned);
     }
 
     function test_SolverResignation() public {
@@ -331,7 +331,7 @@ contract AaveV3IntentFlowTest is Test {
         IIntentHandler.Intent memory intent = intentHandler.getIntent(
             address(ark)
         );
-        assertTrue(intent.state == IIntentHandler.IntentState.ResignedBySolver);
+        assertTrue(intent.state == IIntentHandler.IntentState.SolverResigned);
 
         // Bond should be slashed by 50%
         assertEq(

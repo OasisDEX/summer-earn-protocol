@@ -98,7 +98,7 @@ contract GenericIntentArk is Ark {
         IERC20(config.asset).forceApprove(address(intentHandler), 0);
 
         // Resign the intent in the handler
-        intentHandler.resignByArk(address(this));
+        intentHandler.resignByUser(address(this));
 
         emit IntentCancelled(intentId);
     }

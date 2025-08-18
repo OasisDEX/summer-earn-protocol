@@ -200,7 +200,7 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         emit IntentSettled(user, intent.solver, intent.escrowedYield);
     }
 
-    function resignByArk(address user) external override onlyArk {
+    function resignByUser(address user) external override onlyArk {
         Intent storage intent = intents[user];
         if (intent.state == IntentState.Solved) {
             // need to return the escrowed yield to the solver
@@ -209,7 +209,7 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         } else if (intent.state != IntentState.Created)
             revert IntentHandler__InvalidState();
 
-        intent.state = IntentState.ResignedByArk;
+        intent.state = IntentState.UserResigned;
 
         emit IntentResignedByArk(user, address(0), 0);
     }
@@ -223,7 +223,7 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         if (intent.solver != msg.sender)
             revert IntentHandler__UnauthorizedCaller();
 
-        intent.state = IntentState.ResignedBySolver;
+        intent.state = IntentState.SolverResigned;
 
         // Get the solver's bond amount and slash bond (50% penalty)
         uint256 solverBondAmount = intentBondFactory.getSolverBondAmount(
