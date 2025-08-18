@@ -20,7 +20,11 @@ export class SiloProduct extends ERC4626Product {
     const gaugeHook = IGaugeHookReceiver.bind(gaugeHookReceiver)
     const gaugeAddress = gaugeHook.configuredGauges(siloAddress)
     const incentivesController = ISiloIncentivesController.bind(gaugeAddress)
-    const programNames = incentivesController.getAllProgramsNames()
+    const maybeProgramNames = incentivesController.try_getAllProgramsNames()
+    if (maybeProgramNames.reverted) {
+      return []
+    }
+    const programNames = maybeProgramNames.value
     const siloAsset = getOrCreateToken(silo.asset())
     const siloAssetPriceInUSD = getTokenPriceInUSD(
       Address.fromBytes(siloAsset.address),
