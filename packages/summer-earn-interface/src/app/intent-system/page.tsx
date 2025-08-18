@@ -4,9 +4,16 @@ import { useEffect, useState } from 'react'
 import { ChainSelector } from '../../components/ChainSelector'
 import { EnvironmentSelector } from '../../components/EnvironmentSelector'
 import { ContractCard } from '../../components/ContractCard'
+import { SolverInfo } from '../../components/SolverInfo'
+import { CreateIntentModal } from '../../components/modals/CreateIntentModal'
+import { SolveIntentModal } from '../../components/modals/SolveIntentModal'
+import { CreateBondModal } from '../../components/modals/CreateBondModal'
+import { AdminModal } from '../../components/modals/AdminModal'
 import { useEnvironment } from '../../hooks/useEnvironment'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useSyncWalletChain } from '../../hooks/useSyncWalletChain'
+import { useIntentSystem } from '../../hooks/useIntentSystem'
+import { formatEther } from 'viem'
 import type { ChainId } from '../../types'
 import { 
   INTENT_BOND_FACTORY_ADDRESSES, 
@@ -23,21 +30,32 @@ export default function IntentSystemPage() {
   const { environment, setEnvironment } = useEnvironment()
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   
+  // Modal states
+  const [showCreateIntent, setShowCreateIntent] = useState(false)
+  const [showSolveIntent, setShowSolveIntent] = useState(false)
+  const [showCreateBond, setShowCreateBond] = useState(false)
+  const [showAdmin, setShowAdmin] = useState(false)
+  
   useSyncWalletChain(selectedChain)
   
   useEffect(() => {
     setStoredChain(selectedChain)
   }, [selectedChain, setStoredChain])
 
-  // Get contract addresses for current environment and chain
-  const intentBondFactory = INTENT_BOND_FACTORY_ADDRESSES[environment][selectedChain]
-  const intentHandler = INTENT_HANDLER_ADDRESSES[environment][selectedChain]
-  const genericIntentArk = GENERIC_INTENT_ARK_ADDRESSES[environment][selectedChain]
-  const aaveV3Escrow = AAVE_V3_ESCROW_ADDRESSES[environment][selectedChain]
-  const mockIntentOracle = MOCK_INTENT_ORACLE_ADDRESSES[environment][selectedChain]
-  const tokens = INTENT_SYSTEM_TOKENS[environment][selectedChain]
+  // Use the Intent System hook for real data
+  const {
+    intentData,
+    solverInfo,
+    isDeployed,
+    intentBondFactory,
+    intentHandler,
+    genericIntentArk,
+    aaveV3Escrow,
+    tokens
+  } = useIntentSystem(environment, selectedChain)
 
-  const isDeployed = intentBondFactory !== '0x0000000000000000000000000000000000000000'
+  // Get mockIntentOracle from config
+  const mockIntentOracle = MOCK_INTENT_ORACLE_ADDRESSES[environment][selectedChain]
 
   const copyToClipboard = async (address: string) => {
     try {
@@ -244,22 +262,255 @@ export default function IntentSystemPage() {
               </div>
             </div>
 
+            {/* Intent System Actions */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-white mb-4">Intent System Actions</h2>
+              
+              {/* Intent Lifecycle Actions */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">🎯 Intent Lifecycle</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Create Intent</h4>
+                    <p className="text-sm text-gray-400 mb-3">Keeper calls GenericIntentArk.postIntent()</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• Required notional amount</div>
+                      <div>• Term length</div>
+                      <div>• Target yield</div>
+                      <div>• Oracle & expiry</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Solve Intent</h4>
+                    <p className="text-sm text-gray-400 mb-3">Solver calls IntentHandler.solveIntent()</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• Must have sufficient bond</div>
+                      <div>• Escrow yield upfront</div>
+                      <div>• Oracle price validation</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Settle Intent</h4>
+                    <p className="text-sm text-gray-400 mb-3">Solver calls IntentHandler.settleIntent()</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• After term completion</div>
+                      <div>• Keeps bond intact</div>
+                      <div>• Releases escrowed yield</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Management Actions */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">⚙️ Management Actions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Resign Intent</h4>
+                    <p className="text-sm text-gray-400 mb-3">Early termination options</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• User resign: before solving</div>
+                      <div>• Solver resign: 50% bond penalty</div>
+                      <div>• Returns escrowed yield</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Bond Management</h4>
+                    <p className="text-sm text-gray-400 mb-3">Solver bond operations</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• Add/remove bond amounts</div>
+                      <div>• Check voucher status</div>
+                      <div>• Bond slashing on failure</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Role Management</h4>
+                    <p className="text-sm text-gray-400 mb-3">Admin role assignments</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• Grant/revoke solver role</div>
+                      <div>• Grant/revoke ark role</div>
+                      <div>• Grant/revoke liquidator role</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Aave V3 Escrow Actions */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">🏦 Aave V3 Escrow Actions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Asset Operations</h4>
+                    <p className="text-sm text-gray-400 mb-3">Deposit & withdrawal</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• deposit(): Supply to Aave V3</div>
+                      <div>• withdraw(): Withdraw from Aave V3</div>
+                      <div>• totalAssets(): Get aToken balance</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Reward Management</h4>
+                    <p className="text-sm text-gray-400 mb-3">Claim and distribute rewards</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• claimAllRewards(): Keeper only</div>
+                      <div>• Transfers rewards to ark</div>
+                      <div>• Supports multiple reward tokens</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">Yield Management</h4>
+                    <p className="text-sm text-gray-400 mb-3">Escrowed yield handling</p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>• returnEscrowedYield(): Return to solver</div>
+                      <div>• Only callable by IntentHandler</div>
+                      <div>• Handles early termination</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Solver Information */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-white mb-4">Solver Information</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {solverInfo ? (
+                  <SolverInfo
+                    solverAddress={solverInfo.address}
+                    totalAssets={`${formatEther(solverInfo.totalAssets)} USDC`}
+                    bondAmount={`${formatEther(solverInfo.bondAmount)} SUMMER`}
+                    isVouched={solverInfo.isVouched}
+                    chainId={selectedChain}
+                  />
+                ) : (
+                  <div className="bg-charcoal-800/50 p-6 rounded-xl border border-white/10">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-2xl">👤</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">No Solver Active</h3>
+                      <p className="text-gray-400 mb-4">
+                        No solver has been assigned to the current intent yet.
+                      </p>
+                      <button
+                        onClick={() => setShowCreateBond(true)}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors"
+                      >
+                        Create Solver Bond
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="bg-charcoal-800/50 p-6 rounded-xl border border-white/10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">📈</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Performance Metrics</h3>
+                      <p className="text-sm text-gray-400">Solver performance overview</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-charcoal-700/50 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-400">12</div>
+                        <div className="text-sm text-gray-400">Intents Solved</div>
+                      </div>
+                      <div className="bg-charcoal-700/50 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-blue-400">98.5%</div>
+                        <div className="text-sm text-gray-400">Success Rate</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-charcoal-700/50 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-400">$2.1M</div>
+                        <div className="text-sm text-gray-400">Total Volume</div>
+                      </div>
+                      <div className="bg-charcoal-700/50 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-yellow-400">45 days</div>
+                        <div className="text-sm text-gray-400">Avg Term</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Quick Actions */}
             <div className="mb-8">
               <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
               <div className="flex flex-wrap gap-4">
-                <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors">
-                  📊 View Intent Statistics
+                <button 
+                  onClick={() => setShowCreateIntent(true)}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                >
+                  📝 Create Intent
                 </button>
-                <button className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors">
-                  🔍 Monitor Intents
+                <button 
+                  onClick={() => setShowSolveIntent(true)}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+                >
+                  🔍 Solve Intent
                 </button>
-                <button className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors">
-                  ⚙️ Manage Solvers
+                <button 
+                  onClick={() => setShowCreateBond(true)}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+                >
+                  🏦 Create Bond
                 </button>
-                <button className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors">
-                  📝 Post Intent
+                <button 
+                  onClick={() => setShowAdmin(true)}
+                  className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors"
+                >
+                  ⚙️ Admin Functions
                 </button>
+                <button className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold transition-colors">
+                  📊 View Statistics
+                </button>
+                <button className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors">
+                  🔮 Oracle Status
+                </button>
+              </div>
+            </div>
+
+            {/* System Status Overview */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-white mb-4">System Status Overview</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
+                  <div className="text-2xl mb-2">🏭</div>
+                  <div className="text-lg font-semibold text-white">Bond Factory</div>
+                  <div className="text-sm text-green-400">✓ Active</div>
+                  <div className="text-xs text-gray-400 mt-1">Ready for bonds</div>
+                </div>
+                
+                <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
+                  <div className="text-2xl mb-2">⚡</div>
+                  <div className="text-lg font-semibold text-white">Intent Handler</div>
+                  <div className="text-sm text-green-400">✓ Active</div>
+                  <div className="text-xs text-gray-400 mt-1">Ready for intents</div>
+                </div>
+                
+                <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
+                  <div className="text-2xl mb-2">🚢</div>
+                  <div className="text-lg font-semibold text-white">Generic Ark</div>
+                  <div className="text-sm text-green-400">✓ Active</div>
+                  <div className="text-xs text-gray-400 mt-1">Ready for posting</div>
+                </div>
+                
+                <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
+                  <div className="text-2xl mb-2">🏦</div>
+                  <div className="text-lg font-semibold text-white">Aave Escrow</div>
+                  <div className="text-sm text-green-400">✓ Active</div>
+                  <div className="text-xs text-gray-400 mt-1">Ready for operations</div>
+                </div>
               </div>
             </div>
           </>
@@ -286,6 +537,35 @@ export default function IntentSystemPage() {
             </div>
           </div>
         )}
+
+        {/* Modals */}
+        <CreateIntentModal
+          isOpen={showCreateIntent}
+          onClose={() => setShowCreateIntent(false)}
+          environment={environment}
+          chainId={selectedChain}
+        />
+        
+        <SolveIntentModal
+          isOpen={showSolveIntent}
+          onClose={() => setShowSolveIntent(false)}
+          environment={environment}
+          chainId={selectedChain}
+        />
+        
+        <CreateBondModal
+          isOpen={showCreateBond}
+          onClose={() => setShowCreateBond(false)}
+          environment={environment}
+          chainId={selectedChain}
+        />
+        
+        <AdminModal
+          isOpen={showAdmin}
+          onClose={() => setShowAdmin(false)}
+          environment={environment}
+          chainId={selectedChain}
+        />
       </div>
     </main>
   )
