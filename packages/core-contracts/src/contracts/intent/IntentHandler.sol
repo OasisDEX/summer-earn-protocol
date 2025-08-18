@@ -226,6 +226,7 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         intent.state = IntentState.SolverResigned;
 
         // Get the solver's bond amount and slash bond (50% penalty)
+        // todo: handle it nicely :)
         uint256 solverBondAmount = intentBondFactory.getSolverBondAmount(
             msg.sender
         );
