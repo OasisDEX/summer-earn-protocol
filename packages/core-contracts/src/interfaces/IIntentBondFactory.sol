@@ -95,4 +95,11 @@ interface IIntentBondFactory {
      * @return Address of the Summer token
      */
     function summerToken() external view returns (address);
+
+    /**
+     * @notice Slash a solver's bond
+     * @param solver Address of the solver
+     * @param slashAmount Amount to slash from the bond
+     */
+    function slashBond(address solver, uint256 slashAmount) external;
 }

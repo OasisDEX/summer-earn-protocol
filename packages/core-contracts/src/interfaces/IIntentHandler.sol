@@ -15,7 +15,7 @@ interface IIntentHandler {
         uint256 requiredNotional,
         uint256 term,
         uint256 targetYield,
-        address summerToken,
+        address token,
         address oracle,
         uint256 expiry
     );
@@ -55,14 +55,15 @@ interface IIntentHandler {
                                         ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error IntentAlreadyExists();
-    error IntentNotFound();
-    error IntentExpired();
-    error IntentNotSolved();
-    error InsufficientBond();
-    error InvalidOracle();
-    error InvalidState();
-    error UnauthorizedCaller();
+    error IntentHandler__IntentAlreadyExists();
+    error IntentHandler__IntentNotFound();
+    error IntentHandler__IntentExpired();
+    error IntentHandler__IntentNotSolved();
+    error IntentHandler__InsufficientBond();
+    error IntentHandler__InvalidOracle();
+    error IntentHandler__InvalidState();
+    error IntentHandler__UnauthorizedCaller();
+    error IntentHandler__ConstructorParamsInvalid(string reason);
 
     /*//////////////////////////////////////////////////////////////
                                         STRUCTS
@@ -72,7 +73,7 @@ interface IIntentHandler {
         uint256 requiredNotional;
         uint256 term;
         uint256 targetYield;
-        address summerToken;
+        address token;
         address oracle;
         uint256 expiry;
         address solver;
@@ -100,7 +101,7 @@ interface IIntentHandler {
      * @param requiredNotional Required notional value for the intent
      * @param term Term length in seconds
      * @param targetYield Target yield amount
-     * @param summerToken Address of Summer token for bonding
+     * @param token Address of intent token
      * @param oracle Address of oracle for price verification
      * @param expiry Expiry timestamp
      */
@@ -109,7 +110,7 @@ interface IIntentHandler {
         uint256 requiredNotional,
         uint256 term,
         uint256 targetYield,
-        address summerToken,
+        address token,
         address oracle,
         uint256 expiry
     ) external;

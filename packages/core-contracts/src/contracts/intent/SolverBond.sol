@@ -14,18 +14,13 @@ contract SolverBond is ReentrancyGuard, AccessControl {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
-                                        CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    bytes32 public constant HANDLER_ROLE = keccak256("HANDLER_ROLE");
-    bytes32 public constant LIQUIDATOR_ROLE = keccak256("LIQUIDATOR_ROLE");
-
-    /*//////////////////////////////////////////////////////////////
                                     STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The solver who owns this bond
     address public immutable solver;
+
+    address public immutable factory;
 
     /// @notice The Summer token used for bonding
     IERC20 public immutable summerToken;
@@ -40,7 +35,7 @@ contract SolverBond is ReentrancyGuard, AccessControl {
     constructor(address _solver, address _summerToken) {
         solver = _solver;
         summerToken = IERC20(_summerToken);
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        factory = msg.sender;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -52,13 +47,8 @@ contract SolverBond is ReentrancyGuard, AccessControl {
         _;
     }
 
-    modifier onlyHandler() {
-        if (!hasRole(HANDLER_ROLE, msg.sender)) revert UnauthorizedCaller();
-        _;
-    }
-
-    modifier onlyLiquidator() {
-        if (!hasRole(LIQUIDATOR_ROLE, msg.sender)) revert UnauthorizedCaller();
+    modifier onlyFactory() {
+        if (msg.sender != factory) revert UnauthorizedCaller();
         _;
     }
 
@@ -103,7 +93,7 @@ contract SolverBond is ReentrancyGuard, AccessControl {
      * @notice Slash the bond (can only be called by liquidator)
      * @param slashAmount Amount to slash from the bond
      */
-    function slashBond(uint256 slashAmount) external onlyLiquidator {
+    function slashBond(uint256 slashAmount) external onlyFactory {
         if (slashAmount == 0) revert InvalidAmount();
         if (slashAmount > totalBonded) revert InsufficientBond();
 
@@ -134,22 +124,6 @@ contract SolverBond is ReentrancyGuard, AccessControl {
         uint256 requiredAmount
     ) external view returns (bool) {
         return totalBonded >= requiredAmount;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                        ADMIN FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function grantHandlerRole(
-        address handler
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(HANDLER_ROLE, handler);
-    }
-
-    function grantLiquidatorRole(
-        address liquidator
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(LIQUIDATOR_ROLE, liquidator);
     }
 
     /*//////////////////////////////////////////////////////////////

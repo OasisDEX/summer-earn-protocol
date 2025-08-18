@@ -51,7 +51,6 @@ contract GenericIntentArk is Ark {
      * @param requiredNotional Required notional value for the intent
      * @param term Term length in seconds
      * @param targetYield Target yield amount
-     * @param summerToken Address of Summer token for bonding
      * @param oracle Address of oracle for price verification
      * @param expiry Expiry timestamp
      */
@@ -60,15 +59,18 @@ contract GenericIntentArk is Ark {
         uint256 requiredNotional,
         uint256 term,
         uint256 targetYield,
-        address summerToken,
         address oracle,
         uint256 expiry
-    ) external onlyCommander {
-        if (activeIntents[intentId]) revert IntentAlreadyExists();
-        if (expiry <= block.timestamp) revert IntentExpired();
+    ) external onlyKeeper {
+        if (activeIntents[intentId]) revert IntentArk__IntentAlreadyExists();
+        if (expiry <= block.timestamp) revert IntentArk__IntentExpired();
 
         // Record the intent as active
         activeIntents[intentId] = true;
+        IERC20(config.asset).forceApprove(
+            address(intentHandler),
+            requiredNotional
+        );
 
         // Create intent in the handler
         intentHandler.createIntent(
@@ -76,7 +78,7 @@ contract GenericIntentArk is Ark {
             requiredNotional,
             term,
             targetYield,
-            summerToken,
+            address(config.asset),
             oracle,
             expiry
         );
@@ -88,11 +90,12 @@ contract GenericIntentArk is Ark {
      * @notice Cancel an intent before it's solved
      * @param intentId Unique identifier for the intent
      */
-    function cancelIntent(bytes32 intentId) external onlyCommander {
-        if (!activeIntents[intentId]) revert IntentNotFound();
+    function cancelIntent(bytes32 intentId) external onlyKeeper {
+        if (!activeIntents[intentId]) revert IntentArk__IntentNotFound();
 
         // Mark intent as cancelled
         activeIntents[intentId] = false;
+        IERC20(config.asset).forceApprove(address(intentHandler), 0);
 
         // Resign the intent in the handler
         intentHandler.resignByArk(address(this));
@@ -117,7 +120,7 @@ contract GenericIntentArk is Ark {
     function getIntent(
         bytes32 intentId
     ) external view returns (IIntentHandler.Intent memory) {
-        if (!activeIntents[intentId]) revert IntentNotFound();
+        if (!activeIntents[intentId]) revert IntentArk__IntentNotFound();
         return intentHandler.getIntent(address(this));
     }
 
@@ -218,7 +221,7 @@ contract GenericIntentArk is Ark {
                                         ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error IntentAlreadyExists();
-    error IntentNotFound();
-    error IntentExpired();
+    error IntentArk__IntentAlreadyExists();
+    error IntentArk__IntentNotFound();
+    error IntentArk__IntentExpired();
 }

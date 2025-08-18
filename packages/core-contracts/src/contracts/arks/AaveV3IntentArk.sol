@@ -187,7 +187,6 @@ contract AaveV3IntentArk is Ark {
      * @param requiredNotional Required notional value in Summer tokens
      * @param term Duration of the intent in seconds
      * @param targetYield Target yield amount
-     * @param summerToken Summer token address for bonding
      * @param oracle Oracle address for price verification
      * @param expiry Expiry timestamp
      */
@@ -195,7 +194,6 @@ contract AaveV3IntentArk is Ark {
         uint256 requiredNotional,
         uint256 term,
         uint256 targetYield,
-        address summerToken,
         address oracle,
         uint256 expiry
     ) external onlyCommander {
@@ -204,39 +202,10 @@ contract AaveV3IntentArk is Ark {
             requiredNotional,
             term,
             targetYield,
-            summerToken,
+            address(config.asset),
             oracle,
             expiry
         );
-    }
-
-    /**
-     * @notice Accepts a match from a solver (legacy function - now solvers solve directly)
-     * @param solverAddress Address of the solver
-     * @param escrowedYield Amount of yield escrowed upfront
-     * @dev This function is kept for backward compatibility but now calls solveIntent
-     */
-    function acceptMatch(
-        address solverAddress,
-        uint256 escrowedYield
-    ) external onlyCommander {
-        // In the new system, solvers solve intents directly
-        // This function is kept for backward compatibility
-        intentHandler.solveIntent(address(this), solverAddress, escrowedYield);
-    }
-
-    /**
-     * @notice Activates an intent after matching
-     */
-    function activateIntent() external onlyCommander {
-        intentHandler.activateIntent(address(this));
-    }
-
-    /**
-     * @notice Settles a completed intent
-     */
-    function settleIntent() external onlyCommander {
-        intentHandler.settleIntent(address(this));
     }
 
     /**

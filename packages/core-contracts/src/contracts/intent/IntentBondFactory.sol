@@ -58,8 +58,9 @@ contract IntentBondFactory is AccessControl {
     function createBond(
         address solver
     ) external returns (address bondContract) {
-        if (solver == address(0)) revert InvalidSolver();
-        if (solverBonds[solver] != address(0)) revert BondAlreadyExists();
+        if (solver == address(0)) revert IntentBondFactory__InvalidSolver();
+        if (solverBonds[solver] != address(0))
+            revert IntentBondFactory__BondAlreadyExists();
 
         // Deploy new bond contract for this solver
         bondContract = address(new SolverBond(solver, summerToken));
@@ -193,7 +194,8 @@ contract IntentBondFactory is AccessControl {
      */
     function removeBond(address solver) external onlyRole(DEFAULT_ADMIN_ROLE) {
         address bondContract = solverBonds[solver];
-        if (bondContract == address(0)) revert BondNotFound();
+        if (bondContract == address(0))
+            revert IntentBondFactory__BondNotFound();
 
         // Remove from mappings
         solverBonds[solver] = address(0);
@@ -210,13 +212,24 @@ contract IntentBondFactory is AccessControl {
         emit BondRemoved(solver, bondContract);
     }
 
+    function slashBond(
+        address solver,
+        uint256 slashAmount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        address bondContract = solverBonds[solver];
+        if (bondContract == address(0))
+            revert IntentBondFactory__BondNotFound();
+
+        ISolverBond(bondContract).slashBond(slashAmount);
+    }
+
     /*//////////////////////////////////////////////////////////////
                                         ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error InvalidSolver();
-    error BondAlreadyExists();
-    error BondNotFound();
+    error IntentBondFactory__InvalidSolver();
+    error IntentBondFactory__BondAlreadyExists();
+    error IntentBondFactory__BondNotFound();
 }
 
 // Interface for individual solver bond contracts
