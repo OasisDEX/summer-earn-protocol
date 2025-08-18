@@ -77,6 +77,12 @@ export default function Home() {
             >
               🎁 Vesting (Base)
             </a>
+            <a
+              href="/intent-system"
+              className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              ⚡ Intent System
+            </a>
           </div>
         </div>
 
