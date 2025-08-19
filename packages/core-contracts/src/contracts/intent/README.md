@@ -12,7 +12,6 @@ The Intent-Based Bond System is a CoW Swap-style bonding mechanism where **each 
 - **SolverBond**: Individual bond contract per solver (Summer tokens only)
 - **IntentHandler**: Manages intent lifecycle, bond verification, and commitment checking
 - **Escrow**: Individual escrow contracts per solver for holding yield during intent execution
-- **Protocol Adapters**: Handle specific protocol interactions (Aave V3, etc.)
 
 ## Flow Diagram
 
@@ -26,8 +25,6 @@ flowchart TD
     Bond[💰 Solver's Individual Bond]
     Handler[⚙️ Intent Handler]
     Escrow[🏦 Solver's Escrow]
-    Adapter[🔌 Protocol Adapter]
-    Protocol[🌊 External Protocol]
     
     %% Solver Bond Creation Flow
     Solver -->|1. Create Bond| Factory
@@ -49,38 +46,37 @@ flowchart TD
     Handler -->|13. Transfer Yield to Escrow| Escrow
     
     %% Intent Execution Flow
-    Solver -->|14. Execute via Adapter| Adapter
-    Adapter -->|15. Protocol Call| Protocol
+    Solver -->|14. Execute Protocol Actions| External
     
     %% Intent Settlement Flow
-    Solver -->|16. Complete Term| Handler
-    Solver -->|17. Settle Intent| Handler
-    Handler -->|18. Mark Settled| Handler
-    Handler -->|19. Transfer Yield to Ark Buffer| Ark
+    Solver -->|15. Complete Term| Handler
+    Solver -->|16. Settle Intent| Handler
+    Handler -->|17. Mark Settled| Handler
+    Handler -->|18. Transfer Yield to Ark Buffer| Ark
     
     %% Alternative Flows
-    Ark -->|20a. Cancel Intent| Handler
-    Handler -->|21a. Mark Cancelled| Handler
-    Handler -->|22a. Return Yield to Solver| Escrow
+    Ark -->|19a. Cancel Intent| Handler
+    Handler -->|20a. Mark Cancelled| Handler
+    Handler -->|21a. Return Yield to Solver| Escrow
     
-    Solver -->|20b. Resign Intent| Handler
-    Handler -->|21b. Get Bond Contract| Factory
-    Factory -->|22b. Return Bond Contract| Handler
-    Handler -->|23b. Slash Bond 50%| Bond
-    Bond -->|24b. Update Bond| Bond
+    Solver -->|19b. Resign Intent| Handler
+    Handler -->|20b. Get Bond Contract| Factory
+    Factory -->|21b. Return Bond Contract| Handler
+    Handler -->|22b. Slash Bond 50%| Bond
+    Bond -->|23b. Update Bond| Bond
     
     %% Styling
     classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     classDef solverClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef arkClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef contractClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef protocolClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef externalClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     
     class User userClass
     class Solver solverClass
     class Ark arkClass
-    class Factory,Bond,Handler,Escrow,Adapter contractClass
-    class Protocol protocolClass
+    class Factory,Bond,Handler,Escrow contractClass
+    class External externalClass
 ```
 
 ## Detailed Flow Steps
@@ -104,12 +100,12 @@ flowchart TD
 - Intent transitions to `Solved` state
 
 ### 4. Intent Execution
-- **Solver** executes protocol actions via adapter
-- **Protocol Adapter** handles specific protocol interactions
+- **Solver** executes solveIntent() - intent yield amount is pulled to solvers escrow
+- **Keeper** is obledged to deposit to solvers protocol (there's 10 minute buffer)
 - Yield remains escrowed in solver's individual escrow contract
 
 ### 5. Intent Settlement
-- **Solver** completes the term and calls `settleIntent()`
+- **Solver** completes the term and calls `settleIntent()` (permissionless)
 - **IntentHandler** withdraws yield from solver's escrow
 - **IntentHandler** transfers yield to Ark's buffer via FleetCommander
 - Intent transitions to `Settled` state
@@ -157,16 +153,12 @@ graph LR
         EscrowN[SolverN Escrow]
     end
     
-    subgraph "Protocol Layer"
-        Adapter[AaveV3Adapter]
-        Protocol[Aave V3 Pool]
-    end
-    
     subgraph "External"
         Solver1[Solver 1]
         Solver2[Solver 2]
         Summer[Summer Token]
         Ark[Ark Buffer]
+        Protocol[External Protocols]
     end
     
     Handler --> Factory
@@ -180,8 +172,8 @@ graph LR
     Solver2 --> Bond2
     Solver1 --> Handler
     Solver2 --> Handler
-    Solver1 --> Adapter
-    Adapter --> Protocol
+    Solver1 --> Protocol
+    Solver2 --> Protocol
     Bond1 --> Summer
     Bond2 --> Summer
     Handler --> Ark
@@ -252,7 +244,7 @@ function hasCommitted(Intent memory intent) external view
 5. **Overly Simple**: Easy to understand and maintain
 6. **CoW Swap Style**: Individual bonding pools per solver
 7. **Efficient Flow**: No approval bottlenecks
-8. **Flexible**: Easy to add new protocols via adapters
+8. **Simple Design**: No complex protocol integrations
 9. **Buffer Protection**: Grace period for Ark commitment verification
 10. **Yield Management**: Automatic yield return to Ark buffer
 
@@ -264,7 +256,7 @@ function hasCommitted(Intent memory intent) external view
 4. **Solver solves intent** directly by calling `solveIntent(intent, escrowedYield)`
 5. **System verifies** solver has sufficient bond in their individual contract
 6. **Yield is escrowed** in solver's individual escrow contract
-7. **Solver executes** via protocol adapter (Aave, etc.)
+7. **Solver executes** protocol actions externally (not through intent system)
 8. **Solver settles** when term completes via `settleIntent()`
 9. **Yield returns** to Ark's buffer via FleetCommander
 10. **Bond stays** in solver's individual contract (no shared pools)
@@ -273,6 +265,7 @@ function hasCommitted(Intent memory intent) external view
 
 - ❌ **No GenericIntentArk**: Arks work independently offchain
 - ❌ **No Ark approval**: Solvers solve intents directly
+- ❌ **No Protocol Adapters**: Solvers execute externally
 - ✅ **Commitment checking**: System only verifies Ark commitment status
 - ✅ **Buffer yield return**: Settled intents return yield to Ark's buffer
 - ✅ **Individual escrows**: Each solver has their own escrow contract

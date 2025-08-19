@@ -109,14 +109,13 @@ contract DeployIntentSystem is Script {
         );
         console.log("2. Register fleet commander with the ark");
         console.log(
-            "3. Add solver adapters via IntentHandler.addSolverAdapter()"
-        );
-        console.log("4. Configure oracle with supported tokens");
-        console.log(
-            "5. Create solver bonds via IntentBondFactory.createBond()"
+            "3. Configure oracle with supported tokens"
         );
         console.log(
-            "6. Add solver escrows via IntentHandler.addSolverEscrow()"
+            "4. Create solver bonds via IntentBondFactory.createBond()"
+        );
+        console.log(
+            "5. Add solver escrows via IntentHandler.addSolverEscrow()"
         );
         console.log("");
         console.log("=== Security Notes ===");
