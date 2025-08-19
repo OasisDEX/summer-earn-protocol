@@ -456,7 +456,7 @@ async function deployCrossChainArkContract(
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
-          requiresKeeperData: false,
+          requiresKeeperData: true,
           maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
