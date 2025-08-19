@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useIntentSystem } from '../../hooks/useIntentSystem'
-import { formatEther, parseEther } from 'viem'
 import type { Environment } from '../../config/environments'
+import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { ChainId } from '../../types'
 
 interface SolveIntentModalProps {
@@ -14,36 +13,31 @@ interface SolveIntentModalProps {
 }
 
 export function SolveIntentModal({ isOpen, onClose, environment, chainId }: SolveIntentModalProps) {
-  const {
-    solveIntent,
-    loading,
-    error,
-    intentHandler
-  } = useIntentSystem(environment, chainId)
+  const { solveIntent, loading, error, intentHandler } = useIntentSystem(environment, chainId)
 
   const [formData, setFormData] = useState({
     userAddress: '',
     solverAddress: '',
-    escrowedYield: ''
+    escrowedYield: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       const hash = await solveIntent(
         formData.userAddress,
         formData.solverAddress,
-        formData.escrowedYield
+        formData.escrowedYield,
       )
-      
+
       console.log('Intent solved:', hash)
       onClose()
       // Reset form
       setFormData({
         userAddress: '',
         solverAddress: '',
-        escrowedYield: ''
+        escrowedYield: '',
       })
     } catch (err) {
       console.error('Error solving intent:', err)
@@ -51,7 +45,7 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
   }
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   if (!isOpen) return null
@@ -61,10 +55,7 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
       <div className="bg-charcoal-800 rounded-xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-white">Solve Intent</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             ✕
           </button>
         </div>
@@ -87,9 +78,7 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
 
           {/* Solver Address */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Solver Address
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Solver Address</label>
             <input
               type="text"
               value={formData.solverAddress}

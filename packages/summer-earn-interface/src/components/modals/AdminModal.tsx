@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { Environment } from '../../config/environments'
+import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { ChainId } from '../../types'
 
 interface AdminModalProps {
@@ -13,28 +13,22 @@ interface AdminModalProps {
 }
 
 export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModalProps) {
-  const {
-    grantSolverRole,
-    addSolverAdapter,
-    loading,
-    error,
-    intentHandler,
-    aaveV3Escrow
-  } = useIntentSystem(environment, chainId)
+  const { grantSolverRole, addSolverAdapter, loading, error, intentHandler, aaveV3Escrow } =
+    useIntentSystem(environment, chainId)
 
   const [activeTab, setActiveTab] = useState<'roles' | 'adapters'>('roles')
   const [formData, setFormData] = useState({
     solverAddress: '',
-    adapterAddress: ''
+    adapterAddress: '',
   })
 
   const handleGrantSolverRole = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       const hash = await grantSolverRole(formData.solverAddress)
       console.log('Solver role granted:', hash)
-      setFormData(prev => ({ ...prev, solverAddress: '' }))
+      setFormData((prev) => ({ ...prev, solverAddress: '' }))
     } catch (err) {
       console.error('Error granting solver role:', err)
     }
@@ -42,7 +36,7 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
 
   const handleAddSolverAdapter = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       const hash = await addSolverAdapter(formData.solverAddress, formData.adapterAddress)
       console.log('Solver adapter added:', hash)
@@ -53,7 +47,7 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
   }
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   if (!isOpen) return null
@@ -63,10 +57,7 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
       <div className="bg-charcoal-800 rounded-xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-white">Admin Functions</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             ✕
           </button>
         </div>
@@ -99,9 +90,7 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
         {activeTab === 'roles' && (
           <form onSubmit={handleGrantSolverRole} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Solver Address
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Solver Address</label>
               <input
                 type="text"
                 value={formData.solverAddress}
@@ -110,9 +99,7 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
                 className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                 required
               />
-              <p className="text-xs text-gray-400 mt-1">
-                Address to grant SOLVER_ROLE
-              </p>
+              <p className="text-xs text-gray-400 mt-1">Address to grant SOLVER_ROLE</p>
             </div>
 
             <button
@@ -129,9 +116,7 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
         {activeTab === 'adapters' && (
           <form onSubmit={handleAddSolverAdapter} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Solver Address
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Solver Address</label>
               <input
                 type="text"
                 value={formData.solverAddress}
@@ -154,9 +139,7 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
                 className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                 required
               />
-              <p className="text-xs text-gray-400 mt-1">
-                Protocol adapter (e.g., AaveV3Escrow)
-              </p>
+              <p className="text-xs text-gray-400 mt-1">Protocol adapter (e.g., AaveV3Escrow)</p>
             </div>
 
             <button

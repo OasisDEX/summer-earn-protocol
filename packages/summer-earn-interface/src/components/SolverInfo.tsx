@@ -13,7 +13,7 @@ export function SolverInfo({
   totalAssets,
   bondAmount,
   isVouched,
-  chainId
+  chainId,
 }: SolverInfoProps) {
   const getExplorerUrl = (address: string) => {
     if (chainId === '8453') {
@@ -33,7 +33,7 @@ export function SolverInfo({
           <p className="text-sm text-gray-400">Current solver details and status</p>
         </div>
       </div>
-      
+
       <div className="space-y-4">
         {/* Solver Address */}
         <div>
@@ -72,7 +72,9 @@ export function SolverInfo({
           {/* Voucher Status */}
           <div className="bg-charcoal-700/50 p-3 rounded-lg">
             <div className="text-sm text-gray-400 mb-1">Voucher Status</div>
-            <div className={`text-lg font-semibold ${isVouched ? 'text-green-400' : 'text-red-400'}`}>
+            <div
+              className={`text-lg font-semibold ${isVouched ? 'text-green-400' : 'text-red-400'}`}
+            >
               {isVouched ? '✓ Vouched' : '✗ Not Vouched'}
             </div>
             <div className="text-xs text-gray-500">

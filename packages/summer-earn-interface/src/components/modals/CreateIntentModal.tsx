@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useIntentSystem } from '../../hooks/useIntentSystem'
-import { formatEther, parseEther } from 'viem'
 import type { Environment } from '../../config/environments'
+import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { ChainId } from '../../types'
 
 interface CreateIntentModalProps {
@@ -13,14 +12,16 @@ interface CreateIntentModalProps {
   chainId: ChainId
 }
 
-export function CreateIntentModal({ isOpen, onClose, environment, chainId }: CreateIntentModalProps) {
-  const {
-    createIntent,
-    loading,
-    error,
-    tokens,
-    genericIntentArk
-  } = useIntentSystem(environment, chainId)
+export function CreateIntentModal({
+  isOpen,
+  onClose,
+  environment,
+  chainId,
+}: CreateIntentModalProps) {
+  const { createIntent, loading, error, tokens, genericIntentArk } = useIntentSystem(
+    environment,
+    chainId,
+  )
 
   const [formData, setFormData] = useState({
     intentId: '',
@@ -29,12 +30,12 @@ export function CreateIntentModal({ isOpen, onClose, environment, chainId }: Cre
     targetYield: '',
     summerToken: tokens?.SUMMER_TOKEN || '',
     oracle: '',
-    expiry: ''
+    expiry: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       const expiryTimestamp = Math.floor(new Date(formData.expiry).getTime() / 1000)
       const hash = await createIntent(
@@ -44,9 +45,9 @@ export function CreateIntentModal({ isOpen, onClose, environment, chainId }: Cre
         formData.targetYield,
         formData.summerToken,
         formData.oracle,
-        expiryTimestamp.toString()
+        expiryTimestamp.toString(),
       )
-      
+
       console.log('Intent created:', hash)
       onClose()
       // Reset form
@@ -57,7 +58,7 @@ export function CreateIntentModal({ isOpen, onClose, environment, chainId }: Cre
         targetYield: '',
         summerToken: tokens?.SUMMER_TOKEN || '',
         oracle: '',
-        expiry: ''
+        expiry: '',
       })
     } catch (err) {
       console.error('Error creating intent:', err)
@@ -65,7 +66,7 @@ export function CreateIntentModal({ isOpen, onClose, environment, chainId }: Cre
   }
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   if (!isOpen) return null
@@ -75,10 +76,7 @@ export function CreateIntentModal({ isOpen, onClose, environment, chainId }: Cre
       <div className="bg-charcoal-800 rounded-xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-white">Create Intent</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             ✕
           </button>
         </div>
@@ -117,9 +115,7 @@ export function CreateIntentModal({ isOpen, onClose, environment, chainId }: Cre
 
           {/* Term */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Term (seconds)
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Term (seconds)</label>
             <input
               type="number"
               value={formData.term}
@@ -166,9 +162,7 @@ export function CreateIntentModal({ isOpen, onClose, environment, chainId }: Cre
 
           {/* Oracle */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Oracle Address
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Oracle Address</label>
             <input
               type="text"
               value={formData.oracle}
@@ -181,9 +175,7 @@ export function CreateIntentModal({ isOpen, onClose, environment, chainId }: Cre
 
           {/* Expiry */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Expiry Date
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Expiry Date</label>
             <input
               type="datetime-local"
               value={formData.expiry}

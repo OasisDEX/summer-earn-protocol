@@ -7,38 +7,48 @@ import {IIntentOracle} from "../../interfaces/IIntentOracle.sol";
 import {ISolverBond} from "./IntentBondFactory.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {IAdapter} from "../../interfaces/intents/IAdapter.sol";
+import {IEscrow} from "../../interfaces/intents/IEscrow.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {Escrow} from "../adapters/Escrow.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {IArk} from "../../interfaces/IArk.sol";
+import {IArkConfigProvider} from "../../interfaces/IArkConfigProvider.sol";
+import {IFleetCommander} from "../../interfaces/IFleetCommander.sol";
 
 /**
  * @title IntentHandler
  * @notice Contract that manages the lifecycle of intent-based bonds using individual solver bond contracts
  * @dev Handles intent creation, solving, activation, settlement, and resignation
+ * @dev Deploys escrows for each solver to hold yield
  */
-contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
+contract IntentHandler is
+    IIntentHandler,
+    ReentrancyGuard,
+    ProtocolAccessManaged
+{
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     /*//////////////////////////////////////////////////////////////
                                         CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 public constant ARK_ROLE = keccak256("ARK_ROLE");
-    bytes32 public constant SOLVER_ROLE = keccak256("SOLVER_ROLE");
-    bytes32 public constant LIQUIDATOR_ROLE = keccak256("LIQUIDATOR_ROLE");
-
     uint256 public constant MAX_PRICE_AGE = 1 hours;
     uint256 public constant MIN_TERM = 1 days;
     uint256 public constant MAX_TERM = 365 days;
+    uint256 public constant BUFFER_TIME = 10 minutes;
 
     /*//////////////////////////////////////////////////////////////
                                     STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    mapping(address => Intent) public intents;
-    mapping(address solver => IAdapter solverAdapter) public solverAdapters;
+    mapping(bytes32 intentId => IntentState state) public intentStates;
+    mapping(address solver => Escrow escrow) public solverEscrows;
+    mapping(bytes32 intentId => address solver) public intentSolvers;
+    mapping(bytes32 intentId => uint256 solveTime) public intentSolveTime;
     IIntentBondFactory public immutable intentBondFactory;
     IIntentOracle public immutable intentOracle;
     IERC20 public immutable summerToken;
+    address public immutable accessManager;
 
     /*//////////////////////////////////////////////////////////////
                                             CONSTRUCTOR
@@ -47,8 +57,9 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
     constructor(
         address _intentBondFactory,
         address _intentOracle,
-        address _summerToken
-    ) {
+        address _summerToken,
+        address _accessManager
+    ) ProtocolAccessManaged(_accessManager) {
         if (_summerToken == address(0))
             revert IntentHandler__ConstructorParamsInvalid(
                 "Summer token cannot be zero address"
@@ -61,31 +72,23 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
             revert IntentHandler__ConstructorParamsInvalid(
                 "Intent oracle cannot be zero address"
             );
+        if (_accessManager == address(0))
+            revert IntentHandler__ConstructorParamsInvalid(
+                "Access manager cannot be zero address"
+            );
 
         summerToken = IERC20(_summerToken);
         intentBondFactory = IIntentBondFactory(_intentBondFactory);
         intentOracle = IIntentOracle(_intentOracle);
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        accessManager = _accessManager;
     }
 
     /*//////////////////////////////////////////////////////////////
                                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    modifier onlyArk() {
-        if (!hasRole(ARK_ROLE, msg.sender))
-            revert IntentHandler__UnauthorizedCaller();
-        _;
-    }
-
     modifier onlySolver() {
-        if (!hasRole(SOLVER_ROLE, msg.sender))
-            revert IntentHandler__UnauthorizedCaller();
-        _;
-    }
-
-    modifier onlyLiquidator() {
-        if (!hasRole(LIQUIDATOR_ROLE, msg.sender))
+        if (address(solverEscrows[msg.sender]) == address(0))
             revert IntentHandler__UnauthorizedCaller();
         _;
     }
@@ -94,53 +97,26 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
                                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function createIntent(
-        address user,
-        uint256 requiredNotional,
-        uint256 term,
-        uint256 targetYield,
-        address token,
-        address oracle,
-        uint256 expiry
-    ) external override onlyArk {
-        // Check if intent already exists by checking if any field is non-zero
-        if (intents[user].requiredNotional != 0)
+    function createIntent(Intent memory intent) external onlyKeeper {
+        bytes32 intentId = keccak256(abi.encode(intent));
+
+        if (intentStates[intentId] != IntentState.None)
             revert IntentHandler__IntentAlreadyExists();
-        if (term < MIN_TERM || term > MAX_TERM)
+        if (intent.term < MIN_TERM || intent.term > MAX_TERM)
             revert IntentHandler__InvalidState();
-        if (expiry <= block.timestamp) revert IntentHandler__IntentExpired();
+        if (intent.expiry <= block.timestamp)
+            revert IntentHandler__IntentExpired();
 
-        intents[user] = Intent({
-            requiredNotional: requiredNotional,
-            term: term,
-            targetYield: targetYield,
-            token: token,
-            oracle: oracle,
-            expiry: expiry,
-            solver: address(0),
-            escrowedYield: 0,
-            startTime: 0,
-            state: IntentState.Created
-        });
-
-        emit IntentCreated(
-            user,
-            requiredNotional,
-            term,
-            targetYield,
-            token,
-            oracle,
-            expiry
-        );
+        intentStates[intentId] = IntentState.Created;
+        emit IntentCreated(intentId, intent);
     }
 
     function solveIntent(
-        address user,
-        address solverAddress,
+        Intent memory intent,
         uint256 escrowedYield
-    ) external override onlySolver {
-        Intent storage intent = intents[user];
-        if (intent.state != IntentState.Created)
+    ) external onlySolver {
+        bytes32 intentId = keccak256(abi.encode(intent));
+        if (intentStates[intentId] != IntentState.Created)
             revert IntentHandler__IntentNotFound();
         if (block.timestamp > intent.expiry)
             revert IntentHandler__IntentExpired();
@@ -148,7 +124,7 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         // Check if solver is vouched with sufficient bond
         if (
             !intentBondFactory.isSolverVouched(
-                solverAddress,
+                msg.sender,
                 intent.requiredNotional
             )
         ) revert IntentHandler__InsufficientBond();
@@ -156,74 +132,79 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         // Verify oracle is not stale
         if (intentOracle.isPriceStale(address(summerToken), MAX_PRICE_AGE))
             revert IntentHandler__InvalidOracle();
+        if (intent.targetYield < escrowedYield) {
+            revert IntentHandler__TooLittleEscrowed();
+        }
 
-        intent.solver = solverAddress;
-        intent.escrowedYield = escrowedYield;
-        intent.state = IntentState.Solved;
-        intent.startTime = block.timestamp;
+        intentStates[intentId] = IntentState.Solved;
+        intentSolveTime[intentId] = block.timestamp;
+        intentSolvers[intentId] = msg.sender;
 
-        // Transfer the required notional to the adapter
-        IAdapter adapter = solverAdapters[solverAddress];
+        Escrow escrow = solverEscrows[msg.sender];
+        IERC20(intent.token).forceApprove(address(escrow), intent.targetYield);
         IERC20(intent.token).transferFrom(
-            user,
-            address(this),
-            intent.requiredNotional
-        );
-        IERC20(intent.token).forceApprove(
-            address(adapter),
-            intent.requiredNotional
-        );
-        adapter.deposit(intent.token, intent.requiredNotional, user);
-
-        // Transfer the escrowed yield to the adapter
-        IERC20(address(intent.token)).transferFrom(
             msg.sender,
-            address(adapter),
-            escrowedYield
+            address(this),
+            intent.targetYield
         );
+        escrow.deposit(intent.token, escrowedYield, intentId);
 
-        emit IntentSolved(user, solverAddress, escrowedYield);
+        emit IntentSolved(intent.user, msg.sender, escrowedYield);
     }
 
-    function settleIntent(address user) external override onlySolver {
-        Intent storage intent = intents[user];
-        if (intent.state != IntentState.Solved)
-            revert IntentHandler__InvalidState();
-        if (intent.solver != msg.sender)
-            revert IntentHandler__UnauthorizedCaller();
-        if (block.timestamp < intent.startTime + intent.term)
+    function settleIntent(Intent memory intent) external {
+        bytes32 intentId = keccak256(abi.encode(intent));
+        IntentState state = intentStates[intentId];
+
+        if (state != IntentState.Solved) revert IntentHandler__InvalidState();
+        if (block.timestamp < intent.expiry)
             revert IntentHandler__InvalidState();
 
-        intent.state = IntentState.Settled;
+        intentStates[intentId] = IntentState.Settled;
+
+        address solver = intentSolvers[intentId];
+        // Transfer escrowed yield to the user (ark)
+        Escrow escrow = solverEscrows[solver];
+        uint256 escrowedYield = escrow.withdraw(
+            intent.token,
+            intent.user,
+            intentId
+        );
+        address bufferArk = address(
+            IFleetCommander(IArkConfigProvider(intent.user).commander())
+                .bufferArk()
+        );
+        IERC20(intent.token).transfer(bufferArk, escrowedYield);
 
         // No need to release bond - solver keeps their bond in their individual contract
-        emit IntentSettled(user, intent.solver, intent.escrowedYield);
+        emit IntentSettled(intent.user, solver, escrowedYield);
     }
 
-    function resignByUser(address user) external override onlyArk {
-        Intent storage intent = intents[user];
-        if (intent.state == IntentState.Solved) {
+    function resignByUser(Intent memory intent) external onlyKeeper {
+        bytes32 intentId = keccak256(abi.encode(intent));
+        IntentState state = intentStates[intentId];
+        if (state == IntentState.Solved) {
             // need to return the escrowed yield to the solver
-            IAdapter adapter = solverAdapters[intent.solver];
-            adapter.returnEscrowedYield(intent.token, intent.escrowedYield);
-        } else if (intent.state != IntentState.Created)
+            address solver = intentSolvers[intentId];
+            Escrow escrow = solverEscrows[solver];
+            escrow.withdraw(intent.token, solver, intentId);
+        } else if (state != IntentState.Created)
             revert IntentHandler__InvalidState();
 
-        intent.state = IntentState.UserResigned;
+        intentStates[intentId] = IntentState.UserResigned;
 
-        emit IntentResignedByArk(user, address(0), 0);
+        emit IntentResignedByArk(intent.user, address(0), 0);
     }
 
-    function resignBySolver(address user) external override onlySolver {
-        Intent storage intent = intents[user];
-        if (
-            intent.state != IntentState.Solved &&
-            intent.state != IntentState.Active
-        ) revert IntentHandler__InvalidState();
-        if (intent.solver != msg.sender)
+    function resignBySolver(Intent memory intent) external {
+        bytes32 intentId = keccak256(abi.encode(intent));
+        IntentState state = intentStates[intentId];
+        if (state != IntentState.Solved && state != IntentState.Active)
+            revert IntentHandler__InvalidState();
+        if (intentSolvers[intentId] != msg.sender)
             revert IntentHandler__UnauthorizedCaller();
 
-        intent.state = IntentState.SolverResigned;
+        intentStates[intentId] = IntentState.SolverResigned;
 
         // Get the solver's bond amount and slash bond (50% penalty)
         // todo: handle it nicely :)
@@ -236,53 +217,95 @@ contract IntentHandler is IIntentHandler, ReentrancyGuard, AccessControl {
         intentBondFactory.slashBond(msg.sender, slashAmount);
 
         emit IntentResignedBySolver(
-            user,
+            intent.user,
             msg.sender,
             slashAmount,
-            intent.escrowedYield
+            intent.targetYield
         );
-    }
-
-    function getIntent(
-        address user
-    ) external view override returns (Intent memory) {
-        return intents[user];
-    }
-
-    function intentExists(address user) external view override returns (bool) {
-        return intents[user].requiredNotional != 0;
     }
 
     /*//////////////////////////////////////////////////////////////
                                         ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    function addSolverAdapter(
+
+    function addSolverEscrow(
         address solver,
-        address adapter
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        // todo erc165 check if adapter is a valid adapter
-        solverAdapters[solver] = IAdapter(adapter);
+        address asset
+    ) external onlyKeeper {
+        if (address(solverEscrows[solver]) != address(0))
+            revert IntentHandler__SolverEscrowAlreadyExists();
+
+        // Deploy new escrow for this solver
+        Escrow escrow = new Escrow(address(this));
+
+        solverEscrows[solver] = escrow;
+
+        emit SolverEscrowAdded(solver, address(escrow), asset);
     }
 
-    function removeSolverAdapter(
-        address solver
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        solverAdapters[solver] = IAdapter(address(0));
+    function removeSolverEscrow(address solver) external onlyKeeper {
+        if (address(solverEscrows[solver]) == address(0))
+            revert IntentHandler__SolverEscrowNotFound();
+
+        delete solverEscrows[solver];
+
+        emit SolverEscrowRemoved(solver);
     }
 
-    function grantArkRole(address user) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(ARK_ROLE, user);
+    /*//////////////////////////////////////////////////////////////
+                                        EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    event SolverEscrowAdded(
+        address indexed solver,
+        address indexed escrow,
+        address indexed asset
+    );
+    event SolverEscrowRemoved(address indexed solver);
+
+    function hasCommitted(
+        Intent memory intent
+    )
+        external
+        view
+        onlyExistingIntent(intent)
+        returns (uint256 requiredNotional, uint256 arkAssets, bool isCommited)
+    {
+        bytes32 intentId = keccak256(abi.encode(intent));
+        IntentState state = intentStates[intentId];
+
+        if (state != IntentState.Solved) return (0, 0, false);
+        requiredNotional = intent.requiredNotional;
+        bool isInBufferZone = block.timestamp - intentSolveTime[intentId] <
+            BUFFER_TIME;
+        if (isInBufferZone) return (requiredNotional, 0, false);
+
+        IArk ark = IArk(intent.user);
+        arkAssets = ark.totalAssets();
+        if (arkAssets < requiredNotional)
+            return (requiredNotional, arkAssets, false);
+        return (requiredNotional, arkAssets, true);
     }
 
-    function grantSolverRole(
-        address solver
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(SOLVER_ROLE, solver);
+    modifier onlyExistingIntent(Intent memory intent) {
+        bytes32 intentId = keccak256(abi.encode(intent));
+        if (intentStates[intentId] == IntentState.None)
+            revert IntentHandler__IntentNotFound();
+        _;
     }
+    /*//////////////////////////////////////////////////////////////
+                                        ERRORS
+    //////////////////////////////////////////////////////////////*/
 
-    function grantLiquidatorRole(
-        address liquidator
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(LIQUIDATOR_ROLE, liquidator);
-    }
+    error IntentHandler__SolverEscrowAlreadyExists();
+    error IntentHandler__SolverEscrowNotFound();
+    error IntentHandler__ConstructorParamsInvalid(string reason);
+    error IntentHandler__UnauthorizedCaller();
+    error IntentHandler__InvalidState();
+    error IntentHandler__IntentNotFound();
+    error IntentHandler__InsufficientBond();
+    error IntentHandler__InvalidOracle();
+    error IntentHandler__TooLittleEscrowed();
+    error IntentHandler__IntentExpired();
+    error IntentHandler__IntentAlreadyExists();
 }

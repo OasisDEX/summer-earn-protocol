@@ -1,43 +1,36 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatEther } from 'viem'
 import { ChainSelector } from '../../components/ChainSelector'
-import { EnvironmentSelector } from '../../components/EnvironmentSelector'
 import { ContractCard } from '../../components/ContractCard'
+import { EnvironmentSelector } from '../../components/EnvironmentSelector'
 import { SolverInfo } from '../../components/SolverInfo'
+import { AdminModal } from '../../components/modals/AdminModal'
+import { CreateBondModal } from '../../components/modals/CreateBondModal'
 import { CreateIntentModal } from '../../components/modals/CreateIntentModal'
 import { SolveIntentModal } from '../../components/modals/SolveIntentModal'
-import { CreateBondModal } from '../../components/modals/CreateBondModal'
-import { AdminModal } from '../../components/modals/AdminModal'
+import { MOCK_INTENT_ORACLE_ADDRESSES } from '../../config/environments'
 import { useEnvironment } from '../../hooks/useEnvironment'
+import { useIntentSystem } from '../../hooks/useIntentSystem'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useSyncWalletChain } from '../../hooks/useSyncWalletChain'
-import { useIntentSystem } from '../../hooks/useIntentSystem'
-import { formatEther } from 'viem'
 import type { ChainId } from '../../types'
-import { 
-  INTENT_BOND_FACTORY_ADDRESSES, 
-  INTENT_HANDLER_ADDRESSES, 
-  GENERIC_INTENT_ARK_ADDRESSES,
-  AAVE_V3_ESCROW_ADDRESSES,
-  MOCK_INTENT_ORACLE_ADDRESSES,
-  INTENT_SYSTEM_TOKENS
-} from '../../config/environments'
 
 export default function IntentSystemPage() {
   const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '8453') // Default to Base
   const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
   const { environment, setEnvironment } = useEnvironment()
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
-  
+
   // Modal states
   const [showCreateIntent, setShowCreateIntent] = useState(false)
   const [showSolveIntent, setShowSolveIntent] = useState(false)
   const [showCreateBond, setShowCreateBond] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
-  
+
   useSyncWalletChain(selectedChain)
-  
+
   useEffect(() => {
     setStoredChain(selectedChain)
   }, [selectedChain, setStoredChain])
@@ -51,7 +44,7 @@ export default function IntentSystemPage() {
     intentHandler,
     genericIntentArk,
     aaveV3Escrow,
-    tokens
+    tokens,
   } = useIntentSystem(environment, selectedChain)
 
   // Get mockIntentOracle from config
@@ -95,14 +88,11 @@ export default function IntentSystemPage() {
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <a
-              href="/"
-              className="text-blue-400 hover:text-blue-300 transition-colors"
-            >
+            <a href="/" className="text-blue-400 hover:text-blue-300 transition-colors">
               ← Back to Home
             </a>
           </div>
-          
+
           <h1 className="text-3xl font-bold text-white mb-2">Intent System Configuration</h1>
           <p className="text-gray-300 mb-6">
             Monitor and manage the deployed Intent System contracts on {getChainName()}
@@ -118,24 +108,25 @@ export default function IntentSystemPage() {
 
         {/* Deployment Status */}
         <div className="mb-8">
-          <div className={`p-4 rounded-lg border ${
-            isDeployed 
-              ? 'bg-green-900/20 border-green-500/30 text-green-300' 
-              : 'bg-red-900/20 border-red-500/30 text-red-300'
-          }`}>
+          <div
+            className={`p-4 rounded-lg border ${
+              isDeployed
+                ? 'bg-green-900/20 border-green-500/30 text-green-300'
+                : 'bg-red-900/20 border-red-500/30 text-red-300'
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${
-                isDeployed ? 'bg-green-400' : 'bg-red-400'
-              }`} />
+              <div
+                className={`w-3 h-3 rounded-full ${isDeployed ? 'bg-green-400' : 'bg-red-400'}`}
+              />
               <span className="font-semibold">
                 {isDeployed ? 'Intent System Deployed' : 'Intent System Not Deployed'}
               </span>
             </div>
             <p className="mt-2 text-sm opacity-80">
-              {isDeployed 
+              {isDeployed
                 ? `All core contracts are deployed and operational on ${getChainName()}`
-                : `No Intent System contracts found on ${getChainName()}`
-              }
+                : `No Intent System contracts found on ${getChainName()}`}
             </p>
           </div>
         </div>
@@ -218,61 +209,67 @@ export default function IntentSystemPage() {
             <div className="mb-8">
               <h2 className="text-xl font-semibold text-white mb-4">Supported Tokens</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {tokens && Object.entries(tokens).map(([symbol, address]) => (
-                  <div key={symbol} className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">🪙</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{symbol}</h3>
-                        <p className="text-sm text-gray-400">Token contract</p>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-gray-400 text-sm">Address:</span>
-                        <div className="font-mono text-sm bg-charcoal-700 p-2 rounded mt-1 break-all">
-                          {address}
+                {tokens &&
+                  Object.entries(tokens).map(([symbol, address]) => (
+                    <div
+                      key={symbol}
+                      className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur"
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">🪙</span>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">{symbol}</h3>
+                          <p className="text-sm text-gray-400">Token contract</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <a
-                          href={getExplorerUrl(address)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded transition-colors"
-                        >
-                          View on Explorer
-                        </a>
-                        <button 
-                          onClick={() => copyToClipboard(address)}
-                          className={`px-3 py-1 text-sm rounded transition-colors ${
-                            copiedAddress === address
-                              ? 'bg-green-600 text-white'
-                              : 'bg-gray-600 hover:bg-gray-700 text-white'
-                          }`}
-                        >
-                          {copiedAddress === address ? 'Copied!' : 'Copy Address'}
-                        </button>
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-gray-400 text-sm">Address:</span>
+                          <div className="font-mono text-sm bg-charcoal-700 p-2 rounded mt-1 break-all">
+                            {address}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <a
+                            href={getExplorerUrl(address)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded transition-colors"
+                          >
+                            View on Explorer
+                          </a>
+                          <button
+                            onClick={() => copyToClipboard(address)}
+                            className={`px-3 py-1 text-sm rounded transition-colors ${
+                              copiedAddress === address
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-600 hover:bg-gray-700 text-white'
+                            }`}
+                          >
+                            {copiedAddress === address ? 'Copied!' : 'Copy Address'}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
             {/* Intent System Actions */}
             <div className="mb-8">
               <h2 className="text-xl font-semibold text-white mb-4">Intent System Actions</h2>
-              
+
               {/* Intent Lifecycle Actions */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-white mb-3">🎯 Intent Lifecycle</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
                     <h4 className="font-semibold text-white mb-2">Create Intent</h4>
-                    <p className="text-sm text-gray-400 mb-3">Keeper calls GenericIntentArk.postIntent()</p>
+                    <p className="text-sm text-gray-400 mb-3">
+                      Keeper calls GenericIntentArk.postIntent()
+                    </p>
                     <div className="text-xs text-gray-500 space-y-1">
                       <div>• Required notional amount</div>
                       <div>• Term length</div>
@@ -280,20 +277,24 @@ export default function IntentSystemPage() {
                       <div>• Oracle & expiry</div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
                     <h4 className="font-semibold text-white mb-2">Solve Intent</h4>
-                    <p className="text-sm text-gray-400 mb-3">Solver calls IntentHandler.solveIntent()</p>
+                    <p className="text-sm text-gray-400 mb-3">
+                      Solver calls IntentHandler.solveIntent()
+                    </p>
                     <div className="text-xs text-gray-500 space-y-1">
                       <div>• Must have sufficient bond</div>
                       <div>• Escrow yield upfront</div>
                       <div>• Oracle price validation</div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
                     <h4 className="font-semibold text-white mb-2">Settle Intent</h4>
-                    <p className="text-sm text-gray-400 mb-3">Solver calls IntentHandler.settleIntent()</p>
+                    <p className="text-sm text-gray-400 mb-3">
+                      Solver calls IntentHandler.settleIntent()
+                    </p>
                     <div className="text-xs text-gray-500 space-y-1">
                       <div>• After term completion</div>
                       <div>• Keeps bond intact</div>
@@ -316,7 +317,7 @@ export default function IntentSystemPage() {
                       <div>• Returns escrowed yield</div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
                     <h4 className="font-semibold text-white mb-2">Bond Management</h4>
                     <p className="text-sm text-gray-400 mb-3">Solver bond operations</p>
@@ -326,7 +327,7 @@ export default function IntentSystemPage() {
                       <div>• Bond slashing on failure</div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
                     <h4 className="font-semibold text-white mb-2">Role Management</h4>
                     <p className="text-sm text-gray-400 mb-3">Admin role assignments</p>
@@ -352,7 +353,7 @@ export default function IntentSystemPage() {
                       <div>• totalAssets(): Get aToken balance</div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
                     <h4 className="font-semibold text-white mb-2">Reward Management</h4>
                     <p className="text-sm text-gray-400 mb-3">Claim and distribute rewards</p>
@@ -362,7 +363,7 @@ export default function IntentSystemPage() {
                       <div>• Supports multiple reward tokens</div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
                     <h4 className="font-semibold text-white mb-2">Yield Management</h4>
                     <p className="text-sm text-gray-400 mb-3">Escrowed yield handling</p>
@@ -447,25 +448,25 @@ export default function IntentSystemPage() {
             <div className="mb-8">
               <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
               <div className="flex flex-wrap gap-4">
-                <button 
+                <button
                   onClick={() => setShowCreateIntent(true)}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
                 >
                   📝 Create Intent
                 </button>
-                <button 
+                <button
                   onClick={() => setShowSolveIntent(true)}
                   className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
                 >
                   🔍 Solve Intent
                 </button>
-                <button 
+                <button
                   onClick={() => setShowCreateBond(true)}
                   className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
                 >
                   🏦 Create Bond
                 </button>
-                <button 
+                <button
                   onClick={() => setShowAdmin(true)}
                   className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors"
                 >
@@ -490,21 +491,21 @@ export default function IntentSystemPage() {
                   <div className="text-sm text-green-400">✓ Active</div>
                   <div className="text-xs text-gray-400 mt-1">Ready for bonds</div>
                 </div>
-                
+
                 <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
                   <div className="text-2xl mb-2">⚡</div>
                   <div className="text-lg font-semibold text-white">Intent Handler</div>
                   <div className="text-sm text-green-400">✓ Active</div>
                   <div className="text-xs text-gray-400 mt-1">Ready for intents</div>
                 </div>
-                
+
                 <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
                   <div className="text-2xl mb-2">🚢</div>
                   <div className="text-lg font-semibold text-white">Generic Ark</div>
                   <div className="text-sm text-green-400">✓ Active</div>
                   <div className="text-xs text-gray-400 mt-1">Ready for posting</div>
                 </div>
-                
+
                 <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
                   <div className="text-2xl mb-2">🏦</div>
                   <div className="text-lg font-semibold text-white">Aave Escrow</div>
@@ -545,21 +546,21 @@ export default function IntentSystemPage() {
           environment={environment}
           chainId={selectedChain}
         />
-        
+
         <SolveIntentModal
           isOpen={showSolveIntent}
           onClose={() => setShowSolveIntent(false)}
           environment={environment}
           chainId={selectedChain}
         />
-        
+
         <CreateBondModal
           isOpen={showCreateBond}
           onClose={() => setShowCreateBond(false)}
           environment={environment}
           chainId={selectedChain}
         />
-        
+
         <AdminModal
           isOpen={showAdmin}
           onClose={() => setShowAdmin(false)}

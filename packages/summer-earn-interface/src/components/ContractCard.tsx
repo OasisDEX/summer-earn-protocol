@@ -21,7 +21,7 @@ export function ContractCard({
   color,
   chainId,
   onCopy,
-  copiedAddress
+  copiedAddress,
 }: ContractCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -57,7 +57,7 @@ export function ContractCard({
           {isExpanded ? '▼' : '▶'}
         </button>
       </div>
-      
+
       <div className="space-y-3">
         <div>
           <span className="text-gray-400 text-sm">Address:</span>
@@ -65,7 +65,7 @@ export function ContractCard({
             {address}
           </div>
         </div>
-        
+
         <div className="flex gap-2">
           <a
             href={getExplorerUrl(address)}
@@ -75,7 +75,7 @@ export function ContractCard({
           >
             View on Explorer
           </a>
-          <button 
+          <button
             onClick={handleCopy}
             className={`px-3 py-1 text-sm rounded transition-colors ${
               copiedAddress === address

@@ -10,15 +10,7 @@ interface IIntentHandler {
                                         EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event IntentCreated(
-        address indexed ark,
-        uint256 requiredNotional,
-        uint256 term,
-        uint256 targetYield,
-        address token,
-        address oracle,
-        uint256 expiry
-    );
+    event IntentCreated(bytes32 orderId, Intent intent);
 
     event IntentSolved(
         address indexed ark,
@@ -64,25 +56,24 @@ interface IIntentHandler {
     error IntentHandler__InvalidState();
     error IntentHandler__UnauthorizedCaller();
     error IntentHandler__ConstructorParamsInvalid(string reason);
+    error IntentHandler__TooLittleEscrowed();
 
     /*//////////////////////////////////////////////////////////////
                                         STRUCTS
     //////////////////////////////////////////////////////////////*/
 
     struct Intent {
+        address user;
         uint256 requiredNotional;
         uint256 term;
         uint256 targetYield;
         address token;
         address oracle;
         uint256 expiry;
-        address solver;
-        uint256 escrowedYield;
-        uint256 startTime;
-        IntentState state;
     }
 
     enum IntentState {
+        None,
         Created,
         Solved,
         Active,
@@ -97,65 +88,32 @@ interface IIntentHandler {
 
     /**
      * @notice Creates a new intent
-     * @param ark Address of the Ark contract
-     * @param requiredNotional Required notional value for the intent
-     * @param term Term length in seconds
-     * @param targetYield Target yield amount
-     * @param token Address of intent token
-     * @param oracle Address of oracle for price verification
-     * @param expiry Expiry timestamp
+     * @param intent Intent struct containing intent information
      */
-    function createIntent(
-        address ark,
-        uint256 requiredNotional,
-        uint256 term,
-        uint256 targetYield,
-        address token,
-        address oracle,
-        uint256 expiry
-    ) external;
+    function createIntent(Intent memory intent) external;
 
     /**
      * @notice Solver solves an intent directly
-     * @param ark Address of the Ark contract
-     * @param solverAddress Address of the solver
+     * @param intent Intent struct containing intent information
      * @param escrowedYield Amount of yield escrowed upfront
      */
-    function solveIntent(
-        address ark,
-        address solverAddress,
-        uint256 escrowedYield
-    ) external;
+    function solveIntent(Intent memory intent, uint256 escrowedYield) external;
 
     /**
      * @notice Settles an intent (can only be called by the solver)
-     * @param ark Address of the Ark contract
+     * @param intent Intent struct containing intent information
      */
-    function settleIntent(address ark) external;
+    function settleIntent(Intent memory intent) external;
 
     /**
      * @notice Resigns an intent by the Ark (can only be called before solving)
-     * @param ark Address of the Ark contract
+     * @param intent Intent struct containing intent information
      */
-    function resignByUser(address ark) external;
+    function resignByUser(Intent memory intent) external;
 
     /**
      * @notice Resigns an intent by the solver (50% bond penalty)
-     * @param ark Address of the Ark contract
+     * @param intent Intent struct containing intent information
      */
-    function resignBySolver(address ark) external;
-
-    /**
-     * @notice Gets the intent information for an Ark
-     * @param ark Address of the Ark contract
-     * @return Intent struct containing intent information
-     */
-    function getIntent(address ark) external view returns (Intent memory);
-
-    /**
-     * @notice Checks if an intent exists
-     * @param ark Address of the Ark contract
-     * @return True if intent exists, false otherwise
-     */
-    function intentExists(address ark) external view returns (bool);
+    function resignBySolver(Intent memory intent) external;
 }

@@ -2,8 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {AaveV3Escrow} from "../../src/contracts/adapters/AaveV3Escrow.sol";
-import {GenericIntentArk} from "../../src/contracts/arks/GenericIntentArk.sol";
+import {Escrow} from "../../src/contracts/adapters/Escrow.sol";
 import {IntentHandler} from "../../src/contracts/intent/IntentHandler.sol";
 import {IntentBondFactory} from "../../src/contracts/intent/IntentBondFactory.sol";
 import {SolverBond} from "../../src/contracts/intent/SolverBond.sol";
@@ -20,6 +19,7 @@ import {DataTypes} from "../../src/interfaces/aave-v3/DataTypes.sol";
 import {IPoolV3} from "../../src/interfaces/aave-v3/IPoolV3.sol";
 import {IRewardsController} from "../../src/interfaces/aave-v3/IRewardsController.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AaveV3Ark} from "../../src/contracts/arks/AaveV3Ark.sol";
 
 /**
  * @title AaveV3 Intent Flow Integration Test
@@ -28,8 +28,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 contract AaveV3IntentFlowTest is Test {
     // Core contracts
-    AaveV3Escrow public adapter;
-    GenericIntentArk public ark;
+    Escrow public escrow;
     IntentHandler public intentHandler;
     IntentBondFactory public intentBondFactory;
     SolverBond public solverBond;
@@ -79,6 +78,9 @@ contract AaveV3IntentFlowTest is Test {
         // Deploy infrastructure
         accessManager = new ProtocolAccessManager(governor);
 
+        vm.prank(governor);
+        accessManager.grantSuperKeeperRole(keeper);
+
         // Deploy mock tokens
         usdc = IERC20(USDC_MAINNET);
         summerToken = new MockSummerToken();
@@ -107,11 +109,11 @@ contract AaveV3IntentFlowTest is Test {
         intentHandler = new IntentHandler(
             address(intentBondFactory),
             address(mockOracle),
-            address(summerToken)
+            address(summerToken),
+            address(accessManager)
         );
 
         // Setup roles
-        intentHandler.grantSolverRole(solver);
         intentBondFactory.grantHandlerRole(address(intentHandler));
         intentBondFactory.grantLiquidatorRole(governor);
         // Grant IntentHandler admin role on factory so it can slash bonds
@@ -141,40 +143,14 @@ contract AaveV3IntentFlowTest is Test {
             maxDepositPercentageOfTVL: Percentage.wrap(1e18)
         });
 
-        ark = new GenericIntentArk(
-            arkParams,
-            address(intentHandler),
-            address(intentBondFactory)
-        );
 
-        // Update role assignment after ark deployment
-        vm.startPrank(governor);
-        accessManager.grantCommanderRole(address(ark), commander);
-        accessManager.grantKeeperRole(address(ark), keeper);
-        intentHandler.grantArkRole(address(ark));
-        vm.stopPrank();
-
-        // Register commander with ark
-        vm.startPrank(commander);
-        ark.registerFleetCommander();
-        vm.stopPrank();
-
-        // Deploy adapter
-        adapter = new AaveV3Escrow(
-            address(accessManager),
-            aaveV3PoolAddress,
-            rewardsController,
-            address(ark)
-        );
-
-        // Register adapter with intent handler for solver
-        vm.startPrank(governor);
-        intentHandler.addSolverAdapter(solver, address(adapter));
+        // Add solver escrow for the solver
+        vm.startPrank(keeper);
+        intentHandler.addSolverEscrow(solver, address(usdc));
         vm.stopPrank();
 
         // Setup balances
-        deal(address(usdc), address(ark), 10000e6); // 10,000 USDC (6 decimals)
-        deal(address(usdc), commander, 10000e6);
+        deal(address(usdc), commander, 10000e6); // 10,000 USDC (6 decimals)
         deal(address(summerToken), solver, 10000e18);
 
         // Also give enough tokens to the intentHandler for transfers
@@ -186,8 +162,7 @@ contract AaveV3IntentFlowTest is Test {
         solverBond.addBond(BOND_AMOUNT);
         vm.stopPrank();
 
-        vm.label(address(ark), "IntentArk");
-        vm.label(address(adapter), "AaveV3Escrow");
+        vm.label(commander, "Commander");
         vm.label(address(intentHandler), "IntentHandler");
         vm.label(address(intentBondFactory), "IntentBondFactory");
         vm.label(address(solverBond), "SolverBond");
@@ -196,142 +171,135 @@ contract AaveV3IntentFlowTest is Test {
     }
 
     function test_CompleteAaveV3IntentFlow() public {
-        // Step 1: Keeper posts intent for yield generation
-        bytes32 intentId = keccak256("aave-v3-yield-intent");
-
+        // Step 1: Commander (ark) creates intent for yield generation
         vm.startPrank(keeper);
-        ark.postIntent(
-            intentId,
-            REQUIRED_NOTIONAL,
-            TERM,
-            TARGET_YIELD,
-            address(mockOracle),
-            block.timestamp + 1 days
-        );
+        IIntentHandler.Intent memory intent = IIntentHandler.Intent({
+            user: commander,
+            requiredNotional: REQUIRED_NOTIONAL,
+            term: TERM,
+            targetYield: TARGET_YIELD,
+            token: address(usdc),
+            oracle: address(mockOracle),
+            expiry: block.timestamp + 1 days
+        });
+        intentHandler.createIntent(intent);
         vm.stopPrank();
 
-        // The ark should have approved the IntentHandler during postIntent (via forceApprove)
-        // But let's ensure the ark has enough balance for the required notional
-        deal(address(usdc), address(ark), REQUIRED_NOTIONAL);
-
         // Verify intent was created
-        assertTrue(ark.isIntentActive(intentId));
-        IIntentHandler.Intent memory intent = intentHandler.getIntent(
-            address(ark)
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.Created
         );
-        assertEq(intent.requiredNotional, REQUIRED_NOTIONAL);
-        assertEq(intent.term, TERM);
-        assertEq(intent.targetYield, TARGET_YIELD);
-        assertEq(intent.token, address(usdc));
-        assertTrue(intent.state == IIntentHandler.IntentState.Created);
 
-        // Step 2: Solver solves the intent (this triggers adapter.deposit)
+        // Step 2: Solver solves the intent
         vm.startPrank(solver);
         deal(USDC_MAINNET, address(solver), 10000e6);
         IERC20(USDC_MAINNET).approve(address(intentHandler), 10000e6);
-        intentHandler.solveIntent(address(ark), solver, ESCROWED_YIELD);
+        intentHandler.solveIntent(intent, ESCROWED_YIELD);
         vm.stopPrank();
 
-        // Verify intent was solved and tokens were deposited to Aave via adapter
-        intent = intentHandler.getIntent(address(ark));
-        assertEq(intent.solver, solver);
-        assertEq(intent.escrowedYield, ESCROWED_YIELD);
-        assertTrue(intent.state == IIntentHandler.IntentState.Solved);
+        // Verify intent was solved
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.Solved
+        );
 
-        // Step 4: Time passes - yield generation period
+        // Step 3: Time passes - yield generation period
         vm.warp(block.timestamp + TERM + 1);
 
-        // Step 5: Solver settles the intent
+        // Step 4: Solver settles the intent
         vm.startPrank(solver);
-        intentHandler.settleIntent(address(ark));
+        intentHandler.settleIntent(intent);
         vm.stopPrank();
 
         // Verify intent is settled
-        intent = intentHandler.getIntent(address(ark));
-        assertTrue(intent.state == IIntentHandler.IntentState.Settled);
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.Settled
+        );
 
         // Verify solver bond is intact (successful completion)
         assertTrue(intentBondFactory.isSolverVouched(solver, BOND_AMOUNT));
         assertEq(intentBondFactory.getSolverBondAmount(solver), BOND_AMOUNT);
     }
 
-    function test_AaveV3AdapterDirectOperations() public {
-        // Test direct adapter operations (these would be called by IntentHandler)
-        uint256 depositAmount = 1000e6; // 1000 USDC
+    function test_EscrowDirectOperations() public {
+        // Test direct escrow operations (these would be called by IntentHandler)
+        uint256 escrowAmount = 1000e6; // 1000 USDC
 
-        // Setup: give adapter some tokens to work with
-        deal(address(usdc), address(adapter), depositAmount);
+        // Get the solver's escrow
+        Escrow solverEscrow = intentHandler.solverEscrows(solver);
 
-        // Test deposit operation (called by IntentHandler during solveIntent)
+        // Test escrow yield operation (called by IntentHandler during solveIntent)
         vm.startPrank(address(intentHandler));
-        IERC20(address(usdc)).approve(address(adapter), depositAmount);
-        adapter.deposit(address(usdc), depositAmount, address(ark));
+        IERC20(address(usdc)).approve(address(solverEscrow), escrowAmount);
+        solverEscrow.deposit(address(usdc), escrowAmount, bytes32("1"));
         vm.stopPrank();
 
-        // Test withdraw operation
+        // Test return escrowed yield operation
         vm.startPrank(address(intentHandler));
-        adapter.withdraw(address(usdc), depositAmount / 2, address(ark));
+        solverEscrow.withdraw(
+            address(usdc),
+            address(intentHandler),
+            bytes32("1")
+        );
         vm.stopPrank();
     }
 
     function test_IntentCancellation() public {
-        // Post intent
-        bytes32 intentId = keccak256("cancellable-intent");
-
+        // Create intent
         vm.startPrank(keeper);
-        ark.postIntent(
-            intentId,
-            REQUIRED_NOTIONAL,
-            TERM,
-            TARGET_YIELD,
-            address(mockOracle),
-            block.timestamp + 1 days
-        );
+        IIntentHandler.Intent memory intent = IIntentHandler.Intent({
+            user: commander,
+            requiredNotional: REQUIRED_NOTIONAL,
+            term: TERM,
+            targetYield: TARGET_YIELD,
+            token: address(usdc),
+            oracle: address(mockOracle),
+            expiry: block.timestamp + 1 days
+        });
+        intentHandler.createIntent(intent);
 
         // Cancel before it's solved
-        ark.cancelIntent(intentId);
+        intentHandler.resignByUser(intent);
         vm.stopPrank();
 
         // Verify intent was cancelled
-        assertFalse(ark.isIntentActive(intentId));
-        IIntentHandler.Intent memory intent = intentHandler.getIntent(
-            address(ark)
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.UserResigned
         );
-        assertTrue(intent.state == IIntentHandler.IntentState.UserResigned);
     }
 
     function test_SolverResignation() public {
         // Setup intent and solve it
-        bytes32 intentId = keccak256("resignation-intent");
-
         vm.startPrank(keeper);
-        ark.postIntent(
-            intentId,
-            REQUIRED_NOTIONAL,
-            TERM,
-            TARGET_YIELD,
-            address(mockOracle),
-            block.timestamp + 1 days
-        );
+        IIntentHandler.Intent memory intent = IIntentHandler.Intent({
+            user: commander,
+            requiredNotional: REQUIRED_NOTIONAL,
+            term: TERM,
+            targetYield: TARGET_YIELD,
+            token: address(usdc),
+            oracle: address(mockOracle),
+            expiry: block.timestamp + 1 days
+        });
+        intentHandler.createIntent(intent);
         vm.stopPrank();
-
-        // Ensure ark has enough balance for the required notional
-        deal(address(usdc), address(ark), REQUIRED_NOTIONAL);
 
         vm.startPrank(solver);
         deal(USDC_MAINNET, address(solver), 10000e6);
         IERC20(USDC_MAINNET).approve(address(intentHandler), 10000e6);
-        intentHandler.solveIntent(address(ark), solver, ESCROWED_YIELD);
+        intentHandler.solveIntent(intent, ESCROWED_YIELD);
 
         // Solver resigns (gets bond slashed)
-        intentHandler.resignBySolver(address(ark));
+        intentHandler.resignBySolver(intent);
         vm.stopPrank();
 
         // Verify resignation and bond slashing
-        IIntentHandler.Intent memory intent = intentHandler.getIntent(
-            address(ark)
+        assertTrue(
+            intentHandler.intentStates(keccak256(abi.encode(intent))) ==
+                IIntentHandler.IntentState.SolverResigned
         );
-        assertTrue(intent.state == IIntentHandler.IntentState.SolverResigned);
 
         // Bond should be slashed by 50%
         assertEq(
@@ -341,81 +309,83 @@ contract AaveV3IntentFlowTest is Test {
     }
 
     function test_AccessControlIntegration() public {
-        bytes32 intentId = keccak256("access-test-intent");
-
-        // Only keeper can post intents
+        // Only commander (ark) can create intents
         vm.startPrank(user);
         vm.expectRevert();
-        ark.postIntent(
-            intentId,
-            REQUIRED_NOTIONAL,
-            TERM,
-            TARGET_YIELD,
-            address(mockOracle),
-            block.timestamp + 1 days
-        );
+        IIntentHandler.Intent memory intent = IIntentHandler.Intent({
+            user: commander,
+            requiredNotional: REQUIRED_NOTIONAL,
+            term: TERM,
+            targetYield: TARGET_YIELD,
+            token: address(usdc),
+            oracle: address(mockOracle),
+            expiry: block.timestamp + 1 days
+        });
+        intentHandler.createIntent(intent);
         vm.stopPrank();
 
         // Only solver can solve intents
         vm.startPrank(keeper);
-        ark.postIntent(
-            intentId,
-            REQUIRED_NOTIONAL,
-            TERM,
-            TARGET_YIELD,
-            address(mockOracle),
-            block.timestamp + 1 days
+        intentHandler.createIntent(intent);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        vm.expectRevert();
+        intentHandler.solveIntent(intent, ESCROWED_YIELD);
+        vm.stopPrank();
+
+        // Only IntentHandler can call escrow functions
+        vm.startPrank(user);
+        vm.expectRevert();
+        Escrow solverEscrow = intentHandler.solverEscrows(solver);
+        solverEscrow.deposit(
+            address(usdc),
+            1000e6,
+            keccak256(abi.encode(intent))
         );
-        vm.stopPrank();
-
-        vm.startPrank(user);
-        vm.expectRevert();
-        intentHandler.solveIntent(address(ark), solver, ESCROWED_YIELD);
-        vm.stopPrank();
-
-        // Only IntentHandler can call adapter functions
-        vm.startPrank(user);
-        vm.expectRevert();
-        adapter.deposit(address(usdc), 1000e6, address(ark));
         vm.stopPrank();
     }
 
     function test_ArchitecturalBenefits() public {
         // This test demonstrates the architectural benefits of the new design
 
-        // 1. Generic ark can work with any adapter
-        assertEq(address(adapter.ark()), address(ark));
-
-        // 2. Adapter is registered with specific solver
+        // 1. Escrow is deployed for specific solver
+        Escrow solverEscrow = intentHandler.solverEscrows(solver);
         assertEq(
-            address(intentHandler.solverAdapters(solver)),
-            address(adapter)
+            address(solverEscrow),
+            address(intentHandler.solverEscrows(solver))
+        );
+
+        // 2. Escrow is registered with specific solver
+        assertEq(
+            address(intentHandler.solverEscrows(solver)),
+            address(solverEscrow)
         );
 
         // 3. Access control is centralized and consistent
-        // Keeper can post intents (this is verified by the successful postIntent call above)
+        // Commander (ark) can create intents (this is verified by the successful createIntent call above)
 
         // 4. Intent flow is standardized
-        bytes32 intentId = keccak256("architectural-test");
-
         vm.startPrank(keeper);
-        ark.postIntent(
-            intentId,
-            100e6,
-            7 days,
-            10e6,
-            address(mockOracle),
-            block.timestamp + 1 days
-        );
+        IIntentHandler.Intent memory intent = IIntentHandler.Intent({
+            user: commander,
+            requiredNotional: 100e6,
+            term: 7 days,
+            targetYield: 10e6,
+            token: address(usdc),
+            oracle: address(mockOracle),
+            expiry: block.timestamp + 1 days
+        });
+        intentHandler.createIntent(intent);
         vm.stopPrank();
 
         vm.startPrank(solver);
         deal(USDC_MAINNET, address(solver), 10000e6);
         IERC20(USDC_MAINNET).approve(address(intentHandler), 10000e6);
-        intentHandler.solveIntent(address(ark), solver, 10e6);
+        intentHandler.solveIntent(intent, 10e6);
         vm.stopPrank();
 
         // The same pattern can be used for Compound, Morpho, etc.
-        // Just deploy new adapters and register them with solvers
+        // Just deploy new escrows and register them with solvers
     }
 }

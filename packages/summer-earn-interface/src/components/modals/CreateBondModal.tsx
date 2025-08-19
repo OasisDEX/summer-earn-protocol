@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { Environment } from '../../config/environments'
+import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { ChainId } from '../../types'
 
 interface CreateBondModalProps {
@@ -13,22 +13,19 @@ interface CreateBondModalProps {
 }
 
 export function CreateBondModal({ isOpen, onClose, environment, chainId }: CreateBondModalProps) {
-  const {
-    createBond,
-    loading,
-    error,
-    intentBondFactory,
-    tokens
-  } = useIntentSystem(environment, chainId)
+  const { createBond, loading, error, intentBondFactory, tokens } = useIntentSystem(
+    environment,
+    chainId,
+  )
 
   const [solverAddress, setSolverAddress] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       const hash = await createBond(solverAddress)
-      
+
       console.log('Bond created:', hash)
       onClose()
       setSolverAddress('')
@@ -44,10 +41,7 @@ export function CreateBondModal({ isOpen, onClose, environment, chainId }: Creat
       <div className="bg-charcoal-800 rounded-xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-white">Create Solver Bond</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             ✕
           </button>
         </div>
@@ -55,9 +49,7 @@ export function CreateBondModal({ isOpen, onClose, environment, chainId }: Creat
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Solver Address */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Solver Address
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Solver Address</label>
             <input
               type="text"
               value={solverAddress}
@@ -66,9 +58,7 @@ export function CreateBondModal({ isOpen, onClose, environment, chainId }: Creat
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Address of the solver to create a bond for
-            </p>
+            <p className="text-xs text-gray-400 mt-1">Address of the solver to create a bond for</p>
           </div>
 
           {/* Error Display */}
