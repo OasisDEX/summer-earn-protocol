@@ -3,31 +3,25 @@
 import { useCallback, useEffect, useState } from 'react'
 import { formatEther, formatUnits, parseEther, parseUnits } from 'viem'
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
-import { AaveV3EscrowABI } from '../abis/AaveV3Escrow'
-import { GenericIntentArkABI } from '../abis/GenericIntentArk'
 import { IntentBondFactoryABI } from '../abis/IntentBondFactory'
 import { IntentHandlerABI } from '../abis/IntentHandler'
 import type { Environment } from '../config/environments'
 import {
-  AAVE_V3_ESCROW_ADDRESSES,
-  GENERIC_INTENT_ARK_ADDRESSES,
   INTENT_BOND_FACTORY_ADDRESSES,
   INTENT_HANDLER_ADDRESSES,
   INTENT_SYSTEM_TOKENS,
+  MOCK_INTENT_ORACLE_ADDRESSES,
 } from '../config/environments'
 import type { ChainId } from '../types'
 
 export interface IntentData {
+  user: string
   requiredNotional: bigint
   term: bigint
   targetYield: bigint
   token: string
   oracle: string
   expiry: bigint
-  solver: string
-  escrowedYield: bigint
-  startTime: bigint
-  state: number
 }
 
 export interface SolverInfo {
@@ -50,8 +44,7 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   // Contract addresses
   const intentBondFactory = INTENT_BOND_FACTORY_ADDRESSES[environment][chainId]
   const intentHandler = INTENT_HANDLER_ADDRESSES[environment][chainId]
-  const genericIntentArk = GENERIC_INTENT_ARK_ADDRESSES[environment][chainId]
-  const aaveV3Escrow = AAVE_V3_ESCROW_ADDRESSES[environment][chainId]
+  const mockIntentOracle = MOCK_INTENT_ORACLE_ADDRESSES[environment][chainId]
   const tokens = INTENT_SYSTEM_TOKENS[environment][chainId]
 
   const isDeployed = intentBondFactory !== '0x0000000000000000000000000000000000000000'
@@ -59,21 +52,10 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   // Get intent data for a user
   const getIntent = useCallback(
     async (userAddress: string) => {
-      if (!publicClient || !intentHandler) return null
-
-      try {
-        const data = await publicClient.readContract({
-          address: intentHandler as `0x${string}`,
-          abi: IntentHandlerABI,
-          functionName: 'getIntent',
-          args: [userAddress as `0x${string}`],
-        })
-
-        return data as IntentData
-      } catch (err) {
-        console.error('Error getting intent:', err)
-        return null
-      }
+      // This function doesn't exist in the current contract
+      // Intents are created and managed differently
+      console.log('getIntent not implemented in current contract')
+      return null
     },
     [publicClient, intentHandler],
   )
@@ -81,10 +63,10 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   // Get solver information
   const getSolverInfo = useCallback(
     async (solverAddress: string) => {
-      if (!publicClient || !intentBondFactory || !aaveV3Escrow) return null
+      if (!publicClient || !intentBondFactory) return null
 
       try {
-        const [bondAmount, isVouched, totalAssets] = await Promise.all([
+        const [bondAmount, isVouched] = await Promise.all([
           publicClient.readContract({
             address: intentBondFactory as `0x${string}`,
             abi: IntentBondFactoryABI,
@@ -97,40 +79,27 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
             functionName: 'isSolverVouched',
             args: [solverAddress as `0x${string}`, parseEther('1000')], // Check with 1000 token requirement
           }),
-          publicClient.readContract({
-            address: aaveV3Escrow as `0x${string}`,
-            abi: AaveV3EscrowABI,
-            functionName: 'totalAssets',
-          }),
         ])
 
         return {
           address: solverAddress,
-          bondAmount,
-          isVouched,
-          totalAssets,
-        } as SolverInfo
+          bondAmount: bondAmount as bigint,
+          isVouched: isVouched as boolean,
+          totalAssets: BigInt(0), // Not available in current implementation
+        }
       } catch (err) {
         console.error('Error getting solver info:', err)
         return null
       }
     },
-    [publicClient, intentBondFactory, aaveV3Escrow],
+    [publicClient, intentBondFactory],
   )
 
-  // Create intent (keeper only)
+  // Create a new intent
   const createIntent = useCallback(
-    async (
-      intentId: string,
-      requiredNotional: string,
-      term: string,
-      targetYield: string,
-      summerToken: string,
-      oracle: string,
-      expiry: string,
-    ) => {
-      if (!walletClient || !genericIntentArk || !userAddress) {
-        throw new Error('Wallet not connected or contract not deployed')
+    async (intent: IntentData) => {
+      if (!walletClient || !intentHandler || !userAddress) {
+        throw new Error('Missing required parameters')
       }
 
       setLoading(true)
@@ -138,39 +107,31 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
 
       try {
         const hash = await walletClient.writeContract({
-          address: genericIntentArk as `0x${string}`,
-          abi: GenericIntentArkABI,
-          functionName: 'postIntent',
-          args: [
-            intentId as `0x${string}`,
-            parseEther(requiredNotional),
-            BigInt(term),
-            parseEther(targetYield),
-            summerToken as `0x${string}`,
-            oracle as `0x${string}`,
-            BigInt(expiry),
-          ],
+          address: intentHandler as `0x${string}`,
+          abi: IntentHandlerABI,
+          functionName: 'createIntent',
+          args: [intent],
           chain: undefined,
           account: userAddress as `0x${string}`,
         })
 
         return hash
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
         setError(errorMessage)
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [walletClient, genericIntentArk, userAddress],
+    [walletClient, intentHandler, userAddress],
   )
 
-  // Solve intent (solver only)
+  // Solve an intent
   const solveIntent = useCallback(
-    async (userAddress: string, solverAddress: string, escrowedYield: string) => {
-      if (!walletClient || !intentHandler) {
-        throw new Error('Wallet not connected or contract not deployed')
+    async (intent: IntentData, escrowedYield: bigint) => {
+      if (!walletClient || !intentHandler || !userAddress) {
+        throw new Error('Missing required parameters')
       }
 
       setLoading(true)
@@ -181,32 +142,28 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           address: intentHandler as `0x${string}`,
           abi: IntentHandlerABI,
           functionName: 'solveIntent',
-          args: [
-            userAddress as `0x${string}`,
-            solverAddress as `0x${string}`,
-            parseEther(escrowedYield),
-          ],
+          args: [intent, escrowedYield],
           chain: undefined,
           account: userAddress as `0x${string}`,
         })
 
         return hash
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
         setError(errorMessage)
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [walletClient, intentHandler],
+    [walletClient, intentHandler, userAddress],
   )
 
-  // Settle intent (solver only)
+  // Settle an intent
   const settleIntent = useCallback(
-    async (userAddress: string) => {
-      if (!walletClient || !intentHandler) {
-        throw new Error('Wallet not connected or contract not deployed')
+    async (intent: IntentData) => {
+      if (!walletClient || !intentHandler || !userAddress) {
+        throw new Error('Missing required parameters')
       }
 
       setLoading(true)
@@ -217,28 +174,28 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           address: intentHandler as `0x${string}`,
           abi: IntentHandlerABI,
           functionName: 'settleIntent',
-          args: [userAddress as `0x${string}`],
+          args: [intent],
           chain: undefined,
           account: userAddress as `0x${string}`,
         })
 
         return hash
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
         setError(errorMessage)
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [walletClient, intentHandler],
+    [walletClient, intentHandler, userAddress],
   )
 
-  // Create bond for solver
+  // Create a solver bond
   const createBond = useCallback(
     async (solverAddress: string) => {
-      if (!walletClient || !intentBondFactory) {
-        throw new Error('Wallet not connected or contract not deployed')
+      if (!walletClient || !intentBondFactory || !userAddress) {
+        throw new Error('Missing required parameters')
       }
 
       setLoading(true)
@@ -256,126 +213,245 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
 
         return hash
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
         setError(errorMessage)
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [walletClient, intentBondFactory],
+    [walletClient, intentBondFactory, userAddress],
   )
 
-  // Grant solver role
-  const grantSolverRole = useCallback(
-    async (solverAddress: string) => {
-      if (!walletClient || !intentHandler) {
-        throw new Error('Wallet not connected or contract not deployed')
+  // Add bond amount
+  const addBond = useCallback(
+    async (solverAddress: string, amount: bigint) => {
+      if (!walletClient || !intentBondFactory || !userAddress) {
+        throw new Error('Missing required parameters')
       }
 
       setLoading(true)
       setError(null)
 
       try {
-        const hash = await walletClient.writeContract({
-          address: intentHandler as `0x${string}`,
-          abi: IntentHandlerABI,
-          functionName: 'grantSolverRole',
+        // First get the bond contract address
+        const bondAddress = await publicClient.readContract({
+          address: intentBondFactory as `0x${string}`,
+          abi: IntentBondFactoryABI,
+          functionName: 'getSolverBond',
           args: [solverAddress as `0x${string}`],
+        })
+
+        if (!bondAddress || bondAddress === '0x0000000000000000000000000000000000000000') {
+          throw new Error('Solver bond not found')
+        }
+
+        // First approve SUMMER tokens for the bond contract
+        const summerTokenAddress = await publicClient.readContract({
+          address: intentBondFactory as `0x${string}`,
+          abi: IntentBondFactoryABI,
+          functionName: 'summerToken',
+        })
+
+        // Approve SUMMER tokens for the bond contract
+        const approveHash = await walletClient.writeContract({
+          address: summerTokenAddress as `0x${string}`,
+          abi: [
+            {
+              inputs: [
+                { name: 'spender', type: 'address' },
+                { name: 'amount', type: 'uint256' }
+              ],
+              name: 'approve',
+              outputs: [{ name: '', type: 'bool' }],
+              stateMutability: 'nonpayable',
+              type: 'function'
+            }
+          ],
+          functionName: 'approve',
+          args: [bondAddress as `0x${string}`, amount],
+          chain: undefined,
+          account: userAddress as `0x${string}`,
+        })
+
+        // Wait for approval to be mined
+        await publicClient.waitForTransactionReceipt({ hash: approveHash })
+
+        // Then add bond to the individual bond contract
+        const hash = await walletClient.writeContract({
+          address: bondAddress as `0x${string}`,
+          abi: [
+            {
+              inputs: [
+                { name: 'amount', type: 'uint256' }
+              ],
+              name: 'addBond',
+              outputs: [],
+              stateMutability: 'nonpayable',
+              type: 'function'
+            }
+          ],
+          functionName: 'addBond',
+          args: [amount],
           chain: undefined,
           account: userAddress as `0x${string}`,
         })
 
         return hash
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
         setError(errorMessage)
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [walletClient, intentHandler],
+    [walletClient, publicClient, intentBondFactory, userAddress],
   )
 
-  // Add solver adapter
-  const addSolverAdapter = useCallback(
-    async (solverAddress: string, adapterAddress: string) => {
-      if (!walletClient || !intentHandler) {
-        throw new Error('Wallet not connected or contract not deployed')
-      }
-
-      setLoading(true)
-      setError(null)
+  // Check if solver is vouched
+  const isSolverVouched = useCallback(
+    async (solverAddress: string, requiredAmount: bigint) => {
+      if (!publicClient || !intentBondFactory) return false
 
       try {
-        const hash = await walletClient.writeContract({
-          address: intentHandler as `0x${string}`,
-          abi: IntentHandlerABI,
-          functionName: 'addSolverAdapter',
-          args: [solverAddress as `0x${string}`, adapterAddress as `0x${string}`],
-          chain: undefined,
-          account: userAddress as `0x${string}`,
+        const isVouched = await publicClient.readContract({
+          address: intentBondFactory as `0x${string}`,
+          abi: IntentBondFactoryABI,
+          functionName: 'isSolverVouched',
+          args: [solverAddress as `0x${string}`, requiredAmount],
         })
 
-        return hash
+        return isVouched as boolean
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        setError(errorMessage)
-        throw err
-      } finally {
-        setLoading(false)
+        console.error('Error checking if solver is vouched:', err)
+        return false
       }
     },
-    [walletClient, intentHandler],
+    [publicClient, intentBondFactory],
+  )
+
+  // Get solver bond amount
+  const getSolverBondAmount = useCallback(
+    async (solverAddress: string) => {
+      if (!publicClient || !intentBondFactory) return BigInt(0)
+
+      try {
+        const bondAmount = await publicClient.readContract({
+          address: intentBondFactory as `0x${string}`,
+          abi: IntentBondFactoryABI,
+          functionName: 'getSolverBondAmount',
+          args: [solverAddress as `0x${string}`],
+        })
+
+        return bondAmount as bigint
+      } catch (err) {
+        console.error('Error getting solver bond amount:', err)
+        return BigInt(0)
+      }
+    },
+    [publicClient, intentBondFactory],
+  )
+
+  // Check commitment status
+  const hasCommitted = useCallback(
+    async (intent: IntentData) => {
+      if (!publicClient || !intentHandler) return null
+
+      try {
+        const result = await publicClient.readContract({
+          address: intentHandler as `0x${string}`,
+          abi: IntentHandlerABI,
+          functionName: 'hasCommitted',
+          args: [intent],
+        })
+
+        return result as [bigint, bigint, boolean]
+      } catch (err) {
+        console.error('Error checking commitment:', err)
+        return null
+      }
+    },
+    [publicClient, intentHandler],
+  )
+
+  // Check SUMMER token allowance for bond contract
+  const getSummerTokenAllowance = useCallback(
+    async (bondContractAddress: string) => {
+      if (!publicClient || !intentBondFactory) return BigInt(0)
+
+      try {
+        const summerTokenAddress = await publicClient.readContract({
+          address: intentBondFactory as `0x${string}`,
+          abi: IntentBondFactoryABI,
+          functionName: 'summerToken',
+        })
+
+        const allowance = await publicClient.readContract({
+          address: summerTokenAddress as `0x${string}`,
+          abi: [
+            {
+              inputs: [
+                { name: 'owner', type: 'address' },
+                { name: 'spender', type: 'address' }
+              ],
+              name: 'allowance',
+              outputs: [{ name: '', type: 'uint256' }],
+              stateMutability: 'view',
+              type: 'function'
+            }
+          ],
+          functionName: 'allowance',
+          args: [userAddress as `0x${string}`, bondContractAddress as `0x${string}`],
+        })
+
+        return allowance as bigint
+      } catch (err) {
+        console.error('Error checking SUMMER token allowance:', err)
+        return BigInt(0)
+      }
+    },
+    [publicClient, intentBondFactory, userAddress],
   )
 
   // Load initial data
   useEffect(() => {
-    if (!userAddress || !isDeployed) return
+    if (userAddress && isDeployed) {
+      // Don't call getIntent since it's not implemented
+      getSolverInfo(userAddress)
+    }
+  }, [userAddress, isDeployed, getSolverInfo])
 
-    const loadData = async () => {
-      const intent = await getIntent(userAddress)
-      setIntentData(intent)
-
-      if (intent?.solver && intent.solver !== '0x0000000000000000000000000000000000000000') {
-        const solver = await getSolverInfo(intent.solver)
-        setSolverInfo(solver)
+  // Refresh solver info
+  const refreshSolverInfo = useCallback(async () => {
+    if (userAddress && isDeployed) {
+      const info = await getSolverInfo(userAddress)
+      if (info) {
+        setSolverInfo(info)
       }
     }
-
-    loadData()
-  }, [userAddress, isDeployed, getIntent, getSolverInfo])
+  }, [userAddress, isDeployed, getSolverInfo])
 
   return {
-    // State
     loading,
     error,
     intentData,
     solverInfo,
     isDeployed,
-
-    // Contract addresses
     intentBondFactory,
     intentHandler,
-    genericIntentArk,
-    aaveV3Escrow,
+    mockIntentOracle,
     tokens,
-
-    // Functions
-    getIntent,
-    getSolverInfo,
     createIntent,
     solveIntent,
     settleIntent,
     createBond,
-    grantSolverRole,
-    addSolverAdapter,
-
-    // Utilities
-    parseEther,
-    formatEther,
-    parseUnits,
+    addBond,
+    isSolverVouched,
+    getSolverBondAmount,
+    hasCommitted,
     formatUnits,
+    refreshSolverInfo,
+    getSummerTokenAllowance,
   }
 }

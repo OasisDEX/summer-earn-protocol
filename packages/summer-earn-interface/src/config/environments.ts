@@ -105,7 +105,7 @@ export const INTENT_BOND_FACTORY_ADDRESSES: Record<Environment, Record<number, s
   staging: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0xe3C4672bd8f87c2147061955c101d66b1DFc5bA2', // Deployed
+    [base.id]: '0x65c76bd69CAC8ff6Ddf4eF37d5bD61a7611d33f2', // TODO: Add actual deployed address
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
 }
@@ -120,41 +120,12 @@ export const INTENT_HANDLER_ADDRESSES: Record<Environment, Record<number, string
   staging: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0xFBAFa4Ac4e9A99fdd3cC08b1465989568B700089', // Deployed
+    [base.id]: '0x5C98Bf93FdEaE98cCC0Af9371CA6189De4143c24', // TODO: Add actual deployed address
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
 }
 
-export const GENERIC_INTENT_ARK_ADDRESSES: Record<Environment, Record<number, string>> = {
-  production: {
-    [mainnet.id]: '0x0000000000000000000000000000000000000000',
-    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x0000000000000000000000000000000000000000',
-    [sonic.id]: '0x0000000000000000000000000000000000000000',
-  },
-  staging: {
-    [mainnet.id]: '0x0000000000000000000000000000000000000000',
-    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0xaD229B5a3f92A9Eb209e1109433feB330F18f569', // Deployed
-    [sonic.id]: '0x0000000000000000000000000000000000000000',
-  },
-}
-
-export const AAVE_V3_ESCROW_ADDRESSES: Record<Environment, Record<number, string>> = {
-  production: {
-    [mainnet.id]: '0x0000000000000000000000000000000000000000',
-    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x0000000000000000000000000000000000000000',
-    [sonic.id]: '0x0000000000000000000000000000000000000000',
-  },
-  staging: {
-    [mainnet.id]: '0x0000000000000000000000000000000000000000',
-    [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0xB0bb9518D8E702e6C68eA139D78977199a01493d', // Deployed
-    [sonic.id]: '0x0000000000000000000000000000000000000000',
-  },
-}
-
+// Mock Intent Oracle Addresses (for testing)
 export const MOCK_INTENT_ORACLE_ADDRESSES: Record<Environment, Record<number, string>> = {
   production: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
@@ -165,12 +136,12 @@ export const MOCK_INTENT_ORACLE_ADDRESSES: Record<Environment, Record<number, st
   staging: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x58313E1fC9f1f3Ec758C01a715BF3Bc4Cda3b014', // Deployed
+    [base.id]: '0xc5F12D38701D0C370775B8346f1B2dF3B0B85CE1', // TODO: Add actual deployed address
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
 }
 
-// Token addresses for Intent System
+// Intent System Supported Tokens
 export const INTENT_SYSTEM_TOKENS: Record<Environment, Record<number, Record<string, string>>> = {
   production: {
     [mainnet.id]: {},
@@ -182,8 +153,8 @@ export const INTENT_SYSTEM_TOKENS: Record<Environment, Record<number, Record<str
     [mainnet.id]: {},
     [arbitrum.id]: {},
     [base.id]: {
-      USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-      SUMMER_TOKEN: '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+      'SUMMER': '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+      'USDC': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     },
     [sonic.id]: {},
   },

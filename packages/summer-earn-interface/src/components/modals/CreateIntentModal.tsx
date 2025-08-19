@@ -11,25 +11,25 @@ interface CreateIntentModalProps {
   environment: Environment
   chainId: ChainId
 }
-
+const DAY_IN_SECONDS = BigInt(86400)
 export function CreateIntentModal({
   isOpen,
   onClose,
   environment,
   chainId,
 }: CreateIntentModalProps) {
-  const { createIntent, loading, error, tokens, genericIntentArk } = useIntentSystem(
+  const { createIntent, loading, error, tokens, mockIntentOracle } = useIntentSystem(
     environment,
     chainId,
   )
 
   const [formData, setFormData] = useState({
-    intentId: '',
+    user: '', // Ark address
     requiredNotional: '',
     term: '',
     targetYield: '',
-    summerToken: tokens?.SUMMER_TOKEN || '',
-    oracle: '',
+    token: tokens?.USDC || '',
+    oracle: mockIntentOracle || '',
     expiry: '',
   })
 
@@ -38,26 +38,30 @@ export function CreateIntentModal({
 
     try {
       const expiryTimestamp = Math.floor(new Date(formData.expiry).getTime() / 1000)
-      const hash = await createIntent(
-        formData.intentId,
-        formData.requiredNotional,
-        formData.term,
-        formData.targetYield,
-        formData.summerToken,
-        formData.oracle,
-        expiryTimestamp.toString(),
-      )
+      
+      // Create Intent struct matching the contract
+      const intent = {
+        user: formData.user as `0x${string}`,
+        requiredNotional: BigInt(formData.requiredNotional),
+        term: BigInt(formData.term) * DAY_IN_SECONDS,
+        targetYield: BigInt(formData.targetYield),
+        token: formData.token as `0x${string}`,
+        oracle: formData.oracle as `0x${string}`,
+        expiry: BigInt(expiryTimestamp),
+      }
+
+      const hash = await createIntent(intent)
 
       console.log('Intent created:', hash)
       onClose()
       // Reset form
       setFormData({
-        intentId: '',
+        user: '',
         requiredNotional: '',
         term: '',
         targetYield: '',
-        summerToken: tokens?.SUMMER_TOKEN || '',
-        oracle: '',
+        token: tokens?.USDC || '',
+        oracle: mockIntentOracle || '',
         expiry: '',
       })
     } catch (err) {
@@ -82,15 +86,15 @@ export function CreateIntentModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Intent ID */}
+          {/* Ark Address */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Intent ID (bytes32)
+              Ark Address
             </label>
             <input
               type="text"
-              value={formData.intentId}
-              onChange={(e) => handleInputChange('intentId', e.target.value)}
+              value={formData.user}
+              onChange={(e) => handleInputChange('user', e.target.value)}
               placeholder="0x..."
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
@@ -106,8 +110,7 @@ export function CreateIntentModal({
               type="number"
               value={formData.requiredNotional}
               onChange={(e) => handleInputChange('requiredNotional', e.target.value)}
-              placeholder="1000"
-              step="0.01"
+              placeholder="1000000"
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
             />
@@ -115,18 +118,19 @@ export function CreateIntentModal({
 
           {/* Term */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Term (seconds)</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Term (days)
+            </label>
             <input
               type="number"
               value={formData.term}
               onChange={(e) => handleInputChange('term', e.target.value)}
-              placeholder="86400"
+              placeholder="30"
+              min="1"
+              max="365"
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
             />
-            <p className="text-xs text-gray-400 mt-1">
-              {formData.term ? `${Math.floor(Number(formData.term) / 86400)} days` : ''}
-            </p>
           </div>
 
           {/* Target Yield */}
@@ -138,31 +142,37 @@ export function CreateIntentModal({
               type="number"
               value={formData.targetYield}
               onChange={(e) => handleInputChange('targetYield', e.target.value)}
-              placeholder="50"
-              step="0.01"
+              placeholder="50000"
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
             />
           </div>
 
-          {/* Summer Token */}
+          {/* Token */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Summer Token Address
+              Token
             </label>
-            <input
-              type="text"
-              value={formData.summerToken}
-              onChange={(e) => handleInputChange('summerToken', e.target.value)}
-              placeholder="0x..."
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+            <select
+              value={formData.token}
+              onChange={(e) => handleInputChange('token', e.target.value)}
+              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
               required
-            />
+            >
+              <option value="">Select token</option>
+              {tokens && Object.entries(tokens).map(([symbol, address]) => (
+                <option key={symbol} value={address}>
+                  {symbol}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Oracle */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Oracle Address</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Oracle Address
+            </label>
             <input
               type="text"
               value={formData.oracle}
@@ -175,20 +185,22 @@ export function CreateIntentModal({
 
           {/* Expiry */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Expiry Date</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Expiry Date
+            </label>
             <input
               type="datetime-local"
               value={formData.expiry}
               onChange={(e) => handleInputChange('expiry', e.target.value)}
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
               required
             />
           </div>
 
           {/* Error Display */}
           {error && (
-            <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">
+              {error}
             </div>
           )}
 
@@ -196,21 +208,11 @@ export function CreateIntentModal({
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors"
           >
-            {loading ? 'Creating Intent...' : 'Create Intent'}
+            {loading ? 'Creating...' : 'Create Intent'}
           </button>
         </form>
-
-        {/* Contract Info */}
-        <div className="mt-6 p-4 bg-charcoal-700/50 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-300 mb-2">Contract Information</h3>
-          <div className="text-xs text-gray-400 space-y-1">
-            <div>GenericIntentArk: {genericIntentArk}</div>
-            <div>Chain: {chainId === '8453' ? 'Base' : `Chain ${chainId}`}</div>
-            <div>Environment: {environment}</div>
-          </div>
-        </div>
       </div>
     </div>
   )

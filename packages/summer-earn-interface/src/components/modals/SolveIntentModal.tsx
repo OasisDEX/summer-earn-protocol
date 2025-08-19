@@ -13,11 +13,16 @@ interface SolveIntentModalProps {
 }
 
 export function SolveIntentModal({ isOpen, onClose, environment, chainId }: SolveIntentModalProps) {
-  const { solveIntent, loading, error, intentHandler } = useIntentSystem(environment, chainId)
+  const { solveIntent, loading, error, tokens, mockIntentOracle } = useIntentSystem(environment, chainId)
 
   const [formData, setFormData] = useState({
-    userAddress: '',
-    solverAddress: '',
+    user: '', // Ark address
+    requiredNotional: '',
+    term: '',
+    targetYield: '',
+    token: tokens?.USDC || '',
+    oracle: mockIntentOracle || '',
+    expiry: '',
     escrowedYield: '',
   })
 
@@ -25,18 +30,34 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
     e.preventDefault()
 
     try {
-      const hash = await solveIntent(
-        formData.userAddress,
-        formData.solverAddress,
-        formData.escrowedYield,
-      )
+      const expiryTimestamp = Math.floor(new Date(formData.expiry).getTime() / 1000)
+      
+      // Create Intent struct matching the contract
+      const intent = {
+        user: formData.user as `0x${string}`,
+        requiredNotional: BigInt(formData.requiredNotional),
+        term: BigInt(formData.term),
+        targetYield: BigInt(formData.targetYield),
+        token: formData.token as `0x${string}`,
+        oracle: formData.oracle as `0x${string}`,
+        expiry: BigInt(expiryTimestamp),
+      }
+
+      const escrowedYield = BigInt(formData.escrowedYield)
+
+      const hash = await solveIntent(intent, escrowedYield)
 
       console.log('Intent solved:', hash)
       onClose()
       // Reset form
       setFormData({
-        userAddress: '',
-        solverAddress: '',
+        user: '',
+        requiredNotional: '',
+        term: '',
+        targetYield: '',
+        token: tokens?.USDC || '',
+        oracle: mockIntentOracle || '',
+        expiry: '',
         escrowedYield: '',
       })
     } catch (err) {
@@ -61,30 +82,113 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* User Address */}
+          {/* Ark Address */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              User Address (Ark)
+              Ark Address
             </label>
             <input
               type="text"
-              value={formData.userAddress}
-              onChange={(e) => handleInputChange('userAddress', e.target.value)}
+              value={formData.user}
+              onChange={(e) => handleInputChange('user', e.target.value)}
               placeholder="0x..."
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
             />
           </div>
 
-          {/* Solver Address */}
+          {/* Required Notional */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Solver Address</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Required Notional (USDC)
+            </label>
+            <input
+              type="number"
+              value={formData.requiredNotional}
+              onChange={(e) => handleInputChange('requiredNotional', e.target.value)}
+              placeholder="1000000"
+              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+
+          {/* Term */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Term (days)
+            </label>
+            <input
+              type="number"
+              value={formData.term}
+              onChange={(e) => handleInputChange('term', e.target.value)}
+              placeholder="30"
+              min="1"
+              max="365"
+              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+
+          {/* Target Yield */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Target Yield (USDC)
+            </label>
+            <input
+              type="number"
+              value={formData.targetYield}
+              onChange={(e) => handleInputChange('targetYield', e.target.value)}
+              placeholder="50000"
+              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+
+          {/* Token */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Token
+            </label>
+            <select
+              value={formData.token}
+              onChange={(e) => handleInputChange('token', e.target.value)}
+              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              required
+            >
+              <option value="">Select token</option>
+              {tokens && Object.entries(tokens).map(([symbol, address]) => (
+                <option key={symbol} value={address}>
+                  {symbol}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Oracle */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Oracle Address
+            </label>
             <input
               type="text"
-              value={formData.solverAddress}
-              onChange={(e) => handleInputChange('solverAddress', e.target.value)}
+              value={formData.oracle}
+              onChange={(e) => handleInputChange('oracle', e.target.value)}
               placeholder="0x..."
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+
+          {/* Expiry */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Expiry Date
+            </label>
+            <input
+              type="datetime-local"
+              value={formData.expiry}
+              onChange={(e) => handleInputChange('expiry', e.target.value)}
+              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
               required
             />
           </div>
@@ -98,20 +202,19 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
               type="number"
               value={formData.escrowedYield}
               onChange={(e) => handleInputChange('escrowedYield', e.target.value)}
-              placeholder="25"
-              step="0.01"
+              placeholder="50000"
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
             />
             <p className="text-xs text-gray-400 mt-1">
-              Amount to escrow upfront as yield guarantee
+              Amount of yield to escrow upfront
             </p>
           </div>
 
           {/* Error Display */}
           {error && (
-            <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">
+              {error}
             </div>
           )}
 
@@ -119,32 +222,11 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+            className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors"
           >
-            {loading ? 'Solving Intent...' : 'Solve Intent'}
+            {loading ? 'Solving...' : 'Solve Intent'}
           </button>
         </form>
-
-        {/* Contract Info */}
-        <div className="mt-6 p-4 bg-charcoal-700/50 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-300 mb-2">Contract Information</h3>
-          <div className="text-xs text-gray-400 space-y-1">
-            <div>IntentHandler: {intentHandler}</div>
-            <div>Chain: {chainId === '8453' ? 'Base' : `Chain ${chainId}`}</div>
-            <div>Environment: {environment}</div>
-          </div>
-        </div>
-
-        {/* Requirements Info */}
-        <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-300 mb-2">Requirements</h3>
-          <div className="text-xs text-blue-400 space-y-1">
-            <div>• Solver must have sufficient bond</div>
-            <div>• Oracle price must not be stale</div>
-            <div>• Intent must be in Created state</div>
-            <div>• Intent must not be expired</div>
-          </div>
-        </div>
       </div>
     </div>
   )

@@ -15,6 +15,11 @@ export const IntentHandlerABI = [
         "internalType": "address",
         "name": "_summerToken",
         "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_accessManager",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -23,120 +28,12 @@ export const IntentHandlerABI = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "requiredNotional",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "term",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "targetYield",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "oracle",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "expiry",
-        "type": "uint256"
-      }
-    ],
-    "name": "createIntent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "solverAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "escrowedYield",
-        "type": "uint256"
-      }
-    ],
-    "name": "solveIntent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "settleIntent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "resignByUser",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "resignBySolver",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "getIntent",
-    "outputs": [
-      {
         "components": [
+          {
+            "internalType": "address",
+            "name": "user",
+            "type": "address"
+          },
           {
             "internalType": "uint256",
             "name": "requiredNotional",
@@ -166,53 +63,221 @@ export const IntentHandlerABI = [
             "internalType": "uint256",
             "name": "expiry",
             "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "solver",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "escrowedYield",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "startTime",
-            "type": "uint256"
-          },
-          {
-            "internalType": "enum IIntentHandler.IntentState",
-            "name": "state",
-            "type": "uint8"
           }
         ],
-        "internalType": "struct IIntentHandler.Intent",
-        "name": "",
+        "internalType": "IIntentHandler.Intent",
+        "name": "intent",
         "type": "tuple"
       }
     ],
-    "stateMutability": "view",
+    "name": "createIntent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "intentExists",
-    "outputs": [
+        "components": [
+          {
+            "internalType": "address",
+            "name": "user",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "requiredNotional",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "term",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "targetYield",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "oracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiry",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "IIntentHandler.Intent",
+        "name": "intent",
+        "type": "tuple"
+      },
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
+        "internalType": "uint256",
+        "name": "escrowedYield",
+        "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "name": "solveIntent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "user",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "requiredNotional",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "term",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "targetYield",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "oracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiry",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "IIntentHandler.Intent",
+        "name": "intent",
+        "type": "tuple"
+      }
+    ],
+    "name": "settleIntent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "user",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "requiredNotional",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "term",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "targetYield",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "oracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiry",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "IIntentHandler.Intent",
+        "name": "intent",
+        "type": "tuple"
+      }
+    ],
+    "name": "resignByUser",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "user",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "requiredNotional",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "term",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "targetYield",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "oracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiry",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "IIntentHandler.Intent",
+        "name": "intent",
+        "type": "tuple"
+      }
+    ],
+    "name": "resignBySolver",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -224,11 +289,11 @@ export const IntentHandlerABI = [
       },
       {
         "internalType": "address",
-        "name": "adapter",
+        "name": "asset",
         "type": "address"
       }
     ],
-    "name": "addSolverAdapter",
+    "name": "addSolverEscrow",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -241,7 +306,7 @@ export const IntentHandlerABI = [
         "type": "address"
       }
     ],
-    "name": "removeSolverAdapter",
+    "name": "removeSolverEscrow",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -249,51 +314,149 @@ export const IntentHandlerABI = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
+        "components": [
+          {
+            "internalType": "address",
+            "name": "user",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "requiredNotional",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "term",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "targetYield",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "oracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiry",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "IIntentHandler.Intent",
+        "name": "intent",
+        "type": "tuple"
       }
     ],
-    "name": "grantArkRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "name": "hasCommitted",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "requiredNotional",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "arkAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isCommited",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_PRICE_AGE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MIN_TERM",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_TERM",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "BUFFER_TIME",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "intentStates",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
       {
         "internalType": "address",
-        "name": "solver",
+        "name": "",
         "type": "address"
       }
     ],
-    "name": "grantSolverRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "liquidator",
-        "type": "address"
-      }
-    ],
-    "name": "grantLiquidatorRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
-      }
-    ],
-    "name": "solverAdapters",
+    "name": "solverEscrows",
     "outputs": [
       {
         "internalType": "address",
@@ -305,11 +468,49 @@ export const IntentHandlerABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "intentSolvers",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "intentSolveTime",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "intentBondFactory",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IIntentBondFactory",
         "name": "",
         "type": "address"
       }
@@ -322,7 +523,7 @@ export const IntentHandlerABI = [
     "name": "intentOracle",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IIntentOracle",
         "name": "",
         "type": "address"
       }
@@ -335,7 +536,7 @@ export const IntentHandlerABI = [
     "name": "summerToken",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IERC20",
         "name": "",
         "type": "address"
       }
@@ -344,84 +545,16 @@ export const IntentHandlerABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
+    "inputs": [],
+    "name": "accessManager",
+    "outputs": [
       {
         "internalType": "address",
-        "name": "account",
+        "name": "",
         "type": "address"
-      }
-    ],
-    "name": "hasRole",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      }
-    ],
-    "name": "ARK_ROLE",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      }
-    ],
-    "name": "SOLVER_ROLE",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      }
-    ],
-    "name": "LIQUIDATOR_ROLE",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
     "type": "function"
   }
-] as const
+]
