@@ -299,13 +299,4 @@ contract IntentHandler is
 
     error IntentHandler__SolverEscrowAlreadyExists();
     error IntentHandler__SolverEscrowNotFound();
-    error IntentHandler__ConstructorParamsInvalid(string reason);
-    error IntentHandler__UnauthorizedCaller();
-    error IntentHandler__InvalidState();
-    error IntentHandler__IntentNotFound();
-    error IntentHandler__InsufficientBond();
-    error IntentHandler__InvalidOracle();
-    error IntentHandler__TooLittleEscrowed();
-    error IntentHandler__IntentExpired();
-    error IntentHandler__IntentAlreadyExists();
 }

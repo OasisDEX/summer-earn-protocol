@@ -2,16 +2,16 @@
 
 ## Overview
 
-The Intent-Based Bond System is a CoW Swap-style bonding mechanism where **each solver creates their own individual bond contract** via a factory. The system uses a generic Ark that posts intents offchain, and solvers solve them directly without needing Ark approval.
+The Intent-Based Bond System is a CoW Swap-style bonding mechanism where **each solver creates their own individual bond contract** via a factory. The system operates independently from Arks - Keeper posts intents on behalf of arks and the intent system only checks if an Ark is committed to an intent. When an intent is settled, yield is returned to the Ark's buffer.
 
 ## Architecture
 
 ### System Components
 
-- **GenericIntentArk**: Generic Ark that posts intents and can cancel them before solving
 - **IntentBondFactory**: Factory that creates individual bond contracts for each solver
 - **SolverBond**: Individual bond contract per solver (Summer tokens only)
-- **IntentHandler**: Manages intent lifecycle and bond verification
+- **IntentHandler**: Manages intent lifecycle, bond verification, and commitment checking
+- **Escrow**: Individual escrow contracts per solver for holding yield during intent execution
 - **Protocol Adapters**: Handle specific protocol interactions (Aave V3, etc.)
 
 ## Flow Diagram
@@ -21,10 +21,11 @@ flowchart TD
     %% Actors
     User[👤 User/Ark Commander]
     Solver[🤖 Solver]
-    Ark[🏴‍☠️ Generic Intent Ark]
+    Ark[🏴‍☠️ Ark - Independent]
     Factory[🏭 Intent Bond Factory]
     Bond[💰 Solver's Individual Bond]
     Handler[⚙️ Intent Handler]
+    Escrow[🏦 Solver's Escrow]
     Adapter[🔌 Protocol Adapter]
     Protocol[🌊 External Protocol]
     
@@ -33,8 +34,8 @@ flowchart TD
     Factory -->|2. Deploy Bond Contract| Bond
     Factory -->|3. Record Bond| Factory
     
-    %% Intent Creation Flow
-    User -->|4. Post Intent| Ark
+    %% Intent Creation Flow (Offchain)
+    User -->|4. Post Intent Offchain| Ark
     Ark -->|5. Record Intent| Handler
     Handler -->|6. Create Intent| Handler
     
@@ -45,22 +46,22 @@ flowchart TD
     Handler -->|10. Verify Bond Amount| Bond
     Bond -->|11. Bond Sufficient| Handler
     Handler -->|12. Mark Solved| Handler
+    Handler -->|13. Transfer Yield to Escrow| Escrow
     
     %% Intent Execution Flow
-    Solver -->|13. Activate Intent| Handler
-    Handler -->|14. Mark Active| Handler
-    Solver -->|15. Execute via Adapter| Adapter
-    Adapter -->|16. Protocol Call| Protocol
+    Solver -->|14. Execute via Adapter| Adapter
+    Adapter -->|15. Protocol Call| Protocol
     
     %% Intent Settlement Flow
-    Solver -->|17. Complete Term| Handler
-    Solver -->|18. Settle Intent| Handler
-    Handler -->|19. Mark Settled| Handler
+    Solver -->|16. Complete Term| Handler
+    Solver -->|17. Settle Intent| Handler
+    Handler -->|18. Mark Settled| Handler
+    Handler -->|19. Transfer Yield to Ark Buffer| Ark
     
     %% Alternative Flows
-    User -->|20a. Cancel Intent| Ark
-    Ark -->|21a. Resign Intent| Handler
-    Handler -->|22a. Mark Cancelled| Handler
+    Ark -->|20a. Cancel Intent| Handler
+    Handler -->|21a. Mark Cancelled| Handler
+    Handler -->|22a. Return Yield to Solver| Escrow
     
     Solver -->|20b. Resign Intent| Handler
     Handler -->|21b. Get Bond Contract| Factory
@@ -78,7 +79,7 @@ flowchart TD
     class User userClass
     class Solver solverClass
     class Ark arkClass
-    class Factory,Bond,Handler,Adapter contractClass
+    class Factory,Bond,Handler,Escrow,Adapter contractClass
     class Protocol protocolClass
 ```
 
@@ -90,47 +91,56 @@ flowchart TD
 - **Factory** records the mapping of solver → bond contract
 - **Solver** now has their own isolated bond contract
 
-### 2. Intent Creation
+### 2. Intent Creation (Offchain)
 - **User/Commander** posts intent with requirements (notional, term, yield, etc.)
-- **GenericIntentArk** records the intent on-chain
-- **IntentHandler** creates intent in `Created` state
+- **Ark** records the intent offchain (independent from intent system)
+- **IntentHandler** creates intent in `Created` state via keeper call
 
 ### 3. Intent Solving
-- **Solver** sees intent and calls `solveIntent()` directly
+- **Solver** sees intent and calls `solveIntent(intent, escrowedYield)` directly
 - **IntentHandler** checks if solver has bond contract via factory
 - **IntentHandler** verifies solver has sufficient bond in their individual contract
+- **IntentHandler** transfers target yield from solver to solver's escrow
 - Intent transitions to `Solved` state
 
 ### 4. Intent Execution
-- **Solver** activates intent (starts the term)
 - **Solver** executes protocol actions via adapter
 - **Protocol Adapter** handles specific protocol interactions
+- Yield remains escrowed in solver's individual escrow contract
 
 ### 5. Intent Settlement
-- **Solver** completes the term and settles intent
+- **Solver** completes the term and calls `settleIntent()`
+- **IntentHandler** withdraws yield from solver's escrow
+- **IntentHandler** transfers yield to Ark's buffer via FleetCommander
 - Intent transitions to `Settled` state
 - **Solver** keeps their bond in their individual contract
 
-### 6. Alternative Paths
-- **Ark can cancel** intent before solving (only in `Created` state)
-- **Solver can resign** intent (50% bond penalty from their individual contract)
+### 6. Commitment Checking
+- **Ark** can check if they're committed to an intent via `hasCommitted()`
+- Returns required notional, ark assets, and commitment status
+- Includes buffer time check (10 minutes) after solving
+
+### 7. Alternative Paths
+- **Ark can cancel** intent before solving via `resignByUser()` (only in `Created` state)
+- **Solver can resign** intent via `resignBySolver()` (50% bond penalty from their individual contract)
 
 ## Key Features
 
 - ✅ **Individual bond contracts** per solver (complete isolation)
+- ✅ **Individual escrow contracts** per solver for yield holding
 - ✅ **Factory pattern** for easy bond creation
-- ✅ **Generic Ark** handles any protocol via adapters
-- ✅ **Offchain intent posting** - Ark just records
+- ✅ **Independent Ark operation** - arks work offchain, system only checks commitment
 - ✅ **Direct solver execution** - no Ark approval bottlenecks
 - ✅ **Summer token bonds only** - simple and clean
 - ✅ **50% penalty** for solver resignations
+- ✅ **Buffer time protection** - 10-minute grace period after solving
+- ✅ **Yield to buffer** - settled intents return yield to Ark's buffer
 
 ## Contract Interactions
 
 ```mermaid
 graph LR
     subgraph "Intent System"
-        Ark[GenericIntentArk]
         Handler[IntentHandler]
         Factory[IntentBondFactory]
     end
@@ -139,6 +149,12 @@ graph LR
         Bond1[Solver1 Bond]
         Bond2[Solver2 Bond]
         BondN[SolverN Bond]
+    end
+    
+    subgraph "Individual Escrows"
+        Escrow1[Solver1 Escrow]
+        Escrow2[Solver2 Escrow]
+        EscrowN[SolverN Escrow]
     end
     
     subgraph "Protocol Layer"
@@ -150,13 +166,16 @@ graph LR
         Solver1[Solver 1]
         Solver2[Solver 2]
         Summer[Summer Token]
+        Ark[Ark Buffer]
     end
     
-    Ark --> Handler
     Handler --> Factory
     Factory --> Bond1
     Factory --> Bond2
     Factory --> BondN
+    Handler --> Escrow1
+    Handler --> Escrow2
+    Handler --> EscrowN
     Solver1 --> Bond1
     Solver2 --> Bond2
     Solver1 --> Handler
@@ -165,62 +184,98 @@ graph LR
     Adapter --> Protocol
     Bond1 --> Summer
     Bond2 --> Summer
+    Handler --> Ark
 ```
 
 ## State Transitions
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Created: postIntent()
+    [*] --> Created: createIntent()
     Created --> Solved: solveIntent()
-    Created --> ResignedByArk: cancelIntent()
-    Solved --> Active: activateIntent()
-    Active --> Settled: settleIntent()
-    Active --> ResignedBySolver: resignBySolver()
-    Solved --> ResignedBySolver: resignBySolver()
+    Created --> UserResigned: resignByUser()
+    Solved --> Settled: settleIntent()
+    Solved --> SolverResigned: resignBySolver()
     
     note right of Created
-        Intent posted by Ark
+        Intent created by keeper
         Waiting for solver
     end note
     
     note right of Solved
         Solver has solved intent
-        Bond verified via factory
-    end note
-    
-    note right of Active
-        Intent is executing
-        Term is running
+        Bond verified, yield escrowed
     end note
     
     note right of Settled
         Intent completed successfully
-        Solver keeps bond in their contract
+        Yield returned to Ark buffer
+        Solver keeps bond
+    end note
+    
+    note right of UserResigned
+        Ark cancelled intent
+        Yield returned to solver if solved
+    end note
+    
+    note right of SolverResigned
+        Solver resigned intent
+        50% bond penalty applied
     end note
 ```
 
+## Commitment Checking
+
+The system provides a `hasCommitted()` function that Arks can use to check their commitment status:
+
+```solidity
+function hasCommitted(Intent memory intent) external view 
+    returns (uint256 requiredNotional, uint256 arkAssets, bool isCommited)
+```
+
+**Commitment Logic:**
+1. **Buffer Time**: 10-minute grace period after solving (BUFFER_TIME)
+2. **Asset Check**: Compares Ark's total assets against required notional
+3. **Status Return**: Returns commitment status and relevant amounts
+
+**Use Cases:**
+- Arks can verify their commitment before taking actions
+- Risk management and position sizing
+- Compliance and reporting requirements
+
 ## Benefits
 
-1. **Complete Isolation**: Each solver has their own bond contract
+1. **Complete Isolation**: Each solver has their own bond and escrow contracts
 2. **Factory Pattern**: Easy to create new bonds for new solvers
-3. **Minimal Code**: Clean separation of concerns
-4. **Overly Simple**: Easy to understand and maintain
-5. **CoW Swap Style**: Individual bonding pools per solver
-6. **Generic Design**: One Ark handles any protocol
+3. **Independent Arks**: Arks operate offchain, system only checks commitment
+4. **Minimal Code**: Clean separation of concerns
+5. **Overly Simple**: Easy to understand and maintain
+6. **CoW Swap Style**: Individual bonding pools per solver
 7. **Efficient Flow**: No approval bottlenecks
 8. **Flexible**: Easy to add new protocols via adapters
+9. **Buffer Protection**: Grace period for Ark commitment verification
+10. **Yield Management**: Automatic yield return to Ark buffer
 
 ## How It Works
 
 1. **Solver creates bond**: `factory.createBond(solver)` → deploys `SolverBond` contract
-2. **Ark posts intent** with requirements (notional, term, yield, etc.)
-3. **Solver solves intent** directly by calling `solveIntent()`
-4. **System verifies** solver has sufficient bond in their individual contract
-5. **Solver executes** via protocol adapter (Aave, etc.)
-6. **Solver settles** when term completes
-7. **Bond stays** in solver's individual contract (no shared pools)
+2. **Ark posts intent offchain** with requirements (notional, term, yield, etc.)
+3. **Keeper creates intent** on-chain via `createIntent()`
+4. **Solver solves intent** directly by calling `solveIntent(intent, escrowedYield)`
+5. **System verifies** solver has sufficient bond in their individual contract
+6. **Yield is escrowed** in solver's individual escrow contract
+7. **Solver executes** via protocol adapter (Aave, etc.)
+8. **Solver settles** when term completes via `settleIntent()`
+9. **Yield returns** to Ark's buffer via FleetCommander
+10. **Bond stays** in solver's individual contract (no shared pools)
 
-This is **exactly like CoW Swap's bonding pools** - each solver has their own pool, they're completely isolated, and they can solve intents directly without waiting for Ark approval.
+## Key Differences from Previous Design
 
-The system is now **minimal as possible** and **overly simple** as requested! 🎉
+- ❌ **No GenericIntentArk**: Arks work independently offchain
+- ❌ **No Ark approval**: Solvers solve intents directly
+- ✅ **Commitment checking**: System only verifies Ark commitment status
+- ✅ **Buffer yield return**: Settled intents return yield to Ark's buffer
+- ✅ **Individual escrows**: Each solver has their own escrow contract
+- ✅ **Buffer time protection**: 10-minute grace period for commitment verification
+
+This system is **minimal as possible** and **overly simple** as requested, with Arks operating independently and the intent system focusing solely on bond management and commitment verification! 🎉
