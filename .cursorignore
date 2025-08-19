@@ -98,3 +98,7 @@ broadcast
 
 cache_forge/
 **/cache_forge/
+packages/external-dependencies
+lib
+safe*.json
+**/abis/*
