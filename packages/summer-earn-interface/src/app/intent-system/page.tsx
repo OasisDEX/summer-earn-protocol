@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { formatEther } from 'viem'
+import { formatEther, formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { ChainSelector } from '../../components/ChainSelector'
-import { ContractCard } from '../../components/ContractCard'
 import { EnvironmentSelector } from '../../components/EnvironmentSelector'
-import { AdminModal } from '../../components/modals/AdminModal'
 import { CreateBondModal } from '../../components/modals/CreateBondModal'
 import { CreateIntentModal } from '../../components/modals/CreateIntentModal'
+import { SetPriceModal } from '../../components/modals/SetPriceModal'
 import { SolveIntentModal } from '../../components/modals/SolveIntentModal'
 import { useEnvironment } from '../../hooks/useEnvironment'
 import { useIntentSystem } from '../../hooks/useIntentSystem'
@@ -17,22 +16,17 @@ import { useSyncWalletChain } from '../../hooks/useSyncWalletChain'
 import type { ChainId } from '../../types'
 
 export default function IntentSystemPage() {
-  const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '8453') // Default to Base
+  const [storedChain, setStoredChain] = useLocalStorage<ChainId>('selectedChain', '8453')
   const [selectedChain, setSelectedChain] = useState<ChainId>(storedChain)
   const { environment, setEnvironment } = useEnvironment()
-  const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const { address: userAddress, isConnected } = useAccount()
 
   // Modal states
   const [showCreateIntent, setShowCreateIntent] = useState(false)
   const [showSolveIntent, setShowSolveIntent] = useState(false)
   const [showCreateBond, setShowCreateBond] = useState(false)
-  const [showAdmin, setShowAdmin] = useState(false)
-
-  // Bond state
-  const [bondContractAddress, setBondContractAddress] = useState<string | null>(null)
-  const [bondAllowance, setBondAllowance] = useState<bigint>(BigInt(0))
-  const [bondAmount, setBondAmount] = useState<bigint>(BigInt(0))
+  const [showSetPrice, setShowSetPrice] = useState(false)
+  const [selectedIntentForSolving, setSelectedIntentForSolving] = useState<any>(null)
 
   useSyncWalletChain(selectedChain)
 
@@ -40,21 +34,26 @@ export default function IntentSystemPage() {
     setStoredChain(selectedChain)
   }, [selectedChain, setStoredChain])
 
-  // Use the Intent System hook for real data
   const {
-    intentData,
-    solverInfo,
     isDeployed,
-    intentBondFactory,
     intentHandler,
-    mockIntentOracle,
-    tokens,
-    refreshSolverInfo,
-    getSummerTokenAllowance,
-    addBond,
+    intentEvents,
+    eventsLoading,
+    fetchIntentEvents,
+    solverInfo,
+    intentBondFactory,
     getSolverBondAmount,
+    addBond,
+    refreshSolverInfo,
   } = useIntentSystem(environment, selectedChain)
 
+  // Bond state
+  const [bondContractAddress, setBondContractAddress] = useState<string | null>(null)
+  const [bondAllowance, setBondAllowance] = useState<bigint>(BigInt(0))
+  const [bondAmount, setBondAmount] = useState<bigint>(BigInt(0))
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
+
+  // Helper functions
   const copyToClipboard = async (address: string) => {
     try {
       await navigator.clipboard.writeText(address)
@@ -70,18 +69,11 @@ export default function IntentSystemPage() {
     const fetchBondInfo = async () => {
       if (userAddress && isDeployed && intentBondFactory) {
         try {
-          // Get bond amount from the hook
           const amount = await getSolverBondAmount(userAddress)
           setBondAmount(amount)
 
-          // Check if user has a bond
           if (amount > BigInt(0)) {
-            // Get bond contract address (we'll need to implement this)
-            // For now, we'll assume the bond exists if amount > 0
             setBondContractAddress('bond-exists')
-
-            // Get allowance for the bond contract
-            // We'll need to implement this properly
             setBondAllowance(BigInt(0))
           } else {
             setBondContractAddress(null)
@@ -93,7 +85,6 @@ export default function IntentSystemPage() {
       }
     }
 
-    // Add a small delay to ensure hooks are fully initialized
     const timer = setTimeout(() => {
       fetchBondInfo()
     }, 100)
@@ -101,7 +92,7 @@ export default function IntentSystemPage() {
     return () => clearTimeout(timer)
   }, [userAddress, isDeployed, intentBondFactory, selectedChain, getSolverBondAmount])
 
-  // Additional effect to refresh bond info when solverInfo changes
+  // Update bond info when solverInfo changes
   useEffect(() => {
     if (solverInfo && userAddress && solverInfo.address === userAddress) {
       setBondAmount(solverInfo.bondAmount)
@@ -113,11 +104,59 @@ export default function IntentSystemPage() {
     }
   }, [solverInfo, userAddress])
 
-  const getExplorerUrl = (address: string) => {
-    if (selectedChain === '8453') {
-      return `https://basescan.org/address/${address}`
+  // Function to fund the bond
+  const fundBond = async (amount: bigint) => {
+    if (!userAddress) return
+
+    try {
+      const hash = await addBond(userAddress, amount)
+      if (hash) {
+        console.log('Bond funded successfully:', hash)
+        setTimeout(async () => {
+          refreshSolverInfo()
+          const newAmount = await getSolverBondAmount(userAddress)
+          setBondAmount(newAmount)
+        }, 5000)
+      }
+    } catch (error) {
+      console.error('Error funding bond:', error)
     }
-    return `https://etherscan.io/address/${address}` // Default fallback
+  }
+
+  // Function to open solve modal with prefilled intent data
+  const openSolveModal = (intent: any) => {
+    setSelectedIntentForSolving(intent)
+    setShowSolveIntent(true)
+  }
+
+  // Fetch intent events
+  useEffect(() => {
+    if (isDeployed && intentHandler) {
+      fetchIntentEvents()
+    }
+  }, [isDeployed, intentHandler, selectedChain, fetchIntentEvents])
+
+  // Helper function to format intent events for display
+  const formatIntentEvents = () => {
+    if (!intentEvents || intentEvents.length === 0) {
+      return []
+    }
+
+    return intentEvents.map((event) => ({
+      ...event,
+      formattedTime: new Date(event.timestamp * 1000).toLocaleString(),
+      shortUser: `${event.user.slice(0, 6)}...${event.user.slice(-4)}`,
+      shortSolver: event.solver ? `${event.solver.slice(0, 6)}...${event.solver.slice(-4)}` : 'N/A',
+      shortIntentId: `${event.intentId.slice(0, 10)}...`,
+      termDays: event.term > BigInt(0) ? `${Number(event.term) / 86400} days` : 'N/A',
+      requiredNotionalFormatted:
+        event.requiredNotional > BigInt(0)
+          ? formatAmount(event.requiredNotional, event.token)
+          : 'N/A',
+      requiredBondFormatted:
+        event.requiredBond > BigInt(0) ? formatEther(event.requiredBond) : 'N/A',
+      targetYieldFormatted: event.targetYield > BigInt(0) ? formatEther(event.targetYield) : 'N/A',
+    }))
   }
 
   const getChainName = () => {
@@ -135,54 +174,31 @@ export default function IntentSystemPage() {
     }
   }
 
-  // Function to fund the bond
-  const fundBond = async (amount: bigint) => {
-    if (!userAddress) return
-
-    try {
-      const hash = await addBond(userAddress, amount)
-      if (hash) {
-        console.log('Bond funded successfully:', hash)
-        // Refresh bond info after funding
-        setTimeout(async () => {
-          refreshSolverInfo()
-          // Also refresh our local bond state
-          const newAmount = await getSolverBondAmount(userAddress)
-          setBondAmount(newAmount)
-        }, 5000) // Wait 5 seconds for transaction to be mined
-      }
-    } catch (error) {
-      console.error('Error funding bond:', error)
-    }
+  // Token decimals mapping - common tokens and their decimals
+  const TOKEN_DECIMALS: Record<string, number> = {
+    '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913': 6, // USDC on Base
+    '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32': 18, // SUMMER on Base
   }
 
-  // Comprehensive refresh function for bond information
-  const refreshBondInfo = async () => {
-    if (!userAddress || !isDeployed || !intentBondFactory) return
+  // Function to get token decimals, defaulting to 18 if unknown
+  const getTokenDecimals = (tokenAddress: string): number => {
+    return TOKEN_DECIMALS[tokenAddress.toLowerCase()] ?? 18
+  }
 
+  // Function to format amount based on token decimals
+  const formatAmount = (amount: bigint, tokenAddress: string): string => {
+    if (amount === BigInt(0)) return '0'
+    const decimals = getTokenDecimals(tokenAddress)
     try {
-      // Refresh solver info from the hook
-      await refreshSolverInfo()
-
-      // Refresh our local bond state
-      const amount = await getSolverBondAmount(userAddress)
-      setBondAmount(amount)
-
-      // Update bond contract address status
-      if (amount > BigInt(0)) {
-        setBondContractAddress('bond-exists')
-      } else {
-        setBondContractAddress(null)
-      }
-
-      console.log('Bond information refreshed')
+      return formatUnits(amount, decimals)
     } catch (error) {
-      console.error('Error refreshing bond info:', error)
+      console.error('Error formatting amount:', error)
+      return amount.toString()
     }
   }
 
   return (
-    <main className="min-h-screen bg-charcoal-900 p-8">
+    <div className="min-h-screen bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="mb-8">
@@ -197,7 +213,7 @@ export default function IntentSystemPage() {
             Monitor and manage the deployed Intent System contracts on {getChainName()}
           </p>
 
-          <div className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
+          <div className="bg-gray-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <EnvironmentSelector selectedEnvironment={environment} onChange={setEnvironment} />
               <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
@@ -230,468 +246,282 @@ export default function IntentSystemPage() {
           </div>
         </div>
 
-        {/* Contract Information */}
+        {/* Real Data - Intent Events */}
         {isDeployed && (
-          <>
-            {/* Core Contracts */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">Core Contracts</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ContractCard
-                  title="IntentBondFactory"
-                  description="Manages solver bonds"
-                  address={intentBondFactory}
-                  icon="🏭"
-                  color="bg-blue-600"
-                  chainId={selectedChain}
-                  onCopy={copyToClipboard}
-                  copiedAddress={copiedAddress}
-                />
-                <ContractCard
-                  title="IntentHandler"
-                  description="Core intent management"
-                  address={intentHandler}
-                  icon="⚡"
-                  color="bg-purple-600"
-                  chainId={selectedChain}
-                  onCopy={copyToClipboard}
-                  copiedAddress={copiedAddress}
-                />
-              </div>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">Live Intent Events</h2>
+              <button
+                onClick={fetchIntentEvents}
+                disabled={eventsLoading}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
+              >
+                {eventsLoading ? 'Loading...' : 'Refresh Events'}
+              </button>
             </div>
 
-            {/* Infrastructure */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">Infrastructure</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ContractCard
-                  title="MockIntentOracle"
-                  description="Price verification (test)"
-                  address={mockIntentOracle}
-                  icon="🔮"
-                  color="bg-yellow-600"
-                  chainId={selectedChain}
-                  onCopy={copyToClipboard}
-                  copiedAddress={copiedAddress}
-                />
+            {eventsLoading ? (
+              <div className="bg-gray-800/50 p-8 rounded-xl border border-white/10 text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading intent events...</p>
               </div>
-            </div>
-
-            {/* Token Information */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">Supported Tokens</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {tokens &&
-                  Object.entries(tokens).map(([symbol, address]) => (
-                    <div
-                      key={symbol}
-                      className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur"
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                          <span className="text-white font-bold text-lg">🪙</span>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-white">{symbol}</h3>
-                          <p className="text-sm text-gray-400">Token contract</p>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-gray-400 text-sm">Address:</span>
-                          <div className="font-mono text-sm bg-charcoal-700 p-2 rounded mt-1 break-all">
-                            {address}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <a
-                            href={getExplorerUrl(address)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded transition-colors"
-                          >
-                            View on Explorer
-                          </a>
-                          <button
-                            onClick={() => copyToClipboard(address)}
-                            className={`px-3 py-1 text-sm rounded transition-colors ${
-                              copiedAddress === address
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-600 hover:bg-gray-700 text-white'
-                            }`}
-                          >
-                            {copiedAddress === address ? 'Copied!' : 'Copy Address'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            {/* Intent System Actions */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">Intent System Actions</h2>
-
-              {/* Intent Lifecycle Actions */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white mb-3">🎯 Intent Lifecycle</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">Create Intent</h4>
-                    <p className="text-sm text-gray-400 mb-3">
-                      Keeper calls IntentHandler.createIntent()
-                    </p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• Required notional amount</div>
-                      <div>• Term length</div>
-                      <div>• Target yield</div>
-                      <div>• Oracle & expiry</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">Solve Intent</h4>
-                    <p className="text-sm text-gray-400 mb-3">
-                      Solver calls IntentHandler.solveIntent()
-                    </p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• Must have sufficient bond</div>
-                      <div>• Escrow yield upfront</div>
-                      <div>• Oracle price validation</div>
-                      <div>• 10-minute buffer for keeper</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">Settle Intent</h4>
-                    <p className="text-sm text-gray-400 mb-3">
-                      Solver calls IntentHandler.settleIntent()
-                    </p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• After term completion</div>
-                      <div>• Keeps bond intact</div>
-                      <div>• Yield to Ark buffer</div>
-                    </div>
-                  </div>
+            ) : intentEvents && intentEvents.length > 0 ? (
+              <div className="bg-gray-800/50 rounded-xl border border-white/10 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-700/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-gray-300">Time</th>
+                        <th className="px-4 py-3 text-left text-gray-300">Intent ID</th>
+                        <th className="px-4 py-3 text-left text-gray-300">User</th>
+                        <th className="px-4 py-3 text-left text-gray-300">Solver</th>
+                        <th className="px-4 py-3 text-left text-gray-300">Status</th>
+                        <th className="px-4 py-3 text-left text-gray-300">Notional</th>
+                        <th className="px-4 py-3 text-left text-gray-300">Bond</th>
+                        <th className="px-4 py-3 text-left text-gray-300">Term</th>
+                        <th className="px-4 py-3 text-left text-gray-300">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formatIntentEvents().map((event, index) => (
+                        <tr key={index} className="border-t border-white/5 hover:bg-white/5">
+                          <td className="px-4 py-3 text-gray-300">{event.formattedTime}</td>
+                          <td className="px-4 py-3 font-mono text-blue-400">
+                            {event.shortIntentId}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-purple-400">{event.shortUser}</td>
+                          <td className="px-4 py-3 font-mono text-green-400">
+                            {event.shortSolver}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-2 py-1 rounded text-xs ${
+                                event.state === 'Settled'
+                                  ? 'bg-green-600 text-white'
+                                  : event.state === 'Solved'
+                                    ? 'bg-blue-600 text-white'
+                                    : event.state === 'Created'
+                                      ? 'bg-yellow-600 text-white'
+                                      : 'bg-gray-600 text-white'
+                              }`}
+                            >
+                              {event.state}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-300">
+                            {event.requiredNotionalFormatted}
+                          </td>
+                          <td className="px-4 py-3 text-gray-300">{event.requiredBondFormatted}</td>
+                          <td className="px-4 py-3 text-gray-300">{event.termDays}</td>
+                          <td className="px-4 py-3">
+                            {event.state === 'Created' && (
+                              <button
+                                onClick={() => openSolveModal(event)}
+                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                              >
+                                Solve
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-
-              {/* Management Actions */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white mb-3">⚙️ Management Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">Resign Intent</h4>
-                    <p className="text-sm text-gray-400 mb-3">Early termination options</p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• User resign: before solving</div>
-                      <div>• Solver resign: 50% bond penalty</div>
-                      <div>• Returns escrowed yield</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">Bond Management</h4>
-                    <p className="text-sm text-gray-400 mb-3">Solver bond operations</p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• Add/remove bond amounts</div>
-                      <div>• Check voucher status</div>
-                      <div>• Bond slashing on failure</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">Escrow Management</h4>
-                    <p className="text-sm text-gray-400 mb-3">Solver escrow operations</p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• Add solver escrow</div>
-                      <div>• Remove solver escrow</div>
-                      <div>• Individual escrow per solver</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Commitment Checking */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white mb-3">🔍 Commitment Checking</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">hasCommitted()</h4>
-                    <p className="text-sm text-gray-400 mb-3">Check Ark commitment status</p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• 10-minute buffer time</div>
-                      <div>• Asset vs notional check</div>
-                      <div>• Commitment verification</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">Buffer Protection</h4>
-                    <p className="text-sm text-gray-400 mb-3">Grace period for keepers</p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• 10 minutes after solving</div>
-                      <div>• Keeper obligation period</div>
-                      <div>• Asset commitment check</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">Yield Management</h4>
-                    <p className="text-sm text-gray-400 mb-3">Escrowed yield handling</p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>• Individual solver escrows</div>
-                      <div>• Yield to Ark buffer</div>
-                      <div>• Early termination handling</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* My Solver Bond */}
-            {isConnected && userAddress && (
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold text-white mb-4">My Solver Bond</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-charcoal-800/50 p-6 rounded-xl border border-white/10">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">🏦</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">Bond Status</h3>
-                        <p className="text-sm text-gray-400">Your solver bond information</p>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-charcoal-700/50 p-3 rounded-lg text-center">
-                          <div className="text-2xl font-bold text-purple-400">
-                            {formatEther(bondAmount)} SUMMER
-                          </div>
-                          <div className="text-sm text-gray-400">Bond Amount</div>
-                        </div>
-                        <div className="bg-charcoal-700/50 p-3 rounded-lg text-center">
-                          <div
-                            className={`text-2xl font-bold ${
-                              solverInfo &&
-                              solverInfo.address === userAddress &&
-                              solverInfo.isVouched
-                                ? 'text-green-400'
-                                : 'text-red-400'
-                            }`}
-                          >
-                            {solverInfo &&
-                            solverInfo.address === userAddress &&
-                            solverInfo.isVouched
-                              ? '✓ Vouched'
-                              : '✗ Not Vouched'}
-                          </div>
-                          <div className="text-sm text-gray-400">Voucher Status</div>
-                        </div>
-                      </div>
-                      <div className="bg-charcoal-700/50 p-3 rounded-lg">
-                        <div className="text-sm text-gray-400 mb-2">Wallet Address:</div>
-                        <div className="font-mono text-sm break-all">{userAddress}</div>
-                      </div>
-
-                      {/* Bond Contract Info */}
-                      {bondContractAddress && bondContractAddress !== 'bond-exists' && (
-                        <div className="bg-charcoal-700/50 p-3 rounded-lg">
-                          <div className="text-sm text-gray-400 mb-2">Bond Contract:</div>
-                          <div className="font-mono text-sm break-all">{bondContractAddress}</div>
-                        </div>
-                      )}
-
-                      {/* Fund Bond Section */}
-                      <div className="bg-charcoal-700/50 p-3 rounded-lg">
-                        <div className="text-sm text-gray-400 mb-2">Fund Bond:</div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => fundBond(BigInt(1000) * BigInt(10 ** 18))} // 1000 SUMMER
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
-                          >
-                            +1000 SUMMER
-                          </button>
-                          <button
-                            onClick={() => fundBond(BigInt(500) * BigInt(10 ** 18))} // 500 SUMMER
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
-                          >
-                            +500 SUMMER
-                          </button>
-                          <button
-                            onClick={() => fundBond(BigInt(100) * BigInt(10 ** 18))} // 100 SUMMER
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
-                          >
-                            +100 SUMMER
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setShowCreateBond(true)}
-                          className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors"
-                        >
-                          {bondAmount > BigInt(0) ? 'Add to Bond' : 'Create Bond'}
-                        </button>
-                        <button
-                          onClick={() => copyToClipboard(userAddress)}
-                          className={`px-4 py-2 text-sm rounded transition-colors ${
-                            copiedAddress === userAddress
-                              ? 'bg-green-600 text-white'
-                              : 'bg-gray-600 hover:bg-gray-700 text-white'
-                          }`}
-                        >
-                          {copiedAddress === userAddress ? 'Copied!' : 'Copy Address'}
-                        </button>
-                        <button
-                          onClick={refreshBondInfo}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
-                          title="Refresh bond information"
-                        >
-                          🔄
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-charcoal-800/50 p-6 rounded-xl border border-white/10">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">📊</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">Bond Requirements</h3>
-                        <p className="text-sm text-gray-400">Minimum requirements to be a solver</p>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="bg-charcoal-700/50 p-3 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-400">Minimum Bond:</span>
-                          <span className="font-semibold text-white">1,000 SUMMER</span>
-                        </div>
-                      </div>
-                      <div className="bg-charcoal-700/50 p-3 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-400">Voucher Status:</span>
-                          <span
-                            className={`font-semibold ${
-                              solverInfo &&
-                              solverInfo.address === userAddress &&
-                              solverInfo.isVouched
-                                ? 'text-green-400'
-                                : 'text-red-400'
-                            }`}
-                          >
-                            {solverInfo &&
-                            solverInfo.address === userAddress &&
-                            solverInfo.isVouched
-                              ? 'Active'
-                              : 'Inactive'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="bg-charcoal-700/50 p-3 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-400">Can Solve Intents:</span>
-                          <span
-                            className={`font-semibold ${
-                              solverInfo &&
-                              solverInfo.address === userAddress &&
-                              solverInfo.isVouched
-                                ? 'text-green-400'
-                                : 'text-red-400'
-                            }`}
-                          >
-                            {solverInfo &&
-                            solverInfo.address === userAddress &&
-                            solverInfo.isVouched
-                              ? 'Yes'
-                              : 'No'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-400 space-y-1">
-                        <div>• Bond must be at least 1,000 SUMMER</div>
-                        <div>• Vouched solvers can solve intents</div>
-                        <div>• Bond is locked while solving</div>
-                        <div>• Early resignation: 50% penalty</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            ) : (
+              <div className="bg-gray-800/50 p-8 rounded-xl border border-white/10 text-center">
+                <p className="text-gray-400 mb-4">No intent events found in recent blocks</p>
+                <button
+                  onClick={fetchIntentEvents}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                >
+                  Refresh Events
+                </button>
               </div>
             )}
-
-            {/* Quick Actions */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
-              <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={() => setShowCreateIntent(true)}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
-                >
-                  📝 Create Intent
-                </button>
-                <button
-                  onClick={() => setShowSolveIntent(true)}
-                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
-                >
-                  🔍 Solve Intent
-                </button>
-                <button
-                  onClick={() => setShowCreateBond(true)}
-                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
-                >
-                  🏦 Create Bond
-                </button>
-                <button
-                  onClick={() => setShowAdmin(true)}
-                  className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors"
-                >
-                  ⚙️ Admin Functions
-                </button>
-                <button className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold transition-colors">
-                  📊 View Statistics
-                </button>
-                <button className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors">
-                  🔮 Oracle Status
-                </button>
-              </div>
-            </div>
-
-            {/* System Status Overview */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">System Status Overview</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
-                  <div className="text-2xl mb-2">🏭</div>
-                  <div className="text-lg font-semibold text-white">Bond Factory</div>
-                  <div className="text-sm text-green-400">✓ Active</div>
-                  <div className="text-xs text-gray-400 mt-1">Ready for bonds</div>
-                </div>
-
-                <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
-                  <div className="text-2xl mb-2">⚡</div>
-                  <div className="text-lg font-semibold text-white">Intent Handler</div>
-                  <div className="text-sm text-green-400">✓ Active</div>
-                  <div className="text-xs text-gray-400 mt-1">Ready for intents</div>
-                </div>
-
-                <div className="bg-charcoal-800/50 p-4 rounded-lg border border-white/10 text-center">
-                  <div className="text-2xl mb-2">🔮</div>
-                  <div className="text-lg font-semibold text-white">Mock Oracle</div>
-                  <div className="text-sm text-green-400">✓ Active</div>
-                  <div className="text-xs text-gray-400 mt-1">Ready for testing</div>
-                </div>
-              </div>
-            </div>
-          </>
+          </div>
         )}
+
+        {/* My Solver Bond - Actionable Content */}
+        {isConnected && userAddress && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-white mb-4">My Solver Bond</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-gray-800/50 p-6 rounded-xl border border-white/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">🏦</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Bond Status</h3>
+                    <p className="text-sm text-gray-400">Your solver bond information</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-700/50 p-3 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-purple-400">
+                        {formatEther(bondAmount)} SUMMER
+                      </div>
+                      <div className="text-sm text-gray-400">Bond Amount</div>
+                    </div>
+                    <div className="bg-gray-700/50 p-3 rounded-lg text-center">
+                      <div
+                        className={`text-2xl font-bold ${
+                          solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                          ? 'Yes'
+                          : 'No'}
+                      </div>
+                      <div className="text-sm text-gray-400">Voucher Status</div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-700/50 p-3 rounded-lg">
+                    <div className="text-sm text-gray-400 mb-2">Wallet Address:</div>
+                    <div className="font-mono text-sm break-all">{userAddress}</div>
+                  </div>
+
+                  <div className="bg-gray-700/50 p-3 rounded-lg">
+                    <div className="text-sm text-gray-400 mb-2">Fund Bond:</div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => fundBond(BigInt(1000) * BigInt(10 ** 18))} // 1000 SUMMER
+                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                      >
+                        +1000 SUMMER
+                      </button>
+                      <button
+                        onClick={() => fundBond(BigInt(500) * BigInt(10 ** 18))} // 500 SUMMER
+                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                      >
+                        +500 SUMMER
+                      </button>
+                      <button
+                        onClick={() => fundBond(BigInt(100) * BigInt(10 ** 18))} // 100 SUMMER
+                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                      >
+                        +100 SUMMER
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowCreateBond(true)}
+                      className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors"
+                    >
+                      {bondAmount > BigInt(0) ? 'Add to Bond' : 'Create Bond'}
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(userAddress)}
+                      className={`px-4 py-2 text-sm rounded transition-colors ${
+                        copiedAddress === userAddress
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-600 hover:bg-gray-700 text-white'
+                      }`}
+                    >
+                      {copiedAddress === userAddress ? 'Copied!' : 'Copy Address'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-800/50 p-6 rounded-xl border border-white/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">📊</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Bond Requirements</h3>
+                    <p className="text-sm text-gray-400">Minimum requirements to be a solver</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-gray-700/50 p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400">Minimum Bond:</span>
+                      <span className="font-semibold text-white">1,000 SUMMER</span>
+                    </div>
+                  </div>
+                  <div className="bg-gray-700/50 p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400">Voucher Status:</span>
+                      <span
+                        className={`font-semibold ${
+                          solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                          ? 'Active'
+                          : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-gray-700/50 p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400">Can Solve Intents:</span>
+                      <span
+                        className={`font-semibold ${
+                          solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                          ? 'Yes'
+                          : 'No'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 space-y-1">
+                    <div>• Bond must be at least 1,000 SUMMER</div>
+                    <div>• Vouched solvers can solve intents</div>
+                    <div>• Bond is locked while solving</div>
+                    <div>• Early resignation: 50% penalty</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
+          <div className="flex flex-wrap gap-4">
+            <button
+              onClick={() => setShowCreateIntent(true)}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              📝 Create Intent
+            </button>
+            <button
+              onClick={() => setShowSolveIntent(true)}
+              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              🔍 Solve Intent
+            </button>
+            <button
+              onClick={() => setShowCreateBond(true)}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              🏦 Create Bond
+            </button>
+            <button
+              onClick={() => setShowSetPrice(true)}
+              className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              💰 Set Price
+            </button>
+          </div>
+        </div>
 
         {/* Not Deployed Message */}
         {!isDeployed && (
@@ -703,7 +533,7 @@ export default function IntentSystemPage() {
             <p className="text-gray-400 mb-6">
               The Intent System contracts have not been deployed on {getChainName()} yet.
             </p>
-            <div className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 max-w-md mx-auto">
+            <div className="bg-gray-800/70 p-6 rounded-xl border border-white/10 max-w-md mx-auto">
               <h4 className="font-semibold text-white mb-3">To deploy:</h4>
               <ol className="text-sm text-gray-300 space-y-2 text-left">
                 <li>1. Use the deployment scripts in core-contracts</li>
@@ -725,9 +555,13 @@ export default function IntentSystemPage() {
 
         <SolveIntentModal
           isOpen={showSolveIntent}
-          onClose={() => setShowSolveIntent(false)}
+          onClose={() => {
+            setShowSolveIntent(false)
+            setSelectedIntentForSolving(null)
+          }}
           environment={environment}
           chainId={selectedChain}
+          intentData={selectedIntentForSolving}
         />
 
         <CreateBondModal
@@ -737,13 +571,13 @@ export default function IntentSystemPage() {
           chainId={selectedChain}
         />
 
-        <AdminModal
-          isOpen={showAdmin}
-          onClose={() => setShowAdmin(false)}
+        <SetPriceModal
+          isOpen={showSetPrice}
+          onClose={() => setShowSetPrice(false)}
           environment={environment}
           chainId={selectedChain}
         />
       </div>
-    </main>
+    </div>
   )
 }
