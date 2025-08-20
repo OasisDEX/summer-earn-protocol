@@ -12,6 +12,7 @@ interface CreateIntentModalProps {
   chainId: ChainId
 }
 const DAY_IN_SECONDS = BigInt(86400)
+const USD_MULTIPLIER = BigInt(10 ** 18)
 export function CreateIntentModal({
   isOpen,
   onClose,
@@ -26,6 +27,7 @@ export function CreateIntentModal({
   const [formData, setFormData] = useState({
     user: '', // Ark address
     requiredNotional: '',
+    requiredBond: '', // USD amount with 18 decimals
     term: '',
     targetYield: '',
     token: tokens?.USDC || '',
@@ -43,6 +45,7 @@ export function CreateIntentModal({
       const intent = {
         user: formData.user as `0x${string}`,
         requiredNotional: BigInt(formData.requiredNotional),
+        requiredBond: BigInt(formData.requiredBond) * USD_MULTIPLIER, // USD amount with 18 decimals
         term: BigInt(formData.term) * DAY_IN_SECONDS,
         targetYield: BigInt(formData.targetYield),
         token: formData.token as `0x${string}`,
@@ -58,6 +61,7 @@ export function CreateIntentModal({
       setFormData({
         user: '',
         requiredNotional: '',
+        requiredBond: '',
         term: '',
         targetYield: '',
         token: tokens?.USDC || '',
@@ -112,6 +116,24 @@ export function CreateIntentModal({
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
             />
+          </div>
+
+          {/* Required Bond */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Required Bond (USD)
+            </label>
+            <input
+              type="number"
+              value={formData.requiredBond}
+              onChange={(e) => handleInputChange('requiredBond', e.target.value)}
+              placeholder="1000000000000000000000" // 1000e18
+              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              required
+            />
+            <div className="text-xs text-gray-400 mt-1">
+              USD amount with 18 decimals (e.g., 1000 USD = 1000000000000000000000)
+            </div>
           </div>
 
           {/* Term */}

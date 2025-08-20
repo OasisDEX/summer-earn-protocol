@@ -147,11 +147,17 @@ contract IntentBondFactory is ProtocolAccessManaged {
      * @param solver Address of the solver
      * @return Bond amount in USD (0 if no bond)
      */
-    function getSolverBondAmountInUsd(address solver) external view returns (uint256) {
+    function getSolverBondAmountInUsd(
+        address solver
+    ) external view returns (uint256) {
         address bondContract = solverBonds[solver];
         if (bondContract == address(0)) return 0;
-        (uint256 currentPrice, , ) = IIntentOracle(oracle).getPrice(summerToken);
-        return ISolverBond(bondContract).getBondAmount() * currentPrice / 10 ** SUMMER_TOKEN_DECIMALS;
+        (uint256 currentPrice, , ) = IIntentOracle(oracle).getPrice(
+            summerToken
+        );
+        return
+            (ISolverBond(bondContract).getBondAmount() * currentPrice) /
+            10 ** SUMMER_TOKEN_DECIMALS;
     }
 
     /**

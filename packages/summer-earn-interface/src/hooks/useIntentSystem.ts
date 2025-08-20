@@ -17,6 +17,7 @@ import type { ChainId } from '../types'
 export interface IntentData {
   user: string
   requiredNotional: bigint
+  requiredBond: bigint
   term: bigint
   targetYield: bigint
   token: string

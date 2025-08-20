@@ -105,7 +105,7 @@ export const INTENT_BOND_FACTORY_ADDRESSES: Record<Environment, Record<number, s
   staging: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x65c76bd69CAC8ff6Ddf4eF37d5bD61a7611d33f2', // TODO: Add actual deployed address
+    [base.id]: '0x39a1b82f989BD26552DbF95f0483d8A83654B6FF', // TODO: Add actual deployed address
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
 }
@@ -120,7 +120,7 @@ export const INTENT_HANDLER_ADDRESSES: Record<Environment, Record<number, string
   staging: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0x5C98Bf93FdEaE98cCC0Af9371CA6189De4143c24', // TODO: Add actual deployed address
+    [base.id]: '0x574972f6948c127d30ac94f9eedA8855C1d0c413', // TODO: Add actual deployed address
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
 }
@@ -136,7 +136,7 @@ export const MOCK_INTENT_ORACLE_ADDRESSES: Record<Environment, Record<number, st
   staging: {
     [mainnet.id]: '0x0000000000000000000000000000000000000000',
     [arbitrum.id]: '0x0000000000000000000000000000000000000000',
-    [base.id]: '0xc5F12D38701D0C370775B8346f1B2dF3B0B85CE1', // TODO: Add actual deployed address
+    [base.id]: '0x8a6AeCaa8C5241b72bA8c8D5D67102341Ee0c553', // TODO: Add actual deployed address
     [sonic.id]: '0x0000000000000000000000000000000000000000',
   },
 }

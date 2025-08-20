@@ -69,7 +69,12 @@ contract DeployIntentSystem is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // 1. Deploy Intent Bond Factory
+        // 1. Deploy Mock Intent Oracle (temporary for testing)
+        console.log("2. Deploying MockIntentOracle...");
+        intentOracle = new MockIntentOracle();
+        console.log("   MockIntentOracle deployed at:", address(intentOracle));
+
+        // 2. Deploy Intent Bond Factory
         console.log("1. Deploying IntentBondFactory...");
         intentBondFactory = new IntentBondFactory(
             SUMMER_TOKEN,
@@ -80,11 +85,6 @@ contract DeployIntentSystem is Script {
             "   IntentBondFactory deployed at:",
             address(intentBondFactory)
         );
-
-        // 2. Deploy Mock Intent Oracle (temporary for testing)
-        console.log("2. Deploying MockIntentOracle...");
-        intentOracle = new MockIntentOracle();
-        console.log("   MockIntentOracle deployed at:", address(intentOracle));
 
         // 3. Deploy Intent Handler
         console.log("3. Deploying IntentHandler...");
