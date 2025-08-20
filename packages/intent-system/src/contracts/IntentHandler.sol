@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IIntentHandler} from "../../interfaces/IIntentHandler.sol";
-import {IIntentBondFactory} from "../../interfaces/IIntentBondFactory.sol";
-import {IIntentOracle} from "../../interfaces/IIntentOracle.sol";
+import {IIntentHandler} from "../interfaces/IIntentHandler.sol";
+import {IIntentBondFactory} from "../interfaces/IIntentBondFactory.sol";
+import {IIntentOracle} from "../interfaces/IIntentOracle.sol";
 import {ISolverBond} from "./IntentBondFactory.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {IEscrow} from "../../interfaces/intents/IEscrow.sol";
+import {IEscrow} from "../interfaces/IEscrow.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {Escrow} from "../adapters/Escrow.sol";
+import {Escrow} from "./Escrow.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {IArk} from "../../interfaces/IArk.sol";
-import {IArkConfigProvider} from "../../interfaces/IArkConfigProvider.sol";
-import {IFleetCommander} from "../../interfaces/IFleetCommander.sol";
+import {IArk} from "@summerfi/earn-protocol-contracts/interfaces/IArk.sol";
+import {IArkConfigProvider} from "@summerfi/earn-protocol-contracts/interfaces/IArkConfigProvider.sol";
+import {IFleetCommander} from "@summerfi/earn-protocol-contracts/interfaces/IFleetCommander.sol";
 
 /**
  * @title IntentHandler

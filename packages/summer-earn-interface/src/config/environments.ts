@@ -153,8 +153,8 @@ export const INTENT_SYSTEM_TOKENS: Record<Environment, Record<number, Record<str
     [mainnet.id]: {},
     [arbitrum.id]: {},
     [base.id]: {
-      'SUMMER': '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
-      'USDC': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      SUMMER: '0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32',
+      USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     },
     [sonic.id]: {},
   },

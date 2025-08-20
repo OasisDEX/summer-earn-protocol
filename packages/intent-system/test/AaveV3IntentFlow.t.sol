@@ -2,24 +2,24 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {Escrow} from "../../src/contracts/adapters/Escrow.sol";
-import {IntentHandler} from "../../src/contracts/intent/IntentHandler.sol";
-import {IntentBondFactory} from "../../src/contracts/intent/IntentBondFactory.sol";
-import {SolverBond} from "../../src/contracts/intent/SolverBond.sol";
-import {MockIntentOracle} from "../../src/contracts/intent/MockIntentOracle.sol";
-import {MockSummerToken} from "../../src/contracts/intent/MockSummerToken.sol";
+import {Escrow} from "../../src/contracts/Escrow.sol";
+import {IntentHandler} from "../../src/contracts/IntentHandler.sol";
+import {IntentBondFactory} from "../../src/contracts/IntentBondFactory.sol";
+import {SolverBond} from "../../src/contracts/SolverBond.sol";
+import {MockIntentOracle} from "../../src/contracts/MockIntentOracle.sol";
+import {MockSummerToken} from "../../src/contracts/MockSummerToken.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManager} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManager.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
-import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ArkParams} from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/earn-protocol-contracts/types/ConfigurationManagerTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IIntentHandler} from "../../src/interfaces/IIntentHandler.sol";
-import {DataTypes} from "../../src/interfaces/aave-v3/DataTypes.sol";
-import {IPoolV3} from "../../src/interfaces/aave-v3/IPoolV3.sol";
-import {IRewardsController} from "../../src/interfaces/aave-v3/IRewardsController.sol";
+import {DataTypes} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/DataTypes.sol";
+import {IPoolV3} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IPoolV3.sol";
+import {IRewardsController} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IRewardsController.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {AaveV3Ark} from "../../src/contracts/arks/AaveV3Ark.sol";
+import {AaveV3Ark} from "@summerfi/earn-protocol-contracts/contracts/arks/AaveV3Ark.sol";
 
 /**
  * @title AaveV3 Intent Flow Integration Test
@@ -142,7 +142,6 @@ contract AaveV3IntentFlowTest is Test {
             requiresKeeperData: false,
             maxDepositPercentageOfTVL: Percentage.wrap(1e18)
         });
-
 
         // Add solver escrow for the solver
         vm.startPrank(keeper);

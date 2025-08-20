@@ -10,7 +10,6 @@ import { AdminModal } from '../../components/modals/AdminModal'
 import { CreateBondModal } from '../../components/modals/CreateBondModal'
 import { CreateIntentModal } from '../../components/modals/CreateIntentModal'
 import { SolveIntentModal } from '../../components/modals/SolveIntentModal'
-import { MOCK_INTENT_ORACLE_ADDRESSES } from '../../config/environments'
 import { useEnvironment } from '../../hooks/useEnvironment'
 import { useIntentSystem } from '../../hooks/useIntentSystem'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
@@ -80,7 +79,7 @@ export default function IntentSystemPage() {
             // Get bond contract address (we'll need to implement this)
             // For now, we'll assume the bond exists if amount > 0
             setBondContractAddress('bond-exists')
-            
+
             // Get allowance for the bond contract
             // We'll need to implement this properly
             setBondAllowance(BigInt(0))
@@ -139,7 +138,7 @@ export default function IntentSystemPage() {
   // Function to fund the bond
   const fundBond = async (amount: bigint) => {
     if (!userAddress) return
-    
+
     try {
       const hash = await addBond(userAddress, amount)
       if (hash) {
@@ -160,22 +159,22 @@ export default function IntentSystemPage() {
   // Comprehensive refresh function for bond information
   const refreshBondInfo = async () => {
     if (!userAddress || !isDeployed || !intentBondFactory) return
-    
+
     try {
       // Refresh solver info from the hook
       await refreshSolverInfo()
-      
+
       // Refresh our local bond state
       const amount = await getSolverBondAmount(userAddress)
       setBondAmount(amount)
-      
+
       // Update bond contract address status
       if (amount > BigInt(0)) {
         setBondContractAddress('bond-exists')
       } else {
         setBondContractAddress(null)
       }
-      
+
       console.log('Bond information refreshed')
     } catch (error) {
       console.error('Error refreshing bond info:', error)
@@ -451,8 +450,6 @@ export default function IntentSystemPage() {
               </div>
             </div>
 
-
-
             {/* My Solver Bond */}
             {isConnected && userAddress && (
               <div className="mb-8">
@@ -477,12 +474,18 @@ export default function IntentSystemPage() {
                           <div className="text-sm text-gray-400">Bond Amount</div>
                         </div>
                         <div className="bg-charcoal-700/50 p-3 rounded-lg text-center">
-                          <div className={`text-2xl font-bold ${
-                            solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
-                              ? 'text-green-400'
-                              : 'text-red-400'
-                          }`}>
-                            {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                          <div
+                            className={`text-2xl font-bold ${
+                              solverInfo &&
+                              solverInfo.address === userAddress &&
+                              solverInfo.isVouched
+                                ? 'text-green-400'
+                                : 'text-red-400'
+                            }`}
+                          >
+                            {solverInfo &&
+                            solverInfo.address === userAddress &&
+                            solverInfo.isVouched
                               ? '✓ Vouched'
                               : '✗ Not Vouched'}
                           </div>
@@ -491,46 +494,42 @@ export default function IntentSystemPage() {
                       </div>
                       <div className="bg-charcoal-700/50 p-3 rounded-lg">
                         <div className="text-sm text-gray-400 mb-2">Wallet Address:</div>
-                        <div className="font-mono text-sm break-all">
-                          {userAddress}
-                        </div>
+                        <div className="font-mono text-sm break-all">{userAddress}</div>
                       </div>
-                      
+
                       {/* Bond Contract Info */}
                       {bondContractAddress && bondContractAddress !== 'bond-exists' && (
                         <div className="bg-charcoal-700/50 p-3 rounded-lg">
                           <div className="text-sm text-gray-400 mb-2">Bond Contract:</div>
-                          <div className="font-mono text-sm break-all">
-                            {bondContractAddress}
-                          </div>
+                          <div className="font-mono text-sm break-all">{bondContractAddress}</div>
                         </div>
                       )}
-                      
+
                       {/* Fund Bond Section */}
                       <div className="bg-charcoal-700/50 p-3 rounded-lg">
                         <div className="text-sm text-gray-400 mb-2">Fund Bond:</div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => fundBond(BigInt(1000) * BigInt(10**18))} // 1000 SUMMER
+                            onClick={() => fundBond(BigInt(1000) * BigInt(10 ** 18))} // 1000 SUMMER
                             className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
                           >
                             +1000 SUMMER
                           </button>
                           <button
-                            onClick={() => fundBond(BigInt(500) * BigInt(10**18))} // 500 SUMMER
+                            onClick={() => fundBond(BigInt(500) * BigInt(10 ** 18))} // 500 SUMMER
                             className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
                           >
                             +500 SUMMER
                           </button>
                           <button
-                            onClick={() => fundBond(BigInt(100) * BigInt(10**18))} // 100 SUMMER
+                            onClick={() => fundBond(BigInt(100) * BigInt(10 ** 18))} // 100 SUMMER
                             className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
                           >
                             +100 SUMMER
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2">
                         <button
                           onClick={() => setShowCreateBond(true)}
@@ -558,7 +557,7 @@ export default function IntentSystemPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-charcoal-800/50 p-6 rounded-xl border border-white/10">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
@@ -579,12 +578,18 @@ export default function IntentSystemPage() {
                       <div className="bg-charcoal-700/50 p-3 rounded-lg">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-400">Voucher Status:</span>
-                          <span className={`font-semibold ${
-                            solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
-                              ? 'text-green-400'
-                              : 'text-red-400'
-                          }`}>
-                            {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                          <span
+                            className={`font-semibold ${
+                              solverInfo &&
+                              solverInfo.address === userAddress &&
+                              solverInfo.isVouched
+                                ? 'text-green-400'
+                                : 'text-red-400'
+                            }`}
+                          >
+                            {solverInfo &&
+                            solverInfo.address === userAddress &&
+                            solverInfo.isVouched
                               ? 'Active'
                               : 'Inactive'}
                           </span>
@@ -593,12 +598,18 @@ export default function IntentSystemPage() {
                       <div className="bg-charcoal-700/50 p-3 rounded-lg">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-400">Can Solve Intents:</span>
-                          <span className={`font-semibold ${
-                            solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
-                              ? 'text-green-400'
-                              : 'text-red-400'
-                          }`}>
-                            {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
+                          <span
+                            className={`font-semibold ${
+                              solverInfo &&
+                              solverInfo.address === userAddress &&
+                              solverInfo.isVouched
+                                ? 'text-green-400'
+                                : 'text-red-400'
+                            }`}
+                          >
+                            {solverInfo &&
+                            solverInfo.address === userAddress &&
+                            solverInfo.isVouched
                               ? 'Yes'
                               : 'No'}
                           </span>

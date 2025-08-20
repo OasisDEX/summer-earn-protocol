@@ -3,11 +3,11 @@ pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
-import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
-import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
-import {ArkAccessManaged} from "../ArkAccessManaged.sol";
-import {IEscrow} from "../../interfaces/intents/IEscrow.sol";
+import {IPoolV3} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IPoolV3.sol";
+import {IRewardsController} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IRewardsController.sol";
+import {DataTypes} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/DataTypes.sol";
+import {ArkAccessManaged} from "@summerfi/earn-protocol-contracts/contracts/ArkAccessManaged.sol";
+import {IEscrow} from "../interfaces/IEscrow.sol";
 
 /**
  * @title Escrow
@@ -24,7 +24,7 @@ contract Escrow is ReentrancyGuard, IEscrow {
     /// @notice The IntentHandler that this escrow works with
     address public immutable intentHandler;
     mapping(bytes32 intentId => uint256 amount) public intentAmounts;
-    
+
     /*//////////////////////////////////////////////////////////////
                                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/

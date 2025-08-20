@@ -102,9 +102,7 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
 
             {/* Error Display */}
             {error && (
-              <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">
-                {error}
-              </div>
+              <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{error}</div>
             )}
 
             <button
@@ -141,7 +139,8 @@ export function AdminModal({ isOpen, onClose, environment, chainId }: AdminModal
             <div className="bg-yellow-900/20 border border-yellow-500/30 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-yellow-300 mb-2">Note</h3>
               <p className="text-xs text-yellow-400">
-                This is a mock oracle for testing. In production, this would be replaced with a real price oracle.
+                This is a mock oracle for testing. In production, this would be replaced with a real
+                price oracle.
               </p>
             </div>
           </div>

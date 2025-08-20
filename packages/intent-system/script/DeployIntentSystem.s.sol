@@ -2,12 +2,12 @@
 pragma solidity 0.8.28;
 
 import "forge-std/Script.sol";
-import {IntentHandler} from "../src/contracts/intent/IntentHandler.sol";
-import {IntentBondFactory} from "../src/contracts/intent/IntentBondFactory.sol";
-import {Escrow} from "../src/contracts/adapters/Escrow.sol";
+import {IntentHandler} from "../src/contracts/IntentHandler.sol";
+import {IntentBondFactory} from "../src/contracts/IntentBondFactory.sol";
+import {Escrow} from "../src/contracts/Escrow.sol";
 // Note: Using test oracle for now - replace with production oracle
-import {MockIntentOracle} from "../src/contracts/intent/MockIntentOracle.sol";
-import {ArkParams} from "../src/types/ArkTypes.sol";
+import {MockIntentOracle} from "../src/contracts/MockIntentOracle.sol";
+import {ArkParams} from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -108,9 +108,7 @@ contract DeployIntentSystem is Script {
             "1. Grant roles to appropriate addresses via ProtocolAccessManager"
         );
         console.log("2. Register fleet commander with the ark");
-        console.log(
-            "3. Configure oracle with supported tokens"
-        );
+        console.log("3. Configure oracle with supported tokens");
         console.log(
             "4. Create solver bonds via IntentBondFactory.createBond()"
         );
@@ -119,9 +117,15 @@ contract DeployIntentSystem is Script {
         );
         console.log("");
         console.log("=== Security Notes ===");
-        console.log("- IntentHandler has handler role on factory (for bond slashing)");
-        console.log("- Admin role remains with deployer for factory management");
-        console.log("- Only authorized keepers can create intents and manage escrows");
+        console.log(
+            "- IntentHandler has handler role on factory (for bond slashing)"
+        );
+        console.log(
+            "- Admin role remains with deployer for factory management"
+        );
+        console.log(
+            "- Only authorized keepers can create intents and manage escrows"
+        );
         console.log("- Solver bonds are managed individually per solver");
     }
 
@@ -130,7 +134,7 @@ contract DeployIntentSystem is Script {
         intentOracle.addSupportedToken(SUMMER_TOKEN);
         intentOracle.setPrice(SUMMER_TOKEN, 10000e18, 18); // $10000 per token, 18 decimals
         intentOracle.setPrice(USDC, 1e18, 6); // $1 per token, 6 decimals
-        
+
         // Setup Intent Bond Factory roles - only grant handler role, not admin
         intentBondFactory.grantHandlerRole(address(intentHandler));
 

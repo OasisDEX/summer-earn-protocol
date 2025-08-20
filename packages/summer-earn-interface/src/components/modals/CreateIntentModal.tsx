@@ -38,7 +38,7 @@ export function CreateIntentModal({
 
     try {
       const expiryTimestamp = Math.floor(new Date(formData.expiry).getTime() / 1000)
-      
+
       // Create Intent struct matching the contract
       const intent = {
         user: formData.user as `0x${string}`,
@@ -88,9 +88,7 @@ export function CreateIntentModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Ark Address */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Ark Address
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Ark Address</label>
             <input
               type="text"
               value={formData.user}
@@ -118,9 +116,7 @@ export function CreateIntentModal({
 
           {/* Term */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Term (days)
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Term (days)</label>
             <input
               type="number"
               value={formData.term}
@@ -150,9 +146,7 @@ export function CreateIntentModal({
 
           {/* Token */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Token
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Token</label>
             <select
               value={formData.token}
               onChange={(e) => handleInputChange('token', e.target.value)}
@@ -160,19 +154,18 @@ export function CreateIntentModal({
               required
             >
               <option value="">Select token</option>
-              {tokens && Object.entries(tokens).map(([symbol, address]) => (
-                <option key={symbol} value={address}>
-                  {symbol}
-                </option>
-              ))}
+              {tokens &&
+                Object.entries(tokens).map(([symbol, address]) => (
+                  <option key={symbol} value={address}>
+                    {symbol}
+                  </option>
+                ))}
             </select>
           </div>
 
           {/* Oracle */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Oracle Address
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Oracle Address</label>
             <input
               type="text"
               value={formData.oracle}
@@ -185,9 +178,7 @@ export function CreateIntentModal({
 
           {/* Expiry */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Expiry Date
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Expiry Date</label>
             <input
               type="datetime-local"
               value={formData.expiry}
@@ -199,9 +190,7 @@ export function CreateIntentModal({
 
           {/* Error Display */}
           {error && (
-            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">
-              {error}
-            </div>
+            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{error}</div>
           )}
 
           {/* Submit Button */}

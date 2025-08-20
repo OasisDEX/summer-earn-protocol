@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { formatEther, formatUnits, parseEther, parseUnits } from 'viem'
+import { formatUnits, parseEther } from 'viem'
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
 import { IntentBondFactoryABI } from '../abis/IntentBondFactory'
 import { IntentHandlerABI } from '../abis/IntentHandler'
@@ -260,13 +260,13 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
             {
               inputs: [
                 { name: 'spender', type: 'address' },
-                { name: 'amount', type: 'uint256' }
+                { name: 'amount', type: 'uint256' },
               ],
               name: 'approve',
               outputs: [{ name: '', type: 'bool' }],
               stateMutability: 'nonpayable',
-              type: 'function'
-            }
+              type: 'function',
+            },
           ],
           functionName: 'approve',
           args: [bondAddress as `0x${string}`, amount],
@@ -282,14 +282,12 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
           address: bondAddress as `0x${string}`,
           abi: [
             {
-              inputs: [
-                { name: 'amount', type: 'uint256' }
-              ],
+              inputs: [{ name: 'amount', type: 'uint256' }],
               name: 'addBond',
               outputs: [],
               stateMutability: 'nonpayable',
-              type: 'function'
-            }
+              type: 'function',
+            },
           ],
           functionName: 'addBond',
           args: [amount],
@@ -393,13 +391,13 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
             {
               inputs: [
                 { name: 'owner', type: 'address' },
-                { name: 'spender', type: 'address' }
+                { name: 'spender', type: 'address' },
               ],
               name: 'allowance',
               outputs: [{ name: '', type: 'uint256' }],
               stateMutability: 'view',
-              type: 'function'
-            }
+              type: 'function',
+            },
           ],
           functionName: 'allowance',
           args: [userAddress as `0x${string}`, bondContractAddress as `0x${string}`],

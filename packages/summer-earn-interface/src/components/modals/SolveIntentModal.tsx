@@ -13,7 +13,10 @@ interface SolveIntentModalProps {
 }
 
 export function SolveIntentModal({ isOpen, onClose, environment, chainId }: SolveIntentModalProps) {
-  const { solveIntent, loading, error, tokens, mockIntentOracle } = useIntentSystem(environment, chainId)
+  const { solveIntent, loading, error, tokens, mockIntentOracle } = useIntentSystem(
+    environment,
+    chainId,
+  )
 
   const [formData, setFormData] = useState({
     user: '', // Ark address
@@ -31,7 +34,7 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
 
     try {
       const expiryTimestamp = Math.floor(new Date(formData.expiry).getTime() / 1000)
-      
+
       // Create Intent struct matching the contract
       const intent = {
         user: formData.user as `0x${string}`,
@@ -84,9 +87,7 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Ark Address */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Ark Address
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Ark Address</label>
             <input
               type="text"
               value={formData.user}
@@ -114,9 +115,7 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
 
           {/* Term */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Term (days)
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Term (days)</label>
             <input
               type="number"
               value={formData.term}
@@ -146,9 +145,7 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
 
           {/* Token */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Token
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Token</label>
             <select
               value={formData.token}
               onChange={(e) => handleInputChange('token', e.target.value)}
@@ -156,19 +153,18 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
               required
             >
               <option value="">Select token</option>
-              {tokens && Object.entries(tokens).map(([symbol, address]) => (
-                <option key={symbol} value={address}>
-                  {symbol}
-                </option>
-              ))}
+              {tokens &&
+                Object.entries(tokens).map(([symbol, address]) => (
+                  <option key={symbol} value={address}>
+                    {symbol}
+                  </option>
+                ))}
             </select>
           </div>
 
           {/* Oracle */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Oracle Address
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Oracle Address</label>
             <input
               type="text"
               value={formData.oracle}
@@ -181,9 +177,7 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
 
           {/* Expiry */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Expiry Date
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Expiry Date</label>
             <input
               type="datetime-local"
               value={formData.expiry}
@@ -206,16 +200,12 @@ export function SolveIntentModal({ isOpen, onClose, environment, chainId }: Solv
               className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               required
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Amount of yield to escrow upfront
-            </p>
+            <p className="text-xs text-gray-400 mt-1">Amount of yield to escrow upfront</p>
           </div>
 
           {/* Error Display */}
           {error && (
-            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">
-              {error}
-            </div>
+            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{error}</div>
           )}
 
           {/* Submit Button */}
