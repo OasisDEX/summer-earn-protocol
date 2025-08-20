@@ -158,7 +158,6 @@ export async function configureStargateAdapter(
         })
         console.log(kleur.green(`Chain mapping updated, tx: ${hash}`))
 
-        const publicClient = await hre.viem.getPublicClient()
         await publicClient.waitForTransactionReceipt({ hash })
         mappingsAdded++
       } else {
@@ -289,6 +288,7 @@ export async function configureStargateAdapter(
             functionName: 'addSupportedAsset',
             args: [checksummedLocalAddress, checksummedStargateContract],
           })
+          await publicClient.waitForTransactionReceipt({ hash })
           console.log(
             kleur.green(
               `Asset mapping for ${checksummedLocalAddress} on current chain added, tx: ${hash}`,
@@ -314,7 +314,7 @@ export async function configureStargateAdapter(
 
   // Set default transport mode from Stargate config (with check)
   try {
-    const defaultUseTaxi = stargateConfig.defaultUseTaxi || false
+    const defaultUseTaxi = stargateConfig.defaultUseTaxi ?? true
     const currentUseTaxi = Boolean(await stargateAdapter.read.defaultUseTaxi())
 
     if (currentUseTaxi !== defaultUseTaxi) {
@@ -333,6 +333,7 @@ export async function configureStargateAdapter(
         functionName: 'setDefaultTransportMode',
         args: [defaultUseTaxi],
       })
+      await publicClient.waitForTransactionReceipt({ hash })
       console.log(
         kleur.green(
           `Default transport mode updated to ${defaultUseTaxi ? 'taxi' : 'bus'}, tx: ${hash}`,
@@ -378,6 +379,7 @@ export async function configureStargateAdapter(
         functionName: 'registerAdapter',
         args: [getAddress(stargateAdapterAddress as `0x${string}`)],
       })
+      await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`Stargate V2 adapter registered with bridge router, tx: ${hash}`))
     } else {
       console.log(
