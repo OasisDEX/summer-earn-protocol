@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import { Address, getAddress, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
-import { promptForConfigType } from '../helpers/prompt-helpers'
+import { promptForAddresses, promptForConfigType, promptYesNo } from '../helpers/prompt-helpers'
 
 type NetworkConfigs = Record<string, any>
 
@@ -16,6 +16,17 @@ const REGISTRY_ABI = [
       { internalType: 'uint16', name: 'targetChainId', type: 'uint16' },
     ],
     name: 'registerAdapterPeer',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'sourceContract', type: 'address' },
+      { internalType: 'bytes32', name: 'relationshipType', type: 'bytes32' },
+      { internalType: 'uint16', name: 'targetChainId', type: 'uint16' },
+    ],
+    name: 'unregisterRelationship',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -42,6 +53,25 @@ const REGISTRY_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [
+      { internalType: 'uint16', name: 'sourceChainId', type: 'uint16' },
+      { internalType: 'uint16', name: 'targetChainId', type: 'uint16' },
+      { internalType: 'address', name: 'targetContract', type: 'address' },
+      { internalType: 'bytes32', name: 'relationshipType', type: 'bytes32' },
+    ],
+    name: 'getSourceForTarget',
+    outputs: [{ internalType: 'address', name: 'sourceContract', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'PEER_RELATIONSHIP',
+    outputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+    stateMutability: 'pure',
+    type: 'function',
+  },
 ] as const
 
 async function ensurePeer(
@@ -62,6 +92,34 @@ async function ensurePeer(
         abi: REGISTRY_ABI,
         functionName: 'getAdapterPeer',
         args: [getAddress(src as `0x${string}`), Number(dstChainId)],
+      })) as Address
+    } catch {
+      return zeroAddress as Address
+    }
+  }
+
+  // Helper: best-effort reverse lookup of source by target
+  const safeGetSourceForTarget = async (
+    srcChainId: number,
+    dstChainId: number,
+    target: Address,
+  ): Promise<Address> => {
+    try {
+      return (await publicClient.readContract({
+        address: getAddress(registryAddress as `0x${string}`),
+        abi: REGISTRY_ABI,
+        functionName: 'getSourceForTarget',
+        args: [
+          Number(srcChainId),
+          Number(dstChainId),
+          getAddress(target as `0x${string}`),
+          (await publicClient.readContract({
+            address: getAddress(registryAddress as `0x${string}`),
+            abi: REGISTRY_ABI,
+            functionName: 'PEER_RELATIONSHIP',
+            args: [],
+          })) as `0x${string}`,
+        ],
       })) as Address
     } catch {
       return zeroAddress as Address
@@ -100,6 +158,84 @@ async function ensurePeer(
 
   if (isAlreadyValid) {
     return false
+  }
+
+  // Resolve conflicts by unregistering stale relationships if any
+  const REL_TYPE_PEER = (await publicClient.readContract({
+    address: getAddress(registryAddress as `0x${string}`),
+    abi: REGISTRY_ABI,
+    functionName: 'PEER_RELATIONSHIP',
+    args: [],
+  })) as `0x${string}`
+
+  // 1) If the source already has a peer on this target chain, offer to unregister it
+  if (!isAddressEqual(prePeer, zeroAddress) && !isAddressEqual(prePeer, targetAdapter)) {
+    console.log(
+      kleur.yellow(
+        `    Detected existing peer for source on chain ${targetChainId}: ${prePeer}. This must be unregistered first.`,
+      ),
+    )
+    const confirmUnreg = await promptYesNo(
+      `Unregister mapping for SOURCE ${getAddress(
+        sourceAdapter as `0x${string}`,
+      )} on chain ${targetChainId} (current peer: ${prePeer})?`,
+    )
+    if (!confirmUnreg) {
+      return false
+    }
+    const unregHash1 = await wallet.writeContract({
+      address: getAddress(registryAddress as `0x${string}`),
+      abi: REGISTRY_ABI,
+      functionName: 'unregisterRelationship',
+      args: [getAddress(sourceAdapter as `0x${string}`), REL_TYPE_PEER, Number(targetChainId)],
+    })
+    await publicClient.waitForTransactionReceipt({ hash: unregHash1 })
+    console.log(kleur.green(`    ✓ Unregistered stale source mapping for chain ${targetChainId}`))
+  }
+
+  // 2) If the target is already linked to a different source for this chain pair, offer to unregister that source
+  const existingSourceForTarget = await safeGetSourceForTarget(
+    sourceChainId,
+    targetChainId,
+    targetAdapter,
+  )
+  if (
+    !isAddressEqual(existingSourceForTarget, zeroAddress) &&
+    !isAddressEqual(existingSourceForTarget, sourceAdapter)
+  ) {
+    console.log(
+      kleur.yellow(
+        `    Detected existing source ${existingSourceForTarget} already registered to target ${getAddress(
+          targetAdapter as `0x${string}`,
+        )} for chain pair ${sourceChainId}→${targetChainId}. This must be unregistered first.`,
+      ),
+    )
+    const useDetected = await promptYesNo(
+      `Unregister detected stale SOURCE ${existingSourceForTarget} for target ${getAddress(
+        targetAdapter as `0x${string}`,
+      )} (chain ${sourceChainId}→${targetChainId})?`,
+    )
+    let staleSource = existingSourceForTarget
+    if (!useDetected) {
+      const [addr] = await promptForAddresses(
+        'Enter the stale SOURCE adapter address to unregister for this chain pair (single address):',
+      )
+      staleSource = getAddress(addr as `0x${string}`)
+    }
+    const unregHash2 = await wallet.writeContract({
+      address: getAddress(registryAddress as `0x${string}`),
+      abi: REGISTRY_ABI,
+      functionName: 'unregisterRelationship',
+      args: [getAddress(staleSource as `0x${string}`), REL_TYPE_PEER, Number(targetChainId)],
+    })
+    await publicClient.waitForTransactionReceipt({ hash: unregHash2 })
+    console.log(
+      kleur.green(
+        `    ✓ Unregistered stale source ${staleSource} for target ${getAddress(
+          targetAdapter as `0x${string}`,
+        )} (chain ${sourceChainId}→${targetChainId})`,
+      ),
+    )
   }
 
   const hash = await wallet.writeContract({
