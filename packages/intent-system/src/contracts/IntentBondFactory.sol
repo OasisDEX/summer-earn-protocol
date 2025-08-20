@@ -2,27 +2,24 @@
 pragma solidity 0.8.28;
 
 import {SolverBond} from "./SolverBond.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {IIntentOracle} from "../interfaces/IIntentOracle.sol";
 
 /**
  * @title IntentBondFactory
  * @notice Factory contract that creates individual bond contracts for each solver
  * @dev Each solver gets their own bond contract for complete isolation
  */
-contract IntentBondFactory is AccessControl {
-    /*//////////////////////////////////////////////////////////////
-                                        CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    bytes32 public constant HANDLER_ROLE = keccak256("HANDLER_ROLE");
-    bytes32 public constant LIQUIDATOR_ROLE = keccak256("LIQUIDATOR_ROLE");
-
+contract IntentBondFactory is ProtocolAccessManaged {
+    uint256 public constant SUMMER_TOKEN_DECIMALS = 18;
     /*//////////////////////////////////////////////////////////////
                                     STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The Summer token used for all bonds
     address public immutable summerToken;
+    address public intentHandler;
+    address public oracle;
 
     /// @notice Mapping of solver addresses to their bond contracts
     mapping(address => address) public solverBonds;
@@ -36,14 +33,32 @@ contract IntentBondFactory is AccessControl {
 
     event BondCreated(address indexed solver, address indexed bondContract);
     event BondRemoved(address indexed solver, address indexed bondContract);
+    event OracleSet(address indexed oracle);
 
     /*//////////////////////////////////////////////////////////////
                                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _summerToken) {
+    constructor(
+        address _summerToken,
+        address _accessManager,
+        address _oracle
+    ) ProtocolAccessManaged(_accessManager) {
+        if (_summerToken == address(0))
+            revert IntentBondFactory__InvalidAddress(
+                "summer token cannot be zero address"
+            );
+        if (_accessManager == address(0))
+            revert IntentBondFactory__InvalidAddress(
+                "access manager cannot be zero address"
+            );
+        if (_oracle == address(0))
+            revert IntentBondFactory__InvalidAddress(
+                "oracle cannot be zero address"
+            );
         summerToken = _summerToken;
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        oracle = _oracle;
+        emit OracleSet(oracle);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -57,7 +72,7 @@ contract IntentBondFactory is AccessControl {
      */
     function createBond(
         address solver
-    ) external returns (address bondContract) {
+    ) external onlyKeeper returns (address bondContract) {
         if (solver == address(0)) revert IntentBondFactory__InvalidSolver();
         if (solverBonds[solver] != address(0))
             revert IntentBondFactory__BondAlreadyExists();
@@ -93,15 +108,20 @@ contract IntentBondFactory is AccessControl {
     /**
      * @notice Check if a solver is vouched (has sufficient bond)
      * @param solver Address of the solver
-     * @param requiredAmount Required bond amount
+     * @param requiredBond Required bond amount in usdc ( 6 decimals )
      * @return True if solver is vouched with sufficient bond
      */
     function isSolverVouched(
         address solver,
-        uint256 requiredAmount
+        uint256 requiredBond
     ) external view returns (bool) {
         address bondContract = solverBonds[solver];
         if (bondContract == address(0)) return false;
+        (uint256 currentPrice, , ) = IIntentOracle(oracle).getPrice(
+            summerToken
+        );
+        uint256 requiredAmount = (requiredBond * currentPrice) /
+            10 ** SUMMER_TOKEN_DECIMALS;
 
         return ISolverBond(bondContract).hasSufficientBond(requiredAmount);
     }
@@ -176,23 +196,11 @@ contract IntentBondFactory is AccessControl {
                                         ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function grantHandlerRole(
-        address handler
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(HANDLER_ROLE, handler);
-    }
-
-    function grantLiquidatorRole(
-        address liquidator
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(LIQUIDATOR_ROLE, liquidator);
-    }
-
     /**
      * @notice Remove a bond contract (admin only, emergency use)
      * @param solver Address of the solver
      */
-    function removeBond(address solver) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeBond(address solver) external onlyKeeper {
         address bondContract = solverBonds[solver];
         if (bondContract == address(0))
             revert IntentBondFactory__BondNotFound();
@@ -215,12 +223,24 @@ contract IntentBondFactory is AccessControl {
     function slashBond(
         address solver,
         uint256 slashAmount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyIntentHandler {
         address bondContract = solverBonds[solver];
         if (bondContract == address(0))
             revert IntentBondFactory__BondNotFound();
 
         ISolverBond(bondContract).slashBond(slashAmount);
+    }
+
+    function setIntentHandler(address _intentHandler) external {
+        if (intentHandler != address(0))
+            revert IntentBondFactory__IntentHandlerAlreadySet();
+        intentHandler = _intentHandler;
+    }
+
+    modifier onlyIntentHandler() {
+        if (msg.sender != intentHandler)
+            revert IntentBondFactory__NotIntentHandler();
+        _;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -230,6 +250,9 @@ contract IntentBondFactory is AccessControl {
     error IntentBondFactory__InvalidSolver();
     error IntentBondFactory__BondAlreadyExists();
     error IntentBondFactory__BondNotFound();
+    error IntentBondFactory__IntentHandlerAlreadySet();
+    error IntentBondFactory__NotIntentHandler();
+    error IntentBondFactory__InvalidAddress(string message);
 }
 
 // Interface for individual solver bond contracts

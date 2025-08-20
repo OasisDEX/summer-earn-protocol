@@ -61,7 +61,7 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
     uint256 public constant REQUIRED_NOTIONAL = 1000e6;
     uint256 public constant TERM = 30 days;
     uint256 public constant TARGET_YIELD = 100e6;
-    uint256 public constant BOND_AMOUNT = 1000e6;
+    uint256 public constant BOND_AMOUNT = 1000e6; // in usdc
     uint256 public constant ESCROWED_YIELD = 100e6;
 
     uint256 forkBlock = 20006596;
@@ -91,8 +91,13 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         vm.startPrank(governor);
 
         // Deploy intent system
-        intentBondFactory = new IntentBondFactory(address(summerToken));
+
         mockOracle = new MockIntentOracle();
+        intentBondFactory = new IntentBondFactory(
+            address(summerToken),
+            address(accessManager),
+            address(mockOracle)
+        );
         intentHandler = new IntentHandler(
             address(intentBondFactory),
             address(mockOracle),
@@ -101,20 +106,15 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         );
 
         // Setup roles
-        intentBondFactory.grantHandlerRole(address(intentHandler));
-        intentBondFactory.grantLiquidatorRole(governor);
-        // Grant IntentHandler admin role on factory so it can slash bonds
-        intentBondFactory.grantRole(
-            intentBondFactory.DEFAULT_ADMIN_ROLE(),
-            address(intentHandler)
-        );
         mockOracle.addSupportedToken(address(summerToken));
         mockOracle.setPrice(address(summerToken), 1e18, 18);
         vm.stopPrank();
 
         // Deploy solver bond
+        vm.startPrank(keeper);
         address bondAddress = intentBondFactory.createBond(solver);
         solverBond = SolverBond(bondAddress);
+        vm.stopPrank();
 
         // Deploy ark
         ArkParams memory arkParams = ArkParams({
@@ -176,6 +176,7 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         IIntentHandler.Intent memory intent = IIntentHandler.Intent({
             user: address(ark),
             requiredNotional: REQUIRED_NOTIONAL,
+            requiredBond: BOND_AMOUNT,
             term: TERM,
             targetYield: TARGET_YIELD,
             token: address(usdc),
@@ -252,6 +253,7 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         IIntentHandler.Intent memory intent = IIntentHandler.Intent({
             user: commander,
             requiredNotional: REQUIRED_NOTIONAL,
+            requiredBond: BOND_AMOUNT,
             term: TERM,
             targetYield: TARGET_YIELD,
             token: address(usdc),
@@ -277,6 +279,7 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         IIntentHandler.Intent memory intent = IIntentHandler.Intent({
             user: commander,
             requiredNotional: REQUIRED_NOTIONAL,
+            requiredBond: BOND_AMOUNT,
             term: TERM,
             targetYield: TARGET_YIELD,
             token: address(usdc),
@@ -315,6 +318,7 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         IIntentHandler.Intent memory intent = IIntentHandler.Intent({
             user: commander,
             requiredNotional: REQUIRED_NOTIONAL,
+            requiredBond: BOND_AMOUNT,
             term: TERM,
             targetYield: TARGET_YIELD,
             token: address(usdc),
@@ -370,6 +374,7 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         IIntentHandler.Intent memory intent = IIntentHandler.Intent({
             user: commander,
             requiredNotional: 100e6,
+            requiredBond: BOND_AMOUNT,
             term: 7 days,
             targetYield: 10e6,
             token: address(usdc),

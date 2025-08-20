@@ -102,4 +102,10 @@ interface IIntentBondFactory {
      * @param slashAmount Amount to slash from the bond
      */
     function slashBond(address solver, uint256 slashAmount) external;
+
+    /**
+     * @notice Set the intent handler
+     * @param _intentHandler Address of the intent handler
+     */
+    function setIntentHandler(address _intentHandler) external;
 }

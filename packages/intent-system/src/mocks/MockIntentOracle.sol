@@ -14,7 +14,7 @@ contract MockIntentOracle is IIntentOracle, AccessControl {
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint256 public constant DEFAULT_PRICE = 1e18; // $1.00
+    uint256 public constant DEFAULT_PRICE = 1e6; // 1e6 usdc
     uint256 public constant DEFAULT_DECIMALS = 18;
     uint256 public constant MAX_PRICE_AGE = 1 hours;
 

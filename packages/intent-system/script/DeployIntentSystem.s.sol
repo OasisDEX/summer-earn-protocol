@@ -71,7 +71,11 @@ contract DeployIntentSystem is Script {
 
         // 1. Deploy Intent Bond Factory
         console.log("1. Deploying IntentBondFactory...");
-        intentBondFactory = new IntentBondFactory(SUMMER_TOKEN);
+        intentBondFactory = new IntentBondFactory(
+            SUMMER_TOKEN,
+            PROTOCOL_ACCESS_MANAGER,
+            address(intentOracle)
+        );
         console.log(
             "   IntentBondFactory deployed at:",
             address(intentBondFactory)
@@ -134,13 +138,6 @@ contract DeployIntentSystem is Script {
         intentOracle.addSupportedToken(SUMMER_TOKEN);
         intentOracle.setPrice(SUMMER_TOKEN, 10000e18, 18); // $10000 per token, 18 decimals
         intentOracle.setPrice(USDC, 1e18, 6); // $1 per token, 6 decimals
-
-        // Setup Intent Bond Factory roles - only grant handler role, not admin
-        intentBondFactory.grantHandlerRole(address(intentHandler));
-
-        // DO NOT grant admin role to IntentHandler - security risk
-        // IntentHandler only needs handler role for bond slashing
-        // Admin role should remain with deployer for future management
 
         // Add solver escrow for the test solver
         intentHandler.addSolverEscrow(

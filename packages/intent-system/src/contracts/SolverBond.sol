@@ -33,6 +33,12 @@ contract SolverBond is ReentrancyGuard, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     constructor(address _solver, address _summerToken) {
+        if (_solver == address(0))
+            revert SolverBond__InvalidAddress("solver cannot be zero address");
+        if (_summerToken == address(0))
+            revert SolverBond__InvalidAddress(
+                "summer token cannot be zero address"
+            );
         solver = _solver;
         summerToken = IERC20(_summerToken);
         factory = msg.sender;
@@ -43,12 +49,12 @@ contract SolverBond is ReentrancyGuard, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     modifier onlySolver() {
-        if (msg.sender != solver) revert UnauthorizedCaller();
+        if (msg.sender != solver) revert SolverBond__UnauthorizedCaller();
         _;
     }
 
     modifier onlyFactory() {
-        if (msg.sender != factory) revert UnauthorizedCaller();
+        if (msg.sender != factory) revert SolverBond__UnauthorizedCaller();
         _;
     }
 
@@ -61,7 +67,7 @@ contract SolverBond is ReentrancyGuard, AccessControl {
      * @param amount Amount of Summer tokens to add
      */
     function addBond(uint256 amount) external onlySolver nonReentrant {
-        if (amount == 0) revert InvalidAmount();
+        if (amount == 0) revert SolverBond__InvalidAmount();
 
         // Transfer Summer tokens from solver to this contract
         summerToken.safeTransferFrom(solver, address(this), amount);
@@ -77,8 +83,8 @@ contract SolverBond is ReentrancyGuard, AccessControl {
      * @param amount Amount of Summer tokens to remove
      */
     function removeBond(uint256 amount) external onlySolver nonReentrant {
-        if (amount == 0) revert InvalidAmount();
-        if (amount > totalBonded) revert InsufficientBond();
+        if (amount == 0) revert SolverBond__InvalidAmount();
+        if (amount > totalBonded) revert SolverBond__InsufficientBond();
 
         // Update bond amount
         totalBonded -= amount;
@@ -94,11 +100,12 @@ contract SolverBond is ReentrancyGuard, AccessControl {
      * @param slashAmount Amount to slash from the bond
      */
     function slashBond(uint256 slashAmount) external onlyFactory {
-        if (slashAmount == 0) revert InvalidAmount();
-        if (slashAmount > totalBonded) revert InsufficientBond();
+        if (slashAmount == 0) revert SolverBond__InvalidAmount();
+        if (slashAmount > totalBonded) revert SolverBond__InsufficientBond();
 
         // Update bond amount
         totalBonded -= slashAmount;
+        summerToken.safeTransfer(factory, slashAmount);
 
         emit BondSlashed(solver, slashAmount, totalBonded);
     }
@@ -150,7 +157,8 @@ contract SolverBond is ReentrancyGuard, AccessControl {
                                         ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error UnauthorizedCaller();
-    error InvalidAmount();
-    error InsufficientBond();
+    error SolverBond__UnauthorizedCaller();
+    error SolverBond__InvalidAmount();
+    error SolverBond__InsufficientBond();
+    error SolverBond__InvalidAddress(string message);
 }

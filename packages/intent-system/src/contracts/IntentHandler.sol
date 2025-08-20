@@ -79,6 +79,7 @@ contract IntentHandler is
 
         summerToken = IERC20(_summerToken);
         intentBondFactory = IIntentBondFactory(_intentBondFactory);
+        intentBondFactory.setIntentHandler(address(this));
         intentOracle = IIntentOracle(_intentOracle);
         accessManager = _accessManager;
     }
@@ -122,12 +123,8 @@ contract IntentHandler is
             revert IntentHandler__IntentExpired();
 
         // Check if solver is vouched with sufficient bond
-        if (
-            !intentBondFactory.isSolverVouched(
-                msg.sender,
-                intent.requiredNotional
-            )
-        ) revert IntentHandler__InsufficientBond();
+        if (!intentBondFactory.isSolverVouched(msg.sender, intent.requiredBond))
+            revert IntentHandler__InsufficientBond();
 
         // Verify oracle is not stale
         if (intentOracle.isPriceStale(address(summerToken), MAX_PRICE_AGE))

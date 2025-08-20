@@ -65,6 +65,7 @@ interface IIntentHandler {
     struct Intent {
         address user;
         uint256 requiredNotional;
+        uint256 requiredBond;
         uint256 term;
         uint256 targetYield;
         address token;
