@@ -32,6 +32,16 @@ const REGISTRY_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [
+      { internalType: 'address', name: 'sourceAdapter', type: 'address' },
+      { internalType: 'uint16', name: 'targetChainId', type: 'uint16' },
+    ],
+    name: 'getAdapterPeer',
+    outputs: [{ internalType: 'address', name: 'targetAdapter', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const
 
 async function ensurePeer(
@@ -44,6 +54,30 @@ async function ensurePeer(
   const publicClient = await hre.viem.getPublicClient()
   const [wallet] = await hre.viem.getWalletClients()
 
+  // Helper: best-effort peer lookup (registry.getAdapterPeer reverts if missing)
+  const safeGetPeer = async (src: Address, dstChainId: number): Promise<Address> => {
+    try {
+      return (await publicClient.readContract({
+        address: getAddress(registryAddress as `0x${string}`),
+        abi: REGISTRY_ABI,
+        functionName: 'getAdapterPeer',
+        args: [getAddress(src as `0x${string}`), Number(dstChainId)],
+      })) as Address
+    } catch {
+      return zeroAddress as Address
+    }
+  }
+
+  console.log(
+    kleur.gray(
+      `  • Debug: registry=${getAddress(registryAddress as `0x${string}`)} src=${getAddress(
+        sourceAdapter as `0x${string}`,
+      )} (chain ${sourceChainId}) → dstChain ${targetChainId}, dst=${getAddress(
+        targetAdapter as `0x${string}`,
+      )}`,
+    ),
+  )
+
   const isAlreadyValid = (await publicClient.readContract({
     address: getAddress(registryAddress as `0x${string}`),
     abi: REGISTRY_ABI,
@@ -55,6 +89,14 @@ async function ensurePeer(
       Number(targetChainId),
     ],
   })) as boolean
+
+  const prePeer = await safeGetPeer(sourceAdapter, targetChainId)
+  const prePeerReverse = await safeGetPeer(targetAdapter, sourceChainId)
+  console.log(
+    kleur.gray(
+      `    pre-state: isValid=${isAlreadyValid} peer(src→dst)=${prePeer} peer(dst→src)=${prePeerReverse}`,
+    ),
+  )
 
   if (isAlreadyValid) {
     return false
@@ -72,6 +114,26 @@ async function ensurePeer(
     ],
   })
   await publicClient.waitForTransactionReceipt({ hash })
+
+  // Post-state snapshot
+  const postIsValid = (await publicClient.readContract({
+    address: getAddress(registryAddress as `0x${string}`),
+    abi: REGISTRY_ABI,
+    functionName: 'isValidAdapterPeer',
+    args: [
+      getAddress(sourceAdapter as `0x${string}`),
+      getAddress(targetAdapter as `0x${string}`),
+      Number(sourceChainId),
+      Number(targetChainId),
+    ],
+  })) as boolean
+  const postPeer = await safeGetPeer(sourceAdapter, targetChainId)
+  const postPeerReverse = await safeGetPeer(targetAdapter, sourceChainId)
+  console.log(
+    kleur.gray(
+      `    post-state: isValid=${postIsValid} peer(src→dst)=${postPeer} peer(dst→src)=${postPeerReverse}`,
+    ),
+  )
   return true
 }
 
@@ -114,6 +176,12 @@ async function registerPeersForAdapter(
     )
     return
   }
+
+  console.log(
+    kleur.cyan(
+      `Local registry=${getAddress(registryAddress as `0x${string}`)} chainId=${localChainId} ${adapterLabel}Adapter=${normalizedLocalAdapter}`,
+    ),
+  )
 
   const targetEntries = Object.entries(allConfigs).filter(([network, cfg]) => {
     if (!cfg?.deployedContracts?.bridge?.adapters?.[adapterLabel]?.address) return false

@@ -9,7 +9,7 @@
         {
           "protocol": "summerfi",
           "fleetProxyAddress": "0xfA92Fe0DFEA6AE882492E41095B49BA80F0B2E8d",
-          "crossChainArkAddress": null
+          "crossChainArkAddress": "0xae1cA7aef8796a2E1DD94fD63117F5FB8EBc21A5"
         }
       ]
     }
