@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
-
-import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";

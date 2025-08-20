@@ -109,6 +109,12 @@ class ProtocolConfig {
           'Gearbox',
         ),
         new GearboxProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xc155444481854c60e7a29f4150373f479988f32d'),
+          BigInt.fromI32(23144527),
+          'Gearbox',
+        ),
+        new GearboxProduct(
           getOrCreateToken(addresses.USDT),
           Address.fromString('0x05a811275fe9b4de503b3311f51edf6a856d936e'),
           BigInt.fromI32(18798139),
@@ -596,6 +602,78 @@ class ProtocolConfig {
           BigInt.fromI32(22822692),
           'Silo',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x83b90F83afdFE24DDc4e300c8EB1C5b2c7544C81'),
+          BigInt.fromI32(368171538),
+          'Silo',
+        ),
+        new SiloProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x2433D6AC11193b4695D9ca73530de93c538aD18a'),
+          BigInt.fromI32(368171538),
+          'Silo',
+        ),
+      ]),
+      new Protocol('Morpho', [
+        // USDC
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x7c574174DA4b2be3f705c6244B4BfA0815a8B3Ed'),
+          BigInt.fromI32(368171538),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x7e97fa6893871A2751B5fE961978DCCb2c201E65'),
+          BigInt.fromI32(368171538),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x87DEAE530841A9671326C9D5B9f91bdB11F3162c'),
+          BigInt.fromI32(368171538),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x250CF7c82bAc7cB6cf899b6052979d4B5BA1f9ca'),
+          BigInt.fromI32(368171538),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xa60643c90A542A95026C0F1dbdB0615fF42019Cf'),
+          BigInt.fromI32(368171538),
+          'Morpho',
+        ),
+        // USDT
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDT),
+          Address.fromString('0x139250CdB310D657eAC506c7C7FC6AcDE34Af1ec'),
+          BigInt.fromI32(368171538),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDT),
+          Address.fromString('0x6d57dAd0F1c4da0C1d5443AE8F7f8a50BDb9Cf75'),
+          BigInt.fromI32(368171538),
+          'Morpho',
+        ),
+      ]),
+      new Protocol('Euler', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x0a1eCC5Fe8C9be3C809844fcBe615B46A869b899'),
+          BigInt.fromI32(368171538),
+          'Euler',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDT),
+          Address.fromString('0x37512F45B4ba8808910632323b73783Ca938CD51'),
+          BigInt.fromI32(368171538),
+          'Euler',
+        ),
       ]),
     ]
   }
@@ -668,12 +746,6 @@ class ProtocolConfig {
           BigInt.fromI32(29043399),
           'Fluid',
         ),
-        new ERC4626Product(
-          getOrCreateToken(addresses.WETH),
-          Address.fromString('0x859160DB5841E5cfB8D3f144C6b3381A85A4b410'),
-          BigInt.fromI32(29043399),
-          'Euler',
-        ),
       ]),
       new Protocol('Morpho', [
         new ERC4626Product(
@@ -719,6 +791,42 @@ class ProtocolConfig {
           'Morpho',
         ),
         new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xBEEFA7B88064FeEF0cEe02AAeBBd95D30df3878F'),
+          BigInt.fromI32(34234416),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x23479229e52Ab6aaD312D0B03DF9F33B46753B5e'),
+          BigInt.fromI32(34234416),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xB7890CEE6CF4792cdCC13489D36D9d42726ab863'),
+          BigInt.fromI32(34234416),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xE74c499fA461AF1844fCa84204490877787cED56'),
+          BigInt.fromI32(34234416),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x1D3b1Cd0a0f242d598834b3F2d126dC6bd774657'),
+          BigInt.fromI32(34234416),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x236919F11ff9eA9550A4287696C2FC9e18E6e890'),
+          BigInt.fromI32(34234416),
+          'Morpho',
+        ),
+        new ERC4626Product(
           getOrCreateToken(addresses.EURC),
           Address.fromString('0xf24608E0CCb972b0b0f4A6446a0BBf58c701a026'),
           BigInt.fromI32(27276276),
@@ -760,6 +868,18 @@ class ProtocolConfig {
           BigInt.fromI32(32281914),
           'Morpho',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x5A32099837D89E3a794a44fb131CBbAD41f87a8C'),
+          BigInt.fromI32(34234416),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x1D795E29044A62Da42D927c4b179269139A28A6B'),
+          BigInt.fromI32(34234416),
+          'Morpho',
+        ),
       ]),
       new Protocol('Moonwell', [
         new MoonwellProduct(
@@ -797,6 +917,26 @@ class ProtocolConfig {
           Address.fromString('0x000000000001cdb57e58fa75fe420a0f4d6640d5'),
           BigInt.fromI32(33307996),
           'Aera',
+        ),
+      ]),
+      new Protocol('Euler', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x085178078796Da17B191f9081b5E2fCCc79A7eE7'),
+          BigInt.fromI32(34234416),
+          'Euler',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0x859160DB5841E5cfB8D3f144C6b3381A85A4b410'),
+          BigInt.fromI32(29043399),
+          'Euler',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.WETH),
+          Address.fromString('0xF3BB6b0a9bEAF9240D7F4a91341d5Df6bF37cAea'),
+          BigInt.fromI32(34234416),
+          'Euler',
         ),
       ]),
     ]

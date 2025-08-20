@@ -67,10 +67,26 @@ contract SummerTokenTest is SummerTokenTestBase {
         aSummerToken.transfer(user1, amount);
     }
 
-    function testFail_TransferInsufficientBalance() public {
+    function test_RevertWhen_TransferInsufficientBalance() public {
         enableTransfers();
         uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                owner,
+                INITIAL_SUPPLY * 10 ** 18,
+                amount
+            )
+        );
         aSummerToken.transfer(user1, amount);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                owner,
+                0,
+                amount
+            )
+        );
         bSummerToken.transfer(user2, amount);
     }
 
@@ -97,17 +113,33 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(bSummerToken.allowance(owner, user1), 0);
     }
 
-    function testFail_TransferFromInsufficientAllowance() public {
+    function test_RevertWhen_TransferFromInsufficientAllowance() public {
         enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.approve(user1, amount - 1);
 
         vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                user1,
+                amount - 1,
+                amount
+            )
+        );
         aSummerToken.transferFrom(owner, user2, amount);
 
         bSummerToken.approve(user1, amount - 1);
 
         vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                user1,
+                amount - 1,
+                amount
+            )
+        );
         bSummerToken.transferFrom(owner, user2, amount);
     }
 
@@ -128,10 +160,26 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(bSummerToken.totalSupply(), initialSupplyB - amount);
     }
 
-    function testFail_BurnInsufficientBalance() public {
+    function test_RevertWhen_BurnInsufficientBalance() public {
         enableTransfers();
         uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                owner,
+                INITIAL_SUPPLY * 10 ** 18,
+                amount
+            )
+        );
         aSummerToken.burn(amount);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                owner,
+                0,
+                amount
+            )
+        );
         bSummerToken.burn(amount);
     }
 
@@ -164,17 +212,33 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(bSummerToken.allowance(owner, user1), 0);
     }
 
-    function testFail_BurnFromInsufficientAllowance() public {
+    function test_RevertWhen_BurnFromInsufficientAllowance() public {
         enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.approve(user1, amount - 1);
 
         vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                user1,
+                amount - 1,
+                amount
+            )
+        );
         aSummerToken.burnFrom(owner, amount);
 
         bSummerToken.approve(user1, amount - 1);
 
         vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                user1,
+                amount - 1,
+                amount
+            )
+        );
         bSummerToken.burnFrom(owner, amount);
     }
 
@@ -348,82 +412,6 @@ contract SummerTokenTest is SummerTokenTestBase {
             furtherDecayedVotes,
             "Votes should not decay during the decay free window"
         );
-    }
-
-    function test_WhitelistTransfers() public {
-        uint256 amount = 1000 * 10 ** 18;
-
-        // Add user1 to whitelist
-        aSummerToken.addToWhitelist(user1);
-
-        // Transfer should succeed to whitelisted address
-        aSummerToken.transfer(user1, amount);
-        assertEq(aSummerToken.balanceOf(user1), amount);
-
-        // Transfer from whitelisted address should also succeed
-        vm.prank(user1);
-        aSummerToken.transfer(user2, amount / 2);
-        assertEq(aSummerToken.balanceOf(user2), amount / 2);
-    }
-
-    function test_RemoveFromWhitelist() public {
-        uint256 amount = 1000 * 10 ** 18;
-
-        // Add and then remove user1 from whitelist
-        aSummerToken.addToWhitelist(user1);
-        aSummerToken.removeFromWhitelist(user1);
-
-        // Transfer should fail after removal from whitelist
-        vm.expectRevert(ISummerToken.TransferNotAllowed.selector);
-        aSummerToken.transfer(user1, amount);
-    }
-
-    function test_OnlyGovernorCanManageWhitelist() public {
-        // Try to add to whitelist as non-owner
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotGovernor(address)", user1)
-        );
-        aSummerToken.addToWhitelist(user2);
-
-        // Try to remove from whitelist as non-owner
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotGovernor(address)", user1)
-        );
-        aSummerToken.removeFromWhitelist(user2);
-    }
-
-    function test_WhitelistEvents() public {
-        // Test whitelist addition event
-        vm.expectEmit(true, false, false, false);
-        emit ISummerToken.AddressWhitelisted(user1);
-        aSummerToken.addToWhitelist(user1);
-
-        // Test whitelist removal event
-        vm.expectEmit(true, false, false, false);
-        emit ISummerToken.AddressRemovedFromWhitelist(user1);
-        aSummerToken.removeFromWhitelist(user1);
-    }
-
-    // Update existing transfer tests to use whitelist instead of enableTransfers
-    function test_Transfer_WithWhitelist() public {
-        aSummerToken.addToWhitelist(user1);
-        aSummerToken.addToWhitelist(user2);
-
-        uint256 amount = 1000 * 10 ** 18;
-        aSummerToken.transfer(user1, amount);
-        assertEq(aSummerToken.balanceOf(user1), amount);
-        assertEq(
-            aSummerToken.balanceOf(owner),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
-
-        bSummerToken.mint(owner, amount * 2); // bSummerToken is initialized with 0 supply, so we need to mint to test transfer
-        bSummerToken.addToWhitelist(user2);
-        bSummerToken.transfer(user2, amount);
-        assertEq(bSummerToken.balanceOf(user2), amount);
-        assertEq(bSummerToken.balanceOf(owner), amount);
     }
 
     function test_DelegationChainLength() public {

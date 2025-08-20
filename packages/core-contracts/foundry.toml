@@ -10,6 +10,12 @@ cache_path  = 'cache_forge'
 solc = "0.8.28"
 evm_version = "cancun"
 cbor_metadata = true
+allow_paths = [
+  "../chain-bridge"
+]
+via_ir = true
+optimizer = true
+optimizer_runs = 200
 
 [fmt]
   bracket_spacing = true

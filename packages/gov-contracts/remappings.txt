@@ -10,8 +10,9 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho-local/src/
 @pendle/core-v2/contracts/=node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/
 @openzeppelin/contracts/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts-upgradeable/contracts/
-@layerzerolabs/=node_modules/@summerfi/dependencies/node_modules/@layerzerolabs/
+@layerzerolabs/=node_modules/@summerfi/legacy-dependencies/node_modules/@layerzerolabs/
 @summerfi/access-contracts/=node_modules/@summerfi/access-contracts/src/
 @summerfi/rewards-contracts/=node_modules/@summerfi/rewards-contracts/src/
 @summerfi/constants/=node_modules/@summerfi/constants/src/
 @summerfi/dependencies/=node_modules/@summerfi/dependencies/lib/
+

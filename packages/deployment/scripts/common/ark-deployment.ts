@@ -1,8 +1,12 @@
+import fs from 'fs'
+import kleur from 'kleur'
+import path from 'path'
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployAeraArk } from '../arks/deploy-aera-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
+import { deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
@@ -34,8 +38,9 @@ export type ArkConfig = {
   type: ArkType
   params: {
     asset: string
-    protocol: string
-    vaultName?: string // For ERC4626Ark
+    protocol?: string
+    vaultName?: string
+    targetChainId?: string
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
@@ -234,6 +239,57 @@ export async function deployArk(
       deployedArk = await deploySiloArk(config, siloParams)
       break
     }
+
+    case ArkType.CrossChainArk: {
+      const targetChainId = Number(arkConfig.params.targetChainId)
+      const targetProtocol = arkConfig.params.protocol
+
+      if (!targetChainId || !targetProtocol) {
+        console.log(kleur.red('Missing targetChainId or protocol in ark configuration.'))
+        throw new Error('CrossChainArk requires targetChainId and protocol parameters')
+      }
+
+      // Get bridge components from config
+      const bridgeQueue = config.deployedContracts.bridge?.bridgeQueue?.address as Address
+      const bridgeRouter = config.deployedContracts.bridge?.bridgeRouter?.address as Address
+
+      if (!bridgeQueue || !bridgeRouter) {
+        throw new Error('Bridge components not found in config')
+      }
+
+      // Get cross-chain config
+      const configDir = path.join(process.cwd(), 'config', 'cross-chain')
+      const configFiles = fs.readdirSync(configDir).filter((file) => file.endsWith('.json'))
+
+      if (configFiles.length === 0) {
+        throw new Error('No cross-chain config files found')
+      }
+
+      // Load the config
+      const configPath = path.join(configDir, configFiles[0])
+      const crossChainConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+      // Find the protocol configuration
+      const destination = crossChainConfig.destinations.find(
+        (d: any) => d.chainId === targetChainId,
+      )
+      if (!destination) {
+        throw new Error(`Destination with chain ID ${targetChainId} not found in config`)
+      }
+
+      const protocol = destination.protocols.find((p: any) => p.protocol === targetProtocol)
+
+      deployedArk = await deployCrossChainArk(config, {
+        ...baseArkParams,
+        targetChainId,
+        targetProtocol,
+        bridgeQueue,
+        bridgeRouter,
+        ...protocol,
+      })
+      break
+    }
+
     case ArkType.SiloArkV2: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
       const vaultId = validateErc4626Address(
@@ -305,7 +361,8 @@ export async function deployArk(
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
-  let deployedArk
+  let deployedArk: any
+
   switch (arkType) {
     case ArkType.SyrupArk:
       deployedArk = await deploySyrupArk(config)
@@ -377,6 +434,11 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SiloManagedVaultArk: {
       deployedArk = await deploySiloManagedVaultArk(config)
+      break
+    }
+
+    case ArkType.CrossChainArk: {
+      deployedArk = await deployCrossChainArk(config)
       break
     }
 
