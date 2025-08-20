@@ -32,6 +32,20 @@ export interface SolverInfo {
   totalAssets: bigint
 }
 
+export interface IntentEvent {
+  intentId: string
+  user: string
+  solver?: string
+  state: string
+  timestamp: number
+  requiredNotional: bigint
+  requiredBond: bigint
+  term: bigint
+  targetYield: bigint
+  token: string
+  expiry: bigint
+}
+
 export function useIntentSystem(environment: Environment, chainId: ChainId) {
   const { address: userAddress } = useAccount()
   const publicClient = usePublicClient()
@@ -41,6 +55,8 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
   const [error, setError] = useState<string | null>(null)
   const [intentData, setIntentData] = useState<IntentData | null>(null)
   const [solverInfo, setSolverInfo] = useState<SolverInfo | null>(null)
+  const [intentEvents, setIntentEvents] = useState<IntentEvent[]>([])
+  const [eventsLoading, setEventsLoading] = useState(false)
 
   // Contract addresses
   const intentBondFactory = INTENT_BOND_FACTORY_ADDRESSES[environment][chainId]
@@ -374,6 +390,146 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
     [publicClient, intentHandler],
   )
 
+  // Fetch intent events
+  const fetchIntentEvents = useCallback(async () => {
+    if (!publicClient || !intentHandler) return
+
+    setEventsLoading(true)
+    try {
+      // Get the latest 100 blocks
+      const currentBlock = await publicClient.getBlockNumber()
+      const fromBlock = currentBlock - BigInt(10000) // Look back 10,000 blocks
+
+      // Fetch IntentCreated events
+      const createdEvents = await publicClient.getLogs({
+        address: intentHandler as `0x${string}`,
+        event: {
+          type: 'event',
+          name: 'IntentCreated',
+          inputs: [
+            { type: 'bytes32', name: 'orderId', indexed: false },
+            {
+              type: 'tuple',
+              name: 'intent',
+              components: [
+                { type: 'address', name: 'user' },
+                { type: 'uint256', name: 'requiredNotional' },
+                { type: 'uint256', name: 'requiredBond' },
+                { type: 'uint256', name: 'term' },
+                { type: 'uint256', name: 'targetYield' },
+                { type: 'address', name: 'token' },
+                { type: 'address', name: 'oracle' },
+                { type: 'uint256', name: 'expiry' },
+              ],
+              indexed: false,
+            },
+          ],
+        },
+        fromBlock,
+        toBlock: currentBlock,
+      })
+
+      // Fetch IntentSolved events
+      const solvedEvents = await publicClient.getLogs({
+        address: intentHandler as `0x${string}`,
+        event: {
+          type: 'event',
+          name: 'IntentSolved',
+          inputs: [
+            { type: 'address', name: 'ark', indexed: true },
+            { type: 'address', name: 'solver', indexed: true },
+            { type: 'uint256', name: 'escrowedYield', indexed: false },
+          ],
+        },
+        fromBlock,
+        toBlock: currentBlock,
+      })
+
+      // Fetch IntentSettled events
+      const settledEvents = await publicClient.getLogs({
+        address: intentHandler as `0x${string}`,
+        event: {
+          type: 'event',
+          name: 'IntentSettled',
+          inputs: [
+            { type: 'address', name: 'ark', indexed: true },
+            { type: 'address', name: 'solver', indexed: true },
+            { type: 'uint256', name: 'escrowedYield', indexed: false },
+          ],
+        },
+        fromBlock,
+        toBlock: currentBlock,
+      })
+
+      // Process and combine events
+      const processedEvents: IntentEvent[] = []
+
+      // Process created events
+      for (const event of createdEvents) {
+        const block = await publicClient.getBlock({ blockHash: event.blockHash! })
+        const intentData = event.args.intent as any
+
+        processedEvents.push({
+          intentId: event.args.orderId as string,
+          user: intentData.user,
+          state: 'Created',
+          timestamp: Number(block.timestamp),
+          requiredNotional: intentData.requiredNotional,
+          requiredBond: intentData.requiredBond,
+          term: intentData.term,
+          targetYield: intentData.targetYield,
+          token: intentData.token,
+          expiry: intentData.expiry,
+        })
+      }
+
+      // Process solved events and match with created events
+      for (const event of solvedEvents) {
+        const existingEvent = processedEvents.find((e) => e.user === event.args.ark && !e.solver)
+        if (existingEvent) {
+          existingEvent.solver = event.args.solver
+          existingEvent.state = 'Solved'
+        } else {
+          // If we don't have the created event, add a minimal solved event
+          const block = await publicClient.getBlock({ blockHash: event.blockHash! })
+          processedEvents.push({
+            intentId: 'unknown',
+            user: event.args.ark as string,
+            solver: event.args.solver as string,
+            state: 'Solved',
+            timestamp: Number(block.timestamp),
+            requiredNotional: BigInt(0),
+            requiredBond: BigInt(0),
+            term: BigInt(0),
+            targetYield: BigInt(0),
+            token: 'unknown',
+            expiry: BigInt(0),
+          })
+        }
+      }
+
+      // Process settled events
+      for (const event of settledEvents) {
+        const existingEvent = processedEvents.find(
+          (e) => e.user === event.args.ark && e.solver === event.args.solver,
+        )
+        if (existingEvent) {
+          existingEvent.state = 'Settled'
+        }
+      }
+
+      // Sort by timestamp (most recent first)
+      processedEvents.sort((a, b) => b.timestamp - a.timestamp)
+
+      setIntentEvents(processedEvents)
+    } catch (err) {
+      console.error('Error fetching intent events:', err)
+      setIntentEvents([])
+    } finally {
+      setEventsLoading(false)
+    }
+  }, [publicClient, intentHandler])
+
   // Check SUMMER token allowance for bond contract
   const getSummerTokenAllowance = useCallback(
     async (bondContractAddress: string) => {
@@ -431,6 +587,77 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
     }
   }, [userAddress, isDeployed, getSolverInfo])
 
+  // Generic token approval function
+  const approveToken = async (tokenAddress: string, spender: string, amount: bigint) => {
+    if (!userAddress || !walletClient) {
+      throw new Error('Wallet not connected')
+    }
+
+    try {
+      const hash = await walletClient.writeContract({
+        address: tokenAddress as `0x${string}`,
+        abi: [
+          {
+            inputs: [
+              { name: 'spender', type: 'address' },
+              { name: 'amount', type: 'uint256' },
+            ],
+            name: 'approve',
+            outputs: [{ name: '', type: 'bool' }],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ],
+        functionName: 'approve',
+        args: [spender as `0x${string}`, amount],
+        chain: undefined,
+        account: userAddress as `0x${string}`,
+      })
+
+      await publicClient.waitForTransactionReceipt({ hash })
+      return hash
+    } catch (error) {
+      console.error('Error approving token:', error)
+      throw error
+    }
+  }
+
+  // Set price in mock oracle
+  const setPrice = async (tokenAddress: string, price: bigint, decimals: number) => {
+    if (!mockIntentOracle || !userAddress || !walletClient) {
+      throw new Error('Mock oracle not available or wallet not connected')
+    }
+
+    try {
+      const hash = await walletClient.writeContract({
+        address: mockIntentOracle as `0x${string}`,
+        abi: [
+          {
+            inputs: [
+              { name: 'token', type: 'address' },
+              { name: 'price', type: 'uint256' },
+              { name: 'decimals', type: 'uint8' },
+            ],
+            name: 'setPrice',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ],
+        functionName: 'setPrice',
+        args: [tokenAddress as `0x${string}`, price, decimals],
+        chain: undefined,
+        account: userAddress as `0x${string}`,
+      })
+
+      await publicClient.waitForTransactionReceipt({ hash })
+      return hash
+    } catch (error) {
+      console.error('Error setting price:', error)
+      throw error
+    }
+  }
+
   return {
     loading,
     error,
@@ -441,6 +668,8 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
     intentHandler,
     mockIntentOracle,
     tokens,
+    intentEvents,
+    eventsLoading,
     createIntent,
     solveIntent,
     settleIntent,
@@ -449,8 +678,11 @@ export function useIntentSystem(environment: Environment, chainId: ChainId) {
     isSolverVouched,
     getSolverBondAmount,
     hasCommitted,
+    fetchIntentEvents,
     formatUnits,
     refreshSolverInfo,
     getSummerTokenAllowance,
+    approveToken,
+    setPrice,
   }
 }

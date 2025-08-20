@@ -41,6 +41,11 @@ export const IntentHandlerABI = [
           },
           {
             "internalType": "uint256",
+            "name": "requiredBond",
+            "type": "uint256"
+          },     
+          {
+            "internalType": "uint256",
             "name": "term",
             "type": "uint256"
           },
@@ -89,6 +94,11 @@ export const IntentHandlerABI = [
             "name": "requiredNotional",
             "type": "uint256"
           },
+          {
+            "internalType": "uint256",
+            "name": "requiredBond",
+            "type": "uint256"
+          },     
           {
             "internalType": "uint256",
             "name": "term",
@@ -173,6 +183,11 @@ export const IntentHandlerABI = [
         "internalType": "IIntentHandler.Intent",
         "name": "intent",
         "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "exscrowedYield",
+        "type": "uint256" 
       }
     ],
     "name": "settleIntent",
