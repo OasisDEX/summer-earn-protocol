@@ -194,6 +194,18 @@ contract CrossChainArk is
         _resetPendingTransferParams();
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL KEEPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Cancels a queued pending transfer
+    /// @dev Resets pending transfer params and options; callable by keeper
+    function cancelPendingTransfer() external onlyKeeper {
+        if (pendingTransferParams.asset == address(0))
+            revert NoPendingTransferQueued();
+        _resetPendingTransferParams();
+    }
+
     /**
      * @notice Disembarks the Ark by withdrawing assets that are available on the contract
      * @param amount Amount of tokens to withdraw
