@@ -6,7 +6,7 @@ import {IntentHandler} from "../src/contracts/IntentHandler.sol";
 import {IntentBondFactory} from "../src/contracts/IntentBondFactory.sol";
 import {Escrow} from "../src/contracts/Escrow.sol";
 // Note: Using test oracle for now - replace with production oracle
-import {MockIntentOracle} from "../src/contracts/MockIntentOracle.sol";
+import {MockIntentOracle} from "../src/mocks/MockIntentOracle.sol";
 import {ArkParams} from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";

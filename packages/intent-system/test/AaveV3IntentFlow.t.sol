@@ -2,31 +2,32 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {Escrow} from "../../src/contracts/Escrow.sol";
-import {IntentHandler} from "../../src/contracts/IntentHandler.sol";
-import {IntentBondFactory} from "../../src/contracts/IntentBondFactory.sol";
-import {SolverBond} from "../../src/contracts/SolverBond.sol";
-import {MockIntentOracle} from "../../src/contracts/MockIntentOracle.sol";
-import {MockSummerToken} from "../../src/contracts/MockSummerToken.sol";
+import {Escrow} from "../src/contracts/Escrow.sol";
+import {IntentHandler} from "../src/contracts/IntentHandler.sol";
+import {IntentBondFactory} from "../src/contracts/IntentBondFactory.sol";
+import {SolverBond} from "../src/contracts/SolverBond.sol";
+import {MockIntentOracle} from "../src/mocks/MockIntentOracle.sol";
+import {MockSummerToken} from "../src/mocks/MockSummerToken.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ConfigurationManager} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManager.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {ArkParams} from "@summerfi/earn-protocol-contracts/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "@summerfi/earn-protocol-contracts/types/ConfigurationManagerTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {IIntentHandler} from "../../src/interfaces/IIntentHandler.sol";
+import {IIntentHandler} from "../src/interfaces/IIntentHandler.sol";
 import {DataTypes} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/DataTypes.sol";
 import {IPoolV3} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IPoolV3.sol";
 import {IRewardsController} from "@summerfi/earn-protocol-contracts/interfaces/aave-v3/IRewardsController.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AaveV3Ark} from "@summerfi/earn-protocol-contracts/contracts/arks/AaveV3Ark.sol";
+import {ArkTestBase} from "@summerfi/earn-protocol-test/arks/ArkTestBase.sol";
 
 /**
  * @title AaveV3 Intent Flow Integration Test
  * @notice Tests the complete intent flow using GenericIntentArk + AaveV3Escrow + IntentHandler
  * @dev Recreates AaveV3IntentArk functionality using the new modular architecture
  */
-contract AaveV3IntentFlowTest is Test {
+contract AaveV3IntentFlowTest is Test, ArkTestBase {
     // Core contracts
     Escrow public escrow;
     IntentHandler public intentHandler;
@@ -34,11 +35,12 @@ contract AaveV3IntentFlowTest is Test {
     SolverBond public solverBond;
 
     // Infrastructure
-    ProtocolAccessManager public accessManager;
-    ConfigurationManager public configurationManager;
+    // ProtocolAccessManager public accessManager;
+    // ConfigurationManager public configurationManager;
     IERC20 public usdc;
     MockIntentOracle public mockOracle;
     MockSummerToken public summerToken;
+    AaveV3Ark public ark;
 
     address public constant USDC_MAINNET =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -52,14 +54,8 @@ contract AaveV3IntentFlowTest is Test {
         0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
 
     // Test addresses
-    address public governor = address(0x1);
-    address public commander = address(0x2);
-    address public solver = address(0x3);
-    address public user = address(0x4);
-    address public keeper = address(0x5);
-    address public raft = address(0x6);
-    address public tipJar = address(0x7);
-    address public treasury = address(0x8);
+    address public solver = address(0x789);
+    address public user = address(0x489);
 
     // Test constants
     uint256 public constant REQUIRED_NOTIONAL = 1000e6;
@@ -75,6 +71,12 @@ contract AaveV3IntentFlowTest is Test {
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
         vm.selectFork(forkId);
 
+        initializeCoreContracts();
+        (commander, ) = setupFleetCommanderWithBufferArk(
+            USDC_MAINNET,
+            "Aave V3 USDC Ark"
+        );
+
         // Deploy infrastructure
         accessManager = new ProtocolAccessManager(governor);
 
@@ -87,21 +89,6 @@ contract AaveV3IntentFlowTest is Test {
 
         // Deploy configuration manager with minimal setup for testing
         vm.startPrank(governor);
-
-        // Use a simpler approach - create a mock config manager
-        configurationManager = new ConfigurationManager(address(accessManager));
-
-        ConfigurationManagerParams
-            memory configurationManagerParams = ConfigurationManagerParams({
-                raft: raft,
-                tipJar: tipJar,
-                treasury: treasury,
-                harborCommand: address(99),
-                fleetCommanderRewardsManagerFactory: address(999)
-            });
-        configurationManager.initializeConfiguration(
-            configurationManagerParams
-        );
 
         // Deploy intent system
         intentBondFactory = new IntentBondFactory(address(summerToken));
@@ -143,6 +130,20 @@ contract AaveV3IntentFlowTest is Test {
             maxDepositPercentageOfTVL: Percentage.wrap(1e18)
         });
 
+        ark = new AaveV3Ark(aaveV3PoolAddress, rewardsController, arkParams);
+
+        // Permissioning
+        vm.startPrank(governor);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
+
         // Add solver escrow for the solver
         vm.startPrank(keeper);
         intentHandler.addSolverEscrow(solver, address(usdc));
@@ -173,7 +174,7 @@ contract AaveV3IntentFlowTest is Test {
         // Step 1: Commander (ark) creates intent for yield generation
         vm.startPrank(keeper);
         IIntentHandler.Intent memory intent = IIntentHandler.Intent({
-            user: commander,
+            user: address(ark),
             requiredNotional: REQUIRED_NOTIONAL,
             term: TERM,
             targetYield: TARGET_YIELD,
