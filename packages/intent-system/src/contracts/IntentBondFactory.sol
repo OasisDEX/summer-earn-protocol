@@ -108,8 +108,10 @@ contract IntentBondFactory is ProtocolAccessManaged {
     /**
      * @notice Check if a solver is vouched (has sufficient bond)
      * @param solver Address of the solver
-     * @param requiredBond Required bond amount in usdc ( 6 decimals )
+     * @param requiredBond Required bond amount in USD (18 decimals)
      * @return True if solver is vouched with sufficient bond
+     * @dev This function converts USD amount to SUMR token amount using oracle price
+     * @dev Formula: requiredAmount = (requiredBond * price) / 10^SUMMER_TOKEN_DECIMALS
      */
     function isSolverVouched(
         address solver,

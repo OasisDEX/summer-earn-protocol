@@ -127,6 +127,8 @@ contract IntentHandler is
             revert IntentHandler__InsufficientBond();
 
         // Verify oracle is not stale
+        // Note: Currently only checks staleness, but future versions may use price data
+        // for dynamic bond requirements based on notional value
         if (intentOracle.isPriceStale(address(summerToken), MAX_PRICE_AGE))
             revert IntentHandler__InvalidOracle();
         if (intent.targetYield < escrowedYield) {

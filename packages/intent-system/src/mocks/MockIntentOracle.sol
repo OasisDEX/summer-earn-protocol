@@ -8,14 +8,20 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  * @title MockIntentOracle
  * @notice Mock oracle contract for testing the intent system
  * @dev Provides mock price data for testing purposes
+ *
+ * @dev DECIMAL CONVENTION:
+ * - All prices are in USD with 18 decimal places
+ * - For USDC (6 decimals) at $1.00: price = 1e18, decimals = 6
+ * - For SUMR (18 decimals) at $1.00: price = 1e18, decimals = 18
+ * - Notional calculation: (amount * price) / (10 ** decimals)
  */
 contract MockIntentOracle is IIntentOracle, AccessControl {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint256 public constant DEFAULT_PRICE = 1e6; // 1e6 usdc
-    uint256 public constant DEFAULT_DECIMALS = 18;
+    uint256 public constant DEFAULT_PRICE = 1e18; // $1.00 USD with 18 decimal places
+    uint256 public constant DEFAULT_DECIMALS = 18; // Default token decimals (Summer token)
     uint256 public constant MAX_PRICE_AGE = 1 hours;
 
     /*//////////////////////////////////////////////////////////////
@@ -100,7 +106,8 @@ contract MockIntentOracle is IIntentOracle, AccessControl {
             ? uint8(DEFAULT_DECIMALS)
             : priceData.decimals;
 
-        // Calculate notional value: amount * price / 10^decimals
+        // Calculate notional value: amount * price / 10^tokenDecimals
+        // This converts to USD with 18 decimal places
         notionalValue = (amount * price) / (10 ** decimals);
     }
 

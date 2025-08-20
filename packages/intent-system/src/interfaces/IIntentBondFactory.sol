@@ -4,6 +4,14 @@ pragma solidity 0.8.28;
 /**
  * @title IIntentBondFactory
  * @notice Interface for the intent bond factory contract that creates individual bond contracts for each solver
+ *
+ * @dev DECIMAL HANDLING:
+ * - Bond amounts are stored in raw token units (e.g., 1000e18 for 1000 SUMR tokens)
+ * - When checking if a solver is vouched, requiredAmount should be in raw SUMR token units
+ * - Example: To require $1000 worth of SUMR bonds:
+ *   1. Get SUMR price from oracle: price = 1e18 ($1.00), decimals = 18
+ *   2. Calculate required SUMR: (1000e18 * 1e18) / (10 ** 18) = 1000e18
+ *   3. Use 1000e18 as the requiredAmount parameter
  */
 interface IIntentBondFactory {
     /*//////////////////////////////////////////////////////////////
@@ -49,8 +57,9 @@ interface IIntentBondFactory {
     /**
      * @notice Check if a solver is vouched (has sufficient bond)
      * @param solver Address of the solver
-     * @param requiredAmount Required bond amount
+     * @param requiredAmount Required bond amount in raw SUMR token units
      * @return True if solver is vouched with sufficient bond
+     * @dev requiredAmount should be calculated based on USD value using oracle price
      */
     function isSolverVouched(
         address solver,
@@ -60,7 +69,7 @@ interface IIntentBondFactory {
     /**
      * @notice Get the bond amount for a solver
      * @param solver Address of the solver
-     * @return Bond amount (0 if no bond)
+     * @return Bond amount in raw SUMR token units (0 if no bond)
      */
     function getSolverBondAmount(
         address solver

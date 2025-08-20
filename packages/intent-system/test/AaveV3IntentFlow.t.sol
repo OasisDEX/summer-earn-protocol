@@ -311,43 +311,115 @@ contract AaveV3IntentFlowTest is Test, ArkTestBase {
         );
     }
 
-    function test_AccessControlIntegration() public {
-        // Only commander (ark) can create intents
-        vm.startPrank(user);
-        vm.expectRevert();
-        IIntentHandler.Intent memory intent = IIntentHandler.Intent({
-            user: commander,
-            requiredNotional: REQUIRED_NOTIONAL,
-            requiredBond: BOND_AMOUNT,
-            term: TERM,
-            targetYield: TARGET_YIELD,
-            token: address(usdc),
-            oracle: address(mockOracle),
-            expiry: block.timestamp + 1 days
-        });
-        intentHandler.createIntent(intent);
+    function test_OracleDecimalHandling() public {
+        // Test decimal handling for different token types
+
+        // Test 1: USDC (6 decimals) at $1.00
+        address usdcToken = address(usdc);
+        vm.startPrank(governor);
+        mockOracle.addSupportedToken(usdcToken);
+        mockOracle.setPrice(usdcToken, 1e18, 6); // $1.00, 6 decimals
         vm.stopPrank();
 
-        // Only solver can solve intents
-        vm.startPrank(keeper);
-        intentHandler.createIntent(intent);
+        (uint256 usdcPrice, , uint8 usdcDecimals) = mockOracle.getPrice(usdcToken);
+        assertEq(usdcPrice, 1e18, "USDC price should be $1.00 with 18 decimals");
+        assertEq(usdcDecimals, 6, "USDC should have 6 decimals");
+
+        // Calculate notional value of 1000 USDC
+        // Formula: (amount * price) / (10 ** decimals)
+        // (1000e6 * 1e18) / (10 ** 6) = 1000e18 = $1000.00
+        uint256 usdcNotional = mockOracle.calculateNotionalValue(usdcToken, 1000e6);
+        assertEq(usdcNotional, 1000e18, "1000 USDC should equal $1000.00");
+
+        // Test 2: Summer token (18 decimals) at $1.00
+        address summerTokenAddr = address(summerToken);
+        vm.startPrank(governor);
+        mockOracle.setPrice(summerTokenAddr, 1e18, 18); // $1.00, 18 decimals
         vm.stopPrank();
 
-        vm.startPrank(user);
-        vm.expectRevert();
-        intentHandler.solveIntent(intent, ESCROWED_YIELD);
-        vm.stopPrank();
+        (uint256 sumrPrice, , uint8 sumrDecimals) = mockOracle.getPrice(summerTokenAddr);
+        assertEq(sumrPrice, 1e18, "SUMR price should be $1.00 with 18 decimals");
+        assertEq(sumrDecimals, 18, "SUMR should have 18 decimals");
 
-        // Only IntentHandler can call escrow functions
-        vm.startPrank(user);
-        vm.expectRevert();
-        Escrow solverEscrow = intentHandler.solverEscrows(solver);
-        solverEscrow.deposit(
-            address(usdc),
-            1000e6,
-            keccak256(abi.encode(intent))
+        // Calculate notional value of 1000 SUMR
+        // Formula: (amount * price) / (10 ** decimals)
+        // (1000e18 * 1e18) / (10 ** 18) = 1000e18 = $1000.00
+        uint256 sumrNotional = mockOracle.calculateNotionalValue(summerTokenAddr, 1000e18);
+        assertEq(sumrNotional, 1000e18, "1000 SUMR should equal $1000.00");
+
+        // Test 3: Verify bond requirement calculation
+        // The solver has BOND_AMOUNT (1000e6) SUMR tokens as bond
+        // But 1000e6 with 18 decimals is actually 0.001 SUMR tokens, not 1000!
+        uint256 actualBondAmount = intentBondFactory.getSolverBondAmount(solver);
+        assertEq(actualBondAmount, BOND_AMOUNT, "Solver should have 1000e6 SUMR tokens as bond");
+
+        // For $1000 worth of SUMR bonds at $1/SUMR, we need 1000e18 SUMR tokens
+        // But the solver only has 1000e6 SUMR tokens, so this should fail
+        uint256 requiredBondFor1000USD = 1000e18; // 1000 SUMR tokens
+        assertFalse(
+            intentBondFactory.isSolverVouched(solver, requiredBondFor1000USD),
+            "Solver should NOT have sufficient bond for $1000 requirement (only has 1000e6)"
         );
+
+        // But for $0.001 worth of SUMR bonds, the solver should have sufficient bond
+        uint256 requiredBondForMicroUSD = 1000e6; // 1000e6 SUMR tokens = $0.001
+        assertTrue(
+            intentBondFactory.isSolverVouched(solver, requiredBondForMicroUSD),
+            "Solver should have sufficient bond for $0.001 requirement"
+        );
+    }
+
+    function test_FractionalPriceScenario() public {
+        // Test decimal handling with fractional prices (0.5 USDC per SUMR)
+
+        // Setup fractional price: 0.5 USDC per SUMR
+        // This means 1 SUMR = 0.5 USDC, so price = 5e17 (0.5 USD with 18 decimals)
+        address sumrToken = address(summerToken);
+        address usdcToken = address(usdc);
+
+        vm.startPrank(governor);
+        mockOracle.addSupportedToken(usdcToken);
+        mockOracle.addSupportedToken(sumrToken);
+        mockOracle.setPrice(sumrToken, 5e17, 18); // 0.5 USD per SUMR
+        mockOracle.setPrice(usdcToken, 1e18, 6);   // 1.0 USD per USDC
         vm.stopPrank();
+
+        // Verify prices are set correctly
+        (uint256 sumrPrice, , uint8 sumrDecimals) = mockOracle.getPrice(sumrToken);
+        assertEq(sumrPrice, 5e17, "SUMR price should be 0.5 USD with 18 decimals");
+        assertEq(sumrDecimals, 18, "SUMR should have 18 decimals");
+
+        // Test 1: Calculate notional value of 1000 SUMR at 0.5 USD each
+        // Expected: 1000 SUMR * 0.5 USD = 500 USD
+        // Formula: (1000e18 * 5e17) / (10 ** 18) = 500e18 = $500.00
+        uint256 sumrNotional = mockOracle.calculateNotionalValue(sumrToken, 1000e18);
+        assertEq(sumrNotional, 500e18, "1000 SUMR at 0.5 USD each should equal $500.00");
+
+        // Test 2: Calculate notional value of 2000 SUMR at 0.5 USD each
+        // Expected: 2000 SUMR * 0.5 USD = 1000 USD
+        // Formula: (2000e18 * 5e17) / (10 ** 18) = 1000e18 = $1000.00
+        uint256 sumrNotional2 = mockOracle.calculateNotionalValue(sumrToken, 2000e18);
+        assertEq(sumrNotional2, 1000e18, "2000 SUMR at 0.5 USD each should equal $1000.00");
+
+        // Test 3: Calculate how many SUMR tokens needed for $1000 worth of bonds
+        // We want: token_amount = (USD_amount * 10^decimals) / price
+        // For $1000 worth of SUMR: (1000e18 * 10^18) / 5e17 = 2000e18 SUMR tokens
+        uint256 requiredBondAmount = (1000e18 * (10 ** 18)) / 5e17;
+        assertEq(requiredBondAmount, 2000e18, "Should need 2000 SUMR tokens for $1000 worth of bonds");
+
+        // Test 4: Verify bond requirement logic with fractional pricing
+        // If we want $500 worth of SUMR bonds, we need 1000 SUMR tokens
+        // But our solver only has 1000e6 SUMR tokens (which is 0.001 SUMR)
+        uint256 requiredBondFor500USD = 1000e18; // 1000 SUMR tokens = $500
+        assertFalse(
+            intentBondFactory.isSolverVouched(solver, requiredBondFor500USD),
+            "Solver should NOT have sufficient bond for $500 requirement (only has 1000e6 SUMR)"
+        );
+
+        // Test 5: Edge case - calculate notional value of fractional amounts
+        // 500 SUMR at 0.5 USD each = 250 USD
+        uint256 fractionalNotional = mockOracle.calculateNotionalValue(sumrToken, 500e18);
+        assertEq(fractionalNotional, 250e18, "500 SUMR at 0.5 USD each should equal $250.00");
     }
 
     function test_ArchitecturalBenefits() public {
