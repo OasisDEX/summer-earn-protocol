@@ -348,20 +348,29 @@ contract LayerZeroAdapter is
             return;
         }
 
+        // For read responses, LayerZero uses a special high-range EID (read channel).
+        // That EID is not a standard chain endpoint ID and typically won't exist in our
+        // externalIdToChainId mapping. Derive the chain id if possible; otherwise fall back to 0.
+        uint16 srcChainId = externalIdToChainId[_origin.srcEid];
+
         bytes memory operationPayload = _encodeRelayedReadResponse(
             BridgeTypes.RelayedReadResponse({
                 readResponseData: _payload,
                 operationId: operationId,
-                sourceChainId: externalIdToChainId[_origin.srcEid]
+                sourceChainId: srcChainId
             })
         );
 
         // Optional binding for read responses: the response comes back from the same OApp
         // that issued the read on the remote chain. Enforce registry peer mapping here too.
-        _assertTrustedSource(
-            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
-            externalIdToChainId[_origin.srcEid]
-        );
+        // However, read-channel EIDs do not map to canonical chain IDs. Only enforce the
+        // registry check if we were able to derive a non-zero chain id from the EID mapping.
+        if (srcChainId != 0) {
+            _assertTrustedSource(
+                Bytes32AddressLib.fromLast20Bytes(_origin.sender),
+                srcChainId
+            );
+        }
 
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.READ_STATE,

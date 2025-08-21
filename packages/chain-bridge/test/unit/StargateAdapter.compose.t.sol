@@ -10,7 +10,6 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
-import {TaxiCodec} from "@stargatefinance/stg-evm-v2/src/libs/TaxiCodec.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
@@ -31,23 +30,33 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         return OFTComposeMsgCodec.composeMsg(message);
     }
 
-    function encodeTaxiWithMemory(
-        address sender,
-        uint16 assetId,
-        bytes32 receiver,
-        uint64 amountSD,
-        bytes calldata composeMsg
-    ) external pure returns (bytes memory) {
-        return
-            TaxiCodec.encodeTaxi(
-                sender,
-                assetId,
-                receiver,
-                amountSD,
-                composeMsg
-            );
+    function getSrcEid(bytes calldata message) external pure returns (uint32) {
+        return uint32(bytes4(message[8:12]));
     }
-    /// forge-lint: disable-end(mixed-case-function)
+
+    function getComposeFrom(
+        bytes calldata message
+    ) external pure returns (address) {
+        // ABI-aligned layout only:
+        // [8b nonce][4b srcEid][32b amount][32b composeFrom (left-padded)][32b offset][bytes composeMsg]
+        // composeFrom occupies bytes 44..76
+        return address(uint160(uint256(bytes32(message[44:76]))));
+    }
+
+    // Helper to encode an OFT compose message matching StargateAdapter._decodeOFTCompose layout
+    // Layout: [8b nonce][4b srcEid][32b amountLD][32b composeFrom] + raw abi.encode(RelayedTransferParams)
+    function encodeOFTCompose(
+        uint64 nonce,
+        uint32 srcEid,
+        uint256 amountLD,
+        address composeFrom,
+        bytes memory composeMsg
+    ) external pure returns (bytes memory) {
+        // Compose tail = 32-byte left-padded address + raw encoded struct bytes
+        bytes32 composeFromWord = bytes32(uint256(uint160(composeFrom)));
+        bytes memory packed = abi.encodePacked(composeFromWord, composeMsg);
+        return OFTComposeMsgCodec.encode(nonce, srcEid, amountLD, packed);
+    }
 
     /**
      * @dev Helper to create a properly encoded RelayedTransferParams
@@ -110,12 +119,12 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             user
         );
 
-        // Create taxi message directly (no need for OFT wrapper)
-        bytes memory taxiMessage = this.encodeTaxiWithMemory(
-            address(adapterA), // sender (source adapter)
-            uint16(1), // assetId
-            bytes32(uint256(uint160(address(adapterB)))), // receiver
-            uint64(1 ether / 10 ** tokenB.decimals()), // amountSD
+        // Create OFT compose message
+        bytes memory oftMessage = this.encodeOFTCompose(
+            1, // nonce
+            ENDPOINT_ID_A, // srcEid corresponding to CHAIN_ID_A
+            1 ether, // amountLD minted on destination
+            address(adapterA), // composeFrom (source adapter)
             customComposeMessage // properly encoded RelayedTransferParams
         );
 
@@ -124,7 +133,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
-            taxiMessage,
+            oftMessage,
             address(0),
             ""
         );
@@ -215,18 +224,19 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     function testLzComposeWithInvalidMessage() public {
         useNetworkB();
 
-        // Invalid message (wrong encoding - not RelayedTransferParams struct)
+        // Invalid composeMsg (wrong encoding - not RelayedTransferParams struct)
         bytes memory invalidMessage = abi.encode(
             address(fleetProxyB),
             address(tokenB)
         );
         // Missing required fields
 
-        bytes memory taxiMessage = this.encodeTaxiWithMemory(
+        // Wrap in OFT compose envelope
+        bytes memory oftMessage = this.encodeOFTCompose(
+            1,
+            ENDPOINT_ID_A,
+            1 ether,
             address(adapterA),
-            uint16(1),
-            bytes32(uint256(uint160(address(adapterB)))),
-            uint64(1 ether / 10 ** tokenB.decimals()),
             invalidMessage
         );
 
@@ -235,7 +245,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         adapterB.lzCompose(
             address(adapterA),
             bytes32("test-guid"),
-            taxiMessage,
+            oftMessage,
             address(0),
             hex""
         );
@@ -347,13 +357,19 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             user
         );
 
-        // Create taxi message directly
-        bytes memory taxiMessage = this.encodeTaxiWithMemory(
-            address(adapterA), // sender (source adapter)
-            uint16(1), // assetId
-            bytes32(uint256(uint160(address(adapterB)))), // receiver
-            uint64(testAmount / 10 ** tokenB.decimals()), // amountSD
-            customComposeMessage // properly encoded RelayedTransferParams
+        // Register a valid Stargate pool and build OFT message
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        bytes memory oftMessage = this.encodeOFTCompose(
+            1,
+            ENDPOINT_ID_A,
+            testAmount,
+            address(adapterA),
+            customComposeMessage
         );
 
         // Don't mint tokens to adapter - should cause insufficient balance
@@ -363,9 +379,9 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(lzEndpointB);
         vm.expectRevert(); // Just expect any revert for now
         adapterB.lzCompose(
-            address(adapterA),
+            address(mockStargateFrom),
             bytes32("test-guid"),
-            taxiMessage,
+            oftMessage,
             address(0),
             hex""
         );
@@ -386,13 +402,19 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             user
         );
 
-        // Create taxi message directly
-        bytes memory taxiMessage = this.encodeTaxiWithMemory(
-            address(adapterA), // sender (source adapter)
-            uint16(1), // assetId
-            bytes32(uint256(uint160(address(adapterB)))), // receiver
-            uint64(testAmount / 10 ** tokenB.decimals()), // amountSD
-            customComposeMessage // properly encoded RelayedTransferParams
+        // Register a valid Stargate pool and build OFT message
+        MockStargateV2Pool mockStargateFrom = new MockStargateV2Pool(
+            address(tokenB)
+        );
+        vm.prank(governor);
+        adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
+
+        bytes memory oftMessage = this.encodeOFTCompose(
+            1,
+            ENDPOINT_ID_A,
+            testAmount,
+            address(adapterA),
+            customComposeMessage
         );
 
         // Mint tokens to adapter
@@ -402,15 +424,15 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(lzEndpointB);
         vm.expectRevert(); // Just expect any revert for now
         adapterB.lzCompose(
-            address(adapterA),
+            address(mockStargateFrom),
             bytes32("test-guid"),
-            taxiMessage,
+            oftMessage,
             address(0),
             hex""
         );
     }
 
-    function testLzComposeInvalidMessageNotTaxi() public {
+    function testLzComposeInvalidMessageTooShort() public {
         useNetworkB();
 
         // Create a mock Stargate pool first so it passes pool validation
@@ -420,22 +442,22 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
-        // Create a message that's NOT a taxi message (will fail TaxiCodec.isTaxi check)
-        bytes memory invalidTaxiMessage = hex"00"; // Not a valid taxi header
+        // Create an OFT message that is too short (< 96 bytes)
+        bytes memory invalidOFTMessage = hex"01"; // too short
 
-        // Should revert with InvalidMessage when TaxiCodec.isTaxi fails
+        // Should revert with InvalidMessage due to header length
         vm.expectRevert("InvalidMessage()");
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            address(mockStargateFrom), // Use valid Stargate pool so it passes pool validation
+            address(mockStargateFrom),
             bytes32("test-guid"),
-            invalidTaxiMessage,
+            invalidOFTMessage,
             address(0),
             hex""
         );
     }
 
-    function testLzComposeInvalidMessageMalformedTaxi() public {
+    function testLzComposeInvalidMessageBadHeader() public {
         useNetworkB();
 
         // Create a mock Stargate pool first so it passes pool validation
@@ -445,17 +467,20 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
-        // Create a message that starts like a taxi but is malformed
-        // Taxi should start with 0x01 but have insufficient data
-        bytes memory malformedTaxiMessage = hex"010001"; // Too short to be valid
+        // Construct an OFT header with missing composeFrom and payload (length = 44)
+        bytes memory malformedOFTMessage = abi.encodePacked(
+            uint64(1),
+            ENDPOINT_ID_A,
+            uint256(1 ether)
+        );
 
-        // Should revert with InvalidMessage or during taxi decoding
+        // Should revert with InvalidMessage during OFT header decoding
         vm.expectRevert();
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
-            address(mockStargateFrom), // Use valid Stargate pool
+            address(mockStargateFrom),
             bytes32("test-guid"),
-            malformedTaxiMessage,
+            malformedOFTMessage,
             address(0),
             hex""
         );
@@ -478,7 +503,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         vm.prank(governor);
         adapterB.addSupportedAsset(address(tokenB), address(mockStargateFrom));
 
-        // FIXED: Create proper RelayedTransferParams struct
+        // Create proper RelayedTransferParams struct
         bytes memory customComposeMessage = _createAssetTransferMessage(
             address(mockFleetCommander),
             address(tokenB),
@@ -488,16 +513,13 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             testUser
         );
 
-        // Calculate the actual scaled amount that will be processed
-        uint64 scaledAmount = uint64(testAmount / 10 ** tokenB.decimals());
-
-        // Create taxi message directly - no need for OFT wrapper
-        bytes memory taxiMessage = this.encodeTaxiWithMemory(
-            address(adapterA), // sender (source adapter)
-            uint16(1), // assetId
-            bytes32(uint256(uint160(address(adapterB)))), // receiver
-            scaledAmount, // amountSD
-            customComposeMessage // properly encoded RelayedTransferParams
+        // Create OFT message directly
+        bytes memory oftMessage = this.encodeOFTCompose(
+            1,
+            ENDPOINT_ID_A,
+            testAmount,
+            address(adapterA),
+            customComposeMessage
         );
 
         // Provide the adapter with the funds it will forward
@@ -515,7 +537,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         adapterB.lzCompose(
             address(mockStargateFrom),
             bytes32("test-guid"),
-            taxiMessage,
+            oftMessage,
             address(0),
             hex""
         );
@@ -569,12 +591,12 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             testUser
         );
 
-        // Taxi-encoded message (no OFT wrapper necessary)
-        bytes memory taxiMessage = this.encodeTaxiWithMemory(
-            address(adapterA), // src sender
-            uint16(1), // assetId dummy
-            bytes32(uint256(uint160(address(adapterB)))), // dst adapter
-            uint64(testAmount),
+        // OFT-encoded message
+        bytes memory oftMessage = this.encodeOFTCompose(
+            1,
+            ENDPOINT_ID_A,
+            testAmount,
+            address(adapterA),
             composeMsg
         );
 
@@ -590,7 +612,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         adapterB.lzCompose(
             address(mockStargateFrom),
             bytes32("test-guid-success"),
-            taxiMessage,
+            oftMessage,
             address(0),
             hex""
         );
@@ -624,5 +646,80 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             CHAIN_ID_A,
             "sourceChainId mismatch"
         );
+    }
+
+    function testLzComposeWithTenderlyCalldata_DoesNotRevert() public {
+        useNetworkB();
+
+        // Tenderly-captured call args
+        address fromPool = 0x27a16dc786820B16E5c9028b75B99F6f604b5d26;
+        bytes32 guid = 0xa829f5340dc60da5b39500b92d93c8f6b0801460b29e0393e60d18b77ad714b5;
+        bytes
+            memory realMessage = hex"0000000000074f420000759f00000000000000000000000000000000000000000000000000000000000f3c630000000000000000000000007bfe141b1d6fed49cd2e49e4403736e95c041cee0000000000000000000000000000000000000000000000000000000000000020f77e3005a8aab79d691ed12d82afda98d29ac6bf504ff1ec147cebf9f58d03830000000000000000000000004b757b7bfaf539f16764bedb606be66bccbec214000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000fa92fe0dfea6ae882492e41095b49ba80f0b2e8d0000000000000000000000000b2c639c533813f4aa9d7837caf62653d097ff8500000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000";
+        address caller = 0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b;
+        bytes memory extraData = hex"";
+
+        // Parse OFT header and inner compose message
+        uint256 amountLD = this.getAmountLD(realMessage);
+        bytes memory composeMsg = this.getComposeMsg(realMessage);
+
+        BridgeTypes.RelayedTransferParams memory decoded = abi.decode(
+            composeMsg,
+            (BridgeTypes.RelayedTransferParams)
+        );
+
+        // Extract srcEid and composeFrom from OFT header to satisfy adapter checks
+        uint32 srcEid = this.getSrcEid(realMessage);
+        address composeFrom = this.getComposeFrom(realMessage);
+
+        // Deploy a mock Stargate pool and place its code at the real fromPool address
+        MockStargateV2Pool mockPool = new MockStargateV2Pool(decoded.asset);
+        vm.etch(fromPool, address(mockPool).code);
+
+        // Register the pool so lzCompose validates it
+        vm.prank(governor);
+        adapterB.addSupportedAsset(decoded.asset, fromPool);
+
+        // Ensure the endpoint mapping matches the Tenderly packet's srcEid → maps to actual source chain from payload
+        vm.prank(governor);
+        adapterB.mapEndpoint(decoded.sourceChainId, srcEid);
+
+        // Allow the composeFrom OApp (source) as a valid peer for the real source chain from payload
+        vm.prank(governor);
+        registryB.registerAdapterPeer(
+            composeFrom,
+            address(adapterB),
+            decoded.sourceChainId,
+            CHAIN_ID_B
+        );
+
+        // Ensure the recipient is a contract that can receive the callback
+        MockFleetProxy fleet = new MockFleetProxy(decoded.asset);
+        vm.etch(decoded.recipient, address(fleet).code);
+        fleet = MockFleetProxy(decoded.recipient);
+
+        // Mock ERC20 transfers to succeed for both adapter->router and router->recipient legs
+        vm.mockCall(
+            decoded.asset,
+            abi.encodeWithSignature(
+                "transfer(address,uint256)",
+                address(routerB),
+                amountLD
+            ),
+            abi.encode(true)
+        );
+        vm.mockCall(
+            decoded.asset,
+            abi.encodeWithSignature(
+                "transfer(address,uint256)",
+                decoded.recipient,
+                amountLD
+            ),
+            abi.encode(true)
+        );
+
+        // Call as the authorised LZ endpoint – should NOT revert
+        vm.prank(lzEndpointB);
+        adapterB.lzCompose(fromPool, guid, realMessage, caller, extraData);
     }
 }
