@@ -251,6 +251,13 @@ contract IntentHandler is
         emit SolverEscrowRemoved(solver);
     }
 
+    function withdrawToken(address token, uint256 amount) external onlyKeeper {
+        if (token == address(0)) {
+            msg.sender.call{value: amount}("");
+        }
+        IERC20(token).safeTransfer(msg.sender, amount);
+    }
+
     /*//////////////////////////////////////////////////////////////
                                         EVENTS
     //////////////////////////////////////////////////////////////*/
