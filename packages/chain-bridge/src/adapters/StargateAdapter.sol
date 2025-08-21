@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.26;
+pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-/// forge-lint: disable-start(unused-import)
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
-/// forge-lint: disable-end(unused-import)
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -15,10 +13,10 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
 import {ILayerZeroComposer} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {SummerTaxiCodec} from "../libraries/SummerTaxiCodec.sol";
 
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
@@ -37,6 +35,7 @@ contract StargateAdapter is
 {
     using SafeERC20 for IERC20;
     using AddressCast for address;
+    using AddressCast for bytes32;
     using OptionsBuilder for bytes;
 
     /// @notice Information about failed compose operations for recovery
@@ -541,27 +540,32 @@ contract StargateAdapter is
         address receivedAsset = _validateStargatePool(_from);
 
         // ---------------------------------------------------------------
-        // 1. Taxi header must be present
+        // Decode OFT compose payload using official codec
         // ---------------------------------------------------------------
-        if (!SummerTaxiCodec.isTaxi(_message)) revert InvalidMessage();
-
-        // Decode taxi message (includes srcSender & compose payload)
         (
-            ,
-            ,
-            uint amountSD,
+            uint32 srcEid,
+            uint256 amountLD,
             address srcSender,
             bytes memory composeMsg
-        ) = SummerTaxiCodec.decodeTaxi(_message);
+        ) = _decodeOFTCompose(_message);
 
         // ---------------------------------------------------------------
         // 2. Verify peer adapter relationship
         // ---------------------------------------------------------------
         BridgeTypes.RelayedTransferParams
             memory atm = _decodeRelayedTransferParams(composeMsg);
-
         _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
-        _assertReceivedAmount(amountSD, atm.amount);
+
+        // Use the minted amount from OFT compose header as authoritative
+        atm.amount = amountLD;
+        // Ensure the LayerZero srcEid maps to the same chain as encoded in the payload
+        uint16 chainFromEid = externalIdToChainId[srcEid];
+        _assertSourceChainId(atm.sourceChainId, chainFromEid);
+
+        // Overwrite the asset with the local token address resolved from the Stargate pool
+        // The asset encoded on the source chain may not match the target-chain address
+        atm.asset = receivedAsset;
+
         // ---------------------------------------------------------------
         // 3. Continue normal handling (the SD amount from the Taxi header is
         // informational; the real LD amount lives inside the composeMsg)
@@ -570,8 +574,37 @@ contract StargateAdapter is
         IERC20(receivedAsset).safeTransfer(bridgeRouter(), atm.amount);
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.TRANSFER_ASSET,
-            composeMsg
+            abi.encode(atm)
         );
+    }
+
+    /**
+     * @dev Decode OFT compose message header and payload
+     * Layout: [8b nonce][4b srcEid][32b amountLD][20b composeFrom][bytes composeMsg]
+     */
+    function _decodeOFTCompose(
+        bytes calldata message
+    )
+        internal
+        pure
+        returns (
+            uint32 srcEid,
+            uint256 amountLD,
+            address composeFrom,
+            bytes memory composeMsg
+        )
+    {
+        // Sanity-check the OFT compose header is fully present before decoding.
+        // Header occupies 96 bytes (three 32-byte words):
+        //  - word 1 (32B): [8B nonce | 4B srcEid | 20B padding]
+        //  - word 2 (32B): amountLD
+        //  - word 3 (32B): composeFrom (address left-padded to 32B)
+        // The variable-length composeMsg follows after offset 96.
+        if (message.length < 96) revert InvalidMessage();
+        srcEid = uint32(bytes4(message[8:12]));
+        amountLD = OFTComposeMsgCodec.amountLD(message);
+        composeMsg = OFTComposeMsgCodec.composeMsg(message);
+        composeFrom = OFTComposeMsgCodec.composeFrom(message).toAddress();
     }
 
     /**

@@ -42,6 +42,11 @@ contract LayerZeroAdapter is
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
+    /// @notice Binds a read response guid to the originally requested destination chain
+    /// @dev Used to enforce registry trust checks for read-channel responses
+    mapping(bytes32 guid => uint16 expectedChainId)
+        private expectedReadChainByGuid;
+
     /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
     /// @dev LayerZero routes read responses through a reserved "read channel" range
     ///      near the top of the uint32 EID space (commonly with READ_CHANNEL_ID at
@@ -348,19 +353,26 @@ contract LayerZeroAdapter is
             return;
         }
 
+        // Resolve the expected source chain from the original request's destination
+        uint16 expectedChainId = expectedReadChainByGuid[_guid];
+        if (expectedChainId == 0) {
+            // Silently fail so it doesn't get locked with DVN
+            emit ReadOperationNotFound(_guid, "No expected read chain found");
+            return;
+        }
+
         bytes memory operationPayload = _encodeRelayedReadResponse(
             BridgeTypes.RelayedReadResponse({
                 readResponseData: _payload,
                 operationId: operationId,
-                sourceChainId: externalIdToChainId[_origin.srcEid]
+                sourceChainId: expectedChainId
             })
         );
 
-        // Optional binding for read responses: the response comes back from the same OApp
-        // that issued the read on the remote chain. Enforce registry peer mapping here too.
+        // Enforce registry-declared peer mapping using the original destination chain
         _assertTrustedSource(
             Bytes32AddressLib.fromLast20Bytes(_origin.sender),
-            externalIdToChainId[_origin.srcEid]
+            expectedChainId
         );
 
         IBridgeRouter(bridgeRouter()).deliver(
@@ -370,6 +382,7 @@ contract LayerZeroAdapter is
 
         // Clean up mapping after successful delivery to prevent storage bloat
         delete lzMessageToOperationId[_guid];
+        delete expectedReadChainByGuid[_guid];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -463,6 +476,8 @@ contract LayerZeroAdapter is
 
         // Map LayerZero's guid to router's operation ID
         lzMessageToOperationId[guid] = operationId;
+        // Bind the guid to the originally requested destination chain for trust checks
+        expectedReadChainByGuid[guid] = params.destinationChainId;
 
         emit ReadRequestInitiated(
             operationId,

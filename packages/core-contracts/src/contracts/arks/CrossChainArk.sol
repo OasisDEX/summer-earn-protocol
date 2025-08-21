@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import "../Ark.sol";
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
-import {CrossChainReceiverBase} from "../base/CrossChainReceiverBase.sol";
+import {CrossChainReceiverBase} from "@summerfi/chain-bridge/base/CrossChainReceiverBase.sol";
 import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IFleetProxy} from "../../interfaces/IFleetProxy.sol";
