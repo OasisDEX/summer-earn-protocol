@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
+import {ISummerGovernorV2} from "../interfaces/ISummerGovernorV2.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
@@ -25,7 +25,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * such as whitelisting.
  */
 contract SummerGovernorV2 is
-    ISummerGovernor,
+    ISummerGovernorV2,
     GovernorTimelockControl,
     GovernorSettings,
     GovernorCountingSimple,
@@ -103,7 +103,7 @@ contract SummerGovernorV2 is
                         CROSS-CHAIN MESSAGING FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISummerGovernor
+    /// @inheritdoc ISummerGovernorV2
     function sendProposalToTargetChain(
         uint32 _dstEid,
         address[] memory _dstTargets,
@@ -244,13 +244,13 @@ contract SummerGovernorV2 is
                             GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISummerGovernor
+    /// @inheritdoc ISummerGovernorV2
     function castVote(
         uint256 proposalId,
         uint8 support
     )
         public
-        override(ISummerGovernor, Governor)
+        override(ISummerGovernorV2, Governor)
         onlyHubChain
         returns (uint256)
     {
@@ -258,7 +258,7 @@ contract SummerGovernorV2 is
         return _castVote(proposalId, voter, support, "");
     }
 
-    /// @inheritdoc ISummerGovernor
+    /// @inheritdoc ISummerGovernorV2
     function propose(
         address[] memory targets,
         uint256[] memory values,
@@ -266,7 +266,7 @@ contract SummerGovernorV2 is
         string memory description
     )
         public
-        override(Governor, ISummerGovernor)
+        override(Governor, ISummerGovernorV2)
         onlyHubChain
         returns (uint256)
     {
@@ -286,7 +286,7 @@ contract SummerGovernorV2 is
         return _propose(targets, values, calldatas, description, proposer);
     }
 
-    /// @inheritdoc ISummerGovernor
+    /// @inheritdoc ISummerGovernorV2
     function execute(
         address[] memory targets,
         uint256[] memory values,
@@ -295,14 +295,14 @@ contract SummerGovernorV2 is
     )
         public
         payable
-        override(Governor, ISummerGovernor)
+        override(Governor, ISummerGovernorV2)
         onlyHubChain
         returns (uint256)
     {
         return super.execute(targets, values, calldatas, descriptionHash);
     }
 
-    /// @inheritdoc ISummerGovernor
+    /// @inheritdoc ISummerGovernorV2
     function cancel(
         address[] memory targets,
         uint256[] memory values,
@@ -310,7 +310,7 @@ contract SummerGovernorV2 is
         bytes32 descriptionHash
     )
         public
-        override(Governor, ISummerGovernor)
+        override(Governor, ISummerGovernorV2)
         onlyHubChain
         returns (uint256)
     {
@@ -341,7 +341,7 @@ contract SummerGovernorV2 is
                         WHITELIST MANAGEMENT FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISummerGovernor
+    /// @inheritdoc ISummerGovernorV2
     function isActiveGuardian(address account) public view returns (bool) {
         return IProtocolAccessManager(accessManager).isActiveGuardian(account);
     }

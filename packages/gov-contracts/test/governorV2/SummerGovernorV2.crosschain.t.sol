@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {Origin, SummerGovernorV2} from "../../src/contracts/SummerGovernorV2.sol";
 import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
-import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
+import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {IOAppSetPeer} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
@@ -23,7 +23,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
         useNetworkA();
 
         // Set up Governor A (Hub Chain)
-        SummerGovernorV2.GovernorParams memory paramsA = ISummerGovernor
+        SummerGovernorV2.GovernorParams memory paramsA = ISummerGovernorV2
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
@@ -38,7 +38,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
             });
 
         // Set up Governor B (Satellite Chain)
-        SummerGovernorV2.GovernorParams memory paramsB = ISummerGovernor
+        SummerGovernorV2.GovernorParams memory paramsB = ISummerGovernorV2
             .GovernorParams({
                 token: bSummerToken,
                 timelock: timelockB,
@@ -94,7 +94,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
         changeTokensOwnership(address(timelockA), address(timelockB));
 
         vm.startPrank(address(timelockA));
-        aSummerToken.delegate(address(timelockA));
+        axSumr.delegate(address(timelockA));
         aSummerToken.transfer(address(timelockA), 1000);
         vm.stopPrank();
     }
@@ -105,12 +105,10 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
 
         // Setup: Give Alice enough tokens and ETH
         vm.deal(address(governorA), 100 ether);
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create cross-chain proposal
@@ -152,7 +150,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
         advanceTimeForTimelockMinDelay();
 
         vm.expectEmit(true, true, true, true);
-        emit ISummerGovernor.ProposalSentCrossChain(dstProposalId, bEid);
+        emit ISummerGovernorV2.ProposalSentCrossChain(dstProposalId, bEid);
         governorA.execute(
             srcTargets,
             srcValues,
@@ -212,12 +210,10 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
 
     function test_CrossChainProposalFailsWithInsufficientFee() public {
         // Setup: Give Alice enough tokens to propose and vote
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create cross-chain proposal
@@ -280,7 +276,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
 
         // Setup voting power for timelockA (like in test_CrossChainGovernanceFullCycle)
         vm.startPrank(address(timelockA));
-        aSummerToken.delegate(address(timelockA));
+        axSumr.delegate(address(timelockA));
         vm.stopPrank();
 
         advanceTimeAndBlock();

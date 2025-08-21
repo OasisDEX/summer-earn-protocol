@@ -20,19 +20,17 @@ contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
         address voter2 = address(0x2);
         address voter3 = address(0x3);
 
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(voter1, 100e18);
-        aSummerToken.transfer(voter2, 200e18);
-        aSummerToken.transfer(voter3, 300e18);
-        vm.stopPrank();
+        stakeAndGetXSumr(voter1, 100e18, true);
+        stakeAndGetXSumr(voter2, 200e18, true);
+        stakeAndGetXSumr(voter3, 300e18, true);
 
         // Delegate voting power
         vm.prank(voter1);
-        aSummerToken.delegate(voter1);
+        axSumr.delegate(voter1);
         vm.prank(voter2);
-        aSummerToken.delegate(voter2);
+        axSumr.delegate(voter2);
         vm.prank(voter3);
-        aSummerToken.delegate(voter3);
+        axSumr.delegate(voter3);
         advanceTimeAndBlock();
 
         advanceTimeForVotingDelay();
@@ -73,12 +71,10 @@ contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
         address voter = address(0x1);
         uint256 quorumVotes = governorA.quorum(block.timestamp - 1);
 
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(voter, quorumVotes);
-        vm.stopPrank();
+        stakeAndGetXSumr(voter, quorumVotes, true);
 
         vm.prank(voter);
-        aSummerToken.delegate(voter);
+        axSumr.delegate(voter);
 
         advanceTimeAndBlock();
         advanceTimeForVotingDelay();
@@ -110,16 +106,14 @@ contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
         address forVoter = address(0x1);
         address againstVoter = address(0x2);
 
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(forVoter, 200 * 1e6 * 1e18);
-        aSummerToken.transfer(againstVoter, 100 * 1e6 * 1e18);
-        vm.stopPrank();
+        stakeAndGetXSumr(forVoter, 200 * 1e6 * 1e18, true);
+        stakeAndGetXSumr(againstVoter, 100 * 1e6 * 1e18, true);
 
         vm.prank(forVoter);
-        aSummerToken.delegate(forVoter);
+        axSumr.delegate(forVoter);
 
         vm.prank(againstVoter);
-        aSummerToken.delegate(againstVoter);
+        axSumr.delegate(againstVoter);
 
         advanceTimeAndBlock();
         advanceTimeForVotingDelay();
@@ -149,12 +143,10 @@ contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
         uint256 proposalId = _createTestProposal();
 
         address voter = address(0x1);
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(voter, 100e18);
-        vm.stopPrank();
+        stakeAndGetXSumr(voter, 100e18, true);
 
         vm.prank(voter);
-        aSummerToken.delegate(voter);
+        axSumr.delegate(voter);
         advanceTimeAndBlock();
 
         advanceTimeForVotingDelay();
@@ -183,12 +175,10 @@ contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
         uint256 proposalId = _createTestProposal();
 
         address voter = address(0x1);
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(voter, 100e18);
-        vm.stopPrank();
+        stakeAndGetXSumr(voter, 100e18, true);
 
         vm.prank(voter);
-        aSummerToken.delegate(voter);
+        axSumr.delegate(voter);
         advanceTimeAndBlock();
 
         advanceTimeForVotingDelay();
@@ -208,12 +198,10 @@ contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
         calldatas[0] = "";
         string memory description = "Test Proposal";
 
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         vm.prank(alice);

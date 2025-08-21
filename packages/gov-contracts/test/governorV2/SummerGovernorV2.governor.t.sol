@@ -90,12 +90,10 @@ contract SummerGovernorGovernorTest is SummerGovernorV2TestBase {
         string memory description = "Relay funds to bob";
 
         // Rest of the proposal flow
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         vm.prank(alice);
@@ -167,12 +165,10 @@ contract SummerGovernorGovernorTest is SummerGovernorV2TestBase {
         string memory description = "Relay with data";
 
         // Rest of proposal flow
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         vm.prank(alice);

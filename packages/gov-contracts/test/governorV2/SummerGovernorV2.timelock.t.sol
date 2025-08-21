@@ -4,18 +4,18 @@ pragma solidity 0.8.28;
 import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {console} from "forge-std/console.sol";
 
 contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
     event TimelockChange(address oldTimelock, address newTimelock);
 
-    function test_TimelockStateTransitions() public {
+    function test_TimelockStateTransitions2() public {
         // Setup voter with enough tokens
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        uint threshold = governorA.proposalThreshold();
+        stakeAndGetXSumr(alice, threshold, true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create and pass proposal
@@ -103,12 +103,10 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         string memory description = "Update timelock controller";
 
         // Setup voter
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal
@@ -121,9 +119,7 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         advanceTimeForVotingDelay();
 
@@ -152,12 +148,10 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
 
     function test_QueueAndExecuteWithDelay() public {
         // Setup voter
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal
