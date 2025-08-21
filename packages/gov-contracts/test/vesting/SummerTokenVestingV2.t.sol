@@ -7,6 +7,7 @@ import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV
 import {ISummerVestingWalletFactoryV2} from "../../src/interfaces/ISummerVestingWalletFactoryV2.sol";
 import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 contract SummerVestingV2Test is SummerTokenTestBase {
@@ -604,13 +605,19 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         );
     }
 
-    function testFail_NonFoundationCannotCreateVestingWallet() public {
+    function test_NonFoundationCannotCreateVestingWallet() public {
         ISummerVestingWalletV2.VestingParams
             memory vestingParams = _getTestVestingParams();
         ISummerVestingWalletV2.PerformanceGoal[]
             memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(nonFoundation);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                nonFoundation
+            )
+        );
         factoryV2.createVestingWallet(
             beneficiary,
             vestingParams,
@@ -717,7 +724,7 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         vestingWallet.markGoalReached(1); // This should work
     }
 
-    function testFail_DuplicateVestingWallet() public {
+    function test_DuplicateVestingWallet() public {
         ISummerVestingWalletV2.VestingParams
             memory vestingParams = _getTestVestingParams();
         ISummerVestingWalletV2.PerformanceGoal[]
@@ -731,6 +738,8 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         );
 
         vm.prank(foundation);
+        vm.expectRevert(
+        );
         factoryV2.createVestingWallet(
             beneficiary,
             vestingParams,

@@ -92,6 +92,8 @@ export interface BaseConfig {
       timelock: { address: string }
       protocolAccessManager: { address: string }
       rewardsRedeemer: { address: string }
+      stakedSummerToken: { address: string }
+      summerStakingContract: { address: string }
     }
     buyAndBurn: {
       buyAndBurn: { address: string }
