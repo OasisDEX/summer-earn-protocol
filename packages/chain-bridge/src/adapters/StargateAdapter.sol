@@ -562,6 +562,10 @@ contract StargateAdapter is
         uint16 chainFromEid = externalIdToChainId[srcEid];
         _assertSourceChainId(atm.sourceChainId, chainFromEid);
 
+        // Overwrite the asset with the local token address resolved from the Stargate pool
+        // The asset encoded on the source chain may not match the target-chain address
+        atm.asset = receivedAsset;
+
         // ---------------------------------------------------------------
         // 3. Continue normal handling (the SD amount from the Taxi header is
         // informational; the real LD amount lives inside the composeMsg)
