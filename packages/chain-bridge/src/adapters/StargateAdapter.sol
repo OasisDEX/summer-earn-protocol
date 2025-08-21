@@ -20,7 +20,7 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 
 import {IStargateV2} from "../interfaces/IStargateV2.sol";
 import {OftCmdHelper} from "../libraries/OftCmdHelper.sol";
-import {console2} from "forge-std/console2.sol";
+
 /**
  * @title StargateAdapter
  * @notice Adapter for Stargate V2 Protocol - all V2 contracts are OFT-enabled
@@ -542,23 +542,18 @@ contract StargateAdapter is
         // ---------------------------------------------------------------
         // Decode OFT compose payload using official codec
         // ---------------------------------------------------------------
-        console2.log("lzCompose about to decode");
         (
             uint32 srcEid,
             uint256 amountLD,
             address srcSender,
             bytes memory composeMsg
         ) = _decodeOFTCompose(_message);
-        console2.log("lzCompose decoded");
 
         // ---------------------------------------------------------------
         // 2. Verify peer adapter relationship
         // ---------------------------------------------------------------
-        console2.log("lzCompose about to decode relayed transfer params");
-        console2.logBytes(composeMsg);
         BridgeTypes.RelayedTransferParams
             memory atm = _decodeRelayedTransferParams(composeMsg);
-        console2.log("lzCompose decoded relayed transfer params");
         _assertTrustedSource(srcSender, uint16(atm.sourceChainId));
 
         // Use the minted amount from OFT compose header as authoritative
