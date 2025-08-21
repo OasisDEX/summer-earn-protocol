@@ -590,6 +590,12 @@ contract StargateAdapter is
             bytes memory composeMsg
         )
     {
+        // Sanity-check the OFT compose header is fully present before decoding.
+        // Header occupies 96 bytes (three 32-byte words):
+        //  - word 1 (32B): [8B nonce | 4B srcEid | 20B padding]
+        //  - word 2 (32B): amountLD
+        //  - word 3 (32B): composeFrom (address left-padded to 32B)
+        // The variable-length composeMsg follows after offset 96.
         if (message.length < 96) revert InvalidMessage();
         srcEid = uint32(bytes4(message[8:12]));
         amountLD = OFTComposeMsgCodec.amountLD(message);
