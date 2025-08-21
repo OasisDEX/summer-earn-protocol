@@ -9,7 +9,10 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 
-contract SummerGovernorV2TestBase is SummerTokenTestBase, ISummerGovernorErrors {
+contract SummerGovernorV2TestBase is
+    SummerTokenTestBase,
+    ISummerGovernorErrors
+{
     using OptionsBuilder for bytes;
 
     ExposedSummerGovernor public governorA;

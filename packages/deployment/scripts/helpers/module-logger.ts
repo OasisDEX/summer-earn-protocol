@@ -9,7 +9,7 @@ import { BuyAndBurnContracts } from '../../ignition/modules/buy-and-burn'
 import { CoreContracts } from '../../ignition/modules/core'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { GovContracts } from '../../ignition/modules/gov'
-import { ArkContracts } from '../deploy-ark'
+import { GovContractsV2 } from '../../ignition/modules/gov-v2'
 
 export class ModuleLogger {
   private moduleName: string
@@ -51,6 +51,13 @@ export class ModuleLogger {
     })
     logger.logAddresses()
   }
+
+  static logGovV2(contracts: GovContractsV2): void {
+    const logger = new ModuleLogger('GovModuleV2', {
+      'Summer Governor': contracts.summerGovernor,
+    })
+    logger.logAddresses()
+  }
   static logBuyAndBurn(contracts: BuyAndBurnContracts): void {
     const logger = new ModuleLogger('BuyAndBurnModule', {
       'Buy and Burn': contracts.buyAndBurn,
@@ -70,12 +77,7 @@ export class ModuleLogger {
     })
     logger.logAddresses()
   }
-  static logArk(contracts: ArkContracts): void {
-    const logger = new ModuleLogger('ArkModule', {
-      Ark: contracts.ark,
-    })
-    logger.logAddresses()
-  }
+
   static logFleet(contracts: FleetContracts): void {
     const logger = new ModuleLogger('FleetModule', {
       'Fleet Commander': contracts.fleetCommander,

@@ -738,8 +738,7 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         );
 
         vm.prank(foundation);
-        vm.expectRevert(
-        );
+        vm.expectRevert();
         factoryV2.createVestingWallet(
             beneficiary,
             vestingParams,

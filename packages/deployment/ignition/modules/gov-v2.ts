@@ -14,7 +14,7 @@ export const GovModuleV2 = buildModule('GovModuleV2', (m) => {
   const deployer = m.getAccount(0)
   const timelock = m.getParameter('timelock')
   const accessManager = m.getParameter('accessManager')
-  const xSUMR = m.getParameter('xSUMR')
+  const stakedSummerToken = m.getParameter('stakedSummerToken')
   const lzEndpoint = m.getParameter('lzEndpoint')
   const votingDelay = m.getParameter('votingDelay', 60n)
   const votingPeriod = m.getParameter('votingPeriod', 600n)
@@ -26,7 +26,7 @@ export const GovModuleV2 = buildModule('GovModuleV2', (m) => {
    * This contract manages the governance process
    */
   const summerGovernorDeployParams = {
-    token: xSUMR,
+    token: stakedSummerToken,
     timelock: timelock,
     accessManager: accessManager,
     votingDelay: votingDelay,

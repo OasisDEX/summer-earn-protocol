@@ -7,7 +7,7 @@ import { LZ_ENDPOINT_ABI } from './bridge/lz-endpoint-abi'
 
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
-export async function finalizeGov(
+export async function finalizeGovV2(
   governorAddressesToRevoke: string[] = [],
   useBummerConfig = false,
 ) {
@@ -18,13 +18,9 @@ export async function finalizeGov(
     useBummerConfig,
   ) as BaseConfig
 
-  const summerToken = await hre.viem.getContractAt(
-    'SummerToken' as string,
-    config.deployedContracts.gov.summerToken.address as Address,
-  )
   const summerGovernor = await hre.viem.getContractAt(
-    'SummerGovernor' as string,
-    config.deployedContracts.gov.summerGovernor.address as Address,
+    'SummerGovernorV2' as string,
+    config.deployedContracts.gov.summerGovernorV2.address as Address,
   )
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,
@@ -35,29 +31,6 @@ export async function finalizeGov(
     config.deployedContracts.gov.protocolAccessManager.address as Address,
   )
   const publicClient = await hre.viem.getPublicClient()
-
-  // Update delegate for SummerToken
-  console.log(kleur.cyan().bold('\nUpdating delegate for SummerToken...'))
-  try {
-    const endpoint = await summerToken.read.endpoint()
-    const endpointContract = await hre.viem.getContractAt(
-      'ILayerZeroEndpointV2' as string,
-      endpoint as Address,
-    )
-
-    const currentTokenDelegate = (await endpointContract.read.delegates([
-      summerToken.address as Address,
-    ])) as Address
-    if (currentTokenDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
-      const hash = await summerToken.write.setDelegate([timelock.address])
-      await publicClient.waitForTransactionReceipt({ hash })
-      console.log(kleur.green('✓ SummerToken delegate updated to timelock'))
-    } else {
-      console.log(kleur.yellow('! SummerToken delegate already set to timelock'))
-    }
-  } catch (error) {
-    console.log(kleur.red('✗ Failed to update SummerToken delegate'), error)
-  }
 
   // Update delegate for SummerGovernor
   console.log(kleur.cyan().bold('\nUpdating delegate for SummerGovernor...'))
@@ -78,20 +51,6 @@ export async function finalizeGov(
     }
   } catch (error) {
     console.log(kleur.red('✗ Failed to update SummerGovernor delegate'), error)
-  }
-
-  // Transfer SummerToken ownership to timelock
-  console.log(kleur.cyan().bold('Transferring SummerToken ownership to timelock...'))
-  const currentTokenOwner = (await summerToken.read.owner()) as Address
-  if (
-    currentTokenOwner.toLowerCase() ===
-    (await hre.viem.getWalletClients())[0].account.address.toLowerCase()
-  ) {
-    const hash = await summerToken.write.transferOwnership([timelock.address])
-    await publicClient.waitForTransactionReceipt({ hash })
-    console.log(kleur.green('✓ SummerToken ownership transferred to timelock'))
-  } else {
-    console.log(kleur.yellow('! SummerToken ownership already transferred'))
   }
 
   // Transfer SummerGovernor ownership to timelock
@@ -131,7 +90,7 @@ if (require.main === module) {
   const args = process.argv.slice(2)
   const governorAddressesToRevoke = args.length > 0 ? args : []
 
-  finalizeGov(governorAddressesToRevoke).catch((error) => {
+  finalizeGovV2(governorAddressesToRevoke).catch((error) => {
     console.error(kleur.red().bold('An error occurred:'), error)
     process.exit(1)
   })
