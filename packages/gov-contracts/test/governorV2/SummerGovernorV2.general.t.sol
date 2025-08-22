@@ -554,8 +554,8 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
     function test_ProposalWithMajorityInFavor() public {
         // Mint tokens to voters
         uint quorum = governorA.quorum(block.timestamp - 1);
-        uint256 aliceTokens = 3 * quorum / 10;
-        uint256 bobTokens = 3 * quorum / 10;
+        uint256 aliceTokens = (3 * quorum) / 10;
+        uint256 bobTokens = (3 * quorum) / 10;
         uint256 charlieTokens = quorum / 4;
         uint256 davidTokens = quorum - aliceTokens - bobTokens;
 
@@ -1308,11 +1308,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         address account = address(0x03);
 
         // Give Alice enough tokens to meet proposal threshold
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1),
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
         axSumr.delegate(alice);
@@ -1349,11 +1345,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         );
 
         // Give Alice enough tokens to meet quorum
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1) ,
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
         axSumr.delegate(alice);

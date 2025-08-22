@@ -90,11 +90,7 @@ contract SummerGovernorGovernorTest2 is SummerGovernorV2TestBase {
         string memory description = "Relay funds to bob";
 
         // Rest of the proposal flow
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1) * 2,
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
         axSumr.delegate(alice);
@@ -169,11 +165,7 @@ contract SummerGovernorGovernorTest2 is SummerGovernorV2TestBase {
         string memory description = "Relay with data";
 
         // Rest of proposal flow
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1) * 2,
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
         axSumr.delegate(alice);

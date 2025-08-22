@@ -47,11 +47,7 @@ contract SummerGovernorOwnershipTest is SummerGovernorV2TestBase {
         string memory description = "Transfer governor ownership to new owner";
 
         // Setup voter with enough tokens
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1) * 2,
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
         axSumr.delegate(alice);

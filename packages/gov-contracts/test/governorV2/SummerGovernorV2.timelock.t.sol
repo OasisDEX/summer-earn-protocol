@@ -123,11 +123,7 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1) * 2,
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         advanceTimeForVotingDelay();
 
@@ -156,11 +152,7 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
 
     function test_QueueAndExecuteWithDelay2() public {
         // Setup voter
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1) * 2,
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
         axSumr.delegate(alice);

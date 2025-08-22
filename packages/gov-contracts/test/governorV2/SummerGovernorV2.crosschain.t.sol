@@ -127,11 +127,7 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
 
         // Setup: Give Alice enough tokens and ETH
         vm.deal(address(governorA), 100 ether);
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1) * 2,
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
         axSumr.delegate(alice);
@@ -236,11 +232,7 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
 
     function test_CrossChainProposalFailsWithInsufficientFee() public {
         // Setup: Give Alice enough tokens to propose and vote
-        stakeAndGetXSumr(
-            alice,
-            governorA.quorum(block.timestamp - 1) * 2,
-            true
-        );
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
         axSumr.delegate(alice);
@@ -307,7 +299,7 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
         // Setup voting power for timelockA (like in test_CrossChainGovernanceFullCycle)
         stakeAndGetXSumr(
             address(timelockA),
-            governorA.quorum(block.timestamp - 1) * 2,
+            governorA.quorum(block.timestamp - 1),
             true
         );
 
