@@ -25,10 +25,12 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
         useNetworkA();
 
         axSumr = new xSumr(address(accessManagerA));
+        address[] memory emptyVestingFactories = new address[](0);
         aStaking = new Staking(
             address(accessManagerA),
             address(aSummerToken),
-            address(axSumr)
+            address(axSumr),
+            emptyVestingFactories
         );
 
         // Set up Governor A (Hub Chain)
@@ -53,7 +55,8 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
         bStaking = new Staking(
             address(accessManagerB),
             address(bSummerToken),
-            address(bxSumr)
+            address(bxSumr),
+            emptyVestingFactories
         );
         // Set up Governor B (Satellite Chain)
         SummerGovernorV2.GovernorParams memory paramsB = ISummerGovernorV2

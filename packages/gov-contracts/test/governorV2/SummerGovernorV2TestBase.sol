@@ -12,6 +12,8 @@ import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {xSumr} from "../../src/contracts/xSumr.sol";
 import {Staking} from "../../src/contracts/Staking.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
+import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 
 contract SummerGovernorV2TestBase is
     SummerTokenTestBase,
@@ -40,6 +42,10 @@ contract SummerGovernorV2TestBase is
     address public guardian = address(0x115);
     address public whale = address(0x116);
 
+    address public foundation;
+    SummerVestingWalletFactory public factoryVesting;
+    SummerVestingWalletFactoryV2 public factoryVestingV2;
+
     function setUp() public virtual override {
         initializeTokenTests();
 
@@ -49,20 +55,44 @@ contract SummerGovernorV2TestBase is
         vm.label(david, "David");
         vm.label(whale, "Whale");
 
+        foundation = makeAddr("foundation");
+
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantFoundationRole(address(foundation));
+        vm.stopPrank();
+
+        // Deploy factory (foundation is initial owner)
+        factoryVestingV2 = new SummerVestingWalletFactoryV2(
+            address(aSummerToken),
+            foundation
+        );
+
+        // Foundation has foundation role ( old vesting factory)
+        factoryVesting = new SummerVestingWalletFactory(
+            address(aSummerToken),
+            address(accessManagerA)
+        );
+
         // Deploy xSumr tokens and staking contracts
         axSumr = new xSumr(address(accessManagerA));
         bxSumr = new xSumr(address(accessManagerB));
         testToken = new MockERC20();
+        address[] memory emptyVestingFactories = new address[](0);
+        address[] memory vestingFactories = new address[](2);
+        vestingFactories[0] = address(factoryVestingV2);
+        vestingFactories[1] = address(factoryVesting);
 
         aStaking = new Staking(
             address(accessManagerA),
             address(aSummerToken),
-            address(axSumr)
+            address(axSumr),
+            vestingFactories
         );
         bStaking = new Staking(
             address(accessManagerB),
             address(bSummerToken),
-            address(bxSumr)
+            address(bxSumr),
+            emptyVestingFactories
         );
 
         // Set up staking modules
@@ -354,9 +384,7 @@ contract SummerGovernorV2TestBase is
             vm.prank(user);
             aStaking.stake(amount);
 
-            // // Delegate xSumr for voting
-            // vm.prank(user);
-            // axSumr.delegate(user);
+            // Delegate xSumr for voting
         } else {
             // Transfer SUMMER tokens to user first
             vm.startPrank(address(timelockB));
@@ -370,10 +398,6 @@ contract SummerGovernorV2TestBase is
             // Stake tokens to get xSumr
             vm.prank(user);
             bStaking.stake(amount);
-
-            // Delegate xSumr for voting
-            vm.prank(user);
-            bxSumr.delegate(user);
         }
 
         advanceTimeAndBlock();
