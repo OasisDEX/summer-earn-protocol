@@ -31,14 +31,14 @@ contract Staking is ProtocolAccessManaged {
         xSUMR = IERC20(_xSumr);
     }
 
-    function stake(address _user, uint256 _amount) public {
+    function stake(uint256 _amount) public {
         SUMMER_TOKEN.safeTransferFrom(msg.sender, address(this), _amount);
         _mint(msg.sender, _amount);
     }
 
-    function unstake(address _user, uint256 _amount) public {
+    function unstake(uint256 _amount) public {
         xSUMR.safeTransferFrom(msg.sender, address(this), _amount);
-        SUMMER_TOKEN.safeTransferFrom(address(this), msg.sender, _amount);
+        SUMMER_TOKEN.safeTransfer(msg.sender, _amount);
         _burn(msg.sender, _amount);
     }
 

@@ -11,8 +11,10 @@ import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SummerGovernorV2TestBase, ExposedSummerGovernor} from "./SummerGovernorV2TestBase.sol";
 import {ILayerZeroEndpointV2} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {xSumr} from "../../src/contracts/xSumr.sol";
+import {Staking} from "../../src/contracts/Staking.sol";
 
-contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
+contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
     using OptionsBuilder for bytes;
 
     function setUp() public override {
@@ -22,10 +24,17 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
 
         useNetworkA();
 
+        axSumr = new xSumr(address(accessManagerA));
+        aStaking = new Staking(
+            address(accessManagerA),
+            address(aSummerToken),
+            address(axSumr)
+        );
+
         // Set up Governor A (Hub Chain)
         SummerGovernorV2.GovernorParams memory paramsA = ISummerGovernorV2
             .GovernorParams({
-                token: aSummerToken,
+                token: axSumr,
                 timelock: timelockA,
                 accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
@@ -37,10 +46,19 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
                 initialOwner: address(timelockA)
             });
 
+        governorA = new ExposedSummerGovernor(paramsA);
+
+        useNetworkB();
+        bxSumr = new xSumr(address(accessManagerB));
+        bStaking = new Staking(
+            address(accessManagerB),
+            address(bSummerToken),
+            address(bxSumr)
+        );
         // Set up Governor B (Satellite Chain)
         SummerGovernorV2.GovernorParams memory paramsB = ISummerGovernorV2
             .GovernorParams({
-                token: bSummerToken,
+                token: bxSumr,
                 timelock: timelockB,
                 accessManager: address(accessManagerB),
                 votingDelay: VOTING_DELAY,
@@ -51,15 +69,13 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
                 hubChainId: 31337,
                 initialOwner: address(timelockB)
             });
-
-        governorA = new ExposedSummerGovernor(paramsA);
-
-        useNetworkB();
         governorB = new ExposedSummerGovernor(paramsB);
 
         // Set up roles and permissions
         useNetworkA();
         vm.startPrank(address(timelockA));
+        axSumr.setStakingModule(address(aStaking));
+
         accessManagerA.grantDecayControllerRole(address(governorA));
         timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));
         timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(governorA));
@@ -67,6 +83,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
 
         useNetworkB();
         vm.startPrank(address(timelockB));
+        bxSumr.setStakingModule(address(bStaking));
         accessManagerB.grantDecayControllerRole(address(governorB));
         timelockB.grantRole(timelockB.PROPOSER_ROLE(), address(governorB));
         // So, we can cancel via cross-chain proposals
@@ -93,19 +110,28 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
         enableTransfers();
         changeTokensOwnership(address(timelockA), address(timelockB));
 
+        // whale has 100% of the token supply
         vm.startPrank(address(timelockA));
-        axSumr.delegate(address(timelockA));
-        aSummerToken.transfer(address(timelockA), 1000);
+        aSummerToken.transfer(whale, aSummerToken.totalSupply());
         vm.stopPrank();
+        vm.startPrank(address(whale));
+        aSummerToken.approve(address(aStaking), aSummerToken.totalSupply());
+        aStaking.stake(aSummerToken.totalSupply());
+        vm.stopPrank();
+        advanceTimeAndBlock();
     }
 
-    function test_CrossChainGovernanceFullCycle() public {
+    function test_CrossChainGovernanceFullCycle2() public {
         // Start recording logs
         vm.recordLogs();
 
         // Setup: Give Alice enough tokens and ETH
         vm.deal(address(governorA), 100 ether);
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         vm.prank(alice);
         axSumr.delegate(alice);
@@ -210,7 +236,11 @@ contract SummerGovernorCrossChainTest is SummerGovernorV2TestBase {
 
     function test_CrossChainProposalFailsWithInsufficientFee() public {
         // Setup: Give Alice enough tokens to propose and vote
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         vm.prank(alice);
         axSumr.delegate(alice);

@@ -54,7 +54,7 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
             uint256[] memory values,
             bytes[] memory calldatas,
 
-        ) = createProposalParams(address(aSummerToken));
+        ) = createProposalParams(address(testToken));
 
         governorA.queue(targets, values, calldatas, descriptionHash);
 
@@ -119,7 +119,11 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         advanceTimeForVotingDelay();
 
@@ -146,9 +150,13 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         assertEq(governorA.timelock(), address(newTimelock));
     }
 
-    function test_QueueAndExecuteWithDelay() public {
+    function test_QueueAndExecuteWithDelay2() public {
         // Setup voter
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         vm.prank(alice);
         axSumr.delegate(alice);
@@ -172,7 +180,7 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
             uint256[] memory values,
             bytes[] memory calldatas,
 
-        ) = createProposalParams(address(aSummerToken));
+        ) = createProposalParams(address(testToken));
 
         uint256 queueTime = block.timestamp;
         governorA.queue(targets, values, calldatas, descriptionHash);

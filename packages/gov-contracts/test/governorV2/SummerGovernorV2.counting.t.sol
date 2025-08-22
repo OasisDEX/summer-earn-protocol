@@ -5,7 +5,7 @@ import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 
-contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
+contract SummerGovernorCountingTest2 is SummerGovernorV2TestBase {
     // Test basic vote counting mode
     function test_CountingMode() public view {
         assertEq(governorA.COUNTING_MODE(), "support=bravo&quorum=for,abstain");
@@ -64,7 +64,7 @@ contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
     }
 
     // Test quorum calculation (forVotes + abstainVotes)
-    function test_QuorumCalculation() public {
+    function test_QuorumCalculation2() public {
         uint256 proposalId = _createTestProposal();
 
         // Setup voter with enough voting power
@@ -72,7 +72,7 @@ contract SummerGovernorCountingTest is SummerGovernorV2TestBase {
         uint256 quorumVotes = governorA.quorum(block.timestamp - 1);
 
         stakeAndGetXSumr(voter, quorumVotes, true);
-
+        quorumVotes = governorA.quorum(block.timestamp - 1);
         vm.prank(voter);
         axSumr.delegate(voter);
 

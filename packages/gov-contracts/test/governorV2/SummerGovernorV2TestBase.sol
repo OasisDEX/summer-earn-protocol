@@ -11,6 +11,7 @@ import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {xSumr} from "../../src/contracts/xSumr.sol";
 import {Staking} from "../../src/contracts/Staking.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 contract SummerGovernorV2TestBase is
     SummerTokenTestBase,
@@ -25,11 +26,12 @@ contract SummerGovernorV2TestBase is
     xSumr public bxSumr;
     Staking public aStaking;
     Staking public bStaking;
+    MockERC20 public testToken;
 
     uint48 public constant VOTING_DELAY = 1 days;
     uint32 public constant VOTING_PERIOD = 1 weeks;
-    uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
-    uint256 public constant QUORUM_FRACTION = 4;
+    uint256 public constant PROPOSAL_THRESHOLD = 10_000e18;
+    uint256 public constant QUORUM_FRACTION = 40;
 
     address public alice = address(0x111);
     address public bob = address(0x112);
@@ -64,6 +66,7 @@ contract SummerGovernorV2TestBase is
             address(bSummerToken),
             address(bxSumr)
         );
+        testToken = new MockERC20();
 
         // Set up staking modules
         vm.prank(address(timelockA));
@@ -122,21 +125,30 @@ contract SummerGovernorV2TestBase is
         timelockB.grantRole(timelockB.PROPOSER_ROLE(), address(governorB));
         timelockB.grantRole(timelockB.CANCELLER_ROLE(), address(governorB));
 
-        vm.prank(address(timelockA));
-        aSummerToken.transfer(whale, 100_000_000e18);
+        deal(
+            address(testToken),
+            whale,
+            1000000000000000000000000000000000000000
+        );
+        deal(
+            address(testToken),
+            address(timelockA),
+            1000000000000000000000000000000000000000
+        );
+        deal(
+            address(testToken),
+            address(timelockB),
+            1000000000000000000000000000000000000000
+        );
 
-        vm.prank(whale);
-        aSummerToken.approve(address(aStaking), 100_000_000e18);
-
-        // Stake tokens to get xSumr
-        vm.prank(whale);
-        aStaking.stake(whale, 100_000_000e18);
-
-        // Delegate xSumr for voting
-        vm.prank(whale);
-        axSumr.delegate(whale);
-        vm.prank(whale);
-        bxSumr.delegate(whale);
+        // whale has 100% of the token supply
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(whale, aSummerToken.totalSupply());
+        vm.stopPrank();
+        vm.startPrank(address(whale));
+        aSummerToken.approve(address(aStaking), aSummerToken.totalSupply());
+        aStaking.stake(aSummerToken.totalSupply());
+        vm.stopPrank();
 
         // Wire the governors (if needed)
         address[] memory governors = new address[](2);
@@ -157,6 +169,8 @@ contract SummerGovernorV2TestBase is
         uint32 aEid_ = (aOApp.endpoint()).eid();
         vm.prank(address(timelockB));
         bOApp.setPeer(aEid_, addressToBytes32(address(aOApp)));
+
+        advanceTimeAndBlock();
     }
 
     /*
@@ -170,7 +184,7 @@ contract SummerGovernorV2TestBase is
             uint256[] memory values,
             bytes[] memory calldatas,
             string memory description
-        ) = createProposalParams(address(aSummerToken));
+        ) = createProposalParams(address(testToken));
 
         // Add a unique identifier to the description to ensure unique proposals
         description = string(
@@ -321,8 +335,10 @@ contract SummerGovernorV2TestBase is
         bool useChainA
     ) internal {
         if (useChainA) {
-            // Transfer SUMMER tokens to user first
-            vm.startPrank(address(timelockA));
+            // whale has 100% of the token supply
+            vm.startPrank(whale);
+            axSumr.approve(address(aStaking), amount);
+            aStaking.unstake(amount);
             aSummerToken.transfer(user, amount);
             vm.stopPrank();
 
@@ -332,7 +348,7 @@ contract SummerGovernorV2TestBase is
 
             // Stake tokens to get xSumr
             vm.prank(user);
-            aStaking.stake(user, amount);
+            aStaking.stake(amount);
 
             // Delegate xSumr for voting
             vm.prank(user);
@@ -349,7 +365,7 @@ contract SummerGovernorV2TestBase is
 
             // Stake tokens to get xSumr
             vm.prank(user);
-            bStaking.stake(user, amount);
+            bStaking.stake(amount);
 
             // Delegate xSumr for voting
             vm.prank(user);
@@ -377,7 +393,7 @@ contract SummerGovernorV2TestBase is
 
             // Unstake tokens to get SUMMER back
             vm.prank(user);
-            aStaking.unstake(user, amount);
+            aStaking.unstake(amount);
         } else {
             // Approve staking contract to spend xSumr tokens
             vm.prank(user);
@@ -385,7 +401,7 @@ contract SummerGovernorV2TestBase is
 
             // Unstake tokens to get SUMMER back
             vm.prank(user);
-            bStaking.unstake(user, amount);
+            bStaking.unstake(amount);
         }
     }
 }

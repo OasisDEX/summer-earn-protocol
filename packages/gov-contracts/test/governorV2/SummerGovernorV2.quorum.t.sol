@@ -175,7 +175,11 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         string memory description = "Update quorum numerator to 6%";
 
         // Setup proposer with enough voting power
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         vm.prank(alice);
         axSumr.delegate(alice);
@@ -223,7 +227,11 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         );
         string memory description = "Update to invalid quorum numerator";
 
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         vm.prank(alice);
         axSumr.delegate(alice);

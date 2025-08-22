@@ -52,7 +52,11 @@ contract SummerGovernorSettingsTest2 is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         advanceTimeForVotingDelay();
         vm.prank(alice);
@@ -103,7 +107,11 @@ contract SummerGovernorSettingsTest2 is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         advanceTimeForVotingDelay();
 
@@ -160,7 +168,11 @@ contract SummerGovernorSettingsTest2 is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         advanceTimeForVotingDelay();
 
@@ -217,7 +229,11 @@ contract SummerGovernorSettingsTest2 is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
+        stakeAndGetXSumr(
+            alice,
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         advanceTimeForVotingDelay();
 
