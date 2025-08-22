@@ -72,7 +72,6 @@ contract SummerGovernorCountingTest2 is SummerGovernorV2TestBase {
         uint256 quorumVotes = governorA.quorum(block.timestamp - 1);
 
         stakeAndGetXSumr(voter, quorumVotes, true);
-        quorumVotes = governorA.quorum(block.timestamp - 1);
         vm.prank(voter);
         axSumr.delegate(voter);
 
@@ -109,6 +108,11 @@ contract SummerGovernorCountingTest2 is SummerGovernorV2TestBase {
 
         stakeAndGetXSumr(forVoter, ((5 * quorumVotes) / 5) - 1, true);
         stakeAndGetXSumr(abstainVoter, (2 * quorumVotes) / 5, true);
+
+        vm.prank(forVoter);
+        axSumr.delegate(forVoter);
+        vm.prank(abstainVoter);
+        axSumr.delegate(abstainVoter);
 
         uint256 forVotes = axSumr.getVotes(forVoter);
         uint256 abstainVotes = axSumr.getVotes(abstainVoter);

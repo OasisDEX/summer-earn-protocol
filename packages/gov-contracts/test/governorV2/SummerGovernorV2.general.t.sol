@@ -65,6 +65,8 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         // Stake tokens to get xSumr for voting rights
         uint256 requiredAmount = governorA.quorum(block.timestamp - 1) * 2;
         stakeAndGetXSumr(alice, requiredAmount, true);
+        vm.prank(alice);
+        axSumr.delegate(alice);
 
         advanceTimeForVotingDelay();
 
@@ -82,7 +84,9 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         // Stake tokens to get xSumr for proposal threshold
         uint256 proposalThreshold = governorA.proposalThreshold();
         stakeAndGetXSumr(alice, proposalThreshold, true);
-
+        vm.prank(alice);
+        axSumr.delegate(alice);
+        advanceTimeAndBlock();
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
 
@@ -103,6 +107,9 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         // Stake tokens to get xSumr for quorum
         uint256 quorumAmount = governorA.quorum(block.timestamp - 1) * 2;
         stakeAndGetXSumr(alice, quorumAmount, true);
+        vm.prank(alice);
+        axSumr.delegate(alice);
+        advanceTimeAndBlock();
 
         vm.prank(alice);
         (
@@ -150,8 +157,11 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
     function test_ProposalCreationBelowThresholdAndNotWhitelisted() public {
         // Ensure Charlie has some tokens, but below the proposal threshold
         uint256 belowThreshold = governorA.proposalThreshold() - 1;
-        stakeAndGetXSumr(charlie, belowThreshold, true);
 
+        stakeAndGetXSumr(charlie, belowThreshold, true);
+        vm.prank(charlie);
+        axSumr.delegate(charlie);
+        advanceTimeAndBlock();
         // Attempt to create a proposal
         (
             address[] memory targets,

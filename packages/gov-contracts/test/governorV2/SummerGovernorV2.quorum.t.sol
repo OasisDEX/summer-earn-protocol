@@ -23,6 +23,8 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         // Give voting power to a voter
         stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
+        vm.prank(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal

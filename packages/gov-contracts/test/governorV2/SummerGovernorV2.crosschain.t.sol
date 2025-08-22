@@ -303,6 +303,9 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
             true
         );
 
+        vm.prank(address(timelockA));
+        axSumr.delegate(address(timelockA));
+
         advanceTimeAndBlock();
 
         // Create and process proposal
