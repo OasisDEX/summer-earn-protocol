@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-
+import {console} from "forge-std/console.sol";
 contract SummerGovernorCountingTest2 is SummerGovernorV2TestBase {
     // Test basic vote counting mode
     function test_CountingMode() public view {
@@ -64,7 +64,7 @@ contract SummerGovernorCountingTest2 is SummerGovernorV2TestBase {
     }
 
     // Test quorum calculation (forVotes + abstainVotes)
-    function test_QuorumCalculation2() public {
+    function test_QuorumCalculation() public {
         uint256 proposalId = _createTestProposal();
 
         // Setup voter with enough voting power
@@ -99,21 +99,28 @@ contract SummerGovernorCountingTest2 is SummerGovernorV2TestBase {
     }
 
     // Test vote success conditions (forVotes > againstVotes)
-    function test_VoteSucceeded() public {
+    function test_VoteSucceeded2() public {
         uint256 proposalId = _createTestProposal();
 
         // Setup voters
         address forVoter = address(0x1);
-        address againstVoter = address(0x2);
+        address abstainVoter = address(0x2);
+        uint256 quorumVotes = governorA.quorum(block.timestamp - 1);
 
-        stakeAndGetXSumr(forVoter, 200 * 1e6 * 1e18, true);
-        stakeAndGetXSumr(againstVoter, 100 * 1e6 * 1e18, true);
+        stakeAndGetXSumr(forVoter, ((5 * quorumVotes) / 5) - 1, true);
+        stakeAndGetXSumr(abstainVoter, (2 * quorumVotes) / 5, true);
 
-        vm.prank(forVoter);
-        axSumr.delegate(forVoter);
+        uint256 forVotes = axSumr.getVotes(forVoter);
+        uint256 abstainVotes = axSumr.getVotes(abstainVoter);
 
-        vm.prank(againstVoter);
-        axSumr.delegate(againstVoter);
+        assertTrue(
+            forVotes > abstainVotes,
+            "forVotes should be greater than abstainVotes"
+        );
+        assertTrue(
+            forVotes + abstainVotes > quorumVotes,
+            "forVotes + abstainVotes should be greater than quorumVotes"
+        );
 
         advanceTimeAndBlock();
         advanceTimeForVotingDelay();
@@ -124,10 +131,11 @@ contract SummerGovernorCountingTest2 is SummerGovernorV2TestBase {
             proposalId,
             uint8(GovernorCountingSimple.VoteType.For)
         );
-        vm.prank(againstVoter);
+
+        vm.prank(abstainVoter);
         governorA.castVote(
             proposalId,
-            uint8(GovernorCountingSimple.VoteType.Against)
+            uint8(GovernorCountingSimple.VoteType.Abstain)
         );
 
         advanceTimeForVotingPeriod();

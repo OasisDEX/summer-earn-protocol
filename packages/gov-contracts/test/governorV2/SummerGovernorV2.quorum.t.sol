@@ -20,15 +20,9 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         uint256 totalSupply = 1_000_000_000e18; // 1 billion tokens
         uint256 expectedQuorum = (totalSupply * QUORUM_FRACTION) / 100;
 
-        // Mint total supply
-        stakeAndGetXSumr(address(timelockA), totalSupply, true);
-
         // Give voting power to a voter
         stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
-        // Delegate voting power
-        vm.prank(alice);
-        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal

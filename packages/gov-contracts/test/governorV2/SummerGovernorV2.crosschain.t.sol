@@ -305,9 +305,11 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
         vm.deal(address(governorA), 100 ether); // For cross-chain fees
 
         // Setup voting power for timelockA (like in test_CrossChainGovernanceFullCycle)
-        vm.startPrank(address(timelockA));
-        axSumr.delegate(address(timelockA));
-        vm.stopPrank();
+        stakeAndGetXSumr(
+            address(timelockA),
+            governorA.quorum(block.timestamp - 1) * 2,
+            true
+        );
 
         advanceTimeAndBlock();
 

@@ -11,8 +11,8 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
 
     function test_TimelockStateTransitions2() public {
         // Setup voter with enough tokens
-        uint threshold = governorA.proposalThreshold();
-        stakeAndGetXSumr(alice, threshold, true);
+        uint quorum = governorA.quorum(block.timestamp - 1);
+        stakeAndGetXSumr(alice, quorum, true);
 
         vm.prank(alice);
         axSumr.delegate(alice);
@@ -37,7 +37,8 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         // Check state after voting starts
         assertEq(
             uint256(governorA.state(proposalId)),
-            uint256(IGovernor.ProposalState.Active)
+            uint256(IGovernor.ProposalState.Active),
+            "aaasssssssaa"
         );
 
         advanceTimeForVotingPeriod();
@@ -45,7 +46,8 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         // Check state after voting ends (should be Succeeded)
         assertEq(
             uint256(governorA.state(proposalId)),
-            uint256(IGovernor.ProposalState.Succeeded)
+            uint256(IGovernor.ProposalState.Succeeded),
+            "aaasssssssaxxxxa"
         );
 
         // Queue the proposal
@@ -61,7 +63,8 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         // Check state after queueing
         assertEq(
             uint256(governorA.state(proposalId)),
-            uint256(IGovernor.ProposalState.Queued)
+            uint256(IGovernor.ProposalState.Queued),
+            "aaassssaa"
         );
 
         advanceTimeForTimelockMinDelay();
@@ -72,7 +75,8 @@ contract SummerGovernorTimelockTest is SummerGovernorV2TestBase {
         // Check final state
         assertEq(
             uint256(governorA.state(proposalId)),
-            uint256(IGovernor.ProposalState.Executed)
+            uint256(IGovernor.ProposalState.Executed),
+            "aaaaa"
         );
     }
 

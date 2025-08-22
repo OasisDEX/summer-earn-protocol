@@ -141,7 +141,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             hashDescription(description)
         );
 
-        assertEq(aSummerToken.balanceOf(bob), 100);
+        assertEq(testToken.balanceOf(bob), 100, "bob should have 100 tokens");
     }
 
     /*
@@ -169,9 +169,8 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
                 governorA.proposalThreshold()
             )
         );
+        vm.prank(charlie);
         governorA.propose(targets, values, calldatas, description);
-
-        vm.stopPrank();
     }
 
     /*
@@ -554,10 +553,11 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_ProposalWithMajorityInFavor() public {
         // Mint tokens to voters
-        uint256 aliceTokens = 38000000e18;
-        uint256 bobTokens = 3000000e18;
-        uint256 charlieTokens = 2000000e18;
-        uint256 davidTokens = 2000000e18;
+        uint quorum = governorA.quorum(block.timestamp - 1);
+        uint256 aliceTokens = 3 * quorum / 10;
+        uint256 bobTokens = 3 * quorum / 10;
+        uint256 charlieTokens = quorum / 4;
+        uint256 davidTokens = quorum - aliceTokens - bobTokens;
 
         stakeAndGetXSumr(alice, aliceTokens, true);
         stakeAndGetXSumr(bob, bobTokens, true);
@@ -626,10 +626,17 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_ProposalWithUnanimousSupport() public {
         // Mint tokens to voters
-        uint256 aliceTokens = 20000000e18;
-        uint256 bobTokens = 3000000e18;
-        uint256 charlieTokens = 2000000e18;
-        uint256 davidTokens = 20000000e18;
+        uint quorum = governorA.quorum(block.timestamp - 1);
+        uint256 aliceTokens = (2 * quorum) / 9;
+        uint256 bobTokens = (3 * quorum) / 9;
+        uint256 charlieTokens = (2 * quorum) / 9;
+        uint256 davidTokens = quorum - aliceTokens - bobTokens - charlieTokens;
+
+        assertGe(
+            aliceTokens + bobTokens + charlieTokens + davidTokens,
+            quorum,
+            "Total votes should be greater than quorum"
+        );
 
         stakeAndGetXSumr(alice, aliceTokens, true);
         stakeAndGetXSumr(bob, bobTokens, true);
@@ -663,7 +670,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         assertTrue(
             forVotes + againstVotes + abstainVotes >=
                 governorA.quorum(block.timestamp - 1),
-            "Failed to meet quorum"
+            "Failed to meet quorum - unanimous support"
         );
 
         // Verify unanimous support
@@ -680,10 +687,11 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_ProposalWithMajorityAgainst() public {
         // Mint tokens to voters
-        uint256 aliceTokens = 38000000e18;
-        uint256 bobTokens = 3000000e18;
-        uint256 charlieTokens = 2000000e18;
-        uint256 davidTokens = 2000000e18;
+        uint quorum = governorA.quorum(block.timestamp - 1);
+        uint256 aliceTokens = (38 * quorum) / 108;
+        uint256 bobTokens = (30 * quorum) / 108;
+        uint256 charlieTokens = (20 * quorum) / 108;
+        uint256 davidTokens = quorum - aliceTokens - bobTokens - charlieTokens;
 
         stakeAndGetXSumr(alice, aliceTokens, true);
         stakeAndGetXSumr(bob, bobTokens, true);
@@ -1296,13 +1304,13 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
      * @dev Tests the guardian role assignment through a governance proposal.
      * Verifies that an account can be granted the guardian role via a proposal.
      */
-    function test_GuardianRoleAssignment() public {
+    function test_GuardianRoleAssignment2() public {
         address account = address(0x03);
 
         // Give Alice enough tokens to meet proposal threshold
         stakeAndGetXSumr(
             alice,
-            governorA.quorum(block.timestamp - 1) * 2,
+            governorA.quorum(block.timestamp - 1),
             true
         );
 
@@ -1343,7 +1351,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         // Give Alice enough tokens to meet quorum
         stakeAndGetXSumr(
             alice,
-            governorA.quorum(block.timestamp - 1) * 2,
+            governorA.quorum(block.timestamp - 1) ,
             true
         );
 
