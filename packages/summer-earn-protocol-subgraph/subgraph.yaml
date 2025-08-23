@@ -1,6 +1,11 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
+features:
+  - grafting
+graft:
+  base: Qmdf3Yv1qg3sbiq5R77vs7FgtSkwo3rPiAM6DeN4EN3xm9
+  block: 33276900
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
