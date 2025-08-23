@@ -5,7 +5,7 @@
   "governance-rewards-manager-address": "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92",
   "governance-rewards-manager-start-block": 25642492,
   "interval-handler-block-interval": 30,
-  "enable-grafting": false,
+  "enable-grafting": true,
   "grafting-base": "Qmdf3Yv1qg3sbiq5R77vs7FgtSkwo3rPiAM6DeN4EN3xm9",
-  "grafting-block": "33275700"
+  "grafting-block": "33276900"
 }
