@@ -4,33 +4,40 @@ pragma solidity 0.8.28;
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {xSumr} from "./xSumr.sol";
+import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+/// @dev this is a minimal vesting factory interface
 interface IMinimalVestingFactory {
     function vestingWallets(address _user) external view returns (address);
     function vestingWalletOwners(
         address _wallet
     ) external view returns (address);
 }
+
+/// @dev this is a minimal vesting wallet interface
 interface IMinimalVestingWallet {
     function balanceOf(address _user) external view returns (uint256);
     function owner() external view returns (address);
     function transferOwnership(address newOwner) external;
 }
 // @dev this is a mvp for staking, it will be replaced with a more complex staking contract
-// @dev this contract will be used to stake and unstake SUMMER_TOKEN for xSUMR
+// @dev this contract will be used to stake and unstake SUMMER_TOKEN for STAKED_SUMMER_TOKEN
 contract Staking is ProtocolAccessManaged {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IStakedSummerToken;
+    using SafeERC20 for ISummerToken;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-    IERC20 public immutable SUMMER_TOKEN;
-    IERC20 public immutable xSUMR;
-    IMinimalVestingFactory[] public vestingFactories;
+    ISummerToken public immutable SUMMER_TOKEN;
+    IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
+    EnumerableSet.AddressSet private _vestingFactories;
 
     constructor(
         address _protocolAccessManager,
         address _summerToken,
         address _xSumr,
-        address[] memory _vestingFactories
+        address[] memory _initialVestingFactories
     ) ProtocolAccessManaged(_protocolAccessManager) {
         if (_summerToken == address(0)) {
             revert Staking_InvalidAddress(
@@ -41,17 +48,16 @@ contract Staking is ProtocolAccessManaged {
             revert Staking_InvalidAddress("xSumr address cannot be zero");
         }
 
-        SUMMER_TOKEN = IERC20(_summerToken);
-        xSUMR = IERC20(_xSumr);
+        SUMMER_TOKEN = ISummerToken(_summerToken);
+        STAKED_SUMMER_TOKEN = IStakedSummerToken(_xSumr);
 
-        // Initialize vesting factories array
-        for (uint256 i = 0; i < _vestingFactories.length; i++) {
-            if (_vestingFactories[i] == address(0)) {
+        for (uint256 i = 0; i < _initialVestingFactories.length; i++) {
+            if (_initialVestingFactories[i] == address(0)) {
                 revert Staking_InvalidAddress(
                     "Vesting factory address cannot be zero"
                 );
             }
-            vestingFactories.push(IMinimalVestingFactory(_vestingFactories[i]));
+            _vestingFactories.add(_initialVestingFactories[i]);
         }
     }
 
@@ -61,7 +67,11 @@ contract Staking is ProtocolAccessManaged {
     }
 
     function unstake(uint256 _amount) public {
-        xSUMR.safeTransferFrom(msg.sender, address(this), _amount);
+        STAKED_SUMMER_TOKEN.safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
         SUMMER_TOKEN.safeTransfer(msg.sender, _amount);
         _burn(msg.sender, _amount);
     }
@@ -70,17 +80,17 @@ contract Staking is ProtocolAccessManaged {
      * @dev Returns the number of vesting factories
      */
     function getVestingFactoryCount() external view returns (uint256) {
-        return vestingFactories.length;
+        return _vestingFactories.length();
     }
 
     /**
      * @dev Returns the vesting factory at the specified index
      */
     function getVestingFactory(uint256 index) external view returns (address) {
-        if (index >= vestingFactories.length) {
-            revert Staking_InvalidIndex("Index out of bounds");
+        if (index >= _vestingFactories.length()) {
+            revert Staking_InvalidIndex();
         }
-        return address(vestingFactories[index]);
+        return _vestingFactories.at(index);
     }
 
     /**
@@ -94,16 +104,9 @@ contract Staking is ProtocolAccessManaged {
             );
         }
 
-        // Check if factory already exists
-        for (uint256 i = 0; i < vestingFactories.length; i++) {
-            if (address(vestingFactories[i]) == _vestingFactory) {
-                revert Staking_DuplicateFactory(
-                    "Vesting factory already exists"
-                );
-            }
+        if (!_vestingFactories.add(_vestingFactory)) {
+            revert Staking_DuplicateFactory();
         }
-
-        vestingFactories.push(IMinimalVestingFactory(_vestingFactory));
         emit VestingFactoryAdded(_vestingFactory);
     }
 
@@ -120,34 +123,21 @@ contract Staking is ProtocolAccessManaged {
             );
         }
 
-        bool found = false;
-        for (uint256 i = 0; i < vestingFactories.length; i++) {
-            if (address(vestingFactories[i]) == _vestingFactory) {
-                // Move the last element to this position and pop
-                vestingFactories[i] = vestingFactories[
-                    vestingFactories.length - 1
-                ];
-                vestingFactories.pop();
-                found = true;
-                emit VestingFactoryRemoved(_vestingFactory);
-                break;
-            }
+        if (!_vestingFactories.remove(_vestingFactory)) {
+            revert Staking_FactoryNotFound();
         }
 
-        if (!found) {
-            revert Staking_FactoryNotFound("Vesting factory not found");
-        }
+        emit VestingFactoryRemoved(_vestingFactory);
     }
 
     function stakeWithVesting() public {
         uint256 totalBalance = 0;
         bool hasVestingWallet = false;
 
-        // Iterate through all vesting factories
-        for (uint256 i = 0; i < vestingFactories.length; i++) {
-            address vestingWallet = vestingFactories[i].vestingWallets(
-                msg.sender
-            );
+        for (uint256 i = 0; i < _vestingFactories.length(); i++) {
+            address vestingWallet = IMinimalVestingFactory(
+                _vestingFactories.at(i)
+            ).vestingWallets(msg.sender);
             if (vestingWallet != address(0)) {
                 totalBalance += _stakeVestingWallet(msg.sender, vestingWallet);
                 hasVestingWallet = true;
@@ -167,16 +157,15 @@ contract Staking is ProtocolAccessManaged {
         uint256 totalBalance = 0;
         bool hasVestingWallet = false;
 
-        // Iterate through all vesting factories
-        for (uint256 i = 0; i < vestingFactories.length; i++) {
-            address vestingWallet = vestingFactories[i].vestingWallets(
-                msg.sender
-            );
+        for (uint256 i = 0; i < _vestingFactories.length(); i++) {
+            address vestingWallet = IMinimalVestingFactory(
+                _vestingFactories.at(i)
+            ).vestingWallets(msg.sender);
             if (vestingWallet != address(0)) {
                 totalBalance += _unstakeVestingWallet(
                     msg.sender,
                     vestingWallet,
-                    vestingFactories[i]
+                    IMinimalVestingFactory(_vestingFactories.at(i))
                 );
                 hasVestingWallet = true;
             }
@@ -236,18 +225,18 @@ contract Staking is ProtocolAccessManaged {
     }
 
     function _burn(address _user, uint256 _amount) internal {
-        xSumr(address(xSUMR)).burn(_amount);
+        IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burn(_amount);
     }
 
     function _mint(address _user, uint256 _amount) internal {
-        xSumr(address(xSUMR)).mint(_user, _amount);
+        IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).mint(_user, _amount);
     }
 
     error Staking_InvalidAddress(string message);
     error Staking__InvalidOwner(string message);
-    error Staking_InvalidIndex(string message);
-    error Staking_DuplicateFactory(string message);
-    error Staking_FactoryNotFound(string message);
+    error Staking_InvalidIndex();
+    error Staking_DuplicateFactory();
+    error Staking_FactoryNotFound();
 
     event VestingFactoryAdded(address indexed vestingFactory);
     event VestingFactoryRemoved(address indexed vestingFactory);

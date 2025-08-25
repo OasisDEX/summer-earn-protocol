@@ -9,9 +9,10 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 
 contract xSumr is
-    ERC20,
+    IStakedSummerToken,
     ERC20Burnable,
     ERC20Pausable,
     ProtocolAccessManaged,
@@ -57,6 +58,16 @@ contract xSumr is
 
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
+    }
+
+    function burn(
+        uint256 amount
+    ) public override(ERC20Burnable, IStakedSummerToken) {
+        super.burn(amount);
+    }
+
+    function burnFrom(address from, uint256 amount) public override {
+        revert xSumr__NotImplemented();
     }
 
     function clock() public view override returns (uint48) {
@@ -117,4 +128,5 @@ contract xSumr is
     }
 
     error xSumr_InvalidStakingModule(string message);
+    error xSumr__NotImplemented();
 }
