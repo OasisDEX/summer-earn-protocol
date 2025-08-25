@@ -1,6 +1,6 @@
 # Chain Bridge System
 
-This directory contains the implementation of a modular cross-chain bridge system that enables secure asset transfers and message passing between different blockchains. The system is designed around a queue-based architecture where the `BridgeQueue` handles user interactions and adapter selection, while the `BridgeRouter` executes operations.
+This directory contains the implementation of a modular cross-chain bridge system that enables secure asset transfers and message passing between different blockchains. The system is designed around an authorized executor model where registered executors handle user interactions and adapter selection, while the `BridgeRouter` executes operations.
 
 ## Core Components
 
@@ -14,26 +14,20 @@ This directory contains the implementation of a modular cross-chain bridge syste
 
 ```mermaid
 graph LR
-    A[User/Application] --> B[BridgeQueue]
-    B --> C[Adapter Selection]
-    C --> D[BridgeRouter]
-    D --> E[BridgeAdapter]
-    E -->|Cross Chain| F[Destination Adapter]
-    F --> G[Recipient]
+    A[User/Application] --> B[Source BridgeRouter]
+    B --> C[BridgeAdapter]
+    C -->|Cross Chain| D[Destination Adapter]
+    D -->E[Destination BridgeRouter]
+    E --> F[Recipient]
 ```
 
-### Role Separation
+### Role
 
-1. **BridgeQueue**: 
-   - Handles user interactions
-   - Manages adapter selection logic
-   - Collects fees and manages refunds
-   - Queues operations for execution
-
-2. **BridgeRouter**:
-   - Executes operations initiated by BridgeQueue
+1. **BridgeRouter**:
+   - Executes operations initiated by CrossChainArk/FleetProxy
    - Manages adapter registry and callbacks
    - Handles cross-chain message coordination
+   - Collects fees and manages refunds
 
 ## Cross-Chain Operations
 
@@ -110,7 +104,7 @@ Adapters call back to the router to deliver cross-chain operations using the uni
 
 ## Security Considerations
 
-- **Access Control**: Only BridgeQueue can initiate operations
+- **Access Control**: Only authorized executors (registered in CrossChainRegistry) can initiate operations
 - **Adapter Registry**: Only governance can add/remove adapters
 - **Pause Mechanism**: Guardian and governance can pause; only governance can unpause
 - **Adapter Authentication**: Only registered adapters can call callback functions
@@ -120,11 +114,11 @@ Adapters call back to the router to deliver cross-chain operations using the uni
 
 ### For Users/Applications
 
-Interact with the `BridgeQueue` contract (not directly with BridgeRouter):
+Interact with authorized executor contracts (not directly with BridgeRouter). Authorized executors are contracts registered in the CrossChainRegistry that can initiate bridge operations:
 
 ```solidity
-// Example: Transfer assets cross-chain
-bridgeQueue.transferAssets{value: estimatedFee}(
+// Example: Transfer assets cross-chain via authorized executor
+authorizedExecutor.transferAssets{value: estimatedFee}(
     destinationChainId,
     asset,
     amount,
@@ -132,6 +126,11 @@ bridgeQueue.transferAssets{value: estimatedFee}(
     options
 );
 ```
+
+**Note**: The specific interface depends on the authorized executor implementation. Common patterns include:
+- Direct execution through BridgeRouter by authorized contracts
+- Queue-based execution through specialized executor contracts
+- Integration with protocols like FleetCommander or CrossChainArk
 
 ### For Cross-Chain Message Recipients
 
