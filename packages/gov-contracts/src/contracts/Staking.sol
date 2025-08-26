@@ -100,6 +100,11 @@ contract Staking is ProtocolAccessManaged {
         return _vestingFactories.at(index);
     }
 
+    function getUserStakedVestingFactories(
+        address _user
+    ) external view returns (address[] memory) {
+        return _userStakedVestingFactories[_user].values();
+    }
     /**
      * @dev Adds a new vesting factory to the array
      * @param _vestingFactory The vesting factory address to add

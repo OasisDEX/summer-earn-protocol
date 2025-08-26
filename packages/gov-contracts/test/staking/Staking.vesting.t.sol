@@ -39,6 +39,8 @@ contract MockVestingFactory is IMinimalVestingFactory {
     mapping(address => address) public vestingWalletOwners;
 
     function setVestingWallet(address user, address wallet) external {
+        address previousOwner = vestingWalletOwners[wallet];
+        vestingWallets[previousOwner] = address(0);
         vestingWallets[user] = wallet;
         vestingWalletOwners[wallet] = user;
     }
@@ -142,6 +144,14 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
             address(mockVestingWallet2),
             STAKE_AMOUNT / 2
         );
+
+        vm.label(user1, "user1");
+        vm.label(user2, "user2");
+        vm.label(address(mockVestingWallet1), "mockVestingWallet1");
+        vm.label(address(mockVestingWallet2), "mockVestingWallet2");
+        vm.label(address(mockVestingFactory1), "mockVestingFactory1");
+        vm.label(address(mockVestingFactory2), "mockVestingFactory2");
+        vm.label(address(testStaking), "testStaking");
     }
 
     // ========================================
@@ -258,9 +268,6 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
         // Note: tokens don't actually move to staking contract
     }
 
-    // Removed unstake tests that involve token transfers
-    // The vesting staking mechanism only handles ownership transfer, not token movement
-
     function test_UnstakeVesting_UserHasNoVestingWallets() public {
         // Remove vesting wallets for user2
         mockVestingFactory1.removeVestingWallet(user2);
@@ -273,10 +280,6 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
         );
         testStaking.unstakeVesting();
     }
-
-    // Removed more unstake tests that involve token transfers
-
-    // Removed unstake test that causes token transfer issues
 
     function test_StakeWithVesting_VestingWalletNotOwnedByStaking() public {
         // Change ownership of vesting wallet to someone else
@@ -314,8 +317,6 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
         testStaking.unstakeVesting();
     }
 
-    // Removed complete cycle test due to token transfer issues
-
     // ========================================
     // VESTING EDGE CASES
     // ========================================
@@ -336,10 +337,6 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
         // Note: tokens don't actually move from vesting wallets to staking contract
         // The staking contract just checks ownership and mints xSumr
     }
-
-    // Skip unstake tests that involve token transfers since the vesting staking
-    // doesn't actually move tokens to the staking contract
-    // The unstakeVesting function only transfers ownership back to users
 
     // ========================================
     // EDGE CASES AND ERROR CONDITIONS
@@ -398,5 +395,315 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
             )
         );
         testStaking.unstakeVesting();
+    }
+
+    // ========================================
+    // COMPREHENSIVE VESTING STAKING TESTS
+    // ========================================
+
+    function test_StakeWithVesting_ValidateVestingFactoryMappings() public {
+        // Test that staking properly validates vesting factory mappings
+        uint256 expectedTotal = STAKE_AMOUNT + (STAKE_AMOUNT / 2);
+
+        // Verify initial ownership
+        assertEq(
+            MockVestingWallet(mockVestingWallet1).owner(),
+            address(testStaking)
+        );
+        assertEq(
+            MockVestingWallet(mockVestingWallet2).owner(),
+            address(testStaking)
+        );
+
+        // Stake with vesting
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Verify user received xSumr for total vesting balance
+        assertEq(axSumr.balanceOf(user1), expectedTotal);
+
+        // Verify factory mappings are still correct
+        assertEq(
+            mockVestingFactory1.vestingWallets(user1),
+            address(mockVestingWallet1)
+        );
+        assertEq(
+            mockVestingFactory2.vestingWallets(user1),
+            address(mockVestingWallet2)
+        );
+        assertEq(
+            mockVestingFactory1.vestingWalletOwners(
+                address(mockVestingWallet1)
+            ),
+            user1
+        );
+        assertEq(
+            mockVestingFactory2.vestingWalletOwners(
+                address(mockVestingWallet2)
+            ),
+            user1
+        );
+    }
+
+    function test_StakeWithVesting_SingleFactoryMultipleUsers() public {
+        // Setup second user
+        mockVestingFactory1.setVestingWallet(
+            user2,
+            address(mockVestingWallet1)
+        );
+        deal(
+            address(aSummerToken),
+            address(mockVestingWallet1),
+            STAKE_AMOUNT * 2
+        );
+
+        // User1 stakes
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // User2 stakes from same factory
+        vm.prank(user2);
+        testStaking.stakeWithVesting();
+
+        // Both should have received xSumr
+        assertEq(
+            axSumr.balanceOf(user1),
+            STAKE_AMOUNT / 2,
+            "User1 should have received xSumr"
+        );
+        assertEq(
+            axSumr.balanceOf(user2),
+            STAKE_AMOUNT * 2,
+            "User2 should have received xSumr"
+        );
+        assertEq(
+            testStaking.getUserStakedVestingFactories(user1).length,
+            1,
+            "User1 should have 1 staked vesting factory"
+        );
+        assertEq(
+            testStaking.getUserStakedVestingFactories(user2).length,
+            1,
+            "User2 should have 1 staked vesting factory"
+        );
+        assertEq(
+            testStaking.getUserStakedVestingFactories(user1)[0],
+            address(mockVestingFactory2),
+            "User1 should have factory 2 in staked vesting factories"
+        );
+        assertEq(
+            testStaking.getUserStakedVestingFactories(user2)[0],
+            address(mockVestingFactory1),
+            "User2 should have factory 1 in staked vesting factories"
+        );
+    }
+
+    function test_UnstakeVesting_ValidateBurnAmounts() public {
+        uint256 expectedTotal = STAKE_AMOUNT + (STAKE_AMOUNT / 2);
+
+        // Stake with vesting
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+        assertEq(axSumr.balanceOf(user1), expectedTotal);
+
+        // Record balances before unstaking
+        uint256 stakingXSumrBefore = axSumr.balanceOf(address(testStaking));
+
+        // Unstake with vesting
+        vm.startPrank(user1);
+        axSumr.approve(address(testStaking), expectedTotal);
+        testStaking.unstakeVesting();
+        vm.stopPrank();
+
+        // Verify xSumr was burned from user and staking contract has no xSumr
+        assertEq(axSumr.balanceOf(user1), 0);
+        assertEq(axSumr.balanceOf(address(testStaking)), stakingXSumrBefore);
+    }
+
+    function test_StakeWithVesting_LargeAmounts() public {
+        // Test with very large amounts
+        uint256 largeAmount1 = 1000000 * 10 ** 18; // 1M tokens
+        uint256 largeAmount2 = 2000000 * 10 ** 18; // 2M tokens
+
+        deal(address(aSummerToken), address(mockVestingWallet1), largeAmount1);
+        deal(address(aSummerToken), address(mockVestingWallet2), largeAmount2);
+
+        // Stake with vesting
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Verify user received xSumr for large amounts
+        assertEq(axSumr.balanceOf(user1), largeAmount1 + largeAmount2);
+    }
+
+    function test_UnstakeVesting_AfterTokenTransfer() public {
+        // Stake with vesting
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Transfer some xSumr to another user
+        vm.prank(user1);
+        axSumr.transfer(user2, STAKE_AMOUNT / 4);
+
+        // Should not be able to unstake remaining amount
+        uint256 remainingAmount = STAKE_AMOUNT +
+            (STAKE_AMOUNT / 2) -
+            (STAKE_AMOUNT / 4);
+
+        vm.startPrank(user1);
+        axSumr.approve(address(testStaking), 4 * remainingAmount);
+        vm.expectRevert();
+        testStaking.unstakeVesting();
+        vm.stopPrank();
+
+        // User1 should have remaining amount left, user2 should still have the transferred amount
+        assertEq(axSumr.balanceOf(user1), remainingAmount);
+        assertEq(axSumr.balanceOf(user2), STAKE_AMOUNT / 4);
+    }
+
+    function test_StakeWithVesting_ZeroBalanceAfterPartialTransfer() public {
+        // Set very small balance for one wallet
+        deal(address(aSummerToken), address(mockVestingWallet2), 1);
+
+        // Stake with vesting
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Should receive xSumr for the non-zero balance wallet only
+        assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT + 1);
+    }
+
+    function test_UnstakeVesting_ValidateOwnershipTransferBack() public {
+        // Stake with vesting
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Verify current ownership
+        assertEq(
+            MockVestingWallet(mockVestingWallet1).owner(),
+            address(testStaking)
+        );
+        assertEq(
+            MockVestingWallet(mockVestingWallet2).owner(),
+            address(testStaking)
+        );
+
+        // Unstake with vesting
+        vm.startPrank(user1);
+        axSumr.approve(address(testStaking), STAKE_AMOUNT + (STAKE_AMOUNT / 2));
+        testStaking.unstakeVesting();
+        vm.stopPrank();
+
+        // Verify ownership transferred back to user
+        assertEq(MockVestingWallet(mockVestingWallet1).owner(), user1);
+        assertEq(MockVestingWallet(mockVestingWallet2).owner(), user1);
+    }
+
+    function test_StakeWithVesting_AlreadyStaked() public {
+        // First stake
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+        uint256 firstStakeAmount = axSumr.balanceOf(user1);
+
+        // Try to stake again - should revert
+        vm.expectRevert(
+            abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
+        );
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Balance should remain the same
+        assertEq(axSumr.balanceOf(user1), firstStakeAmount);
+    }
+
+    function test_UnstakeVesting_WithoutPriorStaking() public {
+        // Try to unstake without staking first
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSignature("Staking_NoVestingWalletsStaked()")
+        );
+        testStaking.unstakeVesting();
+    }
+
+    function test_StakeWithVesting_FactoryRemoved() public {
+        // Remove one factory
+        vm.prank(address(timelockA));
+        testStaking.removeVestingFactory(address(mockVestingFactory2));
+
+        // Stake with vesting - should only stake from remaining factory
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Should only receive xSumr for the wallet from the remaining factory
+        assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT);
+    }
+
+    function test_StakeWithVesting_AllFactoriesRemoved() public {
+        // Remove both factories
+        vm.startPrank(address(timelockA));
+        testStaking.removeVestingFactory(address(mockVestingFactory1));
+        testStaking.removeVestingFactory(address(mockVestingFactory2));
+        vm.stopPrank();
+
+        // Stake with vesting - should revert due to no factories
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
+        );
+        testStaking.stakeWithVesting();
+    }
+
+    function test_UnstakeVesting_AfterFactoryRemoved() public {
+        // Stake with vesting
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Remove one factory
+        vm.prank(address(timelockA));
+        testStaking.removeVestingFactory(address(mockVestingFactory2));
+
+        // Should still be able to unstake from remaining factory
+        vm.startPrank(user1);
+        axSumr.approve(address(testStaking), STAKE_AMOUNT + (STAKE_AMOUNT / 2));
+        testStaking.unstakeVesting();
+        vm.stopPrank();
+
+        // Verify ownership transferred back
+        assertEq(MockVestingWallet(mockVestingWallet1).owner(), user1);
+        assertEq(MockVestingWallet(mockVestingWallet2).owner(), user1);
+    }
+
+    function test_StakeWithVesting_ConcurrentUsers() public {
+        // give second user factory #1 wallet of user1
+        mockVestingFactory2.setVestingWallet(
+            user2,
+            address(mockVestingWallet2)
+        );
+        // Setup third user
+        address user3 = address(0x1003);
+        MockVestingWallet mockVestingWallet3 = new MockVestingWallet(
+            address(testStaking),
+            address(aSummerToken)
+        );
+        mockVestingFactory1.setVestingWallet(
+            user3,
+            address(mockVestingWallet3)
+        );
+        deal(address(aSummerToken), address(mockVestingWallet3), STAKE_AMOUNT);
+
+        // All users stake concurrently
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        vm.prank(user2);
+        testStaking.stakeWithVesting();
+
+        vm.prank(user3);
+        testStaking.stakeWithVesting();
+
+        // All should have received xSumr
+        assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT);
+        assertEq(axSumr.balanceOf(user2), STAKE_AMOUNT / 2);
+        assertEq(axSumr.balanceOf(user3), STAKE_AMOUNT);
     }
 }

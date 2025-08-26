@@ -445,10 +445,6 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         vm.stopPrank();
         stakeAndGetXSumr(alice, directAmount, true);
 
-        address payable vestingWalletV1 = payable(
-            factoryVesting.vestingWallets(alice)
-        );
-
         // Don't transfer ownership to staking - keep it with alice
         // Try to stake with vesting - should revert due to ownership
         vm.prank(alice);
@@ -538,9 +534,6 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
         address payable vestingWalletV1 = payable(
             factoryVesting.vestingWallets(alice)
-        );
-        address payable vestingWalletV2 = payable(
-            factoryVestingV2.vestingWallets(alice)
         );
 
         // Only transfer ownership of the first wallet to staking, leave second wallet unowned
@@ -700,5 +693,433 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         );
         createProposal();
         vm.stopPrank();
+    }
+
+    // ========================================
+    // VESTING UNSTAKING TESTS
+    // ========================================
+
+    function test_UnstakeVesting_UserHasNoVestingWallets() public {
+        uint256 directAmount = 1000000 * 10 ** 18;
+        stakeAndGetXSumr(alice, directAmount, true);
+
+        // Alice delegates to herself
+        vm.prank(alice);
+        axSumr.delegate(alice);
+
+        advanceTimeAndBlock();
+
+        // Attempt to unstake vesting - should revert since no vesting wallets staked
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature("Staking_NoVestingWalletsStaked()")
+        );
+        aStaking.unstakeVesting();
+    }
+
+    function test_UnstakeVesting_VestingWalletNotOwnedByStaking() public {
+        // Setup: Create vesting wallet for Alice
+        uint256 vestingAmount = 500000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
+
+        unstakeTokens(whale, vestingAmount, true);
+        vm.prank(whale);
+        aSummerToken.transfer(foundation, vestingAmount);
+
+        vm.startPrank(foundation);
+        aSummerToken.approve(address(factoryVesting), vestingAmount);
+        factoryVesting.createVestingWallet(
+            alice,
+            vestingAmount,
+            new uint256[](0),
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        vm.stopPrank();
+        stakeAndGetXSumr(alice, directAmount, true);
+
+        address payable vestingWalletV1 = payable(
+            factoryVesting.vestingWallets(alice)
+        );
+
+        vm.startPrank(alice);
+        SummerVestingWallet(vestingWalletV1).transferOwnership(
+            address(aStaking)
+        );
+        aStaking.stakeWithVesting();
+        vm.stopPrank();
+
+        // Alice delegates to herself
+        vm.prank(alice);
+        axSumr.delegate(alice);
+
+        advanceTimeAndBlock();
+
+        // Check initial voting power includes vesting
+        uint256 aliceVotingPowerBefore = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        uint256 expectedVotingPower = vestingAmount + directAmount;
+        assertEq(aliceVotingPowerBefore, expectedVotingPower);
+
+        // Change ownership of vesting wallet to someone else (simulating an issue)
+        vm.prank(address(aStaking));
+        SummerVestingWallet(vestingWalletV1).transferOwnership(bob);
+
+        // Attempt to unstake vesting - should revert due to ownership
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking__InvalidOwner(string)",
+                "Vesting wallet not owned by staking"
+            )
+        );
+        aStaking.unstakeVesting();
+
+        // Voting power should remain the same since unstaking failed
+        uint256 aliceVotingPowerAfter = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        assertEq(
+            aliceVotingPowerAfter,
+            expectedVotingPower,
+            "Voting power should remain unchanged when unstaking fails"
+        );
+    }
+
+    function test_UnstakeVesting_MixedOwnedAndUnownedWallets() public {
+        // Setup: Create two vesting wallets for Alice
+        uint256 vestingAmount1 = 500000 * 10 ** 18;
+        uint256 vestingAmount2 = 300000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
+
+        uint256 totalVestingAmount1 = vestingAmount1;
+        uint256 totalVestingAmount2 = vestingAmount2 +
+            vestingAmount2 /
+            4 +
+            vestingAmount2 /
+            2;
+        uint256 totalVestingAmount = totalVestingAmount1 + totalVestingAmount2;
+
+        unstakeTokens(whale, totalVestingAmount, true);
+        vm.prank(whale);
+        aSummerToken.transfer(foundation, totalVestingAmount);
+
+        vm.startPrank(foundation);
+        aSummerToken.approve(address(factoryVesting), totalVestingAmount1);
+        aSummerToken.approve(address(factoryVestingV2), totalVestingAmount2);
+
+        // Create first vesting wallet (V1)
+        factoryVesting.createVestingWallet(
+            alice,
+            totalVestingAmount1,
+            new uint256[](0),
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+
+        // Create second vesting wallet (V2)
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: vestingAmount2 / 4,
+                vestingPeriods: 12,
+                totalVestingAmount: vestingAmount2
+            });
+
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                1
+            );
+        performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
+            amount: vestingAmount2 / 2,
+            description: "Test goal",
+            reached: false
+        });
+
+        factoryVestingV2.createVestingWallet(
+            alice,
+            vestingParams,
+            performanceGoals
+        );
+        vm.stopPrank();
+
+        stakeAndGetXSumr(alice, directAmount, true);
+
+        address payable vestingWalletV1 = payable(
+            factoryVesting.vestingWallets(alice)
+        );
+        address payable vestingWalletV2 = payable(
+            factoryVestingV2.vestingWallets(alice)
+        );
+
+        // Transfer ownership of both wallets to staking and stake
+        vm.startPrank(alice);
+        SummerVestingWallet(vestingWalletV1).transferOwnership(
+            address(aStaking)
+        );
+        SummerVestingWallet(vestingWalletV2).transferOwnership(
+            address(aStaking)
+        );
+        aStaking.stakeWithVesting();
+        vm.stopPrank();
+
+        // Alice delegates to herself
+        vm.prank(alice);
+        axSumr.delegate(alice);
+
+        advanceTimeAndBlock();
+
+        // Check initial voting power includes both vesting wallets
+        uint256 aliceVotingPowerBefore = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        uint256 expectedVotingPower = totalVestingAmount + directAmount;
+        assertEq(aliceVotingPowerBefore, expectedVotingPower);
+
+        // Change ownership of one vesting wallet to someone else (mixed ownership)
+        vm.prank(address(aStaking));
+        SummerVestingWallet(vestingWalletV1).transferOwnership(bob);
+
+        // Attempt to unstake vesting - should revert due to mixed ownership
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking__InvalidOwner(string)",
+                "Vesting wallet not owned by staking"
+            )
+        );
+        aStaking.unstakeVesting();
+
+        // Voting power should remain the same since unstaking failed
+        uint256 aliceVotingPowerAfter = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        assertEq(
+            aliceVotingPowerAfter,
+            expectedVotingPower,
+            "Voting power should remain unchanged when unstaking fails due to mixed ownership"
+        );
+    }
+
+    function test_UnstakeVesting_SuccessfulUnstaking() public {
+        // Setup: Create vesting wallet for Alice
+        uint256 vestingAmount = 500000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
+
+        unstakeTokens(whale, vestingAmount, true);
+        vm.prank(whale);
+        aSummerToken.transfer(foundation, vestingAmount);
+
+        vm.startPrank(foundation);
+        aSummerToken.approve(address(factoryVesting), vestingAmount);
+        factoryVesting.createVestingWallet(
+            alice,
+            vestingAmount,
+            new uint256[](0),
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        vm.stopPrank();
+        stakeAndGetXSumr(alice, directAmount, true);
+
+        address payable vestingWalletV1 = payable(
+            factoryVesting.vestingWallets(alice)
+        );
+
+        vm.startPrank(alice);
+        SummerVestingWallet(vestingWalletV1).transferOwnership(
+            address(aStaking)
+        );
+        aStaking.stakeWithVesting();
+        vm.stopPrank();
+
+        // Alice delegates to herself
+        vm.prank(alice);
+        axSumr.delegate(alice);
+
+        advanceTimeAndBlock();
+
+        // Check initial voting power includes vesting
+        uint256 aliceVotingPowerBefore = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        uint256 expectedVotingPower = vestingAmount + directAmount;
+        assertEq(aliceVotingPowerBefore, expectedVotingPower);
+
+        // Successfully unstake vesting
+        vm.startPrank(alice);
+        axSumr.approve(address(aStaking), expectedVotingPower);
+        aStaking.unstakeVesting();
+        vm.stopPrank();
+
+        advanceTimeAndBlock();
+
+        // Check voting power after unstaking - should only include direct tokens
+        uint256 aliceVotingPowerAfter = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        assertEq(
+            aliceVotingPowerAfter,
+            directAmount,
+            "Voting power should only include direct tokens after unstaking"
+        );
+
+        // Verify vesting wallet ownership was transferred back to Alice
+        assertEq(
+            SummerVestingWallet(vestingWalletV1).owner(),
+            alice,
+            "Vesting wallet ownership should be transferred back to Alice"
+        );
+    }
+
+    function test_UnstakeVesting_ValidateVestingFactoryMapping() public {
+        // Setup: Create vesting wallets for Alice using both factories
+        uint256 vestingAmount1 = 500000 * 10 ** 18;
+        uint256 vestingAmount2 = 300000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
+
+        uint256 totalVestingAmount1 = vestingAmount1;
+        uint256 totalVestingAmount2 = vestingAmount2 +
+            vestingAmount2 /
+            4 +
+            vestingAmount2 /
+            2;
+        uint256 totalVestingAmount = totalVestingAmount1 + totalVestingAmount2;
+
+        unstakeTokens(whale, totalVestingAmount, true);
+        vm.prank(whale);
+        aSummerToken.transfer(foundation, totalVestingAmount);
+
+        vm.startPrank(foundation);
+        aSummerToken.approve(address(factoryVesting), totalVestingAmount1);
+        aSummerToken.approve(address(factoryVestingV2), totalVestingAmount2);
+
+        factoryVesting.createVestingWallet(
+            alice,
+            totalVestingAmount1,
+            new uint256[](0),
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: vestingAmount2 / 4,
+                vestingPeriods: 12,
+                totalVestingAmount: vestingAmount2
+            });
+
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                1
+            );
+        performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
+            amount: vestingAmount2 / 2,
+            description: "Test goal",
+            reached: false
+        });
+
+        factoryVestingV2.createVestingWallet(
+            alice,
+            vestingParams,
+            performanceGoals
+        );
+        vm.stopPrank();
+
+        stakeAndGetXSumr(alice, directAmount, true);
+
+        address payable vestingWalletV1 = payable(
+            factoryVesting.vestingWallets(alice)
+        );
+        address payable vestingWalletV2 = payable(
+            factoryVestingV2.vestingWallets(alice)
+        );
+
+        // Transfer ownership and stake
+        vm.startPrank(alice);
+        SummerVestingWallet(vestingWalletV1).transferOwnership(
+            address(aStaking)
+        );
+        SummerVestingWallet(vestingWalletV2).transferOwnership(
+            address(aStaking)
+        );
+        aStaking.stakeWithVesting();
+        vm.stopPrank();
+
+        // Alice delegates to herself
+        vm.prank(alice);
+        axSumr.delegate(alice);
+
+        advanceTimeAndBlock();
+
+        // Verify both vesting wallets are owned by staking
+        assertEq(
+            SummerVestingWallet(vestingWalletV1).owner(),
+            address(aStaking),
+            "Vesting wallet V1 should be owned by staking after staking"
+        );
+        assertEq(
+            SummerVestingWallet(vestingWalletV2).owner(),
+            address(aStaking),
+            "Vesting wallet V2 should be owned by staking after staking"
+        );
+        assertEq(
+            aStaking.getUserStakedVestingFactories(alice).length,
+            2,
+            "Alice should have 2 staked vesting factories"
+        );
+        assertEq(
+            aStaking.getUserStakedVestingFactories(alice)[1],
+            address(factoryVesting),
+            "Alice should have factory V1 in staked vesting factories"
+        );
+        assertEq(
+            aStaking.getUserStakedVestingFactories(alice)[0],
+            address(factoryVestingV2),
+            "Alice should have factory V2 in staked vesting factories"
+        );
+        // Successfully unstake vesting
+        vm.startPrank(alice);
+        axSumr.approve(address(aStaking), totalVestingAmount);
+        aStaking.unstakeVesting();
+        vm.stopPrank();
+        // Verify vesting wallet ownership was transferred back to Alice
+        assertEq(
+            SummerVestingWallet(vestingWalletV1).owner(),
+            alice,
+            "Vesting wallet V1 ownership should be transferred back to Alice after unstaking"
+        );
+        assertEq(
+            SummerVestingWallet(vestingWalletV2).owner(),
+            alice,
+            "Vesting wallet V2 ownership should be transferred back to Alice after unstaking"
+        );
+
+        // Verify factory mappings are still correct
+        assertEq(
+            factoryVesting.vestingWallets(alice),
+            vestingWalletV1,
+            "Factory V1 should still map Alice to vesting wallet V1"
+        );
+        assertEq(
+            factoryVestingV2.vestingWallets(alice),
+            vestingWalletV2,
+            "Factory V2 should still map Alice to vesting wallet V2"
+        );
+        assertEq(
+            factoryVesting.vestingWalletOwners(vestingWalletV1),
+            alice,
+            "Factory V1 should map vesting wallet V1 back to Alice"
+        );
+        assertEq(
+            factoryVestingV2.vestingWalletOwners(vestingWalletV2),
+            alice,
+            "Factory V2 should map vesting wallet V2 back to Alice"
+        );
+        assertEq(aStaking.getUserStakedVestingFactories(alice).length, 0);
     }
 }
