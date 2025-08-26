@@ -199,6 +199,7 @@ contract Staking is ProtocolAccessManaged {
 
     /**
      * @dev Internal method to stake tokens from a single vesting wallet
+     * @dev all or nothing - if user owns multiple vesting wallets - they can't stake only from some of them
      * @param _user The user address
      * @param _vestingWallet The vesting wallet address
      * @return The amount staked from this vesting wallet
@@ -217,6 +218,7 @@ contract Staking is ProtocolAccessManaged {
 
     /**
      * @dev Internal method to unstake tokens from a single vesting wallet
+     * @dev all or nothing - if user owns multiple vesting wallets - they can't unstake only from some of them
      * @param _user The user address
      * @param _vestingWallet The vesting wallet address
      * @return The amount unstaked from this vesting wallet
