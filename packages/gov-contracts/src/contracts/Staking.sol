@@ -180,10 +180,12 @@ contract Staking is ProtocolAccessManaged {
 
     function unstakeVesting() public {
         uint256 totalBalance = 0;
-        uint256 setLength = _userStakedVestingFactories[msg.sender].length();
-        for (uint256 i = 0; i < setLength; i++) {
+
+        while (_userStakedVestingFactories[msg.sender].length() > 0) {
             IMinimalVestingFactory vestingFactory = IMinimalVestingFactory(
-                _userStakedVestingFactories[msg.sender].at(i)
+                _userStakedVestingFactories[msg.sender].at(
+                    _userStakedVestingFactories[msg.sender].length() - 1
+                )
             );
             address vestingWallet = vestingFactory.vestingWallets(msg.sender);
             if (vestingWallet != address(0)) {
@@ -194,12 +196,8 @@ contract Staking is ProtocolAccessManaged {
                 );
                 totalBalance += balance;
             }
-        }
-        for (uint256 i = 0; i < setLength; i++) {
             _userStakedVestingFactories[msg.sender].remove(
-                _userStakedVestingFactories[msg.sender].at(
-                    _userStakedVestingFactories[msg.sender].length() - 1
-                )
+                address(vestingFactory)
             );
         }
         if (totalBalance > 0) {
