@@ -26,6 +26,7 @@ interface IMinimalVestingWallet {
     function balanceOf(address _user) external view returns (uint256);
     function owner() external view returns (address);
     function transferOwnership(address newOwner) external;
+    function released(address _token) external view returns (uint256);
 }
 
 /*
@@ -71,6 +72,10 @@ contract MockVestingWallet is IMinimalVestingWallet {
     function transferOwnership(address newOwner) external {
         require(msg.sender == owner, "Only owner can transfer");
         owner = newOwner;
+    }
+
+    function released(address) external pure returns (uint256) {
+        return 0;
     }
 }
 

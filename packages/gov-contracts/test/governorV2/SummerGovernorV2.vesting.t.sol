@@ -178,7 +178,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             vestingParams.totalVestingAmount +
             performanceGoals[0].amount;
 
-        unstakeTokens(whale, totalAmountV2 + totalAmountV1, true);
+        unstakeTokens(whale, 2 * (totalAmountV2 + totalAmountV1), true);
         vm.prank(whale);
         aSummerToken.transfer(foundation, totalAmountV2 + totalAmountV1);
 
@@ -241,6 +241,11 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         vm.warp(vestingParams.cliffEndTimestamp + 1);
         SummerVestingWallet(vestingWalletV2).release(address(aSummerToken));
         uint256 aliceBalanceBeforeUnstake = aSummerToken.balanceOf(alice);
+
+        // malicious actor send sumr to vesting wallet v2
+        vm.prank(whale);
+        aSummerToken.transfer(vestingWalletV2, vestingAmount / 4);
+
         // unstakeVesting
         vm.startPrank(alice);
         axSumr.approve(address(aStaking), totalAmountV2 + totalAmountV1);
@@ -262,9 +267,12 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         );
 
         assertEq(
-            sumrReceived + vestingWallets1Balance + vestingWallets2Balance,
+            sumrReceived +
+                vestingWallets1Balance +
+                vestingWallets2Balance -
+                (vestingAmount / 4),
             totalAmountV2 + totalAmountV1,
-            "Alice's sumr balance in vesting + sumr received from cliff should be equal to the total amount staked originally"
+            "Alice's sumr balance left in vesting + sumr received from cliff ( minus the sumr sent to the vesting wallet by the malicious actor) should be equal to the total amount staked originally"
         );
         assertEq(
             axSumr.balanceOf(alice),

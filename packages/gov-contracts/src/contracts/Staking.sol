@@ -27,6 +27,8 @@ interface IMinimalVestingWallet {
     function owner() external view returns (address);
     /// @dev the ownership of the vesting wallet can be trnsfered - this is used to transfer the ownership of the vesting wallet to the user
     function transferOwnership(address newOwner) external;
+    /// @dev the amount of tokens released from the vesting wallet
+    function released(address _token) external view returns (uint256);
 }
 // @dev this is a mvp for staking, it will be replaced with a more complex staking contract
 // @dev this contract will be used to stake and unstake SUMMER_TOKEN for STAKED_SUMMER_TOKEN
@@ -41,6 +43,8 @@ contract Staking is ProtocolAccessManaged {
     EnumerableSet.AddressSet private _vestingFactories;
     mapping(address user => EnumerableMap.AddressToUintMap stakedVestingFactories)
         private _userStakedVestingFactories;
+    mapping(address user => EnumerableMap.AddressToUintMap stakedVestingFactoriesReleased)
+        private _userStakedVestingFactoriesReleased;
 
     constructor(
         address _protocolAccessManager,
@@ -167,10 +171,16 @@ contract Staking is ProtocolAccessManaged {
                 )
             ) {
                 uint256 balance = _stakeVestingWallet(vestingWallet);
+                uint256 released = IMinimalVestingWallet(vestingWallet)
+                    .released(address(SUMMER_TOKEN));
                 totalBalance += balance;
                 _userStakedVestingFactories[msg.sender].set(
                     address(vestingFactory),
                     balance
+                );
+                _userStakedVestingFactoriesReleased[msg.sender].set(
+                    address(vestingFactory),
+                    released
                 );
             }
         }
@@ -192,16 +202,17 @@ contract Staking is ProtocolAccessManaged {
             ) = _userStakedVestingFactories[msg.sender].at(
                     _userStakedVestingFactories[msg.sender].length() - 1
                 );
+
             IMinimalVestingFactory vestingFactory = IMinimalVestingFactory(
                 factory
             );
             address vestingWallet = vestingFactory.vestingWallets(msg.sender);
+
             if (vestingWallet != address(0)) {
                 _unstakeVestingWallet(
                     msg.sender,
                     vestingWallet,
-                    vestingFactory,
-                    stakedBalance
+                    vestingFactory
                 );
                 totalBalance += stakedBalance;
             }
@@ -243,13 +254,11 @@ contract Staking is ProtocolAccessManaged {
      * @dev all or nothing - if user owns multiple vesting wallets - they can't unstake only from some of them
      * @param _user The user address
      * @param _vestingWallet The vesting wallet address
-     * @param _stakedBalance The amount staked from this vesting wallet ( original balance of the wallet )
      */
     function _unstakeVestingWallet(
         address _user,
         address _vestingWallet,
-        IMinimalVestingFactory _vestingFactory,
-        uint256 _stakedBalance
+        IMinimalVestingFactory _vestingFactory
     ) internal {
         if (IMinimalVestingWallet(_vestingWallet).owner() != address(this)) {
             revert Staking__InvalidOwner("Vesting wallet not owned by staking");
@@ -259,8 +268,15 @@ contract Staking is ProtocolAccessManaged {
         address originalOwner = _vestingFactory.vestingWalletOwners(
             _vestingWallet
         );
-        if (balance < _stakedBalance) {
-            SUMMER_TOKEN.safeTransfer(originalOwner, _stakedBalance - balance);
+
+        uint256 releasedAtStake = _userStakedVestingFactoriesReleased[
+            msg.sender
+        ].get(address(_vestingFactory));
+        uint256 releasedAtUnstake = IMinimalVestingWallet(_vestingWallet)
+            .released(address(SUMMER_TOKEN));
+        uint256 releasedWhileStaked = releasedAtUnstake - releasedAtStake;
+        if (releasedWhileStaked > 0) {
+            SUMMER_TOKEN.safeTransfer(originalOwner, releasedWhileStaked);
         }
         if (balance > 0 && originalOwner == _user) {
             IMinimalVestingWallet(_vestingWallet).transferOwnership(_user);
