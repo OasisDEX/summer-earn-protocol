@@ -148,6 +148,131 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
     // VESTING GOVERNANCE TESTS
     // ========================================
 
+    function test_VestingWalletVoting_UserHasVestingWallets_ReleasedTokens()
+        public
+    {
+        // Setup: Create vesting wallets for Alice
+        uint256 vestingAmount = 500000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
+
+        // Setup parameters
+        ISummerVestingWalletV2.VestingParams
+            memory vestingParams = ISummerVestingWalletV2.VestingParams({
+                cliffEndTimestamp: uint64(block.timestamp + 180 days),
+                cliffAmount: vestingAmount / 4,
+                vestingPeriods: 12,
+                totalVestingAmount: vestingAmount
+            });
+
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
+                1
+            );
+        performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
+            amount: vestingAmount / 2,
+            description: "Test goal",
+            reached: false
+        });
+        uint256 totalAmountV1 = vestingAmount;
+        uint256 totalAmountV2 = vestingParams.cliffAmount +
+            vestingParams.totalVestingAmount +
+            performanceGoals[0].amount;
+
+        unstakeTokens(whale, totalAmountV2 + totalAmountV1, true);
+        vm.prank(whale);
+        aSummerToken.transfer(foundation, totalAmountV2 + totalAmountV1);
+
+        vm.startPrank(foundation);
+        aSummerToken.approve(address(factoryVestingV2), totalAmountV2);
+        aSummerToken.approve(address(factoryVesting), totalAmountV1);
+        factoryVestingV2.createVestingWallet(
+            alice,
+            vestingParams,
+            performanceGoals
+        );
+        factoryVesting.createVestingWallet(
+            alice,
+            vestingAmount,
+            new uint256[](0),
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        vm.stopPrank();
+        stakeAndGetXSumr(alice, directAmount, true);
+
+        address payable vestingWalletV1 = payable(
+            factoryVesting.vestingWallets(alice)
+        );
+        address payable vestingWalletV2 = payable(
+            factoryVestingV2.vestingWallets(alice)
+        );
+
+        vm.startPrank(alice);
+        SummerVestingWallet(vestingWalletV1).transferOwnership(
+            address(aStaking)
+        );
+        SummerVestingWallet(vestingWalletV2).transferOwnership(
+            address(aStaking)
+        );
+        aStaking.stakeWithVesting();
+        vm.stopPrank();
+
+        // Alice delegates to herself
+        vm.prank(alice);
+        axSumr.delegate(alice);
+
+        advanceTimeAndBlock();
+
+        // Check Alice's voting power includes vesting balances
+        uint256 aliceVotingPower = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        uint256 expectedVotingPower = totalAmountV1 +
+            totalAmountV2 +
+            directAmount;
+
+        assertEq(
+            aliceVotingPower,
+            expectedVotingPower,
+            "Alice's voting power should include vesting wallet balances"
+        );
+
+        // fast forward past cliff for vesting wallet v2
+        vm.warp(vestingParams.cliffEndTimestamp + 1);
+        SummerVestingWallet(vestingWalletV2).release(address(aSummerToken));
+        uint256 aliceBalanceBeforeUnstake = aSummerToken.balanceOf(alice);
+        // unstakeVesting
+        vm.startPrank(alice);
+        axSumr.approve(address(aStaking), totalAmountV2 + totalAmountV1);
+        aStaking.unstakeVesting();
+        vm.stopPrank();
+        uint256 aliceBalanceAfterUnstake = aSummerToken.balanceOf(alice);
+        uint256 sumrReceived = aliceBalanceAfterUnstake -
+            aliceBalanceBeforeUnstake;
+        assertEq(
+            sumrReceived,
+            vestingAmount / 4,
+            "Alice should receive the cliff amount after unstaking"
+        );
+        uint256 vestingWallets1Balance = aSummerToken.balanceOf(
+            vestingWalletV1
+        );
+        uint256 vestingWallets2Balance = aSummerToken.balanceOf(
+            vestingWalletV2
+        );
+
+        assertEq(
+            sumrReceived + vestingWallets1Balance + vestingWallets2Balance,
+            totalAmountV2 + totalAmountV1,
+            "Alice's sumr balance in vesting + sumr received from cliff should be equal to the total amount staked originally"
+        );
+        assertEq(
+            axSumr.balanceOf(alice),
+            directAmount,
+            "Alice's should have only xSumr from direct staking after unstaking"
+        );
+    }
+
     function test_VestingWalletVoting_UserHasVestingWallets() public {
         // Setup: Create vesting wallets for Alice
         uint256 vestingAmount = 500000 * 10 ** 18;
@@ -235,7 +360,6 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             "Alice's voting power should include vesting wallet balances"
         );
     }
-
     function test_VestingWalletVoting_UserHasOneVestingWallet() public {
         // Setup: Create only one vesting wallet for Alice
         uint256 vestingAmount = 500000 * 10 ** 18;

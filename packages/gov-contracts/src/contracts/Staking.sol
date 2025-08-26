@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 /// @dev this is a minimal vesting factory interface
 interface IMinimalVestingFactory {
@@ -33,11 +34,12 @@ contract Staking is ProtocolAccessManaged {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
     using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     ISummerToken public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
     EnumerableSet.AddressSet private _vestingFactories;
-    mapping(address user => EnumerableSet.AddressSet stakedVestingFactories)
+    mapping(address user => EnumerableMap.AddressToUintMap stakedVestingFactories)
         private _userStakedVestingFactories;
 
     constructor(
@@ -99,14 +101,15 @@ contract Staking is ProtocolAccessManaged {
     function userStakedVestingFactories(
         address _user
     ) external view returns (address[] memory) {
-        return _userStakedVestingFactories[_user].values();
+        return _userStakedVestingFactories[_user].keys();
     }
 
     function getUserStakedVestingFactory(
         address _user,
         uint256 _index
     ) external view returns (address) {
-        return _userStakedVestingFactories[_user].at(_index);
+        (address factory, ) = _userStakedVestingFactories[_user].at(_index);
+        return factory;
     }
 
     /**
@@ -165,8 +168,9 @@ contract Staking is ProtocolAccessManaged {
             ) {
                 uint256 balance = _stakeVestingWallet(vestingWallet);
                 totalBalance += balance;
-                _userStakedVestingFactories[msg.sender].add(
-                    address(vestingFactory)
+                _userStakedVestingFactories[msg.sender].set(
+                    address(vestingFactory),
+                    balance
                 );
             }
         }
@@ -182,19 +186,24 @@ contract Staking is ProtocolAccessManaged {
         uint256 totalBalance = 0;
 
         while (_userStakedVestingFactories[msg.sender].length() > 0) {
-            IMinimalVestingFactory vestingFactory = IMinimalVestingFactory(
-                _userStakedVestingFactories[msg.sender].at(
+            (
+                address factory,
+                uint256 stakedBalance
+            ) = _userStakedVestingFactories[msg.sender].at(
                     _userStakedVestingFactories[msg.sender].length() - 1
-                )
+                );
+            IMinimalVestingFactory vestingFactory = IMinimalVestingFactory(
+                factory
             );
             address vestingWallet = vestingFactory.vestingWallets(msg.sender);
             if (vestingWallet != address(0)) {
-                uint256 balance = _unstakeVestingWallet(
+                _unstakeVestingWallet(
                     msg.sender,
                     vestingWallet,
-                    vestingFactory
+                    vestingFactory,
+                    stakedBalance
                 );
-                totalBalance += balance;
+                totalBalance += stakedBalance;
             }
             _userStakedVestingFactories[msg.sender].remove(
                 address(vestingFactory)
@@ -234,13 +243,14 @@ contract Staking is ProtocolAccessManaged {
      * @dev all or nothing - if user owns multiple vesting wallets - they can't unstake only from some of them
      * @param _user The user address
      * @param _vestingWallet The vesting wallet address
-     * @return The amount unstaked from this vesting wallet
+     * @param _stakedBalance The amount staked from this vesting wallet ( original balance of the wallet )
      */
     function _unstakeVestingWallet(
         address _user,
         address _vestingWallet,
-        IMinimalVestingFactory _vestingFactory
-    ) internal returns (uint256) {
+        IMinimalVestingFactory _vestingFactory,
+        uint256 _stakedBalance
+    ) internal {
         if (IMinimalVestingWallet(_vestingWallet).owner() != address(this)) {
             revert Staking__InvalidOwner("Vesting wallet not owned by staking");
         }
@@ -249,10 +259,12 @@ contract Staking is ProtocolAccessManaged {
         address originalOwner = _vestingFactory.vestingWalletOwners(
             _vestingWallet
         );
+        if (balance < _stakedBalance) {
+            SUMMER_TOKEN.safeTransfer(originalOwner, _stakedBalance - balance);
+        }
         if (balance > 0 && originalOwner == _user) {
             IMinimalVestingWallet(_vestingWallet).transferOwnership(_user);
         }
-        return balance;
     }
 
     function _burn(uint256 _amount) internal {
