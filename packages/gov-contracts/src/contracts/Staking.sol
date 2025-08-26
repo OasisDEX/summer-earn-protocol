@@ -83,13 +83,9 @@ contract Staking is ProtocolAccessManaged {
         _burn(_amount);
     }
 
-    /**
-     * @dev Returns the number of vesting factories
-     */
-    function getVestingFactoryCount() external view returns (uint256) {
-        return _vestingFactories.length();
+    function vestingFactories() external view returns (address[] memory) {
+        return _vestingFactories.values();
     }
-
     /**
      * @dev Returns the vesting factory at the specified index
      */
@@ -100,11 +96,19 @@ contract Staking is ProtocolAccessManaged {
         return _vestingFactories.at(index);
     }
 
-    function getUserStakedVestingFactories(
+    function userStakedVestingFactories(
         address _user
     ) external view returns (address[] memory) {
         return _userStakedVestingFactories[_user].values();
     }
+
+    function getUserStakedVestingFactory(
+        address _user,
+        uint256 _index
+    ) external view returns (address) {
+        return _userStakedVestingFactories[_user].at(_index);
+    }
+
     /**
      * @dev Adds a new vesting factory to the array
      * @param _vestingFactory The vesting factory address to add

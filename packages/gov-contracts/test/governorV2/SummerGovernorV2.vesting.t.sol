@@ -1068,17 +1068,17 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             "Vesting wallet V2 should be owned by staking after staking"
         );
         assertEq(
-            aStaking.getUserStakedVestingFactories(alice).length,
+            aStaking.userStakedVestingFactories(alice).length,
             2,
             "Alice should have 2 staked vesting factories"
         );
         assertEq(
-            aStaking.getUserStakedVestingFactories(alice)[1],
+            aStaking.userStakedVestingFactories(alice)[1],
             address(factoryVesting),
             "Alice should have factory V1 in staked vesting factories"
         );
         assertEq(
-            aStaking.getUserStakedVestingFactories(alice)[0],
+            aStaking.userStakedVestingFactories(alice)[0],
             address(factoryVestingV2),
             "Alice should have factory V2 in staked vesting factories"
         );
@@ -1120,6 +1120,6 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             alice,
             "Factory V2 should map vesting wallet V2 back to Alice"
         );
-        assertEq(aStaking.getUserStakedVestingFactories(alice).length, 0);
+        assertEq(aStaking.userStakedVestingFactories(alice).length, 0);
     }
 }

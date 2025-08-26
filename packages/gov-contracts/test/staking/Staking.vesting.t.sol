@@ -477,22 +477,22 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
             "User2 should have received xSumr"
         );
         assertEq(
-            testStaking.getUserStakedVestingFactories(user1).length,
+            testStaking.userStakedVestingFactories(user1).length,
             1,
             "User1 should have 1 staked vesting factory"
         );
         assertEq(
-            testStaking.getUserStakedVestingFactories(user2).length,
+            testStaking.userStakedVestingFactories(user2).length,
             1,
             "User2 should have 1 staked vesting factory"
         );
         assertEq(
-            testStaking.getUserStakedVestingFactories(user1)[0],
+            testStaking.userStakedVestingFactories(user1)[0],
             address(mockVestingFactory2),
             "User1 should have factory 2 in staked vesting factories"
         );
         assertEq(
-            testStaking.getUserStakedVestingFactories(user2)[0],
+            testStaking.userStakedVestingFactories(user2)[0],
             address(mockVestingFactory1),
             "User2 should have factory 1 in staked vesting factories"
         );

@@ -24,7 +24,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
     function test_GetVestingFactoryCount_InitialState() public {
         // Initially should have 2 vesting factories from setup
         assertEq(
-            aStaking.getVestingFactoryCount(),
+            aStaking.vestingFactories().length,
             2,
             "Should have 2 vesting factories initially"
         );
@@ -70,7 +70,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
 
         // Check count increased
         assertEq(
-            aStaking.getVestingFactoryCount(),
+            aStaking.vestingFactories().length,
             3,
             "Should have 3 vesting factories after adding one"
         );
@@ -119,7 +119,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
         vm.prank(address(timelockA));
         aStaking.addVestingFactory(newVestingFactory1);
 
-        uint256 initialCount = aStaking.getVestingFactoryCount();
+        uint256 initialCount = aStaking.vestingFactories().length;
         assertEq(initialCount, 3, "Should have 3 factories before removal");
 
         // Remove the factory
@@ -130,7 +130,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
 
         // Check count decreased
         assertEq(
-            aStaking.getVestingFactoryCount(),
+            aStaking.vestingFactories().length,
             2,
             "Should have 2 vesting factories after removal"
         );
@@ -184,7 +184,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
 
         // Check count
         assertEq(
-            aStaking.getVestingFactoryCount(),
+            aStaking.vestingFactories().length,
             4,
             "Should have 4 factories after adding 2"
         );
@@ -195,7 +195,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
 
         // Check count decreased
         assertEq(
-            aStaking.getVestingFactoryCount(),
+            aStaking.vestingFactories().length,
             3,
             "Should have 3 factories after removing 1"
         );
@@ -206,14 +206,14 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
 
         // Check final count
         assertEq(
-            aStaking.getVestingFactoryCount(),
+            aStaking.vestingFactories().length,
             2,
             "Should have 2 factories (back to original)"
         );
     }
 
     function test_VestingFactoryManagement_CompleteWorkflow() public {
-        uint256 initialCount = aStaking.getVestingFactoryCount();
+        uint256 initialCount = aStaking.vestingFactories().length;
 
         // Add factories
         vm.startPrank(address(timelockA));
@@ -221,7 +221,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
         aStaking.addVestingFactory(newVestingFactory2);
         vm.stopPrank();
 
-        uint256 afterAddCount = aStaking.getVestingFactoryCount();
+        uint256 afterAddCount = aStaking.vestingFactories().length;
         assertEq(
             afterAddCount,
             initialCount + 2,
@@ -243,7 +243,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
         aStaking.removeVestingFactory(newVestingFactory2);
         vm.stopPrank();
 
-        uint256 finalCount = aStaking.getVestingFactoryCount();
+        uint256 finalCount = aStaking.vestingFactories().length;
         assertEq(
             finalCount,
             initialCount,
@@ -261,7 +261,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
         aStaking.removeVestingFactory(address(factoryVestingV2));
 
         // Check that we can still access remaining factories
-        uint256 count = aStaking.getVestingFactoryCount();
+        uint256 count = aStaking.vestingFactories().length;
         assertEq(count, 2, "Should have 2 factories after add and remove");
 
         // Verify remaining factories are still accessible
@@ -284,7 +284,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
 
         // Add factory1
         aStaking.addVestingFactory(newVestingFactory1);
-        assertEq(aStaking.getVestingFactoryCount(), 3);
+        assertEq(aStaking.vestingFactories().length, 3);
 
         // Try to add factory1 again - should fail
         vm.expectRevert(abi.encodeWithSignature("Staking_DuplicateFactory()"));
@@ -292,15 +292,15 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
 
         // Add factory2
         aStaking.addVestingFactory(newVestingFactory2);
-        assertEq(aStaking.getVestingFactoryCount(), 4);
+        assertEq(aStaking.vestingFactories().length, 4);
 
         // Remove factory1
         aStaking.removeVestingFactory(newVestingFactory1);
-        assertEq(aStaking.getVestingFactoryCount(), 3);
+        assertEq(aStaking.vestingFactories().length, 3);
 
         // Now we can add factory1 again
         aStaking.addVestingFactory(newVestingFactory1);
-        assertEq(aStaking.getVestingFactoryCount(), 4);
+        assertEq(aStaking.vestingFactories().length, 4);
 
         vm.stopPrank();
     }

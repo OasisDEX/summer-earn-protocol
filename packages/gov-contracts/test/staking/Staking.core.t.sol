@@ -65,7 +65,7 @@ contract StakingCoreTest is SummerGovernorV2TestBase {
 
         assertEq(address(newStaking.SUMMER_TOKEN()), address(aSummerToken));
         assertEq(address(newStaking.STAKED_SUMMER_TOKEN()), address(axSumr));
-        assertEq(newStaking.getVestingFactoryCount(), 2);
+        assertEq(newStaking.vestingFactories().length, 2);
         assertEq(newStaking.getVestingFactory(0), address(factoryVestingV2));
         assertEq(newStaking.getVestingFactory(1), address(factoryVesting));
     }
@@ -144,7 +144,7 @@ contract StakingCoreTest is SummerGovernorV2TestBase {
             vestingFactories
         );
 
-        assertEq(newStaking.getVestingFactoryCount(), 0);
+        assertEq(newStaking.vestingFactories().length, 0);
     }
 
     function test_Constructor_SingleVestingFactory() public {
@@ -158,7 +158,7 @@ contract StakingCoreTest is SummerGovernorV2TestBase {
             vestingFactories
         );
 
-        assertEq(newStaking.getVestingFactoryCount(), 1);
+        assertEq(newStaking.vestingFactories().length, 1);
         assertEq(newStaking.getVestingFactory(0), address(factoryVestingV2));
     }
 
@@ -175,7 +175,7 @@ contract StakingCoreTest is SummerGovernorV2TestBase {
             vestingFactories
         );
 
-        assertEq(newStaking.getVestingFactoryCount(), 3);
+        assertEq(newStaking.vestingFactories().length, 3);
         for (uint256 i = 0; i < vestingFactories.length; i++) {
             assertEq(newStaking.getVestingFactory(i), vestingFactories[i]);
         }
