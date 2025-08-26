@@ -107,7 +107,7 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
             vestingFactories
         );
 
-        // Now create vesting wallets with the staking contract address
+        // Now create vesting wallets with the staking contract address as owner (to skip the transfer ownership step)
         mockVestingWallet1 = new MockVestingWallet(
             address(testStaking),
             address(aSummerToken)
@@ -117,7 +117,7 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
             address(aSummerToken)
         );
 
-        // Setup vesting factories with wallets for users
+        // Setup vesting factories with wallets for users (so initially staking is new owner, user is original owner)
         mockVestingFactory1.setVestingWallet(
             user1,
             address(mockVestingWallet1)
@@ -162,6 +162,37 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
         // Note: tokens remain in vesting wallets, staking contract doesn't hold them
         assertEq(aSummerToken.balanceOf(address(testStaking)), 0);
     }
+
+    function test_StakeWithVesting_UserHasVestingWallets_Cycle() public {
+        // expected total from two vesting wallets
+        uint256 expectedTotal = STAKE_AMOUNT + (STAKE_AMOUNT / 2); // 1000 + 500
+
+        // Stake with vesting
+        vm.prank(user1);
+        testStaking.stakeWithVesting();
+
+        // Verify user received xSumr for total vesting balance
+        assertEq(axSumr.balanceOf(user1), expectedTotal);
+
+        // Note: tokens remain in vesting wallets, staking contract doesn't hold them
+        assertEq(aSummerToken.balanceOf(address(testStaking)), 0);
+
+        uint userSumrBalanceBefore = aSummerToken.balanceOf(user1);
+        // Unstake with vesting
+        vm.startPrank(user1);
+        axSumr.approve(address(testStaking), expectedTotal);
+        testStaking.unstakeVesting();
+        vm.stopPrank();
+
+        // Verify user received xSumr for total vesting balance
+        assertEq(aSummerToken.balanceOf(user1), userSumrBalanceBefore);
+        assertEq(MockVestingWallet(mockVestingWallet1).owner(), user1);
+        assertEq(MockVestingWallet(mockVestingWallet2).owner(), user1);
+
+        // Note: tokens remain in vesting wallets, staking contract doesn't hold them
+        assertEq(aSummerToken.balanceOf(address(testStaking)), 0);
+    }
+
     function test_StakeWithVesting_UserHasVOneVestingWallet() public {
         mockVestingFactory2.removeVestingWallet(user1);
         // expected total from two vesting wallets

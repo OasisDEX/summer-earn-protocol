@@ -37,9 +37,8 @@ contract Staking is ProtocolAccessManaged {
     ISummerToken public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
     EnumerableSet.AddressSet private _vestingFactories;
-
-    mapping(address user => mapping(address vestingFactory => bool staked))
-        public userVestingBalance;
+    mapping(address user => EnumerableSet.AddressSet stakedVestingFactories)
+        private _userStakedVestingFactories;
 
     constructor(
         address _protocolAccessManager,
@@ -81,7 +80,7 @@ contract Staking is ProtocolAccessManaged {
             _amount
         );
         SUMMER_TOKEN.safeTransfer(msg.sender, _amount);
-        _burn(msg.sender, _amount);
+        _burn(_amount);
     }
 
     /**
@@ -142,22 +141,24 @@ contract Staking is ProtocolAccessManaged {
         uint256 totalBalance = 0;
 
         for (uint256 i = 0; i < _vestingFactories.length(); i++) {
+            IMinimalVestingFactory vestingFactory = IMinimalVestingFactory(
+                _vestingFactories.at(i)
+            );
             /// @dev only the original owner of the vesting wallet can stake from it
             /// @dev if the ownership was transferred to the user - the user can't stake from it
-            address vestingWallet = IMinimalVestingFactory(
-                _vestingFactories.at(i)
-            ).vestingWallets(msg.sender);
+            address vestingWallet = vestingFactory.vestingWallets(msg.sender);
             // if the vesting wallet is not empty and the user has not staked from this vesting factory yet
             if (
                 vestingWallet != address(0) &&
-                !userVestingBalance[msg.sender][_vestingFactories.at(i)]
+                !_userStakedVestingFactories[msg.sender].contains(
+                    address(vestingFactory)
+                )
             ) {
-                uint256 balance = _stakeVestingWallet(
-                    msg.sender,
-                    vestingWallet
-                );
+                uint256 balance = _stakeVestingWallet(vestingWallet);
                 totalBalance += balance;
-                userVestingBalance[msg.sender][_vestingFactories.at(i)] = true;
+                _userStakedVestingFactories[msg.sender].add(
+                    address(vestingFactory)
+                );
             }
         }
 
@@ -170,28 +171,35 @@ contract Staking is ProtocolAccessManaged {
 
     function unstakeVesting() public {
         uint256 totalBalance = 0;
-
-        for (uint256 i = 0; i < _vestingFactories.length(); i++) {
-            address vestingWallet = IMinimalVestingFactory(
-                _vestingFactories.at(i)
-            ).vestingWallets(msg.sender);
-            if (
-                vestingWallet != address(0) &&
-                userVestingBalance[msg.sender][_vestingFactories.at(i)]
-            ) {
+        uint256 setLength = _userStakedVestingFactories[msg.sender].length();
+        for (uint256 i = 0; i < setLength; i++) {
+            IMinimalVestingFactory vestingFactory = IMinimalVestingFactory(
+                _userStakedVestingFactories[msg.sender].at(i)
+            );
+            address vestingWallet = vestingFactory.vestingWallets(msg.sender);
+            if (vestingWallet != address(0)) {
                 uint256 balance = _unstakeVestingWallet(
                     msg.sender,
                     vestingWallet,
-                    IMinimalVestingFactory(_vestingFactories.at(i))
+                    vestingFactory
                 );
                 totalBalance += balance;
-                userVestingBalance[msg.sender][_vestingFactories.at(i)] = false;
             }
         }
-
+        for (uint256 i = 0; i < setLength; i++) {
+            _userStakedVestingFactories[msg.sender].remove(
+                _userStakedVestingFactories[msg.sender].at(
+                    _userStakedVestingFactories[msg.sender].length() - 1
+                )
+            );
+        }
         if (totalBalance > 0) {
-            SUMMER_TOKEN.safeTransfer(msg.sender, totalBalance);
-            _burn(msg.sender, totalBalance);
+            STAKED_SUMMER_TOKEN.safeTransferFrom(
+                msg.sender,
+                address(this),
+                totalBalance
+            );
+            _burn(totalBalance);
         } else {
             revert Staking_NoVestingWalletsStaked();
         }
@@ -200,14 +208,12 @@ contract Staking is ProtocolAccessManaged {
     /**
      * @dev Internal method to stake tokens from a single vesting wallet
      * @dev all or nothing - if user owns multiple vesting wallets - they can't stake only from some of them
-     * @param _user The user address
      * @param _vestingWallet The vesting wallet address
      * @return The amount staked from this vesting wallet
      */
     function _stakeVestingWallet(
-        address _user,
         address _vestingWallet
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         if (IMinimalVestingWallet(_vestingWallet).owner() != address(this)) {
             revert Staking__InvalidOwner("Vesting wallet not owned by staking");
         }
@@ -233,16 +239,16 @@ contract Staking is ProtocolAccessManaged {
         }
 
         uint256 balance = SUMMER_TOKEN.balanceOf(_vestingWallet);
-        address previousOwner = _vestingFactory.vestingWalletOwners(
+        address originalOwner = _vestingFactory.vestingWalletOwners(
             _vestingWallet
         );
-        if (balance > 0 && previousOwner == _user) {
+        if (balance > 0 && originalOwner == _user) {
             IMinimalVestingWallet(_vestingWallet).transferOwnership(_user);
         }
         return balance;
     }
 
-    function _burn(address _user, uint256 _amount) internal {
+    function _burn(uint256 _amount) internal {
         IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burn(_amount);
     }
 
