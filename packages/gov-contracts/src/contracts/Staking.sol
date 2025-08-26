@@ -10,7 +10,9 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 /// @dev this is a minimal vesting factory interface
 interface IMinimalVestingFactory {
+    /// @dev each user can have a single vesting wallet - the balance of the vesting wallet can only go down
     function vestingWallets(address _user) external view returns (address);
+    /// @dev the owner of the vesting wallet
     function vestingWalletOwners(
         address _wallet
     ) external view returns (address);
@@ -18,8 +20,11 @@ interface IMinimalVestingFactory {
 
 /// @dev this is a minimal vesting wallet interface
 interface IMinimalVestingWallet {
+    /// @dev the balance of the vesting wallet can only go down - if it goes up - tokens were sent to the wallet (unintended bhavior)
     function balanceOf(address _user) external view returns (uint256);
+    /// @dev the current owner of the vesting wallet ( might be different that owner in the factory contract)
     function owner() external view returns (address);
+    /// @dev the ownership of the vesting wallet can be trnsfered - this is used to transfer the ownership of the vesting wallet to the user
     function transferOwnership(address newOwner) external;
 }
 // @dev this is a mvp for staking, it will be replaced with a more complex staking contract
@@ -32,6 +37,9 @@ contract Staking is ProtocolAccessManaged {
     ISummerToken public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
     EnumerableSet.AddressSet private _vestingFactories;
+
+    mapping(address user => mapping(address vestingFactory => bool staked))
+        public userVestingBalance;
 
     constructor(
         address _protocolAccessManager,
@@ -132,52 +140,60 @@ contract Staking is ProtocolAccessManaged {
 
     function stakeWithVesting() public {
         uint256 totalBalance = 0;
-        bool hasVestingWallet = false;
 
         for (uint256 i = 0; i < _vestingFactories.length(); i++) {
+            /// @dev only the original owner of the vesting wallet can stake from it
+            /// @dev if the ownership was transferred to the user - the user can't stake from it
             address vestingWallet = IMinimalVestingFactory(
                 _vestingFactories.at(i)
             ).vestingWallets(msg.sender);
-            if (vestingWallet != address(0)) {
-                totalBalance += _stakeVestingWallet(msg.sender, vestingWallet);
-                hasVestingWallet = true;
+            // if the vesting wallet is not empty and the user has not staked from this vesting factory yet
+            if (
+                vestingWallet != address(0) &&
+                !userVestingBalance[msg.sender][_vestingFactories.at(i)]
+            ) {
+                uint256 balance = _stakeVestingWallet(
+                    msg.sender,
+                    vestingWallet
+                );
+                totalBalance += balance;
+                userVestingBalance[msg.sender][_vestingFactories.at(i)] = true;
             }
-        }
-
-        if (!hasVestingWallet) {
-            revert Staking_InvalidAddress("No vesting wallet found for user");
         }
 
         if (totalBalance > 0) {
             _mint(msg.sender, totalBalance);
+        } else {
+            revert Staking_VestingWalletsEmpty();
         }
     }
 
     function unstakeVesting() public {
         uint256 totalBalance = 0;
-        bool hasVestingWallet = false;
 
         for (uint256 i = 0; i < _vestingFactories.length(); i++) {
             address vestingWallet = IMinimalVestingFactory(
                 _vestingFactories.at(i)
             ).vestingWallets(msg.sender);
-            if (vestingWallet != address(0)) {
-                totalBalance += _unstakeVestingWallet(
+            if (
+                vestingWallet != address(0) &&
+                userVestingBalance[msg.sender][_vestingFactories.at(i)]
+            ) {
+                uint256 balance = _unstakeVestingWallet(
                     msg.sender,
                     vestingWallet,
                     IMinimalVestingFactory(_vestingFactories.at(i))
                 );
-                hasVestingWallet = true;
+                totalBalance += balance;
+                userVestingBalance[msg.sender][_vestingFactories.at(i)] = false;
             }
-        }
-
-        if (!hasVestingWallet) {
-            revert Staking_InvalidAddress("No vesting wallet found for user");
         }
 
         if (totalBalance > 0) {
             SUMMER_TOKEN.safeTransfer(msg.sender, totalBalance);
             _burn(msg.sender, totalBalance);
+        } else {
+            revert Staking_NoVestingWalletsStaked();
         }
     }
 
@@ -237,6 +253,9 @@ contract Staking is ProtocolAccessManaged {
     error Staking_InvalidIndex();
     error Staking_DuplicateFactory();
     error Staking_FactoryNotFound();
+    error Staking_InvalidBalance();
+    error Staking_VestingWalletsEmpty();
+    error Staking_NoVestingWalletsStaked();
 
     event VestingFactoryAdded(address indexed vestingFactory);
     event VestingFactoryRemoved(address indexed vestingFactory);
