@@ -20,19 +20,11 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         uint256 totalSupply = 1_000_000_000e18; // 1 billion tokens
         uint256 expectedQuorum = (totalSupply * QUORUM_FRACTION) / 100;
 
-        // Mint total supply
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(address(timelockA), totalSupply);
-        vm.stopPrank();
-
         // Give voting power to a voter
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
-        // Delegate voting power
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal
@@ -43,12 +35,10 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         advanceTimeForVotingDelay();
 
         // Transfer voting power to another account to test quorum
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(address(0x1), 40_000_000e18);
-        vm.stopPrank();
+        stakeAndGetXSumr(address(0x1), 40_000_000e18, true);
 
         vm.prank(address(0x1));
-        aSummerToken.delegate(address(0x1));
+        axSumr.delegate(address(0x1));
         advanceTimeAndBlock();
 
         // Cast vote
@@ -77,16 +67,15 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         uint256 quorumAmount = (totalSupply * QUORUM_FRACTION) / 100;
 
         // Give alice enough tokens to meet quorum
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(
+        stakeAndGetXSumr(
             alice,
-            quorumAmount + governorA.proposalThreshold()
+            quorumAmount + governorA.proposalThreshold(),
+            true
         );
-        vm.stopPrank();
 
         // Delegate voting power
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal
@@ -140,18 +129,14 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         uint256 quorumAmount = (totalSupply * QUORUM_FRACTION) / 100;
         uint256 belowQuorumAmount = quorumAmount - 1e18; // Just below quorum
 
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, belowQuorumAmount);
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, belowQuorumAmount, true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
@@ -186,12 +171,10 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         string memory description = "Update quorum numerator to 6%";
 
         // Setup proposer with enough voting power
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create and execute proposal
@@ -236,12 +219,10 @@ contract SummerGovernorQuorumTest is SummerGovernorV2TestBase {
         );
         string memory description = "Update to invalid quorum numerator";
 
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         vm.prank(alice);

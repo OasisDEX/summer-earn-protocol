@@ -5,7 +5,7 @@ import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
-contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
+contract SummerGovernorSettingsTest2 is SummerGovernorV2TestBase {
     // Add events at contract level
     event VotingDelaySet(uint256 oldVotingDelay, uint256 newVotingDelay);
     event VotingPeriodSet(uint256 oldVotingPeriod, uint256 newVotingPeriod);
@@ -36,12 +36,10 @@ contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
         string memory description = "Update voting delay";
 
         // Setup proposer
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create and execute proposal
@@ -54,9 +52,7 @@ contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         advanceTimeForVotingDelay();
         vm.prank(alice);
@@ -91,12 +87,10 @@ contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
         string memory description = "Update voting period";
 
         // Setup proposer
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal
@@ -109,9 +103,7 @@ contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         advanceTimeForVotingDelay();
 
@@ -152,12 +144,10 @@ contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
         string memory description = "Update proposal threshold";
 
         // Setup proposer
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal
@@ -170,9 +160,7 @@ contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         advanceTimeForVotingDelay();
 
@@ -213,12 +201,10 @@ contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
         string memory description = "Update voting period to zero";
 
         // Setup proposer
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.proposalThreshold(), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         // Create proposal
@@ -231,9 +217,7 @@ contract SummerGovernorSettingsTest is SummerGovernorV2TestBase {
         );
 
         // Give enough tokens for quorum
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         advanceTimeForVotingDelay();
 

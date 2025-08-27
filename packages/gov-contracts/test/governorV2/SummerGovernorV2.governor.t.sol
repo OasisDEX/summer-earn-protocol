@@ -8,7 +8,7 @@ import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Re
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
-contract SummerGovernorGovernorTest is SummerGovernorV2TestBase {
+contract SummerGovernorGovernorTest2 is SummerGovernorV2TestBase {
     MockERC721 public mockNFT;
     MockERC1155 public mockERC1155;
 
@@ -64,7 +64,7 @@ contract SummerGovernorGovernorTest is SummerGovernorV2TestBase {
      * ETH that could have been received through the LayerZero endpoint. This lets us test
      * the relay functionality independently of deposit restrictions.
      */
-    function test_Relay() public {
+    function test_Relay2() public {
         // Force ETH into the governor (simulating funds received through LZ endpoint)
         vm.deal(address(governorA), 1 ether);
 
@@ -90,12 +90,10 @@ contract SummerGovernorGovernorTest is SummerGovernorV2TestBase {
         string memory description = "Relay funds to bob";
 
         // Rest of the proposal flow
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         vm.prank(alice);
@@ -167,12 +165,10 @@ contract SummerGovernorGovernorTest is SummerGovernorV2TestBase {
         string memory description = "Relay with data";
 
         // Rest of proposal flow
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
+        stakeAndGetXSumr(alice, governorA.quorum(block.timestamp - 1), true);
 
         vm.prank(alice);
-        aSummerToken.delegate(alice);
+        axSumr.delegate(alice);
         advanceTimeAndBlock();
 
         vm.prank(alice);

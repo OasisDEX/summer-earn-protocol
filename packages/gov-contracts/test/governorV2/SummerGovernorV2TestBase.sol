@@ -8,6 +8,12 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
+import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
+import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
+import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
+import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 
 contract SummerGovernorV2TestBase is
     SummerTokenTestBase,
@@ -18,16 +24,25 @@ contract SummerGovernorV2TestBase is
     ExposedSummerGovernor public governorA;
     ExposedSummerGovernor public governorB;
 
+    StakedSummerToken public axSumr;
+    StakedSummerToken public bxSumr;
+    MockERC20 public testToken;
+
     uint48 public constant VOTING_DELAY = 1 days;
     uint32 public constant VOTING_PERIOD = 1 weeks;
-    uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
-    uint256 public constant QUORUM_FRACTION = 4;
+    uint256 public constant PROPOSAL_THRESHOLD = 10_000e18;
+    uint256 public constant QUORUM_FRACTION = 40;
 
     address public alice = address(0x111);
     address public bob = address(0x112);
     address public charlie = address(0x113);
     address public david = address(0x114);
     address public guardian = address(0x115);
+    address public whale = address(0x116);
+
+    address public foundation;
+    SummerVestingWalletFactory public factoryVesting;
+    SummerVestingWalletFactoryV2 public factoryVestingV2;
 
     function setUp() public virtual override {
         initializeTokenTests();
@@ -36,13 +51,34 @@ contract SummerGovernorV2TestBase is
         vm.label(bob, "Bob");
         vm.label(charlie, "Charlie");
         vm.label(david, "David");
+        vm.label(whale, "Whale");
 
-        vm.label(address(aSummerToken), "chain a token");
-        vm.label(address(bSummerToken), "chain b token");
+        foundation = makeAddr("foundation");
 
-        SummerGovernorV2.GovernorParams memory paramsA = ISummerGovernor
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantFoundationRole(address(foundation));
+        vm.stopPrank();
+
+        // Deploy factory (foundation is initial owner)
+        factoryVestingV2 = new SummerVestingWalletFactoryV2(
+            address(aSummerToken),
+            foundation
+        );
+
+        // Foundation has foundation role ( old vesting factory)
+        factoryVesting = new SummerVestingWalletFactory(
+            address(aSummerToken),
+            address(accessManagerA)
+        );
+
+        // Deploy StakedSummerToken tokens and staking contracts
+        axSumr = new StakedSummerToken(address(accessManagerA));
+        bxSumr = new StakedSummerToken(address(accessManagerB));
+        testToken = new MockERC20();
+
+        SummerGovernorV2.GovernorParams memory paramsA = ISummerGovernorV2
             .GovernorParams({
-                token: aSummerToken,
+                token: axSumr,
                 timelock: timelockA,
                 accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
@@ -53,9 +89,9 @@ contract SummerGovernorV2TestBase is
                 hubChainId: 31337,
                 initialOwner: address(timelockA)
             });
-        SummerGovernorV2.GovernorParams memory paramsB = ISummerGovernor
+        SummerGovernorV2.GovernorParams memory paramsB = ISummerGovernorV2
             .GovernorParams({
-                token: bSummerToken,
+                token: bxSumr,
                 timelock: timelockB,
                 accessManager: address(accessManagerB),
                 votingDelay: VOTING_DELAY,
@@ -69,18 +105,6 @@ contract SummerGovernorV2TestBase is
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
 
-        vm.prank(address(timelockA));
-        accessManagerA.grantDecayControllerRole(address(governorA));
-
-        vm.prank(address(timelockB));
-        accessManagerB.grantDecayControllerRole(address(governorB));
-
-        vm.label(address(governorA), "SummerGovernorV2");
-        vm.label(address(governorB), "SummerGovernorV2");
-
-        vm.label(address(timelockA), "Timelock A");
-        vm.label(address(timelockB), "Timelock B");
-
         vm.prank(owner);
         enableTransfers();
         changeTokensOwnership(address(timelockA), address(timelockB));
@@ -89,6 +113,33 @@ contract SummerGovernorV2TestBase is
         timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(governorA));
         timelockB.grantRole(timelockB.PROPOSER_ROLE(), address(governorB));
         timelockB.grantRole(timelockB.CANCELLER_ROLE(), address(governorB));
+
+        deal(
+            address(testToken),
+            whale,
+            1000000000000000000000000000000000000000
+        );
+        deal(
+            address(testToken),
+            address(timelockA),
+            1000000000000000000000000000000000000000
+        );
+        deal(
+            address(testToken),
+            address(timelockB),
+            1000000000000000000000000000000000000000
+        );
+
+        // whale gets 100% of the StakedSummerToken supply
+        vm.startPrank(address(timelockA));
+        axSumr.setStakingModule(address(timelockA));
+        axSumr.mint(whale, aSummerToken.totalSupply());
+        vm.stopPrank();
+
+        vm.startPrank(address(timelockB));
+        bxSumr.setStakingModule(address(timelockB));
+        bxSumr.mint(whale, bSummerToken.totalSupply());
+        vm.stopPrank();
 
         // Wire the governors (if needed)
         address[] memory governors = new address[](2);
@@ -99,16 +150,31 @@ contract SummerGovernorV2TestBase is
         IOAppSetPeer bOApp = IOAppSetPeer(address(governorB));
 
         // Connect governorA to governorB
-        // vm.prank(address(governorA));
         uint32 bEid_ = (bOApp.endpoint()).eid();
         vm.prank(address(timelockA));
         aOApp.setPeer(bEid_, addressToBytes32(address(bOApp)));
 
         // Connect governorB to governorA
-        // vm.prank(address(governorB));
         uint32 aEid_ = (aOApp.endpoint()).eid();
         vm.prank(address(timelockB));
         bOApp.setPeer(aEid_, addressToBytes32(address(aOApp)));
+
+        advanceTimeAndBlock();
+
+        vm.label(address(axSumr), "chain a StakedSummerToken");
+        vm.label(address(bxSumr), "chain b StakedSummerToken");
+
+        vm.label(address(governorA), "SummerGovernorV2");
+        vm.label(address(governorB), "SummerGovernorV2");
+
+        vm.label(address(timelockA), "Timelock A");
+        vm.label(address(timelockB), "Timelock B");
+
+        vm.label(address(aSummerToken), "chain a token");
+        vm.label(address(bSummerToken), "chain b token");
+        vm.label(address(testToken), "test token");
+        vm.label(address(axSumr), "chain a StakedSummerToken");
+        vm.label(address(bxSumr), "chain b StakedSummerToken");
     }
 
     /*
@@ -122,7 +188,7 @@ contract SummerGovernorV2TestBase is
             uint256[] memory values,
             bytes[] memory calldatas,
             string memory description
-        ) = createProposalParams(address(aSummerToken));
+        ) = createProposalParams(address(testToken));
 
         // Add a unique identifier to the description to ensure unique proposals
         description = string(
@@ -179,14 +245,9 @@ contract SummerGovernorV2TestBase is
         bytes[] memory calldatas,
         string memory description
     ) internal {
-        // Give Alice enough tokens to meet proposal threshold
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
-
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
-        advanceTimeAndBlock();
+        // Give Alice enough tokens to meet proposal threshold through staking
+        uint256 proposalThreshold = governorA.proposalThreshold();
+        stakeAndGetXSumr(alice, proposalThreshold, true);
 
         // Create proposal
         vm.prank(alice);
@@ -197,13 +258,11 @@ contract SummerGovernorV2TestBase is
             description
         );
 
-        // Give Alice enough tokens to meet quorum
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
-
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
+        // Give Alice enough additional tokens to meet quorum through staking
+        uint256 quorumAmount = governorA.quorum(block.timestamp - 1);
+        if (quorumAmount > proposalThreshold) {
+            stakeAndGetXSumr(alice, quorumAmount - proposalThreshold, true);
+        }
 
         advanceTimeForVotingDelay();
 
@@ -266,6 +325,34 @@ contract SummerGovernorV2TestBase is
     function advanceTimeForVotingDelay() internal {
         vm.warp(block.timestamp + VOTING_DELAY + 1);
         vm.roll(block.number + 1);
+    }
+
+    /*
+     * @dev Helper function to stake SUMMER tokens and get StakedSummerToken tokens for voting
+     * @param user The address that will receive the StakedSummerToken tokens
+     * @param amount The amount of SUMMER tokens to stake
+     * @param useChainA If true, use chain A contracts; if false, use chain B
+     */
+    function stakeAndGetXSumr(
+        address user,
+        uint256 amount,
+        bool useChainA
+    ) internal {
+        if (useChainA) {
+            // whale has 100% of the token supply
+            vm.startPrank(whale);
+            axSumr.transfer(user, amount);
+            vm.stopPrank();
+
+            // Delegate StakedSummerToken for voting
+        } else {
+            // Transfer SUMMER tokens to user first
+            vm.startPrank(whale);
+            bxSumr.transfer(user, amount);
+            vm.stopPrank();
+        }
+
+        advanceTimeAndBlock();
     }
 }
 
