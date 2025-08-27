@@ -24,6 +24,7 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
+import {SummerVestingWalletsEscrowTestBase} from "../staking/SummerVestingWalletsEscrowTestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ExposedSummerTimelockController} from "../token/SummerTokenTestBase.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -31,12 +32,13 @@ import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalle
 
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV2.sol";
+import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 
 /*
  * @title SummerGovernorTest
  * @dev Test contract for SummerGovernorV2 functionality.
  */
-contract SummerGovernorTest is SummerGovernorV2TestBase {
+contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
     // Test constants to eliminate magic numbers
     uint256 constant USER_1_VESTING_1_AMOUNT = 500000 * 10 ** 18;
     uint256 constant USER_1_VESTING_2_AMOUNT = 300000 * 10 ** 18;
@@ -99,8 +101,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
                 }
             }
 
-            unstakeTokens(whale, totalAmount, true);
-            vm.prank(whale);
+            vm.prank(address(timelockA));
             aSummerToken.transfer(foundation, totalAmount);
 
             vm.startPrank(foundation);
@@ -471,11 +472,8 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         uint256 releasedAmount = aliceBalanceAfterRelease -
             aliceBalanceBeforeRelease;
 
-        // malicious actor needs tokens to send - unstake some tokens first
-        unstakeTokens(whale, USER_1_VESTING_1_CLIFF_AMOUNT, true);
-
         // malicious actor send sumr to vesting wallet v2
-        vm.prank(whale);
+        vm.prank(address(timelockA));
         aSummerToken.transfer(vestingWalletV2, USER_1_VESTING_1_CLIFF_AMOUNT);
 
         // Check that Alice received the released cliff amount

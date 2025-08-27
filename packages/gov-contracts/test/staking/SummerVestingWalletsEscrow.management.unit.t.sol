@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Staking} from "../../src/contracts/Staking.sol";
+import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
@@ -10,14 +10,15 @@ import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
+import {ExposedSummerGovernor} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {SummerVestingWalletsEscrowTestBase} from "./SummerVestingWalletsEscrowTestBase.sol";
 
 /*
- * @title Staking Management Tests
- * @dev Test contract for Staking contract management methods.
+ * @title SummerVestingWalletsEscrow Management Tests
+ * @dev Test contract for SummerVestingWalletsEscrow contract management methods.
  */
-contract StakingManagementTest is SummerGovernorV2TestBase {
+contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
     address public newVestingFactory1 = address(0x1001);
     address public newVestingFactory2 = address(0x1002);
 
@@ -65,7 +66,7 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
         // Add a new vesting factory
         vm.prank(address(timelockA)); // Only governor can add
         vm.expectEmit(true, false, false, false);
-        emit Staking.VestingFactoryAdded(newVestingFactory1);
+        emit SummerVestingWalletsEscrow.VestingFactoryAdded(newVestingFactory1);
         aStaking.addVestingFactory(newVestingFactory1);
 
         // Check count increased
@@ -125,7 +126,9 @@ contract StakingManagementTest is SummerGovernorV2TestBase {
         // Remove the factory
         vm.prank(address(timelockA));
         vm.expectEmit(true, false, false, false);
-        emit Staking.VestingFactoryRemoved(newVestingFactory1);
+        emit SummerVestingWalletsEscrow.VestingFactoryRemoved(
+            newVestingFactory1
+        );
         aStaking.removeVestingFactory(newVestingFactory1);
 
         // Check count decreased

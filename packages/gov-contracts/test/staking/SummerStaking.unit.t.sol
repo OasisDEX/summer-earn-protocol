@@ -1,27 +1,30 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Staking} from "../../src/contracts/Staking.sol";
+import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 import {xSumr} from "../../src/contracts/xSumr.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
-
+import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /*
- * @title Staking Core Tests
- * @dev Test contract for Staking contract constructor and core functionality.
+ * @title SummerStaking Core Tests
+ * @dev Test contract for SummerStaking contract constructor and core functionality.
  */
-contract StakingCoreTest is SummerGovernorV2TestBase {
+contract SummerStakingCoreTest is SummerGovernorV2TestBase {
     address public user1 = address(0x1001);
     address public user2 = address(0x1002);
     uint256 public constant STAKE_AMOUNT = 1000 ether;
+
+    SummerStaking public aStaking;
+    SummerStaking public bStaking;
 
     function setUp() public override {
         super.setUp();
@@ -29,19 +32,34 @@ contract StakingCoreTest is SummerGovernorV2TestBase {
         // Setup test users with tokens
         deal(address(aSummerToken), user1, STAKE_AMOUNT * 2);
         deal(address(aSummerToken), user2, STAKE_AMOUNT * 2);
+
+        vm.startPrank(whale);
+        axSumr.burn(axSumr.balanceOf(whale));
+        bxSumr.burn(bxSumr.balanceOf(whale));
+        vm.stopPrank();
+
+        aStaking = new SummerStaking(
+            address(accessManagerA),
+            address(aSummerToken),
+            address(axSumr)
+        );
+        bStaking = new SummerStaking(
+            address(accessManagerB),
+            address(bSummerToken),
+            address(bxSumr)
+        );
+        vm.prank(address(timelockA));
+        axSumr.setStakingModule(address(aStaking));
+        vm.prank(address(timelockB));
+        bxSumr.setStakingModule(address(bStaking));
     }
 
     // Helper function to create a fresh staking contract for isolated tests
-    function createFreshStaking() internal returns (Staking) {
-        address[] memory vestingFactories = new address[](2);
-        vestingFactories[0] = address(factoryVestingV2);
-        vestingFactories[1] = address(factoryVesting);
-
-        Staking freshStaking = new Staking(
+    function createFreshStaking() internal returns (SummerStaking) {
+        SummerStaking freshStaking = new SummerStaking(
             address(accessManagerA),
             address(aSummerToken),
-            address(axSumr),
-            vestingFactories
+            address(axSumr)
         );
 
         // Set staking module so freshStaking can mint/burn xSumr
@@ -56,129 +74,51 @@ contract StakingCoreTest is SummerGovernorV2TestBase {
         vestingFactories[0] = address(factoryVestingV2);
         vestingFactories[1] = address(factoryVesting);
 
-        Staking newStaking = new Staking(
+        SummerStaking newStaking = new SummerStaking(
             address(accessManagerA),
             address(aSummerToken),
-            address(axSumr),
-            vestingFactories
+            address(axSumr)
         );
 
         assertEq(address(newStaking.SUMMER_TOKEN()), address(aSummerToken));
         assertEq(address(newStaking.STAKED_SUMMER_TOKEN()), address(axSumr));
-        assertEq(newStaking.vestingFactories().length, 2);
-        assertEq(newStaking.getVestingFactory(0), address(factoryVestingV2));
-        assertEq(newStaking.getVestingFactory(1), address(factoryVesting));
     }
 
     function test_Constructor_ZeroProtocolAccessManager() public {
-        address[] memory vestingFactories = new address[](0);
-
         vm.expectRevert(); // Should revert due to ProtocolAccessManaged constructor
-        new Staking(
+        new SummerStaking(
             address(0), // Zero protocol access manager
             address(aSummerToken),
-            address(axSumr),
-            vestingFactories
+            address(axSumr)
         );
     }
 
     function test_Constructor_ZeroSummerToken() public {
-        address[] memory vestingFactories = new address[](0);
-
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_InvalidAddress(string)",
                 "Summer token address cannot be zero"
             )
         );
-        new Staking(
+        new SummerStaking(
             address(accessManagerA),
             address(0), // Zero summer token
-            address(axSumr),
-            vestingFactories
+            address(axSumr)
         );
     }
 
     function test_Constructor_ZeroXSumr() public {
-        address[] memory vestingFactories = new address[](0);
-
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_InvalidAddress(string)",
                 "xSumr address cannot be zero"
             )
         );
-        new Staking(
+        new SummerStaking(
             address(accessManagerA),
             address(aSummerToken),
-            address(0), // Zero xSumr
-            vestingFactories
+            address(0) // Zero xSumr
         );
-    }
-
-    function test_Constructor_ZeroVestingFactoryAddress() public {
-        address[] memory vestingFactories = new address[](1);
-        vestingFactories[0] = address(0); // Zero address in array
-
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidAddress(string)",
-                "Vesting factory address cannot be zero"
-            )
-        );
-        new Staking(
-            address(accessManagerA),
-            address(aSummerToken),
-            address(axSumr),
-            vestingFactories
-        );
-    }
-
-    function test_Constructor_EmptyVestingFactories() public {
-        address[] memory vestingFactories = new address[](0);
-
-        Staking newStaking = new Staking(
-            address(accessManagerA),
-            address(aSummerToken),
-            address(axSumr),
-            vestingFactories
-        );
-
-        assertEq(newStaking.vestingFactories().length, 0);
-    }
-
-    function test_Constructor_SingleVestingFactory() public {
-        address[] memory vestingFactories = new address[](1);
-        vestingFactories[0] = address(factoryVestingV2);
-
-        Staking newStaking = new Staking(
-            address(accessManagerA),
-            address(aSummerToken),
-            address(axSumr),
-            vestingFactories
-        );
-
-        assertEq(newStaking.vestingFactories().length, 1);
-        assertEq(newStaking.getVestingFactory(0), address(factoryVestingV2));
-    }
-
-    function test_Constructor_MultipleVestingFactories() public {
-        address[] memory vestingFactories = new address[](3);
-        vestingFactories[0] = address(factoryVestingV2);
-        vestingFactories[1] = address(factoryVesting);
-        vestingFactories[2] = address(0x1234); // Mock address
-
-        Staking newStaking = new Staking(
-            address(accessManagerA),
-            address(aSummerToken),
-            address(axSumr),
-            vestingFactories
-        );
-
-        assertEq(newStaking.vestingFactories().length, 3);
-        for (uint256 i = 0; i < vestingFactories.length; i++) {
-            assertEq(newStaking.getVestingFactory(i), vestingFactories[i]);
-        }
     }
 
     function test_Stake_ValidAmount() public {
@@ -371,7 +311,7 @@ contract StakingCoreTest is SummerGovernorV2TestBase {
 
     function test_MultipleUsers_StakeSeparately() public {
         // Create fresh staking contract to avoid state interference
-        Staking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStaking();
 
         uint256 stakeAmount1 = STAKE_AMOUNT;
         uint256 stakeAmount2 = STAKE_AMOUNT / 2;
@@ -399,7 +339,7 @@ contract StakingCoreTest is SummerGovernorV2TestBase {
 
     function test_StakeUnstake_MultipleRounds() public {
         // Create fresh staking contract to avoid state interference
-        Staking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStaking();
 
         uint256 stakeAmount = STAKE_AMOUNT / 4;
 

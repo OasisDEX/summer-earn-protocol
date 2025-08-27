@@ -12,7 +12,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {SummerGovernorV2TestBase, ExposedSummerGovernor} from "./SummerGovernorV2TestBase.sol";
 import {ILayerZeroEndpointV2} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import {xSumr} from "../../src/contracts/xSumr.sol";
-import {Staking} from "../../src/contracts/Staking.sol";
+import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 
 contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
     using OptionsBuilder for bytes;
@@ -26,12 +26,6 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
 
         axSumr = new xSumr(address(accessManagerA));
         address[] memory emptyVestingFactories = new address[](0);
-        aStaking = new Staking(
-            address(accessManagerA),
-            address(aSummerToken),
-            address(axSumr),
-            emptyVestingFactories
-        );
 
         // Set up Governor A (Hub Chain)
         SummerGovernorV2.GovernorParams memory paramsA = ISummerGovernorV2
@@ -52,12 +46,7 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
 
         useNetworkB();
         bxSumr = new xSumr(address(accessManagerB));
-        bStaking = new Staking(
-            address(accessManagerB),
-            address(bSummerToken),
-            address(bxSumr),
-            emptyVestingFactories
-        );
+
         // Set up Governor B (Satellite Chain)
         SummerGovernorV2.GovernorParams memory paramsB = ISummerGovernorV2
             .GovernorParams({
@@ -77,7 +66,6 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
         // Set up roles and permissions
         useNetworkA();
         vm.startPrank(address(timelockA));
-        axSumr.setStakingModule(address(aStaking));
 
         accessManagerA.grantDecayControllerRole(address(governorA));
         timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));
@@ -86,7 +74,6 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
 
         useNetworkB();
         vm.startPrank(address(timelockB));
-        bxSumr.setStakingModule(address(bStaking));
         accessManagerB.grantDecayControllerRole(address(governorB));
         timelockB.grantRole(timelockB.PROPOSER_ROLE(), address(governorB));
         // So, we can cancel via cross-chain proposals
@@ -117,9 +104,14 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(whale, aSummerToken.totalSupply());
         vm.stopPrank();
-        vm.startPrank(address(whale));
-        aSummerToken.approve(address(aStaking), aSummerToken.totalSupply());
-        aStaking.stake(aSummerToken.totalSupply());
+        vm.startPrank(address(timelockA));
+        axSumr.setStakingModule(address(timelockA));
+        axSumr.mint(whale, aSummerToken.totalSupply());
+        vm.stopPrank();
+
+        vm.startPrank(address(timelockB));
+        bxSumr.setStakingModule(address(timelockB));
+        bxSumr.mint(whale, bSummerToken.totalSupply());
         vm.stopPrank();
         advanceTimeAndBlock();
     }

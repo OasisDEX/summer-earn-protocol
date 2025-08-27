@@ -8,31 +8,12 @@ import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {IMinimalVestingFactory} from "../interfaces/IMinimalVestingFactory.sol";
+import {IMinimalVestingWallet} from "../interfaces/IMinimalVestingWallet.sol";
 
-/// @dev this is a minimal vesting factory interface
-interface IMinimalVestingFactory {
-    /// @dev each user can have a single vesting wallet - the balance of the vesting wallet can only go down
-    function vestingWallets(address _user) external view returns (address);
-    /// @dev the owner of the vesting wallet
-    function vestingWalletOwners(
-        address _wallet
-    ) external view returns (address);
-}
-
-/// @dev this is a minimal vesting wallet interface
-interface IMinimalVestingWallet {
-    /// @dev the balance of the vesting wallet can only go down - if it goes up - tokens were sent to the wallet (unintended bhavior)
-    function balanceOf(address _user) external view returns (uint256);
-    /// @dev the current owner of the vesting wallet ( might be different that owner in the factory contract)
-    function owner() external view returns (address);
-    /// @dev the ownership of the vesting wallet can be trnsfered - this is used to transfer the ownership of the vesting wallet to the user
-    function transferOwnership(address newOwner) external;
-    /// @dev the amount of tokens released from the vesting wallet
-    function released(address _token) external view returns (uint256);
-}
 // @dev this is a mvp for staking, it will be replaced with a more complex staking contract
 // @dev this contract will be used to stake and unstake SUMMER_TOKEN for STAKED_SUMMER_TOKEN
-contract Staking is ProtocolAccessManaged {
+contract SummerVestingWalletsEscrow is ProtocolAccessManaged {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -72,21 +53,6 @@ contract Staking is ProtocolAccessManaged {
             }
             _vestingFactories.add(_initialVestingFactories[i]);
         }
-    }
-
-    function stake(uint256 _amount) public {
-        SUMMER_TOKEN.safeTransferFrom(msg.sender, address(this), _amount);
-        _mint(msg.sender, _amount);
-    }
-
-    function unstake(uint256 _amount) public {
-        STAKED_SUMMER_TOKEN.safeTransferFrom(
-            msg.sender,
-            address(this),
-            _amount
-        );
-        SUMMER_TOKEN.safeTransfer(msg.sender, _amount);
-        _burn(_amount);
     }
 
     function vestingFactories() external view returns (address[] memory) {

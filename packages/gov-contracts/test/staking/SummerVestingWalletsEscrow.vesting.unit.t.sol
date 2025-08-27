@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {Staking} from "../../src/contracts/Staking.sol";
+import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
@@ -13,25 +13,13 @@ import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-
-// Import the minimal interfaces from Staking contract
-interface IMinimalVestingFactory {
-    function vestingWallets(address _user) external view returns (address);
-    function vestingWalletOwners(
-        address _wallet
-    ) external view returns (address);
-}
-
-interface IMinimalVestingWallet {
-    function balanceOf(address _user) external view returns (uint256);
-    function owner() external view returns (address);
-    function transferOwnership(address newOwner) external;
-    function released(address _token) external view returns (uint256);
-}
+import {SummerVestingWalletsEscrowTestBase} from "./SummerVestingWalletsEscrowTestBase.sol";
+import {IMinimalVestingFactory} from "../../src/interfaces/IMinimalVestingFactory.sol";
+import {IMinimalVestingWallet} from "../../src/interfaces/IMinimalVestingWallet.sol";
 
 /*
- * @title Staking Vesting Tests
- * @dev Test contract for Staking contract vesting functionality.
+ * @title SummerVestingWalletsEscrow Vesting Tests
+ * @dev Test contract for SummerVestingWalletsEscrow contract vesting functionality.
  */
 
 // Mock Vesting Factory for testing
@@ -80,20 +68,19 @@ contract MockVestingWallet is IMinimalVestingWallet {
 }
 
 /*
- * @title Staking Vesting Tests
- * @dev Test contract for Staking contract vesting functionality.
+ * @title SummerVestingWalletsEscrow Vesting Tests
+ * @dev Test contract for SummerVestingWalletsEscrow contract vesting functionality.
  */
-contract StakingVestingTest is SummerGovernorV2TestBase {
+contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
     address public user1 = address(0x1001);
     address public user2 = address(0x1002);
-    uint256 public constant STAKE_AMOUNT = 1000 ether;
 
     MockVestingFactory public mockVestingFactory1;
     MockVestingFactory public mockVestingFactory2;
     MockVestingWallet public mockVestingWallet1;
     MockVestingWallet public mockVestingWallet2;
 
-    Staking public testStaking;
+    SummerVestingWalletsEscrow public testStaking;
 
     function setUp() public override {
         super.setUp();
@@ -107,7 +94,7 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
         vestingFactories[0] = address(mockVestingFactory1);
         vestingFactories[1] = address(mockVestingFactory2);
 
-        testStaking = new Staking(
+        testStaking = new SummerVestingWalletsEscrow(
             address(accessManagerA),
             address(aSummerToken),
             address(axSumr),
@@ -358,7 +345,7 @@ contract StakingVestingTest is SummerGovernorV2TestBase {
                 "Vesting factory address cannot be zero"
             )
         );
-        new Staking(
+        new SummerVestingWalletsEscrow(
             address(accessManagerA),
             address(aSummerToken),
             address(axSumr),
