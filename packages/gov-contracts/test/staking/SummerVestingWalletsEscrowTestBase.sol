@@ -15,10 +15,6 @@ contract SummerVestingWalletsEscrowTestBase is SummerGovernorV2TestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        // // Setup test users with tokens
-        // deal(address(aSummerToken), user1, STAKE_AMOUNT * 2);
-        // deal(address(aSummerToken), user2, STAKE_AMOUNT * 2);
-
         address[] memory emptyVestingFactories = new address[](0);
         address[] memory vestingFactories = new address[](2);
         vestingFactories[0] = address(factoryVestingV2);

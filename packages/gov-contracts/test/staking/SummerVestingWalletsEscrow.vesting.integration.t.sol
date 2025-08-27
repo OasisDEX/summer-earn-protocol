@@ -23,7 +23,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
+import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {SummerVestingWalletsEscrowTestBase} from "../staking/SummerVestingWalletsEscrowTestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ExposedSummerTimelockController} from "../token/SummerTokenTestBase.sol";
