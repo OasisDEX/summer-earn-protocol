@@ -6,7 +6,7 @@ import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
-import {xSumr} from "../../src/contracts/xSumr.sol";
+import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -62,7 +62,7 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
             address(axSumr)
         );
 
-        // Set staking module so freshStaking can mint/burn xSumr
+        // Set staking module so freshStaking can mint/burn StakedSummerToken
         vm.prank(address(timelockA));
         axSumr.setStakingModule(address(freshStaking));
 
@@ -111,13 +111,13 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_InvalidAddress(string)",
-                "xSumr address cannot be zero"
+                "StakedSummerToken address cannot be zero"
             )
         );
         new SummerStaking(
             address(accessManagerA),
             address(aSummerToken),
-            address(0) // Zero xSumr
+            address(0) // Zero StakedSummerToken
         );
     }
 
@@ -206,7 +206,7 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         );
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
-        // Approve staking contract to burn xSumr
+        // Approve staking contract to burn StakedSummerToken
         vm.prank(user1);
         axSumr.approve(address(aStaking), stakeAmount);
 
@@ -237,7 +237,7 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         vm.prank(user1);
         aStaking.unstake(0);
 
-        // xSumr balance should remain unchanged
+        // StakedSummerToken balance should remain unchanged
         assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT);
     }
 

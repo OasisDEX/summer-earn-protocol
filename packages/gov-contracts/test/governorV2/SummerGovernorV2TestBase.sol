@@ -9,7 +9,7 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
-import {xSumr} from "../../src/contracts/xSumr.sol";
+import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
@@ -24,8 +24,8 @@ contract SummerGovernorV2TestBase is
     ExposedSummerGovernor public governorA;
     ExposedSummerGovernor public governorB;
 
-    xSumr public axSumr;
-    xSumr public bxSumr;
+    StakedSummerToken public axSumr;
+    StakedSummerToken public bxSumr;
     MockERC20 public testToken;
 
     uint48 public constant VOTING_DELAY = 1 days;
@@ -71,9 +71,9 @@ contract SummerGovernorV2TestBase is
             address(accessManagerA)
         );
 
-        // Deploy xSumr tokens and staking contracts
-        axSumr = new xSumr(address(accessManagerA));
-        bxSumr = new xSumr(address(accessManagerB));
+        // Deploy StakedSummerToken tokens and staking contracts
+        axSumr = new StakedSummerToken(address(accessManagerA));
+        bxSumr = new StakedSummerToken(address(accessManagerB));
         testToken = new MockERC20();
 
         SummerGovernorV2.GovernorParams memory paramsA = ISummerGovernorV2
@@ -130,7 +130,7 @@ contract SummerGovernorV2TestBase is
             1000000000000000000000000000000000000000
         );
 
-        // whale gets 100% of the xSumr supply
+        // whale gets 100% of the StakedSummerToken supply
         vm.startPrank(address(timelockA));
         axSumr.setStakingModule(address(timelockA));
         axSumr.mint(whale, aSummerToken.totalSupply());
@@ -161,8 +161,8 @@ contract SummerGovernorV2TestBase is
 
         advanceTimeAndBlock();
 
-        vm.label(address(axSumr), "chain a xSumr");
-        vm.label(address(bxSumr), "chain b xSumr");
+        vm.label(address(axSumr), "chain a StakedSummerToken");
+        vm.label(address(bxSumr), "chain b StakedSummerToken");
 
         vm.label(address(governorA), "SummerGovernorV2");
         vm.label(address(governorB), "SummerGovernorV2");
@@ -173,8 +173,8 @@ contract SummerGovernorV2TestBase is
         vm.label(address(aSummerToken), "chain a token");
         vm.label(address(bSummerToken), "chain b token");
         vm.label(address(testToken), "test token");
-        vm.label(address(axSumr), "chain a xSumr");
-        vm.label(address(bxSumr), "chain b xSumr");
+        vm.label(address(axSumr), "chain a StakedSummerToken");
+        vm.label(address(bxSumr), "chain b StakedSummerToken");
     }
 
     /*
@@ -328,8 +328,8 @@ contract SummerGovernorV2TestBase is
     }
 
     /*
-     * @dev Helper function to stake SUMMER tokens and get xSumr tokens for voting
-     * @param user The address that will receive the xSumr tokens
+     * @dev Helper function to stake SUMMER tokens and get StakedSummerToken tokens for voting
+     * @param user The address that will receive the StakedSummerToken tokens
      * @param amount The amount of SUMMER tokens to stake
      * @param useChainA If true, use chain A contracts; if false, use chain B
      */
@@ -344,7 +344,7 @@ contract SummerGovernorV2TestBase is
             axSumr.transfer(user, amount);
             vm.stopPrank();
 
-            // Delegate xSumr for voting
+            // Delegate StakedSummerToken for voting
         } else {
             // Transfer SUMMER tokens to user first
             vm.startPrank(whale);

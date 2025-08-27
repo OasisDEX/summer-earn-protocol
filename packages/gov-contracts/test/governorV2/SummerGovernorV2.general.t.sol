@@ -62,7 +62,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
      * Ensures that a proposal can be created successfully.
      */
     function test_ProposalCreation() public {
-        // Stake tokens to get xSumr for voting rights
+        // Stake tokens to get StakedSummerToken for voting rights
         uint256 requiredAmount = governorA.quorum(block.timestamp - 1) * 2;
         stakeAndGetXSumr(alice, requiredAmount, true);
         vm.prank(alice);
@@ -81,7 +81,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
      * Verifies that votes are correctly cast and counted.
      */
     function test_Voting() public {
-        // Stake tokens to get xSumr for proposal threshold
+        // Stake tokens to get StakedSummerToken for proposal threshold
         uint256 proposalThreshold = governorA.proposalThreshold();
         stakeAndGetXSumr(alice, proposalThreshold, true);
         vm.prank(alice);
@@ -104,7 +104,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
      * Covers proposal creation, voting, queueing, execution, and result verification.
      */
     function test_ProposalExecution() public {
-        // Stake tokens to get xSumr for quorum
+        // Stake tokens to get StakedSummerToken for quorum
         uint256 quorumAmount = governorA.quorum(block.timestamp - 1) * 2;
         stakeAndGetXSumr(alice, quorumAmount, true);
         vm.prank(alice);

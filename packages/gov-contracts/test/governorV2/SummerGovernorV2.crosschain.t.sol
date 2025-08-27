@@ -11,7 +11,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SummerGovernorV2TestBase, ExposedSummerGovernor} from "./SummerGovernorV2TestBase.sol";
 import {ILayerZeroEndpointV2} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
-import {xSumr} from "../../src/contracts/xSumr.sol";
+import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 
 contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
@@ -24,7 +24,7 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
 
         useNetworkA();
 
-        axSumr = new xSumr(address(accessManagerA));
+        axSumr = new StakedSummerToken(address(accessManagerA));
         address[] memory emptyVestingFactories = new address[](0);
 
         // Set up Governor A (Hub Chain)
@@ -45,7 +45,7 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
         governorA = new ExposedSummerGovernor(paramsA);
 
         useNetworkB();
-        bxSumr = new xSumr(address(accessManagerB));
+        bxSumr = new StakedSummerToken(address(accessManagerB));
 
         // Set up Governor B (Satellite Chain)
         SummerGovernorV2.GovernorParams memory paramsB = ISummerGovernorV2

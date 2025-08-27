@@ -39,7 +39,9 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged {
             );
         }
         if (_xSumr == address(0)) {
-            revert Staking_InvalidAddress("xSumr address cannot be zero");
+            revert Staking_InvalidAddress(
+                "StakedSummerToken address cannot be zero"
+            );
         }
 
         SUMMER_TOKEN = ISummerToken(_summerToken);

@@ -49,7 +49,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
             axSumr.delegate(user);
         }
         vm.stopPrank();
-        // SummerGovernorV2TestBase gives the whale 100% of the xSumr supply
+        // SummerGovernorV2TestBase gives the whale 100% of the StakedSummerToken supply
         // to make the tests easier and make total gov token invariant we burn the amount of tokens
         // that are staked for the user
         vm.startPrank(whale);
@@ -91,7 +91,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
             address(axSumr)
         );
 
-        // Set staking module so aStaking can mint/burn xSumr
+        // Set staking module so aStaking can mint/burn StakedSummerToken
         vm.prank(address(timelockA));
         axSumr.setStakingModule(address(aStaking));
 
@@ -514,7 +514,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
 
         advanceTimeAndBlock();
 
-        // Alice transfers some xSumr to Bob
+        // Alice transfers some StakedSummerToken to Bob
         uint256 transferAmount = stakeAmount / 4;
         vm.prank(alice);
         axSumr.transfer(bob, transferAmount);

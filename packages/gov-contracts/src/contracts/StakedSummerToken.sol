@@ -11,7 +11,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 
-contract xSumr is
+contract StakedSummerToken is
     IStakedSummerToken,
     ERC20Burnable,
     ERC20Pausable,
@@ -28,8 +28,8 @@ contract xSumr is
     constructor(
         address _protocolAccessManager
     )
-        ERC20("xSumr", "xSUMR")
-        ERC20Permit("xSumr")
+        ERC20("StakedSummerToken", "xSUMR")
+        ERC20Permit("StakedSummerToken")
         ProtocolAccessManaged(_protocolAccessManager)
     {}
 

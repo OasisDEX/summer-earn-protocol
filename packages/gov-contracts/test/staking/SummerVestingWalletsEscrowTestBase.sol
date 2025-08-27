@@ -53,7 +53,7 @@ contract SummerVestingWalletsEscrowTestBase is SummerGovernorV2TestBase {
                 vestingFactories
             );
 
-        // Set staking module so freshStaking can mint/burn xSumr
+        // Set staking module so freshStaking can mint/burn StakedSummerToken
         vm.prank(address(timelockA));
         axSumr.setStakingModule(address(freshStaking));
 

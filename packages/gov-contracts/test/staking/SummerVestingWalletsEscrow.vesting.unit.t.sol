@@ -6,7 +6,7 @@ import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
-import {xSumr} from "../../src/contracts/xSumr.sol";
+import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 import {Test, console} from "forge-std/Test.sol";
@@ -121,7 +121,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
             address(mockVestingWallet2)
         );
 
-        // Set staking module so testStaking can mint/burn xSumr
+        // Set staking module so testStaking can mint/burn StakedSummerToken
         vm.prank(address(timelockA));
         axSumr.setStakingModule(address(testStaking));
 
@@ -158,7 +158,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Verify user received xSumr for total vesting balance
+        // Verify user received StakedSummerToken for total vesting balance
         assertEq(axSumr.balanceOf(user1), expectedTotal);
 
         // Note: tokens remain in vesting wallets, staking contract doesn't hold them
@@ -173,7 +173,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Verify user received xSumr for total vesting balance
+        // Verify user received StakedSummerToken for total vesting balance
         assertEq(axSumr.balanceOf(user1), expectedTotal);
 
         // Note: tokens remain in vesting wallets, staking contract doesn't hold them
@@ -186,7 +186,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         testStaking.unstakeVesting();
         vm.stopPrank();
 
-        // Verify user received xSumr for total vesting balance
+        // Verify user received StakedSummerToken for total vesting balance
         assertEq(aSummerToken.balanceOf(user1), userSumrBalanceBefore);
         assertEq(MockVestingWallet(mockVestingWallet1).owner(), user1);
         assertEq(MockVestingWallet(mockVestingWallet2).owner(), user1);
@@ -204,7 +204,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Verify user received xSumr for total vesting balance
+        // Verify user received StakedSummerToken for total vesting balance
         assertEq(axSumr.balanceOf(user1), expectedTotal);
 
         // Note: tokens remain in vesting wallets, staking contract doesn't hold them
@@ -235,7 +235,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         );
         testStaking.stakeWithVesting();
 
-        // Verify user received 0 xSumr (empty vesting wallets)
+        // Verify user received 0 StakedSummerToken (empty vesting wallets)
         assertEq(axSumr.balanceOf(user1), 0);
         // Note: tokens don't actually move to staking contract
     }
@@ -324,10 +324,10 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Verify user received xSumr for the amounts
+        // Verify user received StakedSummerToken for the amounts
         assertEq(axSumr.balanceOf(user1), amount1 + amount2);
         // Note: tokens don't actually move from vesting wallets to staking contract
-        // The staking contract just checks ownership and mints xSumr
+        // The staking contract just checks ownership and mints StakedSummerToken
     }
 
     // ========================================
@@ -411,7 +411,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Verify user received xSumr for total vesting balance
+        // Verify user received StakedSummerToken for total vesting balance
         assertEq(axSumr.balanceOf(user1), expectedTotal);
 
         // Verify factory mappings are still correct
@@ -457,16 +457,16 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user2);
         testStaking.stakeWithVesting();
 
-        // Both should have received xSumr
+        // Both should have received StakedSummerToken
         assertEq(
             axSumr.balanceOf(user1),
             STAKE_AMOUNT / 2,
-            "User1 should have received xSumr"
+            "User1 should have received StakedSummerToken"
         );
         assertEq(
             axSumr.balanceOf(user2),
             STAKE_AMOUNT * 2,
-            "User2 should have received xSumr"
+            "User2 should have received StakedSummerToken"
         );
         assertEq(
             testStaking.userStakedVestingFactories(user1).length,
@@ -507,7 +507,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         testStaking.unstakeVesting();
         vm.stopPrank();
 
-        // Verify xSumr was burned from user and staking contract has no xSumr
+        // Verify StakedSummerToken was burned from user and staking contract has no StakedSummerToken
         assertEq(axSumr.balanceOf(user1), 0);
         assertEq(axSumr.balanceOf(address(testStaking)), stakingXSumrBefore);
     }
@@ -524,7 +524,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Verify user received xSumr for large amounts
+        // Verify user received StakedSummerToken for large amounts
         assertEq(axSumr.balanceOf(user1), largeAmount1 + largeAmount2);
     }
 
@@ -533,7 +533,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Transfer some xSumr to another user
+        // Transfer some StakedSummerToken to another user
         vm.prank(user1);
         axSumr.transfer(user2, STAKE_AMOUNT / 4);
 
@@ -561,7 +561,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Should receive xSumr for the non-zero balance wallet only
+        // Should receive StakedSummerToken for the non-zero balance wallet only
         assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT + 1);
     }
 
@@ -626,7 +626,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         testStaking.stakeWithVesting();
 
-        // Should only receive xSumr for the wallet from the remaining factory
+        // Should only receive StakedSummerToken for the wallet from the remaining factory
         assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT);
     }
 
@@ -693,7 +693,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user3);
         testStaking.stakeWithVesting();
 
-        // All should have received xSumr
+        // All should have received StakedSummerToken
         assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT);
         assertEq(axSumr.balanceOf(user2), STAKE_AMOUNT / 2);
         assertEq(axSumr.balanceOf(user3), STAKE_AMOUNT);

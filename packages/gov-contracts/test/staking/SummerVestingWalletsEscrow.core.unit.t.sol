@@ -6,7 +6,7 @@ import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
-import {xSumr} from "../../src/contracts/xSumr.sol";
+import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -74,13 +74,13 @@ contract StakingCoreTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_InvalidAddress(string)",
-                "xSumr address cannot be zero"
+                "StakedSummerToken address cannot be zero"
             )
         );
         new SummerVestingWalletsEscrow(
             address(accessManagerA),
             address(aSummerToken),
-            address(0), // Zero xSumr
+            address(0), // Zero StakedSummerToken
             vestingFactories
         );
     }
