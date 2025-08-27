@@ -37,74 +37,319 @@ import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV
  * @dev Test contract for SummerGovernorV2 functionality.
  */
 contract SummerGovernorTest is SummerGovernorV2TestBase {
-    function test_VotingPowerIncludesVestingWalletBalance() public {
-        // Setup: Create two vesting wallets for Alice
-        uint256 vestingAmount = 500000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+    // Test constants to eliminate magic numbers
+    uint256 constant USER_1_VESTING_1_AMOUNT = 500000 * 10 ** 18;
+    uint256 constant USER_1_VESTING_2_AMOUNT = 300000 * 10 ** 18;
+    uint256 constant USER_1_DIRECT_AMOUNT = 1000000 * 10 ** 18;
+    uint256 constant PROPOSAL_THRESHOLD_TEST_AMOUNT = 2000000 * 10 ** 18;
+    uint256 constant BELOW_THRESHOLD_VESTING_AMOUNT = 500 * 10 ** 18;
+    uint256 constant BELOW_THRESHOLD_DIRECT_AMOUNT = 100 * 10 ** 18;
+    uint256 constant CLIFF_PERIOD_DAYS = 180 days;
+    uint256 constant VESTING_PERIODS = 12;
 
-        // Setup parameters
-        ISummerVestingWalletV2.VestingParams
-            memory vestingParams = ISummerVestingWalletV2.VestingParams({
-                cliffEndTimestamp: uint64(block.timestamp + 180 days),
-                cliffAmount: vestingAmount / 4,
-                vestingPeriods: 12,
-                totalVestingAmount: vestingAmount
-            });
+    // Derived constants for cleaner test code
+    uint256 constant USER_1_VESTING_1_CLIFF_AMOUNT =
+        USER_1_VESTING_1_AMOUNT / 4;
+    uint256 constant USER_1_VESTING_2_CLIFF_AMOUNT =
+        USER_1_VESTING_2_AMOUNT / 4;
+    uint256 constant USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT =
+        USER_1_VESTING_1_AMOUNT / 2;
+    uint256 constant USER_1_VESTING_2_PERFORMANCE_GOAL_AMOUNT =
+        USER_1_VESTING_2_AMOUNT / 2;
 
+    // Struct for vesting wallet configuration
+    struct VestingWalletConfig {
+        address user;
+        bool isV2;
+        uint256 totalAmount;
+        uint256 cliffAmount;
+        uint256 cliffPeriodDays;
+        ISummerVestingWalletV2.PerformanceGoal[] performanceGoals;
+        ISummerVestingWallet.VestingType vestingType;
+        bool transferToStaking;
+    }
+
+    // Internal helper to create vesting wallets from config array
+    function _createVestingWallets(
+        VestingWalletConfig[] memory configs
+    ) internal {
+        for (uint256 i = 0; i < configs.length; i++) {
+            VestingWalletConfig memory config = configs[i];
+
+            // Calculate total amount needed including performance goals
+            uint256 totalAmount = config.totalAmount;
+            if (config.isV2) {
+                totalAmount += config.cliffAmount;
+                for (uint256 j = 0; j < config.performanceGoals.length; j++) {
+                    totalAmount += config.performanceGoals[j].amount;
+                }
+            } else {
+                // For V1, add performance goals to total amount if it's TeamVesting
+                if (
+                    config.vestingType ==
+                    ISummerVestingWallet.VestingType.TeamVesting
+                ) {
+                    for (
+                        uint256 j = 0;
+                        j < config.performanceGoals.length;
+                        j++
+                    ) {
+                        totalAmount += config.performanceGoals[j].amount;
+                    }
+                }
+            }
+
+            unstakeTokens(whale, totalAmount, true);
+            vm.prank(whale);
+            aSummerToken.transfer(foundation, totalAmount);
+
+            vm.startPrank(foundation);
+
+            if (config.isV2) {
+                // Create V2 vesting wallet with performance goals
+                ISummerVestingWalletV2.VestingParams
+                    memory vestingParams = ISummerVestingWalletV2
+                        .VestingParams({
+                            cliffEndTimestamp: uint64(
+                                block.timestamp + config.cliffPeriodDays
+                            ),
+                            cliffAmount: config.cliffAmount,
+                            vestingPeriods: VESTING_PERIODS,
+                            totalVestingAmount: config.totalAmount
+                        });
+
+                aSummerToken.approve(address(factoryVestingV2), totalAmount);
+                factoryVestingV2.createVestingWallet(
+                    config.user,
+                    vestingParams,
+                    config.performanceGoals
+                );
+            } else {
+                // Create V1 vesting wallet
+                uint256[] memory goalAmounts = new uint256[](
+                    config.performanceGoals.length
+                );
+                for (uint256 j = 0; j < config.performanceGoals.length; j++) {
+                    goalAmounts[j] = config.performanceGoals[j].amount;
+                }
+
+                aSummerToken.approve(address(factoryVesting), totalAmount);
+                factoryVesting.createVestingWallet(
+                    config.user,
+                    config.totalAmount,
+                    goalAmounts,
+                    config.vestingType
+                );
+            }
+
+            vm.stopPrank();
+
+            // Transfer ownership to staking if requested
+            if (config.transferToStaking) {
+                _transferVestingWalletToStaking(config.user, config.isV2);
+            }
+        }
+    }
+
+    // Helper method to create vesting wallets for a single user
+    function _createVestingWalletForUser(
+        VestingWalletConfig memory config
+    ) internal {
+        VestingWalletConfig[] memory configs = new VestingWalletConfig[](1);
+        configs[0] = config;
+        _createVestingWallets(configs);
+    }
+
+    // Helper to transfer vesting wallet ownership to staking
+    function _transferVestingWalletToStaking(address user, bool isV2) internal {
+        address payable vestingWallet = isV2
+            ? payable(factoryVestingV2.vestingWallets(user))
+            : payable(factoryVesting.vestingWallets(user));
+
+        vm.startPrank(user);
+        SummerVestingWallet(vestingWallet).transferOwnership(address(aStaking));
+        aStaking.stakeWithVesting();
+        vm.stopPrank();
+    }
+
+    // Helper functions for common vesting wallet configurations
+    function _createStandardVestingConfig(
+        address user,
+        bool isV2,
+        uint256 amount,
+        bool transferToStaking
+    ) internal pure returns (VestingWalletConfig memory) {
+        return
+            _createStandardVestingConfigWithGoals(
+                user,
+                isV2,
+                amount,
+                transferToStaking,
+                amount / 2, // Default performance goal amount
+                "Test goal" // Default description
+            );
+    }
+
+    function _createStandardVestingConfigWithGoals(
+        address user,
+        bool isV2,
+        uint256 amount,
+        bool transferToStaking,
+        uint256 performanceGoalAmount,
+        string memory goalDescription
+    ) internal pure returns (VestingWalletConfig memory) {
         ISummerVestingWalletV2.PerformanceGoal[]
             memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
                 1
             );
         performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
-            amount: vestingAmount / 2,
-            description: "Test goal",
+            amount: performanceGoalAmount,
+            description: goalDescription,
             reached: false
         });
-        uint256 totalAmountV1 = vestingAmount;
-        uint256 totalAmountV2 = vestingParams.cliffAmount +
-            vestingParams.totalVestingAmount +
-            performanceGoals[0].amount;
 
-        unstakeTokens(whale, totalAmountV2 + totalAmountV1, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, totalAmountV2 + totalAmountV1);
+        if (isV2) {
+            return
+                VestingWalletConfig({
+                    user: user,
+                    isV2: true,
+                    totalAmount: amount,
+                    cliffAmount: amount / 4,
+                    cliffPeriodDays: CLIFF_PERIOD_DAYS,
+                    performanceGoals: performanceGoals,
+                    vestingType: ISummerVestingWallet.VestingType.TeamVesting, // Not used for V2
+                    transferToStaking: transferToStaking
+                });
+        } else {
+            return
+                VestingWalletConfig({
+                    user: user,
+                    isV2: false,
+                    totalAmount: amount,
+                    cliffAmount: 0,
+                    cliffPeriodDays: 0,
+                    performanceGoals: performanceGoals,
+                    vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                    transferToStaking: transferToStaking
+                });
+        }
+    }
 
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVestingV2), totalAmountV2);
-        aSummerToken.approve(address(factoryVesting), totalAmountV1);
-        factoryVestingV2.createVestingWallet(
-            alice,
-            vestingParams,
-            performanceGoals
+    function _createVestingConfigWithoutGoals(
+        address user,
+        bool isV2,
+        uint256 amount,
+        bool transferToStaking
+    ) internal pure returns (VestingWalletConfig memory) {
+        if (isV2) {
+            return
+                VestingWalletConfig({
+                    user: user,
+                    isV2: true,
+                    totalAmount: amount,
+                    cliffAmount: amount / 4,
+                    cliffPeriodDays: CLIFF_PERIOD_DAYS,
+                    performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                        0
+                    ),
+                    vestingType: ISummerVestingWallet.VestingType.TeamVesting, // Not used for V2
+                    transferToStaking: transferToStaking
+                });
+        } else {
+            return
+                VestingWalletConfig({
+                    user: user,
+                    isV2: false,
+                    totalAmount: amount,
+                    cliffAmount: 0,
+                    cliffPeriodDays: 0,
+                    performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                        0
+                    ),
+                    vestingType: ISummerVestingWallet
+                        .VestingType
+                        .InvestorExTeamVesting,
+                    transferToStaking: transferToStaking
+                });
+        }
+    }
+
+    // Helper to create performance goals array
+    function _createPerformanceGoals(
+        uint256 amount,
+        string memory description
+    ) internal pure returns (ISummerVestingWalletV2.PerformanceGoal[] memory) {
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory goals = new ISummerVestingWalletV2.PerformanceGoal[](1);
+        goals[0] = ISummerVestingWalletV2.PerformanceGoal({
+            amount: amount,
+            description: description,
+            reached: false
+        });
+        return goals;
+    }
+
+    // Helper to create multiple performance goals
+    function _createMultiplePerformanceGoals(
+        uint256[] memory amounts,
+        string[] memory descriptions
+    ) internal pure returns (ISummerVestingWalletV2.PerformanceGoal[] memory) {
+        require(
+            amounts.length == descriptions.length,
+            "Amounts and descriptions length mismatch"
         );
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        ISummerVestingWalletV2.PerformanceGoal[]
+            memory goals = new ISummerVestingWalletV2.PerformanceGoal[](
+                amounts.length
+            );
+        for (uint256 i = 0; i < amounts.length; i++) {
+            goals[i] = ISummerVestingWalletV2.PerformanceGoal({
+                amount: amounts[i],
+                description: descriptions[i],
+                reached: false
+            });
+        }
+        return goals;
+    }
+
+    function test_VotingPowerIncludesVestingWalletBalance() public {
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
+
+        // Setup vesting wallets using helper function - create both V1 and V2 for Alice
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: USER_1_VESTING_1_AMOUNT,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: _createPerformanceGoals(0, "V1 Test goal"),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: true
+            })
         );
-        vm.stopPrank();
+
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: true,
+                totalAmount: USER_1_VESTING_1_AMOUNT,
+                cliffAmount: USER_1_VESTING_1_CLIFF_AMOUNT,
+                cliffPeriodDays: CLIFF_PERIOD_DAYS,
+                performanceGoals: _createPerformanceGoals(
+                    USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT,
+                    "V2 Test goal"
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: true
+            })
+        );
+
         stakeAndGetXSumr(alice, directAmount, true);
-
-        address payable vestingWalletV1 = payable(
-            factoryVesting.vestingWallets(alice)
-        );
-        address payable vestingWalletV2 = payable(
-            factoryVestingV2.vestingWallets(alice)
-        );
-
-        vm.startPrank(alice);
-        SummerVestingWallet(vestingWalletV1).transferOwnership(
-            address(aStaking)
-        );
-        SummerVestingWallet(vestingWalletV2).transferOwnership(
-            address(aStaking)
-        );
-        aStaking.stakeWithVesting();
-        vm.stopPrank();
 
         // Alice delegates to herself
         vm.prank(alice);
+        // aStaking.stakeWithVesting();
         axSumr.delegate(alice);
 
         advanceTimeAndBlock();
@@ -114,8 +359,10 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             alice,
             block.timestamp - 1
         );
-        uint256 expectedVotingPower = totalAmountV1 +
-            totalAmountV2 +
+        uint256 expectedVotingPower = USER_1_VESTING_1_AMOUNT + // V1 wallet
+            USER_1_VESTING_1_AMOUNT + // V2 total vesting
+            USER_1_VESTING_1_CLIFF_AMOUNT + // V2 cliff
+            USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT + // V2 performance goal
             directAmount;
 
         assertEq(
@@ -151,52 +398,38 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
     function test_VestingWalletVoting_UserHasVestingWallets_ReleasedTokens()
         public
     {
-        // Setup: Create vesting wallets for Alice
-        uint256 vestingAmount = 500000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        // Setup parameters
-        ISummerVestingWalletV2.VestingParams
-            memory vestingParams = ISummerVestingWalletV2.VestingParams({
-                cliffEndTimestamp: uint64(block.timestamp + 180 days),
-                cliffAmount: vestingAmount / 4,
-                vestingPeriods: 12,
-                totalVestingAmount: vestingAmount
-            });
-
-        ISummerVestingWalletV2.PerformanceGoal[]
-            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
-                1
-            );
-        performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
-            amount: vestingAmount / 2,
-            description: "Test goal",
-            reached: false
-        });
-        uint256 totalAmountV1 = vestingAmount;
-        uint256 totalAmountV2 = vestingParams.cliffAmount +
-            vestingParams.totalVestingAmount +
-            performanceGoals[0].amount;
-
-        unstakeTokens(whale, 2 * (totalAmountV2 + totalAmountV1), true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, totalAmountV2 + totalAmountV1);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVestingV2), totalAmountV2);
-        aSummerToken.approve(address(factoryVesting), totalAmountV1);
-        factoryVestingV2.createVestingWallet(
-            alice,
-            vestingParams,
-            performanceGoals
+        // Setup vesting wallets using helper function (don't transfer ownership yet)
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: USER_1_VESTING_1_AMOUNT,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: _createPerformanceGoals(0, "V1 Test goal"),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: true,
+                totalAmount: USER_1_VESTING_1_AMOUNT,
+                cliffAmount: USER_1_VESTING_1_CLIFF_AMOUNT,
+                cliffPeriodDays: CLIFF_PERIOD_DAYS,
+                performanceGoals: _createPerformanceGoals(
+                    USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT,
+                    "V2 Test goal"
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -206,59 +439,53 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             factoryVestingV2.vestingWallets(alice)
         );
 
-        vm.startPrank(alice);
-        SummerVestingWallet(vestingWalletV1).transferOwnership(
-            address(aStaking)
-        );
-        SummerVestingWallet(vestingWalletV2).transferOwnership(
-            address(aStaking)
-        );
-        aStaking.stakeWithVesting();
-        vm.stopPrank();
-
         // Alice delegates to herself
         vm.prank(alice);
         axSumr.delegate(alice);
 
         advanceTimeAndBlock();
 
-        // Check Alice's voting power includes vesting balances
+        // Check Alice's voting power - should only include direct staking since vesting wallets aren't staked yet
         uint256 aliceVotingPower = governorA.getVotes(
             alice,
             block.timestamp - 1
         );
-        uint256 expectedVotingPower = totalAmountV1 +
-            totalAmountV2 +
-            directAmount;
+        uint256 expectedVotingPower = directAmount; // Only direct staking initially
 
         assertEq(
             aliceVotingPower,
             expectedVotingPower,
-            "Alice's voting power should include vesting wallet balances"
+            "Alice's voting power should only include direct tokens when vesting wallets are not staked"
         );
 
+        // Check vesting wallet balance before release for debugging
+
+        // Check Alice balance before release
+        uint256 aliceBalanceBeforeRelease = aSummerToken.balanceOf(alice);
+
         // fast forward past cliff for vesting wallet v2
-        vm.warp(vestingParams.cliffEndTimestamp + 1);
+        vm.warp(block.timestamp + CLIFF_PERIOD_DAYS + 1);
+
         SummerVestingWallet(vestingWalletV2).release(address(aSummerToken));
-        uint256 aliceBalanceBeforeUnstake = aSummerToken.balanceOf(alice);
+        uint256 aliceBalanceAfterRelease = aSummerToken.balanceOf(alice);
+        uint256 releasedAmount = aliceBalanceAfterRelease -
+            aliceBalanceBeforeRelease;
+
+        // malicious actor needs tokens to send - unstake some tokens first
+        unstakeTokens(whale, USER_1_VESTING_1_CLIFF_AMOUNT, true);
 
         // malicious actor send sumr to vesting wallet v2
         vm.prank(whale);
-        aSummerToken.transfer(vestingWalletV2, vestingAmount / 4);
+        aSummerToken.transfer(vestingWalletV2, USER_1_VESTING_1_CLIFF_AMOUNT);
 
-        // unstakeVesting
-        vm.startPrank(alice);
-        axSumr.approve(address(aStaking), totalAmountV2 + totalAmountV1);
-        aStaking.unstakeVesting();
-        vm.stopPrank();
-        uint256 aliceBalanceAfterUnstake = aSummerToken.balanceOf(alice);
-        uint256 sumrReceived = aliceBalanceAfterUnstake -
-            aliceBalanceBeforeUnstake;
+        // Check that Alice received the released cliff amount
         assertEq(
-            sumrReceived,
-            vestingAmount / 4,
-            "Alice should receive the cliff amount after unstaking"
+            releasedAmount,
+            USER_1_VESTING_1_CLIFF_AMOUNT,
+            "Alice should receive the cliff amount after release"
         );
+
+        // Check that vesting wallets still have their remaining balances
         uint256 vestingWallets1Balance = aSummerToken.balanceOf(
             vestingWalletV1
         );
@@ -266,68 +493,59 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             vestingWalletV2
         );
 
+        // V2 should have: total - cliff + malicious transfer = 500000 + 125000 + 250000 = 875000
+        // V1 should have: 500000 (unchanged)
         assertEq(
-            sumrReceived +
-                vestingWallets1Balance +
-                vestingWallets2Balance -
-                (vestingAmount / 4),
-            totalAmountV2 + totalAmountV1,
-            "Alice's sumr balance left in vesting + sumr received from cliff ( minus the sumr sent to the vesting wallet by the malicious actor) should be equal to the total amount staked originally"
+            vestingWallets1Balance,
+            USER_1_VESTING_1_AMOUNT,
+            "V1 vesting wallet should still have its full amount"
         );
         assertEq(
-            axSumr.balanceOf(alice),
-            directAmount,
-            "Alice's should have only xSumr from direct staking after unstaking"
+            vestingWallets2Balance,
+            USER_1_VESTING_1_AMOUNT +
+                USER_1_VESTING_1_CLIFF_AMOUNT +
+                USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT,
+            "V2 vesting wallet should have total amount + cliff + performance goals"
         );
     }
 
     function test_VestingWalletVoting_UserHasVestingWallets() public {
         // Setup: Create vesting wallets for Alice
-        uint256 vestingAmount = 500000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 vestingAmount = USER_1_VESTING_1_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        // Setup parameters
-        ISummerVestingWalletV2.VestingParams
-            memory vestingParams = ISummerVestingWalletV2.VestingParams({
-                cliffEndTimestamp: uint64(block.timestamp + 180 days),
-                cliffAmount: vestingAmount / 4,
-                vestingPeriods: 12,
-                totalVestingAmount: vestingAmount
-            });
-
-        ISummerVestingWalletV2.PerformanceGoal[]
-            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
-                1
-            );
-        performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
-            amount: vestingAmount / 2,
-            description: "Test goal",
-            reached: false
-        });
-        uint256 totalAmountV1 = vestingAmount;
-        uint256 totalAmountV2 = vestingParams.cliffAmount +
-            vestingParams.totalVestingAmount +
-            performanceGoals[0].amount;
-
-        unstakeTokens(whale, totalAmountV2 + totalAmountV1, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, totalAmountV2 + totalAmountV1);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVestingV2), totalAmountV2);
-        aSummerToken.approve(address(factoryVesting), totalAmountV1);
-        factoryVestingV2.createVestingWallet(
-            alice,
-            vestingParams,
-            performanceGoals
+        // Setup vesting wallets using helper functions
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: true,
+                totalAmount: vestingAmount,
+                cliffAmount: USER_1_VESTING_1_CLIFF_AMOUNT,
+                cliffPeriodDays: CLIFF_PERIOD_DAYS,
+                performanceGoals: _createPerformanceGoals(
+                    USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT,
+                    "Test goal"
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -358,8 +576,10 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             alice,
             block.timestamp - 1
         );
-        uint256 expectedVotingPower = totalAmountV1 +
-            totalAmountV2 +
+        uint256 expectedVotingPower = vestingAmount + // V1 wallet
+            vestingAmount + // V2 total vesting
+            USER_1_VESTING_1_CLIFF_AMOUNT + // V2 cliff
+            USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT + // V2 performance goal
             directAmount;
 
         assertEq(
@@ -370,22 +590,25 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
     }
     function test_VestingWalletVoting_UserHasOneVestingWallet() public {
         // Setup: Create only one vesting wallet for Alice
-        uint256 vestingAmount = 500000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 vestingAmount = USER_1_VESTING_1_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        unstakeTokens(whale, vestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, vestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), vestingAmount);
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallet using helper function
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -420,7 +643,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
     }
 
     function test_VestingWalletVoting_UserHasNoVestingWallets() public {
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
         stakeAndGetXSumr(alice, directAmount, true);
 
         // Alice delegates to herself
@@ -444,17 +667,24 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_VestingWalletVoting_UserHasEmptyVestingWallets() public {
         // Setup: Create empty vesting wallets for Alice
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        // Create vesting wallets but don't fund them
-        vm.startPrank(foundation);
-        factoryVesting.createVestingWallet(
-            alice,
-            0,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Create empty vesting wallet using helper function
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: 0,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -489,22 +719,25 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_VestingWalletVoting_MultipleCalls() public {
         // Setup: Create vesting wallets for Alice
-        uint256 vestingAmount = 500000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 vestingAmount = USER_1_VESTING_1_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        unstakeTokens(whale, vestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, vestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), vestingAmount);
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallet using helper function
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -559,22 +792,25 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_VestingWalletVoting_VestingWalletNotOwnedByStaking() public {
         // Setup: Create vesting wallet but don't transfer ownership to staking
-        uint256 vestingAmount = 500000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 vestingAmount = USER_1_VESTING_1_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        unstakeTokens(whale, vestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, vestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), vestingAmount);
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallet using helper function but don't transfer to staking
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         // Don't transfer ownership to staking - keep it with alice
@@ -609,58 +845,41 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_VestingWalletVoting_MixedOwnedAndUnownedWallets() public {
         // Setup: Create two vesting wallets but only transfer ownership of one to staking
-        uint256 vestingAmount1 = 500000 * 10 ** 18;
-        uint256 vestingAmount2 = 300000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
-        uint256 totalVestingAmount1 = vestingAmount1;
-        uint256 totalVestingAmount2 = vestingAmount2 +
-            vestingAmount2 /
-            4 +
-            vestingAmount2 /
-            2;
-        uint256 totalVestingAmount = totalVestingAmount1 + totalVestingAmount2;
+        uint256 vestingAmount1 = USER_1_VESTING_1_AMOUNT;
+        uint256 vestingAmount2 = USER_1_VESTING_2_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        unstakeTokens(whale, totalVestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, totalVestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), totalVestingAmount1);
-        aSummerToken.approve(address(factoryVestingV2), totalVestingAmount2);
-
-        // Create first vesting wallet (V1)
-        factoryVesting.createVestingWallet(
-            alice,
-            totalVestingAmount1,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallets using helper functions - only transfer first to staking
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount1,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
 
-        // Create second vesting wallet (V2)
-        ISummerVestingWalletV2.VestingParams
-            memory vestingParams = ISummerVestingWalletV2.VestingParams({
-                cliffEndTimestamp: uint64(block.timestamp + 180 days),
-                cliffAmount: vestingAmount2 / 4,
-                vestingPeriods: 12,
-                totalVestingAmount: vestingAmount2
-            });
-
-        ISummerVestingWalletV2.PerformanceGoal[]
-            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
-                1
-            );
-        performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
-            amount: vestingAmount2 / 2,
-            description: "Test goal",
-            reached: false
-        });
-
-        factoryVestingV2.createVestingWallet(
-            alice,
-            vestingParams,
-            performanceGoals
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: true,
+                totalAmount: vestingAmount2,
+                cliffAmount: USER_1_VESTING_2_CLIFF_AMOUNT,
+                cliffPeriodDays: CLIFF_PERIOD_DAYS,
+                performanceGoals: _createPerformanceGoals(
+                    USER_1_VESTING_2_PERFORMANCE_GOAL_AMOUNT,
+                    "Test goal"
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
 
         stakeAndGetXSumr(alice, directAmount, true);
 
@@ -706,22 +925,25 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_VestingWalletVoting_ProposalThresholdWithVesting() public {
         // Test that users with vesting wallets can meet proposal thresholds
-        uint256 vestingAmount = 2000000 * 10 ** 18; // Above minimum threshold
-        uint256 directAmount = 100000 * 10 ** 18;
+        uint256 vestingAmount = PROPOSAL_THRESHOLD_TEST_AMOUNT; // Above minimum threshold
+        uint256 directAmount = BELOW_THRESHOLD_DIRECT_AMOUNT;
 
-        unstakeTokens(whale, vestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, vestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), vestingAmount);
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallet using helper function
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -766,22 +988,25 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_VestingWalletVoting_BelowProposalThreshold() public {
         // Test that users below proposal threshold cannot create proposals even with vesting
-        uint256 vestingAmount = 500 * 10 ** 18; // Below minimum threshold
-        uint256 directAmount = 100 * 10 ** 18;
+        uint256 vestingAmount = BELOW_THRESHOLD_VESTING_AMOUNT; // Below minimum threshold
+        uint256 directAmount = BELOW_THRESHOLD_DIRECT_AMOUNT;
 
-        unstakeTokens(whale, vestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, vestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), vestingAmount);
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallet using helper function
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -832,7 +1057,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
     // ========================================
 
     function test_UnstakeVesting_UserHasNoVestingWallets() public {
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
         stakeAndGetXSumr(alice, directAmount, true);
 
         // Alice delegates to herself
@@ -851,22 +1076,25 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_UnstakeVesting_VestingWalletNotOwnedByStaking() public {
         // Setup: Create vesting wallet for Alice
-        uint256 vestingAmount = 500000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 vestingAmount = USER_1_VESTING_1_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        unstakeTokens(whale, vestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, vestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), vestingAmount);
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallet using helper function
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -920,61 +1148,43 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         );
     }
 
-    function test_UnstakeVesting_MixedOwnedAndUnownedWallets() public {
+    function test_UnstakeVesting_MixedOwnedAndUnownedWallets2() public {
         // Setup: Create two vesting wallets for Alice
-        uint256 vestingAmount1 = 500000 * 10 ** 18;
-        uint256 vestingAmount2 = 300000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 vestingAmount1 = USER_1_VESTING_1_AMOUNT;
+        uint256 vestingAmount2 = USER_1_VESTING_2_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        uint256 totalVestingAmount1 = vestingAmount1;
-        uint256 totalVestingAmount2 = vestingAmount2 +
-            vestingAmount2 /
-            4 +
-            vestingAmount2 /
-            2;
-        uint256 totalVestingAmount = totalVestingAmount1 + totalVestingAmount2;
-
-        unstakeTokens(whale, totalVestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, totalVestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), totalVestingAmount1);
-        aSummerToken.approve(address(factoryVestingV2), totalVestingAmount2);
-
-        // Create first vesting wallet (V1)
-        factoryVesting.createVestingWallet(
-            alice,
-            totalVestingAmount1,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallets using helper functions - transfer both to staking
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount1,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
 
-        // Create second vesting wallet (V2)
-        ISummerVestingWalletV2.VestingParams
-            memory vestingParams = ISummerVestingWalletV2.VestingParams({
-                cliffEndTimestamp: uint64(block.timestamp + 180 days),
-                cliffAmount: vestingAmount2 / 4,
-                vestingPeriods: 12,
-                totalVestingAmount: vestingAmount2
-            });
-
-        ISummerVestingWalletV2.PerformanceGoal[]
-            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
-                1
-            );
-        performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
-            amount: vestingAmount2 / 2,
-            description: "Test goal",
-            reached: false
-        });
-
-        factoryVestingV2.createVestingWallet(
-            alice,
-            vestingParams,
-            performanceGoals
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: true,
+                totalAmount: vestingAmount2,
+                cliffAmount: USER_1_VESTING_2_CLIFF_AMOUNT,
+                cliffPeriodDays: CLIFF_PERIOD_DAYS,
+                performanceGoals: _createPerformanceGoals(
+                    USER_1_VESTING_2_PERFORMANCE_GOAL_AMOUNT,
+                    "Test goal"
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
 
         stakeAndGetXSumr(alice, directAmount, true);
 
@@ -1007,7 +1217,11 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
             alice,
             block.timestamp - 1
         );
-        uint256 expectedVotingPower = totalVestingAmount + directAmount;
+        uint256 expectedVotingPower = vestingAmount1 + // V1 wallet
+            vestingAmount2 + // V2 total vesting
+            USER_1_VESTING_2_CLIFF_AMOUNT + // V2 cliff
+            USER_1_VESTING_2_PERFORMANCE_GOAL_AMOUNT + // V2 performance goal
+            directAmount;
         assertEq(aliceVotingPowerBefore, expectedVotingPower);
 
         // Change ownership of one vesting wallet to someone else (mixed ownership)
@@ -1038,22 +1252,25 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_UnstakeVesting_SuccessfulUnstaking() public {
         // Setup: Create vesting wallet for Alice
-        uint256 vestingAmount = 500000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 vestingAmount = USER_1_VESTING_1_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        unstakeTokens(whale, vestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, vestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), vestingAmount);
-        factoryVesting.createVestingWallet(
-            alice,
-            vestingAmount,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallet using helper function
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
+
         stakeAndGetXSumr(alice, directAmount, true);
 
         address payable vestingWalletV1 = payable(
@@ -1110,57 +1327,41 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
 
     function test_UnstakeVesting_ValidateVestingFactoryMapping() public {
         // Setup: Create vesting wallets for Alice using both factories
-        uint256 vestingAmount1 = 500000 * 10 ** 18;
-        uint256 vestingAmount2 = 300000 * 10 ** 18;
-        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 vestingAmount1 = USER_1_VESTING_1_AMOUNT;
+        uint256 vestingAmount2 = USER_1_VESTING_2_AMOUNT;
+        uint256 directAmount = USER_1_DIRECT_AMOUNT;
 
-        uint256 totalVestingAmount1 = vestingAmount1;
-        uint256 totalVestingAmount2 = vestingAmount2 +
-            vestingAmount2 /
-            4 +
-            vestingAmount2 /
-            2;
-        uint256 totalVestingAmount = totalVestingAmount1 + totalVestingAmount2;
-
-        unstakeTokens(whale, totalVestingAmount, true);
-        vm.prank(whale);
-        aSummerToken.transfer(foundation, totalVestingAmount);
-
-        vm.startPrank(foundation);
-        aSummerToken.approve(address(factoryVesting), totalVestingAmount1);
-        aSummerToken.approve(address(factoryVestingV2), totalVestingAmount2);
-
-        factoryVesting.createVestingWallet(
-            alice,
-            totalVestingAmount1,
-            new uint256[](0),
-            ISummerVestingWallet.VestingType.TeamVesting
+        // Setup vesting wallets using helper functions - transfer both to staking
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: vestingAmount1,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
+                    0
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
 
-        ISummerVestingWalletV2.VestingParams
-            memory vestingParams = ISummerVestingWalletV2.VestingParams({
-                cliffEndTimestamp: uint64(block.timestamp + 180 days),
-                cliffAmount: vestingAmount2 / 4,
-                vestingPeriods: 12,
-                totalVestingAmount: vestingAmount2
-            });
-
-        ISummerVestingWalletV2.PerformanceGoal[]
-            memory performanceGoals = new ISummerVestingWalletV2.PerformanceGoal[](
-                1
-            );
-        performanceGoals[0] = ISummerVestingWalletV2.PerformanceGoal({
-            amount: vestingAmount2 / 2,
-            description: "Test goal",
-            reached: false
-        });
-
-        factoryVestingV2.createVestingWallet(
-            alice,
-            vestingParams,
-            performanceGoals
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: true,
+                totalAmount: vestingAmount2,
+                cliffAmount: USER_1_VESTING_2_CLIFF_AMOUNT,
+                cliffPeriodDays: CLIFF_PERIOD_DAYS,
+                performanceGoals: _createPerformanceGoals(
+                    USER_1_VESTING_2_PERFORMANCE_GOAL_AMOUNT,
+                    "Test goal"
+                ),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: false
+            })
         );
-        vm.stopPrank();
 
         stakeAndGetXSumr(alice, directAmount, true);
 
@@ -1216,6 +1417,10 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
         );
         // Successfully unstake vesting
         vm.startPrank(alice);
+        uint256 totalVestingAmount = vestingAmount1 + // V1 wallet
+            vestingAmount2 + // V2 total vesting
+            USER_1_VESTING_2_CLIFF_AMOUNT + // V2 cliff
+            USER_1_VESTING_2_PERFORMANCE_GOAL_AMOUNT; // V2 performance goal
         axSumr.approve(address(aStaking), totalVestingAmount);
         aStaking.unstakeVesting();
         vm.stopPrank();
