@@ -74,13 +74,17 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         stakingToken = _summerToken;
     }
 
+    /**
+     * @notice Stake on behalf of another address (not supported)
+     * @dev This operation is not supported and will revert
+     */
     function stakeOnBehalfOf(address, uint256) external pure override {
         revert StakeOnBehalfOfNotSupported();
     }
 
     /**
-     * @notice No op function to satisfy interface requirements. Emits an event but performs no state changes.
-     * @dev This operation is not supported and will only emit an event
+     * @notice Unstake and withdraw on behalf of another address (not supported)
+     * @dev This operation is not supported and will revert
      */
     function unstakeAndWithdrawOnBehalfOf(
         address,
@@ -90,15 +94,30 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         revert UnstakeOnBehalfOfNotSupported();
     }
 
-    // Override stake to prevent direct usage - users must use stakeWithNewLockup
+    /**
+     * @notice Direct stake function (not allowed)
+     * @param _amount The amount to stake
+     * @dev Users must use stakeWithNewLockup instead
+     */
     function stake(uint256 _amount) public virtual override {
         revert Staking_DirectStakeNotAllowed("Use stakeWithNewLockup instead");
     }
+
+    /**
+     * @notice Direct unstake function (not allowed)
+     * @param _amount The amount to unstake
+     * @dev Users must use unstakeFromLockup instead
+     */
     function unstake(uint256 _amount) public virtual override {
         revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
     }
 
-    // Override unstake to handle proportional unstaking with lockup penalties
+    /**
+     * @notice Unstake tokens from a specific lockup with potential penalties
+     * @param _stakeIndex The index of the stake to unstake from
+     * @param _amount The amount of tokens to unstake
+     * @dev Applies penalties for early unstaking based on remaining lockup time
+     */
     function unstakeFromLockup(
         uint256 _stakeIndex,
         uint256 _amount
@@ -164,6 +183,12 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         _stakeWithLockup(_msgSender(), _msgSender(), _amount, _lockupPeriod);
     }
 
+    /**
+     * @notice Add more tokens to an existing stake
+     * @param _stakeIndex The index of the existing stake to add to
+     * @param _amount The amount of SUMMER tokens to add
+     * @dev The lockup period must still be active to add to a stake
+     */
     function addToStake(
         uint256 _stakeIndex,
         uint256 _amount
@@ -272,6 +297,13 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             weightedAmount
         );
     }
+    /**
+     * @notice Calculate the weighted stake amount based on lockup period
+     * @param _amount The base amount to stake
+     * @param _lockupPeriod The lockup period in seconds
+     * @return The weighted stake amount for reward calculations
+     * @dev Uses formula: amount * (4E-16 * time^2 + 0.05)
+     */
     function calculateWeightedStake(
         uint256 _amount,
         uint256 _lockupPeriod
@@ -444,18 +476,15 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             Constants.WAD +
             rewards[rewardToken][account];
     }
+    /**
+     * @notice Exit function to unstake all and claim rewards (not allowed)
+     * @dev Users must use unstakeFromLockup instead for individual stakes
+     */
     function exit() public pure override {
         revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
     }
     // Custom errors
     error Staking_InvalidAddress(string message);
-    error Staking_InvalidOwner(string message);
-    error Staking_InvalidIndex();
-    error Staking_DuplicateFactory();
-    error Staking_FactoryNotFound();
-    error Staking_InvalidBalance();
-    error Staking_VestingWalletsEmpty();
-    error Staking_NoVestingWalletsStaked();
     error Staking_DirectStakeNotAllowed(string message);
     error Staking_DirectUnstakeNotAllowed(string message);
     error Staking_InvalidLockupPeriod(string message);
@@ -466,8 +495,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     error Staking_MaxStakesReached();
 
     // Events
-    event VestingFactoryAdded(address indexed vestingFactory);
-    event VestingFactoryRemoved(address indexed vestingFactory);
     event StakedWithLockup(
         address indexed user,
         uint256 amount,
