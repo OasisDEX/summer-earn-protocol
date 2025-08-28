@@ -8,10 +8,12 @@ import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {WrappedStakingToken} from "./WrappedStakingToken.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
 
 // @dev Enhanced staking contract with lockup periods and reward distribution
 // @dev Users can only stake with lockup periods, rewards are calculated based on weighted stakes
-contract SummerStaking is StakingRewardsManagerBase {
+contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
 
@@ -21,58 +23,56 @@ contract SummerStaking is StakingRewardsManagerBase {
     // Lockup configuration
     uint256 public constant MAX_LOCKUP_PERIOD = 4 * 365 days; // 4 years
     uint256 public constant MIN_LOCKUP_PERIOD = 0; // No minimum lockup
+    uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
 
     // Weighted stake calculation constants
     uint256 private constant WEIGHTED_STAKE_BASE = 0.05e18; // 0.05 in WAD (18 decimals)
-    uint256 private constant WEIGHTED_STAKE_COEFFICIENT = 4e-16 * 1e18; // 4E-16 in WAD
+    uint256 private constant WEIGHTED_STAKE_COEFFICIENT =
+        (4 * Constants.WAD) / 1e16; // 4E-16 in WAD
 
     // User stake information with lockup details
     struct UserStake {
-        uint256 amount;        // Actual staked amount
+        uint256 amount; // Actual staked amount
         uint256 weightedAmount; // Weighted amount for reward calculations
         uint256 lockupEndTime; // Timestamp when lockup ends
-        uint256 lockupPeriod;  // Original lockup period in seconds
+        uint256 lockupPeriod; // Original lockup period in seconds
     }
 
     // Mapping: user => their stakes (multiple stakes allowed)
     mapping(address => UserStake[]) public userStakes;
 
-    // Mapping: user => total actual staked amount
-    mapping(address => uint256) public userTotalStaked;
-
     // Mapping: user => total weighted staked amount
-    mapping(address => uint256) public userTotalWeightedStaked;
+    mapping(address => uint256) private _weightedBalances;
 
     // Wrapped version of staking token for internal accounting
     address public immutable wrappedStakingToken;
 
     constructor(
         address _protocolAccessManager,
+        address _configurationManager,
         address _summerToken,
-        address _xSumr
-    ) StakingRewardsManagerBase(_protocolAccessManager) {
+        address _stakedSummerToken
+    )
+        StakingRewardsManagerBase(_protocolAccessManager)
+        ConfigurationManaged(_configurationManager)
+    {
         if (_summerToken == address(0)) {
             revert Staking_InvalidAddress(
                 "Summer token address cannot be zero"
             );
         }
-        if (_xSumr == address(0)) {
+        if (_stakedSummerToken == address(0)) {
             revert Staking_InvalidAddress(
                 "StakedSummerToken address cannot be zero"
             );
         }
 
         SUMMER_TOKEN = ISummerToken(_summerToken);
-        STAKED_SUMMER_TOKEN = IStakedSummerToken(_xSumr);
+        STAKED_SUMMER_TOKEN = IStakedSummerToken(_stakedSummerToken);
 
-        // Create wrapped version of staking token for internal accounting
         wrappedStakingToken = address(new WrappedStakingToken(_summerToken));
-
-        // Set the staking token for StakingRewardsManagerBase
         stakingToken = _summerToken;
     }
-
-
 
     function stakeOnBehalfOf(address, uint256) external pure override {
         revert StakeOnBehalfOfNotSupported();
@@ -90,70 +90,66 @@ contract SummerStaking is StakingRewardsManagerBase {
         revert UnstakeOnBehalfOfNotSupported();
     }
 
-    // Override stake to prevent direct usage - users must use stakeWithLockup
+    // Override stake to prevent direct usage - users must use stakeWithNewLockup
     function stake(uint256 _amount) public virtual override {
-        revert Staking_DirectStakeNotAllowed("Use stakeWithLockup instead");
+        revert Staking_DirectStakeNotAllowed("Use stakeWithNewLockup instead");
+    }
+    function unstake(uint256 _amount) public virtual override {
+        revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
     }
 
     // Override unstake to handle proportional unstaking with lockup penalties
-    function unstake(uint256 _amount) public virtual override {
+    function unstakeFromLockup(
+        uint256 _stakeIndex,
+        uint256 _amount
+    ) public virtual updateReward(_msgSender()) {
         if (_amount == 0) revert CannotUnstakeZero();
-        if (_amount > userTotalStaked[_msgSender()]) revert Staking_InsufficientBalance();
+        if (_amount > _balances[_msgSender()])
+            revert Staking_InsufficientBalance();
 
-        uint256 remainingToUnstake = _amount;
-        UserStake[] storage stakes = userStakes[_msgSender()];
-        uint256 totalPenalty = 0;
-        uint256 totalReturnAmount = 0;
+        UserStake memory processedStake = userStakes[_msgSender()][_stakeIndex];
+        if (processedStake.amount == 0) revert Staking_InvalidStakeIndex();
 
-        // Unstake proportionally from all stakes
-        for (uint256 i = 0; i < stakes.length && remainingToUnstake > 0; i++) {
-            UserStake storage currentStake = stakes[i];
-            if (currentStake.amount == 0) continue;
+        uint256 unstakePenaltyPercentage = calculatePenalty(
+            _msgSender(),
+            _stakeIndex
+        );
+        uint256 unstakePenalty = (_amount * unstakePenaltyPercentage) /
+            Constants.WAD;
 
-            uint256 amountFromThisStake = (currentStake.amount * remainingToUnstake) / userTotalStaked[_msgSender()];
-            if (amountFromThisStake > currentStake.amount) {
-                amountFromThisStake = currentStake.amount;
-            }
+        uint256 weightedAmountToRemove = (processedStake.weightedAmount *
+            _amount) / processedStake.amount;
+        processedStake.amount -= _amount;
+        processedStake.weightedAmount -= weightedAmountToRemove;
 
-            if (amountFromThisStake > 0) {
-                // Calculate penalty for this stake
-                uint256 stakePenalty = 0;
-                if (block.timestamp < currentStake.lockupEndTime) {
-                    stakePenalty = calculatePenalty(_msgSender(), i);
-                    stakePenalty = (stakePenalty * amountFromThisStake) / currentStake.amount;
-                }
+        // Update totals
+        _balances[_msgSender()] -= _amount;
+        _weightedBalances[_msgSender()] -= weightedAmountToRemove;
+        totalSupply -= weightedAmountToRemove;
 
-                // Update stake
-                uint256 weightedAmountToRemove = (currentStake.weightedAmount * amountFromThisStake) / currentStake.amount;
-                currentStake.amount -= amountFromThisStake;
-                currentStake.weightedAmount -= weightedAmountToRemove;
-
-                // Update totals
-                userTotalStaked[_msgSender()] -= amountFromThisStake;
-                userTotalWeightedStaked[_msgSender()] -= weightedAmountToRemove;
-                totalSupply -= weightedAmountToRemove;
-
-                // Accumulate penalties and return amounts
-                totalPenalty += stakePenalty;
-                totalReturnAmount += (amountFromThisStake - stakePenalty);
-
-                remainingToUnstake -= amountFromThisStake;
-
-                // Remove empty stake
-                if (currentStake.amount == 0) {
-                    _removeStake(_msgSender(), i);
-                    i--; // Adjust index after removal
-                }
-            }
+        // Remove empty processedStake
+        if (processedStake.amount == 0) {
+            delete userStakes[_msgSender()][_stakeIndex];
+        } else {
+            userStakes[_msgSender()][_stakeIndex] = processedStake;
         }
-
         // Burn staked tokens and return SUMMER tokens from wrapped token
         _burn(_amount);
-        if (totalReturnAmount > 0) {
-            WrappedStakingToken(wrappedStakingToken).withdrawTo(_msgSender(), totalReturnAmount);
-        }
 
-        emit UnstakedWithPenalty(_msgSender(), _amount, totalPenalty, totalReturnAmount);
+        WrappedStakingToken(wrappedStakingToken).withdrawTo(
+            address(this),
+            _amount
+        );
+        SUMMER_TOKEN.safeTransfer(_msgSender(), _amount - unstakePenalty);
+        SUMMER_TOKEN.safeTransfer(treasury(), unstakePenalty);
+
+        emit UnstakedWithPenalty(
+            _msgSender(),
+            _amount,
+            unstakePenalty,
+            _amount - unstakePenalty
+        );
+        emit Unstaked(_msgSender(), _msgSender(), _amount);
     }
 
     /**
@@ -161,16 +157,53 @@ contract SummerStaking is StakingRewardsManagerBase {
      * @param _amount The amount of SUMMER tokens to stake
      * @param _lockupPeriod The lockup period in seconds (0 to 4 years)
      */
-    function stakeWithLockup(uint256 _amount, uint256 _lockupPeriod) external updateReward(_msgSender()) {
-        if (_amount == 0) revert CannotStakeZero();
-        if (_lockupPeriod > MAX_LOCKUP_PERIOD) {
-            revert Staking_InvalidLockupPeriod("Lockup period cannot exceed 4 years");
-        }
-
-        // Use the wrapped token approach for staking
+    function stakeWithNewLockup(
+        uint256 _amount,
+        uint256 _lockupPeriod
+    ) external updateReward(_msgSender()) {
         _stakeWithLockup(_msgSender(), _msgSender(), _amount, _lockupPeriod);
     }
 
+    function addToStake(
+        uint256 _stakeIndex,
+        uint256 _amount
+    ) external updateReward(_msgSender()) {
+        if (_stakeIndex >= userStakes[_msgSender()].length)
+            revert Staking_InvalidStakeIndex();
+        UserStake storage existingStake = userStakes[_msgSender()][_stakeIndex];
+        if (existingStake.amount == 0) revert Staking_InvalidStakeIndex();
+        if (existingStake.lockupEndTime < block.timestamp)
+            revert Staking_InvalidLockupPeriod("Lockup period has ended");
+
+        SUMMER_TOKEN.safeTransferFrom(_msgSender(), address(this), _amount);
+        SUMMER_TOKEN.forceApprove(wrappedStakingToken, _amount);
+        WrappedStakingToken(wrappedStakingToken).depositFor(
+            address(this),
+            _amount
+        );
+
+        // Mint equivalent amount of governance tokens
+        _mint(_msgSender(), _amount);
+        uint256 remainingTime = existingStake.lockupEndTime - block.timestamp;
+        // Calculate weighted amount based on lockup period
+        uint256 weightedAmount = _calculateWeightedStake(
+            _amount,
+            remainingTime
+        );
+
+        existingStake.amount += _amount;
+        existingStake.weightedAmount += weightedAmount;
+        _balances[_msgSender()] += _amount;
+        _weightedBalances[_msgSender()] += weightedAmount;
+        totalSupply += weightedAmount;
+        emit Staked(_msgSender(), _msgSender(), _amount);
+        emit StakedWithLockup(
+            _msgSender(),
+            _amount,
+            remainingTime,
+            weightedAmount
+        );
+    }
     /**
      * @notice Internal function to stake with lockup
      * @param _from The address to transfer tokens from
@@ -178,17 +211,39 @@ contract SummerStaking is StakingRewardsManagerBase {
      * @param _amount The amount of SUMMER tokens to stake
      * @param _lockupPeriod The lockup period in seconds
      */
-    function _stakeWithLockup(address _from, address _receiver, uint256 _amount, uint256 _lockupPeriod) internal {
+    function _stakeWithLockup(
+        address _from,
+        address _receiver,
+        uint256 _amount,
+        uint256 _lockupPeriod
+    ) internal {
+        if (_receiver == address(0)) revert CannotStakeToZeroAddress();
+        if (_lockupPeriod > MAX_LOCKUP_PERIOD) {
+            revert Staking_InvalidLockupPeriod(
+                "Lockup period cannot exceed 4 years"
+            );
+        }
+        if (_amount == 0) revert CannotStakeZero();
+        if (userStakes[_receiver].length >= MAX_AMOUNT_OF_STAKES) {
+            revert Staking_MaxStakesReached();
+        }
+
         // Transfer SUMMER tokens from user to contract and wrap them
         SUMMER_TOKEN.safeTransferFrom(_from, address(this), _amount);
         SUMMER_TOKEN.forceApprove(wrappedStakingToken, _amount);
-        WrappedStakingToken(wrappedStakingToken).depositFor(address(this), _amount);
+        WrappedStakingToken(wrappedStakingToken).depositFor(
+            address(this),
+            _amount
+        );
 
-        // Mint equivalent amount of staked tokens
+        // Mint equivalent amount of governance tokens
         _mint(_receiver, _amount);
 
         // Calculate weighted amount based on lockup period
-        uint256 weightedAmount = _calculateWeightedStake(_amount, _lockupPeriod);
+        uint256 weightedAmount = _calculateWeightedStake(
+            _amount,
+            _lockupPeriod
+        );
 
         // Create new stake entry
         UserStake memory newStake = UserStake({
@@ -202,42 +257,49 @@ contract SummerStaking is StakingRewardsManagerBase {
         userStakes[_receiver].push(newStake);
 
         // Update user's total staked amounts
-        userTotalStaked[_receiver] += _amount;
-        userTotalWeightedStaked[_receiver] += weightedAmount;
+        _balances[_receiver] += _amount;
+        _weightedBalances[_receiver] += weightedAmount;
 
         // Update global totals (weighted amount for reward calculations)
+        // totalSupply is used in rewardPerToken function that we can't override
         totalSupply += weightedAmount;
 
-        emit StakedWithLockup(_receiver, _amount, _lockupPeriod, weightedAmount);
+        emit Staked(_from, _receiver, _amount);
+        emit StakedWithLockup(
+            _receiver,
+            _amount,
+            _lockupPeriod,
+            weightedAmount
+        );
     }
-
-    /**
-     * @notice Calculate weighted stake amount based on lockup period
-     * @param _amount The actual stake amount
-     * @param _lockupPeriod The lockup period in seconds
-     * @return The weighted stake amount
-     * @dev Formula: amount * (4E-16 * time^2 + 0.05)
-     */
-    function calculateWeightedStake(uint256 _amount, uint256 _lockupPeriod) external pure returns (uint256) {
+    function calculateWeightedStake(
+        uint256 _amount,
+        uint256 _lockupPeriod
+    ) public view returns (uint256) {
         return _calculateWeightedStake(_amount, _lockupPeriod);
     }
-
-    function _calculateWeightedStake(uint256 _amount, uint256 _lockupPeriod) internal pure returns (uint256) {
+    function _calculateWeightedStake(
+        uint256 _amount,
+        uint256 _lockupPeriod
+    ) internal pure returns (uint256) {
         if (_lockupPeriod == 0) {
             // No weighting for 0 lockup
             return _amount;
         }
 
         // Calculate time squared (in WAD format)
-        uint256 timeSquared = (_lockupPeriod * _lockupPeriod * 1e18) / 1e18;
+        uint256 timeSquared = (_lockupPeriod * _lockupPeriod * Constants.WAD) /
+            Constants.WAD;
 
         // Calculate multiplier: 4E-16 * time^2 + 0.05
         // 4E-16 = 4 * 10^-16 = 4e-16
-        // In WAD: 4e-16 * 1e18 = 4e2 = 400
-        uint256 multiplier = (WEIGHTED_STAKE_COEFFICIENT * timeSquared) / 1e18 + WEIGHTED_STAKE_BASE;
+        // In WAD: 4e-16 * Constants.WAD = 4e2 = 400
+        uint256 multiplier = (WEIGHTED_STAKE_COEFFICIENT * timeSquared) /
+            Constants.WAD +
+            WEIGHTED_STAKE_BASE;
 
         // Apply multiplier to amount
-        return (_amount * multiplier) / 1e18;
+        return (_amount * multiplier) / Constants.WAD;
     }
 
     /**
@@ -245,26 +307,28 @@ contract SummerStaking is StakingRewardsManagerBase {
      * @param account The address to check balance for
      * @return The weighted stake balance
      */
-    function balanceOf(address account) public view virtual override returns (uint256) {
-        return userTotalWeightedStaked[account];
-    }
-
-    /**
-     * @notice Get the actual staked amount (not weighted) for a user
-     * @param account The address to check balance for
-     * @return The actual staked amount
-     */
-    function actualBalanceOf(address account) external view returns (uint256) {
-        return userTotalStaked[account];
+    function weightedBalanceOf(
+        address account
+    ) public view virtual returns (uint256) {
+        return _weightedBalances[account];
     }
 
     /**
      * @notice Calculate penalty for early unstaking
      * @param _stakeIndex The index of the stake to calculate penalty for
-     * @return The penalty amount
-     * @dev Penalty is proportional to time remaining in lockup period
+     * @return The penalty amount in WAD
+     * @dev Penalty formula: penalty = weighted_amount × 50% × (time_remaining / original_lockup_period)
+     * @dev Examples:
+     *      - 4-year lockup, unstake immediately: 50% penalty
+     *      - 4-year lockup, unstake after 2 years: 25% penalty
+     *      - 4-year lockup, unstake after 4 years: 0% penalty
+     *      - 1-year lockup, unstake immediately: 12.5% penalty
+     *      - 2-year lockup, unstake immediately: 25% penalty
      */
-    function calculatePenalty(address _user, uint256 _stakeIndex) public view returns (uint256) {
+    function calculatePenalty(
+        address _user,
+        uint256 _stakeIndex
+    ) public view returns (uint256) {
         UserStake storage userStake = userStakes[_user][_stakeIndex];
 
         if (block.timestamp >= userStake.lockupEndTime) {
@@ -272,68 +336,13 @@ contract SummerStaking is StakingRewardsManagerBase {
         }
 
         uint256 timeRemaining = userStake.lockupEndTime - block.timestamp;
-        uint256 penaltyPercentage = (timeRemaining * 1e18) / userStake.lockupPeriod;
+        // Penalty percentage = 50% * (time_remaining / original_lockup_period)
+        uint256 penaltyPercentage = (timeRemaining * 50 * Constants.WAD) /
+            (userStake.lockupPeriod * 100);
 
-        // Penalty is proportional to weighted amount and time remaining
-        return (userStake.weightedAmount * penaltyPercentage) / 1e18;
+        // Penalty amount = amount * penalty_percentage
+        return penaltyPercentage;
     }
-
-    /**
-     * @notice Unstake tokens from specific stake index
-     * @param _stakeIndex The index of the stake to unstake from
-     * @param _amount The amount to unstake
-     */
-    function unstakeFromStake(uint256 _stakeIndex, uint256 _amount) external updateReward(_msgSender()) {
-        if (_amount == 0) revert CannotUnstakeZero();
-
-        UserStake storage userStake = userStakes[_msgSender()][_stakeIndex];
-        if (userStake.amount == 0) revert Staking_InvalidStakeIndex();
-
-        uint256 actualAmountToUnstake = _amount;
-        if (_amount > userStake.amount) {
-            actualAmountToUnstake = userStake.amount;
-        }
-
-        // Calculate penalty if unstaking before lockup ends
-        uint256 penalty = 0;
-        if (block.timestamp < userStake.lockupEndTime) {
-            penalty = calculatePenalty(_msgSender(), _stakeIndex);
-            // Scale penalty proportionally to the amount being unstaked
-            penalty = (penalty * actualAmountToUnstake) / userStake.amount;
-        }
-
-        // Calculate weighted amount to remove
-        uint256 weightedAmountToRemove = (userStake.weightedAmount * actualAmountToUnstake) / userStake.amount;
-
-        // Update stake amounts
-        userStake.amount -= actualAmountToUnstake;
-        userStake.weightedAmount -= weightedAmountToRemove;
-
-        // Update user's total amounts
-        userTotalStaked[_msgSender()] -= actualAmountToUnstake;
-        userTotalWeightedStaked[_msgSender()] -= weightedAmountToRemove;
-
-        // Update global total supply
-        totalSupply -= weightedAmountToRemove;
-
-        // Burn staked tokens
-        _burn(actualAmountToUnstake);
-
-        // Return SUMMER tokens minus penalty by withdrawing from wrapped token
-        uint256 returnAmount = actualAmountToUnstake - penalty;
-        if (returnAmount > 0) {
-            WrappedStakingToken(wrappedStakingToken).withdrawTo(_msgSender(), returnAmount);
-        }
-
-        // If stake is fully unstaked, remove it from array
-        if (userStake.amount == 0) {
-            _removeStake(_msgSender(), _stakeIndex);
-        }
-
-        emit UnstakedWithPenalty(_msgSender(), actualAmountToUnstake, penalty, returnAmount);
-    }
-
-
 
     /**
      * @notice Remove a stake from the user's stakes array
@@ -367,39 +376,45 @@ contract SummerStaking is StakingRewardsManagerBase {
      * @return lockupEndTime The lockup end time
      * @return lockupPeriod The lockup period
      */
-    function getUserStake(address _user, uint256 _index) external view returns (
-        uint256 amount,
-        uint256 weightedAmount,
-        uint256 lockupEndTime,
-        uint256 lockupPeriod
-    ) {
+    function getUserStake(
+        address _user,
+        uint256 _index
+    )
+        external
+        view
+        returns (
+            uint256 amount,
+            uint256 weightedAmount,
+            uint256 lockupEndTime,
+            uint256 lockupPeriod
+        )
+    {
         UserStake storage userStakeInfo = userStakes[_user][_index];
-        return (userStakeInfo.amount, userStakeInfo.weightedAmount, userStakeInfo.lockupEndTime, userStakeInfo.lockupPeriod);
+        return (
+            userStakeInfo.amount,
+            userStakeInfo.weightedAmount,
+            userStakeInfo.lockupEndTime,
+            userStakeInfo.lockupPeriod
+        );
     }
 
     /**
-     * @notice Override _stake to prevent direct usage - users must use stakeWithLockup
+     * @notice Override _stake to prevent direct usage - users must use stakeWithNewLockup
      */
-    function _stake(address from, address receiver, uint256 amount) internal virtual override {
-        revert Staking_DirectStakeNotAllowed("Use stakeWithLockup instead");
-    }
-
-    /**
-     * @notice Override _unstake to work with wrapped tokens
-     */
-    function _unstake(address from, address receiver, uint256 amount) internal virtual override {
-        if (amount == 0) revert CannotUnstakeZero();
-
-        totalSupply -= amount;
-        _balances[from] -= amount;
-
-        // Withdraw from wrapped token directly to receiver
-        WrappedStakingToken(wrappedStakingToken).withdrawTo(receiver, amount);
-
-        emit Unstaked(from, receiver, amount);
+    function _stake(
+        address from,
+        address receiver,
+        uint256 amount
+    ) internal virtual override {
+        revert Staking_DirectStakeNotAllowed("Use stakeWithNewLockup instead");
     }
 
     function _burn(uint256 _amount) internal {
+        STAKED_SUMMER_TOKEN.safeTransferFrom(
+            _msgSender(),
+            address(this),
+            _amount
+        );
         IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burn(_amount);
     }
 
@@ -413,8 +428,11 @@ contract SummerStaking is StakingRewardsManagerBase {
      * @param rewardToken The reward token
      * @return The earned reward amount
      */
-    function _earned(address account, address rewardToken) internal view override returns (uint256) {
-        uint256 weightedBalance = userTotalWeightedStaked[account];
+    function earned(
+        address account,
+        address rewardToken
+    ) public view override returns (uint256) {
+        uint256 weightedBalance = _weightedBalances[account];
         if (weightedBalance == 0) {
             return rewards[rewardToken][account];
         }
@@ -423,10 +441,12 @@ contract SummerStaking is StakingRewardsManagerBase {
             (weightedBalance *
                 (rewardPerToken(rewardToken) -
                     userRewardPerTokenPaid[rewardToken][account])) /
-            1e18 +
+            Constants.WAD +
             rewards[rewardToken][account];
     }
-
+    function exit() public pure override {
+        revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
+    }
     // Custom errors
     error Staking_InvalidAddress(string message);
     error Staking_InvalidOwner(string message);
@@ -443,14 +463,21 @@ contract SummerStaking is StakingRewardsManagerBase {
     error Staking_InsufficientBalance();
     error StakeOnBehalfOfNotSupported();
     error UnstakeOnBehalfOfNotSupported();
+    error Staking_MaxStakesReached();
 
     // Events
     event VestingFactoryAdded(address indexed vestingFactory);
     event VestingFactoryRemoved(address indexed vestingFactory);
-    event StakedWithLockup(address indexed user, uint256 amount, uint256 lockupPeriod, uint256 weightedAmount);
-    event UnstakedWithPenalty(address indexed user, uint256 unstakedAmount, uint256 penalty, uint256 returnAmount);
+    event StakedWithLockup(
+        address indexed user,
+        uint256 amount,
+        uint256 lockupPeriod,
+        uint256 weightedAmount
+    );
+    event UnstakedWithPenalty(
+        address indexed user,
+        uint256 unstakedAmount,
+        uint256 penalty,
+        uint256 returnAmount
+    );
 }
-
-
-
-

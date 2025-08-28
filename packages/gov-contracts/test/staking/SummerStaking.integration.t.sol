@@ -44,7 +44,27 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
     ) internal {
         vm.startPrank(user);
         aSummerToken.approve(address(aStaking), amount);
-        aStaking.stake(amount);
+        aStaking.stakeWithNewLockup(amount, 0);
+        if (delegateToSelf) {
+            axSumr.delegate(user);
+        }
+        vm.stopPrank();
+        // SummerGovernorV2TestBase gives the whale 100% of the StakedSummerToken supply
+        // to make the tests easier and make total gov token invariant we burn the amount of tokens
+        // that are staked for the user
+        vm.startPrank(whale);
+        axSumr.burn(amount);
+        vm.stopPrank();
+    }
+    function stakeAndDelegate(
+        address user,
+        uint256 amount,
+        bool delegateToSelf,
+        uint index
+    ) internal {
+        vm.startPrank(user);
+        aSummerToken.approve(address(aStaking), amount);
+        aStaking.addToStake(index, amount);
         if (delegateToSelf) {
             axSumr.delegate(user);
         }
@@ -87,6 +107,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
         // Deploy and setup staking contract
         aStaking = new SummerStaking(
             address(accessManagerA),
+            address(configurationManagerA),
             address(aSummerToken),
             address(axSumr)
         );
@@ -348,7 +369,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
         // Alice unstakes
         vm.startPrank(alice);
         axSumr.approve(address(aStaking), stakeAmount);
-        aStaking.unstake(stakeAmount);
+        aStaking.unstakeFromLockup(0, stakeAmount);
         vm.stopPrank();
 
         advanceTimeAndBlock();
@@ -388,7 +409,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
         // Alice partially unstakes
         vm.startPrank(alice);
         axSumr.approve(address(aStaking), unstakeAmount);
-        aStaking.unstake(unstakeAmount);
+        aStaking.unstakeFromLockup(0, unstakeAmount);
         vm.stopPrank();
 
         advanceTimeAndBlock();
@@ -417,7 +438,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
 
         // Alice stakes twice
         stakeAndDelegate(alice, stakeAmount1, false);
-        stakeAndDelegate(alice, stakeAmount2, true);
+        stakeAndDelegate(alice, stakeAmount2, true, 0);
 
         advanceTimeAndBlock();
 
@@ -436,7 +457,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
         uint256 partialUnstakeAmount = stakeAmount1 / 2;
         vm.startPrank(alice);
         axSumr.approve(address(aStaking), partialUnstakeAmount);
-        aStaking.unstake(partialUnstakeAmount);
+        aStaking.unstakeFromLockup(0, partialUnstakeAmount);
         vm.stopPrank();
 
         advanceTimeAndBlock();
@@ -458,7 +479,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
             partialUnstakeAmount;
         vm.startPrank(alice);
         axSumr.approve(address(aStaking), remainingAmount);
-        aStaking.unstake(remainingAmount);
+        aStaking.unstakeFromLockup(0, remainingAmount);
         vm.stopPrank();
 
         advanceTimeAndBlock();
@@ -567,7 +588,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
         vm.startPrank(alice);
         aSummerToken.approve(address(aStaking), stakeAmount * 2);
         vm.expectRevert(); // Should revert due to insufficient balance
-        aStaking.stake(stakeAmount * 2);
+        aStaking.stakeWithNewLockup(stakeAmount * 2, 0);
         vm.stopPrank();
 
         // Check that voting power is still zero
