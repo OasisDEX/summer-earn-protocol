@@ -27,11 +27,11 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     uint256 public constant MIN_LOCKUP_PERIOD = 90 days; // 3 months
     uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
 
-    uint256 internal constant BUCKET_0_MIN = MIN_LOCKUP_PERIOD; // 90 days (3 months)
-    uint256 internal constant BUCKET_0_MAX = 180 days; // 6m
-    uint256 internal constant BUCKET_1_MAX = 365 days; // 12m
-    uint256 internal constant BUCKET_2_MAX = 730 days; // 24m
-    uint256 internal constant BUCKET_3_MAX = MAX_LOCKUP_PERIOD; // 4y
+    uint256 public constant BUCKET_0_MIN = MIN_LOCKUP_PERIOD; // 90 days (3 months)
+    uint256 public constant BUCKET_0_MAX = 180 days; // 6m
+    uint256 public constant BUCKET_1_MAX = 365 days; // 12m
+    uint256 public constant BUCKET_2_MAX = 730 days; // 24m
+    uint256 public constant BUCKET_3_MAX = MAX_LOCKUP_PERIOD; // 4y
 
     // Weighted stake calculation constants
     uint256 private constant WEIGHTED_STAKE_BASE = 0.05e18; // 0.05 in WAD (18 decimals)
@@ -59,7 +59,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     event LockupBucketUpdated(
         uint256 indexed bucketIndex,
         uint256 cap,
-        uint256 minLockupPeriod,
         uint256 maxLockupPeriod
     );
     event LockupBucketAdded(
@@ -131,28 +130,17 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _bucketMax,
         uint256 _newCap
     ) external onlyGovernor {
-        if (_bucketMax >= _bucketCap.length()) {
+        if (
+            _bucketMax != BUCKET_0_MAX &&
+            _bucketMax != BUCKET_1_MAX &&
+            _bucketMax != BUCKET_2_MAX &&
+            _bucketMax != BUCKET_3_MAX
+        ) {
             revert Staking_InvalidBucketIndex();
         }
         _bucketCap.set(_bucketMax, _newCap);
 
-        // Calculate the actual min and max lockup periods for this bucket
-        uint256 minLockupPeriod = _bucketMax == BUCKET_0_MAX
-            ? BUCKET_0_MIN
-            : _bucketMax == BUCKET_1_MAX
-                ? BUCKET_0_MAX + 1
-                : _bucketMax == BUCKET_2_MAX
-                    ? BUCKET_1_MAX + 1
-                    : _bucketMax == BUCKET_3_MAX
-                        ? BUCKET_2_MAX + 1
-                        : 0;
-
-        emit LockupBucketUpdated(
-            _bucketMax,
-            _newCap,
-            minLockupPeriod,
-            _bucketMax
-        );
+        emit LockupBucketUpdated(_bucketMax, _newCap, _bucketMax);
     }
 
     /**
@@ -171,7 +159,13 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     function getBucketTotalStaked(
         uint256 _bucketMax
     ) external view returns (uint256) {
-        if (_bucketMax >= _bucketCap.length()) {
+        if (
+            _bucketMax != 0 &&
+            _bucketMax != BUCKET_0_MAX &&
+            _bucketMax != BUCKET_1_MAX &&
+            _bucketMax != BUCKET_2_MAX &&
+            _bucketMax != BUCKET_3_MAX
+        ) {
             revert Staking_InvalidBucketIndex();
         }
         return _bucketStaked.get(_bucketMax);
@@ -184,7 +178,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      */
     function _findBucketMax(
         uint256 _lockupPeriod
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         if (_lockupPeriod >= BUCKET_0_MIN && _lockupPeriod <= BUCKET_0_MAX) {
             return BUCKET_0_MAX;
         }
@@ -210,12 +204,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _amount
     ) internal {
         uint256 bucketMax = _findBucketMax(_lockupPeriod);
-        if (bucketMax != 0) {
-            _bucketStaked.set(
-                bucketMax,
-                _bucketStaked.get(bucketMax) + _amount
-            );
-        }
+
+        _bucketStaked.set(bucketMax, _bucketStaked.get(bucketMax) + _amount);
     }
 
     /**
@@ -228,12 +218,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _amount
     ) internal {
         uint256 bucketMax = _findBucketMax(_lockupPeriod);
-        if (bucketMax != 0) {
-            _bucketStaked.set(
-                bucketMax,
-                _bucketStaked.get(bucketMax) - _amount
-            );
-        }
+
+        _bucketStaked.set(bucketMax, _bucketStaked.get(bucketMax) - _amount);
     }
 
     /**
@@ -277,19 +263,17 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
     /**
      * @notice Direct stake function (not allowed)
-     * @param _amount The amount to stake
      * @dev Users must use stakeWithNewLockup instead
      */
-    function stake(uint256 _amount) public virtual override {
+    function stake(uint256) public virtual override {
         revert Staking_DirectStakeNotAllowed("Use stakeWithNewLockup instead");
     }
 
     /**
      * @notice Direct unstake function (not allowed)
-     * @param _amount The amount to unstake
      * @dev Users must use unstakeFromLockup instead
      */
-    function unstake(uint256 _amount) public virtual override {
+    function unstake(uint256) public virtual override {
         revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
     }
 
@@ -306,7 +290,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         if (_amount == 0) revert CannotUnstakeZero();
         if (_amount > _balances[_msgSender()])
             revert Staking_InsufficientBalance();
-
+        if (_stakeIndex >= userStakes[_msgSender()].length)
+            revert Staking_InvalidStakeIndex();
         UserStake memory processedStake = userStakes[_msgSender()][_stakeIndex];
         if (processedStake.amount == 0) revert Staking_InvalidStakeIndex();
 
@@ -514,7 +499,13 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     function getBucketDetails(
         uint256 _bucketMax
     ) external view returns (uint256 cap, uint256 staked) {
-        if (_bucketMax >= _bucketCap.length()) {
+        if (
+            _bucketMax != 0 &&
+            _bucketMax != BUCKET_0_MAX &&
+            _bucketMax != BUCKET_1_MAX &&
+            _bucketMax != BUCKET_2_MAX &&
+            _bucketMax != BUCKET_3_MAX
+        ) {
             revert Staking_InvalidBucketIndex();
         }
         return (_bucketCap.get(_bucketMax), _bucketStaked.get(_bucketMax));
@@ -530,7 +521,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     function calculateWeightedStake(
         uint256 _amount,
         uint256 _lockupPeriod
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         return _calculateWeightedStake(_amount, _lockupPeriod);
     }
     function _calculateWeightedStake(
@@ -657,11 +648,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @notice Override _stake to prevent direct usage - users must use stakeWithNewLockup
      * @dev This function is overridden to enforce lockup-based staking
      */
-    function _stake(
-        address from,
-        address receiver,
-        uint256 amount
-    ) internal virtual override {
+    function _stake(address, address, uint256) internal virtual override {
         revert Staking_DirectStakeNotAllowed("Use stakeWithNewLockup instead");
     }
 

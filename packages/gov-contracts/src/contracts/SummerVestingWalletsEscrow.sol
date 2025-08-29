@@ -11,8 +11,6 @@ import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap
 import {IMinimalVestingFactory} from "../interfaces/IMinimalVestingFactory.sol";
 import {IMinimalVestingWallet} from "../interfaces/IMinimalVestingWallet.sol";
 
-// @dev this is a mvp for staking, it will be replaced with a more complex staking contract
-// @dev this contract will be used to stake and unstake SUMMER_TOKEN for STAKED_SUMMER_TOKEN
 contract SummerVestingWalletsEscrow is ProtocolAccessManaged {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
