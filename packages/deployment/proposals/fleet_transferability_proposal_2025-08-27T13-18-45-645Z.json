@@ -9,14 +9,7 @@
     "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa",
     "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
   ],
-  "values": [
-    "0",
-    "0",
-    "0",
-    "0",
-    "0",
-    "0"
-  ],
+  "values": ["0", "0", "0", "0", "0", "0"],
   "calldatas": [
     "0xc37007c2",
     "0xc37007c2",
@@ -33,14 +26,8 @@
         "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
         "0x4F63cfEa7458221CB3a0EEE2F31F7424Ad34bb58"
       ],
-      "values": [
-        "0",
-        "0"
-      ],
-      "datas": [
-        "0xc37007c2",
-        "0xc37007c2"
-      ]
+      "values": ["0", "0"],
+      "datas": ["0xc37007c2", "0xc37007c2"]
     },
     {
       "name": "mainnet",
@@ -52,33 +39,15 @@
         "0x2E6abcbCCeD9Af05bc3B8a4908e0c98c29A88e10",
         "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06"
       ],
-      "values": [
-        "0",
-        "0",
-        "0",
-        "0",
-        "0"
-      ],
-      "datas": [
-        "0xc37007c2",
-        "0xc37007c2",
-        "0xc37007c2",
-        "0xc37007c2",
-        "0xc37007c2"
-      ]
+      "values": ["0", "0", "0", "0", "0"],
+      "datas": ["0xc37007c2", "0xc37007c2", "0xc37007c2", "0xc37007c2", "0xc37007c2"]
     },
     {
       "name": "sonic",
       "chainId": 146,
-      "targets": [
-        "0x507A2D9E87DBD3076e65992049C41270b47964f8"
-      ],
-      "values": [
-        "0"
-      ],
-      "datas": [
-        "0xc37007c2"
-      ]
+      "targets": ["0x507A2D9E87DBD3076e65992049C41270b47964f8"],
+      "values": ["0"],
+      "datas": ["0xc37007c2"]
     }
   ],
   "proposalTxHash": "0x913fc8005c4d7f25f0182335b6a0c2e8a8caa39f4192236302cd8412f6cea627"
