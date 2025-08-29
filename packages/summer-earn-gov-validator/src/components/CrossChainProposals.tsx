@@ -2,6 +2,7 @@ import { ethers } from 'ethers'
 import React, { useEffect, useState } from 'react'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 import config from '../config/index.json'
+import { useMultipleProposalVoting } from '../hooks/useProposalVoting'
 import { CrossChainProposal, ProposalWithCrossChain, fetchAllProposals } from '../services/subgraph'
 import { ProposalFilter, ProposalStatus } from './ProposalFilter'
 
@@ -22,7 +23,7 @@ const TIMELOCK_ABI = [
   },
 ] as const
 
-// Governor ABI for execute
+// Governor ABI for execute and voting functions
 const GOVERNOR_ABI = [
   {
     inputs: [
@@ -48,6 +49,48 @@ const GOVERNOR_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    inputs: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'support', type: 'uint8' },
+    ],
+    name: 'castVote',
+    outputs: [{ name: 'balance', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    name: 'proposalVotes',
+    outputs: [
+      { name: 'againstVotes', type: 'uint256' },
+      { name: 'forVotes', type: 'uint256' },
+      { name: 'abstainVotes', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'account', type: 'address' },
+    ],
+    name: 'hasVoted',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
+// Summer Token ABI for voting power
+const SUMMER_TOKEN_ABI = [
+  {
+    inputs: [{ name: 'account', type: 'address' }],
+    name: 'getVotes',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const
 
 // Chain ID to network name mapping
@@ -58,14 +101,36 @@ const CHAIN_ID_TO_NETWORK: Record<string, keyof typeof config> = {
   '146': 'sonic',
 }
 
+// Vote types from OpenZeppelin GovernorCountingSimple
+enum VoteType {
+  Against = 0,
+  For = 1,
+  Abstain = 2,
+}
+
+// Helper function to calculate effective proposal status
+const getEffectiveProposalStatus = (proposal: { status: string; createdAt: string }) => {
+  const baseStatus = proposal.status.toUpperCase()
+  const currentTimestamp = Math.floor(Date.now() / 1000)
+  const createdAt = Number(proposal.createdAt)
+  const votingDelay = 24 * 60 * 60 // 24 hours in seconds
+  const votingStartTime = createdAt + votingDelay
+  const isVotingActive = baseStatus === 'PENDING' && currentTimestamp >= votingStartTime
+
+  return isVotingActive ? 'ACTIVE' : baseStatus
+}
+
 export const CrossChainProposals: React.FC = () => {
   const [proposals, setProposals] = useState<ProposalWithCrossChain[]>([])
   const [filteredProposals, setFilteredProposals] = useState<ProposalWithCrossChain[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [executingProposals, setExecutingProposals] = useState<Set<string>>(new Set())
+  const [votingProposals, setVotingProposals] = useState<Set<string>>(new Set())
   const [selectedStatuses, setSelectedStatuses] = useState<ProposalStatus[]>([
+    'Active',
     'Pending',
+    'Succeeded',
     'Queued',
     'Ready',
     'Executed',
@@ -74,6 +139,18 @@ export const CrossChainProposals: React.FC = () => {
   const { address, isConnected, chainId } = useAccount()
   const { writeContract, isPending, error: writeContractError } = useWriteContract()
   const { switchChain } = useSwitchChain()
+
+  // Get active proposal IDs for voting data (including PENDING proposals that are now active)
+  const activeProposalIds = filteredProposals
+    .filter(({ baseProposal }) => getEffectiveProposalStatus(baseProposal) === 'ACTIVE')
+    .map(({ baseProposal }) => baseProposal.id)
+
+  // Use the voting hook to get all voting data
+  const {
+    proposalData,
+    votingPower,
+    refetch: refetchVotingData,
+  } = useMultipleProposalVoting(activeProposalIds)
 
   const handleExecuteProposal = async (proposal: CrossChainProposal) => {
     if (!isConnected || !address) {
@@ -266,6 +343,54 @@ export const CrossChainProposals: React.FC = () => {
     }
   }
 
+  const handleVote = async (proposalId: string, support: VoteType) => {
+    if (!isConnected || !address) {
+      alert('Please connect your wallet first')
+      return
+    }
+
+    const governorAddress = config.base?.deployedContracts?.gov?.summerGovernor?.address
+    if (!governorAddress) {
+      alert('Governor address not found for Base network')
+      return
+    }
+
+    try {
+      setVotingProposals((prev) => new Set(prev).add(proposalId))
+
+      // Switch to Base if needed
+      if (chainId !== 8453) {
+        await switchChain({ chainId: 8453 })
+      }
+
+      // Cast the vote
+      await writeContract({
+        address: governorAddress as `0x${string}`,
+        abi: GOVERNOR_ABI,
+        functionName: 'castVote',
+        args: [BigInt(proposalId), support],
+      })
+
+      console.log(`Successfully voted ${VoteType[support]} on proposal ${proposalId}`)
+
+      // Refresh voting data after voting
+      setTimeout(() => {
+        refetchVotingData()
+      }, 2000)
+    } catch (error) {
+      console.error('Error voting on proposal:', error)
+      alert(
+        `Failed to vote on proposal: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setVotingProposals((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(proposalId)
+        return newSet
+      })
+    }
+  }
+
   const loadProposals = async () => {
     try {
       const data = await fetchAllProposals()
@@ -294,18 +419,19 @@ export const CrossChainProposals: React.FC = () => {
 
   const filterProposals = (proposals: ProposalWithCrossChain[], statuses: ProposalStatus[]) => {
     const filtered = proposals.filter((proposal) => {
-      // First check if the base proposal matches any selected status
-      const baseStatus = proposal.baseProposal.status.toUpperCase()
+      // Get the effective status for filtering
+      const effectiveStatus = getEffectiveProposalStatus(proposal.baseProposal)
       const currentTimestamp = Math.floor(Date.now() / 1000)
       const baseEta = Number(proposal.baseProposal.eta)
-      const isBaseReady = baseStatus === 'QUEUED' && baseEta > 0 && currentTimestamp >= baseEta
+      const isBaseReady = effectiveStatus === 'QUEUED' && baseEta > 0 && currentTimestamp >= baseEta
 
       const baseStatusMatches = statuses.some((status) => {
-        if (status === 'Queued' && baseStatus === 'QUEUED' && !isBaseReady) return true
+        if (status === 'Queued' && effectiveStatus === 'QUEUED' && !isBaseReady) return true
         if (status === 'Ready' && isBaseReady) return true
-        if (status === 'Executed' && baseStatus === 'EXECUTED') return true
-        if (status === 'Active' && baseStatus === 'ACTIVE') return true
-        if (status === 'Pending' && baseStatus === 'PENDING') return true
+        if (status === 'Executed' && effectiveStatus === 'EXECUTED') return true
+        if (status === 'Active' && effectiveStatus === 'ACTIVE') return true
+        if (status === 'Succeeded' && effectiveStatus === 'SUCCEEDED') return true
+        if (status === 'Pending' && effectiveStatus === 'PENDING') return true
         return false
       })
 
@@ -369,6 +495,23 @@ export const CrossChainProposals: React.FC = () => {
 
       <div className="space-y-4">
         <ProposalFilter selectedStatuses={selectedStatuses} onStatusChange={setSelectedStatuses} />
+
+        {isConnected && votingPower !== undefined && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-blue-900">Your Voting Power</h3>
+              <span className="text-2xl font-bold text-blue-700">
+                {(Number(votingPower) / 1e18).toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })}{' '}
+                SUMR
+              </span>
+            </div>
+            <p className="text-sm text-blue-600 mt-1">
+              This is your current voting power including decay adjustments
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6">
@@ -376,8 +519,17 @@ export const CrossChainProposals: React.FC = () => {
           const baseStatus = baseProposal.status.toUpperCase()
           const currentTimestamp = Math.floor(Date.now() / 1000)
           const baseEta = Number(baseProposal.eta)
+          const createdAt = Number(baseProposal.createdAt)
           const isBaseQueued = baseStatus === 'QUEUED'
           const isBaseReady = isBaseQueued && baseEta > 0 && currentTimestamp >= baseEta
+
+          // Get the effective status (handles PENDING → ACTIVE transition)
+          const effectiveStatus = getEffectiveProposalStatus(baseProposal)
+
+          // Calculate voting timing info
+          const votingDelay = 24 * 60 * 60 // 24 hours in seconds
+          const votingStartTime = createdAt + votingDelay
+          const timeUntilVoting = votingStartTime - currentTimestamp
 
           return (
             <div
@@ -398,20 +550,22 @@ export const CrossChainProposals: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span
                       className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
-                        baseStatus === 'EXECUTED'
+                        effectiveStatus === 'EXECUTED'
                           ? 'bg-green-100 text-green-800'
-                          : isBaseReady
-                            ? 'bg-orange-100 text-orange-800'
-                            : isBaseQueued
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : baseStatus === 'ACTIVE'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
+                          : effectiveStatus === 'SUCCEEDED'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : isBaseReady
+                              ? 'bg-orange-100 text-orange-800'
+                              : isBaseQueued
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : effectiveStatus === 'ACTIVE'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {isBaseReady ? 'Ready' : baseStatus}
+                      {isBaseReady ? 'Ready' : effectiveStatus}
                     </span>
-                    {baseStatus === 'PENDING' && (
+                    {baseStatus === 'SUCCEEDED' && (
                       <button
                         onClick={() => handleQueueBaseProposal(baseProposal)}
                         disabled={executingProposals.has(baseProposal.id) || isPending}
@@ -555,7 +709,248 @@ export const CrossChainProposals: React.FC = () => {
                     </svg>
                     <span>Chains: {baseProposal.chains.join(', ')}</span>
                   </span>
+                  {baseStatus === 'PENDING' &&
+                    effectiveStatus === 'PENDING' &&
+                    timeUntilVoting > 0 && (
+                      <span className="px-4 py-2 bg-amber-50 rounded-full flex items-center space-x-2 text-amber-800">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className="text-sm">
+                          Voting starts in: {Math.floor(timeUntilVoting / 3600)}h{' '}
+                          {Math.floor((timeUntilVoting % 3600) / 60)}m
+                        </span>
+                      </span>
+                    )}
+                  {baseStatus === 'PENDING' && effectiveStatus === 'ACTIVE' && (
+                    <span className="px-4 py-2 bg-green-50 rounded-full flex items-center space-x-2 text-green-800">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span className="text-sm font-medium">Voting is now active!</span>
+                    </span>
+                  )}
                 </div>
+
+                {/* Voting Section for Active Proposals */}
+                {effectiveStatus === 'ACTIVE' && (
+                  <div className="border-t border-gray-100 pt-4 mt-4">
+                    <div className="space-y-4">
+                      {/* Current Vote Counts */}
+                      {proposalData[baseProposal.id]?.votes && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-3">Current Votes</h4>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-green-600">
+                                {(
+                                  Number(proposalData[baseProposal.id].votes.forVotes) / 1e18
+                                ).toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </div>
+                              <div className="text-sm text-gray-600">For</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-red-600">
+                                {(
+                                  Number(proposalData[baseProposal.id].votes.againstVotes) / 1e18
+                                ).toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </div>
+                              <div className="text-sm text-gray-600">Against</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-gray-600">
+                                {(
+                                  Number(proposalData[baseProposal.id].votes.abstainVotes) / 1e18
+                                ).toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </div>
+                              <div className="text-sm text-gray-600">Abstain</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* User Already Voted Notice */}
+                      {isConnected && proposalData[baseProposal.id]?.hasVoted === true && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center space-x-2">
+                            <svg
+                              className="w-5 h-5 text-green-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <p className="text-sm text-green-800 font-medium">
+                              You have already voted on this proposal.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Voting Buttons */}
+                      {isConnected &&
+                        votingPower &&
+                        votingPower > 0 &&
+                        proposalData[baseProposal.id]?.hasVoted !== true && (
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-medium text-gray-700">Cast Your Vote</h4>
+                            <div className="flex gap-3">
+                              <button
+                                onClick={() => handleVote(baseProposal.id, VoteType.For)}
+                                disabled={votingProposals.has(baseProposal.id) || isPending}
+                                className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
+                                  votingProposals.has(baseProposal.id) || isPending
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700'
+                                }`}
+                              >
+                                {votingProposals.has(baseProposal.id) || isPending ? (
+                                  <div className="flex items-center justify-center space-x-2">
+                                    <svg
+                                      className="w-4 h-4 animate-spin"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                      />
+                                    </svg>
+                                    <span>Voting...</span>
+                                  </div>
+                                ) : (
+                                  'Vote For'
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleVote(baseProposal.id, VoteType.Against)}
+                                disabled={votingProposals.has(baseProposal.id) || isPending}
+                                className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
+                                  votingProposals.has(baseProposal.id) || isPending
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-red-600 hover:bg-red-700'
+                                }`}
+                              >
+                                {votingProposals.has(baseProposal.id) || isPending ? (
+                                  <div className="flex items-center justify-center space-x-2">
+                                    <svg
+                                      className="w-4 h-4 animate-spin"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                      />
+                                    </svg>
+                                    <span>Voting...</span>
+                                  </div>
+                                ) : (
+                                  'Vote Against'
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleVote(baseProposal.id, VoteType.Abstain)}
+                                disabled={votingProposals.has(baseProposal.id) || isPending}
+                                className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
+                                  votingProposals.has(baseProposal.id) || isPending
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-600 hover:bg-gray-700'
+                                }`}
+                              >
+                                {votingProposals.has(baseProposal.id) || isPending ? (
+                                  <div className="flex items-center justify-center space-x-2">
+                                    <svg
+                                      className="w-4 h-4 animate-spin"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                      />
+                                    </svg>
+                                    <span>Voting...</span>
+                                  </div>
+                                ) : (
+                                  'Abstain'
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                      {/* Show voting buttons even when data is loading, but user has wallet connected */}
+                      {isConnected && votingPower === undefined && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium text-gray-700">Cast Your Vote</h4>
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p className="text-sm text-blue-800">Loading voting data...</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {isConnected &&
+                        votingPower !== undefined &&
+                        (!votingPower || votingPower === BigInt(0)) && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p className="text-sm text-yellow-800">
+                              You need SUMR tokens and voting power to participate in governance.
+                            </p>
+                          </div>
+                        )}
+
+                      {!isConnected && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-sm text-blue-800">
+                            Connect your wallet to participate in governance voting.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 pt-4 border-t border-gray-100">
