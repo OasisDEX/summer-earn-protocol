@@ -961,18 +961,48 @@ export const CrossChainProposals: React.FC = () => {
                   </span>
                 </div>
                 {crossChainProposals.length === 0 ? (
-                  <div className="text-gray-500 italic bg-gray-50 p-4 rounded-lg text-center">
-                    <p>No cross-chain proposals found</p>
-                    {baseStatus === 'PENDING' || baseStatus === 'ACTIVE' ? (
-                      <p className="text-sm mt-1">
-                        Cross-chain proposals will be created after this proposal is executed
-                      </p>
-                    ) : baseStatus === 'QUEUED' || isBaseReady ? (
-                      <p className="text-sm mt-1">
-                        Cross-chain proposals will be created after this proposal is executed
+                  <div className="text-gray-500 italic bg-gray-50 p-4 rounded-lg">
+                    <p className="text-center mb-3">No cross-chain proposals found</p>
+                    {baseProposal.chains && baseProposal.chains.length > 1 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-700">This proposal will affect chains:</p>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {baseProposal.chains.map((chain) => (
+                            <span 
+                              key={chain}
+                              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                            >
+                              {chain.charAt(0).toUpperCase() + chain.slice(1)}
+                            </span>
+                          ))}
+                        </div>
+                        {baseProposal.targets && baseProposal.targets.length > 0 && (
+                          <div className="mt-3 pt-2 border-t border-gray-200">
+                            <p className="text-xs font-medium text-gray-700 mb-1">Target contracts:</p>
+                            <div className="space-y-1">
+                              {baseProposal.targets.slice(0, 3).map((target, index) => (
+                                <div key={index} className="text-xs text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded">
+                                  {target}
+                                </div>
+                              ))}
+                              {baseProposal.targets.length > 3 && (
+                                <p className="text-xs text-gray-500">
+                                  ... and {baseProposal.targets.length - 3} more contracts
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-600 mt-2 text-center">
+                          Cross-chain proposals will be created after execution
+                        </p>
+                      </div>
+                    ) : baseProposal.chains && baseProposal.chains.length === 1 ? (
+                      <p className="text-sm text-center">
+                        This proposal only affects <span className="font-medium">{baseProposal.chains[0]}</span> chain
                       </p>
                     ) : (
-                      <p className="text-sm mt-1">
+                      <p className="text-sm text-center">
                         This proposal may not have cross-chain components
                       </p>
                     )}
