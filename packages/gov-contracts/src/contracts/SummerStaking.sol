@@ -10,20 +10,28 @@ import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/S
 import {WrappedStakingToken} from "./WrappedStakingToken.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
+import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 // @dev Enhanced staking contract with lockup periods and reward distribution
-// @dev Users can only stake with lockup periods, rewards are calculated based on weighted stakes
+// @dev Users can only stake with lockup periods (minimum 3 months), rewards are calculated based on weighted stakes
 contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
+    using EnumerableMap for EnumerableMap.UintToUintMap;
 
     ISummerToken public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
 
     // Lockup configuration
     uint256 public constant MAX_LOCKUP_PERIOD = 4 * 365 days; // 4 years
-    uint256 public constant MIN_LOCKUP_PERIOD = 0; // No minimum lockup
+    uint256 public constant MIN_LOCKUP_PERIOD = 90 days; // 3 months
     uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
+
+    uint256 internal constant BUCKET_0_MIN = MIN_LOCKUP_PERIOD; // 90 days (3 months)
+    uint256 internal constant BUCKET_0_MAX = 180 days; // 6m
+    uint256 internal constant BUCKET_1_MAX = 365 days; // 12m
+    uint256 internal constant BUCKET_2_MAX = 730 days; // 24m
+    uint256 internal constant BUCKET_3_MAX = MAX_LOCKUP_PERIOD; // 4y
 
     // Weighted stake calculation constants
     uint256 private constant WEIGHTED_STAKE_BASE = 0.05e18; // 0.05 in WAD (18 decimals)
@@ -43,6 +51,23 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
     // Mapping: user => total weighted staked amount
     mapping(address => uint256) private _weightedBalances;
+
+    EnumerableMap.UintToUintMap private _bucketCap;
+    EnumerableMap.UintToUintMap private _bucketStaked;
+
+    // Events for bucket management
+    event LockupBucketUpdated(
+        uint256 indexed bucketIndex,
+        uint256 cap,
+        uint256 minLockupPeriod,
+        uint256 maxLockupPeriod
+    );
+    event LockupBucketAdded(
+        uint256 indexed bucketIndex,
+        uint256 cap,
+        uint256 minLockupPeriod,
+        uint256 maxLockupPeriod
+    );
 
     // Wrapped version of staking token for internal accounting
     address public immutable wrappedStakingToken;
@@ -72,6 +97,157 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
         wrappedStakingToken = address(new WrappedStakingToken(_summerToken));
         stakingToken = _summerToken;
+
+        // Initialize default lockup bucket configurations
+        _initializeDefaultLockupBuckets();
+    }
+
+    /**
+     * @notice Initialize default lockup bucket configurations
+     * @dev Creates 5 bucket keys: 0 (unused), 3-6 months, 6-12 months, 12-24 months, 24+ months
+     * @dev Bucket 0: unused, Bucket 1: 3-6 months, Bucket 2: 6-12 months, Bucket 3: 12-24 months, Bucket 4: 24+ months
+     */
+    function _initializeDefaultLockupBuckets() internal {
+        _bucketCap.set(0, 0);
+        _bucketCap.set(BUCKET_0_MAX, 0);
+        _bucketCap.set(BUCKET_1_MAX, 0);
+        _bucketCap.set(BUCKET_2_MAX, 0);
+        _bucketCap.set(BUCKET_3_MAX, 0);
+
+        _bucketStaked.set(0, 0);
+        _bucketStaked.set(BUCKET_0_MAX, 0);
+        _bucketStaked.set(BUCKET_1_MAX, 0);
+        _bucketStaked.set(BUCKET_2_MAX, 0);
+        _bucketStaked.set(BUCKET_3_MAX, 0);
+    }
+
+    /**
+     * @notice Update the cap for a specific lockup bucket
+     * @param _bucketMax The index of the bucket to update
+     * @param _newCap The new cap amount (0 = no cap)
+     * @dev Only callable by governor
+     */
+    function updateLockupBucketCap(
+        uint256 _bucketMax,
+        uint256 _newCap
+    ) external onlyGovernor {
+        if (_bucketMax >= _bucketCap.length()) {
+            revert Staking_InvalidBucketIndex();
+        }
+        _bucketCap.set(_bucketMax, _newCap);
+
+        // Calculate the actual min and max lockup periods for this bucket
+        uint256 minLockupPeriod = _bucketMax == BUCKET_0_MAX ? BUCKET_0_MIN : 
+                                 _bucketMax == BUCKET_1_MAX ? BUCKET_0_MAX + 1 :
+                                 _bucketMax == BUCKET_2_MAX ? BUCKET_1_MAX + 1 :
+                                 _bucketMax == BUCKET_3_MAX ? BUCKET_2_MAX + 1 : 0;
+        
+        emit LockupBucketUpdated(
+            _bucketMax,
+            _newCap,
+            minLockupPeriod,
+            _bucketMax
+        );
+    }
+
+    /**
+     * @notice Get the total number of lockup buckets
+     * @return The number of configured buckets
+     */
+    function getLockupBucketCount() external view returns (uint256) {
+        return _bucketCap.length();
+    }
+
+    /**
+     * @notice Get the total staked amount for a specific lockup bucket
+     * @param _bucketMax The bucket max value (BUCKET_X_MAX)
+     * @return The total staked amount in this bucket
+     */
+    function getBucketTotalStaked(
+        uint256 _bucketMax
+    ) external view returns (uint256) {
+        if (_bucketMax >= _bucketCap.length()) {
+            revert Staking_InvalidBucketIndex();
+        }
+        return _bucketStaked.get(_bucketMax);
+    }
+
+    /**
+     * @notice Find which bucket a lockup period belongs to
+     * @param _lockupPeriod The lockup period in seconds
+     * @return The bucket max value (BUCKET_X_MAX), or 0 if no bucket found
+     */
+    function _findBucketMax(
+        uint256 _lockupPeriod
+    ) internal view returns (uint256) {
+        if (_lockupPeriod >= BUCKET_0_MIN && _lockupPeriod <= BUCKET_0_MAX) {
+            return BUCKET_0_MAX;
+        }
+        if (_lockupPeriod > BUCKET_0_MAX && _lockupPeriod <= BUCKET_1_MAX) {
+            return BUCKET_1_MAX;
+        }
+        if (_lockupPeriod > BUCKET_1_MAX && _lockupPeriod <= BUCKET_2_MAX) {
+            return BUCKET_2_MAX;
+        }
+        if (_lockupPeriod > BUCKET_2_MAX && _lockupPeriod <= BUCKET_3_MAX) {
+            return BUCKET_3_MAX;
+        }
+        return 0;
+    }
+
+    /**
+     * @notice Update bucket totals when adding stake
+     * @param _lockupPeriod The lockup period of the stake
+     * @param _amount The amount being added
+     */
+    function _updateBucketTotalOnAdd(
+        uint256 _lockupPeriod,
+        uint256 _amount
+    ) internal {
+        uint256 bucketMax = _findBucketMax(_lockupPeriod);
+        if (bucketMax != 0) {
+            _bucketStaked.set(
+                bucketMax,
+                _bucketStaked.get(bucketMax) + _amount
+            );
+        }
+    }
+
+    /**
+     * @notice Update bucket totals when removing stake
+     * @param _lockupPeriod The lockup period of the stake
+     * @param _amount The amount being removed
+     */
+    function _updateBucketTotalOnRemove(
+        uint256 _lockupPeriod,
+        uint256 _amount
+    ) internal {
+        uint256 bucketMax = _findBucketMax(_lockupPeriod);
+        if (bucketMax != 0) {
+            _bucketStaked.set(
+                bucketMax,
+                _bucketStaked.get(bucketMax) - _amount
+            );
+        }
+    }
+
+    /**
+     * @notice Check if staking would exceed the bucket cap
+     * @param _lockupPeriod The lockup period for the new stake
+     * @param _amount The amount to stake
+     * @return True if the stake would exceed the bucket cap
+     */
+    function _wouldExceedBucketCap(
+        uint256 _lockupPeriod,
+        uint256 _amount
+    ) internal view returns (bool) {
+        uint256 bucketMax = _findBucketMax(_lockupPeriod);
+        if (bucketMax == 0) {
+            return false;
+        } else {
+            uint256 currentBucketTotal = _bucketStaked.get(bucketMax);
+            return (currentBucketTotal + _amount) > _bucketCap.get(bucketMax);
+        }
     }
 
     /**
@@ -146,9 +322,12 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         _weightedBalances[_msgSender()] -= weightedAmountToRemove;
         totalSupply -= weightedAmountToRemove;
 
+        // Update bucket totals
+        _updateBucketTotalOnRemove(processedStake.lockupPeriod, _amount);
+
         // Remove empty processedStake
         if (processedStake.amount == 0) {
-            delete userStakes[_msgSender()][_stakeIndex];
+            _removeStake(_msgSender(), _stakeIndex);
         } else {
             userStakes[_msgSender()][_stakeIndex] = processedStake;
         }
@@ -200,6 +379,12 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         if (existingStake.lockupEndTime < block.timestamp)
             revert Staking_InvalidLockupPeriod("Lockup period has ended");
 
+        // Check if adding to stake would exceed bucket cap
+        uint256 remainingTime = existingStake.lockupEndTime - block.timestamp;
+        if (_wouldExceedBucketCap(existingStake.lockupPeriod, _amount)) {
+            revert Staking_BucketCapExceeded();
+        }
+
         SUMMER_TOKEN.safeTransferFrom(_msgSender(), address(this), _amount);
         SUMMER_TOKEN.forceApprove(wrappedStakingToken, _amount);
         WrappedStakingToken(wrappedStakingToken).depositFor(
@@ -209,7 +394,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
         // Mint equivalent amount of governance tokens
         _mint(_msgSender(), _amount);
-        uint256 remainingTime = existingStake.lockupEndTime - block.timestamp;
+
         // Calculate weighted amount based on lockup period
         uint256 weightedAmount = _calculateWeightedStake(
             _amount,
@@ -221,6 +406,10 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         _balances[_msgSender()] += _amount;
         _weightedBalances[_msgSender()] += weightedAmount;
         totalSupply += weightedAmount;
+
+        // Update bucket totals
+        _updateBucketTotalOnAdd(remainingTime, _amount);
+
         emit Staked(_msgSender(), _msgSender(), _amount);
         emit StakedWithLockup(
             _msgSender(),
@@ -243,14 +432,25 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _lockupPeriod
     ) internal {
         if (_receiver == address(0)) revert CannotStakeToZeroAddress();
+        if (_amount == 0) revert CannotStakeZero();
         if (_lockupPeriod > MAX_LOCKUP_PERIOD) {
             revert Staking_InvalidLockupPeriod(
                 "Lockup period cannot exceed 4 years"
             );
         }
-        if (_amount == 0) revert CannotStakeZero();
+        if (_lockupPeriod > 0 && _lockupPeriod < MIN_LOCKUP_PERIOD) {
+            revert Staking_InvalidLockupPeriod(
+                "Lockup period must be at least 3 months"
+            );
+        }
+
         if (userStakes[_receiver].length >= MAX_AMOUNT_OF_STAKES) {
             revert Staking_MaxStakesReached();
+        }
+
+        // Check if staking would exceed bucket cap
+        if (_wouldExceedBucketCap(_lockupPeriod, _amount)) {
+            revert Staking_BucketCapExceeded();
         }
 
         // Transfer SUMMER tokens from user to contract and wrap them
@@ -289,6 +489,9 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         // totalSupply is used in rewardPerToken function that we can't override
         totalSupply += weightedAmount;
 
+        // Update bucket totals
+        _updateBucketTotalOnAdd(_lockupPeriod, _amount);
+
         emit Staked(_from, _receiver, _amount);
         emit StakedWithLockup(
             _receiver,
@@ -298,11 +501,26 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         );
     }
     /**
+     * @notice Get bucket details including cap and staked amounts
+     * @param _bucketMax The bucket max value (BUCKET_X_MAX)
+     * @return cap The cap for this bucket
+     * @return staked The total staked amount in this bucket
+     */
+    function getBucketDetails(
+        uint256 _bucketMax
+    ) external view returns (uint256 cap, uint256 staked) {
+        if (_bucketMax >= _bucketCap.length()) {
+            revert Staking_InvalidBucketIndex();
+        }
+        return (_bucketCap.get(_bucketMax), _bucketStaked.get(_bucketMax));
+    }
+    /**
      * @notice Calculate the weighted stake amount based on lockup period
      * @param _amount The base amount to stake
      * @param _lockupPeriod The lockup period in seconds
      * @return The weighted stake amount for reward calculations
      * @dev Uses formula: amount * (4E-16 * time^2 + 0.05)
+     * @dev For 0 lockup period, returns the original amount (no weighting)
      */
     function calculateWeightedStake(
         uint256 _amount,
@@ -326,6 +544,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         // Calculate multiplier: 4E-16 * time^2 + 0.05
         // 4E-16 = 4 * 10^-16 = 4e-16
         // In WAD: 4e-16 * Constants.WAD = 4e2 = 400
+        // Note: This calculation is simplified and may need review for precision
         uint256 multiplier = (WEIGHTED_STAKE_COEFFICIENT * timeSquared) /
             Constants.WAD +
             WEIGHTED_STAKE_BASE;
@@ -335,7 +554,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     }
 
     /**
-     * @notice Override balanceOf to return weighted stake amount for reward calculations
+     * @notice Get the weighted stake balance for reward calculations
      * @param account The address to check balance for
      * @return The weighted stake balance
      */
@@ -421,17 +640,17 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             uint256 lockupPeriod
         )
     {
-        UserStake storage userStakeInfo = userStakes[_user][_index];
-        return (
-            userStakeInfo.amount,
-            userStakeInfo.weightedAmount,
-            userStakeInfo.lockupEndTime,
-            userStakeInfo.lockupPeriod
-        );
+        if (_index < userStakes[_user].length) {
+            amount = userStakes[_user][_index].amount;
+            weightedAmount = userStakes[_user][_index].weightedAmount;
+            lockupEndTime = userStakes[_user][_index].lockupEndTime;
+            lockupPeriod = userStakes[_user][_index].lockupPeriod;
+        }
     }
 
     /**
      * @notice Override _stake to prevent direct usage - users must use stakeWithNewLockup
+     * @dev This function is overridden to enforce lockup-based staking
      */
     function _stake(
         address from,
@@ -441,6 +660,11 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         revert Staking_DirectStakeNotAllowed("Use stakeWithNewLockup instead");
     }
 
+    /**
+     * @notice Burn staked tokens when unstaking
+     * @param _amount The amount of tokens to burn
+     * @dev Transfers tokens from user to contract and burns them
+     */
     function _burn(uint256 _amount) internal {
         STAKED_SUMMER_TOKEN.safeTransferFrom(
             _msgSender(),
@@ -450,12 +674,18 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burn(_amount);
     }
 
+    /**
+     * @notice Mint staked tokens when staking
+     * @param _user The user to mint tokens for
+     * @param _amount The amount of tokens to mint
+     * @dev Mints new staked tokens to the user
+     */
     function _mint(address _user, uint256 _amount) internal {
         IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).mint(_user, _amount);
     }
 
     /**
-     * @notice Override _earned to work with weighted stakes
+     * @notice Calculate earned rewards for an account using weighted stakes
      * @param account The account to calculate earnings for
      * @param rewardToken The reward token
      * @return The earned reward amount
@@ -479,10 +709,12 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     /**
      * @notice Exit function to unstake all and claim rewards (not allowed)
      * @dev Users must use unstakeFromLockup instead for individual stakes
+     * @dev This function is overridden to prevent direct usage
      */
     function exit() public pure override {
         revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
     }
+
     // Custom errors
     error Staking_InvalidAddress(string message);
     error Staking_DirectStakeNotAllowed(string message);
@@ -493,6 +725,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     error StakeOnBehalfOfNotSupported();
     error UnstakeOnBehalfOfNotSupported();
     error Staking_MaxStakesReached();
+    error Staking_InvalidBucketIndex();
+    error Staking_BucketCapExceeded();
 
     // Events
     event StakedWithLockup(

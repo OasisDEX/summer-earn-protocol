@@ -151,6 +151,32 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         assertEq(axSumr.balanceOf(user1), userXSumrBalanceBefore + stakeAmount);
     }
 
+    function test_Stake_ValidAmount_one_second_lockup() public {
+        uint256 stakeAmount = STAKE_AMOUNT;
+        uint256 lockupPeriod = 1 seconds;
+
+        // Approve staking contract to spend tokens
+        vm.prank(user1);
+        aSummerToken.approve(address(aStaking), stakeAmount);
+
+        // Get balances before staking
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
+
+        // Stake tokens with lockup
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking_InvalidLockupPeriod(string)",
+                "Lockup period must be at least 3 months"
+            )
+        );
+        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
+
+        // Check balances after staking
+        assertEq(aSummerToken.balanceOf(user1), userSummerBalanceBefore);
+        assertEq(axSumr.balanceOf(user1), userXSumrBalanceBefore);
+    }
     function test_Stake_ZeroAmount() public {
         // Approve staking contract (even for zero amount)
         vm.prank(user1);
