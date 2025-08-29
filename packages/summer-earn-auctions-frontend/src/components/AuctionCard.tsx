@@ -1,25 +1,61 @@
 'use client'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { CHAIN_CONFIGS } from '@/lib/config'
-import { useCurrentPrice } from '@/lib/hooks/useCurrentPrice'
-import { Auction } from '@/lib/types'
 import { useMemo } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { TokenAmount } from './TokenAmount'
+
+interface Auction {
+  id: string
+  auctionId: string
+  ark: {
+    address: string
+    commander: string
+  }
+  rewardToken: {
+    id: string
+    symbol: string
+    decimals: number
+  }
+  buyToken: {
+    symbol: string
+    decimals: number
+  }
+  startTimestamp: string
+  endTimestamp: string
+  startPrice: string
+  endPrice: string
+  tokensLeft: string
+}
 
 interface AuctionCardProps {
   auction: Auction
   chainId: number
 }
 
+// Simple chain configuration
+const getChainInfo = (chainId: number) => {
+  switch (chainId) {
+    case 1:
+      return { name: 'Ethereum', color: '#627EEA' }
+    case 8453:
+      return { name: 'Base', color: '#0052FF' }
+    case 42161:
+      return { name: 'Arbitrum', color: '#28A0F0' }
+    case 146:
+      return { name: 'Sonic', color: '#FF6B35' }
+    default:
+      return { name: `Chain ${chainId}`, color: '#666' }
+  }
+}
+
 // Custom tooltip component
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black p-2 border rounded shadow">
-        <p className="text-sm text-gray-600">{`Time: ${label}`}</p>
-        <p className="text-sm text-blue-600">{`Price: ${payload[0].value.toFixed(6)}`}</p>
+      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+        <p className="font-medium text-gray-800">{`Time: ${label}`}</p>
+        <p className="text-blue-600">{`Price: ${payload[0].value.toFixed(6)}`}</p>
       </div>
     )
   }
@@ -27,8 +63,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export function AuctionCard({ auction, chainId }: AuctionCardProps) {
-  const { currentPrice, error } = useCurrentPrice(auction, chainId)
-  const networkName = CHAIN_CONFIGS[chainId]?.name || `Chain ${chainId}`
+  const chainInfo = getChainInfo(chainId)
+  const networkName = chainInfo.name
+  const networkColor = chainInfo.color
 
   const chartData = useMemo(() => {
     const startTimestamp = parseInt(auction.startTimestamp)
@@ -38,8 +75,8 @@ export function AuctionCard({ auction, chainId }: AuctionCardProps) {
 
     // Calculate timestamps in milliseconds
     const now = Date.now()
-    const startTimeMs = startTimestamp * 1000 // Convert to milliseconds
-    const endTimeMs = endTimestamp * 1000 // Convert duration to milliseconds
+    const startTimeMs = startTimestamp * 1000
+    const endTimeMs = endTimestamp * 1000
 
     const points = []
     const numPoints = 20
@@ -62,7 +99,7 @@ export function AuctionCard({ auction, chainId }: AuctionCardProps) {
         time: formattedTime,
         timestamp: timeMs,
         price,
-        isNow: Math.abs(timeMs - now) < 300000, // Within 5 minutes (in milliseconds)
+        isNow: Math.abs(timeMs - now) < 300000, // Within 5 minutes
       })
     }
     return points
@@ -78,49 +115,64 @@ export function AuctionCard({ auction, chainId }: AuctionCardProps) {
   const endTime = new Date(parseInt(auction.endTimestamp) * 1000)
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">{auction.rewardToken.symbol} Auction</h3>
-            <p className="text-sm text-gray-600 flex items-center gap-1">Network: {networkName}</p>
-            <p className="text-sm text-gray-600 flex items-center gap-1">
-              Ark:{' '}
-              <button
-                onClick={() => copyToClipboard(auction.ark.address)}
-                className="hover:text-blue-600 transition-colors cursor-pointer"
-                title="Click to copy full address"
-              >
-                {auction.ark.address.slice(0, 6)}...{auction.ark.address.slice(-4)}
-              </button>
-            </p>
-            <p className="text-sm text-gray-600 flex items-center gap-1">
-              Reward:{' '}
-              <button
-                onClick={() => copyToClipboard(auction.rewardToken.id)}
-                className="hover:text-blue-600 transition-colors cursor-pointer"
-                title="Click to copy full address"
-              >
-                {auction.rewardToken.id.slice(0, 6)}...{auction.rewardToken.id.slice(-4)}
-              </button>
-            </p>
+    <Card className="h-full bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: networkColor }} />
+            <h3 className="text-lg font-semibold text-gray-800">
+              {auction.rewardToken.symbol} Auction
+            </h3>
           </div>
-          <div className="text-right">
-            <p className={`text-sm font-medium ${error ? 'text-red-500' : ''}`}>
-              Current Price: {currentPrice} {auction.buyToken.symbol}
-            </p>
-            <p className="text-xs text-gray-600">
-              Tokens Left:{' '}
-              <TokenAmount
-                amount={auction.tokensLeft}
-                symbol={auction.rewardToken.symbol}
-                decimals={auction.rewardToken.decimals}
-              />
-            </p>
+          <div className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+            {networkName}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-600">Ark:</span>
+            <button
+              className="text-blue-600 hover:text-blue-800 font-mono text-xs bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+              onClick={() => copyToClipboard(auction.ark.address)}
+            >
+              {auction.ark.address.slice(0, 6)}...{auction.ark.address.slice(-4)}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-600">Reward Token:</span>
+            <button
+              className="text-green-600 hover:text-green-800 font-mono text-xs bg-green-50 px-2 py-1 rounded hover:bg-green-100 transition-colors"
+              onClick={() => copyToClipboard(auction.rewardToken.id)}
+            >
+              {auction.rewardToken.id.slice(0, 6)}...{auction.rewardToken.id.slice(-4)}
+            </button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="space-y-4">
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-blue-700">
+              {parseFloat(auction.startPrice).toFixed(6)}
+            </p>
+            <p className="text-sm text-blue-600">Start Price: {auction.buyToken.symbol}</p>
+          </div>
+        </div>
+
+        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+          <div className="text-center">
+            <TokenAmount
+              amount={auction.tokensLeft}
+              symbol={auction.rewardToken.symbol}
+              decimals={auction.rewardToken.decimals}
+            />
+            <p className="text-sm text-green-600">Tokens Remaining</p>
+          </div>
+        </div>
+
         <div className="h-40 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
@@ -130,22 +182,23 @@ export function AuctionCard({ auction, chainId }: AuctionCardProps) {
                 textAnchor="end"
                 height={40}
                 interval="preserveStartEnd"
-                tick={{ fontSize: 10, fill: '#4b5563' }}
+                tick={{ fontSize: 10, fill: '#374151' }}
               />
               <YAxis
                 tickFormatter={(value) => value.toFixed(2)}
-                tick={{ fontSize: 10, fill: '#4b5563' }}
+                tick={{ fontSize: 10, fill: '#374151' }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone"
                 dataKey="price"
-                stroke="#2563eb"
+                stroke={networkColor}
                 dot={false}
                 activeDot={{
                   r: 4,
-                  fill: '#2563eb',
+                  fill: networkColor,
                   stroke: 'white',
+                  strokeWidth: 2,
                 }}
                 strokeWidth={2}
               />
@@ -153,17 +206,19 @@ export function AuctionCard({ auction, chainId }: AuctionCardProps) {
           </ResponsiveContainer>
         </div>
 
-        <div className="mt-2 text-xs text-gray-600 grid grid-cols-2 gap-1">
-          <div>
-            <p>Start: {startTime.toLocaleDateString()}</p>
-            <p>
-              Start Price: {parseFloat(auction.startPrice).toFixed(6)} {auction.buyToken.symbol}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <p className="font-medium text-gray-700">Start</p>
+            <p className="text-gray-600">{startTime.toLocaleDateString()}</p>
+            <p className="text-gray-500 text-xs">
+              {parseFloat(auction.startPrice).toFixed(6)} {auction.buyToken.symbol}
             </p>
           </div>
-          <div>
-            <p>End: {endTime.toLocaleDateString()}</p>
-            <p>
-              End Price: {parseFloat(auction.endPrice).toFixed(6)} {auction.buyToken.symbol}
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <p className="font-medium text-gray-700">End</p>
+            <p className="text-gray-600">{endTime.toLocaleDateString()}</p>
+            <p className="text-gray-500 text-xs">
+              {parseFloat(auction.endPrice).toFixed(6)} {auction.buyToken.symbol}
             </p>
           </div>
         </div>
