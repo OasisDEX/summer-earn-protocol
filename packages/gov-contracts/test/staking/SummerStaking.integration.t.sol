@@ -114,7 +114,7 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
 
         // Set staking module so aStaking can mint/burn StakedSummerToken
         vm.prank(address(timelockA));
-        axSumr.setStakingModule(address(aStaking));
+        axSumr.addStakingModule(address(aStaking));
 
         // Setup test users with tokens
         deal(address(aSummerToken), alice, USER_1_STAKE_AMOUNT * 2);

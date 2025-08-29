@@ -137,11 +137,16 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         _bucketCap.set(_bucketMax, _newCap);
 
         // Calculate the actual min and max lockup periods for this bucket
-        uint256 minLockupPeriod = _bucketMax == BUCKET_0_MAX ? BUCKET_0_MIN : 
-                                 _bucketMax == BUCKET_1_MAX ? BUCKET_0_MAX + 1 :
-                                 _bucketMax == BUCKET_2_MAX ? BUCKET_1_MAX + 1 :
-                                 _bucketMax == BUCKET_3_MAX ? BUCKET_2_MAX + 1 : 0;
-        
+        uint256 minLockupPeriod = _bucketMax == BUCKET_0_MAX
+            ? BUCKET_0_MIN
+            : _bucketMax == BUCKET_1_MAX
+                ? BUCKET_0_MAX + 1
+                : _bucketMax == BUCKET_2_MAX
+                    ? BUCKET_1_MAX + 1
+                    : _bucketMax == BUCKET_3_MAX
+                        ? BUCKET_2_MAX + 1
+                        : 0;
+
         emit LockupBucketUpdated(
             _bucketMax,
             _newCap,

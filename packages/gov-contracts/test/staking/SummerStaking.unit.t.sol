@@ -50,9 +50,9 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
             address(bxSumr)
         );
         vm.prank(address(timelockA));
-        axSumr.setStakingModule(address(aStaking));
+        axSumr.addStakingModule(address(aStaking));
         vm.prank(address(timelockB));
-        bxSumr.setStakingModule(address(bStaking));
+        bxSumr.addStakingModule(address(bStaking));
     }
 
     // Helper function to create a fresh staking contract for isolated tests
@@ -66,7 +66,7 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
 
         // Set staking module so freshStaking can mint/burn StakedSummerToken
         vm.prank(address(timelockA));
-        axSumr.setStakingModule(address(freshStaking));
+        axSumr.addStakingModule(address(freshStaking));
 
         return freshStaking;
     }

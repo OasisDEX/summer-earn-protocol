@@ -105,12 +105,12 @@ contract SummerGovernorCrossChainTest2 is SummerGovernorV2TestBase {
         aSummerToken.transfer(whale, aSummerToken.totalSupply());
         vm.stopPrank();
         vm.startPrank(address(timelockA));
-        axSumr.setStakingModule(address(timelockA));
+        axSumr.addStakingModule(address(timelockA));
         axSumr.mint(whale, aSummerToken.totalSupply());
         vm.stopPrank();
 
         vm.startPrank(address(timelockB));
-        bxSumr.setStakingModule(address(timelockB));
+        bxSumr.addStakingModule(address(timelockB));
         bxSumr.mint(whale, bSummerToken.totalSupply());
         vm.stopPrank();
         advanceTimeAndBlock();
