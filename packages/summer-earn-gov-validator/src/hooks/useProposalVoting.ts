@@ -124,7 +124,7 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
   const tokenAddress = config.base?.deployedContracts?.gov?.summerToken?.address
 
   // Prepare contracts for batch reading
-  const contracts = proposalIds.flatMap((proposalId) => [
+  const proposalContracts = proposalIds.flatMap((proposalId) => [
     {
       address: governorAddress as `0x${string}`,
       abi: GOVERNOR_ABI,
@@ -146,15 +146,20 @@ export function useMultipleProposalVoting(proposalIds: string[]) {
   ])
 
   // Add voting power contract
-  if (address && tokenAddress) {
-    contracts.push({
-      address: tokenAddress as `0x${string}`,
-      abi: SUMMER_TOKEN_ABI,
-      functionName: 'getVotes' as const,
-      args: [address],
-      chainId: 8453,
-    })
-  }
+  const votingPowerContract =
+    address && tokenAddress
+      ? [
+          {
+            address: tokenAddress as `0x${string}`,
+            abi: SUMMER_TOKEN_ABI,
+            functionName: 'getVotes' as const,
+            args: [address],
+            chainId: 8453,
+          },
+        ]
+      : []
+
+  const contracts = [...proposalContracts, ...votingPowerContract]
 
   const { data: results, refetch } = useReadContracts({
     contracts,

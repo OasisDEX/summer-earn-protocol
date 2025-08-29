@@ -965,10 +965,12 @@ export const CrossChainProposals: React.FC = () => {
                     <p className="text-center mb-3">No cross-chain proposals found</p>
                     {baseProposal.chains && baseProposal.chains.length > 1 ? (
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-700">This proposal will affect chains:</p>
+                        <p className="text-sm font-medium text-gray-700">
+                          This proposal will affect chains:
+                        </p>
                         <div className="flex flex-wrap gap-2 justify-center">
                           {baseProposal.chains.map((chain) => (
-                            <span 
+                            <span
                               key={chain}
                               className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
                             >
@@ -978,10 +980,15 @@ export const CrossChainProposals: React.FC = () => {
                         </div>
                         {baseProposal.targets && baseProposal.targets.length > 0 && (
                           <div className="mt-3 pt-2 border-t border-gray-200">
-                            <p className="text-xs font-medium text-gray-700 mb-1">Target contracts:</p>
+                            <p className="text-xs font-medium text-gray-700 mb-1">
+                              Target contracts:
+                            </p>
                             <div className="space-y-1">
                               {baseProposal.targets.slice(0, 3).map((target, index) => (
-                                <div key={index} className="text-xs text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded">
+                                <div
+                                  key={index}
+                                  className="text-xs text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded"
+                                >
                                   {target}
                                 </div>
                               ))}
@@ -999,7 +1006,8 @@ export const CrossChainProposals: React.FC = () => {
                       </div>
                     ) : baseProposal.chains && baseProposal.chains.length === 1 ? (
                       <p className="text-sm text-center">
-                        This proposal only affects <span className="font-medium">{baseProposal.chains[0]}</span> chain
+                        This proposal only affects{' '}
+                        <span className="font-medium">{baseProposal.chains[0]}</span> chain
                       </p>
                     ) : (
                       <p className="text-sm text-center">
