@@ -20,12 +20,13 @@ import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 
 /*
  * @title SummerStaking Integration Tests
  * @dev Test contract for SummerStaking integration with governance functionality.
  */
-contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
+contract SummerStakingIntegrationTest is SummerStakingTestBase {
     // Test constants to eliminate magic numbers
     uint256 constant USER_1_STAKE_AMOUNT = 500000 * 10 ** 18;
     uint256 constant USER_2_STAKE_AMOUNT = 300000 * 10 ** 18;
@@ -33,88 +34,8 @@ contract SummerStakingIntegrationTest is SummerGovernorV2TestBase {
     uint256 constant PROPOSAL_THRESHOLD_TEST_AMOUNT = 2000000 * 10 ** 18;
     uint256 constant BELOW_THRESHOLD_AMOUNT = 500 * 10 ** 18;
 
-    // Staking contracts
-    SummerStaking public aStaking;
-
-    // Internal helper to stake tokens for a user and delegate
-    function stakeAndDelegate(
-        address user,
-        uint256 amount,
-        bool delegateToSelf
-    ) internal {
-        vm.startPrank(user);
-        aSummerToken.approve(address(aStaking), amount);
-        aStaking.stakeWithNewLockup(amount, 0);
-        if (delegateToSelf) {
-            axSumr.delegate(user);
-        }
-        vm.stopPrank();
-        // SummerGovernorV2TestBase gives the whale 100% of the StakedSummerToken supply
-        // to make the tests easier and make total gov token invariant we burn the amount of tokens
-        // that are staked for the user
-        vm.startPrank(whale);
-        axSumr.burn(amount);
-        vm.stopPrank();
-    }
-    function stakeAndDelegate(
-        address user,
-        uint256 amount,
-        bool delegateToSelf,
-        uint index
-    ) internal {
-        vm.startPrank(user);
-        aSummerToken.approve(address(aStaking), amount);
-        aStaking.addToStake(index, amount);
-        if (delegateToSelf) {
-            axSumr.delegate(user);
-        }
-        vm.stopPrank();
-        // SummerGovernorV2TestBase gives the whale 100% of the StakedSummerToken supply
-        // to make the tests easier and make total gov token invariant we burn the amount of tokens
-        // that are staked for the user
-        vm.startPrank(whale);
-        axSumr.burn(amount);
-        vm.stopPrank();
-    }
-
-    // Internal helper to create a proposal
-    function createStakingProposal()
-        internal
-        returns (uint256 proposalId, address[] memory targets)
-    {
-        targets = new address[](1);
-        targets[0] = address(testToken);
-
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSignature(
-            "transfer(address,uint256)",
-            bob,
-            1000
-        );
-
-        string memory description = "Test proposal for staking integration";
-
-        proposalId = governorA.propose(targets, values, calldatas, description);
-        return (proposalId, targets);
-    }
-
     function setUp() public override {
         super.setUp();
-
-        // Deploy and setup staking contract
-        aStaking = new SummerStaking(
-            address(accessManagerA),
-            address(configurationManagerA),
-            address(aSummerToken),
-            address(axSumr)
-        );
-
-        // Set staking module so aStaking can mint/burn StakedSummerToken
-        vm.prank(address(timelockA));
-        axSumr.addStakingModule(address(aStaking));
 
         // Setup test users with tokens
         deal(address(aSummerToken), alice, USER_1_STAKE_AMOUNT * 2);

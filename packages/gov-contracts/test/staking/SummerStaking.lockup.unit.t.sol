@@ -22,14 +22,6 @@ import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
  */
 contract SummerStakingLockupTest is SummerStakingTestBase {
     address public user3 = address(0x1003);
-    uint256 public constant REWARD_AMOUNT = 100 ether;
-
-    MockERC20 public rewardToken;
-
-    // Test lockup periods
-    uint256 public constant MIN_LOCKUP = 90 days;
-    uint256 public constant MAX_LOCKUP = 4 * 365 days;
-    uint256 public constant MEDIUM_LOCKUP = 365 days;
 
     function setUp() public override {
         super.setUp();
@@ -55,6 +47,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Setup reward token
         rewardToken = new MockERC20();
         deal(address(rewardToken), address(timelockA), REWARD_AMOUNT * 1000);
+
+        vm.startPrank(whale);
+        axSumr.burn(axSumr.balanceOf(whale));
+        bxSumr.burn(bxSumr.balanceOf(whale));
+        vm.stopPrank();
     }
 
     // ============ ENHANCED HELPER METHODS ============

@@ -7,6 +7,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 /*
  * @title SummerStaking Test Base
@@ -16,9 +17,16 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     address public user1 = address(0x1001);
     address public user2 = address(0x1002);
     uint256 public constant STAKE_AMOUNT = 1000 ether;
+    uint256 public constant REWARD_AMOUNT = 100 ether;
 
     SummerStaking public aStaking;
     SummerStaking public bStaking;
+    MockERC20 public rewardToken;
+
+    // Test lockup periods
+    uint256 public constant MIN_LOCKUP = 90 days;
+    uint256 public constant MAX_LOCKUP = 4 * 365 days;
+    uint256 public constant MEDIUM_LOCKUP = 365 days;
 
     function setUp() public virtual override {
         super.setUp();
@@ -26,11 +34,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         // Setup test users with tokens
         deal(address(aSummerToken), user1, STAKE_AMOUNT * 3);
         deal(address(aSummerToken), user2, STAKE_AMOUNT * 3);
-
-        vm.startPrank(whale);
-        axSumr.burn(axSumr.balanceOf(whale));
-        bxSumr.burn(bxSumr.balanceOf(whale));
-        vm.stopPrank();
 
         aStaking = new SummerStaking(
             address(accessManagerA),
@@ -44,10 +47,101 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
             address(bSummerToken),
             address(bxSumr)
         );
-        vm.prank(address(timelockA));
+
+        vm.startPrank(address(timelockA));
         axSumr.addStakingModule(address(aStaking));
-        vm.prank(address(timelockB));
+        aStaking.updateLockupBucketCap(aStaking.BUCKET_0_MAX(), 1000000 ether);
+        aStaking.updateLockupBucketCap(aStaking.BUCKET_1_MAX(), 100000 ether);
+        aStaking.updateLockupBucketCap(aStaking.BUCKET_2_MAX(), 100000 ether);
+        aStaking.updateLockupBucketCap(aStaking.BUCKET_3_MAX(), 100000 ether);
+        vm.stopPrank();
+
+        vm.startPrank(address(timelockB));
         bxSumr.addStakingModule(address(bStaking));
+        bStaking.updateLockupBucketCap(bStaking.BUCKET_0_MAX(), 1000000 ether);
+        bStaking.updateLockupBucketCap(bStaking.BUCKET_1_MAX(), 100000 ether);
+        bStaking.updateLockupBucketCap(bStaking.BUCKET_2_MAX(), 100000 ether);
+        bStaking.updateLockupBucketCap(bStaking.BUCKET_3_MAX(), 100000 ether);
+        vm.stopPrank();
+
+        // Setup reward token
+        rewardToken = new MockERC20();
+        deal(address(rewardToken), address(timelockA), REWARD_AMOUNT * 1000);
+    }
+
+    // ============ GOVERNANCE INTEGRATION HELPERS ============
+
+    /**
+     * @notice Internal helper to stake tokens for a user and delegate
+     */
+    function stakeAndDelegate(
+        address user,
+        uint256 amount,
+        bool delegateToSelf
+    ) internal {
+        vm.startPrank(user);
+        aSummerToken.approve(address(aStaking), amount);
+        aStaking.stakeWithNewLockup(amount, 0);
+        if (delegateToSelf) {
+            axSumr.delegate(user);
+        }
+        vm.stopPrank();
+        // SummerGovernorV2TestBase gives the whale 100% of the StakedSummerToken supply
+        // to make the tests easier and make total gov token invariant we burn the amount of tokens
+        // that are staked for the user
+        vm.startPrank(whale);
+        axSumr.burn(amount);
+        vm.stopPrank();
+    }
+
+    /**
+     * @notice Internal helper to add to existing stake and delegate
+     */
+    function stakeAndDelegate(
+        address user,
+        uint256 amount,
+        bool delegateToSelf,
+        uint256 index
+    ) internal {
+        vm.startPrank(user);
+        aSummerToken.approve(address(aStaking), amount);
+        aStaking.addToStake(index, amount);
+        if (delegateToSelf) {
+            axSumr.delegate(user);
+        }
+        vm.stopPrank();
+        // SummerGovernorV2TestBase gives the whale 100% of the StakedSummerToken supply
+        // to make the tests easier and make total gov token invariant we burn the amount of tokens
+        // that are staked for the user
+        vm.startPrank(whale);
+        axSumr.burn(amount);
+        vm.stopPrank();
+    }
+
+    /**
+     * @notice Internal helper to create a proposal for testing governance integration
+     */
+    function createStakingProposal()
+        internal
+        returns (uint256 proposalId, address[] memory targets)
+    {
+        targets = new address[](1);
+        targets[0] = address(testToken);
+
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature(
+            "transfer(address,uint256)",
+            bob,
+            1000
+        );
+
+        string memory description = "Test proposal for staking integration";
+
+        proposalId = governorA.propose(targets, values, calldatas, description);
+        return (proposalId, targets);
     }
 
     // ============ HELPER METHODS ============

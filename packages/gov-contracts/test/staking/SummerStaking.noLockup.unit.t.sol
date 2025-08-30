@@ -9,6 +9,15 @@ import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
  * @dev Test contract for SummerStaking contract constructor and core functionality.
  */
 contract SummerStakingNoLockupTest is SummerStakingTestBase {
+    function setUp() public override {
+        super.setUp();
+
+        vm.startPrank(whale);
+        axSumr.burn(axSumr.balanceOf(whale));
+        bxSumr.burn(bxSumr.balanceOf(whale));
+        vm.stopPrank();
+    }
+
     function test_Constructor_ValidParameters() public {
         address[] memory vestingFactories = new address[](2);
         vestingFactories[0] = address(factoryVestingV2);
