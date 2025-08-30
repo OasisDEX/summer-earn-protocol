@@ -2,75 +2,13 @@
 pragma solidity 0.8.28;
 
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
-import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
-import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
-import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
-import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 
 /*
- * @title SummerStaking Core Tests
+ * @title SummerStaking No Lockup Tests
  * @dev Test contract for SummerStaking contract constructor and core functionality.
  */
-contract SummerStakingCoreTest is SummerGovernorV2TestBase {
-    address public user1 = address(0x1001);
-    address public user2 = address(0x1002);
-    uint256 public constant STAKE_AMOUNT = 1000 ether;
-
-    SummerStaking public aStaking;
-    SummerStaking public bStaking;
-
-    function setUp() public override {
-        super.setUp();
-
-        // Setup test users with tokens
-        deal(address(aSummerToken), user1, STAKE_AMOUNT * 2);
-        deal(address(aSummerToken), user2, STAKE_AMOUNT * 2);
-
-        vm.startPrank(whale);
-        axSumr.burn(axSumr.balanceOf(whale));
-        bxSumr.burn(bxSumr.balanceOf(whale));
-        vm.stopPrank();
-
-        aStaking = new SummerStaking(
-            address(accessManagerA),
-            address(configurationManagerA),
-            address(aSummerToken),
-            address(axSumr)
-        );
-        bStaking = new SummerStaking(
-            address(accessManagerB),
-            address(configurationManagerB),
-            address(bSummerToken),
-            address(bxSumr)
-        );
-        vm.prank(address(timelockA));
-        axSumr.addStakingModule(address(aStaking));
-        vm.prank(address(timelockB));
-        bxSumr.addStakingModule(address(bStaking));
-    }
-
-    // Helper function to create a fresh staking contract for isolated tests
-    function createFreshStaking() internal returns (SummerStaking) {
-        SummerStaking freshStaking = new SummerStaking(
-            address(accessManagerA),
-            address(configurationManagerA),
-            address(aSummerToken),
-            address(axSumr)
-        );
-
-        // Set staking module so freshStaking can mint/burn StakedSummerToken
-        vm.prank(address(timelockA));
-        axSumr.addStakingModule(address(freshStaking));
-
-        return freshStaking;
-    }
-
+contract SummerStakingNoLockupTest is SummerStakingTestBase {
     function test_Constructor_ValidParameters() public {
         address[] memory vestingFactories = new address[](2);
         vestingFactories[0] = address(factoryVestingV2);
@@ -131,17 +69,12 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Approve staking contract to spend tokens
-        vm.prank(user1);
-        aSummerToken.approve(address(aStaking), stakeAmount);
-
         // Get balances before staking
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
-        // Stake tokens with lockup
-        vm.prank(user1);
-        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
+        // Stake tokens with lockup using helper
+        _stake(user1, stakeAmount, lockupPeriod);
 
         // Check balances after staking
         assertEq(
@@ -155,15 +88,11 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 1 seconds;
 
-        // Approve staking contract to spend tokens
-        vm.prank(user1);
-        aSummerToken.approve(address(aStaking), stakeAmount);
-
         // Get balances before staking
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
-        // Stake tokens with lockup
+        // Attempt to stake with invalid lockup period
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -173,15 +102,12 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         );
         aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
 
-        // Check balances after staking
+        // Check balances after staking - should remain unchanged
         assertEq(aSummerToken.balanceOf(user1), userSummerBalanceBefore);
         assertEq(axSumr.balanceOf(user1), userXSumrBalanceBefore);
     }
-    function test_Stake_ZeroAmount() public {
-        // Approve staking contract (even for zero amount)
-        vm.prank(user1);
-        aSummerToken.approve(address(aStaking), 0);
 
+    function test_Stake_ZeroAmount() public {
         // Stake zero amount should revert
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("CannotStakeZero()"));
@@ -221,24 +147,16 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // First stake some tokens with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aStaking), stakeAmount);
-        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // First stake some tokens with lockup using helper
+        _stake(user1, stakeAmount, lockupPeriod);
 
         // Get balances before unstaking
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
-        // Approve staking contract to burn StakedSummerToken
-        vm.startPrank(user1);
-        axSumr.approve(address(aStaking), stakeAmount);
+        // Unstake tokens from specific stake using helper (no penalty since no lockup)
+        _approveAndUnstake(user1, 0, stakeAmount);
 
-        // Unstake tokens from specific stake (no penalty since no lockup)
-        vm.startPrank(user1);
-        aStaking.unstakeFromLockup(0, stakeAmount);
-        vm.stopPrank();
         // Check balances after unstaking - should get full amount back
         assertEq(
             aSummerToken.balanceOf(user1),
@@ -250,11 +168,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
     function test_Unstake_ZeroAmount() public {
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // First stake some tokens
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
-        aStaking.stakeWithNewLockup(STAKE_AMOUNT, lockupPeriod);
-        vm.stopPrank();
+        // First stake some tokens using helper
+        _stake(user1, STAKE_AMOUNT, lockupPeriod);
 
         // Unstake zero amount should revert
         vm.prank(user1);
@@ -269,11 +184,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // First stake some tokens
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aStaking), stakeAmount);
-        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // First stake some tokens using helper
+        _stake(user1, stakeAmount, lockupPeriod);
 
         // Approve less than unstake amount
         vm.prank(user1);
@@ -289,11 +201,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // First stake some tokens
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aStaking), stakeAmount);
-        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // First stake some tokens using helper
+        _stake(user1, stakeAmount, lockupPeriod);
 
         // Approve staking contract
         vm.prank(user1);
@@ -312,11 +221,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         // Get initial balances
         uint256 initialSummerBalance = aSummerToken.balanceOf(user1);
 
-        // Stake tokens with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aStaking), stakeAmount);
-        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // Stake tokens with lockup using helper
+        _stake(user1, stakeAmount, lockupPeriod);
 
         // Verify staking worked
         assertEq(axSumr.balanceOf(user1), stakeAmount);
@@ -325,11 +231,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
             initialSummerBalance - stakeAmount
         );
 
-        // Unstake tokens from specific stake
-        vm.startPrank(user1);
-        axSumr.approve(address(aStaking), stakeAmount);
-        aStaking.unstakeFromLockup(0, stakeAmount);
-        vm.stopPrank();
+        // Unstake tokens from specific stake using helper
+        _approveAndUnstake(user1, 0, stakeAmount);
 
         // Verify round trip worked - should get full amount back (no penalty)
         assertEq(axSumr.balanceOf(user1), 0);
@@ -341,17 +244,12 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Approve staking contract
-        vm.prank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-
         // Get balances before staking
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
-        // Stake with lockup
-        vm.prank(user1);
-        freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
+        // Stake with lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Check balances after staking
         assertEq(
@@ -378,13 +276,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         SummerStaking freshStaking = createFreshStaking();
         uint256 stakeAmount = STAKE_AMOUNT;
 
-        // Approve staking contract
-        vm.prank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-
-        // Stake with zero lockup
-        vm.prank(user1);
-        freshStaking.stakeWithNewLockup(stakeAmount, 0);
+        // Stake with zero lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount, 0);
 
         // Check stake details - weighted amount should equal actual amount
         (uint256 amount, uint256 weightedAmount, , ) = freshStaking
@@ -397,10 +290,6 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         SummerStaking freshStaking = createFreshStaking();
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 invalidLockupPeriod = 5 * 365 days; // 5 years - exceeds max
-
-        // Approve staking contract
-        vm.prank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
 
         // Attempt to stake with invalid lockup period
         vm.prank(user1);
@@ -430,10 +319,12 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         lockupPeriods[0] = 0; // No lockup
 
         for (uint256 i = 0; i < lockupPeriods.length; i++) {
-            vm.startPrank(user1);
-            aSummerToken.approve(address(freshStaking), stakeAmount);
-            freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriods[i]);
-            vm.stopPrank();
+            _stakeOnContract(
+                freshStaking,
+                user1,
+                stakeAmount,
+                lockupPeriods[i]
+            );
 
             (, uint256 weightedAmount, , ) = freshStaking.getUserStake(
                 user1,
@@ -455,11 +346,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Stake with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-        freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // Stake with lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // balanceOf should return actual staked amount, weightedBalanceOf returns weighted amount
         uint256 balanceOf = freshStaking.balanceOf(user1); // Actual staked amount
@@ -480,11 +368,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Stake with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-        freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // Stake with lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Penalty should be 0 for zero lockup
         uint256 penalty = freshStaking.calculatePenalty(user1, 0);
@@ -496,11 +381,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Stake with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-        freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // Stake with lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Penalty should be 0 for zero lockup
         uint256 penalty = freshStaking.calculatePenalty(user1, 0);
@@ -516,10 +398,12 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         lockupPeriods[0] = 0; // No lockup
 
         for (uint256 i = 0; i < lockupPeriods.length; i++) {
-            vm.startPrank(user1);
-            aSummerToken.approve(address(freshStaking), stakeAmount);
-            freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriods[i]);
-            vm.stopPrank();
+            _stakeOnContract(
+                freshStaking,
+                user1,
+                stakeAmount,
+                lockupPeriods[i]
+            );
 
             // Calculate penalty immediately (no time passed)
             uint256 penalty = freshStaking.calculatePenalty(user1, i);
@@ -534,20 +418,14 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Stake with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-        freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // Stake with lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
-        // Unstake from specific stake - should get full amount back
-        vm.startPrank(user1);
-        axSumr.approve(address(freshStaking), stakeAmount);
-        freshStaking.unstakeFromLockup(0, stakeAmount);
-        vm.stopPrank();
+        // Unstake from specific stake using helper - should get full amount back
+        _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount);
 
         // Check balances - should get full amount back (no penalty)
         assertEq(
@@ -579,11 +457,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Stake with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-        freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // Stake with lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
@@ -592,11 +467,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 expectedPenalty = freshStaking.calculatePenalty(user1, 0);
         uint256 expectedReturnAmount = stakeAmount - expectedPenalty;
 
-        // Unstake from specific stake
-        vm.startPrank(user1);
-        axSumr.approve(address(freshStaking), stakeAmount);
-        freshStaking.unstakeFromLockup(0, stakeAmount);
-        vm.stopPrank();
+        // Unstake from specific stake using helper
+        _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount);
 
         // Check balances - should get full amount back (no penalty)
         assertEq(
@@ -618,11 +490,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 unstakeAmount = 300 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Stake with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-        freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-        vm.stopPrank();
+        // Stake with lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
@@ -635,11 +504,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         // For zero lockup, penalty should be 0
         assertEq(expectedPenalty, 0);
 
-        // Partial unstake from specific stake
-        vm.startPrank(user1);
-        axSumr.approve(address(freshStaking), unstakeAmount);
-        freshStaking.unstakeFromLockup(0, unstakeAmount);
-        vm.stopPrank();
+        // Partial unstake from specific stake using helper
+        _approveAndUnstakeOnContract(freshStaking, user1, 0, unstakeAmount);
 
         // Check balances
         assertEq(
@@ -676,15 +542,9 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 lockupPeriod1 = 0; // No lockup for test
         uint256 lockupPeriod2 = 0; // No lockup for test
 
-        // Stake two different amounts with different lockup periods
-        vm.startPrank(user1);
-        aSummerToken.approve(
-            address(freshStaking),
-            stakeAmount1 + stakeAmount2
-        );
-        freshStaking.stakeWithNewLockup(stakeAmount1, lockupPeriod1);
-        freshStaking.stakeWithNewLockup(stakeAmount2, lockupPeriod2);
-        vm.stopPrank();
+        // Stake two different amounts with different lockup periods using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount1, lockupPeriod1);
+        _stakeOnContract(freshStaking, user1, stakeAmount2, lockupPeriod2);
 
         uint256 totalStaked = stakeAmount1 + stakeAmount2;
         uint256 unstakeAmount = 800 ether; // Unstake 800 out of 1500 total
@@ -695,11 +555,8 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
-        // Proportional unstake
-        vm.startPrank(user1);
-        axSumr.approve(address(freshStaking), unstakeAmount);
-        freshStaking.unstakeFromLockup(0, unstakeAmount);
-        vm.stopPrank();
+        // Proportional unstake using helper
+        _approveAndUnstakeOnContract(freshStaking, user1, 0, unstakeAmount);
 
         // Check balances (no penalties for zero lockup)
         assertEq(
@@ -741,17 +598,11 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount1 = STAKE_AMOUNT;
         uint256 stakeAmount2 = STAKE_AMOUNT / 2;
 
-        // User 1 stakes with lockup
-        vm.startPrank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount1);
-        freshStaking.stakeWithNewLockup(stakeAmount1, 0); // No lockup for test
-        vm.stopPrank();
+        // User 1 stakes with lockup using helper
+        _stakeOnContract(freshStaking, user1, stakeAmount1, 0);
 
-        // User 2 stakes with lockup
-        vm.startPrank(user2);
-        aSummerToken.approve(address(freshStaking), stakeAmount2);
-        freshStaking.stakeWithNewLockup(stakeAmount2, 0); // No lockup for test
-        vm.stopPrank();
+        // User 2 stakes with lockup using helper
+        _stakeOnContract(freshStaking, user2, stakeAmount2, 0);
 
         // Verify both users have correct balances
         assertEq(axSumr.balanceOf(user1), stakeAmount1);
@@ -771,28 +622,27 @@ contract SummerStakingCoreTest is SummerGovernorV2TestBase {
         uint256 stakeAmount = STAKE_AMOUNT / 4;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // Stake multiple times with lockup
+        // Stake multiple times with lockup using helper
         for (uint256 i = 0; i < 4; i++) {
-            vm.startPrank(user1);
-            aSummerToken.approve(address(freshStaking), stakeAmount);
             if (i == 0) {
-                freshStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
+                _stakeOnContract(
+                    freshStaking,
+                    user1,
+                    stakeAmount,
+                    lockupPeriod
+                );
             } else {
-                freshStaking.addToStake(0, stakeAmount);
+                _addToStakeOnContract(freshStaking, user1, 0, stakeAmount);
             }
-            vm.stopPrank();
         }
 
         // Verify accumulated staking
         assertEq(axSumr.balanceOf(user1), stakeAmount * 4);
         // Note: Contract balance will be 0 since tokens are wrapped
 
-        // Unstake multiple times (unstake from specific stakes)
+        // Unstake multiple times (unstake from specific stakes) using helper
         for (uint256 i = 0; i < 4; i++) {
-            vm.startPrank(user1);
-            axSumr.approve(address(freshStaking), stakeAmount);
-            freshStaking.unstakeFromLockup(0, stakeAmount); // Unstake from first remaining stake
-            vm.stopPrank();
+            _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount); // Unstake from first remaining stake
         }
 
         // Verify final balances
