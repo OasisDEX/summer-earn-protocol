@@ -15,6 +15,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
+import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 
 /*
  * @title SummerStaking Lockup Tests
@@ -151,20 +152,21 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         }
 
         // Constants from contract
-        uint256 WEIGHTED_STAKE_BASE = 0.05e18; // 0.05 in WAD
-        uint256 WEIGHTED_STAKE_COEFFICIENT = (4 * Constants.WAD) / 1e16; // 4E-16 in WAD
+        uint256 WEIGHTED_STAKE_BASE = 5e16;
+        uint256 WEIGHTED_STAKE_COEFFICIENT = 4e2; //
+        // Convert lockupPeriod into 60.18 fixed-point
+        UD60x18 time = convert(lockupPeriod);
 
-        // Calculate time squared (in WAD format)
-        uint256 timeSquared = (lockupPeriod * lockupPeriod * Constants.WAD) /
-            Constants.WAD;
+        // Square it safely in 60.18 format
+        UD60x18 timeSquared = time.mul(time);
 
-        // Calculate multiplier: 4E-16 * time^2 + 0.05
-        uint256 multiplier = (WEIGHTED_STAKE_COEFFICIENT * timeSquared) /
-            Constants.WAD +
-            WEIGHTED_STAKE_BASE;
+        // multiplier = (WEIGHTED_STAKE_COEFFICIENT * time^2) + WEIGHTED_STAKE_BASE
+        UD60x18 multiplier = ud60x18(WEIGHTED_STAKE_COEFFICIENT)
+            .mul(timeSquared)
+            .add(ud60x18(WEIGHTED_STAKE_BASE));
 
-        // Apply multiplier to amount
-        return (amount * multiplier) / Constants.WAD;
+        // weightedAmount = amount * multiplier
+        return ud60x18(amount).mul(multiplier).unwrap();
     }
 
     /**
@@ -456,20 +458,34 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Check user balances
         assertEq(
             aSummerToken.balanceOf(user1),
-            userSummerBalanceBefore - stakeAmount
+            userSummerBalanceBefore - stakeAmount,
+            "User summer balance should decrease"
         );
-        assertEq(axSumr.balanceOf(user1), userXSumrBalanceBefore + stakeAmount);
+        assertEq(
+            axSumr.balanceOf(user1),
+            userXSumrBalanceBefore + stakeAmount,
+            "User xSUMR balance should increase"
+        );
 
         // Check contract state
-        assertEq(aStaking.balanceOf(user1), stakeAmount);
-        assertEq(aStaking.weightedBalanceOf(user1), expectedWeightedAmount);
+        assertEq(
+            aStaking.balanceOf(user1),
+            stakeAmount,
+            "User balance should increase"
+        );
+        assertEq(
+            aStaking.weightedBalanceOf(user1),
+            expectedWeightedAmount,
+            "User weighted balance should increase"
+        );
         assertEq(
             aStaking.totalSupply(),
-            totalSupplyBefore + expectedWeightedAmount
+            totalSupplyBefore + expectedWeightedAmount,
+            "Total supply should increase"
         );
 
         // Check bucket totals
-        _assertBucket(SummerStaking.Bucket.ThreeToSixMonths, stakeAmount); // Should be in ThreeToSixMonths bucket
+        _assertBucket(SummerStaking.Bucket.ThreeToSixMonths, stakeAmount);
     }
 
     // Failure Cases
@@ -706,7 +722,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
                 _calculateExpectedWeightedAmountForPeriod(
                     stakeAmount,
                     lockupPeriod
-                )
+                ),
+            "Weighted balance should decrease"
         );
         assertEq(
             aStaking.totalSupply(),
@@ -714,7 +731,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
                 _calculateExpectedWeightedAmountForPeriod(
                     stakeAmount,
                     lockupPeriod
-                )
+                ),
+            "Total supply should decrease"
         );
     }
 
@@ -811,7 +829,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Verify penalty sent to treasury
         assertGt(
             aSummerToken.balanceOf(aStaking.treasury()),
-            treasuryBalanceBefore
+            treasuryBalanceBefore,
+            "Treasury balance should increase"
         );
 
         // Verify state changes
@@ -822,7 +841,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
                 _calculateExpectedWeightedAmountForPeriod(
                     stakeAmount,
                     lockupPeriod
-                )
+                ),
+            "Weighted balance should decrease"
         );
         assertEq(
             aStaking.totalSupply(),
@@ -830,7 +850,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
                 _calculateExpectedWeightedAmountForPeriod(
                     stakeAmount,
                     lockupPeriod
-                )
+                ),
+            "Total supply should decrease"
         );
     }
 

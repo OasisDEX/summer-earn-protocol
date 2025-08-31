@@ -11,6 +11,7 @@ import {WrappedStakingToken} from "./WrappedStakingToken.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 
 // @dev Enhanced staking contract with lockup periods and reward distribution
 // @dev Users can stake with any lockup period, rewards are calculated based on weighted stakes
@@ -25,14 +26,15 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     // Lockup configuration
     uint256 public constant MAX_LOCKUP_PERIOD = 4 * 365 days; // 4 years
     uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
+    uint256 public constant MAX_PENALTY_PERCENTAGE = 50; // 50%
 
     // Bucket enum for clear indexing
     enum Bucket {
         NoLockup, // 0 days
-        ShortTerm, // 1-89 days (disabled by default with cap 0)
+        ShortTerm, // 1-90 days (disabled by default with cap 0)
         ThreeToSixMonths, // 90-180 days
-        SixToTwelveMonths, // 181-365 days
-        OneToTwoYears, // 366-730 days
+        SixToTwelveMonths, // 180-365 days
+        OneToTwoYears, // 365-730 days
         TwoToFourYears // 731+ days
     }
 
@@ -44,9 +46,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     uint256 public constant BUCKET_TWO_TO_FOUR_MAX = MAX_LOCKUP_PERIOD;
 
     // Weighted stake calculation constants
-    uint256 private constant WEIGHTED_STAKE_BASE = 0.05e18; // 0.05 in WAD (18 decimals)
-    uint256 private constant WEIGHTED_STAKE_COEFFICIENT =
-        (4 * Constants.WAD) / 1e16; // 4E-16 in WAD
+    uint256 private constant WEIGHTED_STAKE_BASE = 5e16; // 0.05 in 60.18 fixed-point
+    uint256 private constant WEIGHTED_STAKE_COEFFICIENT = 4e2; // 4e-16 * 1e18 = 400 in 60.18 fixed-point
 
     // User stake information with lockup details
     struct UserStake {
@@ -573,29 +574,28 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     ) public pure returns (uint256) {
         return _calculateWeightedStake(_amount, _lockupPeriod);
     }
+
     function _calculateWeightedStake(
         uint256 _amount,
         uint256 _lockupPeriod
     ) internal pure returns (uint256) {
         if (_lockupPeriod == 0) {
-            // No weighting for 0 lockup
-            return _amount;
+            return _amount; // No weighting for 0 lockup
         }
 
-        // Calculate time squared (in WAD format)
-        uint256 timeSquared = (_lockupPeriod * _lockupPeriod * Constants.WAD) /
-            Constants.WAD;
+        // Convert lockupPeriod into 60.18 fixed-point
+        UD60x18 time = convert(_lockupPeriod);
 
-        // Calculate multiplier: 4E-16 * time^2 + 0.05
-        // 4E-16 = 4 * 10^-16 = 4e-16
-        // In WAD: 4e-16 * Constants.WAD = 4e2 = 400
-        // Note: This calculation is simplified and may need review for precision
-        uint256 multiplier = (WEIGHTED_STAKE_COEFFICIENT * timeSquared) /
-            Constants.WAD +
-            WEIGHTED_STAKE_BASE;
+        // Square it safely in 60.18 format
+        UD60x18 timeSquared = time.mul(time);
 
-        // Apply multiplier to amount
-        return (_amount * multiplier) / Constants.WAD;
+        // multiplier = (WEIGHTED_STAKE_COEFFICIENT * time^2) + WEIGHTED_STAKE_BASE
+        UD60x18 multiplier = ud60x18(WEIGHTED_STAKE_COEFFICIENT)
+            .mul(timeSquared)
+            .add(ud60x18(WEIGHTED_STAKE_BASE));
+
+        // weightedAmount = amount * multiplier
+        return ud60x18(_amount).mul(multiplier).unwrap();
     }
 
     /**
