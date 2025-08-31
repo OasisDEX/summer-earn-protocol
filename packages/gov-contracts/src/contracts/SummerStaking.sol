@@ -13,7 +13,7 @@ import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 // @dev Enhanced staking contract with lockup periods and reward distribution
-// @dev Users can only stake with lockup periods (minimum 3 months), rewards are calculated based on weighted stakes
+// @dev Users can stake with any lockup period, rewards are calculated based on weighted stakes
 contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
@@ -24,14 +24,24 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
     // Lockup configuration
     uint256 public constant MAX_LOCKUP_PERIOD = 4 * 365 days; // 4 years
-    uint256 public constant MIN_LOCKUP_PERIOD = 90 days; // 3 months
     uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
 
-    uint256 public constant BUCKET_0_MIN = MIN_LOCKUP_PERIOD; // 90 days (3 months)
-    uint256 public constant BUCKET_0_MAX = 180 days; // 6m
-    uint256 public constant BUCKET_1_MAX = 365 days; // 12m
-    uint256 public constant BUCKET_2_MAX = 730 days; // 24m
-    uint256 public constant BUCKET_3_MAX = MAX_LOCKUP_PERIOD; // 4y
+    // Bucket enum for clear indexing
+    enum Bucket {
+        NoLockup, // 0 days
+        ShortTerm, // 1-89 days (disabled by default with cap 0)
+        ThreeToSixMonths, // 90-180 days
+        SixToTwelveMonths, // 181-365 days
+        OneToTwoYears, // 366-730 days
+        TwoToFourYears // 731+ days
+    }
+
+    // Bucket period boundaries (in seconds)
+    uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days - 1;
+    uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days;
+    uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days;
+    uint256 public constant BUCKET_ONE_TO_TWO_MAX = 730 days;
+    uint256 public constant BUCKET_TWO_TO_FOUR_MAX = MAX_LOCKUP_PERIOD;
 
     // Weighted stake calculation constants
     uint256 private constant WEIGHTED_STAKE_BASE = 0.05e18; // 0.05 in WAD (18 decimals)
@@ -52,17 +62,18 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     // Mapping: user => total weighted staked amount
     mapping(address => uint256) private _weightedBalances;
 
-    EnumerableMap.UintToUintMap private _bucketCap;
-    EnumerableMap.UintToUintMap private _bucketStaked;
+    // Bucket management using enum keys
+    mapping(Bucket => uint256) private _bucketCap;
+    mapping(Bucket => uint256) private _bucketStaked;
 
     // Events for bucket management
     event LockupBucketUpdated(
-        uint256 indexed bucketIndex,
+        Bucket indexed bucket,
         uint256 cap,
         uint256 maxLockupPeriod
     );
     event LockupBucketAdded(
-        uint256 indexed bucketIndex,
+        Bucket indexed bucket,
         uint256 cap,
         uint256 minLockupPeriod,
         uint256 maxLockupPeriod
@@ -103,95 +114,109 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
     /**
      * @notice Initialize default lockup bucket configurations
-     * @dev Creates 5 bucket keys: 0 (unused), 3-6 months, 6-12 months, 12-24 months, 24+ months
-     * @dev Bucket 0: unused, Bucket 1: 3-6 months, Bucket 2: 6-12 months, Bucket 3: 12-24 months, Bucket 4: 24+ months
+     * @dev Creates buckets for all lockup periods including ShortTerm (disabled by default)
+     * @dev ShortTerm bucket has cap 0 to disable it, others have no cap (type(uint256).max)
      */
     function _initializeDefaultLockupBuckets() internal {
-        _bucketCap.set(0, 0);
-        _bucketCap.set(BUCKET_0_MAX, 0);
-        _bucketCap.set(BUCKET_1_MAX, 0);
-        _bucketCap.set(BUCKET_2_MAX, 0);
-        _bucketCap.set(BUCKET_3_MAX, 0);
+        // NoLockup bucket - no cap
+        _bucketCap[Bucket.NoLockup] = type(uint256).max;
+        _bucketStaked[Bucket.NoLockup] = 0;
 
-        _bucketStaked.set(0, 0);
-        _bucketStaked.set(BUCKET_0_MAX, 0);
-        _bucketStaked.set(BUCKET_1_MAX, 0);
-        _bucketStaked.set(BUCKET_2_MAX, 0);
-        _bucketStaked.set(BUCKET_3_MAX, 0);
+        // ShortTerm bucket - disabled by default (cap 0)
+        _bucketCap[Bucket.ShortTerm] = 0;
+        _bucketStaked[Bucket.ShortTerm] = 0;
+
+        // ThreeToSixMonths bucket - no cap
+        _bucketCap[Bucket.ThreeToSixMonths] = 0;
+        _bucketStaked[Bucket.ThreeToSixMonths] = 0;
+
+        // SixToTwelveMonths bucket - no cap
+        _bucketCap[Bucket.SixToTwelveMonths] = 0;
+        _bucketStaked[Bucket.SixToTwelveMonths] = 0;
+
+        // OneToTwoYears bucket - no cap
+        _bucketCap[Bucket.OneToTwoYears] = 0;
+        _bucketStaked[Bucket.OneToTwoYears] = 0;
+
+        // TwoToFourYears bucket - no cap
+        _bucketCap[Bucket.TwoToFourYears] = type(uint256).max;
+        _bucketStaked[Bucket.TwoToFourYears] = 0;
     }
 
     /**
      * @notice Update the cap for a specific lockup bucket
-     * @param _bucketMax The index of the bucket to update
-     * @param _newCap The new cap amount (0 = no cap)
+     * @param _bucket The bucket to update
+     * @param _newCap The new cap amount (0 = disabled, type(uint256).max = no cap)
      * @dev Only callable by governor
      */
     function updateLockupBucketCap(
-        uint256 _bucketMax,
+        Bucket _bucket,
         uint256 _newCap
     ) external onlyGovernor {
-        if (
-            _bucketMax != BUCKET_0_MAX &&
-            _bucketMax != BUCKET_1_MAX &&
-            _bucketMax != BUCKET_2_MAX &&
-            _bucketMax != BUCKET_3_MAX
-        ) {
-            revert Staking_InvalidBucketIndex();
-        }
-        _bucketCap.set(_bucketMax, _newCap);
+        _bucketCap[_bucket] = _newCap;
 
-        emit LockupBucketUpdated(_bucketMax, _newCap, _bucketMax);
-    }
+        // Get the max lockup period for this bucket for the event
+        uint256 maxLockupPeriod = _getBucketMaxLockupPeriod(_bucket);
 
-    /**
-     * @notice Get the total number of lockup buckets
-     * @return The number of configured buckets
-     */
-    function getLockupBucketCount() external view returns (uint256) {
-        return _bucketCap.length();
+        emit LockupBucketUpdated(_bucket, _newCap, maxLockupPeriod);
     }
 
     /**
      * @notice Get the total staked amount for a specific lockup bucket
-     * @param _bucketMax The bucket max value (BUCKET_X_MAX)
+     * @param _bucket The bucket to check
      * @return The total staked amount in this bucket
      */
     function getBucketTotalStaked(
-        uint256 _bucketMax
+        Bucket _bucket
     ) external view returns (uint256) {
-        if (
-            _bucketMax != 0 &&
-            _bucketMax != BUCKET_0_MAX &&
-            _bucketMax != BUCKET_1_MAX &&
-            _bucketMax != BUCKET_2_MAX &&
-            _bucketMax != BUCKET_3_MAX
-        ) {
-            revert Staking_InvalidBucketIndex();
-        }
-        return _bucketStaked.get(_bucketMax);
+        return _bucketStaked[_bucket];
     }
 
     /**
      * @notice Find which bucket a lockup period belongs to
      * @param _lockupPeriod The lockup period in seconds
-     * @return The bucket max value (BUCKET_X_MAX), or 0 if no bucket found
+     * @return The bucket enum value
      */
-    function _findBucketMax(
-        uint256 _lockupPeriod
+    function _findBucket(uint256 _lockupPeriod) internal pure returns (Bucket) {
+        if (_lockupPeriod == 0) {
+            return Bucket.NoLockup;
+        }
+        if (_lockupPeriod <= BUCKET_SHORT_TERM_MAX) {
+            return Bucket.ShortTerm;
+        }
+        if (_lockupPeriod <= BUCKET_THREE_TO_SIX_MAX) {
+            return Bucket.ThreeToSixMonths;
+        }
+        if (_lockupPeriod <= BUCKET_SIX_TO_TWELVE_MAX) {
+            return Bucket.SixToTwelveMonths;
+        }
+        if (_lockupPeriod <= BUCKET_ONE_TO_TWO_MAX) {
+            return Bucket.OneToTwoYears;
+        }
+        if (_lockupPeriod <= BUCKET_TWO_TO_FOUR_MAX) {
+            return Bucket.TwoToFourYears;
+        }
+        revert Staking_InvalidLockupPeriod(
+            "Lockup period exceeds maximum allowed"
+        );
+    }
+
+    /**
+     * @notice Get the maximum lockup period for a bucket
+     * @param _bucket The bucket to check
+     * @return The maximum lockup period in seconds
+     */
+    function _getBucketMaxLockupPeriod(
+        Bucket _bucket
     ) internal pure returns (uint256) {
-        if (_lockupPeriod >= BUCKET_0_MIN && _lockupPeriod <= BUCKET_0_MAX) {
-            return BUCKET_0_MAX;
-        }
-        if (_lockupPeriod > BUCKET_0_MAX && _lockupPeriod <= BUCKET_1_MAX) {
-            return BUCKET_1_MAX;
-        }
-        if (_lockupPeriod > BUCKET_1_MAX && _lockupPeriod <= BUCKET_2_MAX) {
-            return BUCKET_2_MAX;
-        }
-        if (_lockupPeriod > BUCKET_2_MAX && _lockupPeriod <= BUCKET_3_MAX) {
-            return BUCKET_3_MAX;
-        }
-        return 0;
+        if (_bucket == Bucket.NoLockup) return 0;
+        if (_bucket == Bucket.ShortTerm) return BUCKET_SHORT_TERM_MAX;
+        if (_bucket == Bucket.ThreeToSixMonths) return BUCKET_THREE_TO_SIX_MAX;
+        if (_bucket == Bucket.SixToTwelveMonths)
+            return BUCKET_SIX_TO_TWELVE_MAX;
+        if (_bucket == Bucket.OneToTwoYears) return BUCKET_ONE_TO_TWO_MAX;
+        if (_bucket == Bucket.TwoToFourYears) return BUCKET_TWO_TO_FOUR_MAX;
+        revert Staking_InvalidBucketIndex();
     }
 
     /**
@@ -203,9 +228,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal {
-        uint256 bucketMax = _findBucketMax(_lockupPeriod);
-
-        _bucketStaked.set(bucketMax, _bucketStaked.get(bucketMax) + _amount);
+        Bucket bucket = _findBucket(_lockupPeriod);
+        _bucketStaked[bucket] += _amount;
     }
 
     /**
@@ -217,9 +241,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal {
-        uint256 bucketMax = _findBucketMax(_lockupPeriod);
-
-        _bucketStaked.set(bucketMax, _bucketStaked.get(bucketMax) - _amount);
+        Bucket bucket = _findBucket(_lockupPeriod);
+        _bucketStaked[bucket] -= _amount;
     }
 
     /**
@@ -232,13 +255,21 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal view returns (bool) {
-        uint256 bucketMax = _findBucketMax(_lockupPeriod);
-        if (bucketMax == 0) {
-            return false;
-        } else {
-            uint256 currentBucketTotal = _bucketStaked.get(bucketMax);
-            return (currentBucketTotal + _amount) > _bucketCap.get(bucketMax);
-        }
+        Bucket bucket = _findBucket(_lockupPeriod);
+        uint256 currentBucketTotal = _bucketStaked[bucket];
+        uint256 bucketCap = _bucketCap[bucket];
+
+        // // If cap is 0, bucket is disabled
+        // if (bucketCap == 0) {
+        //     return true;
+        // }
+
+        // // If cap is type(uint256).max, no cap
+        // if (bucketCap == type(uint256).max) {
+        //     return false;
+        // }
+
+        return (currentBucketTotal + _amount) > bucketCap;
     }
 
     /**
@@ -428,11 +459,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
                 "Lockup period cannot exceed 4 years"
             );
         }
-        if (_lockupPeriod > 0 && _lockupPeriod < MIN_LOCKUP_PERIOD) {
-            revert Staking_InvalidLockupPeriod(
-                "Lockup period must be at least 3 months"
-            );
-        }
 
         if (userStakes[_receiver].length >= MAX_AMOUNT_OF_STAKES) {
             revert Staking_MaxStakesReached();
@@ -492,23 +518,46 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     }
     /**
      * @notice Get bucket details including cap and staked amounts
-     * @param _bucketMax The bucket max value (BUCKET_X_MAX)
+     * @param _bucket The bucket to check
      * @return cap The cap for this bucket
      * @return staked The total staked amount in this bucket
+     * @return minLockupPeriod The minimum lockup period for this bucket
+     * @return maxLockupPeriod The maximum lockup period for this bucket
      */
     function getBucketDetails(
-        uint256 _bucketMax
-    ) external view returns (uint256 cap, uint256 staked) {
-        if (
-            _bucketMax != 0 &&
-            _bucketMax != BUCKET_0_MAX &&
-            _bucketMax != BUCKET_1_MAX &&
-            _bucketMax != BUCKET_2_MAX &&
-            _bucketMax != BUCKET_3_MAX
-        ) {
-            revert Staking_InvalidBucketIndex();
+        Bucket _bucket
+    )
+        external
+        view
+        returns (
+            uint256 cap,
+            uint256 staked,
+            uint256 minLockupPeriod,
+            uint256 maxLockupPeriod
+        )
+    {
+        cap = _bucketCap[_bucket];
+        staked = _bucketStaked[_bucket];
+
+        if (_bucket == Bucket.NoLockup) {
+            minLockupPeriod = 0;
+            maxLockupPeriod = 0;
+        } else if (_bucket == Bucket.ShortTerm) {
+            minLockupPeriod = 1 seconds;
+            maxLockupPeriod = BUCKET_SHORT_TERM_MAX;
+        } else if (_bucket == Bucket.ThreeToSixMonths) {
+            minLockupPeriod = BUCKET_SHORT_TERM_MAX + 1;
+            maxLockupPeriod = BUCKET_THREE_TO_SIX_MAX;
+        } else if (_bucket == Bucket.SixToTwelveMonths) {
+            minLockupPeriod = BUCKET_THREE_TO_SIX_MAX + 1;
+            maxLockupPeriod = BUCKET_SIX_TO_TWELVE_MAX;
+        } else if (_bucket == Bucket.OneToTwoYears) {
+            minLockupPeriod = BUCKET_SIX_TO_TWELVE_MAX + 1;
+            maxLockupPeriod = BUCKET_ONE_TO_TWO_MAX;
+        } else if (_bucket == Bucket.TwoToFourYears) {
+            minLockupPeriod = BUCKET_ONE_TO_TWO_MAX + 1;
+            maxLockupPeriod = BUCKET_TWO_TO_FOUR_MAX;
         }
-        return (_bucketCap.get(_bucketMax), _bucketStaked.get(_bucketMax));
     }
     /**
      * @notice Calculate the weighted stake amount based on lockup period
@@ -705,6 +754,65 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      */
     function exit() public pure override {
         revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
+    }
+
+    /**
+     * @notice Get information about all buckets
+     * @return buckets Array of bucket enums
+     * @return caps Array of bucket caps
+     * @return stakedAmounts Array of staked amounts
+     * @return minPeriods Array of minimum lockup periods
+     * @return maxPeriods Array of maximum lockup periods
+     */
+    function getAllBucketInfo()
+        external
+        view
+        returns (
+            Bucket[] memory buckets,
+            uint256[] memory caps,
+            uint256[] memory stakedAmounts,
+            uint256[] memory minPeriods,
+            uint256[] memory maxPeriods
+        )
+    {
+        buckets = new Bucket[](6);
+        caps = new uint256[](6);
+        stakedAmounts = new uint256[](6);
+        minPeriods = new uint256[](6);
+        maxPeriods = new uint256[](6);
+
+        buckets[0] = Bucket.NoLockup;
+        buckets[1] = Bucket.ShortTerm;
+        buckets[2] = Bucket.ThreeToSixMonths;
+        buckets[3] = Bucket.SixToTwelveMonths;
+        buckets[4] = Bucket.OneToTwoYears;
+        buckets[5] = Bucket.TwoToFourYears;
+
+        for (uint256 i = 0; i < 6; i++) {
+            Bucket bucket = buckets[i];
+            caps[i] = _bucketCap[bucket];
+            stakedAmounts[i] = _bucketStaked[bucket];
+
+            if (bucket == Bucket.NoLockup) {
+                minPeriods[i] = 0;
+                maxPeriods[i] = 0;
+            } else if (bucket == Bucket.ShortTerm) {
+                minPeriods[i] = 1 days;
+                maxPeriods[i] = BUCKET_SHORT_TERM_MAX;
+            } else if (bucket == Bucket.ThreeToSixMonths) {
+                minPeriods[i] = BUCKET_SHORT_TERM_MAX + 1;
+                maxPeriods[i] = BUCKET_THREE_TO_SIX_MAX;
+            } else if (bucket == Bucket.SixToTwelveMonths) {
+                minPeriods[i] = BUCKET_THREE_TO_SIX_MAX + 1;
+                maxPeriods[i] = BUCKET_SIX_TO_TWELVE_MAX;
+            } else if (bucket == Bucket.OneToTwoYears) {
+                minPeriods[i] = BUCKET_SIX_TO_TWELVE_MAX + 1;
+                maxPeriods[i] = BUCKET_ONE_TO_TWO_MAX;
+            } else if (bucket == Bucket.TwoToFourYears) {
+                minPeriods[i] = BUCKET_ONE_TO_TWO_MAX + 1;
+                maxPeriods[i] = BUCKET_TWO_TO_FOUR_MAX;
+            }
+        }
     }
 
     // Custom errors

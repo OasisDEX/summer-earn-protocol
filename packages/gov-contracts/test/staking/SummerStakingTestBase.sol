@@ -50,18 +50,42 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
 
         vm.startPrank(address(timelockA));
         axSumr.addStakingModule(address(aStaking));
-        aStaking.updateLockupBucketCap(aStaking.BUCKET_0_MAX(), 1000000 ether);
-        aStaking.updateLockupBucketCap(aStaking.BUCKET_1_MAX(), 100000 ether);
-        aStaking.updateLockupBucketCap(aStaking.BUCKET_2_MAX(), 100000 ether);
-        aStaking.updateLockupBucketCap(aStaking.BUCKET_3_MAX(), 100000 ether);
+        aStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.ThreeToSixMonths,
+            1000000 ether
+        );
+        aStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.SixToTwelveMonths,
+            100000 ether
+        );
+        aStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.OneToTwoYears,
+            100000 ether
+        );
+        aStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.TwoToFourYears,
+            100000 ether
+        );
         vm.stopPrank();
 
         vm.startPrank(address(timelockB));
         bxSumr.addStakingModule(address(bStaking));
-        bStaking.updateLockupBucketCap(bStaking.BUCKET_0_MAX(), 1000000 ether);
-        bStaking.updateLockupBucketCap(bStaking.BUCKET_1_MAX(), 100000 ether);
-        bStaking.updateLockupBucketCap(bStaking.BUCKET_2_MAX(), 100000 ether);
-        bStaking.updateLockupBucketCap(bStaking.BUCKET_3_MAX(), 100000 ether);
+        bStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.ThreeToSixMonths,
+            1000000 ether
+        );
+        bStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.SixToTwelveMonths,
+            100000 ether
+        );
+        bStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.OneToTwoYears,
+            100000 ether
+        );
+        bStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.TwoToFourYears,
+            100000 ether
+        );
         vm.stopPrank();
 
         // Setup reward token
@@ -374,8 +398,11 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     /**
      * @notice Asserts that a specific bucket has the expected total staked amount
      */
-    function _assertBucket(uint256 bucketMax, uint256 expectedStaked) internal {
-        uint256 actualStaked = aStaking.getBucketTotalStaked(bucketMax);
+    function _assertBucket(
+        SummerStaking.Bucket bucket,
+        uint256 expectedStaked
+    ) internal view {
+        uint256 actualStaked = aStaking.getBucketTotalStaked(bucket);
         assertEq(actualStaked, expectedStaked, "Bucket staked amount mismatch");
     }
 
@@ -384,10 +411,10 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _assertBucketOnContract(
         SummerStaking staking,
-        uint256 bucketMax,
+        SummerStaking.Bucket bucket,
         uint256 expectedStaked
-    ) internal {
-        uint256 actualStaked = staking.getBucketTotalStaked(bucketMax);
+    ) internal view {
+        uint256 actualStaked = staking.getBucketTotalStaked(bucket);
         assertEq(actualStaked, expectedStaked, "Bucket staked amount mismatch");
     }
 
