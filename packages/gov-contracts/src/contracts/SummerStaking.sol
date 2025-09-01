@@ -34,16 +34,6 @@ contract SummerStaking is
     uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
     uint256 public constant MAX_PENALTY_PERCENTAGE = 50; // 50%
 
-    // Bucket enum for clear indexing
-    enum Bucket {
-        NoLockup, // 0 days
-        ShortTerm, // 1-90 days (disabled by default with cap 0)
-        ThreeToSixMonths, // 90-180 days
-        SixToTwelveMonths, // 180-365 days
-        OneToTwoYears, // 365-730 days
-        TwoToFourYears // 731+ days
-    }
-
     // Bucket period boundaries (in seconds)
     uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days - 1;
     uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days;
@@ -70,17 +60,17 @@ contract SummerStaking is
     mapping(address => uint256) private _weightedBalances;
 
     // Bucket management using enum keys
-    mapping(Bucket => uint256) private _bucketCap;
-    mapping(Bucket => uint256) private _bucketStaked;
+    mapping(ISummerStaking.Bucket => uint256) private _bucketCap;
+    mapping(ISummerStaking.Bucket => uint256) private _bucketStaked;
 
     // Events for bucket management
     event LockupBucketUpdated(
-        Bucket indexed bucket,
+        ISummerStaking.Bucket indexed bucket,
         uint256 cap,
         uint256 maxLockupPeriod
     );
     event LockupBucketAdded(
-        Bucket indexed bucket,
+        ISummerStaking.Bucket indexed bucket,
         uint256 cap,
         uint256 minLockupPeriod,
         uint256 maxLockupPeriod
@@ -126,28 +116,28 @@ contract SummerStaking is
      */
     function _initializeDefaultLockupBuckets() internal {
         // NoLockup bucket - no cap
-        _bucketCap[Bucket.NoLockup] = type(uint256).max;
-        _bucketStaked[Bucket.NoLockup] = 0;
+        _bucketCap[ISummerStaking.Bucket.NoLockup] = type(uint256).max;
+        _bucketStaked[ISummerStaking.Bucket.NoLockup] = 0;
 
         // ShortTerm bucket - disabled by default (cap 0)
-        _bucketCap[Bucket.ShortTerm] = 0;
-        _bucketStaked[Bucket.ShortTerm] = 0;
+        _bucketCap[ISummerStaking.Bucket.ShortTerm] = 0;
+        _bucketStaked[ISummerStaking.Bucket.ShortTerm] = 0;
 
         // ThreeToSixMonths bucket - no cap
-        _bucketCap[Bucket.ThreeToSixMonths] = 0;
-        _bucketStaked[Bucket.ThreeToSixMonths] = 0;
+        _bucketCap[ISummerStaking.Bucket.ThreeToSixMonths] = 0;
+        _bucketStaked[ISummerStaking.Bucket.ThreeToSixMonths] = 0;
 
         // SixToTwelveMonths bucket - no cap
-        _bucketCap[Bucket.SixToTwelveMonths] = 0;
-        _bucketStaked[Bucket.SixToTwelveMonths] = 0;
+        _bucketCap[ISummerStaking.Bucket.SixToTwelveMonths] = 0;
+        _bucketStaked[ISummerStaking.Bucket.SixToTwelveMonths] = 0;
 
         // OneToTwoYears bucket - no cap
-        _bucketCap[Bucket.OneToTwoYears] = 0;
-        _bucketStaked[Bucket.OneToTwoYears] = 0;
+        _bucketCap[ISummerStaking.Bucket.OneToTwoYears] = 0;
+        _bucketStaked[ISummerStaking.Bucket.OneToTwoYears] = 0;
 
         // TwoToFourYears bucket - no cap
-        _bucketCap[Bucket.TwoToFourYears] = type(uint256).max;
-        _bucketStaked[Bucket.TwoToFourYears] = 0;
+        _bucketCap[ISummerStaking.Bucket.TwoToFourYears] = type(uint256).max;
+        _bucketStaked[ISummerStaking.Bucket.TwoToFourYears] = 0;
     }
 
     /**
@@ -160,13 +150,12 @@ contract SummerStaking is
         ISummerStaking.Bucket _bucket,
         uint256 _newCap
     ) external onlyGovernor {
-        Bucket bucket = Bucket(uint256(_bucket));
-        _bucketCap[bucket] = _newCap;
+        _bucketCap[_bucket] = _newCap;
 
         // Get the max lockup period for this bucket for the event
-        uint256 maxLockupPeriod = _getBucketMaxLockupPeriod(bucket);
+        uint256 maxLockupPeriod = _getBucketMaxLockupPeriod(_bucket);
 
-        emit LockupBucketUpdated(bucket, _newCap, maxLockupPeriod);
+        emit LockupBucketUpdated(_bucket, _newCap, maxLockupPeriod);
     }
 
     /**
@@ -177,7 +166,7 @@ contract SummerStaking is
     function getBucketTotalStaked(
         ISummerStaking.Bucket _bucket
     ) external view returns (uint256) {
-        return _bucketStaked[Bucket(uint256(_bucket))];
+        return _bucketStaked[_bucket];
     }
 
     /**
@@ -185,24 +174,26 @@ contract SummerStaking is
      * @param _lockupPeriod The lockup period in seconds
      * @return The bucket enum value
      */
-    function _findBucket(uint256 _lockupPeriod) internal pure returns (Bucket) {
+    function _findBucket(
+        uint256 _lockupPeriod
+    ) internal pure returns (ISummerStaking.Bucket) {
         if (_lockupPeriod == 0) {
-            return Bucket.NoLockup;
+            return ISummerStaking.Bucket.NoLockup;
         }
         if (_lockupPeriod <= BUCKET_SHORT_TERM_MAX) {
-            return Bucket.ShortTerm;
+            return ISummerStaking.Bucket.ShortTerm;
         }
         if (_lockupPeriod <= BUCKET_THREE_TO_SIX_MAX) {
-            return Bucket.ThreeToSixMonths;
+            return ISummerStaking.Bucket.ThreeToSixMonths;
         }
         if (_lockupPeriod <= BUCKET_SIX_TO_TWELVE_MAX) {
-            return Bucket.SixToTwelveMonths;
+            return ISummerStaking.Bucket.SixToTwelveMonths;
         }
         if (_lockupPeriod <= BUCKET_ONE_TO_TWO_MAX) {
-            return Bucket.OneToTwoYears;
+            return ISummerStaking.Bucket.OneToTwoYears;
         }
         if (_lockupPeriod <= BUCKET_TWO_TO_FOUR_MAX) {
-            return Bucket.TwoToFourYears;
+            return ISummerStaking.Bucket.TwoToFourYears;
         }
         revert Staking_InvalidLockupPeriod(
             "Lockup period exceeds maximum allowed"
@@ -215,15 +206,19 @@ contract SummerStaking is
      * @return The maximum lockup period in seconds
      */
     function _getBucketMaxLockupPeriod(
-        Bucket _bucket
+        ISummerStaking.Bucket _bucket
     ) internal pure returns (uint256) {
-        if (_bucket == Bucket.NoLockup) return 0;
-        if (_bucket == Bucket.ShortTerm) return BUCKET_SHORT_TERM_MAX;
-        if (_bucket == Bucket.ThreeToSixMonths) return BUCKET_THREE_TO_SIX_MAX;
-        if (_bucket == Bucket.SixToTwelveMonths)
+        if (_bucket == ISummerStaking.Bucket.NoLockup) return 0;
+        if (_bucket == ISummerStaking.Bucket.ShortTerm)
+            return BUCKET_SHORT_TERM_MAX;
+        if (_bucket == ISummerStaking.Bucket.ThreeToSixMonths)
+            return BUCKET_THREE_TO_SIX_MAX;
+        if (_bucket == ISummerStaking.Bucket.SixToTwelveMonths)
             return BUCKET_SIX_TO_TWELVE_MAX;
-        if (_bucket == Bucket.OneToTwoYears) return BUCKET_ONE_TO_TWO_MAX;
-        if (_bucket == Bucket.TwoToFourYears) return BUCKET_TWO_TO_FOUR_MAX;
+        if (_bucket == ISummerStaking.Bucket.OneToTwoYears)
+            return BUCKET_ONE_TO_TWO_MAX;
+        if (_bucket == ISummerStaking.Bucket.TwoToFourYears)
+            return BUCKET_TWO_TO_FOUR_MAX;
         revert Staking_InvalidBucketIndex();
     }
 
@@ -236,7 +231,7 @@ contract SummerStaking is
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal {
-        Bucket bucket = _findBucket(_lockupPeriod);
+        ISummerStaking.Bucket bucket = _findBucket(_lockupPeriod);
         _bucketStaked[bucket] += _amount;
     }
 
@@ -249,7 +244,7 @@ contract SummerStaking is
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal {
-        Bucket bucket = _findBucket(_lockupPeriod);
+        ISummerStaking.Bucket bucket = _findBucket(_lockupPeriod);
         _bucketStaked[bucket] -= _amount;
     }
 
@@ -263,7 +258,7 @@ contract SummerStaking is
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal view returns (bool) {
-        Bucket bucket = _findBucket(_lockupPeriod);
+        ISummerStaking.Bucket bucket = _findBucket(_lockupPeriod);
         uint256 currentBucketTotal = _bucketStaked[bucket];
         uint256 bucketCap = _bucketCap[bucket];
 
@@ -544,26 +539,25 @@ contract SummerStaking is
             uint256 maxLockupPeriod
         )
     {
-        Bucket bucket = Bucket(uint256(_bucket));
-        cap = _bucketCap[bucket];
-        staked = _bucketStaked[bucket];
+        cap = _bucketCap[_bucket];
+        staked = _bucketStaked[_bucket];
 
-        if (bucket == Bucket.NoLockup) {
+        if (_bucket == ISummerStaking.Bucket.NoLockup) {
             minLockupPeriod = 0;
             maxLockupPeriod = 0;
-        } else if (bucket == Bucket.ShortTerm) {
+        } else if (_bucket == ISummerStaking.Bucket.ShortTerm) {
             minLockupPeriod = 1 seconds;
             maxLockupPeriod = BUCKET_SHORT_TERM_MAX;
-        } else if (bucket == Bucket.ThreeToSixMonths) {
+        } else if (_bucket == ISummerStaking.Bucket.ThreeToSixMonths) {
             minLockupPeriod = BUCKET_SHORT_TERM_MAX + 1;
             maxLockupPeriod = BUCKET_THREE_TO_SIX_MAX;
-        } else if (bucket == Bucket.SixToTwelveMonths) {
+        } else if (_bucket == ISummerStaking.Bucket.SixToTwelveMonths) {
             minLockupPeriod = BUCKET_THREE_TO_SIX_MAX + 1;
             maxLockupPeriod = BUCKET_SIX_TO_TWELVE_MAX;
-        } else if (bucket == Bucket.OneToTwoYears) {
+        } else if (_bucket == ISummerStaking.Bucket.OneToTwoYears) {
             minLockupPeriod = BUCKET_SIX_TO_TWELVE_MAX + 1;
             maxLockupPeriod = BUCKET_ONE_TO_TWO_MAX;
-        } else if (bucket == Bucket.TwoToFourYears) {
+        } else if (_bucket == ISummerStaking.Bucket.TwoToFourYears) {
             minLockupPeriod = BUCKET_ONE_TO_TWO_MAX + 1;
             maxLockupPeriod = BUCKET_TWO_TO_FOUR_MAX;
         }
@@ -799,26 +793,26 @@ contract SummerStaking is
         buckets[5] = ISummerStaking.Bucket.TwoToFourYears;
 
         for (uint256 i = 0; i < 6; i++) {
-            Bucket bucket = Bucket(uint256(buckets[i]));
+            ISummerStaking.Bucket bucket = buckets[i];
             caps[i] = _bucketCap[bucket];
             stakedAmounts[i] = _bucketStaked[bucket];
 
-            if (bucket == Bucket.NoLockup) {
+            if (bucket == ISummerStaking.Bucket.NoLockup) {
                 minPeriods[i] = 0;
                 maxPeriods[i] = 0;
-            } else if (bucket == Bucket.ShortTerm) {
+            } else if (bucket == ISummerStaking.Bucket.ShortTerm) {
                 minPeriods[i] = 1 days;
                 maxPeriods[i] = BUCKET_SHORT_TERM_MAX;
-            } else if (bucket == Bucket.ThreeToSixMonths) {
+            } else if (bucket == ISummerStaking.Bucket.ThreeToSixMonths) {
                 minPeriods[i] = BUCKET_SHORT_TERM_MAX + 1;
                 maxPeriods[i] = BUCKET_THREE_TO_SIX_MAX;
-            } else if (bucket == Bucket.SixToTwelveMonths) {
+            } else if (bucket == ISummerStaking.Bucket.SixToTwelveMonths) {
                 minPeriods[i] = BUCKET_THREE_TO_SIX_MAX + 1;
                 maxPeriods[i] = BUCKET_SIX_TO_TWELVE_MAX;
-            } else if (bucket == Bucket.OneToTwoYears) {
+            } else if (bucket == ISummerStaking.Bucket.OneToTwoYears) {
                 minPeriods[i] = BUCKET_SIX_TO_TWELVE_MAX + 1;
                 maxPeriods[i] = BUCKET_ONE_TO_TWO_MAX;
-            } else if (bucket == Bucket.TwoToFourYears) {
+            } else if (bucket == ISummerStaking.Bucket.TwoToFourYears) {
                 minPeriods[i] = BUCKET_ONE_TO_TWO_MAX + 1;
                 maxPeriods[i] = BUCKET_TWO_TO_FOUR_MAX;
             }

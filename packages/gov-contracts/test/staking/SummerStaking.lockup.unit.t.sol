@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
+import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
@@ -33,38 +34,38 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Update lockup bucket caps for enhanced testing
         vm.startPrank(address(timelockA));
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
+            ISummerStaking.Bucket.ThreeToSixMonths,
             1000000 ether
         );
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
+            ISummerStaking.Bucket.SixToTwelveMonths,
             100000 ether
         );
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
+            ISummerStaking.Bucket.OneToTwoYears,
             100000 ether
         );
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToFourYears,
+            ISummerStaking.Bucket.TwoToFourYears,
             100000 ether
         );
         vm.stopPrank();
 
         vm.startPrank(address(timelockB));
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
+            ISummerStaking.Bucket.ThreeToSixMonths,
             1000000 ether
         );
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
+            ISummerStaking.Bucket.SixToTwelveMonths,
             100000 ether
         );
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
+            ISummerStaking.Bucket.OneToTwoYears,
             100000 ether
         );
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToFourYears,
+            ISummerStaking.Bucket.TwoToFourYears,
             100000 ether
         );
         vm.stopPrank();
@@ -90,19 +91,19 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Configure bucket caps
         vm.startPrank(address(timelockA));
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
+            ISummerStaking.Bucket.ThreeToSixMonths,
             1000000 ether
         );
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
+            ISummerStaking.Bucket.SixToTwelveMonths,
             100000 ether
         );
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
+            ISummerStaking.Bucket.OneToTwoYears,
             100000 ether
         );
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToFourYears,
+            ISummerStaking.Bucket.TwoToFourYears,
             100000 ether
         );
         vm.stopPrank();
@@ -176,11 +177,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         SummerStaking staking,
         uint256[] memory expectedBucketAmounts
     ) internal {
-        SummerStaking.Bucket[] memory buckets = new SummerStaking.Bucket[](4);
-        buckets[0] = SummerStaking.Bucket.ThreeToSixMonths;
-        buckets[1] = SummerStaking.Bucket.SixToTwelveMonths;
-        buckets[2] = SummerStaking.Bucket.OneToTwoYears;
-        buckets[3] = SummerStaking.Bucket.TwoToFourYears;
+        ISummerStaking.Bucket[] memory buckets = new ISummerStaking.Bucket[](4);
+        buckets[0] = ISummerStaking.Bucket.ThreeToSixMonths;
+        buckets[1] = ISummerStaking.Bucket.SixToTwelveMonths;
+        buckets[2] = ISummerStaking.Bucket.OneToTwoYears;
+        buckets[3] = ISummerStaking.Bucket.TwoToFourYears;
 
         for (uint256 i = 0; i < 4; i++) {
             uint256 actualStaked = staking.getBucketTotalStaked(buckets[i]);
@@ -331,7 +332,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         // Check basic bucket details for NoLockup bucket (which should always exist)
         (uint256 cap0, uint256 staked0, , ) = aStaking.getBucketDetails(
-            SummerStaking.Bucket.NoLockup
+            ISummerStaking.Bucket.NoLockup
         );
         assertEq(cap0, type(uint256).max); // No cap
         assertEq(staked0, 0);
@@ -485,7 +486,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Check bucket totals
-        _assertBucket(SummerStaking.Bucket.ThreeToSixMonths, stakeAmount);
+        _assertBucket(ISummerStaking.Bucket.ThreeToSixMonths, stakeAmount);
     }
 
     // Failure Cases
@@ -890,7 +891,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     function test_GovernorCanUpdateBucketCap() public {
         uint256 newCap = STAKE_AMOUNT * 10;
-        SummerStaking.Bucket bucket = SummerStaking.Bucket.ThreeToSixMonths;
+        ISummerStaking.Bucket bucket = ISummerStaking.Bucket.ThreeToSixMonths;
 
         vm.prank(address(timelockA));
         aStaking.updateLockupBucketCap(bucket, newCap);
@@ -901,7 +902,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     function test_Revert_NonGovernorCannotUpdateBucketCap() public {
         uint256 newCap = STAKE_AMOUNT * 10;
-        SummerStaking.Bucket bucket = SummerStaking.Bucket.ThreeToSixMonths;
+        ISummerStaking.Bucket bucket = ISummerStaking.Bucket.ThreeToSixMonths;
 
         vm.prank(user1);
         vm.expectRevert(); // Should revert due to access control
@@ -909,7 +910,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     function test_Revert_StakeWhenBucketCapExceeded() public {
-        SummerStaking.Bucket bucket = SummerStaking.Bucket.ThreeToSixMonths;
+        ISummerStaking.Bucket bucket = ISummerStaking.Bucket.ThreeToSixMonths;
         uint256 cap = STAKE_AMOUNT;
 
         // Set bucket cap
@@ -928,7 +929,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     function test_CorrectBucketAccounting() public {
-        SummerStaking.Bucket bucket = SummerStaking.Bucket.ThreeToSixMonths;
+        ISummerStaking.Bucket bucket = ISummerStaking.Bucket.ThreeToSixMonths;
 
         // Stake in ThreeToSixMonths bucket (90 days to 180 days)
         _stake(user1, STAKE_AMOUNT, MIN_LOCKUP);
@@ -1179,13 +1180,13 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         _stake(user1, stakeAmount, MIN_LOCKUP);
 
         // Verify bucket total matches staked amount
-        _assertBucket(SummerStaking.Bucket.ThreeToSixMonths, stakeAmount);
+        _assertBucket(ISummerStaking.Bucket.ThreeToSixMonths, stakeAmount);
 
         // Unstake and verify bucket total is updated
         vm.warp(block.timestamp + MIN_LOCKUP + 1 days);
         _approveAndUnstake(user1, 0, stakeAmount);
 
-        _assertBucket(SummerStaking.Bucket.ThreeToSixMonths, 0);
+        _assertBucket(ISummerStaking.Bucket.ThreeToSixMonths, 0);
     }
 
     function test_Invariant_TokenAccounting() public {

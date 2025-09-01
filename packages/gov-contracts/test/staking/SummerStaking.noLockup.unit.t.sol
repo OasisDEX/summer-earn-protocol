@@ -103,7 +103,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Attempt to stake with invalid lockup period
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded"));
+        vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded()"));
         aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
 
         // Check balances after staking - should remain unchanged
