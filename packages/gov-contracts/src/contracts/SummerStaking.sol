@@ -448,7 +448,7 @@ contract SummerStaking is
         totalSupply += weightedAmount;
 
         // Update bucket totals
-        _updateBucketTotalOnAdd(remainingTime, _amount);
+        _updateBucketTotalOnAdd(existingStake.lockupPeriod, _amount);
 
         emit Staked(_msgSender(), _msgSender(), _amount);
         emit StakedWithLockup(
@@ -817,7 +817,7 @@ contract SummerStaking is
                 minPeriods[i] = 0;
                 maxPeriods[i] = 0;
             } else if (bucket == ISummerStaking.Bucket.ShortTerm) {
-                minPeriods[i] = 1 days;
+                minPeriods[i] = 1 seconds;
                 maxPeriods[i] = BUCKET_SHORT_TERM_MAX;
             } else if (bucket == ISummerStaking.Bucket.ThreeToSixMonths) {
                 minPeriods[i] = BUCKET_SHORT_TERM_MAX + 1;

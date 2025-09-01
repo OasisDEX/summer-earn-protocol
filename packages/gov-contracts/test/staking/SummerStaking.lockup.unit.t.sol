@@ -614,6 +614,91 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertGt(aStaking.totalSupply(), totalSupplyBefore);
     }
 
+    function test_AddToStake_UpdatesOriginalBucketDespiteRemainingTime()
+        public
+    {
+        uint256 initialAmount = STAKE_AMOUNT;
+        uint256 additionalAmount = STAKE_AMOUNT / 2;
+
+        // Initial stake into ThreeToSixMonths bucket (MIN_LOCKUP within 90-180 days)
+        uint256 stakeIndex = _stake(user1, initialAmount, MIN_LOCKUP);
+
+        // Sanity: starting bucket total
+        _assertBucket(ISummerStaking.Bucket.ThreeToSixMonths, initialAmount);
+        _assertBucket(ISummerStaking.Bucket.ShortTerm, 0);
+
+        // Warp so remaining time falls into ShortTerm bucket (< 90 days)
+        vm.warp(block.timestamp + 1 days);
+
+        // Add to existing stake should count towards original bucket (ThreeToSixMonths)
+        _addToStake(user1, stakeIndex, additionalAmount);
+
+        _assertBucket(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            initialAmount + additionalAmount
+        );
+        _assertBucket(ISummerStaking.Bucket.ShortTerm, 0);
+    }
+
+    function test_AddToStake_RespectsOriginalBucketCap_Success() public {
+        uint256 initialAmount = STAKE_AMOUNT;
+        uint256 additionalAmount = STAKE_AMOUNT / 2;
+
+        // Configure caps: original (ThreeToSixMonths) uncapped/high, remaining-time (ShortTerm) disabled
+        vm.startPrank(address(timelockA));
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            1_000_000 ether
+        );
+        aStaking.updateLockupBucketCap(ISummerStaking.Bucket.ShortTerm, 0);
+        vm.stopPrank();
+
+        uint256 stakeIndex = _stake(user1, initialAmount, MIN_LOCKUP);
+
+        // Warp so remaining time would fall into ShortTerm if it were used
+        vm.warp(block.timestamp + 1 days);
+
+        // Should succeed because cap check uses original bucket (ThreeToSixMonths)
+        _addToStake(user1, stakeIndex, additionalAmount);
+
+        _assertBucket(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            initialAmount + additionalAmount
+        );
+    }
+
+    function test_AddToStake_RespectsOriginalBucketCap_Revert() public {
+        uint256 initialAmount = STAKE_AMOUNT;
+        uint256 additionalAmount = STAKE_AMOUNT / 2;
+
+        // Configure caps: original bucket capped to initial amount; remaining-time bucket uncapped
+        vm.startPrank(address(timelockA));
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            initialAmount
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ShortTerm,
+            type(uint256).max
+        );
+        vm.stopPrank();
+
+        uint256 stakeIndex = _stake(user1, initialAmount, MIN_LOCKUP);
+
+        // Warp so remaining time would fall into ShortTerm if it were used
+        vm.warp(block.timestamp + 1 days);
+
+        // Adding should revert due to original bucket cap being reached
+        vm.startPrank(user1);
+        aSummerToken.approve(address(aStaking), additionalAmount);
+        vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded()"));
+        aStaking.addToStake(stakeIndex, additionalAmount);
+        vm.stopPrank();
+
+        // Bucket total remains at initial amount
+        _assertBucket(ISummerStaking.Bucket.ThreeToSixMonths, initialAmount);
+    }
+
     // Failure Cases
     function test_Revert_AddToStakeWithInvalidIndex() public {
         uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, MIN_LOCKUP);
