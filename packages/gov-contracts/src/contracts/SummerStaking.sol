@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {ISummerStaking} from "../interfaces/ISummerStaking.sol";
@@ -12,7 +10,6 @@ import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/S
 import {WrappedStakingToken} from "./WrappedStakingToken.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
-import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 
 // @dev Enhanced staking contract with lockup periods and reward distribution
@@ -24,7 +21,6 @@ contract SummerStaking is
 {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
-    using EnumerableMap for EnumerableMap.UintToUintMap;
 
     ISummerToken public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
@@ -32,7 +28,7 @@ contract SummerStaking is
     // Lockup configuration
     uint256 public constant MAX_LOCKUP_PERIOD = 4 * 365 days; // 4 years
     uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
-    uint256 public constant MAX_PENALTY_PERCENTAGE = 50; // 50%
+    // Cap semantics: 0 = disabled, type(uint256).max = uncapped, finite values = capped
 
     // Bucket period boundaries (in seconds)
     uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days - 1;
@@ -41,9 +37,14 @@ contract SummerStaking is
     uint256 public constant BUCKET_ONE_TO_TWO_MAX = 730 days;
     uint256 public constant BUCKET_TWO_TO_FOUR_MAX = MAX_LOCKUP_PERIOD;
 
-    // Weighted stake calculation constants
-    uint256 private constant WEIGHTED_STAKE_BASE = 5e16; // 0.05 in 60.18 fixed-point
-    uint256 private constant WEIGHTED_STAKE_COEFFICIENT = 4e2; // 4e-16 * 1e18 = 400 in 60.18 fixed-point
+    // Weighted stake calculation parameters (UD60x18-scaled)
+    // Defaults: base = 0.05e18, coefficient = 4e2 (represents 4e-16 when scaled)
+    uint256 public weightedStakeBaseWad = 5e16;
+    uint256 public weightedStakeCoefficientUD = 4e2;
+
+    // Safety upper bound for the multiplier at MAX_LOCKUP_PERIOD to avoid extreme weights
+    // Multiplier is UD60x18; with defaults it's ~6.41e18 for 4 years. Bound at 10e18 by default.
+    uint256 public constant MAX_WEIGHTED_MULTIPLIER_WAD = 10e18;
 
     // User stake information with lockup details
     struct UserStake {
@@ -69,11 +70,13 @@ contract SummerStaking is
         uint256 cap,
         uint256 maxLockupPeriod
     );
-    event LockupBucketAdded(
-        ISummerStaking.Bucket indexed bucket,
-        uint256 cap,
-        uint256 minLockupPeriod,
-        uint256 maxLockupPeriod
+
+    // Event for weighted stake parameter updates
+    event WeightedStakeParamsUpdated(
+        uint256 oldBaseWad,
+        uint256 newBaseWad,
+        uint256 oldCoefficientUD,
+        uint256 newCoefficientUD
     );
 
     // Wrapped version of staking token for internal accounting
@@ -114,8 +117,8 @@ contract SummerStaking is
 
     /**
      * @notice Initialize default lockup bucket configurations
-     * @dev Creates buckets for all lockup periods including ShortTerm (disabled by default)
-     * @dev ShortTerm bucket has cap 0 to disable it, others have no cap (type(uint256).max)
+     * @dev Cap semantics: 0 = disabled, type(uint256).max = uncapped, finite values = capped
+     * @dev Defaults: NoLockup and TwoToFourYears are uncapped; other buckets start disabled (cap 0)
      */
     function _initializeDefaultLockupBuckets() internal {
         // NoLockup bucket - no cap
@@ -126,15 +129,15 @@ contract SummerStaking is
         _bucketCap[ISummerStaking.Bucket.ShortTerm] = 0;
         _bucketStaked[ISummerStaking.Bucket.ShortTerm] = 0;
 
-        // ThreeToSixMonths bucket - no cap
+        // ThreeToSixMonths bucket - disabled by default (cap 0)
         _bucketCap[ISummerStaking.Bucket.ThreeToSixMonths] = 0;
         _bucketStaked[ISummerStaking.Bucket.ThreeToSixMonths] = 0;
 
-        // SixToTwelveMonths bucket - no cap
+        // SixToTwelveMonths bucket - disabled by default (cap 0)
         _bucketCap[ISummerStaking.Bucket.SixToTwelveMonths] = 0;
         _bucketStaked[ISummerStaking.Bucket.SixToTwelveMonths] = 0;
 
-        // OneToTwoYears bucket - no cap
+        // OneToTwoYears bucket - disabled by default (cap 0)
         _bucketCap[ISummerStaking.Bucket.OneToTwoYears] = 0;
         _bucketStaked[ISummerStaking.Bucket.OneToTwoYears] = 0;
 
@@ -146,7 +149,7 @@ contract SummerStaking is
     /**
      * @notice Update the cap for a specific lockup bucket
      * @param _bucket The bucket to update
-     * @param _newCap The new cap amount (0 = disabled, type(uint256).max = no cap)
+     * @param _newCap The new cap amount (0 = disabled, type(uint256).max = uncapped)
      * @dev Only callable by governor
      */
     function updateLockupBucketCap(
@@ -162,9 +165,42 @@ contract SummerStaking is
     }
 
     /**
+     * @notice Update weighted stake calculation parameters
+     * @param _newBaseWad New base term in WAD (e.g., 0.05e18)
+     * @param _newCoefficientUD New coefficient as UD60x18 (e.g., 400 for 4e-16)
+     * @dev Ensures the multiplier at MAX_LOCKUP_PERIOD stays within a safe bound
+     */
+    function setWeightedStakeParams(
+        uint256 _newBaseWad,
+        uint256 _newCoefficientUD
+    ) external onlyGovernor {
+        if (_newBaseWad > Constants.WAD)
+            revert Staking_InvalidWeightedStakeParams();
+
+        UD60x18 time = convert(MAX_LOCKUP_PERIOD);
+        UD60x18 timeSquared = time.mul(time);
+        UD60x18 newMultiplier = ud60x18(_newCoefficientUD).mul(timeSquared).add(
+            ud60x18(_newBaseWad)
+        );
+        if (newMultiplier.unwrap() > MAX_WEIGHTED_MULTIPLIER_WAD)
+            revert Staking_InvalidWeightedStakeParams();
+
+        uint256 oldBase = weightedStakeBaseWad;
+        uint256 oldCoeff = weightedStakeCoefficientUD;
+        weightedStakeBaseWad = _newBaseWad;
+        weightedStakeCoefficientUD = _newCoefficientUD;
+        emit WeightedStakeParamsUpdated(
+            oldBase,
+            _newBaseWad,
+            oldCoeff,
+            _newCoefficientUD
+        );
+    }
+
+    /**
      * @notice Update the maximum penalty percentage (in WAD)
      * @param _newMaxPenaltyWad New maximum penalty in WAD (must be ≤ 1e18)
-     * @dev Only callable by governor
+     * @dev Only callable by governor. Emits {MaxPenaltyUpdated} on success.
      */
     function setMaxPenaltyWad(uint256 _newMaxPenaltyWad) external onlyGovernor {
         if (_newMaxPenaltyWad > Constants.WAD)
@@ -277,16 +313,6 @@ contract SummerStaking is
         ISummerStaking.Bucket bucket = _findBucket(_lockupPeriod);
         uint256 currentBucketTotal = _bucketStaked[bucket];
         uint256 bucketCap = _bucketCap[bucket];
-
-        // // If cap is 0, bucket is disabled
-        // if (bucketCap == 0) {
-        //     return true;
-        // }
-
-        // // If cap is type(uint256).max, no cap
-        // if (bucketCap == type(uint256).max) {
-        //     return false;
-        // }
 
         return (currentBucketTotal + _amount) > bucketCap;
     }
@@ -538,7 +564,7 @@ contract SummerStaking is
     /**
      * @notice Get bucket details including cap and staked amounts
      * @param _bucket The bucket to check
-     * @return cap The cap for this bucket
+     * @return cap The cap for this bucket (0 = disabled, max = uncapped)
      * @return staked The total staked amount in this bucket
      * @return minLockupPeriod The minimum lockup period for this bucket
      * @return maxLockupPeriod The maximum lockup period for this bucket
@@ -589,13 +615,35 @@ contract SummerStaking is
     function calculateWeightedStake(
         uint256 _amount,
         uint256 _lockupPeriod
-    ) public pure returns (uint256) {
+    ) public view returns (uint256) {
         return _calculateWeightedStake(_amount, _lockupPeriod);
     }
 
     function _calculateWeightedStake(
         uint256 _amount,
         uint256 _lockupPeriod
+    ) internal view returns (uint256) {
+        return
+            _calculateWeightedStakePure(
+                _amount,
+                _lockupPeriod,
+                weightedStakeBaseWad,
+                weightedStakeCoefficientUD
+            );
+    }
+
+    /**
+     * @dev Pure helper for the weighting formula.
+     * - Testability: enables unit tests on deterministic math without touching storage.
+     * - Reusability: can be reused where arbitrary params are needed (validation/simulations).
+     * - Separation of concerns: view wrapper reads current config; this stays side-effect free.
+     * - Optimizer-friendly: simple pure math that the compiler can inline.
+     */
+    function _calculateWeightedStakePure(
+        uint256 _amount,
+        uint256 _lockupPeriod,
+        uint256 _baseWad,
+        uint256 _coefficientUD
     ) internal pure returns (uint256) {
         if (_lockupPeriod == 0) {
             return _amount; // No weighting for 0 lockup
@@ -607,10 +655,10 @@ contract SummerStaking is
         // Square it safely in 60.18 format
         UD60x18 timeSquared = time.mul(time);
 
-        // multiplier = (WEIGHTED_STAKE_COEFFICIENT * time^2) + WEIGHTED_STAKE_BASE
-        UD60x18 multiplier = ud60x18(WEIGHTED_STAKE_COEFFICIENT)
-            .mul(timeSquared)
-            .add(ud60x18(WEIGHTED_STAKE_BASE));
+        // multiplier = (_coefficientUD * time^2) + _baseWad
+        UD60x18 multiplier = ud60x18(_coefficientUD).mul(timeSquared).add(
+            ud60x18(_baseWad)
+        );
 
         // weightedAmount = amount * multiplier
         return ud60x18(_amount).mul(multiplier).unwrap();
@@ -630,7 +678,7 @@ contract SummerStaking is
     /**
      * @notice Calculate penalty percentage for early unstaking
      * @param _stakeIndex The index of the stake to calculate penalty for
-     * @return penaltyPercentageWad The penalty percentage in WAD
+     * @return penaltyPercentageWad The penalty percentage in WAD (not the amount)
      * @dev Formula: penaltyPercentageWad = maxPenaltyWad × (time_remaining / original_lockup_period)
      * @dev Examples (assuming maxPenaltyWad = 0.5e18):
      *      - 4y lockup, unstake immediately: 0.5e18 (50%)
@@ -779,7 +827,7 @@ contract SummerStaking is
     /**
      * @notice Get information about all buckets
      * @return buckets Array of bucket enums
-     * @return caps Array of bucket caps
+     * @return caps Array of bucket caps (0 = disabled, max = uncapped)
      * @return stakedAmounts Array of staked amounts
      * @return minPeriods Array of minimum lockup periods
      * @return maxPeriods Array of maximum lockup periods
@@ -848,6 +896,7 @@ contract SummerStaking is
     error Staking_InvalidBucketIndex();
     error Staking_BucketCapExceeded();
     error Staking_InvalidMaxPenaltyWad();
+    error Staking_InvalidWeightedStakeParams();
 
     // Events
     event StakedWithLockup(

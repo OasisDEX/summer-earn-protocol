@@ -20,7 +20,7 @@ interface ISummerStaking {
     function calculateWeightedStake(
         uint256 amount,
         uint256 lockupPeriod
-    ) external pure returns (uint256);
+    ) external view returns (uint256);
     function calculatePenalty(
         address user,
         uint256 stakeIndex
