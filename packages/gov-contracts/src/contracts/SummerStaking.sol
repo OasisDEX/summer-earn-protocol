@@ -79,6 +79,9 @@ contract SummerStaking is
     // Wrapped version of staking token for internal accounting
     address public immutable wrappedStakingToken;
 
+    // Configurable maximum penalty percentage in WAD (e.g., 0.5e18 = 50%)
+    uint256 public maxPenaltyWad = 5e17;
+
     constructor(
         address _protocolAccessManager,
         address _configurationManager,
@@ -156,6 +159,19 @@ contract SummerStaking is
         uint256 maxLockupPeriod = _getBucketMaxLockupPeriod(_bucket);
 
         emit LockupBucketUpdated(_bucket, _newCap, maxLockupPeriod);
+    }
+
+    /**
+     * @notice Update the maximum penalty percentage (in WAD)
+     * @param _newMaxPenaltyWad New maximum penalty in WAD (must be ≤ 1e18)
+     * @dev Only callable by governor
+     */
+    function setMaxPenaltyWad(uint256 _newMaxPenaltyWad) external onlyGovernor {
+        if (_newMaxPenaltyWad > Constants.WAD)
+            revert Staking_InvalidMaxPenaltyWad();
+        uint256 oldValue = maxPenaltyWad;
+        maxPenaltyWad = _newMaxPenaltyWad;
+        emit MaxPenaltyUpdated(oldValue, _newMaxPenaltyWad);
     }
 
     /**
@@ -612,16 +628,16 @@ contract SummerStaking is
     }
 
     /**
-     * @notice Calculate penalty for early unstaking
+     * @notice Calculate penalty percentage for early unstaking
      * @param _stakeIndex The index of the stake to calculate penalty for
-     * @return The penalty amount in WAD
-     * @dev Penalty formula: penalty = weighted_amount × 50% × (time_remaining / original_lockup_period)
-     * @dev Examples:
-     *      - 4-year lockup, unstake immediately: 50% penalty
-     *      - 4-year lockup, unstake after 2 years: 25% penalty
-     *      - 4-year lockup, unstake after 4 years: 0% penalty
-     *      - 1-year lockup, unstake immediately: 12.5% penalty
-     *      - 2-year lockup, unstake immediately: 25% penalty
+     * @return penaltyPercentageWad The penalty percentage in WAD
+     * @dev Formula: penaltyPercentageWad = maxPenaltyWad × (time_remaining / original_lockup_period)
+     * @dev Examples (assuming maxPenaltyWad = 0.5e18):
+     *      - 4y lockup, unstake immediately: 0.5e18 (50%)
+     *      - 4y lockup, unstake after 2y: 0.25e18 (25%)
+     *      - 4y lockup, after 4y: 0 (0%)
+     *      - 1y lockup, unstake immediately: 0.125e18 (12.5%)
+     *      - 2y lockup, unstake immediately: 0.25e18 (25%)
      */
     function calculatePenalty(
         address _user,
@@ -634,12 +650,12 @@ contract SummerStaking is
         }
 
         uint256 timeRemaining = userStake.lockupEndTime - block.timestamp;
-        // Penalty percentage = 50% * (time_remaining / original_lockup_period)
-        uint256 penaltyPercentage = (timeRemaining * 50 * Constants.WAD) /
-            (userStake.lockupPeriod * 100);
-
-        // Penalty amount = amount * penalty_percentage
-        return penaltyPercentage;
+        // penaltyPercentageWad = maxPenaltyWad * (timeRemaining / lockupPeriod)
+        UD60x18 ratio = convert(timeRemaining).div(
+            convert(userStake.lockupPeriod)
+        );
+        UD60x18 penaltyWad = ud60x18(maxPenaltyWad).mul(ratio);
+        return penaltyWad.unwrap();
     }
 
     /**
@@ -831,6 +847,7 @@ contract SummerStaking is
     error Staking_MaxStakesReached();
     error Staking_InvalidBucketIndex();
     error Staking_BucketCapExceeded();
+    error Staking_InvalidMaxPenaltyWad();
 
     // Events
     event StakedWithLockup(
@@ -845,4 +862,5 @@ contract SummerStaking is
         uint256 penalty,
         uint256 returnAmount
     );
+    event MaxPenaltyUpdated(uint256 oldValue, uint256 newValue);
 }
