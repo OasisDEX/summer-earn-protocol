@@ -867,23 +867,19 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Revert_UnstakeWithInvalidIndex() public {
         uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, MIN_LOCKUP);
 
-        vm.startPrank(user1);
-        axSumr.approve(address(aStaking), STAKE_AMOUNT);
+        vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("Staking_InvalidStakeIndex()"));
         aStaking.unstakeFromLockup(stakeIndex + 1, STAKE_AMOUNT);
-        vm.stopPrank();
     }
 
     function test_Revert_UnstakeMoreThanTotalBalance() public {
         uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, MIN_LOCKUP);
 
-        vm.startPrank(user1);
-        axSumr.approve(address(aStaking), STAKE_AMOUNT * 2);
+        vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSignature("Staking_InsufficientBalance()")
         );
         aStaking.unstakeFromLockup(stakeIndex, STAKE_AMOUNT * 2);
-        vm.stopPrank();
     }
 
     // ============ BUCKET TESTS ============

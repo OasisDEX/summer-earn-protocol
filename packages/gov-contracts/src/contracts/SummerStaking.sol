@@ -707,12 +707,10 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @dev Transfers tokens from user to contract and burns them
      */
     function _burn(uint256 _amount) internal {
-        STAKED_SUMMER_TOKEN.safeTransferFrom(
+        IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burnFrom(
             _msgSender(),
-            address(this),
             _amount
         );
-        IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burn(_amount);
     }
 
     /**

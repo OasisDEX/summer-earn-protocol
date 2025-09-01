@@ -103,7 +103,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Attempt to stake with invalid lockup period
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded"));
+        vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded()"));
         aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
 
         // Check balances after staking - should remain unchanged
@@ -184,21 +184,31 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT);
     }
 
-    function test_Unstake_InsufficientAllowance() public {
+    function test_Unstake_DoesNotRequireAllowance() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
-        // First stake some tokens using helper
+        // Stake tokens
         _stake(user1, stakeAmount, lockupPeriod);
 
-        // Approve less than unstake amount
-        vm.prank(user1);
-        axSumr.approve(address(aStaking), stakeAmount - 1);
+        // Do not approve xSUMR to staking; burnFrom is used by staking
+        // Unstake should succeed without any allowance
+        uint256 userSummerBefore = aSummerToken.balanceOf(user1);
+        uint256 userXSumrBefore = axSumr.balanceOf(user1);
 
-        // Attempt to unstake - should revert
+        _unstake(user1, 0, stakeAmount);
+
+        assertEq(aSummerToken.balanceOf(user1), userSummerBefore + stakeAmount);
+        assertEq(axSumr.balanceOf(user1), userXSumrBefore - stakeAmount);
+    }
+
+    function test_XSumr_TransferBetweenUsers_Reverts() public {
+        uint256 stakeAmount = STAKE_AMOUNT;
+        _stake(user1, stakeAmount, 0);
+
         vm.prank(user1);
-        vm.expectRevert(); // SafeERC20 will revert on insufficient allowance
-        aStaking.unstakeFromLockup(0, stakeAmount);
+        vm.expectRevert(abi.encodeWithSignature("xSumr__TransfersDisabled()"));
+        axSumr.transfer(user2, 1 ether);
     }
 
     function test_Unstake_InsufficientBalance() public {

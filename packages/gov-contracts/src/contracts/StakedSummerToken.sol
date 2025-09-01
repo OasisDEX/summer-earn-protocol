@@ -22,6 +22,7 @@ contract StakedSummerToken is
 {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     constructor(
         address _protocolAccessManager
@@ -39,6 +40,7 @@ contract StakedSummerToken is
         }
         _grantRole(MINTER_ROLE, _stakingModule);
         _grantRole(PAUSER_ROLE, _stakingModule);
+        _grantRole(BURNER_ROLE, _stakingModule);
 
         emit StakingModuleAdded(_stakingModule);
     }
@@ -47,6 +49,7 @@ contract StakedSummerToken is
         _revokeRole(MINTER_ROLE, _stakingModule);
         // todo: for pauser use guardian
         _revokeRole(PAUSER_ROLE, _stakingModule);
+        _revokeRole(BURNER_ROLE, _stakingModule);
         emit StakingModuleRemoved(_stakingModule);
     }
 
@@ -71,8 +74,11 @@ contract StakedSummerToken is
         super.burn(amount);
     }
 
-    function burnFrom(address from, uint256 amount) public override {
-        revert xSumr__NotImplemented();
+    function burnFrom(
+        address from,
+        uint256 amount
+    ) public override(ERC20Burnable, IStakedSummerToken) onlyRole(BURNER_ROLE) {
+        _burn(from, amount);
     }
 
     function clock() public view override returns (uint48) {
@@ -85,12 +91,15 @@ contract StakedSummerToken is
     }
 
     // The following functions are overrides required by Solidity.
-
     function _update(
         address from,
         address to,
         uint256 value
     ) internal override(ERC20, ERC20Pausable, ERC20Votes) {
+        // Disable transfers: only allow mint (from == 0) and burn (to == 0)
+        if (from != address(0) && to != address(0)) {
+            revert xSumr__TransfersDisabled();
+        }
         super._update(from, to, value);
     }
 
@@ -116,6 +125,14 @@ contract StakedSummerToken is
         _revokeRole(PAUSER_ROLE, _pauser);
     }
 
+    function grantBurnerRole(address _burner) public onlyGovernor {
+        _grantRole(BURNER_ROLE, _burner);
+    }
+
+    function revokeBurnerRole(address _burner) public onlyGovernor {
+        _revokeRole(BURNER_ROLE, _burner);
+    }
+
     /**
      * @dev Overrides the grantRole function from AccessControl to disable direct role granting.
      * @notice This function always reverts with a DirectGrantIsDisabled error.
@@ -134,4 +151,5 @@ contract StakedSummerToken is
 
     error xSumr_InvalidStakingModule(string message);
     error xSumr__NotImplemented();
+    error xSumr__TransfersDisabled();
 }
