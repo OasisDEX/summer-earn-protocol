@@ -6,6 +6,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {ISummerStaking} from "../interfaces/ISummerStaking.sol";
+import {IWrappedStakingToken} from "../interfaces/IWrappedStakingToken.sol";
 import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {WrappedStakingToken} from "./WrappedStakingToken.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
@@ -15,7 +17,11 @@ import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 
 // @dev Enhanced staking contract with lockup periods and reward distribution
 // @dev Users can stake with any lockup period, rewards are calculated based on weighted stakes
-contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
+contract SummerStaking is
+    StakingRewardsManagerBase,
+    ConfigurationManaged,
+    ISummerStaking
+{
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
     using EnumerableMap for EnumerableMap.UintToUintMap;
@@ -151,15 +157,16 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @dev Only callable by governor
      */
     function updateLockupBucketCap(
-        Bucket _bucket,
+        ISummerStaking.Bucket _bucket,
         uint256 _newCap
     ) external onlyGovernor {
-        _bucketCap[_bucket] = _newCap;
+        Bucket bucket = Bucket(uint256(_bucket));
+        _bucketCap[bucket] = _newCap;
 
         // Get the max lockup period for this bucket for the event
-        uint256 maxLockupPeriod = _getBucketMaxLockupPeriod(_bucket);
+        uint256 maxLockupPeriod = _getBucketMaxLockupPeriod(bucket);
 
-        emit LockupBucketUpdated(_bucket, _newCap, maxLockupPeriod);
+        emit LockupBucketUpdated(bucket, _newCap, maxLockupPeriod);
     }
 
     /**
@@ -168,9 +175,9 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @return The total staked amount in this bucket
      */
     function getBucketTotalStaked(
-        Bucket _bucket
+        ISummerStaking.Bucket _bucket
     ) external view returns (uint256) {
-        return _bucketStaked[_bucket];
+        return _bucketStaked[Bucket(uint256(_bucket))];
     }
 
     /**
@@ -356,7 +363,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         // Burn staked tokens and return SUMMER tokens from wrapped token
         _burn(_amount);
 
-        WrappedStakingToken(wrappedStakingToken).withdrawTo(
+        IWrappedStakingToken(wrappedStakingToken).withdrawTo(
             address(this),
             _amount
         );
@@ -409,7 +416,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
         SUMMER_TOKEN.safeTransferFrom(_msgSender(), address(this), _amount);
         SUMMER_TOKEN.forceApprove(wrappedStakingToken, _amount);
-        WrappedStakingToken(wrappedStakingToken).depositFor(
+        IWrappedStakingToken(wrappedStakingToken).depositFor(
             address(this),
             _amount
         );
@@ -473,7 +480,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         // Transfer SUMMER tokens from user to contract and wrap them
         SUMMER_TOKEN.safeTransferFrom(_from, address(this), _amount);
         SUMMER_TOKEN.forceApprove(wrappedStakingToken, _amount);
-        WrappedStakingToken(wrappedStakingToken).depositFor(
+        IWrappedStakingToken(wrappedStakingToken).depositFor(
             address(this),
             _amount
         );
@@ -526,7 +533,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @return maxLockupPeriod The maximum lockup period for this bucket
      */
     function getBucketDetails(
-        Bucket _bucket
+        ISummerStaking.Bucket _bucket
     )
         external
         view
@@ -537,25 +544,26 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             uint256 maxLockupPeriod
         )
     {
-        cap = _bucketCap[_bucket];
-        staked = _bucketStaked[_bucket];
+        Bucket bucket = Bucket(uint256(_bucket));
+        cap = _bucketCap[bucket];
+        staked = _bucketStaked[bucket];
 
-        if (_bucket == Bucket.NoLockup) {
+        if (bucket == Bucket.NoLockup) {
             minLockupPeriod = 0;
             maxLockupPeriod = 0;
-        } else if (_bucket == Bucket.ShortTerm) {
+        } else if (bucket == Bucket.ShortTerm) {
             minLockupPeriod = 1 seconds;
             maxLockupPeriod = BUCKET_SHORT_TERM_MAX;
-        } else if (_bucket == Bucket.ThreeToSixMonths) {
+        } else if (bucket == Bucket.ThreeToSixMonths) {
             minLockupPeriod = BUCKET_SHORT_TERM_MAX + 1;
             maxLockupPeriod = BUCKET_THREE_TO_SIX_MAX;
-        } else if (_bucket == Bucket.SixToTwelveMonths) {
+        } else if (bucket == Bucket.SixToTwelveMonths) {
             minLockupPeriod = BUCKET_THREE_TO_SIX_MAX + 1;
             maxLockupPeriod = BUCKET_SIX_TO_TWELVE_MAX;
-        } else if (_bucket == Bucket.OneToTwoYears) {
+        } else if (bucket == Bucket.OneToTwoYears) {
             minLockupPeriod = BUCKET_SIX_TO_TWELVE_MAX + 1;
             maxLockupPeriod = BUCKET_ONE_TO_TWO_MAX;
-        } else if (_bucket == Bucket.TwoToFourYears) {
+        } else if (bucket == Bucket.TwoToFourYears) {
             minLockupPeriod = BUCKET_ONE_TO_TWO_MAX + 1;
             maxLockupPeriod = BUCKET_TWO_TO_FOUR_MAX;
         }
@@ -605,7 +613,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      */
     function weightedBalanceOf(
         address account
-    ) public view virtual returns (uint256) {
+    ) public view virtual override returns (uint256) {
         return _weightedBalances[account];
     }
 
@@ -659,7 +667,9 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @param _user The user address
      * @return The number of stakes
      */
-    function getUserStakesCount(address _user) external view returns (uint256) {
+    function getUserStakesCount(
+        address _user
+    ) external view override returns (uint256) {
         return userStakes[_user].length;
     }
 
@@ -768,28 +778,28 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         external
         view
         returns (
-            Bucket[] memory buckets,
+            ISummerStaking.Bucket[] memory buckets,
             uint256[] memory caps,
             uint256[] memory stakedAmounts,
             uint256[] memory minPeriods,
             uint256[] memory maxPeriods
         )
     {
-        buckets = new Bucket[](6);
+        buckets = new ISummerStaking.Bucket[](6);
         caps = new uint256[](6);
         stakedAmounts = new uint256[](6);
         minPeriods = new uint256[](6);
         maxPeriods = new uint256[](6);
 
-        buckets[0] = Bucket.NoLockup;
-        buckets[1] = Bucket.ShortTerm;
-        buckets[2] = Bucket.ThreeToSixMonths;
-        buckets[3] = Bucket.SixToTwelveMonths;
-        buckets[4] = Bucket.OneToTwoYears;
-        buckets[5] = Bucket.TwoToFourYears;
+        buckets[0] = ISummerStaking.Bucket.NoLockup;
+        buckets[1] = ISummerStaking.Bucket.ShortTerm;
+        buckets[2] = ISummerStaking.Bucket.ThreeToSixMonths;
+        buckets[3] = ISummerStaking.Bucket.SixToTwelveMonths;
+        buckets[4] = ISummerStaking.Bucket.OneToTwoYears;
+        buckets[5] = ISummerStaking.Bucket.TwoToFourYears;
 
         for (uint256 i = 0; i < 6; i++) {
-            Bucket bucket = buckets[i];
+            Bucket bucket = Bucket(uint256(buckets[i]));
             caps[i] = _bucketCap[bucket];
             stakedAmounts[i] = _bucketStaked[bucket];
 
