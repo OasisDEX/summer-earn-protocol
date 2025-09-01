@@ -10,7 +10,6 @@ import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/S
 import {WrappedStakingToken} from "./WrappedStakingToken.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManaged.sol";
-import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 
 // @dev Enhanced staking contract with lockup periods and reward distribution
@@ -18,7 +17,6 @@ import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
-    using EnumerableMap for EnumerableMap.UintToUintMap;
 
     ISummerToken public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
@@ -26,7 +24,18 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     // Lockup configuration
     uint256 public constant MAX_LOCKUP_PERIOD = 4 * 365 days; // 4 years
     uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
-    uint256 public constant MAX_PENALTY_PERCENTAGE = 50; // 50%
+    uint256 public constant MAX_PENALTY_PERCENTAGE = 0.5e18; // 50%
+
+    // Weighted stake calculation constants
+    uint256 public constant WEIGHTED_STAKE_BASE = 5e16; // 0.05 in 60.18 fixed-point
+    uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 4e2; // 4e-16 * 1e18 = 400 in 60.18 fixed-point
+
+    // Bucket period boundaries (in seconds)
+    uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days - 1;
+    uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days;
+    uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days;
+    uint256 public constant BUCKET_ONE_TO_TWO_MAX = 730 days;
+    uint256 public constant BUCKET_TWO_TO_FOUR_MAX = MAX_LOCKUP_PERIOD;
 
     // Bucket enum for clear indexing
     enum Bucket {
@@ -38,17 +47,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         TwoToFourYears // 731+ days
     }
 
-    // Bucket period boundaries (in seconds)
-    uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days - 1;
-    uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days;
-    uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days;
-    uint256 public constant BUCKET_ONE_TO_TWO_MAX = 730 days;
-    uint256 public constant BUCKET_TWO_TO_FOUR_MAX = MAX_LOCKUP_PERIOD;
-
-    // Weighted stake calculation constants
-    uint256 private constant WEIGHTED_STAKE_BASE = 5e16; // 0.05 in 60.18 fixed-point
-    uint256 private constant WEIGHTED_STAKE_COEFFICIENT = 4e2; // 4e-16 * 1e18 = 400 in 60.18 fixed-point
-
     // User stake information with lockup details
     struct UserStake {
         uint256 amount; // Actual staked amount
@@ -57,28 +55,14 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 lockupPeriod; // Original lockup period in seconds
     }
 
-    // Mapping: user => their stakes (multiple stakes allowed)
+    struct BucketData {
+        uint256 cap;
+        uint256 staked;
+    }
+
     mapping(address => UserStake[]) public userStakes;
-
-    // Mapping: user => total weighted staked amount
-    mapping(address => uint256) private _weightedBalances;
-
-    // Bucket management using enum keys
-    mapping(Bucket => uint256) private _bucketCap;
-    mapping(Bucket => uint256) private _bucketStaked;
-
-    // Events for bucket management
-    event LockupBucketUpdated(
-        Bucket indexed bucket,
-        uint256 cap,
-        uint256 maxLockupPeriod
-    );
-    event LockupBucketAdded(
-        Bucket indexed bucket,
-        uint256 cap,
-        uint256 minLockupPeriod,
-        uint256 maxLockupPeriod
-    );
+    mapping(address => uint256) public weightedBalances;
+    mapping(Bucket => BucketData) public _bucketData;
 
     // Wrapped version of staking token for internal accounting
     address public immutable wrappedStakingToken;
@@ -109,7 +93,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         wrappedStakingToken = address(new WrappedStakingToken(_summerToken));
         stakingToken = _summerToken;
 
-        // Initialize default lockup bucket configurations
         _initializeDefaultLockupBuckets();
     }
 
@@ -119,29 +102,27 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @dev ShortTerm bucket has cap 0 to disable it, others have no cap (type(uint256).max)
      */
     function _initializeDefaultLockupBuckets() internal {
-        // NoLockup bucket - no cap
-        _bucketCap[Bucket.NoLockup] = type(uint256).max;
-        _bucketStaked[Bucket.NoLockup] = 0;
-
-        // ShortTerm bucket - disabled by default (cap 0)
-        _bucketCap[Bucket.ShortTerm] = 0;
-        _bucketStaked[Bucket.ShortTerm] = 0;
-
-        // ThreeToSixMonths bucket - no cap
-        _bucketCap[Bucket.ThreeToSixMonths] = 0;
-        _bucketStaked[Bucket.ThreeToSixMonths] = 0;
-
-        // SixToTwelveMonths bucket - no cap
-        _bucketCap[Bucket.SixToTwelveMonths] = 0;
-        _bucketStaked[Bucket.SixToTwelveMonths] = 0;
-
-        // OneToTwoYears bucket - no cap
-        _bucketCap[Bucket.OneToTwoYears] = 0;
-        _bucketStaked[Bucket.OneToTwoYears] = 0;
-
-        // TwoToFourYears bucket - no cap
-        _bucketCap[Bucket.TwoToFourYears] = type(uint256).max;
-        _bucketStaked[Bucket.TwoToFourYears] = 0;
+        _bucketData[Bucket.NoLockup] = BucketData({
+            cap: type(uint256).max,
+            staked: 0
+        });
+        _bucketData[Bucket.ShortTerm] = BucketData({cap: 0, staked: 0});
+        _bucketData[Bucket.ThreeToSixMonths] = BucketData({
+            cap: type(uint256).max,
+            staked: 0
+        });
+        _bucketData[Bucket.SixToTwelveMonths] = BucketData({
+            cap: type(uint256).max,
+            staked: 0
+        });
+        _bucketData[Bucket.OneToTwoYears] = BucketData({
+            cap: type(uint256).max,
+            staked: 0
+        });
+        _bucketData[Bucket.TwoToFourYears] = BucketData({
+            cap: type(uint256).max,
+            staked: 0
+        });
     }
 
     /**
@@ -154,12 +135,9 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         Bucket _bucket,
         uint256 _newCap
     ) external onlyGovernor {
-        _bucketCap[_bucket] = _newCap;
+        _bucketData[_bucket].cap = _newCap;
 
-        // Get the max lockup period for this bucket for the event
-        uint256 maxLockupPeriod = _getBucketMaxLockupPeriod(_bucket);
-
-        emit LockupBucketUpdated(_bucket, _newCap, maxLockupPeriod);
+        emit LockupBucketUpdated(_bucket, _newCap);
     }
 
     /**
@@ -170,7 +148,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     function getBucketTotalStaked(
         Bucket _bucket
     ) external view returns (uint256) {
-        return _bucketStaked[_bucket];
+        return _bucketData[_bucket].staked;
     }
 
     /**
@@ -203,24 +181,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     }
 
     /**
-     * @notice Get the maximum lockup period for a bucket
-     * @param _bucket The bucket to check
-     * @return The maximum lockup period in seconds
-     */
-    function _getBucketMaxLockupPeriod(
-        Bucket _bucket
-    ) internal pure returns (uint256) {
-        if (_bucket == Bucket.NoLockup) return 0;
-        if (_bucket == Bucket.ShortTerm) return BUCKET_SHORT_TERM_MAX;
-        if (_bucket == Bucket.ThreeToSixMonths) return BUCKET_THREE_TO_SIX_MAX;
-        if (_bucket == Bucket.SixToTwelveMonths)
-            return BUCKET_SIX_TO_TWELVE_MAX;
-        if (_bucket == Bucket.OneToTwoYears) return BUCKET_ONE_TO_TWO_MAX;
-        if (_bucket == Bucket.TwoToFourYears) return BUCKET_TWO_TO_FOUR_MAX;
-        revert Staking_InvalidBucketIndex();
-    }
-
-    /**
      * @notice Update bucket totals when adding stake
      * @param _lockupPeriod The lockup period of the stake
      * @param _amount The amount being added
@@ -230,7 +190,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _amount
     ) internal {
         Bucket bucket = _findBucket(_lockupPeriod);
-        _bucketStaked[bucket] += _amount;
+        _bucketData[bucket].staked += _amount;
     }
 
     /**
@@ -243,7 +203,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _amount
     ) internal {
         Bucket bucket = _findBucket(_lockupPeriod);
-        _bucketStaked[bucket] -= _amount;
+        _bucketData[bucket].staked -= _amount;
     }
 
     /**
@@ -257,19 +217,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _amount
     ) internal view returns (bool) {
         Bucket bucket = _findBucket(_lockupPeriod);
-        uint256 currentBucketTotal = _bucketStaked[bucket];
-        uint256 bucketCap = _bucketCap[bucket];
-
-        // // If cap is 0, bucket is disabled
-        // if (bucketCap == 0) {
-        //     return true;
-        // }
-
-        // // If cap is type(uint256).max, no cap
-        // if (bucketCap == type(uint256).max) {
-        //     return false;
-        // }
-
+        uint256 currentBucketTotal = _bucketData[bucket].staked;
+        uint256 bucketCap = _bucketData[bucket].cap;
         return (currentBucketTotal + _amount) > bucketCap;
     }
 
@@ -327,12 +276,11 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         UserStake memory processedStake = userStakes[_msgSender()][_stakeIndex];
         if (processedStake.amount == 0) revert Staking_InvalidStakeIndex();
 
-        uint256 unstakePenaltyPercentage = calculatePenalty(
+        uint256 unstakePenalty = calculatePenalty(
             _msgSender(),
+            _amount,
             _stakeIndex
         );
-        uint256 unstakePenalty = (_amount * unstakePenaltyPercentage) /
-            Constants.WAD;
 
         uint256 weightedAmountToRemove = (processedStake.weightedAmount *
             _amount) / processedStake.amount;
@@ -341,7 +289,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
         // Update totals
         _balances[_msgSender()] -= _amount;
-        _weightedBalances[_msgSender()] -= weightedAmountToRemove;
+        weightedBalances[_msgSender()] -= weightedAmountToRemove;
         totalSupply -= weightedAmountToRemove;
 
         // Update bucket totals
@@ -426,11 +374,11 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         existingStake.amount += _amount;
         existingStake.weightedAmount += weightedAmount;
         _balances[_msgSender()] += _amount;
-        _weightedBalances[_msgSender()] += weightedAmount;
+        weightedBalances[_msgSender()] += weightedAmount;
         totalSupply += weightedAmount;
 
-        // Update bucket totals
-        _updateBucketTotalOnAdd(remainingTime, _amount);
+        // Update bucket totals based on the initial lockup period
+        _updateBucketTotalOnAdd(existingStake.lockupPeriod, _amount);
 
         emit Staked(_msgSender(), _msgSender(), _amount);
         emit StakedWithLockup(
@@ -500,7 +448,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
         // Update user's total staked amounts
         _balances[_receiver] += _amount;
-        _weightedBalances[_receiver] += weightedAmount;
+        weightedBalances[_receiver] += weightedAmount;
 
         // Update global totals (weighted amount for reward calculations)
         // totalSupply is used in rewardPerToken function that we can't override
@@ -537,8 +485,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             uint256 maxLockupPeriod
         )
     {
-        cap = _bucketCap[_bucket];
-        staked = _bucketStaked[_bucket];
+        cap = _bucketData[_bucket].cap;
+        staked = _bucketData[_bucket].staked;
 
         if (_bucket == Bucket.NoLockup) {
             minLockupPeriod = 0;
@@ -606,13 +554,13 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     function weightedBalanceOf(
         address account
     ) public view virtual returns (uint256) {
-        return _weightedBalances[account];
+        return weightedBalances[account];
     }
 
     /**
      * @notice Calculate penalty for early unstaking
      * @param _stakeIndex The index of the stake to calculate penalty for
-     * @return The penalty amount in WAD
+     * @return The penalty percentage in WAD
      * @dev Penalty formula: penalty = weighted_amount × 50% × (time_remaining / original_lockup_period)
      * @dev Examples:
      *      - 4-year lockup, unstake immediately: 50% penalty
@@ -621,23 +569,39 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      *      - 1-year lockup, unstake immediately: 12.5% penalty
      *      - 2-year lockup, unstake immediately: 25% penalty
      */
-    function calculatePenalty(
+    function calculatePenaltyPercentage(
         address _user,
         uint256 _stakeIndex
     ) public view returns (uint256) {
         UserStake storage userStake = userStakes[_user][_stakeIndex];
 
         if (block.timestamp >= userStake.lockupEndTime) {
-            return 0; // No penalty if lockup period has ended
+            return 0;
         }
 
         uint256 timeRemaining = userStake.lockupEndTime - block.timestamp;
-        // Penalty percentage = 50% * (time_remaining / original_lockup_period)
-        uint256 penaltyPercentage = (timeRemaining * 50 * Constants.WAD) /
-            (userStake.lockupPeriod * 100);
-
-        // Penalty amount = amount * penalty_percentage
+        uint256 penaltyPercentage = (timeRemaining * MAX_PENALTY_PERCENTAGE) /
+            (MAX_LOCKUP_PERIOD);
         return penaltyPercentage;
+    }
+
+    /**
+     * @notice Calculate the penalty amount for an unstake
+     * @param _user The user address
+     * @param _amount The amount of tokens to unstake
+     * @param _stakeIndex The index of the stake to unstake
+     * @return The penalty amount
+     */
+    function calculatePenalty(
+        address _user,
+        uint256 _amount,
+        uint256 _stakeIndex
+    ) public view returns (uint256) {
+        uint256 penaltyPercentage = calculatePenaltyPercentage(
+            _user,
+            _stakeIndex
+        );
+        return (penaltyPercentage * _amount) / Constants.WAD;
     }
 
     /**
@@ -735,7 +699,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         address account,
         address rewardToken
     ) public view override returns (uint256) {
-        uint256 weightedBalance = _weightedBalances[account];
+        uint256 weightedBalance = weightedBalances[account];
         if (weightedBalance == 0) {
             return rewards[rewardToken][account];
         }
@@ -790,8 +754,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
         for (uint256 i = 0; i < 6; i++) {
             Bucket bucket = buckets[i];
-            caps[i] = _bucketCap[bucket];
-            stakedAmounts[i] = _bucketStaked[bucket];
+            caps[i] = _bucketData[bucket].cap;
+            stakedAmounts[i] = _bucketData[bucket].staked;
 
             if (bucket == Bucket.NoLockup) {
                 minPeriods[i] = 0;
@@ -841,4 +805,5 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 penalty,
         uint256 returnAmount
     );
+    event LockupBucketUpdated(Bucket indexed bucket, uint256 cap);
 }

@@ -1138,6 +1138,302 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertEq(remainingAmount, STAKE_AMOUNT - amount);
     }
 
+    // ============ PENALTY CALCULATION TESTS (FROM COMMENTS) ============
+
+    function test_PenaltyCalculation_4YearLockup_ImmediateUnstake_50Percent()
+        public
+    {
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 4 * 365 days; // 4 years
+
+        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+
+        // Calculate expected penalty: 50% for immediate unstake
+        uint256 expectedPenaltyPercentage = (50 * Constants.WAD) / 100; // 50%
+        uint256 expectedPenalty = (stakeAmount * expectedPenaltyPercentage) /
+            Constants.WAD;
+        uint256 expectedReturnAmount = stakeAmount - expectedPenalty;
+
+        // Get balances before unstaking
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
+            aStaking.treasury()
+        );
+
+        // Unstake immediately
+        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+
+        // Verify penalty calculation
+        assertEq(
+            aSummerToken.balanceOf(aStaking.treasury()),
+            treasuryBalanceBefore + expectedPenalty,
+            "Treasury should receive 50% penalty"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBalanceBefore + expectedReturnAmount,
+            "User should receive 50% of staked amount"
+        );
+
+        // Verify the penalty percentage is exactly 50%
+        assertEq(expectedPenaltyPercentage, (50 * Constants.WAD) / 100);
+        assertEq(expectedPenalty, stakeAmount / 2);
+    }
+
+    function test_PenaltyCalculation_4YearLockup_After2Years_25Percent()
+        public
+    {
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 4 * 365 days; // 4 years
+
+        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+
+        // Warp time to 2 years (50% of lockup period)
+        vm.warp(block.timestamp + 2 * 365 days);
+
+        // Calculate expected penalty: 25% for unstake after 2 years
+        uint256 expectedPenaltyPercentage = (25 * Constants.WAD) / 100; // 25%
+        uint256 expectedPenalty = (stakeAmount * expectedPenaltyPercentage) /
+            Constants.WAD;
+        uint256 expectedReturnAmount = stakeAmount - expectedPenalty;
+
+        // Get balances before unstaking
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
+            aStaking.treasury()
+        );
+
+        // Unstake after 2 years
+        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+
+        // Verify penalty calculation
+        assertEq(
+            aSummerToken.balanceOf(aStaking.treasury()),
+            treasuryBalanceBefore + expectedPenalty,
+            "Treasury should receive 25% penalty"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBalanceBefore + expectedReturnAmount,
+            "User should receive 75% of staked amount"
+        );
+
+        // Verify the penalty percentage is exactly 25%
+        assertEq(expectedPenaltyPercentage, (25 * Constants.WAD) / 100);
+        assertEq(expectedPenalty, stakeAmount / 4);
+    }
+
+    function test_PenaltyCalculation_4YearLockup_After4Years_0Percent() public {
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 4 * 365 days; // 4 years
+
+        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+
+        // Warp time to exactly 4 years (lockup period ends)
+        vm.warp(block.timestamp + 4 * 365 days);
+
+        // Calculate expected penalty: 0% for unstake after lockup ends
+        uint256 expectedPenaltyPercentage = 0; // 0%
+        uint256 expectedPenalty = 0;
+        uint256 expectedReturnAmount = stakeAmount;
+
+        // Get balances before unstaking
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
+            aStaking.treasury()
+        );
+
+        // Unstake after lockup period ends
+        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+
+        // Verify penalty calculation
+        assertEq(
+            aSummerToken.balanceOf(aStaking.treasury()),
+            treasuryBalanceBefore,
+            "Treasury should receive no penalty"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBalanceBefore + expectedReturnAmount,
+            "User should receive 100% of staked amount"
+        );
+
+        // Verify the penalty percentage is exactly 0%
+        assertEq(expectedPenaltyPercentage, 0);
+        assertEq(expectedPenalty, 0);
+    }
+
+    function test_PenaltyCalculation_1YearLockup_ImmediateUnstake_12_5Percent()
+        public
+    {
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 365 days; // 1 year
+
+        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+
+        // Calculate expected penalty: 12.5% for immediate unstake of 1-year lockup
+        uint256 expectedPenaltyPercentage = (125 * Constants.WAD) / 1000; // 12.5%
+        uint256 expectedPenalty = (stakeAmount * expectedPenaltyPercentage) /
+            Constants.WAD;
+        uint256 expectedReturnAmount = stakeAmount - expectedPenalty;
+
+        // Get balances before unstaking
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
+            aStaking.treasury()
+        );
+
+        // Unstake immediately
+        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+
+        // Verify penalty calculation
+        assertEq(
+            aSummerToken.balanceOf(aStaking.treasury()),
+            treasuryBalanceBefore + expectedPenalty,
+            "Treasury should receive 12.5% penalty"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBalanceBefore + expectedReturnAmount,
+            "User should receive 87.5% of staked amount"
+        );
+
+        // Verify the penalty percentage is exactly 12.5%
+        assertEq(expectedPenaltyPercentage, (125 * Constants.WAD) / 1000);
+        assertEq(expectedPenalty, (stakeAmount * 125) / 1000);
+    }
+
+    function test_PenaltyCalculation_2YearLockup_ImmediateUnstake_25Percent()
+        public
+    {
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 2 * 365 days; // 2 years
+
+        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+
+        // Calculate expected penalty: 25% for immediate unstake of 2-year lockup
+        uint256 expectedPenaltyPercentage = (25 * Constants.WAD) / 100; // 25%
+        uint256 expectedPenalty = (stakeAmount * expectedPenaltyPercentage) /
+            Constants.WAD;
+        uint256 expectedReturnAmount = stakeAmount - expectedPenalty;
+
+        // Get balances before unstaking
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
+            aStaking.treasury()
+        );
+
+        // Unstake immediately
+        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+
+        // Verify penalty calculation
+        assertEq(
+            aSummerToken.balanceOf(aStaking.treasury()),
+            treasuryBalanceBefore + expectedPenalty,
+            "Treasury should receive 25% penalty"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBalanceBefore + expectedReturnAmount,
+            "User should receive 75% of staked amount"
+        );
+
+        // Verify the penalty percentage is exactly 25%
+        assertEq(expectedPenaltyPercentage, (25 * Constants.WAD) / 100);
+        assertEq(expectedPenalty, stakeAmount / 4);
+    }
+
+    function test_PenaltyCalculation_ContractMethod_MatchesExpected() public {
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 4 * 365 days; // 4 years
+
+        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+
+        // Test immediate unstake penalty calculation
+        uint256 contractPenalty = aStaking.calculatePenaltyPercentage(
+            user1,
+            stakeIndex
+        );
+        uint256 expectedPenaltyPercentage = (50 * Constants.WAD) / 100; // 50%
+
+        assertEq(
+            contractPenalty,
+            expectedPenaltyPercentage,
+            "Contract penalty calculation should match expected 50%"
+        );
+
+        // Warp time to 2 years and test again
+        vm.warp(block.timestamp + 2 * 365 days);
+        contractPenalty = aStaking.calculatePenaltyPercentage(
+            user1,
+            stakeIndex
+        );
+        expectedPenaltyPercentage = (25 * Constants.WAD) / 100; // 25%
+
+        assertEq(
+            contractPenalty,
+            expectedPenaltyPercentage,
+            "Contract penalty calculation should match expected 25%"
+        );
+
+        // Warp time to end of lockup and test again
+        vm.warp(block.timestamp + 2 * 365 days); // Total 4 years
+        contractPenalty = aStaking.calculatePenaltyPercentage(
+            user1,
+            stakeIndex
+        );
+        expectedPenaltyPercentage = 0; // 0%
+
+        assertEq(
+            contractPenalty,
+            expectedPenaltyPercentage,
+            "Contract penalty calculation should match expected 0%"
+        );
+    }
+
+    function test_PenaltyCalculation_EdgeCases() public {
+        uint256 stakeAmount = 1000 ether;
+
+        // Test 1-year lockup
+        uint256 stakeIndex1 = _stake(user1, stakeAmount, 365 days);
+        uint256 penalty1 = aStaking.calculatePenaltyPercentage(
+            user1,
+            stakeIndex1
+        );
+        uint256 expectedPenalty1 = (125 * Constants.WAD) / 1000;
+        assertEq(
+            penalty1,
+            expectedPenalty1,
+            "1-year lockup immediate penalty should be 50%"
+        );
+
+        // Test 2-year lockup
+        uint256 stakeIndex2 = _stake(user2, stakeAmount, 2 * 365 days);
+        uint256 penalty2 = aStaking.calculatePenaltyPercentage(
+            user2,
+            stakeIndex2
+        );
+        uint256 expectedPenalty2 = (25 * Constants.WAD) / 100;
+        assertEq(
+            penalty2,
+            expectedPenalty2,
+            "2-year lockup immediate penalty should be 50%"
+        );
+
+        // Test 6-month lockup
+        uint256 stakeIndex3 = _stake(user3, stakeAmount, 365 days / 2);
+        uint256 penalty3 = aStaking.calculatePenaltyPercentage(
+            user3,
+            stakeIndex3
+        );
+        uint256 expectedPenalty3 = (625 * Constants.WAD) / 10000;
+        assertEq(
+            penalty3,
+            expectedPenalty3,
+            "6-month lockup immediate penalty should be 50%"
+        );
+    }
+
     // ============ INVARIANT TESTS ============
 
     function test_Invariant_SupplyConsistency() public {

@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 /*
  * @title SummerStaking No Lockup Tests
@@ -91,24 +92,6 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
             userSummerBalanceBefore - stakeAmount
         );
         assertEq(axSumr.balanceOf(user1), userXSumrBalanceBefore + stakeAmount);
-    }
-
-    function test_Stake_ValidAmount_one_second_lockup() public {
-        uint256 stakeAmount = STAKE_AMOUNT;
-        uint256 lockupPeriod = 1 seconds;
-
-        // Get balances before staking
-        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
-        uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
-
-        // Attempt to stake with invalid lockup period
-        vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded"));
-        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
-
-        // Check balances after staking - should remain unchanged
-        assertEq(aSummerToken.balanceOf(user1), userSummerBalanceBefore);
-        assertEq(axSumr.balanceOf(user1), userXSumrBalanceBefore);
     }
 
     function test_Stake_ZeroAmount() public {
@@ -376,7 +359,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Penalty should be 0 for zero lockup
-        uint256 penalty = freshStaking.calculatePenalty(user1, 0);
+        uint256 penalty = freshStaking.calculatePenaltyPercentage(user1, 0);
         assertEq(penalty, 0);
     }
 
@@ -389,7 +372,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Penalty should be 0 for zero lockup
-        uint256 penalty = freshStaking.calculatePenalty(user1, 0);
+        uint256 penalty = freshStaking.calculatePenaltyPercentage(user1, 0);
         assertEq(penalty, 0);
     }
 
@@ -410,7 +393,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
             );
 
             // Calculate penalty immediately (no time passed)
-            uint256 penalty = freshStaking.calculatePenalty(user1, i);
+            uint256 penalty = freshStaking.calculatePenaltyPercentage(user1, i);
 
             // For zero lockup, penalty should always be 0
             assertEq(penalty, 0);
@@ -468,7 +451,10 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
         // Calculate expected penalty (should be 0 for zero lockup)
-        uint256 expectedPenalty = freshStaking.calculatePenalty(user1, 0);
+        uint256 expectedPenalty = freshStaking.calculatePenaltyPercentage(
+            user1,
+            0
+        );
         uint256 expectedReturnAmount = stakeAmount - expectedPenalty;
 
         // Unstake from specific stake using helper
@@ -501,7 +487,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
         // Calculate expected penalty for partial unstake (should be 0 for zero lockup)
-        uint256 fullPenalty = freshStaking.calculatePenalty(user1, 0);
+        uint256 fullPenalty = freshStaking.calculatePenaltyPercentage(user1, 0);
         uint256 expectedPenalty = (fullPenalty * unstakeAmount) / stakeAmount;
         uint256 expectedReturnAmount = unstakeAmount - expectedPenalty;
 
@@ -651,5 +637,210 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Verify final balances
         assertEq(axSumr.balanceOf(user1), 0);
+    }
+
+    // ============ NO LOCKUP PENALTY TESTS ============
+
+    function test_NoLockupPenalty_ImmediateUnstake_0Percent() public {
+        SummerStaking freshStaking = createFreshStaking();
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 0; // No lockup
+
+        // Stake with no lockup
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+
+        // Calculate expected penalty: 0% for no lockup
+        uint256 expectedPenaltyPercentage = 0; // 0%
+        uint256 expectedPenalty = 0;
+        uint256 expectedReturnAmount = stakeAmount;
+
+        // Get balances before unstaking
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
+            freshStaking.treasury()
+        );
+
+        // Unstake immediately
+        _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount);
+
+        // Verify penalty calculation
+        assertEq(
+            aSummerToken.balanceOf(freshStaking.treasury()),
+            treasuryBalanceBefore,
+            "Treasury should receive no penalty for no lockup"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBalanceBefore + expectedReturnAmount,
+            "User should receive 100% of staked amount for no lockup"
+        );
+
+        // Verify the penalty percentage is exactly 0%
+        assertEq(expectedPenaltyPercentage, 0);
+        assertEq(expectedPenalty, 0);
+    }
+
+    function test_NoLockupPenalty_ContractMethod_ReturnsZero() public {
+        SummerStaking freshStaking = createFreshStaking();
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 0; // No lockup
+
+        // Stake with no lockup
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+
+        // Test penalty calculation - should always be 0 for no lockup
+        uint256 contractPenalty = freshStaking.calculatePenaltyPercentage(
+            user1,
+            0
+        );
+        uint256 expectedPenaltyPercentage = 0; // 0%
+
+        assertEq(
+            contractPenalty,
+            expectedPenaltyPercentage,
+            "Contract penalty calculation should return 0% for no lockup"
+        );
+
+        // Warp time and test again - should still be 0
+        vm.warp(block.timestamp + 365 days);
+        contractPenalty = freshStaking.calculatePenaltyPercentage(user1, 0);
+
+        assertEq(
+            contractPenalty,
+            expectedPenaltyPercentage,
+            "Contract penalty calculation should still return 0% for no lockup after time passes"
+        );
+    }
+
+    function test_NoLockupPenalty_MultipleStakes_AllZeroPenalty() public {
+        SummerStaking freshStaking = createFreshStaking();
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 0; // No lockup
+
+        // Create multiple stakes with no lockup
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+
+        // Test penalty calculation for each stake - should all be 0
+        for (uint256 i = 0; i < 3; i++) {
+            uint256 contractPenalty = freshStaking.calculatePenaltyPercentage(
+                user1,
+                i
+            );
+            assertEq(
+                contractPenalty,
+                0,
+                string(abi.encodePacked("Stake ", i, " should have 0% penalty"))
+            );
+        }
+
+        // Unstake all stakes and verify no penalties
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
+            freshStaking.treasury()
+        );
+
+        for (uint256 i = 0; i < 3; i++) {
+            _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount); // Always unstake from index 0 as stakes get removed
+        }
+
+        // Verify no penalties were applied
+        assertEq(
+            aSummerToken.balanceOf(freshStaking.treasury()),
+            treasuryBalanceBefore,
+            "Treasury should receive no penalties for no lockup stakes"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBalanceBefore + (stakeAmount * 3),
+            "User should receive 100% of all staked amounts for no lockup"
+        );
+    }
+
+    function test_NoLockupPenalty_TimePasses_StillZeroPenalty() public {
+        SummerStaking freshStaking = createFreshStaking();
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = 0; // No lockup
+
+        // Stake with no lockup
+        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+
+        // Warp time significantly
+        vm.warp(block.timestamp + 10 * 365 days); // 10 years
+
+        // Penalty should still be 0
+        uint256 contractPenalty = freshStaking.calculatePenaltyPercentage(
+            user1,
+            0
+        );
+        assertEq(
+            contractPenalty,
+            0,
+            "Penalty should remain 0% even after significant time passes for no lockup"
+        );
+
+        // Unstake and verify no penalty
+        uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
+            freshStaking.treasury()
+        );
+
+        _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount);
+
+        assertEq(
+            aSummerToken.balanceOf(freshStaking.treasury()),
+            treasuryBalanceBefore,
+            "Treasury should receive no penalty even after time passes for no lockup"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBalanceBefore + stakeAmount,
+            "User should receive 100% of staked amount even after time passes for no lockup"
+        );
+    }
+
+    function test_NoLockupPenalty_ComparisonWithLockup() public {
+        SummerStaking freshStaking = createFreshStaking();
+        vm.startPrank(address(timelockA));
+        freshStaking.updateLockupBucketCap(
+            SummerStaking.Bucket.SixToTwelveMonths,
+            100000 ether
+        );
+        uint256 stakeAmount = 1000 ether;
+
+        // Create one stake with no lockup
+        _stakeOnContract(freshStaking, user1, stakeAmount, 0);
+
+        // Create another stake with 1-year lockup
+        _stakeOnContract(freshStaking, user2, stakeAmount, 365 days);
+
+        // Compare penalties
+        uint256 noLockupPenalty = freshStaking.calculatePenaltyPercentage(
+            user1,
+            0
+        );
+        uint256 oneYearLockupPenalty = freshStaking.calculatePenaltyPercentage(
+            user2,
+            0
+        );
+
+        assertEq(noLockupPenalty, 0, "No lockup penalty should be 0%");
+        assertGt(
+            oneYearLockupPenalty,
+            0,
+            "1-year lockup penalty should be greater than 0%"
+        );
+        assertEq(
+            oneYearLockupPenalty,
+            (125 * Constants.WAD) / 1000,
+            "1-year lockup penalty should be 12.5% "
+        );
+
+        // Verify the difference
+        assertTrue(
+            oneYearLockupPenalty > noLockupPenalty,
+            "Lockup penalty should be greater than no lockup penalty"
+        );
     }
 }
