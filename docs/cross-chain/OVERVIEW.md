@@ -6,11 +6,9 @@ internal, keeper-led rebalancing process.
 
 #### What is a CrossChain Fleet?
 
-- A CrossChain Fleet is a fleet deployed on a hub chain that can allocate capital across multiple
-  chains.
+- A CrossChain Fleet is a fleet deployed on a hub chain that can allocate capital across multiple chains.
 - Users deposit to the CrossChain Fleet using the same interface as regular fleets.
-- Deposits first accumulate in a Buffer Ark; keepers then rebalance from the buffer to one or more
-  CrossChain Arks targeting other chains.
+- Deposits first accumulate in a Buffer Ark; keepers then rebalance from the buffer to one or more CrossChain Arks targeting other chains.
 
 #### Core Components
 
