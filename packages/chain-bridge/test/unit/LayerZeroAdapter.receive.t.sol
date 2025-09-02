@@ -49,6 +49,8 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         bytes32 guid = keccak256(abi.encodePacked(payload));
 
         adapterA.setLzMessageToOperationId(guid, operationId);
+        // Ensure expected chain is set so _relayReadResponse passes trust checks
+        adapterA.setExpectedReadChainByGuid(guid, CHAIN_ID_B);
         // Call lzReceiveTest with the proper parameters
         adapterA.lzReceiveTest(
             origin,
