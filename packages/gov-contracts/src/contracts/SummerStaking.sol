@@ -311,10 +311,25 @@ contract SummerStaking is
         uint256 _amount
     ) internal view returns (bool) {
         ISummerStaking.Bucket bucket = _findBucket(_lockupPeriod);
-        uint256 currentBucketTotal = _bucketStaked[bucket];
         uint256 bucketCap = _bucketCap[bucket];
 
-        return (currentBucketTotal + _amount) > bucketCap;
+        // Uncapped buckets never exceed the cap
+        if (bucketCap == type(uint256).max) {
+            return false;
+        }
+
+        // Disabled bucket (cap = 0) rejects any positive amount
+        if (bucketCap == 0) {
+            return _amount > 0;
+        }
+
+        uint256 currentBucketTotal = _bucketStaked[bucket];
+        // If already at or above cap, any positive addition exceeds
+        if (currentBucketTotal >= bucketCap) {
+            return _amount > 0;
+        }
+        // Check using subtraction to avoid addition overflow: (current + amount) > cap
+        return _amount > bucketCap - currentBucketTotal;
     }
 
     /**

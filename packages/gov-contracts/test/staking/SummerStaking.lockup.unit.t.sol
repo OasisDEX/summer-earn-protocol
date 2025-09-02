@@ -614,6 +614,62 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertGt(aStaking.totalSupply(), totalSupplyBefore);
     }
 
+    function test_AddToStake_ExactWeightedAndSupplyDeltas() public {
+        uint256 initialAmount = STAKE_AMOUNT;
+        uint256 additionalAmount = STAKE_AMOUNT / 3;
+        uint256 lockupPeriod = MIN_LOCKUP;
+
+        uint256 stakeIndex = _stake(user1, initialAmount, lockupPeriod);
+
+        // Capture pre-state
+        (, uint256 weightedBefore, uint256 lockupEndTime, ) = aStaking
+            .getUserStake(user1, stakeIndex);
+        uint256 userWeightedBefore = aStaking.weightedBalanceOf(user1);
+        uint256 totalSupplyBefore = aStaking.totalSupply();
+        uint256 balanceBefore = aStaking.balanceOf(user1);
+
+        // Advance time to ensure remaining time < original period
+        vm.warp(block.timestamp + 1 days);
+
+        // Compute expected weighted delta using remaining time
+        uint256 remainingTime = lockupEndTime - block.timestamp;
+        uint256 expectedWeightedDelta = _calculateExpectedWeightedAmountForPeriod(
+                additionalAmount,
+                remainingTime
+            );
+
+        // Perform addToStake
+        _addToStake(user1, stakeIndex, additionalAmount);
+
+        // Post-state
+        (, uint256 weightedAfter, , ) = aStaking.getUserStake(
+            user1,
+            stakeIndex
+        );
+
+        // Exact delta assertions
+        assertEq(
+            weightedAfter - weightedBefore,
+            expectedWeightedDelta,
+            "stake.weightedAmount delta"
+        );
+        assertEq(
+            aStaking.weightedBalanceOf(user1) - userWeightedBefore,
+            expectedWeightedDelta,
+            "user weighted balance delta"
+        );
+        assertEq(
+            aStaking.totalSupply() - totalSupplyBefore,
+            expectedWeightedDelta,
+            "totalSupply delta"
+        );
+        assertEq(
+            aStaking.balanceOf(user1) - balanceBefore,
+            additionalAmount,
+            "balanceOf delta"
+        );
+    }
+
     function test_AddToStake_UpdatesOriginalBucketDespiteRemainingTime()
         public
     {
