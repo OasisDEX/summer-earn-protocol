@@ -470,9 +470,10 @@ contract StargateAdapter is
         }
 
         // Prepare SendParam for quote
+        address destinationAdapter = _peerAdapter(dstChainId);
         SendParam memory sendParam = SendParam({
             dstEid: chainToExternalId[dstChainId],
-            to: address(0xdead).toBytes32(),
+            to: destinationAdapter.toBytes32(),
             amountLD: amount,
             minAmountLD: amount,
             extraOptions: extraOptions,
