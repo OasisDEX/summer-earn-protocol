@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useMemo } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { LivePriceDisplay } from './LivePriceDisplay'
 import { TokenAmount } from './TokenAmount'
 
 interface Auction {
@@ -153,14 +154,14 @@ export function AuctionCard({ auction, chainId }: AuctionCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-blue-700">
-              {parseFloat(auction.startPrice).toFixed(6)}
-            </p>
-            <p className="text-sm text-blue-600">Start Price: {auction.buyToken.symbol}</p>
-          </div>
-        </div>
+        <LivePriceDisplay
+          startPrice={auction.startPrice}
+          endPrice={auction.endPrice}
+          startTimestamp={auction.startTimestamp}
+          endTimestamp={auction.endTimestamp}
+          buyTokenSymbol={auction.buyToken.symbol}
+          className="bg-blue-50 p-4 rounded-lg border border-blue-200"
+        />
 
         <div className="bg-green-50 p-4 rounded-lg border border-green-200">
           <div className="text-center">
