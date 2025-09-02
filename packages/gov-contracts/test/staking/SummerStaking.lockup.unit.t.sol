@@ -1296,4 +1296,256 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             "sSUMMER supply should be zero after unstaking"
         );
     }
+
+    // ============ PENALTY PARAMS GOVERNANCE TESTS ============
+
+    function test_SetMaxPenaltyWad_OnlyGovernorAndEvent() public {
+        uint256 oldValue = aStaking.maxPenaltyWad();
+        uint256 newValue = 6e17; // 60%
+
+        vm.prank(address(timelockA));
+        vm.expectEmit(true, false, false, false);
+        emit SummerStaking.MaxPenaltyUpdated(oldValue, newValue);
+        aStaking.setMaxPenaltyWad(newValue);
+
+        assertEq(aStaking.maxPenaltyWad(), newValue);
+    }
+
+    function test_SetMaxPenaltyWad_Revert_NonGovernor() public {
+        vm.prank(user1);
+        vm.expectRevert();
+        aStaking.setMaxPenaltyWad(7e17);
+    }
+
+    function test_SetMaxPenaltyWad_Revert_AboveOneWad() public {
+        vm.prank(address(timelockA));
+        vm.expectRevert(
+            abi.encodeWithSignature("Staking_InvalidMaxPenaltyWad()")
+        );
+        aStaking.setMaxPenaltyWad(Constants.WAD + 1);
+    }
+
+    // ============ PENALTY BEHAVIOR TESTS ============
+
+    function test_PenaltyScenarios_ImmediateHalfwayEnd_ForVariousPeriods()
+        public
+    {
+        uint256[3] memory periods = [
+            uint256(365 days),
+            uint256(730 days),
+            uint256(MAX_LOCKUP)
+        ];
+
+        for (uint256 i = 0; i < periods.length; i++) {
+            uint256 lockupPeriod = periods[i];
+            uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, lockupPeriod);
+
+            // Immediate: 50% of amount regardless of period with default 0.5e18
+            uint256 immediatePenalty = aStaking.calculatePenalty(
+                user1,
+                stakeIndex
+            );
+            assertEq(
+                immediatePenalty,
+                5e17,
+                "Immediate penalty should be 50% in WAD"
+            );
+
+            // Halfway
+            vm.warp(block.timestamp + lockupPeriod / 2);
+            uint256 halfwayPenalty = aStaking.calculatePenalty(
+                user1,
+                stakeIndex
+            );
+            assertApproxEqRel(halfwayPenalty, 25e16, 1e16); // ~25%
+
+            // After end
+            vm.warp(block.timestamp + (lockupPeriod / 2) + 1);
+            uint256 afterEndPenalty = aStaking.calculatePenalty(
+                user1,
+                stakeIndex
+            );
+            assertEq(afterEndPenalty, 0, "Penalty should be zero after expiry");
+
+            // Clean up: fully unstake to reset for next iteration
+            vm.startPrank(user1);
+            axSumr.approve(address(aStaking), STAKE_AMOUNT);
+            vm.stopPrank();
+            _unstake(user1, stakeIndex, STAKE_AMOUNT);
+        }
+    }
+
+    function test_PartialUnstake_BeforeExpiry_PenaltyOnUnstakedAndWeightedProportional()
+        public
+    {
+        uint256 stakeAmount = STAKE_AMOUNT;
+        uint256 lockupPeriod = 365 days; // 1 year
+        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+
+        // Capture initial weighted and totalSupply
+        (, uint256 initialWeighted, , ) = aStaking.getUserStake(
+            user1,
+            stakeIndex
+        );
+        uint256 totalSupplyBefore = aStaking.totalSupply();
+
+        // Unstake partway through: warp to 1/4 of period elapsed (3/4 remaining)
+        vm.warp(block.timestamp + lockupPeriod / 4);
+
+        uint256 unstakeAmount = stakeAmount / 5; // 20%
+        // Expected penalty percentage = 0.5 * (remaining/period) = 0.5 * 0.75 = 0.375
+        uint256 expectedPenaltyPerc = (5e17 * 3) / 4; // 0.375e18
+        uint256 expectedPenalty = (unstakeAmount * expectedPenaltyPerc) /
+            Constants.WAD;
+        uint256 expectedReturn = unstakeAmount - expectedPenalty;
+        uint256 expectedWeightedToRemove = (initialWeighted * unstakeAmount) /
+            stakeAmount;
+
+        // Balances before
+        uint256 userSummerBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBefore = aSummerToken.balanceOf(aStaking.treasury());
+
+        // Perform partial unstake
+        _approveAndUnstake(user1, stakeIndex, unstakeAmount);
+
+        // Check user received amount minus penalty and treasury got penalty
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBefore + expectedReturn,
+            "Incorrect returned amount"
+        );
+        assertEq(
+            aSummerToken.balanceOf(aStaking.treasury()),
+            treasuryBefore + expectedPenalty,
+            "Incorrect penalty sent to treasury"
+        );
+
+        // Check proportional weighted removal and totalSupply
+        (uint256 remainingAmount, uint256 remainingWeighted, , ) = aStaking
+            .getUserStake(user1, stakeIndex);
+        assertEq(
+            remainingAmount,
+            stakeAmount - unstakeAmount,
+            "Remaining amount mismatch"
+        );
+        assertEq(
+            remainingWeighted,
+            initialWeighted - expectedWeightedToRemove,
+            "Remaining weighted mismatch"
+        );
+        assertEq(
+            aStaking.totalSupply(),
+            totalSupplyBefore - expectedWeightedToRemove,
+            "totalSupply not decreased by removed weighted"
+        );
+    }
+
+    // ============ GETTER CONSISTENCY TESTS ============
+
+    function test_GetterConsistency_BucketDetailsMatchesGetAllBucketInfo()
+        public
+    {
+        // Configure caps to have mixed values
+        vm.startPrank(address(timelockA));
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.NoLockup,
+            type(uint256).max
+        );
+        aStaking.updateLockupBucketCap(ISummerStaking.Bucket.ShortTerm, 0);
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            1_000_000 ether
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            500_000 ether
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.OneToTwoYears,
+            250_000 ether
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoToFourYears,
+            type(uint256).max
+        );
+        vm.stopPrank();
+
+        // Create some stakes across buckets
+        _stake(user1, STAKE_AMOUNT, 0);
+        _stake(user1, STAKE_AMOUNT, MIN_LOCKUP); // ThreeToSixMonths
+        _stake(user2, STAKE_AMOUNT / 2, MEDIUM_LOCKUP); // SixToTwelveMonths
+
+        (
+            ISummerStaking.Bucket[] memory buckets,
+            uint256[] memory caps,
+            uint256[] memory staked,
+            uint256[] memory minPeriods,
+            uint256[] memory maxPeriods
+        ) = aStaking.getAllBucketInfo();
+
+        for (uint256 i = 0; i < buckets.length; i++) {
+            (
+                uint256 cap,
+                uint256 stakedAmt,
+                uint256 minP,
+                uint256 maxP
+            ) = aStaking.getBucketDetails(buckets[i]);
+
+            assertEq(cap, caps[i], "Cap mismatch");
+            assertEq(stakedAmt, staked[i], "Staked mismatch");
+            assertEq(minP, minPeriods[i], "Min period mismatch");
+            assertEq(maxP, maxPeriods[i], "Max period mismatch");
+        }
+
+        // Boundary checks
+        (, , uint256 minShort, uint256 maxShort) = aStaking.getBucketDetails(
+            ISummerStaking.Bucket.ShortTerm
+        );
+        (, , uint256 minThreeSix, uint256 maxThreeSix) = aStaking
+            .getBucketDetails(ISummerStaking.Bucket.ThreeToSixMonths);
+        (, , uint256 minSixTwelve, uint256 maxSixTwelve) = aStaking
+            .getBucketDetails(ISummerStaking.Bucket.SixToTwelveMonths);
+        (, , uint256 minOneTwo, uint256 maxOneTwo) = aStaking.getBucketDetails(
+            ISummerStaking.Bucket.OneToTwoYears
+        );
+        (, , uint256 minTwoFour, uint256 maxTwoFour) = aStaking
+            .getBucketDetails(ISummerStaking.Bucket.TwoToFourYears);
+
+        assertEq(minShort, 1 seconds);
+        assertEq(minThreeSix, maxShort + 1);
+        assertEq(minSixTwelve, maxThreeSix + 1);
+        assertEq(minOneTwo, maxSixTwelve + 1);
+        assertEq(minTwoFour, maxOneTwo + 1);
+        // Max for last bucket equals contract constant
+        assertEq(maxTwoFour, MAX_LOCKUP);
+    }
+
+    // ============ EARNED ZERO-WEIGHT CASE ============
+
+    function test_Earned_ZeroWeightAccount_ReturnsStoredRewardOnly() public {
+        // User stakes and accrues rewards
+        uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, MIN_LOCKUP);
+        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
+        vm.warp(block.timestamp + 7 days);
+        uint256 earnedBeforeUnstake = aStaking.earned(
+            user1,
+            address(rewardToken)
+        );
+        assertGt(earnedBeforeUnstake, 0);
+
+        // Fully unstake (still before lockup end to keep some behavior realistic)
+        vm.warp(block.timestamp + MIN_LOCKUP + 1);
+        _approveAndUnstake(user1, stakeIndex, STAKE_AMOUNT);
+
+        // Now weighted balance is 0; earned should equal stored and not grow with time
+        uint256 stored = aStaking.earned(user1, address(rewardToken));
+        assertGt(stored, 0);
+        vm.warp(block.timestamp + 30 days);
+        uint256 later = aStaking.earned(user1, address(rewardToken));
+        assertEq(
+            stored,
+            later,
+            "Earned should not increase for zero-weight account"
+        );
+    }
 }
