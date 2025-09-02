@@ -740,9 +740,7 @@ contract SummerStaking is
      * @param _user The user address
      * @return The number of stakes
      */
-    function getUserStakesCount(
-        address _user
-    ) external view override returns (uint256) {
+    function getUserStakesCount(address _user) external view returns (uint256) {
         return userStakes[_user].length;
     }
 
