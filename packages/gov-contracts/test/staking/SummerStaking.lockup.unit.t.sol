@@ -1086,6 +1086,220 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         _assertBucket(bucket, STAKE_AMOUNT);
     }
 
+    function test_UpdateLockupBucketCap_EmitsEventWithCorrectMaxPeriod()
+        public
+    {
+        ISummerStaking.Bucket bucket = ISummerStaking.Bucket.SixToTwelveMonths;
+        uint256 newCap = STAKE_AMOUNT * 42;
+        (, , , uint256 expectedMax) = aStaking.getBucketDetails(bucket);
+
+        vm.prank(address(timelockA));
+        vm.expectEmit(true, false, false, false);
+        emit SummerStaking.LockupBucketUpdated(bucket, newCap, expectedMax);
+        aStaking.updateLockupBucketCap(bucket, newCap);
+    }
+
+    function test_BucketBoundaryMapping_ExactEdges() public {
+        SummerStaking fresh = createFreshStaking();
+        // Ensure all buckets are enabled for staking
+        vm.startPrank(address(timelockA));
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.ShortTerm,
+            type(uint256).max
+        );
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            type(uint256).max
+        );
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            type(uint256).max
+        );
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.OneToTwoYears,
+            type(uint256).max
+        );
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoToFourYears,
+            type(uint256).max
+        );
+        vm.stopPrank();
+
+        (, , uint256 minShort, uint256 maxShort) = fresh.getBucketDetails(
+            ISummerStaking.Bucket.ShortTerm
+        );
+        (, , uint256 minThreeSix, uint256 maxThreeSix) = fresh.getBucketDetails(
+            ISummerStaking.Bucket.ThreeToSixMonths
+        );
+        (, , uint256 minSixTwelve, uint256 maxSixTwelve) = fresh
+            .getBucketDetails(ISummerStaking.Bucket.SixToTwelveMonths);
+        (, , uint256 minOneTwo, uint256 maxOneTwo) = fresh.getBucketDetails(
+            ISummerStaking.Bucket.OneToTwoYears
+        );
+        (, , uint256 minTwoFour, uint256 maxTwoFour) = fresh.getBucketDetails(
+            ISummerStaking.Bucket.TwoToFourYears
+        );
+
+        uint256 amt = 1 ether;
+
+        // ShortTerm at exact min and max
+        _stakeOnContract(fresh, user1, amt, minShort);
+        _assertBucketOnContract(fresh, ISummerStaking.Bucket.ShortTerm, amt);
+        _stakeOnContract(fresh, user1, amt, maxShort);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.ShortTerm,
+            amt * 2
+        );
+
+        // ThreeToSixMonths at exact min and max
+        _stakeOnContract(fresh, user1, amt, minThreeSix);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            amt
+        );
+        _stakeOnContract(fresh, user1, amt, maxThreeSix);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            amt * 2
+        );
+
+        // SixToTwelveMonths at exact min and max
+        _stakeOnContract(fresh, user1, amt, minSixTwelve);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            amt
+        );
+        _stakeOnContract(fresh, user1, amt, maxSixTwelve);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            amt * 2
+        );
+
+        // OneToTwoYears at exact min and max
+        _stakeOnContract(fresh, user1, amt, minOneTwo);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.OneToTwoYears,
+            amt
+        );
+        _stakeOnContract(fresh, user1, amt, maxOneTwo);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.OneToTwoYears,
+            amt * 2
+        );
+
+        // TwoToFourYears at exact min and max
+        _stakeOnContract(fresh, user1, amt, minTwoFour);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.TwoToFourYears,
+            amt
+        );
+        _stakeOnContract(fresh, user1, amt, maxTwoFour);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.TwoToFourYears,
+            amt * 2
+        );
+    }
+
+    function test_BucketBoundaryMapping_OffByOne() public {
+        SummerStaking fresh = createFreshStaking();
+        vm.startPrank(address(timelockA));
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.ShortTerm,
+            type(uint256).max
+        );
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            type(uint256).max
+        );
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            type(uint256).max
+        );
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.OneToTwoYears,
+            type(uint256).max
+        );
+        fresh.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoToFourYears,
+            type(uint256).max
+        );
+        vm.stopPrank();
+
+        (, , uint256 minShort, uint256 maxShort) = fresh.getBucketDetails(
+            ISummerStaking.Bucket.ShortTerm
+        );
+        (, , uint256 minThreeSix, uint256 maxThreeSix) = fresh.getBucketDetails(
+            ISummerStaking.Bucket.ThreeToSixMonths
+        );
+        (, , uint256 minSixTwelve, uint256 maxSixTwelve) = fresh
+            .getBucketDetails(ISummerStaking.Bucket.SixToTwelveMonths);
+        (, , uint256 minOneTwo, uint256 maxOneTwo) = fresh.getBucketDetails(
+            ISummerStaking.Bucket.OneToTwoYears
+        );
+        (, , uint256 minTwoFour, ) = fresh.getBucketDetails(
+            ISummerStaking.Bucket.TwoToFourYears
+        );
+
+        uint256 amt = 1 ether;
+
+        // Just over lower bucket max -> next bucket
+        _stakeOnContract(fresh, user1, amt, maxShort + 1);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            amt
+        );
+        _stakeOnContract(fresh, user1, amt, maxThreeSix + 1);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            amt
+        );
+        _stakeOnContract(fresh, user1, amt, maxSixTwelve + 1);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.OneToTwoYears,
+            amt
+        );
+        _stakeOnContract(fresh, user1, amt, maxOneTwo + 1);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.TwoToFourYears,
+            amt
+        );
+
+        // Just under upper bucket min -> previous bucket
+        _stakeOnContract(fresh, user1, amt, minThreeSix - 1);
+        _assertBucketOnContract(fresh, ISummerStaking.Bucket.ShortTerm, amt);
+        _stakeOnContract(fresh, user1, amt, minSixTwelve - 1);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            amt * 2
+        );
+        _stakeOnContract(fresh, user1, amt, minOneTwo - 1);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            amt * 2
+        );
+        _stakeOnContract(fresh, user1, amt, minTwoFour - 1);
+        _assertBucketOnContract(
+            fresh,
+            ISummerStaking.Bucket.OneToTwoYears,
+            amt * 2
+        );
+    }
+
     // ============ REWARDS & WEIGHTED LOGIC TESTS ============
 
     function test_EarnedIsCorrectForSingleStaker() public {
@@ -1123,6 +1337,71 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         // User2 should earn more due to higher weighted balance
         assertGt(earned2, earned1, "User with longer lockup should earn more");
+
+        // Stricter proportionality check via cross multiplication
+        uint256 weighted1 = aStaking.weightedBalanceOf(user1);
+        uint256 weighted2 = aStaking.weightedBalanceOf(user2);
+        assertGt(weighted1, 0);
+        assertGt(weighted2, 0);
+        uint256 left = earned1 * weighted2;
+        uint256 right = earned2 * weighted1;
+        if (left > right) {
+            assertApproxEqRel(right, left, 1e12); // 1e12 / 1e18 = 1e-6 relative tolerance
+        } else {
+            assertApproxEqRel(left, right, 1e12);
+        }
+    }
+
+    function test_Earned_MidPeriodStake_AppliesFromStakeTimeOnly() public {
+        uint256 amount = STAKE_AMOUNT;
+        _stake(user1, amount, MIN_LOCKUP);
+        _stake(user3, amount, MIN_LOCKUP);
+
+        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 earnedUser1Before = aStaking.earned(
+            user1,
+            address(rewardToken)
+        );
+        uint256 earnedUser3Before = aStaking.earned(
+            user3,
+            address(rewardToken)
+        );
+
+        uint256 extra = STAKE_AMOUNT / 2;
+        _stake(user1, extra, MAX_LOCKUP);
+
+        uint256 earnedUser1Immediately = aStaking.earned(
+            user1,
+            address(rewardToken)
+        );
+        if (earnedUser1Immediately > earnedUser1Before) {
+            assertApproxEqRel(earnedUser1Immediately, earnedUser1Before, 1e12);
+        } else {
+            assertApproxEqRel(earnedUser1Before, earnedUser1Immediately, 1e12);
+        }
+
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 earnedUser1After = aStaking.earned(user1, address(rewardToken));
+        uint256 earnedUser3After = aStaking.earned(user3, address(rewardToken));
+
+        uint256 delta1 = earnedUser1After - earnedUser1Immediately;
+        uint256 delta3 = earnedUser3After - earnedUser3Before;
+        uint256 w1 = aStaking.weightedBalanceOf(user1);
+        uint256 w3 = aStaking.weightedBalanceOf(user3);
+        assertGt(delta1, 0);
+        assertGt(delta3, 0);
+        assertGt(w1, 0);
+        assertGt(w3, 0);
+        uint256 left2 = delta1 * w3;
+        uint256 right2 = delta3 * w1;
+        if (left2 > right2) {
+            assertApproxEqRel(right2, left2, 1e12);
+        } else {
+            assertApproxEqRel(left2, right2, 1e12);
+        }
     }
 
     function test_RewardsStopAccruingAfterDistributionEnds() public {
