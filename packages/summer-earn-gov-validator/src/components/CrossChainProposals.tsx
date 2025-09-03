@@ -1,9 +1,11 @@
+import { calculateProposalTiming } from '@/utils/timing'
 import { ethers } from 'ethers'
 import React, { useEffect, useState } from 'react'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 import config from '../config/index.json'
 import { useMultipleProposalVoting } from '../hooks/useProposalVoting'
 import { CrossChainProposal, ProposalWithCrossChain, fetchAllProposals } from '../services/subgraph'
+import { PhaseIndicator } from './PhaseIndicator'
 import { ProposalFilter, ProposalStatus } from './ProposalFilter'
 
 // Timelock Controller ABI for executeBatch
@@ -526,10 +528,11 @@ export const CrossChainProposals: React.FC = () => {
           // Get the effective status (handles PENDING → ACTIVE transition)
           const effectiveStatus = getEffectiveProposalStatus(baseProposal)
 
-          // Calculate voting timing info
-          const votingDelay = 24 * 60 * 60 // 24 hours in seconds
-          const votingStartTime = createdAt + votingDelay
-          const timeUntilVoting = votingStartTime - currentTimestamp
+          // Calculate timing information
+          const timing = calculateProposalTiming({
+            status: baseProposal.status,
+            createdAt: baseProposal.createdAt,
+          })
 
           return (
             <div
@@ -667,6 +670,12 @@ export const CrossChainProposals: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Timing Information */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <PhaseIndicator timing={timing} variant="default" />
+                </div>
+
                 <p className="text-gray-600 text-sm leading-relaxed bg-gray-50 p-4 rounded-lg">
                   {baseProposal.description.slice(0, 100)}
                   {baseProposal.description.length > 100 && '...'}
@@ -711,7 +720,7 @@ export const CrossChainProposals: React.FC = () => {
                   </span>
                   {baseStatus === 'PENDING' &&
                     effectiveStatus === 'PENDING' &&
-                    timeUntilVoting > 0 && (
+                    timing.timeRemaining > 0 && (
                       <span className="px-4 py-2 bg-amber-50 rounded-full flex items-center space-x-2 text-amber-800">
                         <svg
                           className="w-4 h-4"
@@ -727,8 +736,8 @@ export const CrossChainProposals: React.FC = () => {
                           />
                         </svg>
                         <span className="text-sm">
-                          Voting starts in: {Math.floor(timeUntilVoting / 3600)}h{' '}
-                          {Math.floor((timeUntilVoting % 3600) / 60)}m
+                          Voting starts in: {Math.floor(timing.timeRemaining / 3600)}h{' '}
+                          {Math.floor((timing.timeRemaining % 3600) / 60)}m
                         </span>
                       </span>
                     )}
