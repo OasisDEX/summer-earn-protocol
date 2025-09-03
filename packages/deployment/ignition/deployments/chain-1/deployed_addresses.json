@@ -124,5 +124,6 @@
   "LazyVault_HigherRisk_USDC_ERC4626_Euler_Frontier_YieldFi_usdc_1#ERC4626Ark": "0x0FA036c6476e16d68a664c0E2DA2BE7e85Ac29c8",
   "LazyVault_HigherRisk_USDC_ERC4626_Euler_Frontier_Hyperwave_usdc_1#ERC4626Ark": "0x068df9A153948B4be0d4dcC074c3a44ba787b26c",
   "LazyVault_HigherRisk_USDC_ERC4626_Euler_Frontier_Yala_usdc_1#ERC4626Ark": "0x1534e3D0f23D91142424A0091aab8037fac80CB8",
-  "LazyVault_HigherRisk_USDC_ERC4626_Euler_Frontier_Pareto_usdc_1#ERC4626Ark": "0x0b133268a8cfe434B3A6D55a5112c9aE25f3bF13"
+  "LazyVault_HigherRisk_USDC_ERC4626_Euler_Frontier_Pareto_usdc_1#ERC4626Ark": "0x0b133268a8cfe434B3A6D55a5112c9aE25f3bF13",
+  "LazyVault_LowerRisk_WETH_ERC4626_Euler_Frontier_Puffer_weth_1#ERC4626Ark": "0x5d8aD79AbC9a48ff199c73FC909cB1eB9f5fBEb5"
 }
