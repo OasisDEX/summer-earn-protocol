@@ -1,7 +1,9 @@
 import { SupportedNetworks, addresToContractName } from '@/services/validation'
+import { calculateProposalTiming } from '@/utils/timing'
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import styles from '../styles/Form.module.scss'
+import { PhaseIndicator } from './PhaseIndicator'
 
 interface Proposal {
   id: string
@@ -12,6 +14,7 @@ interface Proposal {
   descriptionHash: string
   status: string
   chains: string[]
+  createdAt?: string
 }
 
 interface RawProposal {
@@ -21,6 +24,7 @@ interface RawProposal {
   targets: string[]
   values: string[]
   calldatas: string[]
+  createdAt?: string
 }
 
 type StatusFilter = 'pending' | 'executed' | 'canceled'
@@ -151,11 +155,22 @@ export function ProposalList({
         const isExpanded = expandedProposal === proposal.id
         const title = getProposalTitle(proposal.description)
 
+        // Calculate timing information if createdAt is available
+        const timing = proposal.createdAt
+          ? calculateProposalTiming({
+              status: proposal.status,
+              createdAt: proposal.createdAt,
+            })
+          : null
+
         return (
           <div key={proposal.id} className={styles.proposal}>
             <div className={styles.proposalHeader} onClick={() => toggleProposal(proposal.id)}>
               <div className={styles.proposalTitle}>
-                <span className={styles.title}>{title}</span>
+                <div className="flex flex-col space-y-2">
+                  <span className={styles.title}>{title}</span>
+                  {timing && <PhaseIndicator timing={timing} variant="compact" />}
+                </div>
                 <button
                   className={styles.selectButton}
                   onClick={(e) => {
@@ -170,6 +185,11 @@ export function ProposalList({
             </div>
             {isExpanded && (
               <div className={styles.proposalDetails}>
+                {timing && (
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <PhaseIndicator timing={timing} variant="detailed" />
+                  </div>
+                )}
                 <div className={styles.description}>
                   <ReactMarkdown>{proposal.description}</ReactMarkdown>
                 </div>
