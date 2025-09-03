@@ -594,7 +594,16 @@
             "Gauntlet_Frontier_USDC": "0xc582F04d8a82795aa2Ff9c8bb4c1c889fe7b754e",
             "Relend_USDC": "0x0F359FD18BDa75e9c49bC027E7da59a4b01BF32a",
             "MEV_Capital_USDC": "0xd63070114470f685b75B74D60EEc7c1113d33a3D",
-            "Hyperithm_USDC": "0x777791C4d6DC2CE140D00D2828a7C93503c67777"
+            "Hyperithm_USDC": "0x777791C4d6DC2CE140D00D2828a7C93503c67777",
+            "Avantgarde_USDC_Core": "0x5b56F90340dBAa6a8693DADb141D620f0e154fE6",
+            "Gauntlet_USDC_RWA": "0xA8875aaeBc4f830524e35d57F9772FfAcbdD6C45",
+            "MEV_Capital_PTs_USDC": "0xd41830d88dfD08678b0B886E0122193d54b02Acc",
+            "RE7_USDC_FX_Protocol": "0x4F460bb11cf958606C69A963B4A17f9DaEEea8b6",
+            "Rollo_USDC_Performance": "0x98dC52125E9D0Eb8D62892334e502B555D04a787",
+            "Steakhouse_InfiniFi_USDC": "0xBEeF1f5Bd88285E5B239B6AAcb991d38ccA23Ac9",
+            "TAC_USDC": "0x1E2aAaDcF528b9cC08F43d4fd7db488cE89F5741",
+            "Clearstar_USDC_Reactor": "0x62fE596d59fB077c2Df736dF212E0AFfb522dC78",
+            "Edge_UltraYield_USDC": "0x0562AE950276B24F3eAE0d0a518dADB7Ad2F8D66"
           },
           "dai": {},
           "usde": {},
