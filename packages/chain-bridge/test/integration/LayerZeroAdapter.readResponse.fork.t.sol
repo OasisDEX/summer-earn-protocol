@@ -101,8 +101,12 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         // Associate the operation with the layerZeroAdapter (required for authorization)
         router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
-        // Set the read request originator (required for deliverReadResponse)
-        router.setReadRequestOriginator(operationId, user);
+        // Set the read request originator to a contract that will revert
+        router.setReadRequestOriginator(
+            operationId,
+            address(mockCrossChainStateReadReceiver)
+        );
+        mockCrossChainStateReadReceiver.setReceiveSuccess(false);
 
         // Map the GUID to operation ID
         _setOperationMapping(guid, operationId);
@@ -117,11 +121,25 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             nonce: 1
         });
 
-        // Simulate receiving the read response - should handle delivery failure gracefully
-        // todo: implement recoverey/retry mechanism
+        // Simulate receiving the read response - router now records failure instead of reverting
         vm.prank(LZ_ENDPOINT_BASE);
-        vm.expectRevert();
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
+
+        (
+            BridgeTypes.OperationType opType,
+            address failingAdapter,
+            uint16 srcChain,
+            ,
+            bytes memory err,
+            uint256 failedAt,
+            uint256 attempts
+        ) = router.getFailedDeliveryRecord(operationId);
+        assertEq(uint8(opType), uint8(BridgeTypes.OperationType.READ_STATE));
+        assertEq(failingAdapter, address(layerZeroAdapter));
+        assertEq(srcChain, SOURCE_CHAIN_ID);
+        assertGt(failedAt, 0);
+        assertGt(err.length, 0);
+        assertGe(attempts, 1);
 
         // Reset router behavior
         router.setShouldRevert(false);
@@ -227,8 +245,12 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 address(layerZeroAdapter)
             );
 
-            // Set the read request originator (required for deliverReadResponse)
-            router.setReadRequestOriginator(operationIds[i], user);
+            // Set the read request originator to a receiver that will revert
+            router.setReadRequestOriginator(
+                operationIds[i],
+                address(mockCrossChainStateReadReceiver)
+            );
+            mockCrossChainStateReadReceiver.setReceiveSuccess(false);
         }
 
         // Process each read response
@@ -244,9 +266,8 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 nonce: uint64(i + 1)
             });
 
-            // todo: implement recoverey/retry mechanism for all operations
+            // Router records failure for each response instead of reverting
             vm.prank(LZ_ENDPOINT_BASE);
-            vm.expectRevert();
             layerZeroAdapter.lzReceive(
                 origin,
                 guids[i],
@@ -254,6 +275,25 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 address(0),
                 ""
             );
+
+            (
+                BridgeTypes.OperationType opType2,
+                address failingAdapter2,
+                uint16 srcChain2,
+                ,
+                bytes memory err2,
+                uint256 failedAt2,
+                uint256 attempts2
+            ) = router.getFailedDeliveryRecord(operationIds[i]);
+            assertEq(
+                uint8(opType2),
+                uint8(BridgeTypes.OperationType.READ_STATE)
+            );
+            assertEq(failingAdapter2, address(layerZeroAdapter));
+            assertEq(srcChain2, SOURCE_CHAIN_ID);
+            assertGt(failedAt2, 0);
+            assertGt(err2.length, 0);
+            assertGe(attempts2, 1);
         }
 
         console.log("[SUCCESS] Multiple read responses handled successfully");

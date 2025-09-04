@@ -206,9 +206,8 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         vm.prank(governor);
         router.registerAdapter(address(mockAdapterDest));
 
-        // Test case 2: Different adapter trying to deliver response
+        // Test case 2: Different adapter trying to deliver response now records failure
         vm.prank(address(mockAdapterDest));
-        vm.expectRevert(IBridgeRouter.Unauthorized.selector);
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
@@ -219,6 +218,22 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 })
             )
         );
+
+        (
+            BridgeTypes.OperationType opType,
+            address failingAdapter,
+            uint16 srcChain,
+            ,
+            bytes memory err,
+            uint256 failedAt,
+            uint256 attempts
+        ) = router.getFailedDeliveryRecord(operationId);
+        assertEq(uint8(opType), uint8(BridgeTypes.OperationType.READ_STATE));
+        assertEq(failingAdapter, address(mockAdapterDest));
+        assertEq(srcChain, DEST_CHAIN_ID);
+        assertGt(failedAt, 0);
+        assertGt(err.length, 0);
+        assertGe(attempts, 1);
     }
 
     function testDeliverReadResponseReceiverRejects() public {
@@ -306,9 +321,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
                 )
             )
         );
-        // Do not mock a return, let it revert
-
-        vm.expectRevert(bytes("Receiver rejected call"));
+        // Do not mock a return, let it revert internally; router records failure instead of bubbling
         router.deliver(
             BridgeTypes.OperationType.READ_STATE,
             abi.encode(
@@ -320,6 +333,21 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             )
         );
 
-        assertNotEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
+        // Failure recorded
+        (
+            BridgeTypes.OperationType opType2,
+            address failingAdapter2,
+            uint16 srcChain2,
+            ,
+            bytes memory err2,
+            uint256 failedAt2,
+            uint256 attempts2
+        ) = router.getFailedDeliveryRecord(operationId);
+        assertEq(uint8(opType2), uint8(BridgeTypes.OperationType.READ_STATE));
+        assertEq(failingAdapter2, address(mockAdapter));
+        assertEq(srcChain2, DEST_CHAIN_ID);
+        assertGt(failedAt2, 0);
+        assertGt(err2.length, 0);
+        assertGe(attempts2, 1);
     }
 }
