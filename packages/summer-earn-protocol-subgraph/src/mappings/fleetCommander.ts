@@ -22,6 +22,7 @@ import {
   Rebalanced,
   TipAccrued,
   TipRateUpdated,
+  Transfer as TransferEvent,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { addresses } from '../common/addressProvider'
@@ -42,7 +43,7 @@ import { formatAmount } from '../common/utils'
 import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
-import { updatePosition } from './entities/position'
+import { updatePosition, updatePositionBalancesOnly } from './entities/position'
 import { handleReferrals } from './entities/referral'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
@@ -133,6 +134,35 @@ export function handleWithdraw(event: WithdrawEvent): void {
   updatePosition(positionDetails, event.block, account.referralData)
 
   createWithdrawEventEntity(event, positionDetails, account.referralData)
+}
+
+// Track transfers of ERC4626 shares between users (excluding mints/burns and staking contract transfers)
+export function handleShareTransfer(event: TransferEvent): void {
+  // skip mints/burns
+  if (event.params.from.equals(ADDRESS_ZERO) || event.params.to.equals(ADDRESS_ZERO)) {
+    return
+  }
+
+  const vault = getOrCreateVault(event.address, event.block)
+  const vaultDetails = getVaultDetails(vault, event.block)
+  const updatedVault = updateVault(vaultDetails, event.block, false)
+  const rewardsManager = vaultDetails.rewardsManager
+
+  // skip transfers involving the staking rewards manager
+  if (
+    event.params.from.toHexString() == rewardsManager.toHexString() ||
+    event.params.to.toHexString() == rewardsManager.toHexString()
+  ) {
+    return
+  }
+
+  // update sender position balances
+  const fromDetails = getPositionDetails(updatedVault, event.params.from, vaultDetails, event.block)
+  updatePositionBalancesOnly(fromDetails, event.block)
+
+  // update receiver position balances
+  const toDetails = getPositionDetails(updatedVault, event.params.to, vaultDetails, event.block)
+  updatePositionBalancesOnly(toDetails, event.block)
 }
 
 // withdaraw already handled in handleWithdraw
