@@ -889,43 +889,26 @@ contract BridgeRouter is
         // Adapter must be registered
         if (!adapters.contains(effectiveAdapter)) revert UnknownAdapter();
 
-        // Validate that payload decodes and carries the same operationId
+        // Validate that payload decodes and carries the same operationId and sourceChainId
         (bytes32 decodedId, uint16 sourceChainId) = _decodeOperationMeta(
             r.operationType,
             effectivePayload
         );
         if (decodedId != operationId) revert InvalidParams();
+        if (sourceChainId != r.sourceChainId) revert InvalidParams();
 
-        // Attempt re-process
-        try
-            this._processDelivery(
-                r.operationType,
-                effectivePayload,
-                effectiveAdapter
-            )
-        {
-            _clearFailedDelivery(operationId);
-            emit OperationRetrySucceeded(
-                operationId,
-                r.operationType,
-                effectiveAdapter
-            );
-        } catch (bytes memory err) {
-            _recordFailedDelivery(
-                operationId,
-                r.operationType,
-                effectiveAdapter,
-                sourceChainId,
-                effectivePayload,
-                err
-            );
-            emit OperationRetryFailed(
-                operationId,
-                r.operationType,
-                effectiveAdapter,
-                err
-            );
-        }
+        this._processDelivery(
+            r.operationType,
+            effectivePayload,
+            effectiveAdapter
+        );
+
+        _clearFailedDelivery(operationId);
+        emit OperationRetrySucceeded(
+            operationId,
+            r.operationType,
+            effectiveAdapter
+        );
     }
 
     /// @inheritdoc IERC165
