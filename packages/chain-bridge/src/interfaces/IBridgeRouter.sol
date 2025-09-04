@@ -248,15 +248,11 @@ interface IBridgeRouter is IERC165 {
     function unpause() external;
 
     /**
-     * @notice Recover stuck assets (native ETH or ERC20) from the router
-     * @param token Address of the ERC20 token to recover; use address(0) for native ETH
-     * @param recipient Address to receive the recovered assets
-     * @param amount Amount of assets to recover
+     * @notice Sweep stuck assets (native ETH or ERC20) from the router
+     * @param token Address of the ERC20 token to sweep; use address(0) for native ETH
+     * @param recipient Address to receive the swept assets
+     * @param amount Amount of assets to sweep
      * @dev Governor role required. Uses SafeERC20 for token transfers and a low-level call for native ETH.
      */
-    function recoverAssets(
-        address token,
-        address recipient,
-        uint256 amount
-    ) external;
+    function sweep(address token, address recipient, uint256 amount) external;
 }

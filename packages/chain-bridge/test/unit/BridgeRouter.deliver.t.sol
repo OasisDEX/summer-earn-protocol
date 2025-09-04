@@ -132,19 +132,11 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
     /*                         adapter peer verification tests                    */
     /* -------------------------------------------------------------------------- */
 
-    function testDeliverTransferAssetNoPeerRelationshipReverts() public {
+    function testDeliverTransferAssetNoPeerRelationshipRecordsFailure() public {
         bytes32 operationId = keccak256("noPeerRelationshipTransferAsset");
         uint16 untrustedSourceChain = 999; // Chain with no peer relationship
 
         vm.startPrank(address(mockAdapter)); // registered adapter
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(0),
-                registry.PEER_RELATIONSHIP(),
-                uint16(CURRENT_CHAIN_ID)
-            )
-        );
         router.deliver(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
@@ -160,21 +152,33 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             )
         );
         vm.stopPrank();
+
+        (
+            BridgeTypes.OperationType opType,
+            address failingAdapter,
+            uint16 srcChain,
+            ,
+            bytes memory err,
+            uint256 failedAt,
+            uint256 attempts
+        ) = router.getFailedDeliveryRecord(operationId);
+
+        assertEq(
+            uint8(opType),
+            uint8(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
+        assertEq(failingAdapter, address(mockAdapter));
+        assertEq(srcChain, untrustedSourceChain);
+        assertGt(failedAt, 0);
+        assertEq(attempts, 1);
+        assertGt(err.length, 0);
     }
 
-    function testDeliverMessageNoPeerRelationshipReverts() public {
+    function testDeliverMessageNoPeerRelationshipRecordsFailure() public {
         bytes32 operationId = keccak256("noPeerRelationshipMessage");
         uint16 untrustedSourceChain = 999; // Chain with no peer relationship
 
         vm.startPrank(address(mockAdapter)); // registered adapter
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(0),
-                registry.PEER_RELATIONSHIP(),
-                uint16(CURRENT_CHAIN_ID)
-            )
-        );
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
@@ -188,6 +192,23 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             )
         );
         vm.stopPrank();
+
+        (
+            BridgeTypes.OperationType opType,
+            address failingAdapter,
+            uint16 srcChain,
+            ,
+            bytes memory err,
+            uint256 failedAt,
+            uint256 attempts
+        ) = router.getFailedDeliveryRecord(operationId);
+
+        assertEq(uint8(opType), uint8(BridgeTypes.OperationType.MESSAGE));
+        assertEq(failingAdapter, address(mockAdapter));
+        assertEq(srcChain, untrustedSourceChain);
+        assertGt(failedAt, 0);
+        assertEq(attempts, 1);
+        assertGt(err.length, 0);
     }
 
     function testDeliverReadResponseIgnoresPeerVerification() public {
@@ -236,21 +257,15 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testDeliverValidAdapterButInvalidPeerRelationship() public {
+    function testDeliverValidAdapterButInvalidPeerRelationshipRecordsFailure()
+        public
+    {
         // This tests the specific case where adapter is registered but peer relationship is missing
         bytes32 operationId = keccak256("validAdapterInvalidPeer");
         uint16 sourceChainWithNoPeer = 777; // Different chain with no peer relationship
 
         // mockAdapter is registered with router but has no peer relationship with sourceChainWithNoPeer
         vm.startPrank(address(mockAdapter));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICrossChainRegistry.RelationshipDoesNotExist.selector,
-                address(0),
-                registry.PEER_RELATIONSHIP(),
-                uint16(CURRENT_CHAIN_ID)
-            )
-        );
         router.deliver(
             BridgeTypes.OperationType.TRANSFER_ASSET,
             abi.encode(
@@ -266,6 +281,25 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             )
         );
         vm.stopPrank();
+
+        (
+            BridgeTypes.OperationType opType,
+            address failingAdapter,
+            uint16 srcChain,
+            ,
+            bytes memory err,
+            uint256 failedAt,
+            uint256 attempts
+        ) = router.getFailedDeliveryRecord(operationId);
+        assertEq(
+            uint8(opType),
+            uint8(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
+        assertEq(failingAdapter, address(mockAdapter));
+        assertEq(srcChain, sourceChainWithNoPeer);
+        assertGt(failedAt, 0);
+        assertEq(attempts, 1);
+        assertGt(err.length, 0);
     }
 
     function testDeliverValidPeerRelationshipDifferentChains() public {
@@ -322,12 +356,11 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         );
     }
 
-    function testDeliverReceiverRejectsReverts() public {
+    function testDeliverReceiverRejectsRecordsFailure() public {
         mockReceiver.setReceiveSuccess(false); // make receiver revert
         bytes32 operationId = keccak256("receiverRejects");
 
         vm.prank(address(mockAdapter));
-        vm.expectRevert(); // bubble-up from receiver revert
         router.deliver(
             BridgeTypes.OperationType.MESSAGE,
             abi.encode(
@@ -340,6 +373,22 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
                 })
             )
         );
+
+        (
+            BridgeTypes.OperationType opType,
+            address failingAdapter,
+            uint16 srcChain,
+            ,
+            bytes memory err,
+            uint256 failedAt,
+            uint256 attempts
+        ) = router.getFailedDeliveryRecord(operationId);
+        assertEq(uint8(opType), uint8(BridgeTypes.OperationType.MESSAGE));
+        assertEq(failingAdapter, address(mockAdapter));
+        assertEq(srcChain, uint16(SOURCE_CHAIN_ID));
+        assertGt(failedAt, 0);
+        assertEq(attempts, 1);
+        assertGt(err.length, 0);
     }
 
     function testDeliverUnsupportedOperationTypeReverts() public {

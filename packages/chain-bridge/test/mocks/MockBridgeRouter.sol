@@ -342,7 +342,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         mockPaused = false;
     }
 
-    function recoverAssets(
+    function sweep(
         address token,
         address recipient,
         uint256 amount
