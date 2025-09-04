@@ -1,6 +1,6 @@
 specVersion: 0.0.8
 schema:
-  file: ./schema.graphql 
+  file: ./schema.graphql
 features:
   - grafting
 graft:
@@ -12,7 +12,7 @@ dataSources:
     network: base
     source:
       abi: HarborCommand
-      address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
+      address: '0x09eb323dBFECB43fd746c607A9321dACdfB0140F'
       startBlock: 25773568
     mapping:
       kind: ethereum/events
@@ -24,7 +24,7 @@ dataSources:
         - name: HarborCommand
           file: ./abis/HarborCommand.abi.json
         - name: FleetCommanderRewardsManager
-          file: ./abis/FleetCommanderRewardsManager.abi.json          
+          file: ./abis/FleetCommanderRewardsManager.abi.json
         - name: Ark
           file: ./abis/Ark.abi.json
         - name: FleetCommander
@@ -52,7 +52,7 @@ dataSources:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json    
+          file: ./abis/GovernanceRewardsManager.abi.json
         - name: Multicall
           file: ./abis/common/Multicall.json
       eventHandlers:
@@ -63,14 +63,14 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 30 
+            every: 30
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: GovernanceRewardsManager
     network: base
     source:
       abi: GovernanceRewardsManager
-      address: "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92"
+      address: '0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92'
       startBlock: 25642492
     mapping:
       kind: ethereum/events
@@ -82,7 +82,7 @@ dataSources:
         - name: HarborCommand
           file: ./abis/HarborCommand.abi.json
         - name: FleetCommanderRewardsManager
-          file: ./abis/FleetCommanderRewardsManager.abi.json          
+          file: ./abis/FleetCommanderRewardsManager.abi.json
         - name: Ark
           file: ./abis/Ark.abi.json
         - name: FleetCommander
@@ -130,7 +130,7 @@ dataSources:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleRewardPaid
           receipt: true
-      file: ./src/mappings/governanceRewardsManager.ts      
+      file: ./src/mappings/governanceRewardsManager.ts
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
@@ -173,7 +173,7 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json   
+          file: ./abis/GovernanceRewardsManager.abi.json
         - name: SummerProtocolAccessManager
           file: ./abis/SummerProtocolAccessManager.json
       eventHandlers:
@@ -182,6 +182,9 @@ templates:
           receipt: true
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
+          receipt: true
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleShareTransfer
           receipt: true
         - event: Rebalanced(indexed address,(address,address,uint256,bytes,bytes)[])
           handler: handleRebalance
@@ -209,7 +212,7 @@ templates:
           receipt: true
         - event: FleetCommanderminimumBufferBalanceUpdated(uint256)
           handler: handleFleetCommanderMinimumBufferBalanceUpdated
-          receipt: true      
+          receipt: true
         - event: TipAccrued(uint256)
           handler: handleTipAccrued
           receipt: true
@@ -256,7 +259,7 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json                 
+          file: ./abis/GovernanceRewardsManager.abi.json
       eventHandlers:
         - event: Boarded(indexed address,address,uint256)
           handler: handleBoarded
@@ -321,7 +324,7 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json                 
+          file: ./abis/GovernanceRewardsManager.abi.json
       eventHandlers:
         - event: Staked(indexed address,indexed address,uint256)
           handler: handleStaked
