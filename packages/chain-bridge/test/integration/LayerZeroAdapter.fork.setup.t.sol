@@ -176,6 +176,14 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             DEST_CHAIN_ID
         );
 
+        // Also register the reverse mapping for inbound validation (Arbitrum -> Base)
+        registry.registerAdapterPeer(
+            address(layerZeroAdapter), // source adapter on Arbitrum
+            address(layerZeroAdapter), // target adapter on Base
+            DEST_CHAIN_ID, // Arbitrum chain ID (42161)
+            SOURCE_CHAIN_ID // Base chain ID (8453)
+        );
+
         vm.stopPrank();
     }
 
