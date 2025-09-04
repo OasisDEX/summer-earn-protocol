@@ -19,7 +19,6 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
-
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
@@ -867,21 +866,23 @@ contract BridgeRouter is
         bytes calldata overrideData
     ) external nonReentrant onlyGovernor whenNotPaused {
         FailedDeliveryRecord memory r = failedDeliveries[operationId];
+
         if (r.failedAt == 0) revert InvalidParams();
 
         address effectiveAdapter = r.adapter;
+
         bytes memory effectivePayload = r.operationPayload;
 
         if (overrideData.length > 0) {
-            RetryOverrideParams memory o = abi.decode(
-                overrideData,
-                (RetryOverrideParams)
-            );
-            if (o.adapter != address(0)) {
-                effectiveAdapter = o.adapter;
+            (address adapterOverride, bytes memory payloadOverride) = abi
+                .decode(overrideData, (address, bytes));
+
+            if (adapterOverride != address(0)) {
+                effectiveAdapter = adapterOverride;
             }
-            if (o.operationPayload.length != 0) {
-                effectivePayload = o.operationPayload;
+
+            if (payloadOverride.length != 0) {
+                effectivePayload = payloadOverride;
             }
         }
 
