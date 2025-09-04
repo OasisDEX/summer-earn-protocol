@@ -114,6 +114,9 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         // Configure router to fail delivery
         router.setShouldRevert(true);
 
+        // Ensure expected chain mapping is present so adapter can deliver
+        layerZeroAdapter.setExpectedReadChainByGuid(guid, DEST_CHAIN_ID);
+
         // Create origin for read response
         Origin memory origin = Origin({
             srcEid: READ_CHANNEL_THRESHOLD + 1,
@@ -136,7 +139,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         ) = router.getFailedDeliveryRecord(operationId);
         assertEq(uint8(opType), uint8(BridgeTypes.OperationType.READ_STATE));
         assertEq(failingAdapter, address(layerZeroAdapter));
-        assertEq(srcChain, SOURCE_CHAIN_ID);
+        assertEq(srcChain, DEST_CHAIN_ID);
         assertGt(failedAt, 0);
         assertGt(err.length, 0);
         assertGe(attempts, 1);
@@ -290,7 +293,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 uint8(BridgeTypes.OperationType.READ_STATE)
             );
             assertEq(failingAdapter2, address(layerZeroAdapter));
-            assertEq(srcChain2, SOURCE_CHAIN_ID);
+            assertEq(srcChain2, DEST_CHAIN_ID);
             assertGt(failedAt2, 0);
             assertGt(err2.length, 0);
             assertGe(attempts2, 1);

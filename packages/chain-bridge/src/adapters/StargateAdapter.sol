@@ -38,8 +38,6 @@ contract StargateAdapter is
     using AddressCast for bytes32;
     using OptionsBuilder for bytes;
 
-    // Recovery logic removed; failures are recorded and recovered via BridgeRouter
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -93,8 +91,6 @@ contract StargateAdapter is
         uint256 amount,
         uint16 sourceChainId
     );
-
-    // Adapter no longer emits compose failure or recovery events
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -598,5 +594,4 @@ contract StargateAdapter is
     function getEndpointId(uint16 chainId) external view returns (uint32) {
         return chainToExternalId[chainId];
     }
-    // Recovery and failed compose query functions removed
 }
