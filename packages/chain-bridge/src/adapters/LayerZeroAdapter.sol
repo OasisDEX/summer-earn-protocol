@@ -45,7 +45,7 @@ contract LayerZeroAdapter is
     /// @notice Binds a read response guid to the originally requested destination chain
     /// @dev Used to enforce registry trust checks for read-channel responses
     mapping(bytes32 guid => uint16 expectedChainId)
-        private expectedReadChainByGuid;
+        internal expectedReadChainByGuid;
 
     /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
     /// @dev LayerZero routes read responses through a reserved "read channel" range
