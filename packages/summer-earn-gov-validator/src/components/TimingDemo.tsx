@@ -56,38 +56,42 @@ export function TimingDemo() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold text-gray-900">Governance Timing Demo</h1>
-        <p className="text-lg text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Governance Timing Demo</h1>
+        <p className="text-lg text-gray-600 dark:text-gray-300">
           Live countdown timers and progress bars for governance proposal phases
         </p>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 dark:text-gray-400">
           Current time: {new Date(currentTime).toLocaleString()}
         </div>
       </div>
 
       {/* Timing Constants */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Governance Timing Constants</h2>
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+          Governance Timing Constants
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-sm text-gray-500">Voting Delay</div>
-            <div className="text-lg font-semibold">{GOVERNANCE_TIMING.VOTING_DELAY / 3600}h</div>
+          <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Voting Delay</div>
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
+              {GOVERNANCE_TIMING.VOTING_DELAY / 3600}h
+            </div>
           </div>
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-sm text-gray-500">Voting Period</div>
-            <div className="text-lg font-semibold">
+          <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Voting Period</div>
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {GOVERNANCE_TIMING.VOTING_PERIOD / (24 * 3600)}d
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-sm text-gray-500">Timelock Delay</div>
-            <div className="text-lg font-semibold">
+          <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Timelock Delay</div>
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {GOVERNANCE_TIMING.TIMELOCK_DELAY / (24 * 3600)}d
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-sm text-gray-500">Grace Period</div>
-            <div className="text-lg font-semibold">
+          <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Grace Period</div>
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {GOVERNANCE_TIMING.EXECUTION_GRACE_PERIOD / (24 * 3600)}d
             </div>
           </div>
@@ -96,7 +100,7 @@ export function TimingDemo() {
 
       {/* Component Showcase */}
       <div className="space-y-6">
-        <h2 className="text-2xl font-semibold">Component Showcase</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Component Showcase</h2>
 
         {DEMO_PROPOSALS.map((proposal, index) => {
           const timing = timings[index]
@@ -104,14 +108,16 @@ export function TimingDemo() {
           return (
             <div
               key={proposal.id}
-              className="bg-white border border-gray-200 rounded-lg p-6 space-y-6"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 space-y-6"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold">Proposal #{proposal.id}</h3>
-                  <p className="text-sm text-gray-600">{proposal.description}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Proposal #{proposal.id}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{proposal.description}</p>
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   Created: {new Date(Number(proposal.createdAt) * 1000).toLocaleString()}
                 </div>
               </div>
@@ -119,17 +125,17 @@ export function TimingDemo() {
               {/* Phase Indicator Variants */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-700">Compact</h4>
+                  <h4 className="font-medium text-gray-700 dark:text-gray-300">Compact</h4>
                   <PhaseIndicator timing={timing} variant="compact" />
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-700">Default</h4>
+                  <h4 className="font-medium text-gray-700 dark:text-gray-300">Default</h4>
                   <PhaseIndicator timing={timing} variant="default" />
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-700">Detailed</h4>
+                  <h4 className="font-medium text-gray-700 dark:text-gray-300">Detailed</h4>
                   <PhaseIndicator timing={timing} variant="detailed" />
                 </div>
               </div>
@@ -137,39 +143,45 @@ export function TimingDemo() {
               {/* Individual Components */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-700">Countdown Timer</h4>
+                  <h4 className="font-medium text-gray-700 dark:text-gray-300">Countdown Timer</h4>
                   <CountdownTimer timing={timing} />
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-700">Progress Bar</h4>
+                  <h4 className="font-medium text-gray-700 dark:text-gray-300">Progress Bar</h4>
                   <ProgressBar timing={timing} />
                 </div>
               </div>
 
               {/* Timing Details */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-700 mb-3">Timing Details</h4>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Timing Details
+                </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <div className="text-gray-500">Current Phase</div>
-                    <div className="font-medium">{timing.phase}</div>
+                    <div className="text-gray-500 dark:text-gray-400">Current Phase</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{timing.phase}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500">Progress</div>
-                    <div className="font-medium">{Math.round(timing.progressPercentage)}%</div>
+                    <div className="text-gray-500 dark:text-gray-400">Progress</div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {Math.round(timing.progressPercentage)}%
+                    </div>
                   </div>
                   <div>
-                    <div className="text-gray-500">Time Remaining</div>
-                    <div className="font-medium">
+                    <div className="text-gray-500 dark:text-gray-400">Time Remaining</div>
+                    <div className="font-medium text-gray-900 dark:text-white">
                       {timing.timeRemaining > 0
                         ? `${Math.floor(timing.timeRemaining / 3600)}h`
                         : '0h'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-gray-500">Next Phase</div>
-                    <div className="font-medium">{timing.nextPhase || 'N/A'}</div>
+                    <div className="text-gray-500 dark:text-gray-400">Next Phase</div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {timing.nextPhase || 'N/A'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -179,24 +191,24 @@ export function TimingDemo() {
       </div>
 
       {/* Usage Examples */}
-      <div className="bg-blue-50 rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Usage Examples</h2>
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Usage Examples</h2>
         <div className="space-y-4 text-sm">
           <div>
-            <h3 className="font-medium">Basic Phase Indicator:</h3>
-            <code className="bg-white p-2 rounded block mt-1">
+            <h3 className="font-medium text-gray-900 dark:text-white">Basic Phase Indicator:</h3>
+            <code className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 rounded block mt-1">
               {`<PhaseIndicator timing={timing} variant="compact" />`}
             </code>
           </div>
           <div>
-            <h3 className="font-medium">Live Countdown:</h3>
-            <code className="bg-white p-2 rounded block mt-1">
+            <h3 className="font-medium text-gray-900 dark:text-white">Live Countdown:</h3>
+            <code className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 rounded block mt-1">
               {`<CountdownTimer timing={timing} showLabel={true} />`}
             </code>
           </div>
           <div>
-            <h3 className="font-medium">Progress Bar:</h3>
-            <code className="bg-white p-2 rounded block mt-1">
+            <h3 className="font-medium text-gray-900 dark:text-white">Progress Bar:</h3>
+            <code className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 rounded block mt-1">
               {`<ProgressBar timing={timing} showPercentage={true} />`}
             </code>
           </div>

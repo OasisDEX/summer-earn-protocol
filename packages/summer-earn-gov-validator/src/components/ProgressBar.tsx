@@ -57,21 +57,25 @@ export function ProgressBar({
       {showLabel && (
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {phaseInfo.icon} {phaseInfo.name}
             </span>
             {timing.nextPhase && (
-              <span className="text-xs text-gray-500">→ {PHASE_INFO[timing.nextPhase].name}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                → {PHASE_INFO[timing.nextPhase].name}
+              </span>
             )}
           </div>
           {showPercentage && (
-            <span className="text-sm font-mono text-gray-600">{Math.round(displayProgress)}%</span>
+            <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
+              {Math.round(displayProgress)}%
+            </span>
           )}
         </div>
       )}
 
       <div className="relative">
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
           <div
             className={`
               h-full rounded-full transition-all duration-300 ease-out
@@ -97,7 +101,9 @@ export function ProgressBar({
         </div>
       </div>
 
-      {showLabel && <p className="text-xs text-gray-500">{phaseInfo.description}</p>}
+      {showLabel && (
+        <p className="text-xs text-gray-500 dark:text-gray-400">{phaseInfo.description}</p>
+      )}
     </div>
   )
 }
@@ -137,7 +143,7 @@ export function CompactProgressBar({ timing, className = '' }: CompactProgressBa
 
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
-      <div className="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
         <div
           className={`
             h-full rounded-full transition-all duration-300 ease-out
@@ -146,7 +152,9 @@ export function CompactProgressBar({ timing, className = '' }: CompactProgressBa
           style={{ width: `${displayProgress}%` }}
         />
       </div>
-      <span className="text-xs text-gray-500 font-mono">{Math.round(displayProgress)}%</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+        {Math.round(displayProgress)}%
+      </span>
     </div>
   )
 }
@@ -179,14 +187,14 @@ export function PhaseProgressBar({ timing, className = '' }: PhaseProgressBarPro
                       ? 'bg-green-500 text-white'
                       : isActive
                         ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-500'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }
                 `}
               >
                 {isCompleted ? '✓' : phaseInfo.icon}
               </div>
               <span
-                className={`text-xs font-medium ${isActive ? 'text-blue-600' : 'text-gray-500'}`}
+                className={`text-xs font-medium ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}
               >
                 {phaseInfo.name}
               </span>
@@ -197,7 +205,7 @@ export function PhaseProgressBar({ timing, className = '' }: PhaseProgressBarPro
 
       {/* Connection lines */}
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gray-200" />
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700" />
         <div
           className="absolute top-0 left-0 h-0.5 bg-blue-500 transition-all duration-500"
           style={{
