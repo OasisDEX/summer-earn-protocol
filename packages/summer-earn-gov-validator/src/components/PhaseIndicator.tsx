@@ -48,8 +48,8 @@ export function PhaseIndicator({
           </div>
           {timing.nextPhase && nextPhaseInfo && (
             <div className="text-right">
-              <div className="text-xs text-gray-500">Next phase</div>
-              <div className="text-sm font-medium text-gray-700">
+              <div className="text-xs text-gray-500 dark:text-gray-400">Next phase</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {nextPhaseInfo.icon} {nextPhaseInfo.name}
               </div>
             </div>
@@ -62,16 +62,18 @@ export function PhaseIndicator({
         )}
 
         {/* Phase Description */}
-        <div className="text-sm text-gray-600">{phaseInfo.description}</div>
+        <div className="text-sm text-gray-600 dark:text-gray-300">{phaseInfo.description}</div>
 
         {/* Next Phase Info */}
         {timing.nextPhase && nextPhaseInfo && timing.nextPhaseTime && (
-          <div className="bg-gray-50 rounded-lg p-3">
-            <div className="text-xs text-gray-500 mb-1">Upcoming</div>
-            <div className="text-sm font-medium text-gray-700">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Upcoming</div>
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {nextPhaseInfo.icon} {nextPhaseInfo.name}
             </div>
-            <div className="text-xs text-gray-500 mt-1">{nextPhaseInfo.description}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {nextPhaseInfo.description}
+            </div>
           </div>
         )}
       </div>
@@ -97,14 +99,14 @@ export function PhaseIndicator({
       )}
 
       {/* Phase Description */}
-      <div className="text-xs text-gray-600">{phaseInfo.description}</div>
+      <div className="text-xs text-gray-600 dark:text-gray-300">{phaseInfo.description}</div>
 
       {/* Urgency Warning - only show for time-sensitive phases */}
       {isTimeSensitive(timing.phase) && isCritical && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
           <div className="flex items-center space-x-2">
             <span className="text-red-500">⚠️</span>
-            <span className="text-xs text-red-700 font-medium">
+            <span className="text-xs text-red-700 dark:text-red-300 font-medium">
               Critical: Less than 15 minutes remaining!
             </span>
           </div>
@@ -112,10 +114,10 @@ export function PhaseIndicator({
       )}
 
       {isTimeSensitive(timing.phase) && isUrgent && !isCritical && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
+        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-2">
           <div className="flex items-center space-x-2">
             <span className="text-orange-500">⏰</span>
-            <span className="text-xs text-orange-700 font-medium">
+            <span className="text-xs text-orange-700 dark:text-orange-300 font-medium">
               Urgent: Less than 1 hour remaining
             </span>
           </div>
