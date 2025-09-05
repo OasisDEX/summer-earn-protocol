@@ -11,7 +11,6 @@ import {
   validateTargets,
   validateValues,
 } from '@/services/validation'
-import styles from '@/styles/Form.module.scss'
 import { useState } from 'react'
 
 interface ValidationErrors {
@@ -47,25 +46,25 @@ const convertBigIntToString = (value: any): any => {
 // Helper function to format argument value
 const formatArgValue = (arg: any): React.ReactNode => {
   if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
-    return <span className={styles.address}>{arg}</span>
+    return <span className="font-mono text-blue-600 dark:text-blue-400 text-sm">{arg}</span>
   }
   if (typeof arg === 'object' && arg !== null) {
     if (Array.isArray(arg)) {
       return (
-        <ul className={styles.nestedArgsList}>
+        <ul className="list-none p-0 m-2 font-mono pl-4 border-l border-gray-200 dark:border-gray-600">
           {arg.map((value, index) => (
-            <li key={index}>
-              <span className={styles.paramName}>{index}:</span> {formatArgValue(value)}
+            <li key={index} className="my-1 py-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium font-mono text-sm min-w-[120px]">{index}:</span> {formatArgValue(value)}
             </li>
           ))}
         </ul>
       )
     }
     return (
-      <ul className={styles.nestedArgsList}>
+      <ul className="list-none p-0 m-2 font-mono pl-4 border-l border-gray-200 dark:border-gray-600">
         {Object.entries(arg).map(([key, value]) => (
-          <li key={key}>
-            <span className={styles.paramName}>{key}:</span> {formatArgValue(value)}
+          <li key={key} className="my-1 py-1">
+            <span className="text-gray-500 dark:text-gray-400 font-medium font-mono text-sm min-w-[120px]">{key}:</span> {formatArgValue(value)}
           </li>
         ))}
       </ul>
@@ -194,7 +193,10 @@ export default function Home() {
     }
 
     return (
-      <span className={`${className} ${styles.truncatedText}`} title={text}>
+      <span
+        className={`${className} cursor-help border-b border-dotted border-gray-400 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-0.5`}
+        title={text}
+      >
         {text.substring(0, maxLength)}...
       </span>
     )
@@ -212,12 +214,12 @@ export default function Home() {
         const role = addressMatch ? roleAndAddress.replace(/\([^)]+\)$/, '') : roleAndAddress
 
         return (
-          <div className={styles.accountDisplay}>
-            <div className={styles.accountName}>
+          <div className="flex flex-col gap-0.5">
+            <div className="text-sm font-medium text-gray-900 dark:text-white leading-tight">
               <TruncatedText text={`${networkAndContract}#${role}`} maxLength={30} />
             </div>
             {address && (
-              <div className={styles.accountAddress}>
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono leading-tight">
                 <TruncatedText text={address} maxLength={20} />
               </div>
             )}
@@ -227,7 +229,13 @@ export default function Home() {
     }
 
     if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
-      return <TruncatedText text={arg} maxLength={20} className={styles.address} />
+      return (
+        <TruncatedText
+          text={arg}
+          maxLength={20}
+          className="font-mono text-blue-600 dark:text-blue-400 text-sm"
+        />
+      )
     }
 
     return <span>{String(arg)}</span>
@@ -252,9 +260,11 @@ export default function Home() {
       })
 
       return (
-        <div className={styles.decodedData}>
-          <h4>Cross-chain Execution to {data.dstEid}</h4>
-          <div className={styles.executionsGrid}>
+        <div className="mt-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600">
+          <h4 className="m-0 mb-5 text-gray-800 dark:text-gray-200 text-lg font-semibold">
+            Cross-chain Execution to {data.dstEid}
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             {sortedExecutions.map((proposal, i) => {
               const executionId = `crosschain-${index}-${proposal.target}-${proposal.value}-${i}`
               const isValidated = validatedExecutions.has(executionId)
@@ -262,61 +272,90 @@ export default function Home() {
               return (
                 <div
                   key={executionId}
-                  className={`${styles.compactProposal} ${isValidated ? styles.validatedExecution : ''}`}
+                  className={`bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg h-fit p-4 transition-all duration-200 hover:shadow-md ${
+                    isValidated
+                      ? 'opacity-60 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-500'
+                      : ''
+                  }`}
                 >
-                  <div className={styles.compactProposalHeader}>
-                    <div className={styles.compactTargetInfo}>
-                      <div className={styles.compactLabel}>Target:</div>
-                      <div className={styles.compactValue}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-3 border-b border-gray-100 dark:border-gray-600 items-start">
+                    <div className="flex flex-col gap-1">
+                      <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        Target:
+                      </div>
+                      <div className="flex flex-col gap-0.5">
                         <TruncatedText
                           text={proposal.target}
                           maxLength={20}
-                          className={styles.address}
+                          className="font-mono text-blue-600 dark:text-blue-400 text-sm"
                         />
-                        <div className={styles.contractNameCompact}>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 italic">
                           <TruncatedText text={proposal.targetName} maxLength={25} />
                         </div>
                       </div>
                     </div>
-                    <div className={styles.compactValueInfo}>
-                      <div className={styles.compactLabel}>Value:</div>
-                      <div className={styles.compactValue}>
-                        <span className={styles.value}>{proposal.value} ETH</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        Value:
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-green-600 dark:text-green-400 text-sm">
+                          {proposal.value} ETH
+                        </span>
                       </div>
                     </div>
-                    <div className={styles.validationCheckbox}>
-                      <label className={styles.checkboxLabel}>
+                    <div className="flex items-center justify-end mt-2">
+                      <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-500 dark:text-gray-400 select-none">
                         <input
                           type="checkbox"
                           checked={isValidated}
                           onChange={() => toggleValidation(executionId)}
-                          className={styles.checkbox}
+                          className="w-4 h-4 accent-blue-600 cursor-pointer"
                         />
-                        <span className={styles.checkboxText}>Validated</span>
+                        <span
+                          className={`font-medium transition-colors duration-200 ${isValidated ? 'text-green-600 dark:text-green-400 font-semibold' : ''}`}
+                        >
+                          Validated
+                        </span>
                       </label>
                     </div>
                   </div>
                   {proposal.decodedCall && (
-                    <div className={styles.compactDecodedCall}>
-                      <div className={styles.compactFunctionInfo}>
-                        <div className={styles.compactLabel}>Function:</div>
-                        <div className={styles.compactValue}>
-                          <span className={styles.functionName}>
+                    <div className="mt-3 pt-3 border-t-2 border-dashed border-gray-200 dark:border-gray-600">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 items-center">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                          Function:
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono text-purple-600 dark:text-purple-400 font-semibold text-sm">
                             {proposal.decodedCall.functionName}
                           </span>
                         </div>
                       </div>
-                      <div className={styles.compactArguments}>
-                        <div className={styles.compactLabel}>Arguments:</div>
+                      <div className="flex flex-col gap-2">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                          Arguments:
+                        </div>
                         <div
-                          className={`${styles.compactArgsContainer} ${proposal.decodedCall.args.length <= 2 ? styles.singleColumn : ''}`}
+                          className={`grid gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600 ${
+                            proposal.decodedCall.args.length <= 2
+                              ? 'grid-cols-1'
+                              : 'grid-cols-1 md:grid-cols-2'
+                          }`}
                         >
                           {proposal.decodedCall.args.map((arg: unknown, j: number) => {
                             const paramName = proposal.decodedCall?.paramNames?.[j] || `arg${j}`
                             return (
-                              <div key={j} className={styles.compactArgItem}>
-                                <span className={styles.paramNameCompact}>{paramName}:</span>
-                                <div className={styles.argValue}>{formatAccountDisplay(arg)}</div>
+                              <div
+                                key={j}
+                                className="flex flex-col gap-0.5 p-2 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
+                              >
+                                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 font-mono">
+                                  {paramName}:
+                                </span>
+                                <div className="text-sm text-gray-900 dark:text-white break-all">
+                                  {formatAccountDisplay(arg)}
+                                </div>
                               </div>
                             )
                           })}
@@ -339,58 +378,93 @@ export default function Home() {
       const isValidated = validatedExecutions.has(executionId)
 
       return (
-        <div className={styles.decodedData}>
-          <h4>Base Proposal Execution</h4>
+        <div className="mt-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600">
+          <h4 className="m-0 mb-5 text-gray-800 dark:text-gray-200 text-lg font-semibold">
+            Base Proposal Execution
+          </h4>
           <div
             key={executionId}
-            className={`${styles.compactProposal} ${isValidated ? styles.validatedExecution : ''}`}
+            className={`bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg h-fit p-4 transition-all duration-200 hover:shadow-md ${
+              isValidated
+                ? 'opacity-60 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-500'
+                : ''
+            }`}
           >
-            <div className={styles.compactProposalHeader}>
-              <div className={styles.compactTargetInfo}>
-                <div className={styles.compactLabel}>Target:</div>
-                <div className={styles.compactValue}>
-                  <TruncatedText text={targetAddress} maxLength={20} className={styles.address} />
-                  <div className={styles.contractNameCompact}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-3 border-b border-gray-100 dark:border-gray-600 items-start">
+              <div className="flex flex-col gap-1">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Target:
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <TruncatedText
+                    text={targetAddress}
+                    maxLength={20}
+                    className="font-mono text-blue-600 dark:text-blue-400 text-sm"
+                  />
+                  <div className="text-xs text-gray-500 dark:text-gray-400 italic">
                     <TruncatedText text={contractName} maxLength={25} />
                   </div>
                 </div>
               </div>
-              <div className={styles.compactValueInfo}>
-                <div className={styles.compactLabel}>Value:</div>
-                <div className={styles.compactValue}>
-                  <span className={styles.value}>{formData.values[index]} ETH</span>
+              <div className="flex flex-col gap-1">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Value:
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-semibold text-green-600 dark:text-green-400 text-sm">
+                    {formData.values[index]} ETH
+                  </span>
                 </div>
               </div>
-              <div className={styles.validationCheckbox}>
-                <label className={styles.checkboxLabel}>
+              <div className="flex items-center justify-end mt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-500 dark:text-gray-400 select-none">
                   <input
                     type="checkbox"
                     checked={isValidated}
                     onChange={() => toggleValidation(executionId)}
-                    className={styles.checkbox}
+                    className="w-4 h-4 accent-blue-600 cursor-pointer"
                   />
-                  <span className={styles.checkboxText}>Validated</span>
+                  <span
+                    className={`font-medium transition-colors duration-200 ${isValidated ? 'text-green-600 dark:text-green-400 font-semibold' : ''}`}
+                  >
+                    Validated
+                  </span>
                 </label>
               </div>
             </div>
-            <div className={styles.compactDecodedCall}>
-              <div className={styles.compactFunctionInfo}>
-                <div className={styles.compactLabel}>Function:</div>
-                <div className={styles.compactValue}>
-                  <span className={styles.functionName}>{data.functionName}</span>
+            <div className="mt-3 pt-3 border-t-2 border-dashed border-gray-200 dark:border-gray-600">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 items-center">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Function:
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-purple-600 dark:text-purple-400 font-semibold text-sm">
+                    {data.functionName}
+                  </span>
                 </div>
               </div>
-              <div className={styles.compactArguments}>
-                <div className={styles.compactLabel}>Arguments:</div>
+              <div className="flex flex-col gap-2">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Arguments:
+                </div>
                 <div
-                  className={`${styles.compactArgsContainer} ${convertedArgs.length <= 2 ? styles.singleColumn : ''}`}
+                  className={`grid gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600 ${
+                    convertedArgs.length <= 2 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'
+                  }`}
                 >
                   {convertedArgs.map((arg: unknown, i: number) => {
                     const paramName = data.paramNames?.[i] || `arg${i}`
                     return (
-                      <div key={i} className={styles.compactArgItem}>
-                        <span className={styles.paramNameCompact}>{paramName}:</span>
-                        <div className={styles.argValue}>{formatAccountDisplay(arg)}</div>
+                      <div
+                        key={i}
+                        className="flex flex-col gap-0.5 p-2 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
+                      >
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 font-mono">
+                          {paramName}:
+                        </span>
+                        <div className="text-sm text-gray-900 dark:text-white break-all">
+                          {formatAccountDisplay(arg)}
+                        </div>
                       </div>
                     )
                   })}
@@ -443,29 +517,47 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className={styles.main}>
-        <h1>Governance Proposal Validator</h1>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.section}>
-            <h2>Select Existing Proposal</h2>
+      <main className="max-w-6xl mx-auto p-8 min-h-screen bg-gray-50 dark:bg-gray-900">
+        <h1 className="text-center text-gray-900 dark:text-white mb-10 text-4xl font-bold tracking-tight">
+          Governance Proposal Validator
+        </h1>
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white dark:bg-gray-800 p-10 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col gap-10"
+        >
+          <div className="flex flex-col gap-5">
+            <h2 className="text-gray-800 dark:text-gray-200 text-xl font-semibold tracking-tight">
+              Select Existing Proposal
+            </h2>
             <ProposalList onSelectProposal={handleProposalSelect} />
           </div>
 
-          <div className={styles.section}>
-            <h2>Target / Value / Calldata</h2>
+          <div className="flex flex-col gap-5">
+            <h2 className="text-gray-800 dark:text-gray-200 text-xl font-semibold tracking-tight">
+              Target / Value / Calldata
+            </h2>
             {formData.targets.map((target, index) => (
-              <div key={`target-${index}`} className={styles.arrayField}>
-                <div className={styles.inputWithLabel}>
+              <div
+                key={`target-${index}`}
+                className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start w-full bg-gray-50 dark:bg-gray-700 p-3 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                <div className="flex flex-col w-full">
                   <input
                     type="text"
                     value={target}
                     onChange={(e) => handleArrayInputChange(index, 'targets', e.target.value)}
                     placeholder="0x..."
                     required
-                    className={errors.targets[index] ? styles.error : ''}
+                    className={`w-full p-3 border rounded-md font-mono text-sm whitespace-nowrap overflow-hidden text-ellipsis min-h-8 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.targets[index]
+                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-gray-600'
+                    }`}
                   />
                   {contractNames[index] && (
-                    <span className={styles.contractLabel}>{contractNames[index]}</span>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-mono">
+                      {contractNames[index]}
+                    </span>
                   )}
                 </div>
                 <input
@@ -474,7 +566,11 @@ export default function Home() {
                   onChange={(e) => handleArrayInputChange(index, 'values', e.target.value)}
                   placeholder="Value in wei"
                   required
-                  className={errors.values[index] ? styles.error : ''}
+                  className={`w-full p-3 border rounded-md font-mono text-sm whitespace-nowrap overflow-hidden text-ellipsis min-h-8 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.values[index]
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20 focus:ring-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 />
                 <input
                   type="text"
@@ -482,12 +578,16 @@ export default function Home() {
                   onChange={(e) => handleArrayInputChange(index, 'calldatas', e.target.value)}
                   placeholder="Calldata"
                   required
-                  className={errors.calldatas[index] ? styles.error : ''}
+                  className={`w-full p-3 border rounded-md font-mono text-sm whitespace-nowrap overflow-hidden text-ellipsis min-h-8 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.calldatas[index]
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20 focus:ring-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 />
                 {index > 0 && (
                   <button
                     type="button"
-                    className={styles.removeButton}
+                    className="px-5 py-3 bg-red-600 text-white border-none rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 hover:bg-red-700 active:transform active:translate-y-0"
                     onClick={() => removeArrayField('targets', index)}
                   >
                     Remove
@@ -497,7 +597,7 @@ export default function Home() {
             ))}
             <button
               type="button"
-              className={styles.addButton}
+              className="self-start px-5 py-3 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 hover:bg-blue-700 active:transform active:translate-y-0"
               onClick={() => addArrayField('targets')}
             >
               Add calldata
@@ -505,18 +605,22 @@ export default function Home() {
           </div>
 
           {decodedData.some((data) => data !== null) && (
-            <div className={styles.section}>
-              <h2>Decoded Data</h2>
+            <div className="flex flex-col gap-5">
+              <h2 className="text-gray-800 dark:text-gray-200 text-xl font-semibold tracking-tight">
+                Decoded Data
+              </h2>
               {decodedData.map((data, index) => (
                 <div key={`decoded-${index}`}>{renderDecodedData(index)}</div>
               ))}
             </div>
           )}
 
-          <div className={styles.section}>
-            <h2>Description</h2>
+          <div className="flex flex-col gap-5">
+            <h2 className="text-gray-800 dark:text-gray-200 text-xl font-semibold tracking-tight">
+              Description
+            </h2>
             <textarea
-              className={styles.textarea}
+              className="w-full min-h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y font-inherit text-sm leading-relaxed text-gray-900 dark:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800"
               value={formData.description}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -530,10 +634,10 @@ export default function Home() {
           </div>
 
           {Object.values(errors).some((errorArray) => errorArray.length > 0) && (
-            <div className={styles.errorList}>
+            <div className="text-red-600 dark:text-red-400 text-sm mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
               {Object.entries(errors).map(([field, errorArray]) =>
                 errorArray.map((error: string, index: number) => (
-                  <p key={`${field}-${index}`} className={styles.error}>
+                  <p key={`${field}-${index}`} className="m-0 py-1">
                     {error}
                   </p>
                 )),
@@ -541,7 +645,10 @@ export default function Home() {
             </div>
           )}
 
-          <button type="submit" className={styles.addButton}>
+          <button
+            type="submit"
+            className="px-5 py-3 bg-blue-600 text-white border-none rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 hover:bg-blue-700 active:transform active:translate-y-0 self-start"
+          >
             Validate Proposal
           </button>
         </form>
