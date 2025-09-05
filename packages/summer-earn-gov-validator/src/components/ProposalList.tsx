@@ -1,9 +1,9 @@
 import { SupportedNetworks, addresToContractName } from '@/services/validation'
 import { calculateProposalTiming } from '@/utils/timing'
 import { useEffect, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
 import styles from '../styles/Form.module.scss'
 import { PhaseIndicator } from './PhaseIndicator'
+import { ProposalModal } from './ProposalModal'
 
 interface Proposal {
   id: string
@@ -44,7 +44,8 @@ export function ProposalList({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
-  const [expandedProposal, setExpandedProposal] = useState<string | null>(null)
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [contractNames, setContractNames] = useState<string[]>([])
 
   useEffect(() => {
@@ -107,8 +108,14 @@ export function ProposalList({
     return firstLine.length > 20 ? firstLine.substring(0, 100) + '...' : firstLine
   }
 
-  const toggleProposal = (id: string) => {
-    setExpandedProposal(expandedProposal === id ? null : id)
+  const openModal = (proposal: Proposal) => {
+    setSelectedProposal(proposal)
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedProposal(null)
   }
 
   if (loading) {
@@ -147,67 +154,53 @@ export function ProposalList({
           </button>
         ))}
       </div>
-      {proposals.map((proposal) => {
-        if (proposal.status !== statusFilter) {
-          return null
-        }
+      <div className={styles.proposalsGrid}>
+        {proposals.map((proposal) => {
+          if (proposal.status !== statusFilter) {
+            return null
+          }
 
-        const isExpanded = expandedProposal === proposal.id
-        const title = getProposalTitle(proposal.description)
+          const title = getProposalTitle(proposal.description)
 
-        // Calculate timing information if createdAt is available
-        const timing = proposal.createdAt
-          ? calculateProposalTiming({
-              status: proposal.status,
-              createdAt: proposal.createdAt,
-            })
-          : null
+          // Calculate timing information if createdAt is available
+          const timing = proposal.createdAt
+            ? calculateProposalTiming({
+                status: proposal.status,
+                createdAt: proposal.createdAt,
+              })
+            : null
 
-        return (
-          <div key={proposal.id} className={styles.proposal}>
-            <div className={styles.proposalHeader} onClick={() => toggleProposal(proposal.id)}>
-              <div className={styles.proposalTitle}>
-                <div className="flex flex-col space-y-2">
-                  <span className={styles.title}>{title}</span>
+          return (
+            <div key={proposal.id} className={styles.compactProposalCard}>
+              <div className={styles.compactProposalHeader} onClick={() => openModal(proposal)}>
+                <div className={styles.compactProposalTitle}>
+                  <span className={styles.compactTitle}>{title}</span>
                   {timing && <PhaseIndicator timing={timing} variant="compact" />}
                 </div>
-                <button
-                  className={styles.selectButton}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelectProposal(proposal)
-                  }}
-                >
-                  Use this proposal
-                </button>
+                <div className={styles.compactProposalActions}>
+                  <button
+                    className={styles.compactSelectButton}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSelectProposal(proposal)
+                    }}
+                  >
+                    Use this proposal
+                  </button>
+                  <span className={styles.compactExpandIcon}>👁️</span>
+                </div>
               </div>
-              <span className={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</span>
             </div>
-            {isExpanded && (
-              <div className={styles.proposalDetails}>
-                {timing && (
-                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                    <PhaseIndicator timing={timing} variant="detailed" />
-                  </div>
-                )}
-                <div className={styles.description}>
-                  <ReactMarkdown>{proposal.description}</ReactMarkdown>
-                </div>
-                <div className={styles.targetsList}>
-                  {proposal.targets.map((target, index) => (
-                    <li key={index}>
-                      <span className={styles.label}>Target {index + 1}:</span>
-                      <span className={styles.address}>{target}</span>
-                      <span className={styles.contractName}>({contractNames[index]})</span>
-                      <span className={styles.value}>{proposal.values[index]} ETH</span>
-                    </li>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
+
+      <ProposalModal
+        proposal={selectedProposal}
+        contractNames={contractNames}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+      />
     </div>
   )
 }
