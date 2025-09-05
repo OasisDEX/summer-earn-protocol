@@ -174,7 +174,7 @@ contract FleetProxy is
                 asset: asset,
                 amount: amount,
                 message: abi.encode(fleetBalance),
-                refundAddress: address(this)
+                refundAddress: msg.sender
             });
 
         // 7. Execute the cross-chain transfer back to the Ark on the hub chain
@@ -204,9 +204,9 @@ contract FleetProxy is
                 destinationChainId: hubChainId,
                 target: _getSourceChainArk(hubChainId),
                 message: abi.encode(fleetBalance, latestIncomingTransferId),
-                refundAddress: address(this)
+                refundAddress: msg.sender
             });
-        bridgeRouter.executeSendMessage(params, options);
+        bridgeRouter.executeSendMessage{value: msg.value}(params, options);
     }
 
     /// @inheritdoc IERC165
