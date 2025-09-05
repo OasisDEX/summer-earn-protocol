@@ -556,6 +556,60 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
     }
 
+    function test_ExecuteTransfer_SetsInflightAssets() public {
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+
+        // Fund keeper/commander and approve Ark to take funds on board
+        deal(address(usdc), commander, amount);
+        vm.prank(commander);
+        usdc.approve(address(ark), amount);
+
+        // Prepare options and params for a Stargate transfer
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(stargateAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(usdc),
+                amount: amount,
+                target: ARB_STARGATE_PROXY,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+
+        // Board the assets to set pending transfer (Ark holds tokens)
+        bytes memory executeTransferParams = abi.encode(params, options);
+        vm.prank(commander);
+        ark.board(amount, executeTransferParams);
+
+        // Quote and execute transfer via Ark (keeper role is granted to commander)
+        (uint256 nativeFee, , ) = bridgeRouter.quote(
+            DEST_CHAIN_ID,
+            address(usdc),
+            amount,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+        vm.deal(commander, nativeFee);
+
+        vm.prank(commander);
+        ark.executeTransferAssets{value: nativeFee}();
+
+        // After execution, BridgeRouter should have called updateInflightAssets on Ark
+        assertEq(
+            ark.inflightAssets(),
+            amount,
+            "Inflight assets should equal transfer amount"
+        );
+    }
+
     // Event declaration for the event we expect from StargateAdapter
     event TransferInitiated(
         bytes32 indexed transferId,
