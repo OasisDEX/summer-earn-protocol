@@ -90,6 +90,7 @@ export default function Home() {
 
   const [contractNames, setContractNames] = useState<string[]>([])
   const [decodedData, setDecodedData] = useState<(DecodedFunction | CrossChainData | null)[]>([])
+  const [validatedExecutions, setValidatedExecutions] = useState<Set<string>>(new Set())
 
   const handleArrayInputChange = (
     index: number,
@@ -178,79 +179,240 @@ export default function Home() {
     }
   }
 
+  // Helper function to truncate text with tooltip
+  const TruncatedText = ({
+    text,
+    maxLength = 20,
+    className = '',
+  }: {
+    text: string
+    maxLength?: number
+    className?: string
+  }) => {
+    if (text.length <= maxLength) {
+      return <span className={className}>{text}</span>
+    }
+
+    return (
+      <span className={`${className} ${styles.truncatedText}`} title={text}>
+        {text.substring(0, maxLength)}...
+      </span>
+    )
+  }
+
+  // Helper function to format account display
+  const formatAccountDisplay = (arg: any): React.ReactNode => {
+    if (typeof arg === 'string' && arg.includes('#')) {
+      // Format: mainnet:FleetModule_LazyVault_HigherRisk_USDC#FleetCommander(0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06)
+      const parts = arg.split('#')
+      if (parts.length === 2) {
+        const [networkAndContract, roleAndAddress] = parts
+        const addressMatch = roleAndAddress.match(/\(([^)]+)\)$/)
+        const address = addressMatch ? addressMatch[1] : ''
+        const role = addressMatch ? roleAndAddress.replace(/\([^)]+\)$/, '') : roleAndAddress
+
+        return (
+          <div className={styles.accountDisplay}>
+            <div className={styles.accountName}>
+              <TruncatedText text={`${networkAndContract}#${role}`} maxLength={30} />
+            </div>
+            {address && (
+              <div className={styles.accountAddress}>
+                <TruncatedText text={address} maxLength={20} />
+              </div>
+            )}
+          </div>
+        )
+      }
+    }
+
+    if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
+      return <TruncatedText text={arg} maxLength={20} className={styles.address} />
+    }
+
+    return <span>{String(arg)}</span>
+  }
+
   const renderDecodedData = (index: number) => {
     const data = decodedData[index]
     if (!data) return null
 
     if ('dstEid' in data) {
       // Cross-chain data
+      const executions = data.formattedProposals || []
+      const sortedExecutions = executions.sort((a, b) => {
+        const aId = `crosschain-${index}-${a.target}-${a.value}`
+        const bId = `crosschain-${index}-${b.target}-${b.value}`
+        const aValidated = validatedExecutions.has(aId)
+        const bValidated = validatedExecutions.has(bId)
+
+        if (aValidated && !bValidated) return 1
+        if (!aValidated && bValidated) return -1
+        return 0
+      })
+
       return (
         <div className={styles.decodedData}>
           <h4>Cross-chain Execution to {data.dstEid}</h4>
-          {data.formattedProposals?.map((proposal, i) => (
-            <div key={i} className={styles.proposal}>
-              <div className={styles.proposalHeader}>
-                <div className={styles.targetInfo}>
-                  <span className={styles.label}>Target:</span>
-                  <span className={styles.address}>{proposal.target}</span>
-                  <span className={styles.contractName}>({proposal.targetName})</span>
-                </div>
-                <div className={styles.valueInfo}>
-                  <span className={styles.label}>Value:</span>
-                  <span className={styles.value}>{proposal.value} ETH</span>
-                </div>
-              </div>
-              {proposal.decodedCall && (
-                <div className={styles.decodedCall}>
-                  <div className={styles.functionInfo}>
-                    <span className={styles.label}>Function:</span>
-                    <span className={styles.functionName}>{proposal.decodedCall.functionName}</span>
+          <div className={styles.executionsGrid}>
+            {sortedExecutions.map((proposal, i) => {
+              const executionId = `crosschain-${index}-${proposal.target}-${proposal.value}-${i}`
+              const isValidated = validatedExecutions.has(executionId)
+
+              return (
+                <div
+                  key={executionId}
+                  className={`${styles.compactProposal} ${isValidated ? styles.validatedExecution : ''}`}
+                >
+                  <div className={styles.compactProposalHeader}>
+                    <div className={styles.compactTargetInfo}>
+                      <div className={styles.compactLabel}>Target:</div>
+                      <div className={styles.compactValue}>
+                        <TruncatedText
+                          text={proposal.target}
+                          maxLength={20}
+                          className={styles.address}
+                        />
+                        <div className={styles.contractNameCompact}>
+                          <TruncatedText text={proposal.targetName} maxLength={25} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.compactValueInfo}>
+                      <div className={styles.compactLabel}>Value:</div>
+                      <div className={styles.compactValue}>
+                        <span className={styles.value}>{proposal.value} ETH</span>
+                      </div>
+                    </div>
+                    <div className={styles.validationCheckbox}>
+                      <label className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={isValidated}
+                          onChange={() => toggleValidation(executionId)}
+                          className={styles.checkbox}
+                        />
+                        <span className={styles.checkboxText}>Validated</span>
+                      </label>
+                    </div>
                   </div>
-                  <div className={styles.arguments}>
-                    <span className={styles.label}>Arguments:</span>
-                    <ul className={styles.argsList}>
-                      {proposal.decodedCall.args.map((arg: unknown, j: number) => {
-                        const paramName = proposal.decodedCall?.paramNames?.[j] || `arg${j}`
-                        return (
-                          <li key={j}>
-                            <span className={styles.paramName}>{paramName}:</span>{' '}
-                            {formatArgValue(arg)}
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </div>
+                  {proposal.decodedCall && (
+                    <div className={styles.compactDecodedCall}>
+                      <div className={styles.compactFunctionInfo}>
+                        <div className={styles.compactLabel}>Function:</div>
+                        <div className={styles.compactValue}>
+                          <span className={styles.functionName}>
+                            {proposal.decodedCall.functionName}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={styles.compactArguments}>
+                        <div className={styles.compactLabel}>Arguments:</div>
+                        <div
+                          className={`${styles.compactArgsContainer} ${proposal.decodedCall.args.length <= 2 ? styles.singleColumn : ''}`}
+                        >
+                          {proposal.decodedCall.args.map((arg: unknown, j: number) => {
+                            const paramName = proposal.decodedCall?.paramNames?.[j] || `arg${j}`
+                            return (
+                              <div key={j} className={styles.compactArgItem}>
+                                <span className={styles.paramNameCompact}>{paramName}:</span>
+                                <div className={styles.argValue}>{formatAccountDisplay(arg)}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              )
+            })}
+          </div>
         </div>
       )
     } else {
-      // Regular function call
+      // Regular function call - base proposal
       const convertedArgs = convertBigIntToString(data.args)
+      const targetAddress = formData.targets[index]
+      const contractName = contractNames[index] || 'Unknown Contract'
+      const executionId = `base-${index}-${targetAddress}-${data.functionName}-${formData.values[index]}`
+      const isValidated = validatedExecutions.has(executionId)
+
       return (
         <div className={styles.decodedData}>
-          <div className={styles.functionInfo}>
-            <span className={styles.label}>Function:</span>
-            <span className={styles.functionName}>{data.functionName}</span>
-          </div>
-          <div className={styles.arguments}>
-            <span className={styles.label}>Arguments:</span>
-            <ul className={styles.argsList}>
-              {convertedArgs.map((arg: unknown, i: number) => {
-                const paramName = data.paramNames?.[i] || `arg${i}`
-                return (
-                  <li key={i}>
-                    <span className={styles.paramName}>{paramName}:</span> {formatArgValue(arg)}
-                  </li>
-                )
-              })}
-            </ul>
+          <h4>Base Proposal Execution</h4>
+          <div
+            key={executionId}
+            className={`${styles.compactProposal} ${isValidated ? styles.validatedExecution : ''}`}
+          >
+            <div className={styles.compactProposalHeader}>
+              <div className={styles.compactTargetInfo}>
+                <div className={styles.compactLabel}>Target:</div>
+                <div className={styles.compactValue}>
+                  <TruncatedText text={targetAddress} maxLength={20} className={styles.address} />
+                  <div className={styles.contractNameCompact}>
+                    <TruncatedText text={contractName} maxLength={25} />
+                  </div>
+                </div>
+              </div>
+              <div className={styles.compactValueInfo}>
+                <div className={styles.compactLabel}>Value:</div>
+                <div className={styles.compactValue}>
+                  <span className={styles.value}>{formData.values[index]} ETH</span>
+                </div>
+              </div>
+              <div className={styles.validationCheckbox}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isValidated}
+                    onChange={() => toggleValidation(executionId)}
+                    className={styles.checkbox}
+                  />
+                  <span className={styles.checkboxText}>Validated</span>
+                </label>
+              </div>
+            </div>
+            <div className={styles.compactDecodedCall}>
+              <div className={styles.compactFunctionInfo}>
+                <div className={styles.compactLabel}>Function:</div>
+                <div className={styles.compactValue}>
+                  <span className={styles.functionName}>{data.functionName}</span>
+                </div>
+              </div>
+              <div className={styles.compactArguments}>
+                <div className={styles.compactLabel}>Arguments:</div>
+                <div
+                  className={`${styles.compactArgsContainer} ${convertedArgs.length <= 2 ? styles.singleColumn : ''}`}
+                >
+                  {convertedArgs.map((arg: unknown, i: number) => {
+                    const paramName = data.paramNames?.[i] || `arg${i}`
+                    return (
+                      <div key={i} className={styles.compactArgItem}>
+                        <span className={styles.paramNameCompact}>{paramName}:</span>
+                        <div className={styles.argValue}>{formatAccountDisplay(arg)}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )
     }
+  }
+
+  const toggleValidation = (executionId: string) => {
+    setValidatedExecutions((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(executionId)) {
+        newSet.delete(executionId)
+      } else {
+        newSet.add(executionId)
+      }
+      return newSet
+    })
   }
 
   const handleProposalSelect = (proposal: any) => {
@@ -273,6 +435,9 @@ export default function Home() {
     // Update contract names
     const targetsValidation = validateTargets(proposal.targets)
     setContractNames(targetsValidation.contractNames)
+
+    // Clear validation state when selecting new proposal
+    setValidatedExecutions(new Set())
   }
 
   return (
