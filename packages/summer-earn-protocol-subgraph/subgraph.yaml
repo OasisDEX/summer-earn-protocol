@@ -1,19 +1,14 @@
 specVersion: 0.0.8
 schema:
-  file: ./schema.graphql
-features:
-  - grafting
-graft:
-  base: Qmdf3Yv1qg3sbiq5R77vs7FgtSkwo3rPiAM6DeN4EN3xm9
-  block: 33276900
+  file: ./schema.graphql 
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: base
+    network: arbitrum-one
     source:
       abi: HarborCommand
-      address: '0x09eb323dBFECB43fd746c607A9321dACdfB0140F'
-      startBlock: 25773568
+      address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
+      startBlock: 301218468
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -24,7 +19,7 @@ dataSources:
         - name: HarborCommand
           file: ./abis/HarborCommand.abi.json
         - name: FleetCommanderRewardsManager
-          file: ./abis/FleetCommanderRewardsManager.abi.json
+          file: ./abis/FleetCommanderRewardsManager.abi.json          
         - name: Ark
           file: ./abis/Ark.abi.json
         - name: FleetCommander
@@ -52,7 +47,7 @@ dataSources:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json
+          file: ./abis/GovernanceRewardsManager.abi.json    
         - name: Multicall
           file: ./abis/common/Multicall.json
       eventHandlers:
@@ -63,15 +58,15 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 30
+            every: 240 
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: GovernanceRewardsManager
-    network: base
+    network: arbitrum-one
     source:
       abi: GovernanceRewardsManager
-      address: '0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92'
-      startBlock: 25642492
+      address: "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92"
+      startBlock: 301218468
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -82,7 +77,7 @@ dataSources:
         - name: HarborCommand
           file: ./abis/HarborCommand.abi.json
         - name: FleetCommanderRewardsManager
-          file: ./abis/FleetCommanderRewardsManager.abi.json
+          file: ./abis/FleetCommanderRewardsManager.abi.json          
         - name: Ark
           file: ./abis/Ark.abi.json
         - name: FleetCommander
@@ -130,11 +125,11 @@ dataSources:
         - event: RewardPaid(indexed address,indexed address,uint256)
           handler: handleRewardPaid
           receipt: true
-      file: ./src/mappings/governanceRewardsManager.ts
+      file: ./src/mappings/governanceRewardsManager.ts      
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: base
+    network: arbitrum-one
     source:
       abi: FleetCommander
     mapping:
@@ -173,7 +168,7 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json
+          file: ./abis/GovernanceRewardsManager.abi.json   
         - name: SummerProtocolAccessManager
           file: ./abis/SummerProtocolAccessManager.json
       eventHandlers:
@@ -212,7 +207,7 @@ templates:
           receipt: true
         - event: FleetCommanderminimumBufferBalanceUpdated(uint256)
           handler: handleFleetCommanderMinimumBufferBalanceUpdated
-          receipt: true
+          receipt: true      
         - event: TipAccrued(uint256)
           handler: handleTipAccrued
           receipt: true
@@ -222,7 +217,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: base
+    network: arbitrum-one
     source:
       abi: Ark
     mapping:
@@ -259,7 +254,7 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json
+          file: ./abis/GovernanceRewardsManager.abi.json                 
       eventHandlers:
         - event: Boarded(indexed address,address,uint256)
           handler: handleBoarded
@@ -285,7 +280,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: base
+    network: arbitrum-one
     source:
       abi: FleetCommanderRewardsManager
     mapping:
@@ -324,7 +319,7 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
         - name: GovernanceRewardsManager
-          file: ./abis/GovernanceRewardsManager.abi.json
+          file: ./abis/GovernanceRewardsManager.abi.json                 
       eventHandlers:
         - event: Staked(indexed address,indexed address,uint256)
           handler: handleStaked
