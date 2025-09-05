@@ -373,7 +373,101 @@ contract CrossChainFleetProxyTest is Test {
         // Verify token balance was updated
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
-    function test_ReceiveMessageWithAssets_WrongProxy() public {
+
+    function test_TotalAssets_Empty() public view {
+        assertEq(proxy.totalAssets(), 0);
+    }
+
+    function test_TotalAssets_AfterDeposit_EqualsProxyOwnedAssets() public {
+        // Arrange
+        address asset = address(mockToken);
+        uint256 amount = 1_000;
+        bytes memory message = _buildDeliverPayload(asset);
+
+        // Act: bridge delivers tokens to proxy and proxy deposits into FleetCommander
+        mockToken.mint(address(proxy), amount);
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
+            )
+        );
+
+        // Assert: proxy.totalAssets equals its own shares converted to assets
+        uint256 shares = fleetCommanderMock.balanceOf(address(proxy));
+        uint256 expected = fleetCommanderMock.convertToAssets(shares);
+        assertEq(proxy.totalAssets(), expected);
+        assertEq(proxy.totalAssets(), amount);
+    }
+
+    function test_TotalAssets_IncludesInflightWithdrawals() public {
+        // Arrange
+        address asset = address(mockToken);
+        uint256 amount = 1_000;
+        bytes memory message = _buildDeliverPayload(asset);
+
+        // Deposit via bridge
+        mockToken.mint(address(proxy), amount);
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
+            )
+        );
+
+        // Act: withdraw and transfer a portion, which should burn proxy shares and add inflight
+        uint256 withdrawAmount = 400;
+        vm.prank(governor);
+        proxy.withdrawAndTransfer(
+            withdrawAmount,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Assert inflight reflected and totalAssets unchanged (shares assets + inflight)
+        uint256 shares = fleetCommanderMock.balanceOf(address(proxy));
+        uint256 expected = fleetCommanderMock.convertToAssets(shares) +
+            proxy.inflightWithdrawals();
+        assertEq(proxy.inflightWithdrawals(), withdrawAmount);
+        assertEq(proxy.totalAssets(), expected);
+        assertEq(proxy.totalAssets(), amount);
+
+        // Act: bridge updates inflight to 0
+        vm.prank(address(mockBridgeRouter));
+        proxy.updateInflightAssets(0);
+
+        // Assert: totalAssets now equals remaining shares in fleet only
+        uint256 expectedAfter = fleetCommanderMock.convertToAssets(shares);
+        assertEq(proxy.totalAssets(), expectedAfter);
+        assertEq(proxy.totalAssets(), amount - withdrawAmount);
+    }
+
+    function test_TotalAssets_IncludesLocalBalance() public {
+        // Arrange: mint tokens directly to the proxy without depositing
+        uint256 localAmount = 50;
+        mockToken.mint(address(proxy), localAmount);
+
+        // Assert: totalAssets reflects local balance
+        assertEq(proxy.totalAssets(), localAmount);
+    }
+    function test_ReceiveMessageWithAssets_WrongPorxy() public {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
