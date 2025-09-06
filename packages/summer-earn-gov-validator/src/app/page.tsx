@@ -54,7 +54,10 @@ const formatArgValue = (arg: any): React.ReactNode => {
         <ul className="list-none p-0 m-2 font-mono pl-4 border-l border-gray-200 dark:border-gray-600">
           {arg.map((value, index) => (
             <li key={index} className="my-1 py-1">
-              <span className="text-gray-500 dark:text-gray-400 font-medium font-mono text-sm min-w-[120px]">{index}:</span> {formatArgValue(value)}
+              <span className="text-gray-500 dark:text-gray-400 font-medium font-mono text-sm min-w-[120px]">
+                {index}:
+              </span>{' '}
+              {formatArgValue(value)}
             </li>
           ))}
         </ul>
@@ -64,7 +67,10 @@ const formatArgValue = (arg: any): React.ReactNode => {
       <ul className="list-none p-0 m-2 font-mono pl-4 border-l border-gray-200 dark:border-gray-600">
         {Object.entries(arg).map(([key, value]) => (
           <li key={key} className="my-1 py-1">
-            <span className="text-gray-500 dark:text-gray-400 font-medium font-mono text-sm min-w-[120px]">{key}:</span> {formatArgValue(value)}
+            <span className="text-gray-500 dark:text-gray-400 font-medium font-mono text-sm min-w-[120px]">
+              {key}:
+            </span>{' '}
+            {formatArgValue(value)}
           </li>
         ))}
       </ul>
