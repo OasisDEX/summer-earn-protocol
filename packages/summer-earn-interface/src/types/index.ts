@@ -83,3 +83,44 @@ export interface RewardTokenInfo {
   earned: bigint
   rewardRate: bigint
 }
+
+// Rewards and Token Balance Types
+export interface TokenBalance {
+  address: string
+  symbol: string
+  balance: bigint
+  balanceFormatted: number
+  decimals: number
+  threshold: number
+}
+
+export interface ClaimableReward {
+  contractAddress: string
+  amount: bigint
+  amountFormatted: number
+  symbol: string
+  decimals: number
+  threshold: number
+}
+
+export interface ArkRewardsData {
+  address: string
+  name: string
+  details: string
+  tokenBalances: TokenBalance[]
+  claimableRewards: ClaimableReward[]
+  actionType: 'sweepAndStart' | 'harvestAndStart' | 'none'
+}
+
+export interface FleetRewardsData {
+  address: string
+  name: string
+  symbol: string
+  arks: ArkRewardsData[]
+}
+
+export interface ChainRewardsData {
+  chainId: ChainId
+  chainName: string
+  fleets: FleetRewardsData[]
+}
