@@ -168,7 +168,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Set up peer for Arbitrum chain (LayerZero)
         bytes32 peerAddressBytes32 = bytes32(
-            uint256(uint160(ARB_STARGATE_PROXY))
+            uint256(uint160(ARB_LAYERZERO_PROXY))
         );
         layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
@@ -191,6 +191,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_LAYERZERO_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
+
+        // Register reverse peer mapping for LayerZero adapter (Arbitrum -> Mainnet)
+        registry.registerRelationship(
+            ARB_LAYERZERO_PROXY,
+            address(layerZeroAdapter),
+            DEST_CHAIN_ID,
+            SOURCE_CHAIN_ID,
             registry.PEER_RELATIONSHIP()
         );
 
@@ -953,7 +962,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create the Origin struct that LayerZero would pass to _lzReceive
         Origin memory origin = Origin({
             srcEid: readResponseEid,
-            sender: bytes32(uint256(uint160(ARB_STARGATE_PROXY))), // Mock sender
+            sender: bytes32(uint256(uint160(ARB_LAYERZERO_PROXY))), // Mock sender
             nonce: 1
         });
 
