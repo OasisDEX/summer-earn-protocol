@@ -48,6 +48,9 @@ contract FleetProxy is
     /// @notice Amount of withdrawal assets currently in-flight (being bridged back)
     uint256 public inflightWithdrawals;
 
+    /// @notice Per-operation in-flight withdrawals
+    mapping(bytes32 => uint256) public inflightWithdrawalByOperation;
+
     /// @notice The source chain ID where the fleet is deployed
     uint16 public immutable hubChainId;
 
@@ -123,9 +126,8 @@ contract FleetProxy is
         if (msg.sender != address(bridgeRouter())) {
             revert Unauthorized();
         }
-
-        inflightWithdrawals = amount;
-        emit InflightAssetsUpdated(amount);
+        // Intentionally no-op: avoid overwriting additive accounting performed locally
+        // We keep the function for backwards compatibility with the router interface.
     }
 
     /// @notice Keeper function to withdraw and transfer assets
@@ -158,14 +160,10 @@ contract FleetProxy is
         if (IERC20(asset).balanceOf(address(this)) < amount)
             revert WithdrawalFailed();
 
-        // 4. Track inflight withdrawals before bridging
-        inflightWithdrawals += amount;
-        emit InflightAssetsUpdated(inflightWithdrawals);
-
-        // 5. Approve the bridge router to transfer the assets
+        // 4. Approve the bridge router to transfer the assets
         IERC20(asset).forceApprove(address(bridgeRouter), amount);
 
-        // 6. Prepare the transfer parameters
+        // 5. Prepare the transfer parameters
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 originator: address(this),
@@ -177,8 +175,16 @@ contract FleetProxy is
                 refundAddress: address(this)
             });
 
-        // 7. Execute the cross-chain transfer back to the Ark on the hub chain
-        bridgeRouter.executeTransferAssets{value: msg.value}(params, options);
+        // 6. Execute the cross-chain transfer back to the Ark on the hub chain
+        bytes32 operationId = bridgeRouter.executeTransferAssets{
+            value: msg.value
+        }(params, options);
+
+        // 7. Track inflight withdrawals and emit per-operation event
+        inflightWithdrawalByOperation[operationId] += amount;
+        inflightWithdrawals += amount;
+        emit InflightAssetsUpdated(inflightWithdrawals);
+        emit InflightIncreased(operationId, amount);
 
         emit AssetsWithdrawnAndTransferred(
             params.amount,
@@ -358,5 +364,37 @@ contract FleetProxy is
 
         // Emit an event for tracking
         emit ProxyDeposit(fleetAddress, asset, amount, _hubChainId);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when inflight withdrawals increase for an operationId
+    event InflightIncreased(bytes32 operationId, uint256 amount);
+
+    /// @notice Emitted when inflight is cleared for an operationId (placeholder until decrement path exists)
+    event InflightCleared(bytes32 operationId, uint256 amount);
+
+    /*//////////////////////////////////////////////////////////////
+                            KEEPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Acknowledge completed withdrawals and decrement inflight by operation id(s)
+    /// @param operationIds Array of opIds to clear
+    function ackWithdrawals(
+        bytes32[] calldata operationIds
+    ) external onlyKeeper {
+        uint256 len = operationIds.length;
+        for (uint256 i = 0; i < len; i++) {
+            bytes32 opId = operationIds[i];
+            uint256 amount = inflightWithdrawalByOperation[opId];
+            if (amount > 0) {
+                inflightWithdrawals -= amount;
+                delete inflightWithdrawalByOperation[opId];
+                emit InflightCleared(opId, amount);
+            }
+        }
+        emit InflightAssetsUpdated(inflightWithdrawals);
     }
 }

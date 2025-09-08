@@ -39,8 +39,14 @@ contract CrossChainArk is
     /// @notice Last known remote asset balance (from state read)
     uint256 public lastRemoteAssetBalance;
 
-    /// @notice Amount of assets currently in-flight (being bridged)
+    /// @notice Amount of assets currently in-flight (being bridged) — legacy single counter
     uint256 public inflightAssets;
+
+    /// @notice Sum of all amounts currently in-flight keyed by operationId
+    uint256 public totalInflight;
+
+    /// @notice Per-operation in-flight amounts
+    mapping(bytes32 => uint256) public inflightByOperation;
 
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
@@ -83,7 +89,8 @@ contract CrossChainArk is
     /// @dev This is an emergency function that allows governance to manually correct inflight asset tracking
     /// in case of bridge failures or accounting discrepancies
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
-        inflightAssets = amount;
+        // Forward-only: update the new total inflight tracker
+        totalInflight = amount;
         emit InflightAssetsUpdated(amount);
     }
 
@@ -94,8 +101,7 @@ contract CrossChainArk is
         if (msg.sender != bridgeRouter()) {
             revert Unauthorized();
         }
-        inflightAssets = amount;
-        emit InflightAssetsUpdated(amount);
+        // Forward-only: legacy hook is a no-op
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -111,7 +117,7 @@ contract CrossChainArk is
         assets =
             config.asset.balanceOf(address(this)) +
             lastRemoteAssetBalance +
-            inflightAssets;
+            totalInflight;
     }
 
     /**
@@ -187,6 +193,11 @@ contract CrossChainArk is
         }(pendingTransferParams, pendingTransferOptions);
 
         latestOutgoingTransferId = operationId;
+
+        // Track per-operation inflight amounts
+        inflightByOperation[operationId] += pendingTransferParams.amount;
+        totalInflight += pendingTransferParams.amount;
+        emit InflightIncreased(operationId, pendingTransferParams.amount);
         emit PendingTransferQueued(
             pendingTransferParams,
             pendingTransferOptions
@@ -255,15 +266,6 @@ contract CrossChainArk is
         // Decode the remote asset balance
         (uint256 newRemoteBalance, bytes32 latestReceivedTransferId) = abi
             .decode(params.message, (uint256, bytes32));
-        if (latestReceivedTransferId != latestOutgoingTransferId) {
-            // we skip updating the remote balance if the transfer id (received in FleetProxy) is not the latest
-            // sent by this Ark
-            emit InvalidTransferId(
-                latestReceivedTransferId,
-                latestOutgoingTransferId
-            );
-            return;
-        }
 
         lastRemoteAssetBalance = newRemoteBalance;
         emit RemoteAssetBalanceUpdated(
@@ -271,10 +273,16 @@ contract CrossChainArk is
             params.operationId
         );
 
-        // Reset inflight assets as the state read now reflects the current remote balance
-        if (inflightAssets > 0) {
-            inflightAssets = 0;
-            emit InflightAssetsUpdated(0);
+        // Clear acknowledged operation's inflight amount (if any)
+        if (latestReceivedTransferId != bytes32(0)) {
+            uint256 clearedAmount = inflightByOperation[
+                latestReceivedTransferId
+            ];
+            if (clearedAmount > 0) {
+                totalInflight -= clearedAmount;
+                delete inflightByOperation[latestReceivedTransferId];
+                emit InflightCleared(latestReceivedTransferId, clearedAmount);
+            }
         }
     }
 
@@ -390,4 +398,14 @@ contract CrossChainArk is
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when inflight is increased for an operationId
+    event InflightIncreased(bytes32 operationId, uint256 amount);
+
+    /// @notice Emitted when inflight is cleared for an operationId
+    event InflightCleared(bytes32 operationId, uint256 amount);
 }
