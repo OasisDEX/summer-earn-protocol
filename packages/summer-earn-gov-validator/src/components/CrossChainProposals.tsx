@@ -116,10 +116,25 @@ const getEffectiveProposalStatus = (proposal: { status: string; createdAt: strin
   const currentTimestamp = Math.floor(Date.now() / 1000)
   const createdAt = Number(proposal.createdAt)
   const votingDelay = 24 * 60 * 60 // 24 hours in seconds
+  const votingPeriod = 3 * 24 * 60 * 60 // 3 days in seconds
   const votingStartTime = createdAt + votingDelay
-  const isVotingActive = baseStatus === 'PENDING' && currentTimestamp >= votingStartTime
+  const votingEndTime = votingStartTime + votingPeriod
 
-  return isVotingActive ? 'ACTIVE' : baseStatus
+  // Check if PENDING proposal should be ACTIVE
+  const isVotingActive =
+    baseStatus === 'PENDING' &&
+    currentTimestamp >= votingStartTime &&
+    currentTimestamp < votingEndTime
+
+  // Check if ACTIVE proposal should be SUCCEEDED (voting period ended)
+  const isVotingEnded =
+    (baseStatus === 'ACTIVE' ||
+      (baseStatus === 'PENDING' && currentTimestamp >= votingStartTime)) &&
+    currentTimestamp >= votingEndTime
+
+  if (isVotingActive) return 'ACTIVE'
+  if (isVotingEnded) return 'SUCCEEDED'
+  return baseStatus
 }
 
 export const CrossChainProposals: React.FC = () => {
@@ -572,7 +587,7 @@ export const CrossChainProposals: React.FC = () => {
                     >
                       {isBaseReady ? 'Ready' : effectiveStatus}
                     </span>
-                    {baseStatus === 'SUCCEEDED' && (
+                    {effectiveStatus === 'SUCCEEDED' && (
                       <button
                         onClick={() => handleQueueBaseProposal(baseProposal)}
                         disabled={executingProposals.has(baseProposal.id) || isPending}
