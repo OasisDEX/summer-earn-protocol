@@ -528,4 +528,216 @@ contract CrossChainFleetProxyTest is Test {
             })
         );
     }
+
+    //----------------- NotifySourceChain Tests -----------------//
+
+    function test_NotifySourceChain_CorrectMessage() public {
+        // First, deposit some assets to the fleet to have something to notify about
+        uint256 depositAmount = 1000;
+        _depositAssetsToFleet(depositAmount);
+
+        // Verify the fleet has assets
+        uint256 expectedFleetAssets = fleetCommanderMock.convertToAssets(
+            fleetCommanderMock.balanceOf(address(proxy))
+        );
+        assertEq(
+            expectedFleetAssets,
+            depositAmount,
+            "Fleet should have the deposited assets"
+        );
+
+        // Get the latest transfer ID that should be set after the deposit
+        bytes32 expectedTransferId = proxy.latestIncomingTransferId();
+        assertTrue(
+            expectedTransferId != bytes32(0),
+            "Transfer ID should be set after deposit"
+        );
+
+        // Clear any previous message calls
+        mockBridgeRouter.clearCalls();
+        uint256 initialMessageCallCount = mockBridgeRouter
+            .getMessageCallCount();
+
+        // Give the governor some ETH for the transaction
+        vm.deal(governor, 1 ether);
+
+        // Call notifySourceChain
+        vm.prank(governor);
+        proxy.notifySourceChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Verify a message was sent
+        uint256 finalMessageCallCount = mockBridgeRouter.getMessageCallCount();
+        assertEq(
+            finalMessageCallCount,
+            initialMessageCallCount + 1,
+            "Should have sent one message"
+        );
+
+        // Get the last message call
+        (
+            uint16 destinationChainId,
+            address target,
+            bytes memory message
+        ) = mockBridgeRouter.messageCalls(finalMessageCallCount - 1);
+
+        // Verify the destination chain ID
+        assertEq(
+            destinationChainId,
+            SOURCE_CHAIN_ID,
+            "Should send to source chain"
+        );
+
+        // Verify the target is the source ark
+        address expectedTarget = registry.getSourceForTarget(
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            address(proxy),
+            keccak256("ARK_FLEET_RELATIONSHIP")
+        );
+        assertEq(target, expectedTarget, "Target should be the source ark");
+
+        // Decode and verify the message content
+        (uint256 fleetAssets, bytes32 transferId) = abi.decode(
+            message,
+            (uint256, bytes32)
+        );
+
+        // Verify the fleet assets amount
+        assertEq(
+            fleetAssets,
+            expectedFleetAssets,
+            "Message should contain correct fleet assets amount"
+        );
+        assertEq(
+            fleetAssets,
+            depositAmount,
+            "Fleet assets should equal deposit amount"
+        );
+
+        // Verify the transfer ID
+        assertEq(
+            transferId,
+            expectedTransferId,
+            "Message should contain correct transfer ID"
+        );
+    }
+
+    function test_NotifySourceChain_ZeroFleetAssets() public {
+        // Don't deposit any assets - fleet should have zero assets
+        uint256 expectedFleetAssets = fleetCommanderMock.convertToAssets(
+            fleetCommanderMock.balanceOf(address(proxy))
+        );
+        assertEq(
+            expectedFleetAssets,
+            0,
+            "Fleet should have zero assets initially"
+        );
+
+        // Clear any previous message calls
+        mockBridgeRouter.clearCalls();
+        uint256 initialMessageCallCount = mockBridgeRouter
+            .getMessageCallCount();
+
+        // Give the governor some ETH for the transaction
+        vm.deal(governor, 1 ether);
+
+        // Call notifySourceChain
+        vm.prank(governor);
+        proxy.notifySourceChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Verify a message was sent
+        uint256 finalMessageCallCount = mockBridgeRouter.getMessageCallCount();
+        assertEq(
+            finalMessageCallCount,
+            initialMessageCallCount + 1,
+            "Should have sent one message"
+        );
+
+        // Get the last message call
+        (, , bytes memory message) = mockBridgeRouter.messageCalls(
+            finalMessageCallCount - 1
+        );
+
+        // Decode and verify the message content
+        (uint256 fleetAssets, bytes32 transferId) = abi.decode(
+            message,
+            (uint256, bytes32)
+        );
+
+        // Verify the fleet assets amount is zero
+        assertEq(fleetAssets, 0, "Message should contain zero fleet assets");
+        assertEq(
+            fleetAssets,
+            expectedFleetAssets,
+            "Fleet assets should match expected zero amount"
+        );
+
+        // Verify the transfer ID (should be zero since no transfers have occurred)
+        assertEq(
+            transferId,
+            bytes32(0),
+            "Transfer ID should be zero when no transfers have occurred"
+        );
+    }
+
+    function test_NotifySourceChain_UnauthorizedCaller() public {
+        // Try to call notifySourceChain from unauthorized address
+        address unauthorizedCaller = address(0x123);
+        vm.deal(unauthorizedCaller, 1 ether);
+        vm.prank(unauthorizedCaller);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotKeeper(address)",
+                unauthorizedCaller
+            )
+        );
+        proxy.notifySourceChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+    }
+
+    function test_NotifySourceChain_WhenPaused() public {
+        // Pause the proxy
+        vm.prank(guardian);
+        proxy.pause();
+        assertTrue(proxy.paused(), "Proxy should be paused");
+
+        // Give the governor some ETH for the transaction
+        vm.deal(governor, 1 ether);
+
+        // Try to call notifySourceChain when paused
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        proxy.notifySourceChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+    }
 }

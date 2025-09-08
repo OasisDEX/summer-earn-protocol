@@ -56,6 +56,9 @@ interface ICrossChainArk is IInflightAssetTracking {
     /// @notice Thrown when there are pending transfer params already queued.
     error PendingTransferAlreadyQueued();
 
+    /// @notice Thrown when the latest outgoing transfer ID has not arrived.
+    error LatestOutgoingTransferNotArrived(bytes32 latestOutgoingTransferId);
+
     /// @notice Emitted when a message is not expected
     event MessageContentNotExpected();
 

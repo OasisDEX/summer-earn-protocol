@@ -45,6 +45,9 @@ contract CrossChainArk is
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
 
+    /// @notice Whether the latest outgoing transfer ID has arrived
+    bool public latestOutgoingTransferArrived;
+
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
 
@@ -148,9 +151,7 @@ contract CrossChainArk is
         uint256 amount,
         bytes calldata executeTransferParams
     ) internal override {
-        if (pendingTransferParams.asset != address(0)) {
-            revert PendingTransferAlreadyQueued();
-        }
+        _assertCanBoardOrDisembark();
         address proxyAddress = _getTargetProxy();
 
         (
@@ -202,9 +203,7 @@ contract CrossChainArk is
      * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
     function _disembark(uint256 amount, bytes calldata) internal view override {
-        if (pendingTransferParams.asset != address(0)) {
-            revert PendingTransferAlreadyQueued();
-        }
+        _assertCanBoardOrDisembark();
         // Ensure we have enough assets on the contract
         uint256 availableAssets = config.asset.balanceOf(address(this));
         if (availableAssets < amount) {
@@ -269,6 +268,9 @@ contract CrossChainArk is
         }
 
         lastRemoteAssetBalance = newRemoteBalance;
+        if (!latestOutgoingTransferArrived) {
+            latestOutgoingTransferArrived = true;
+        }
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -278,6 +280,23 @@ contract CrossChainArk is
         if (inflightAssets > 0) {
             inflightAssets = 0;
             emit InflightAssetsUpdated(0);
+        }
+    }
+
+    /**
+     * @notice Asserts that the board or disembark can be performed
+     * @dev This function asserts that the pending transfer params are not already queued
+     * and that the latest outgoing transfer has arrived ( ark received)
+     */
+    function _assertCanBoardOrDisembark() internal view {
+        if (pendingTransferParams.asset != address(0)) {
+            revert PendingTransferAlreadyQueued();
+        }
+        if (
+            latestOutgoingTransferId != bytes32(0) &&
+            !latestOutgoingTransferArrived
+        ) {
+            revert LatestOutgoingTransferNotArrived(latestOutgoingTransferId);
         }
     }
 
