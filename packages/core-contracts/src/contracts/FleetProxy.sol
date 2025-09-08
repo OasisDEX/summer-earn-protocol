@@ -287,9 +287,9 @@ contract FleetProxy is
             revert InvalidRequestor();
         }
         _handleReceiveAssets(params.asset, params.amount, params.sourceChainId);
-        // Clearing inflight withdrawals here would require an ACK from Ark after it
-        // receives tokens. This contract currently does not receive such ACKs.
-        // A governor can clear via forceUpdateInflightAssets in emergencies.
+        // Clearing inflight withdrawals here would require an on-chain ACK from Ark after it receives tokens;
+        // this contract still does not receive such ACKs in _handleTransferAsset.
+        // Inflight can be cleared via acknowledgeHubReceipt (onlySuperKeeper) or forceUpdateInflightAssets (onlyGovernor).
         latestIncomingTransferId = params.operationId;
     }
 

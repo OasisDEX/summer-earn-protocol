@@ -289,9 +289,6 @@ contract BridgeRouter is
         // Now approve the adapter to spend Router's tokens
         IERC20(params.asset).forceApprove(specifiedAdapter, params.amount);
 
-        // Removed inflight update callbacks to originators. Inflight is now
-        // managed locally by originators with single-flight gating.
-
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
             BridgeTypes.OperationType.TRANSFER_ASSET,
