@@ -8,6 +8,7 @@ import {ISummerVestingWalletFactoryV2} from "../../src/interfaces/ISummerVesting
 import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SummerVestingV2Test is SummerTokenTestBase {
     SummerVestingWalletFactoryV2 public factoryV2;
@@ -604,13 +605,19 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         );
     }
 
-    function testFail_NonFoundationCannotCreateVestingWallet() public {
+    function test_NonFoundationCannotCreateVestingWallet() public {
         ISummerVestingWalletV2.VestingParams
             memory vestingParams = _getTestVestingParams();
         ISummerVestingWalletV2.PerformanceGoal[]
             memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(nonFoundation);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                nonFoundation
+            )
+        );
         factoryV2.createVestingWallet(
             beneficiary,
             vestingParams,
@@ -717,7 +724,7 @@ contract SummerVestingV2Test is SummerTokenTestBase {
         vestingWallet.markGoalReached(1); // This should work
     }
 
-    function testFail_DuplicateVestingWallet() public {
+    function test_DuplicateVestingWallet() public {
         ISummerVestingWalletV2.VestingParams
             memory vestingParams = _getTestVestingParams();
         ISummerVestingWalletV2.PerformanceGoal[]
@@ -729,7 +736,14 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             vestingParams,
             performanceGoals
         );
-
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerVestingWalletFactoryV2
+                    .VestingWalletAlreadyExists
+                    .selector,
+                beneficiary
+            )
+        );
         vm.prank(foundation);
         factoryV2.createVestingWallet(
             beneficiary,
