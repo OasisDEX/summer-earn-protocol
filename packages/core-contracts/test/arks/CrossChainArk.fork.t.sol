@@ -1041,4 +1041,63 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Verify the result
         assertEq(ark.lastRemoteAssetBalance(), mockRemoteBalance);
     }
+
+    function testDisembarkWhileTransferPendingVulnerability() public {
+        // Setup: Fund the ark with initial assets
+        uint256 initialArkBalance = 2000e18; // 2000 tokens
+        deal(address(usdc), address(ark), initialArkBalance);
+
+        // Setup: Fund the FleetCommander with tokens for boarding
+        uint256 fleetCommanderBalance = 2000e18; // 2000 tokens (enough for the transfer)
+        deal(address(usdc), address(commander), fleetCommanderBalance);
+        vm.prank(address(commander));
+        usdc.approve(address(ark), type(uint256).max);
+
+        // Step 1: Initiate a transfer (board) but don't execute it yet
+        uint256 transferAmount = 1500e18; // 1500 tokens to transfer
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(usdc),
+                amount: transferAmount,
+                target: ARB_STARGATE_PROXY,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(stargateAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
+
+        // Board the transfer (this queues it but doesn't execute)
+        vm.prank(address(commander));
+        ark.board(transferAmount, executeTransferParams);
+
+        // Step 2: Disembark a significant amount from the ark
+        // This reduces the ark's local balance below what's needed for the pending transfer
+        uint256 disembarkAmount = 2500e18; // Disembark more than enough to create insufficient balance
+        vm.prank(address(commander));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainArk.PendingTransferAlreadyQueued.selector
+            )
+        );
+        ark.disembark(disembarkAmount, bytes("keeper_data")); // CrossChainArk requires keeper data
+
+        deal(keeper, 10000000000000000);
+        // Step 3: This test EXPECTS the transfer to succeed
+        vm.prank(keeper);
+        ark.executeTransferAssets{value: 10000000000000000}();
+
+        (, , , address assetAfterExecution, , , ) = ark.pendingTransferParams();
+        assertTrue(
+            assetAfterExecution == address(0),
+            "Transfer should have succeeded"
+        );
+    }
 }

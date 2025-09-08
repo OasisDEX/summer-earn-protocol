@@ -202,6 +202,9 @@ contract CrossChainArk is
      * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
     function _disembark(uint256 amount, bytes calldata) internal view override {
+        if (pendingTransferParams.asset != address(0)) {
+            revert PendingTransferAlreadyQueued();
+        }
         // Ensure we have enough assets on the contract
         uint256 availableAssets = config.asset.balanceOf(address(this));
         if (availableAssets < amount) {
