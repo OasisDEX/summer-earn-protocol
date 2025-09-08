@@ -297,6 +297,15 @@ contract CrossChainFleetProxyTest is Test {
                 )
             )
         );
+        uint fleetProxyAssets = proxy.totalAssets();
+
+        uint256 expectedFleetProxyShares = fleetCommanderMock.balanceOf(
+            address(proxy)
+        );
+        uint256 expectedFleetProxyAssets = fleetCommanderMock.convertToAssets(
+            expectedFleetProxyShares
+        );
+        assertEq(fleetProxyAssets, expectedFleetProxyAssets);
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
 

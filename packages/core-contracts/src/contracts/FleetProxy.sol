@@ -93,9 +93,12 @@ contract FleetProxy is
     }
 
     /// @inheritdoc IFleetProxy
-    function totalAssets() external view returns (uint256) {
-        return
-            IFleetCommander(fleetAddress).totalAssets() + inflightWithdrawals;
+    function totalAssets() external view returns (uint256 _totalAssets) {
+        uint256 fleetShares = IFleetCommander(fleetAddress).totalAssets();
+        uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
+            fleetShares
+        );
+        _totalAssets = fleetAssets + inflightWithdrawals;
     }
 
     /// @inheritdoc IFleetProxy
