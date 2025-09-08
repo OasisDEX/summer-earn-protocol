@@ -127,8 +127,8 @@ export function calculateProposalTiming(proposal: {
     nextPhase = 'succeeded'
     nextPhaseTime = votingEndTime
   } else if (
-    baseStatus === 'active' ||
-    (baseStatus === 'pending' && currentTime >= votingStartTime)
+    (baseStatus === 'active' || (baseStatus === 'pending' && currentTime >= votingStartTime)) &&
+    currentTime < votingEndTime
   ) {
     // Active voting
     phase = 'active'
@@ -136,6 +136,16 @@ export function calculateProposalTiming(proposal: {
     progressPercentage = ((currentTime - votingStartTime) / GOVERNANCE_TIMING.VOTING_PERIOD) * 100
     nextPhase = 'succeeded'
     nextPhaseTime = votingEndTime
+  } else if (
+    (baseStatus === 'active' || (baseStatus === 'pending' && currentTime >= votingStartTime)) &&
+    currentTime >= votingEndTime
+  ) {
+    // Voting period ended, should be succeeded
+    phase = 'succeeded'
+    timeRemaining = 0
+    progressPercentage = 100
+    nextPhase = 'queued'
+    nextPhaseTime = timelockStartTime
   } else if (baseStatus === 'succeeded') {
     // Voting succeeded, waiting for timelock
     phase = 'succeeded'
