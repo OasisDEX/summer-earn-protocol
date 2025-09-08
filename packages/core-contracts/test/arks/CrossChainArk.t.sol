@@ -15,7 +15,6 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
@@ -535,27 +534,51 @@ contract CrossChainArkTest is Test, ArkTestBase {
         bytes32 requestId = keccak256("inflight-reset-test");
         uint16 sourceChain = TARGET_CHAIN_ID;
 
+        // Queue and execute a transfer to create inflight for an operation
+        uint256 inflightAmount = 500;
+        deal(address(mockToken), address(fleetCommander), inflightAmount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+
+        BridgeTypes.ExecuteTransferParams memory xferParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: inflightAmount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+
+        bytes memory executeTransferParams = abi.encode(
+            xferParams,
+            defaultOptions
+        );
+        vm.prank(address(fleetCommander));
+        ark.board(inflightAmount, executeTransferParams);
+
+        vm.prank(keeper);
+        ark.executeTransferAssets();
+
+        bytes32 opId = ark.latestOutgoingTransferId();
+
+        // Now craft a state-read response that acknowledges the transfer opId
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             requestId,
             address(proxy),
             address(ark),
             remoteBalance,
             TARGET_CHAIN_ID,
-            bytes32(0) // latestOutgoingTransferId is not set yet
+            opId
         );
 
-        // Set some inflight assets first
-        vm.prank(address(router));
-        ark.updateInflightAssets(500);
-        assertEq(
-            ark.inflightAssets(),
-            500,
-            "Setup: inflight assets should be 500"
-        );
-
-        // Receive state read should reset inflight assets
+        // Expect remote balance update and inflight cleared for that opId
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(remoteBalance, requestId);
+
+        vm.expectEmit(true, true, true, true);
+        emit CrossChainArk.InflightCleared(opId, inflightAmount);
 
         vm.prank(address(router));
         ark.receiveOperation(
@@ -564,9 +587,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
         );
 
         assertEq(
-            ark.inflightAssets(),
+            ark.totalInflight(),
             0,
-            "Inflight assets should be reset after state read"
+            "Inflight should be cleared after read"
         );
         assertEq(ark.lastRemoteAssetBalance(), remoteBalance);
     }
@@ -651,9 +674,31 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Setup inflight assets
-        vm.prank(address(router));
-        ark.updateInflightAssets(inflightAmount);
+        // Setup inflight assets by queueing and executing a transfer
+        deal(address(mockToken), address(fleetCommander), inflightAmount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+
+        BridgeTypes.ExecuteTransferParams memory xferParams = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: inflightAmount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+
+        bytes memory executeTransferParams = abi.encode(
+            xferParams,
+            defaultOptions
+        );
+        vm.prank(address(fleetCommander));
+        ark.board(inflightAmount, executeTransferParams);
+
+        vm.prank(keeper);
+        ark.executeTransferAssets();
 
         // Test total assets calculation
         uint256 expectedTotal = localBalance + remoteBalance + inflightAmount;

@@ -81,30 +81,6 @@ contract CrossChainArk is
     }
 
     /*//////////////////////////////////////////////////////////////
-                        EXTERNAL GOVERNOR FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Force update the inflight assets amount (emergency governance function)
-    /// @param amount Amount of assets to set as in-flight
-    /// @dev This is an emergency function that allows governance to manually correct inflight asset tracking
-    /// in case of bridge failures or accounting discrepancies
-    function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
-        // Forward-only: update the new total inflight tracker
-        totalInflight = amount;
-        emit InflightAssetsUpdated(amount);
-    }
-
-    /// @notice Updates the inflight assets amount when a bridge operation is executed
-    /// @param amount Amount of assets that are now in-flight
-    function updateInflightAssets(uint256 amount) external {
-        // Only the bridge router should be able to call this
-        if (msg.sender != bridgeRouter()) {
-            revert Unauthorized();
-        }
-        // Forward-only: legacy hook is a no-op
-    }
-
-    /*//////////////////////////////////////////////////////////////
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -134,7 +110,7 @@ contract CrossChainArk is
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure override(CrossChainReceiverBase, IERC165) returns (bool) {
+    ) external pure override(CrossChainReceiverBase) returns (bool) {
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||

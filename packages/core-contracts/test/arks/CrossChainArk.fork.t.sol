@@ -15,7 +15,6 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
@@ -576,23 +575,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // === STEP 1: Setup initial state ===
         uint256 initialLocalBalance = 500 * 10 ** 6; // 500 USDC local
-        uint256 initialInflightAssets = 200 * 10 ** 6; // 200 USDC in flight
+        // Inflight is per-operation in the new model; start with none
         uint256 mockRemoteBalance = 1000 * 10 ** 6; // 1000 USDC remote (what we'll "read")
 
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
-
         // Verify initial state
-        assertEq(
-            ark.totalAssets(),
-            initialLocalBalance + initialInflightAssets
-        );
+        assertEq(ark.totalAssets(), initialLocalBalance);
         assertEq(ark.lastRemoteAssetBalance(), 0);
-        assertEq(ark.inflightAssets(), initialInflightAssets);
+        assertEq(ark.inflightAssets(), 0);
 
         // === STEP 2: Create bridge options for LayerZero adapter ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -634,18 +626,11 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
-
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
             mockRemoteBalance,
             params.operationId
         );
-
-        vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
 
         // Simulate the adapter calling deliver()
         vm.prank(address(layerZeroAdapter));
@@ -669,11 +654,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             mockRemoteBalance,
             "Remote balance should be updated"
         );
-        assertEq(
-            ark.inflightAssets(),
-            0,
-            "Inflight assets should be reset to 0"
-        );
+        // Inflight remains unchanged without an acknowledgement id; legacy counter is 0
+        assertEq(ark.inflightAssets(), 0);
 
         // Check total assets calculation
         uint256 expectedTotalAssets = initialLocalBalance +
@@ -688,7 +670,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 7: Verify integration completed successfully ===
         emit log_named_bytes32("Operation ID", params.operationId);
         emit log_named_uint("Initial Local Balance", initialLocalBalance);
-        emit log_named_uint("Initial Inflight Assets", initialInflightAssets);
+        emit log_named_uint("Initial Inflight Assets", 0);
         emit log_named_uint("Mock Remote Balance", mockRemoteBalance);
         emit log_named_uint("Final Total Assets", ark.totalAssets());
         emit log_string(
@@ -700,11 +682,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Test error handling in the read state integration flow
 
         uint256 mockRemoteBalance = 2500 * 10 ** 6; // 2500 USDC
-        uint256 initialInflight = 100 * 10 ** 6; // 100 USDC
+        uint256 initialInflight = 0;
 
-        // Setup initial state
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflight);
+        // Setup initial state (no inflight in new model)
 
         // === STEP 1: Request remote balance update directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -825,23 +805,16 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // === STEP 1: Setup initial state ===
         uint256 initialLocalBalance = 300 * 10 ** 6; // 300 USDC local
-        uint256 initialInflightAssets = 150 * 10 ** 6; // 150 USDC in flight
+        // Inflight is per-operation in the new model; start with none
         uint256 mockRemoteBalance = 2000 * 10 ** 6; // 2000 USDC remote (what we'll "read")
 
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
-
         // Verify initial state
-        assertEq(
-            ark.totalAssets(),
-            initialLocalBalance + initialInflightAssets
-        );
+        assertEq(ark.totalAssets(), initialLocalBalance);
         assertEq(ark.lastRemoteAssetBalance(), 0);
-        assertEq(ark.inflightAssets(), initialInflightAssets);
+        assertEq(ark.inflightAssets(), 0);
 
         // === STEP 2: Create bridge options for LayerZero adapter ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -914,8 +887,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             TEST_OP_ID
         );
 
-        vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        // No inflight acknowledgement provided; no inflight event expected
 
         // Simulate LayerZero endpoint calling lzReceive on the adapter
         // The adapter should recognize this as a read response and call deliver()
@@ -960,11 +932,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             mockRemoteBalance,
             "Remote balance should be updated after LayerZero response"
         );
-        assertEq(
-            ark.inflightAssets(),
-            0,
-            "Inflight assets should be reset to 0 after state read"
-        );
+        assertEq(ark.inflightAssets(), 0);
 
         // Check total assets calculation
         uint256 expectedTotalAssets = initialLocalBalance +
@@ -980,7 +948,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         emit log_named_bytes32("Operation ID", TEST_OP_ID);
         emit log_named_bytes32("Mock LayerZero GUID", mockGuid);
         emit log_named_uint("Initial Local Balance", initialLocalBalance);
-        emit log_named_uint("Initial Inflight Assets", initialInflightAssets);
+        emit log_named_uint("Initial Inflight Assets", 0);
         emit log_named_uint("Mock Remote Balance", mockRemoteBalance);
         emit log_named_uint("Final Total Assets", ark.totalAssets());
         emit log_named_uint("Read Response EID", readResponseEid);

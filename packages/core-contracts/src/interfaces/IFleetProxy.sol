@@ -73,6 +73,12 @@ interface IFleetProxy is ICrossChainReceiver {
         uint16 sourceChainId
     );
 
+    /**
+     * @notice Emitted when inflight withdrawals are updated
+     * @param amount The new amount of in-flight withdrawals
+     */
+    event InflightWithdrawalsUpdated(uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                             ERRORS
     //////////////////////////////////////////////////////////////*/

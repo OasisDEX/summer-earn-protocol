@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IInflightAssetTracking} from "./IInflightAssetTracking.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
  * @title ICrossChainArk
  * @notice Interface for the CrossChainArk contract which manages cross-chain assets
- * @dev Extends IInflightAssetTracking for consistent inflight asset management
  */
-interface ICrossChainArk is IInflightAssetTracking {
+interface ICrossChainArk {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -91,4 +89,7 @@ interface ICrossChainArk is IInflightAssetTracking {
         bytes32 latestTransferReceivedInFleetProxy,
         bytes32 latestOutgoingTransferId
     );
+
+    /// @notice Emitted when inflight assets are updated.
+    event InflightAssetsUpdated(uint256 amount);
 }

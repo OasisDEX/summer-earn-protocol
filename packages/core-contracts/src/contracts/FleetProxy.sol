@@ -11,7 +11,6 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
 import {CrossChainReceiverBase} from "@summerfi/chain-bridge/base/CrossChainReceiverBase.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
@@ -27,7 +26,6 @@ contract FleetProxy is
     ProtocolAccessManaged,
     CrossChainConfigManaged,
     CrossChainReceiverBase,
-    IInflightAssetTracking,
     IFleetProxy,
     Pausable,
     ReentrancyGuard
@@ -111,25 +109,6 @@ contract FleetProxy is
         _unpause();
     }
 
-    /// @notice Force update the inflight withdrawals amount (emergency governance function)
-    /// @param amount Amount of withdrawal assets to set as in-flight
-    /// @dev This is an emergency function that allows governance to manually correct inflight withdrawal tracking
-    /// in case of bridge failures or accounting discrepancies
-    function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
-        inflightWithdrawals = amount;
-        emit InflightAssetsUpdated(amount);
-    }
-
-    /// @inheritdoc IInflightAssetTracking
-    function updateInflightAssets(uint256 amount) external {
-        // Only the bridge router should be able to call this
-        if (msg.sender != address(bridgeRouter())) {
-            revert Unauthorized();
-        }
-        // Intentionally no-op: avoid overwriting additive accounting performed locally
-        // We keep the function for backwards compatibility with the router interface.
-    }
-
     /// @notice Keeper function to withdraw and transfer assets
     /// @param amount The amount of assets to withdraw
     /// @param options The bridge options
@@ -183,7 +162,7 @@ contract FleetProxy is
         // 7. Track inflight withdrawals and emit per-operation event
         inflightWithdrawalByOperation[operationId] += amount;
         inflightWithdrawals += amount;
-        emit InflightAssetsUpdated(inflightWithdrawals);
+        emit InflightWithdrawalsUpdated(inflightWithdrawals);
         emit InflightIncreased(operationId, amount);
 
         emit AssetsWithdrawnAndTransferred(
@@ -221,7 +200,6 @@ contract FleetProxy is
     ) external pure override(CrossChainReceiverBase, IERC165) returns (bool) {
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
-            interfaceId == type(IInflightAssetTracking).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 
@@ -376,6 +354,8 @@ contract FleetProxy is
     /// @notice Emitted when inflight is cleared for an operationId (placeholder until decrement path exists)
     event InflightCleared(bytes32 operationId, uint256 amount);
 
+    event InflightAssetsUpdated(uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                             KEEPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -395,6 +375,6 @@ contract FleetProxy is
                 emit InflightCleared(opId, amount);
             }
         }
-        emit InflightAssetsUpdated(inflightWithdrawals);
+        emit InflightWithdrawalsUpdated(inflightWithdrawals);
     }
 }
