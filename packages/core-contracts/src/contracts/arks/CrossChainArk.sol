@@ -45,9 +45,6 @@ contract CrossChainArk is
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
 
-    /// @notice Whether the latest outgoing transfer ID has arrived
-    bool public latestOutgoingTransferArrived;
-
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
 
@@ -268,9 +265,6 @@ contract CrossChainArk is
         }
 
         lastRemoteAssetBalance = newRemoteBalance;
-        if (!latestOutgoingTransferArrived) {
-            latestOutgoingTransferArrived = true;
-        }
         emit RemoteAssetBalanceUpdated(
             lastRemoteAssetBalance,
             params.operationId
@@ -292,10 +286,7 @@ contract CrossChainArk is
         if (pendingTransferParams.asset != address(0)) {
             revert PendingTransferAlreadyQueued();
         }
-        if (
-            latestOutgoingTransferId != bytes32(0) &&
-            !latestOutgoingTransferArrived
-        ) {
+        if (inflightAssets > 0) {
             revert LatestOutgoingTransferNotArrived(latestOutgoingTransferId);
         }
     }
