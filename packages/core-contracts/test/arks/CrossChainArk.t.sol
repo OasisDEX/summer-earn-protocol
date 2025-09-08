@@ -544,9 +544,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
-        // Set some inflight assets first
-        vm.prank(address(router));
-        ark.updateInflightAssets(500);
+        // Set some inflight assets first (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(500);
         assertEq(
             ark.inflightAssets(),
             500,
@@ -651,9 +651,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Setup inflight assets
-        vm.prank(address(router));
-        ark.updateInflightAssets(inflightAmount);
+        // Setup inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(inflightAmount);
 
         // Test total assets calculation
         uint256 expectedTotal = localBalance + remoteBalance + inflightAmount;

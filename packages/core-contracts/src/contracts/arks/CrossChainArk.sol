@@ -141,19 +141,6 @@ contract CrossChainArk is
             interfaceId == type(IERC165).interfaceId;
     }
 
-    /**
-     * @notice Maintained for compatibility after removal of IInflightAssetTracking in tests.
-     * @dev Only the bridge router may call this in tests/integration setups.
-     */
-    function updateInflightAssets(uint256 amount) external {
-        if (msg.sender != bridgeRouter()) {
-            revert Unauthorized();
-        }
-        inflightAssets = amount;
-        lastSentAmount = amount;
-        emit InflightSet(amount, bytes32(0));
-    }
-
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/

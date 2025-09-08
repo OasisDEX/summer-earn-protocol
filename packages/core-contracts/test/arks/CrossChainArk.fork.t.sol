@@ -645,9 +645,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         // Verify initial state
         assertEq(
@@ -697,9 +697,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
@@ -765,9 +765,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint256 mockRemoteBalance = 2500 * 10 ** 6; // 2500 USDC
         uint256 initialInflight = 100 * 10 ** 6; // 100 USDC
 
-        // Setup initial state
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflight);
+        // Setup initial state (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflight);
 
         // === STEP 1: Request remote balance update directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -894,9 +894,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         // Verify initial state
         assertEq(
