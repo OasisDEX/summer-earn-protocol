@@ -11,7 +11,6 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
 import {CrossChainReceiverBase} from "@summerfi/chain-bridge/base/CrossChainReceiverBase.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
@@ -27,7 +26,6 @@ contract FleetProxy is
     ProtocolAccessManaged,
     CrossChainConfigManaged,
     CrossChainReceiverBase,
-    IInflightAssetTracking,
     IFleetProxy,
     Pausable,
     ReentrancyGuard
@@ -113,20 +111,19 @@ contract FleetProxy is
     /// @dev This is an emergency function that allows governance to manually correct inflight withdrawal tracking
     /// in case of bridge failures or accounting discrepancies
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
+        uint256 previous = inflightWithdrawals;
         inflightWithdrawals = amount;
-        emit InflightAssetsUpdated(amount);
-    }
-
-    /// @inheritdoc IInflightAssetTracking
-    function updateInflightAssets(uint256 amount) external {
-        // Only the bridge router should be able to call this
-        if (msg.sender != address(bridgeRouter())) {
-            revert Unauthorized();
+        if (amount == 0) {
+            emit InflightCleared(bytes32(0), previous);
+        } else {
+            emit InflightSet(amount, bytes32(0));
         }
-
-        inflightWithdrawals = amount;
-        emit InflightAssetsUpdated(amount);
     }
+
+    /// @notice Emitted when inflight withdrawals are set locally
+    event InflightSet(uint256 amount, bytes32 operationId);
+    /// @notice Emitted when inflight withdrawals are cleared
+    event InflightCleared(bytes32 operationId, uint256 amount);
 
     /// @notice Keeper function to withdraw and transfer assets
     /// @param amount The amount of assets to withdraw
@@ -139,6 +136,7 @@ contract FleetProxy is
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
         if (amount == 0) revert NoAssets();
+        if (inflightWithdrawals != 0) revert InFlight();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
 
         // 1. Get the asset from fleet contract
@@ -158,9 +156,8 @@ contract FleetProxy is
         if (IERC20(asset).balanceOf(address(this)) < amount)
             revert WithdrawalFailed();
 
-        // 4. Track inflight withdrawals before bridging
-        inflightWithdrawals += amount;
-        emit InflightAssetsUpdated(inflightWithdrawals);
+        // 4. Track inflight withdrawals before bridging (single-flight semantics)
+        inflightWithdrawals = amount;
 
         // 5. Approve the bridge router to transfer the assets
         IERC20(asset).forceApprove(address(bridgeRouter), amount);
@@ -178,7 +175,12 @@ contract FleetProxy is
             });
 
         // 7. Execute the cross-chain transfer back to the Ark on the hub chain
-        bridgeRouter.executeTransferAssets{value: msg.value}(params, options);
+        bytes32 opId = bridgeRouter.executeTransferAssets{value: msg.value}(
+            params,
+            options
+        );
+
+        emit InflightSet(inflightWithdrawals, opId);
 
         emit AssetsWithdrawnAndTransferred(
             params.amount,
@@ -215,7 +217,6 @@ contract FleetProxy is
     ) external pure override(CrossChainReceiverBase, IERC165) returns (bool) {
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
-            interfaceId == type(IInflightAssetTracking).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 
@@ -275,6 +276,9 @@ contract FleetProxy is
             revert InvalidRequestor();
         }
         _handleReceiveAssets(params.asset, params.amount, params.sourceChainId);
+        // Clearing inflight withdrawals here would require an ACK from Ark after it
+        // receives tokens. This contract currently does not receive such ACKs.
+        // A governor can clear via forceUpdateInflightAssets in emergencies.
         latestIncomingTransferId = params.operationId;
     }
 
@@ -359,4 +363,7 @@ contract FleetProxy is
         // Emit an event for tracking
         emit ProxyDeposit(fleetAddress, asset, amount, _hubChainId);
     }
+
+    /// @notice Custom error for single-flight gating
+    error InFlight();
 }

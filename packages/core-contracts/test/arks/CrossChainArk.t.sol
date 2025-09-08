@@ -15,13 +15,14 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
+// IInflightAssetTracking removed; tests adjusted to new events
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
+    event InflightCleared(bytes32 operationId, uint256 amount);
     CrossChainArk ark;
     MockBridgeRouter router;
     CrossChainRegistry registry;
@@ -553,9 +554,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             "Setup: inflight assets should be 500"
         );
 
-        // Receive state read should reset inflight assets
+        // Receive state read should reset inflight assets (new event semantics)
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(requestId, 500);
 
         vm.prank(address(router));
         ark.receiveOperation(

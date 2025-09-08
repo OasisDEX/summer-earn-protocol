@@ -15,7 +15,6 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
@@ -24,6 +23,7 @@ import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICross
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
+    event InflightCleared(bytes32 operationId, uint256 amount);
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
 
@@ -708,7 +708,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(params.operationId, initialInflightAssets);
 
         // Simulate the adapter calling deliver()
         vm.prank(address(layerZeroAdapter));
@@ -978,7 +978,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(TEST_OP_ID, initialInflightAssets);
 
         // Simulate LayerZero endpoint calling lzReceive on the adapter
         // The adapter should recognize this as a read response and call deliver()
