@@ -64,11 +64,7 @@ contract CrossChainArk is
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Enforces serial single-flight: blocks new outbound while inflight > 0
-    modifier singleFlight() {
-        if (inflightAssets != 0) revert InFlight();
-        _;
-    }
+    // singleFlight modifier removed in favor of explicit assertions for clarity
 
     /**
      * @notice Constructor to set up the CrossChainArk
@@ -154,9 +150,7 @@ contract CrossChainArk is
         uint256 amount,
         bytes calldata executeTransferParams
     ) internal override {
-        if (pendingTransferParams.asset != address(0)) {
-            revert PendingTransferAlreadyQueued();
-        }
+        _assertCanBoardOrDisembark();
         address proxyAddress = _getTargetProxy();
 
         (
@@ -180,9 +174,8 @@ contract CrossChainArk is
         pendingTransferOptions = options;
     }
 
-    function executeTransferAssets() external payable onlyKeeper singleFlight {
-        if (pendingTransferParams.asset == address(0))
-            revert NoPendingTransferQueued();
+    function executeTransferAssets() external payable onlyKeeper {
+        _assertCanExecuteTransfer();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
         config.asset.approve(
             address(bridgeRouter),
@@ -212,6 +205,7 @@ contract CrossChainArk is
      * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
     function _disembark(uint256 amount, bytes calldata) internal view override {
+        _assertCanBoardOrDisembark();
         // Ensure we have enough assets on the contract
         uint256 availableAssets = config.asset.balanceOf(address(this));
         if (availableAssets < amount) {
@@ -319,6 +313,28 @@ contract CrossChainArk is
     error InvalidSender();
     /// @notice Error thrown when trying to start a new outbound while inflight > 0
     error InFlight();
+
+    /**
+     * @notice Ensures no inflight transfer and no pending queued transfer exists
+     * @dev Used to gate both boarding and disembarking flows
+     */
+    function _assertCanBoardOrDisembark() internal view {
+        if (inflightAssets != 0) revert InFlight();
+        if (pendingTransferParams.asset != address(0)) {
+            revert PendingTransferAlreadyQueued();
+        }
+    }
+
+    /**
+     * @notice Ensures ready for executing a pending transfer: no inflight and has pending
+     * @dev Used to gate executeTransferAssets
+     */
+    function _assertCanExecuteTransfer() internal view {
+        if (inflightAssets != 0) revert InFlight();
+        if (pendingTransferParams.asset == address(0)) {
+            revert NoPendingTransferQueued();
+        }
+    }
 
     /**
      * @notice Gets the target proxy address from the registry

@@ -146,8 +146,7 @@ contract FleetProxy is
         uint amount,
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
-        if (amount == 0) revert NoAssets();
-        if (inflightWithdrawals != 0) revert InFlight();
+        _assertCanWithdraw(amount);
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
 
         // 1. Get the asset from fleet contract
@@ -373,6 +372,15 @@ contract FleetProxy is
 
         // Emit an event for tracking
         emit ProxyDeposit(fleetAddress, asset, amount, _hubChainId);
+    }
+
+    /**
+     * @notice Validates preconditions before withdrawing from fleet
+     * @param amount The amount requested to withdraw
+     */
+    function _assertCanWithdraw(uint256 amount) internal view {
+        if (amount == 0) revert NoAssets();
+        if (inflightWithdrawals != 0) revert InFlight();
     }
 
     /// @notice Custom error for single-flight gating
