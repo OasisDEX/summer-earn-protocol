@@ -175,11 +175,11 @@ export function handleShareTransfer(event: TransferEvent): void {
 
   const fromDetails = getPositionDetails(updatedVault, event.params.from, vaultDetails, event.block)
   updatePosition(fromDetails, event.block, null)
-  createWithdrawEventEntity(event, fromDetails, null)
+  createWithdrawEventEntity(event, fromDetails, null, true)
 
   const toDetails = getPositionDetails(updatedVault, event.params.to, vaultDetails, event.block)
   updatePosition(toDetails, event.block, null)
-  createDepositEventEntity(event, toDetails, null)
+  createDepositEventEntity(event, toDetails, null, true)
 }
 
 // withdaraw already handled in handleWithdraw
