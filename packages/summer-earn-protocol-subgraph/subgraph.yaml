@@ -1,14 +1,19 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
+features:
+  - grafting
+graft:
+  base: QmPfSxJ5L4v7G3Ttjki4wXYYqcvFYh7ELGqP1QckeMAvnw
+  block: 45585548
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: arbitrum-one
+    network: sonic-mainnet
     source:
       abi: HarborCommand
-      address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
-      startBlock: 301218468
+      address: "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
+      startBlock: 14240190
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -58,15 +63,15 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 240 
+            every: 120 
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: GovernanceRewardsManager
-    network: arbitrum-one
+    network: sonic-mainnet
     source:
       abi: GovernanceRewardsManager
-      address: "0xDe61A0a49f48e108079bdE73caeA56E87FfeEF92"
-      startBlock: 301218468
+      address: "0xA02205E8E0e2dC64f6093b1eF1B2691866A45B95"
+      startBlock: 14240190
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -129,7 +134,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: arbitrum-one
+    network: sonic-mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -217,7 +222,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: arbitrum-one
+    network: sonic-mainnet
     source:
       abi: Ark
     mapping:
@@ -280,7 +285,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: arbitrum-one
+    network: sonic-mainnet
     source:
       abi: FleetCommanderRewardsManager
     mapping:
