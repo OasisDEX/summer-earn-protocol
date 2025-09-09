@@ -10,9 +10,7 @@ This document describes the responsibilities of the BridgeRouter and the contrac
 - Apply a modest fee buffer to quoted fees; pass the collected fee to the adapter; rely on adapters to handle refunds of any excess.
 - Authenticate callbacks from adapters and route deliveries to recipients (e.g., FleetProxy).
 - Provide governance controls for adapter registry and pause/unpause.
-- For asset transfers, pull tokens from the caller (originator contract) and approve the adapter.
-  The originator must approve the router beforehand.
-- Best-effort notify originators that support IInflightAssetTracking to update inflight accounting.
+- For asset transfers, pull tokens from the caller (originator contract) and approve the adapter. The originator must approve the router beforehand.
 
 #### Adapter Selection
 
