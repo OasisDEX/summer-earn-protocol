@@ -55,10 +55,7 @@ abstract contract CrossChainConfigManaged is ICrossChainConfigManaged {
         return CROSS_CHAIN_REGISTRY.bridgeRouter();
     }
 
-    /// @inheritdoc ICrossChainConfigManaged
-    function defaultGasLimit() public view virtual returns (uint256) {
-        return CROSS_CHAIN_REGISTRY.defaultGasLimit();
-    }
+    // defaultGasLimit view removed; callers must pass explicit gas in options
 
     /// @inheritdoc ICrossChainConfigManaged
     function crossChainRegistry() public view virtual returns (address) {

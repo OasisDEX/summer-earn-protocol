@@ -661,37 +661,36 @@ contract LayerZeroAdapter is
     function getRequiredFee(
         uint32 _dstEid,
         BridgeTypes.OperationType operationType,
-        bytes memory _payload
+        bytes memory _payload,
+        uint128 gasLimit
     ) public view returns (uint256 requiredFee) {
-        // Create default options with minimum - use scoping to avoid stack too deep
+        if (gasLimit == 0) revert InvalidParams();
+
+        // Create options with explicit gas limit - no fallback
         bytes memory options;
         {
-            // Create params in limited scope
             BridgeTypes.BridgeOptions memory params = BridgeTypes
                 .BridgeOptions({
                     specifiedAdapter: address(this),
-                    gasLimit: uint64(defaultGasLimit()),
+                    gasLimit: uint64(gasLimit),
                     msgValue: 0,
                     calldataSize: 0,
                     options: bytes("")
                 });
 
             if (operationType == BridgeTypes.OperationType.READ_STATE) {
-                // For state read, create read options with minimum gas
                 options = LayerZeroOptionsHelper.createLzReadOptions(
                     params,
-                    uint128(defaultGasLimit())
+                    gasLimit
                 );
             } else {
-                // For standard messaging, create messaging options with minimum gas
                 options = LayerZeroOptionsHelper.createMessagingOptions(
                     params,
-                    uint128(defaultGasLimit())
+                    gasLimit
                 );
             }
         }
 
-        // Quote the fee with our generated options
         EndpointFee memory quoteFee = _quoteOperationFee(
             _dstEid,
             _payload,

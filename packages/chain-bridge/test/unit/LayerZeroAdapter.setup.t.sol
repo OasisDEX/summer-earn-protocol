@@ -54,8 +54,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
 
-    // Default gas limit for testing
-    uint256 public constant DEFAULT_GAS_LIMIT = 200000;
+    // Default gas limit removed; tests must pass gas in BridgeOptions
 
     function setUp() public virtual override {
         super.setUp();
@@ -103,10 +102,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
 
         // Initialize bridge configuration in registry
-        registryA.initializeBridgeConfiguration(
-            address(routerA),
-            DEFAULT_GAS_LIMIT
-        );
+        registryA.initializeBridgeConfiguration(address(routerA));
 
         // Deploy token and adapter with registry
         tokenA = new ERC20Mock();
@@ -154,10 +150,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
 
         // Initialize bridge configuration in registry
-        registryB.initializeBridgeConfiguration(
-            address(routerB),
-            DEFAULT_GAS_LIMIT
-        );
+        registryB.initializeBridgeConfiguration(address(routerB));
 
         // Deploy token and adapter with registry
         tokenB = new ERC20Mock();

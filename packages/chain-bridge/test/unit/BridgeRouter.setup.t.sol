@@ -43,7 +43,7 @@ contract BridgeRouterSetup is Test {
     uint16 public immutable CURRENT_CHAIN_ID = uint16(block.chainid);
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism in tests
     uint16 public constant SOURCE_CHAIN_ID = 111; // Arbitrary test chain
-    uint256 public constant DEFAULT_GAS_LIMIT = 500000;
+    // default gas limit removed from registry; tests must specify gas in options where required
 
     uint256 public constant INITIAL_ROUTER_BALANCE = 500 ether; // asset tests
     uint256 public constant TRANSFER_AMOUNT = 1000 ether;
@@ -95,10 +95,7 @@ contract BridgeRouterSetup is Test {
         router.registerAdapter(address(mockAdapter));
 
         /* --------- Registry initialisation --------- */
-        registry.initializeBridgeConfiguration(
-            address(router),
-            DEFAULT_GAS_LIMIT
-        );
+        registry.initializeBridgeConfiguration(address(router));
 
         // Only register relationships where one end is CURRENT_CHAIN_ID
 

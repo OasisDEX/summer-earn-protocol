@@ -449,7 +449,7 @@ contract StargateAdapter is
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[asset];
 
-        // Use compose gas limit from adapter params if provided, otherwise use default
+        // Require explicit compose gas limit from adapter params
         uint256 gasLimit = _normalizeGas(options.gasLimit);
 
         // Always include compose options in fee estimation

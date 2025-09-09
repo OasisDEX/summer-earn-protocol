@@ -29,8 +29,7 @@ interface ICrossChainConfigManaged {
     /// @notice Returns the address of the cross chain registry contract
     function crossChainRegistry() external view returns (address);
 
-    /// @notice Returns the gas limit for cross-chain messages
-    function defaultGasLimit() external view returns (uint256);
+    // defaultGasLimit removed; callers must pass explicit gas in options
 
     /// @notice Returns true if the given address is an executor
     function isExecutor(address executor) external view returns (bool);
