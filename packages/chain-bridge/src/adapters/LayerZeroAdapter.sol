@@ -578,7 +578,7 @@ contract LayerZeroAdapter is
         BridgeTypes.BridgeOptions memory options,
         BridgeTypes.OperationType operationType
     ) internal view returns (bytes memory) {
-        uint128 gasLimit = uint128(_normalizeGas(options.gasLimit));
+        uint128 gasLimit = uint128(_requireGasLimit(options.gasLimit));
 
         if (operationType == BridgeTypes.OperationType.READ_STATE) {
             return

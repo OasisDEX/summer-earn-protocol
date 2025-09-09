@@ -390,7 +390,7 @@ contract StargateAdapter is
 
         // Add compose options when compose message is present
         bytes memory extraOptions = composeMsg.length > 0
-            ? _composeOptions(uint128(_normalizeGas(options.gasLimit)))
+            ? _composeOptions(uint128(_requireGasLimit(options.gasLimit)))
             : bytes("");
 
         return
@@ -450,7 +450,7 @@ contract StargateAdapter is
         address stargateContract = assetToStargateContract[asset];
 
         // Require explicit compose gas limit from adapter params
-        uint256 gasLimit = _normalizeGas(options.gasLimit);
+        uint256 gasLimit = _requireGasLimit(options.gasLimit);
 
         // Always include compose options in fee estimation
         bytes memory extraOptions = _composeOptions(uint128(gasLimit));
