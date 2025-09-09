@@ -151,8 +151,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.registerAdapter(address(stargateAdapter));
 
         // Configure Stargate adapter endpoints and relationships
-        stargateAdapter.mapEndpoint(DEST_CHAIN_ID, ARB_LZ_EID);
-        stargateAdapter.mapEndpoint(uint16(block.chainid), ARB_LZ_EID);
+        stargateAdapter.mapExternalId(DEST_CHAIN_ID, ARB_LZ_EID);
+        stargateAdapter.mapExternalId(uint16(block.chainid), ARB_LZ_EID);
 
         // Initialize USDC
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);

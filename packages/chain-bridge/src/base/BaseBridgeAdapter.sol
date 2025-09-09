@@ -37,6 +37,9 @@ abstract contract BaseBridgeAdapter is
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
 
+    /// @notice Error thrown when a chain is unsupported or unmapped
+    error UnsupportedChain();
+
     uint16 public immutable THIS_CHAIN;
 
     /// @notice Mapping of supported chains to their external bridge protocol IDs
@@ -69,6 +72,34 @@ abstract contract BaseBridgeAdapter is
         THIS_CHAIN = uint16(block.chainid);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            GOVERNANCE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Map a canonical chain ID to an adapter-specific external ID
+     * @dev Governance utility. Centralizes mapping logic and events.
+     * @param chainId Canonical EVM chain ID
+     * @param externalId Adapter/bridge external identifier (e.g., LayerZero EID)
+     */
+    function mapExternalId(
+        uint16 chainId,
+        uint32 externalId
+    ) external onlyGovernor {
+        if (externalId == 0) {
+            revert InvalidParams();
+        }
+        _mapChainExternalId(chainId, externalId);
+    }
+
+    /**
+     * @notice Remove the external ID mapping for a canonical chain ID
+     * @param chainId Canonical EVM chain ID to unmap
+     */
+    function unmapExternalId(uint16 chainId) external onlyGovernor {
+        _unmapChainExternalId(chainId);
+    }
+
     /**
      * @notice Ensures that governance has registered a trusted peer adapter for `dstChain` in the CrossChainRegistry.
      * @dev This check validates that the destination chain has been authorized by governance through the registry.
@@ -80,12 +111,7 @@ abstract contract BaseBridgeAdapter is
      * 2. External ID mapping: "Do I know how to talk to the bridge on that chain?" (technical capability)
      */
     modifier onlyTrustedDestination(uint16 dstChain) {
-        if (
-            ICrossChainRegistry(CROSS_CHAIN_REGISTRY).getAdapterPeer(
-                address(this),
-                dstChain
-            ) == address(0)
-        ) {
+        if (_peerAdapter(dstChain) == address(0)) {
             revert UntrustedDestinationChain(dstChain);
         }
         _;
@@ -116,6 +142,13 @@ abstract contract BaseBridgeAdapter is
 
     function _peerAdapter(uint16 dstChain) internal view returns (address) {
         return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
+    }
+
+    /**
+     * @notice Returns true if governance has registered a peer adapter for `dstChain`
+     */
+    function isTrustedDestination(uint16 dstChain) public view returns (bool) {
+        return _peerAdapter(dstChain) != address(0);
     }
 
     /// @dev Reverts if `srcAdapter` is **not** the registry-declared peer for `srcChain`.
@@ -169,6 +202,38 @@ abstract contract BaseBridgeAdapter is
         delete chainToExternalId[chainId];
         delete externalIdToChainId[externalId];
         emit ExternalIdUnmapped(chainId, externalId);
+    }
+
+    /**
+     * @notice Resolve external adapter-specific ID from canonical chainId
+     * @dev Reverts with UnsupportedChain when no mapping exists
+     * @param chainId Canonical EVM chain ID
+     * @return externalId Adapter/bridge external identifier (e.g., LayerZero EID)
+     */
+    function _externalIdForChain(
+        uint16 chainId
+    ) internal view returns (uint32 externalId) {
+        externalId = chainToExternalId[chainId];
+        if (externalId == 0) {
+            revert UnsupportedChain();
+        }
+        return externalId;
+    }
+
+    /**
+     * @notice Resolve canonical chainId from an adapter-specific externalId
+     * @dev Reverts with UnsupportedChain when no mapping exists
+     * @param externalId Adapter/bridge external identifier (e.g., LayerZero EID)
+     * @return chainId Canonical EVM chain ID
+     */
+    function _chainIdFromExternalId(
+        uint32 externalId
+    ) internal view returns (uint16 chainId) {
+        chainId = externalIdToChainId[externalId];
+        if (chainId == 0) {
+            revert UnsupportedChain();
+        }
+        return chainId;
     }
 
     /**
