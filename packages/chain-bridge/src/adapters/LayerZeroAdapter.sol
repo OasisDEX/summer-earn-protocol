@@ -458,13 +458,14 @@ contract LayerZeroAdapter is
         }
 
         uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
+        bytes32 dummyBytes32 = bytes32(uint256(uint160(params.target)));
 
         // Create realistic payload using actual parameters
         bytes memory payload = _createMessagePayload(
             BridgeTypes.RelayedMessageParams({
                 recipient: params.target,
                 message: params.message,
-                operationId: bytes32(0), // Dummy operation ID for estimation
+                operationId: dummyBytes32,
                 originator: params.originator,
                 sourceChainId: uint16(block.chainid)
             })
@@ -679,28 +680,6 @@ contract LayerZeroAdapter is
         BridgeTypes.RelayedMessageParams memory params
     ) internal pure returns (bytes memory payload) {
         return _encodeRelayedMessageParamsWithType(params);
-    }
-
-    /**
-     * @notice Quotes fee for a specific operation type
-     * @param lzDstEid LayerZero destination endpoint ID
-     * @param payload Operation payload
-     * @param lzOptions LayerZero options
-     * @param operationType Type of operation
-     * @return fee Quoted fee structure
-     */
-    function _quoteOperationFee(
-        uint32 lzDstEid,
-        bytes memory payload,
-        bytes memory lzOptions,
-        BridgeTypes.OperationType operationType
-    ) internal view returns (EndpointFee memory fee) {
-        if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            if (readChannelId == 0) revert ReadChannelNotConfigured();
-            return _quote(readChannelId, payload, lzOptions, false);
-        } else {
-            return _quote(lzDstEid, payload, lzOptions, false);
-        }
     }
 
     /**
