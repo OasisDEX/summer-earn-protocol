@@ -227,8 +227,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         bridgeRouter = newBridgeRouter;
     }
 
-    // default gas limit removed; explicit gas must be provided per operation
-
     /*//////////////////////////////////////////////////////////////
                             QUERY FUNCTIONS
     //////////////////////////////////////////////////////////////*/

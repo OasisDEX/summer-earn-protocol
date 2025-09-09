@@ -71,8 +71,6 @@ interface IBridgeRouter is IERC165 {
         uint256 amount
     );
 
-    // Default gas limit removed; no event needed
-
     /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
     event BridgeQueueUpdated(address indexed newBridgeQueue);
 
