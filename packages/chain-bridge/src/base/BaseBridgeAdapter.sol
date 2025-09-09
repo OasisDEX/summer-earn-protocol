@@ -237,6 +237,37 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
+     * @notice Normalizes gas limit using user input or default
+     * @param userGas User-provided gas limit
+     * @return Normalized gas limit
+     */
+    function _externalIdForChain(
+        uint16 chainId
+    ) internal view returns (uint32 externalId) {
+        externalId = chainToExternalId[chainId];
+        if (externalId == 0) {
+            revert UnsupportedChain();
+        }
+        return externalId;
+    }
+
+    /**
+     * @notice Resolve canonical chainId from an adapter-specific externalId
+     * @dev Reverts with UnsupportedChain when no mapping exists
+     * @param externalId Adapter/bridge external identifier (e.g., LayerZero EID)
+     * @return chainId Canonical EVM chain ID
+     */
+    function _chainIdFromExternalId(
+        uint32 externalId
+    ) internal view returns (uint16 chainId) {
+        chainId = externalIdToChainId[externalId];
+        if (chainId == 0) {
+            revert UnsupportedChain();
+        }
+        return chainId;
+    }
+
+    /**
      * @notice Requires a non-zero gas limit and returns it
      * @param userGas User-provided gas limit
      * @return gasLimit The validated gas limit
