@@ -17,6 +17,36 @@ This document describes the responsibilities of the BridgeRouter and the contrac
 - Callers specify the adapter explicitly through router options.
 - The router rejects calls that reference unregistered adapters or incompatible operations.
 
+#### BridgeOptions (Required Parameters)
+
+- Callers must provide explicit options for every operation. The router no longer uses a default gas limit.
+- Required fields when calling `quote(...)`, `executeTransferAssets(...)`, `executeSendMessage(...)`, or `executeReadState(...)`:
+  - `specifiedAdapter` (address): The adapter to use. Must be registered and support the operation type.
+  - `gasLimit` (uint64): Destination-side gas limit. Must be non-zero; otherwise the router reverts with `ZeroGasLimit()`.
+  - `calldataSize` (uint32): Estimated size of destination calldata (adapters may use this for fee calc).
+  - `msgValue` (uint128): Any adapter-specific msg.value requirement to forward (adapters handle refunds).
+  - `options` (bytes): Adapter-specific opaque options blob.
+
+Notes:
+- `quote(...)` also requires a non-zero `gasLimit` and reverts if missing.
+- Excess native fees are refunded by adapters per protocol behavior; the router applies a 1% buffer to base quotes.
+
+Example (pseudocode):
+
+```solidity
+BridgeTypes.BridgeOptions memory opts = BridgeTypes.BridgeOptions({
+    specifiedAdapter: myAdapter,
+    gasLimit: 400_000,
+    calldataSize: 0,
+    msgValue: 0,
+    options: bytes("")
+});
+
+(uint256 nativeFee,,) = router.quote(dstChainId, asset, amount, opts, BridgeTypes.OperationType.TRANSFER_ASSET);
+
+router.executeTransferAssets{ value: nativeFee }(params, opts);
+```
+
 #### Fee Handling (Current Policy)
 
 - The router adds a 1% buffer to the adapter’s base quote to accommodate fee volatility.

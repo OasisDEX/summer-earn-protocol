@@ -11,6 +11,7 @@ This document provides a practical runbook for keepers and operators.
 - Preconditions:
   - Keeper addresses are registered as authorized executors in the CrossChainRegistry on the source chain.
   - Adapter peer relationships and Ark ↔ Proxy relationships are configured consistently across chains.
+  - Rebalance calls include `BridgeOptions` with a non-zero `gasLimit`. There is no default gas limit.
 
 #### Monitoring and Alerts
 
