@@ -529,8 +529,6 @@ contract CrossChainFleetProxyTest is Test {
         );
     }
 
-    //----------------- NotifySourceChain Tests -----------------//
-
     function test_NotifySourceChain_CorrectMessage() public {
         // First, deposit some assets to the fleet to have something to notify about
         uint256 depositAmount = 1000;

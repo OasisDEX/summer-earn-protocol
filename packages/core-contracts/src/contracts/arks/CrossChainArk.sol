@@ -280,14 +280,10 @@ contract CrossChainArk is
     /**
      * @notice Asserts that the board or disembark can be performed
      * @dev This function asserts that the pending transfer params are not already queued
-     * and that the latest outgoing transfer has arrived ( ark received)
      */
     function _assertCanBoardOrDisembark() internal view {
         if (pendingTransferParams.asset != address(0)) {
             revert PendingTransferAlreadyQueued();
-        }
-        if (inflightAssets > 0) {
-            revert LatestOutgoingTransferNotArrived(latestOutgoingTransferId);
         }
     }
 
