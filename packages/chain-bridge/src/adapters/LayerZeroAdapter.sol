@@ -237,8 +237,6 @@ contract LayerZeroAdapter is
         chainSupportsRead[chainId] = supported;
     }
 
-    // Mapping governance functions moved to BaseBridgeAdapter (mapExternalId/unmapExternalId)
-
     /*//////////////////////////////////////////////////////////////
                             OAPP RECEIVER
     //////////////////////////////////////////////////////////////*/

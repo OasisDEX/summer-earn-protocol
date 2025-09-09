@@ -111,7 +111,7 @@ abstract contract BaseBridgeAdapter is
      * 2. External ID mapping: "Do I know how to talk to the bridge on that chain?" (technical capability)
      */
     modifier onlyTrustedDestination(uint16 dstChain) {
-        if (_peerAdapter(dstChain) == address(0)) {
+        if (!isTrustedDestination(dstChain)) {
             revert UntrustedDestinationChain(dstChain);
         }
         _;
