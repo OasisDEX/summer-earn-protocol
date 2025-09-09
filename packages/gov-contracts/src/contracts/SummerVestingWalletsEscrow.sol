@@ -10,12 +10,14 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {IMinimalVestingFactory} from "../interfaces/IMinimalVestingFactory.sol";
 import {IMinimalVestingWallet} from "../interfaces/IMinimalVestingWallet.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // @dev this is a mvp for staking, it will be replaced with a more complex staking contract
 // @dev this contract will be used to stake and unstake SUMMER_TOKEN for STAKED_SUMMER_TOKEN
-contract SummerVestingWalletsEscrow is ProtocolAccessManaged {
+contract SummerVestingWalletsEscrow is ProtocolAccessManaged, ReentrancyGuard {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
+    using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
@@ -120,8 +122,38 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged {
 
         emit VestingFactoryRemoved(_vestingFactory);
     }
+    /**
+     * @dev Rescues a vesting wallet and transfers ownership to the new owner
+     * @dev can only be called by the governor
+     * @dev the new owner can't be the zero address
+     * @dev it's governor responsibility to get the governance token back in case of emergency
+     * @param _wallet The address of the vesting wallet to rescue
+     * @param _newOwner The address of the new owner
+     */
+    function rescueWallet(
+        address _wallet,
+        address _newOwner
+    ) external onlyGovernor {
+        if (_newOwner == address(0)) {
+            revert Staking_InvalidAddress("New owner cannot be zero address");
+        }
+        IMinimalVestingWallet(_wallet).transferOwnership(_newOwner);
+    }
 
-    function stakeWithVesting() public {
+    /**
+     * @dev Rescues a token and transfers it to the new owner
+     * @dev can only be called by the governor
+     * @param _token The address of the token to rescue
+     * @param _to The address of the new owner
+     */
+    function rescueToken(address _token, address _to) external onlyGovernor {
+        IERC20(_token).safeTransfer(
+            _to,
+            IERC20(_token).balanceOf(address(this))
+        );
+    }
+
+    function stakeWithVesting() public nonReentrant {
         uint256 totalBalance = 0;
 
         for (uint256 i = 0; i < _vestingFactories.length(); i++) {
@@ -160,7 +192,7 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged {
         }
     }
 
-    function unstakeVesting() public {
+    function unstakeVesting() public nonReentrant {
         uint256 totalBalance = 0;
 
         while (_userStakedVestingFactories[msg.sender].length() > 0) {
