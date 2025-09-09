@@ -324,8 +324,7 @@ contract StargateAdapter is
             options
         );
 
-        (OFTLimit memory oftLimit, , OFTReceipt memory oftReceipt) = stargate
-            .quoteOFT(sendParam);
+        (, , OFTReceipt memory oftReceipt) = stargate.quoteOFT(sendParam);
 
         // Calculate minimum slippage threshold (use configurable tolerance)
         uint256 minExpectedAmount = (params.amount *
@@ -446,32 +445,44 @@ contract StargateAdapter is
 
         // Get the source chain Stargate contract
         address stargateContract = assetToStargateContract[params.asset];
+        address destinationAdapter = _peerAdapter(params.destinationChainId);
+        bytes32 dummyBytes32 = bytes32(uint256(uint160(params.target)));
 
-        // Require explicit compose gas limit from adapter params
-        uint256 gasLimit = _requireGasLimit(options.gasLimit);
-
-        // Always include compose options in fee estimation
-        bytes memory extraOptions = _composeOptions(uint128(gasLimit));
-
-        // Create realistic compose message using actual target and originator
-        bytes memory composeMsg = abi.encode(
+        SendParam memory sendParam = _buildSendParam(
             params.destinationChainId,
-            bytes32(uint256(uint160(params.target))),
-            params.originator
+            destinationAdapter,
+            params.amount,
+            _encodeRelayedTransferParams(
+                BridgeTypes.RelayedTransferParams({
+                    recipient: params.target,
+                    asset: params.asset,
+                    amount: params.amount,
+                    sourceChainId: uint16(block.chainid),
+                    operationId: dummyBytes32,
+                    originator: params.originator,
+                    message: params.message
+                })
+            ),
+            options
         );
+        (, , OFTReceipt memory oftReceipt) = IStargateV2(stargateContract)
+            .quoteOFT(sendParam);
 
-        // Prepare SendParam for quote using actual parameters
-        SendParam memory sendParam = SendParam({
-            dstEid: chainToExternalId[params.destinationChainId],
-            to: params.target.toBytes32(),
-            amountLD: params.amount,
-            minAmountLD: params.amount,
-            extraOptions: extraOptions,
-            composeMsg: composeMsg,
-            oftCmd: OftCmdHelper.taxi() // Always use taxi mode
-        });
+        // Calculate minimum slippage threshold (use configurable tolerance)
+        uint256 minExpectedAmount = (params.amount *
+            (10000 - slippageToleranceBps)) / 10000;
 
-        // Get messaging fee quote
+        // Revert if slippage exceeds tolerance
+        if (oftReceipt.amountReceivedLD < minExpectedAmount) {
+            revert SlippageExceedsTolerance(
+                minExpectedAmount,
+                oftReceipt.amountReceivedLD,
+                slippageToleranceBps
+            );
+        }
+
+        // Use the quoted amount since it's within tolerance
+        sendParam.minAmountLD = oftReceipt.amountReceivedLD;
         MessagingFee memory msgFee = IStargateV2(stargateContract).quoteSend(
             sendParam,
             false
@@ -481,19 +492,17 @@ contract StargateAdapter is
 
     /// @inheritdoc IBridgeAdapter
     function estimateReadState(
-        BridgeTypes.ExecuteReadStateParams calldata /* params */,
-        BridgeTypes.BridgeOptions calldata /* options */
-    ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
-        // Stargate doesn't support read state operations, only asset transfers
+        BridgeTypes.ExecuteReadStateParams calldata,
+        BridgeTypes.BridgeOptions calldata
+    ) external pure returns (uint256, uint256) {
         revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter
     function estimateSendMessage(
-        BridgeTypes.ExecuteSendMessageParams calldata /* params */,
-        BridgeTypes.BridgeOptions calldata /* options */
-    ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
-        // Stargate doesn't support message operations, only asset transfers
+        BridgeTypes.ExecuteSendMessageParams calldata,
+        BridgeTypes.BridgeOptions calldata
+    ) external pure returns (uint256, uint256) {
         revert OperationNotSupported();
     }
 
@@ -501,7 +510,6 @@ contract StargateAdapter is
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) external pure override returns (bool) {
-        // Stargate V2 supports asset transfers
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 

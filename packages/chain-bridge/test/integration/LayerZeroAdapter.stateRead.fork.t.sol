@@ -322,39 +322,6 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         vm.stopPrank();
     }
 
-    function testGetRequiredFeeFunction() public view {
-        // Create target call data
-        bytes memory targetCallData = abi.encodePacked(
-            MockTargetContract.getTestValue.selector,
-            ""
-        );
-
-        // Create EVMCallRequestV1 array exactly like the layerZeroAdapter does
-        EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
-        readRequests[0] = EVMCallRequestV1({
-            appRequestLabel: 1,
-            targetEid: ARB_LZ_EID,
-            isBlockNum: false,
-            blockNumOrTimestamp: uint64(block.timestamp),
-            confirmations: 15,
-            to: address(targetContract),
-            callData: targetCallData
-        });
-
-        // Encode using ReadCodecV1.encode exactly like the layerZeroAdapter does
-        bytes memory payload = ReadCodecV1.encode(0, readRequests);
-
-        uint256 requiredFee = layerZeroAdapter.getRequiredFee(
-            READ_CHANNEL_ID, // Use read channel ID for state reads
-            BridgeTypes.OperationType.READ_STATE,
-            payload,
-            300000
-        );
-
-        assertGt(requiredFee, 0, "Required fee should be greater than 0");
-        console.log("Required fee for state read:", requiredFee);
-    }
-
     function testLayerZeroEndpointIntegration() public {
         // Test that the layerZeroAdapter can successfully interact with the real LayerZero endpoint
         bytes32 currentOperationId = keccak256(
