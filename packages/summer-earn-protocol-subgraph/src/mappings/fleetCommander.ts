@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, dataSource } from '@graphprotocol/graph-ts'
 import { VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
@@ -38,12 +38,13 @@ import {
   getOrCreateVault,
 } from '../common/initializers'
 import { getTokenPriceInUSD } from '../common/priceHelpers'
+import { getTransferabilityEnabledBlockByChain } from '../common/transferabilityHelper'
 import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
-import { updatePosition, updatePositionBalancesOnly } from './entities/position'
+import { updatePosition } from './entities/position'
 import { handleReferrals } from './entities/referral'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
@@ -138,6 +139,11 @@ export function handleWithdraw(event: WithdrawEvent): void {
 
 // Track transfers of ERC4626 shares between users (excluding mints/burns and staking contract transfers)
 export function handleShareTransfer(event: TransferEvent): void {
+  if (
+    event.block.number.lt(getTransferabilityEnabledBlockByChain(dataSource.network().toLowerCase()))
+  ) {
+    return
+  }
   // skip mints/burns and zero-value transfers
   if (
     event.params.from.equals(ADDRESS_ZERO) ||
@@ -168,63 +174,12 @@ export function handleShareTransfer(event: TransferEvent): void {
   const updatedVault = updateVault(vaultDetails, event.block, false)
 
   const fromDetails = getPositionDetails(updatedVault, event.params.from, vaultDetails, event.block)
-  updatePositionBalancesOnly(fromDetails, event.block)
+  updatePosition(fromDetails, event.block, null)
+  createWithdrawEventEntity(event, fromDetails, null)
 
   const toDetails = getPositionDetails(updatedVault, event.params.to, vaultDetails, event.block)
-  updatePositionBalancesOnly(toDetails, event.block)
-}
-
-function _updatePositionBalancesFromShares(
-  vaultAddress: Address,
-  account: Address,
-  block: ethereum.Block,
-): void {
-  const vault = getOrCreateVault(vaultAddress, block)
-  const vaultContract = FleetCommanderContract.bind(vaultAddress)
-  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
-
-  const positionId = utils.formatPositionId(account.toHexString(), vault.id)
-  const position = getOrCreatePosition(positionId, block)
-
-  const stakedShares = position.stakedOutputTokenBalance
-  const unstakedShares = utils.readValue<BigInt>(
-    vaultContract.try_balanceOf(account),
-    constants.BigIntConstants.ZERO,
-  )
-
-  const unstakedInput = utils.readValue<BigInt>(
-    vaultContract.try_convertToAssets(unstakedShares),
-    constants.BigIntConstants.ZERO,
-  )
-  const stakedInput = utils.readValue<BigInt>(
-    vaultContract.try_convertToAssets(stakedShares),
-    constants.BigIntConstants.ZERO,
-  )
-
-  const totalShares = stakedShares.plus(unstakedShares)
-  const totalInput = stakedInput.plus(unstakedInput)
-
-  const decimals = BigInt.fromI32(inputToken.decimals)
-  const totalInputNorm = formatAmount(totalInput, decimals)
-  const stakedInputNorm = formatAmount(stakedInput, decimals)
-  const unstakedInputNorm = formatAmount(unstakedInput, decimals)
-  const priceUSD = vault.inputTokenPriceUSD
-    ? vault.inputTokenPriceUSD!
-    : constants.BigDecimalConstants.ZERO
-
-  position.outputTokenBalance = totalShares
-  position.stakedOutputTokenBalance = stakedShares
-  position.unstakedOutputTokenBalance = unstakedShares
-  position.inputTokenBalance = totalInput
-  position.stakedInputTokenBalance = stakedInput
-  position.unstakedInputTokenBalance = unstakedInput
-  position.inputTokenBalanceNormalized = totalInputNorm
-  position.stakedInputTokenBalanceNormalized = stakedInputNorm
-  position.unstakedInputTokenBalanceNormalized = unstakedInputNorm
-  position.inputTokenBalanceNormalizedInUSD = totalInputNorm.times(priceUSD)
-  position.stakedInputTokenBalanceNormalizedInUSD = stakedInputNorm.times(priceUSD)
-  position.unstakedInputTokenBalanceNormalizedInUSD = unstakedInputNorm.times(priceUSD)
-  position.save()
+  updatePosition(toDetails, event.block, null)
+  createDepositEventEntity(event, toDetails, null)
 }
 
 // withdaraw already handled in handleWithdraw
