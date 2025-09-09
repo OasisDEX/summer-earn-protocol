@@ -37,6 +37,7 @@ contract BridgeRouterSetup is Test {
     address public constant user = address(0x3);
     address public constant keeper = address(0x4);
     address public constant executor = address(0x5);
+    address public constant recipient = address(0x6);
     /// forge-lint: disable-end(screaming-snake-case-const)
 
     /* ────────────────  Chain / value constants  ──────────────── */

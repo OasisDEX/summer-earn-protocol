@@ -25,7 +25,9 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
 
         // Test complete workflow: execute → verify
         // This demonstrates the integration between Router, and Adapter
-
+        vm.startPrank(governor);
+        layerZeroAdapter.setChainReadSupport(DEST_CHAIN_ID, true);
+        vm.stopPrank();
         _executeBridgeMessage("Integration workflow test");
         _executeBridgeStateRead();
 
@@ -143,12 +145,15 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         });
 
         bytes memory message = abi.encode(messageContent);
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 nativeFee, , ) = router.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(0x1234), // Target contract
+                message: message,
+                originator: keeper,
+                refundAddress: keeper
+            }),
+            options
         );
         // Execute the operation (can be anyone, e.g., keeper or user) (PAYS FEE)
         vm.startPrank(keeper); // Or user
@@ -179,13 +184,17 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         bytes memory callData = abi.encode(user); // Reading user balance
 
         // Now get quote for fees FOR EXECUTION
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote( // Capture specified layerZeroAdapter
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options, // Use defined options
-                BridgeTypes.OperationType.READ_STATE
-            );
+        (uint256 nativeFee, , address specifiedAdapter) = router.quoteReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(0x1234), // Target contract
+                selector: selector,
+                readParams: callData,
+                originator: keeper,
+                refundAddress: keeper
+            }),
+            options
+        );
         // Verify the specified layerZeroAdapter matches what we provided
         assertEq(specifiedAdapter, address(layerZeroAdapter));
 

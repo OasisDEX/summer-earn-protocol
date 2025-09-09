@@ -426,28 +426,26 @@ contract StargateAdapter is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
-        uint16 dstChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+    function estimateTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
-        public
+        external
         view
-        onlyTrustedDestination(dstChainId)
+        onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
+        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
+            revert OperationNotSupported();
+        }
+
         // Check if asset is supported on current chain
-        if (
-            operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-            assetToStargateContract[asset] == address(0)
-        ) {
+        if (assetToStargateContract[params.asset] == address(0)) {
             revert UnsupportedAsset();
         }
 
         // Get the source chain Stargate contract
-        address stargateContract = assetToStargateContract[asset];
+        address stargateContract = assetToStargateContract[params.asset];
 
         // Require explicit compose gas limit from adapter params
         uint256 gasLimit = _requireGasLimit(options.gasLimit);
@@ -455,26 +453,19 @@ contract StargateAdapter is
         // Always include compose options in fee estimation
         bytes memory extraOptions = _composeOptions(uint128(gasLimit));
 
-        // Check if a compose message is provided in adapter params
-        bytes memory composeMsg;
-        if (options.options.length > 0) {
-            // Use the provided compose message for accurate fee estimation
-            composeMsg = options.options;
-        } else {
-            // Fall back to dummy compose message for legacy compatibility
-            composeMsg = abi.encode(
-                uint16(block.chainid),
-                bytes32(0),
-                address(0)
-            );
-        }
+        // Create realistic compose message using actual target and originator
+        bytes memory composeMsg = abi.encode(
+            params.destinationChainId,
+            bytes32(uint256(uint160(params.target))),
+            params.originator
+        );
 
-        // Prepare SendParam for quote
+        // Prepare SendParam for quote using actual parameters
         SendParam memory sendParam = SendParam({
-            dstEid: chainToExternalId[dstChainId],
-            to: address(0xdead).toBytes32(),
-            amountLD: amount,
-            minAmountLD: amount,
+            dstEid: chainToExternalId[params.destinationChainId],
+            to: params.target.toBytes32(),
+            amountLD: params.amount,
+            minAmountLD: params.amount,
             extraOptions: extraOptions,
             composeMsg: composeMsg,
             oftCmd: OftCmdHelper.taxi() // Always use taxi mode
@@ -486,6 +477,24 @@ contract StargateAdapter is
             false
         );
         return (msgFee.nativeFee, 0);
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateReadState(
+        BridgeTypes.ExecuteReadStateParams calldata /* params */,
+        BridgeTypes.BridgeOptions calldata /* options */
+    ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
+        // Stargate doesn't support read state operations, only asset transfers
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata /* params */,
+        BridgeTypes.BridgeOptions calldata /* options */
+    ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
+        // Stargate doesn't support message operations, only asset transfers
+        revert OperationNotSupported();
     }
 
     /// @inheritdoc IBridgeAdapter

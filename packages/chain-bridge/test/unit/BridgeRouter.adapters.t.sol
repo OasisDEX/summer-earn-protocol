@@ -123,12 +123,17 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         });
 
         // Get the required fee first (using router.quote) FOR EXECUTION
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, , ) = router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
 
         vm.stopPrank();
@@ -167,12 +172,17 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         // Get the required fee first. This quote call should revert.
         // The check happens in the router during quoting.
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
 
         // Since quote reverts, queueing would also fail if it depends on a valid quote,
@@ -210,12 +220,17 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         });
 
         // Test 1: Valid adapter that supports everything
-        (, , address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (, , address specifiedAdapter) = router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
 
         assertEq(
@@ -234,12 +249,17 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         });
 
         vm.expectRevert(); // Will revert with UnsupportedChain from estimateFee
-        router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
 
         // Test 3: Unregistered adapter
@@ -252,12 +272,17 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         });
 
         vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
-        router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
 
         // Test 4: No adapter specified
@@ -270,22 +295,32 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         });
 
         vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
-        router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
         options.specifiedAdapter = address(mockAdapter);
         // Test 5: Valid adapter with different token (MockAdapter supports any token)
         ERC20Mock newToken = new ERC20Mock();
-        (, , address specifiedAdapterForNewToken) = router.quote(
-            DEST_CHAIN_ID,
-            address(newToken),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (, , address specifiedAdapterForNewToken) = router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(newToken),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
 
         assertEq(
@@ -308,13 +343,19 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         });
 
         // Get quote
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
+        (uint256 nativeFee, , address specifiedAdapter) = router
+            .quoteTransferAssets(
+                BridgeTypes.ExecuteTransferParams({
+                    originator: user,
+                    destinationChainId: DEST_CHAIN_ID,
+                    target: recipient,
+                    asset: address(token),
+                    amount: TRANSFER_AMOUNT,
+                    message: "",
+                    refundAddress: user
+                }),
+                options
+            );
 
         // Verify quote
         assertEq(specifiedAdapter, address(mockAdapter));
@@ -352,12 +393,17 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
 
         // Should revert when no adapter is specified
         vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
-        router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
     }
 }

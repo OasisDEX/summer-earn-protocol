@@ -39,6 +39,8 @@ contract LayerZeroAdapterStateReadBaseForkTest is
 
     function setUp() public override {
         super.setUp();
+        vm.startPrank(governor);
+        layerZeroAdapter.setChainReadSupport(DEST_CHAIN_ID, true);
 
         // Deploy mock target contract (simulates destination chain contract)
         targetContract = new MockTargetContract();
@@ -57,13 +59,18 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             options: ""
         });
 
-        (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter.estimateFee(
-            DEST_CHAIN_ID,
-            address(targetContract),
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
-        );
+        (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter
+            .estimateReadState(
+                BridgeTypes.ExecuteReadStateParams({
+                    destinationChainId: DEST_CHAIN_ID,
+                    target: address(targetContract),
+                    selector: bytes4(keccak256("balanceOf(address)")),
+                    readParams: abi.encode(address(this)),
+                    originator: address(this),
+                    refundAddress: address(this)
+                }),
+                options
+            );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
         assertEq(tokenFee, 0, "Token fee should be 0 for LayerZero");
@@ -90,12 +97,16 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             options: ""
         });
 
-        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
-            DEST_CHAIN_ID,
-            address(targetContract),
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: selector,
+                readParams: readParams,
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Ensure we have enough ETH
@@ -147,12 +158,16 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             options: ""
         });
 
-        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
-            DEST_CHAIN_ID,
-            address(targetContract),
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: bytes4(keccak256("getTestValue()")),
+                readParams: "",
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Try to send with insufficient fee from bridge router
@@ -229,12 +244,16 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             options: ""
         });
 
-        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
-            DEST_CHAIN_ID,
-            address(targetContract),
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: bytes4(keccak256("getTestValue()")),
+                readParams: "",
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Set up the operation-to-layerZeroAdapter mapping for testing
@@ -353,12 +372,16 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             options: ""
         });
 
-        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
-            DEST_CHAIN_ID,
-            address(targetContract),
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: bytes4(keccak256("getTestValue()")),
+                readParams: "",
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Set up the operation-to-layerZeroAdapter mapping for testing
@@ -420,12 +443,16 @@ contract LayerZeroAdapterStateReadBaseForkTest is
             options: ""
         });
 
-        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
-            DEST_CHAIN_ID,
-            address(targetContract),
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(targetContract),
+                selector: bytes4(keccak256("getTestValue()")),
+                readParams: "",
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Verify that the layerZeroAdapter's read channel configuration is correct

@@ -390,41 +390,99 @@ contract LayerZeroAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
-        uint16 destinationChainId,
-        address,
-        uint256,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+    function estimateTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata /* params */,
+        BridgeTypes.BridgeOptions calldata /* options */
+    ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
+        // LayerZero doesn't support asset transfers, only messaging and read operations
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         view
-        onlyTrustedDestination(destinationChainId)
+        onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!supportsOperation(operationType)) revert OperationNotSupported();
-
-        // Use operation-specific builders
-        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
-        bytes memory payload;
-
-        if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            payload = _createReadStatePayload(
-                lzDstEid,
-                address(0x1),
-                new bytes(0)
-            );
-        } else {
-            payload = _createMessagePayload(_createDummyMessageParams());
+        if (!supportsOperation(BridgeTypes.OperationType.READ_STATE)) {
+            revert OperationNotSupported();
         }
 
-        bytes memory lzOptions = _createLzOptions(options, operationType);
+        // Ensure read channel is configured
+        if (readChannelId == 0) revert ReadChannelNotConfigured();
+
+        // Check if the destination chain supports read operations
+        if (!chainSupportsRead[params.destinationChainId]) {
+            revert UnsupportedChain();
+        }
+
+        uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
+
+        // Create realistic payload using actual parameters
+        bytes memory payload = _createReadStatePayload(
+            lzDstEid,
+            params.target,
+            abi.encodePacked(params.selector, params.readParams)
+        );
+
+        bytes memory lzOptions = _createLzOptions(
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
         EndpointFee memory fee = _quoteOperationFee(
             lzDstEid,
             payload,
             lzOptions,
-            operationType
+            BridgeTypes.OperationType.READ_STATE
         );
+
+        return (fee.nativeFee, fee.lzTokenFee);
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        onlyTrustedDestination(params.destinationChainId)
+        returns (uint256 nativeFee, uint256 tokenFee)
+    {
+        if (!supportsOperation(BridgeTypes.OperationType.MESSAGE)) {
+            revert OperationNotSupported();
+        }
+
+        uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
+
+        // Create realistic payload using actual parameters
+        bytes memory payload = _createMessagePayload(
+            BridgeTypes.RelayedMessageParams({
+                recipient: params.target,
+                message: params.message,
+                operationId: bytes32(0), // Dummy operation ID for estimation
+                originator: params.originator,
+                sourceChainId: uint16(block.chainid)
+            })
+        );
+
+        bytes memory lzOptions = _createLzOptions(
+            options,
+            BridgeTypes.OperationType.MESSAGE
+        );
+
+        EndpointFee memory fee = _quoteOperationFee(
+            lzDstEid,
+            payload,
+            lzOptions,
+            BridgeTypes.OperationType.MESSAGE
+        );
+
         return (fee.nativeFee, fee.lzTokenFee);
     }
 
