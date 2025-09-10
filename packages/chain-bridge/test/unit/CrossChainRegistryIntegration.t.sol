@@ -49,10 +49,7 @@ contract CrossChainRegistryIntegrationTest is Test {
 
         // Deploy registry
         vm.prank(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
     }
 
     /*//////////////////////////////////////////////////////////////

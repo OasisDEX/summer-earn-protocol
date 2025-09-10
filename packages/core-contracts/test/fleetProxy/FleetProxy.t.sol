@@ -61,10 +61,7 @@ contract CrossChainFleetProxyTest is Test {
         mockToken = new ERC20Mock();
         mockBridgeRouter = new MockBridgeRouter();
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            DEST_CHAIN_ID // current chain ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
         mockAdapter = new MockAdapter(
             address(registry),
             address(accessManager)

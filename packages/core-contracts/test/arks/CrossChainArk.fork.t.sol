@@ -82,10 +82,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         accessManager.grantGuardianRole(guardian);
 
         // Deploy CrossChainRegistry first with CURRENT chain ID (mainnet = 1)
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            SOURCE_CHAIN_ID // Use mainnet chain ID, not destination
-        );
+        registry = new CrossChainRegistry(address(accessManager));
 
         // Create router
         bridgeRouter = new BridgeRouter(

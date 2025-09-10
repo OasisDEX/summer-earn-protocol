@@ -63,21 +63,15 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /**
      * @notice Initializes the CrossChainRegistry
      * @param _accessManager Address of the access manager
-     * @param _currentChainId The chain ID of the current deployment
      */
-    constructor(
-        address _accessManager,
-        uint16 _currentChainId
-    ) ProtocolAccessManaged(_accessManager) {
-        if (_currentChainId == 0) revert InvalidCurrentChainId();
-
-        CURRENT_CHAIN_ID = _currentChainId;
+    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {
+        CURRENT_CHAIN_ID = uint16(block.chainid);
 
         _addRelationshipType(PEER_RELATIONSHIP);
         _addRelationshipType(ARK_FLEET_RELATIONSHIP);
         _addRelationshipType(EXECUTOR_RELATIONSHIP);
 
-        emit RegistryInitialized(_currentChainId);
+        emit RegistryInitialized(uint16(block.chainid));
     }
 
     /*//////////////////////////////////////////////////////////////

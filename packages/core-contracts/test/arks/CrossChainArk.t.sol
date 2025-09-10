@@ -62,10 +62,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         router = new MockBridgeRouter();
 
         // Deploy CrossChainRegistry BEFORE using it
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            SOURCE_CHAIN_ID // Current chain ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
 
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);

@@ -76,10 +76,7 @@ contract CrossChainRegistryTest is Test {
 
         // Deploy registry
         vm.prank(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -1047,13 +1044,6 @@ contract CrossChainRegistryTest is Test {
 
         // Test that current chain ID is set correctly
         assertEq(registry.currentChainId(), CURRENT_CHAIN_ID);
-    }
-
-    function test_constructor_revertZeroChainId() public {
-        vm.startPrank(governor);
-        vm.expectRevert(ICrossChainRegistry.InvalidCurrentChainId.selector);
-        new CrossChainRegistry(address(accessManager), 0);
-        vm.stopPrank();
     }
 
     /*─────────────────────────────────────────────────────────────────
