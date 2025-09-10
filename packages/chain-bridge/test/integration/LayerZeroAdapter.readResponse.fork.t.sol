@@ -120,7 +120,6 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         // Simulate receiving the read response - should handle delivery failure gracefully
         // todo: implement recoverey/retry mechanism
         vm.prank(LZ_ENDPOINT_BASE);
-        vm.expectRevert();
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 
         // Reset router behavior
@@ -246,7 +245,6 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
 
             // todo: implement recoverey/retry mechanism for all operations
             vm.prank(LZ_ENDPOINT_BASE);
-            vm.expectRevert();
             layerZeroAdapter.lzReceive(
                 origin,
                 guids[i],

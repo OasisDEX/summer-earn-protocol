@@ -21,7 +21,7 @@ contract CrossChainRegistryIntegrationTest is Test {
     address public guardian = makeAddr("guardian");
     address public keeper = makeAddr("keeper");
 
-    uint16 public constant CURRENT_CHAIN_ID = 1;
+    uint16 public constant CURRENT_CHAIN_ID = 31337;
     uint16 public constant TARGET_CHAIN_ID = 42161;
 
     bytes32 public constant ARK_FLEET_RELATIONSHIP =

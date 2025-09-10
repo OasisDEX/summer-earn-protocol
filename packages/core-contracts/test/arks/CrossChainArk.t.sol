@@ -27,7 +27,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainRegistry registry;
     MockAdapter mockAdapter;
     address proxy = address(0x5);
-    uint16 constant SOURCE_CHAIN_ID = 1; // Current chain (mainnet)
+    uint16 constant SOURCE_CHAIN_ID = 31337; // Current chain (mainnet)
     uint16 constant TARGET_CHAIN_ID = 1234; // Target chain (satellite)
     FleetCommander fleetCommander;
 
