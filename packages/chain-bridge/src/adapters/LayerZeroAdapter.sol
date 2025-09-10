@@ -61,6 +61,11 @@ contract LayerZeroAdapter is
     /// @notice Minimum gas limit for operations
     uint128 public minGasLimit;
 
+    /// @notice Governance cap for number of DVNs allowed in read config
+    /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
+    ///      This cap avoids overly large configurations and removes magic numbers.
+    uint8 public constant MAX_SUPPORTED_DVNS = 8;
+
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(
         address indexed readLib1002,
@@ -200,7 +205,7 @@ contract LayerZeroAdapter is
     ) external onlyGovernor {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
         if (readDVNs.length == 0) revert InvalidParams();
-        if (readDVNs.length > 255) revert InvalidParams();
+        if (readDVNs.length > MAX_SUPPORTED_DVNS) revert InvalidParams();
         if (readLib1002Address == address(0)) revert InvalidParams();
         if (executor == address(0)) revert InvalidParams();
 

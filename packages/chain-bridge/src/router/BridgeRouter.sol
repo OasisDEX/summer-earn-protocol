@@ -10,6 +10,7 @@ import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -98,6 +99,8 @@ contract BridgeRouter is
         address adapter,
         BridgeTypes.OperationType operationType
     ) {
+        // If no adapter specified, surface a dedicated error
+        if (adapter == address(0)) revert NoSuitableAdapter();
         if (!this.isValidAdapter(adapter)) revert UnknownAdapter();
         _validateAdapterSupportsOperation(adapter, operationType);
         _;
@@ -250,6 +253,26 @@ contract BridgeRouter is
     ) internal pure returns (uint256 bufferedFee) {
         // Add 1% buffer to account for fee volatility
         return (baseFee * 101) / 100;
+    }
+
+    /**
+     * @dev Ensures `receiver` is a contract that supports `ICrossChainReceiver` via ERC165
+     *      Reverts with `InvalidParams` otherwise.
+     * @param receiver The address to validate
+     */
+    function _requireReceiverIsCrossChainReceiver(
+        address receiver
+    ) internal view {
+        if (receiver.code.length == 0) revert InvalidParams();
+        try
+            IERC165(receiver).supportsInterface(
+                type(ICrossChainReceiver).interfaceId
+            )
+        returns (bool isSupported) {
+            if (!isSupported) revert InvalidParams();
+        } catch {
+            revert InvalidParams();
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -445,6 +468,7 @@ contract BridgeRouter is
     )
         external
         view
+        validAdapter(options.specifiedAdapter, operationType)
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         specifiedAdapter = options.specifiedAdapter;
@@ -525,16 +549,7 @@ contract BridgeRouter is
             operationId = data.operationId;
 
             // Require recipient is a contract and supports ICrossChainReceiver
-            if (data.recipient.code.length == 0) revert InvalidParams();
-            try
-                IERC165(data.recipient).supportsInterface(
-                    type(ICrossChainReceiver).interfaceId
-                )
-            returns (bool isSupported) {
-                if (!isSupported) revert InvalidParams();
-            } catch {
-                revert InvalidParams();
-            }
+            _requireReceiverIsCrossChainReceiver(data.recipient);
 
             // Transfer the asset
             IERC20(data.asset).safeTransfer(data.recipient, data.amount);
@@ -555,16 +570,7 @@ contract BridgeRouter is
             operationId = data.operationId;
 
             // Require recipient is a contract and supports ICrossChainReceiver
-            if (data.recipient.code.length == 0) revert InvalidParams();
-            try
-                IERC165(data.recipient).supportsInterface(
-                    type(ICrossChainReceiver).interfaceId
-                )
-            returns (bool isSupportedMsg) {
-                if (!isSupportedMsg) revert InvalidParams();
-            } catch {
-                revert InvalidParams();
-            }
+            _requireReceiverIsCrossChainReceiver(data.recipient);
 
             ICrossChainReceiver(data.recipient).receiveOperation(
                 BridgeTypes.OperationType.MESSAGE,
@@ -591,16 +597,7 @@ contract BridgeRouter is
             address originator = readRequestToOriginator[data.operationId];
             if (originator == address(0)) revert InvalidParams();
             // For read responses, deliver to originator (must be contract implementing interface)
-            if (originator.code.length == 0) revert InvalidParams();
-            try
-                IERC165(originator).supportsInterface(
-                    type(ICrossChainReceiver).interfaceId
-                )
-            returns (bool isSupportedRead) {
-                if (!isSupportedRead) revert InvalidParams();
-            } catch {
-                revert InvalidParams();
-            }
+            _requireReceiverIsCrossChainReceiver(originator);
 
             ICrossChainReceiver(originator).receiveOperation(
                 BridgeTypes.OperationType.READ_STATE,
@@ -636,6 +633,15 @@ contract BridgeRouter is
         if (adapters.contains(adapter)) revert AdapterAlreadyRegistered();
         if (adapter == address(0)) revert InvalidParams();
         if (adapter.code.length == 0) revert InvalidParams(); // prevent EOA registration
+        // Require ERC-165 support for IBridgeAdapter
+        if (
+            !ERC165Checker.supportsInterface(
+                adapter,
+                type(IBridgeAdapter).interfaceId
+            )
+        ) {
+            revert InvalidParams();
+        }
 
         adapters.add(adapter);
         emit AdapterRegistered(adapter);
