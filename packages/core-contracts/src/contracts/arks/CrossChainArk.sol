@@ -80,6 +80,8 @@ contract CrossChainArk is
     ) Ark(_params) CrossChainConfigManaged(_crossChainRegistry) {
         if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
+        // Optional: ensure registry has a nonzero bridge router configured
+        if (bridgeRouter() == address(0)) revert InvalidBridgeRouter();
 
         satelliteChainId = _satelliteChainId;
     }

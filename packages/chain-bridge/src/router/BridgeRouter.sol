@@ -453,6 +453,11 @@ contract BridgeRouter is
         if (options.gasLimit == 0) revert ZeroGasLimit();
 
         _validateTransferParams(params);
+        if (
+            !IBridgeAdapter(specifiedAdapter).supportsOperation(operationType)
+        ) {
+            revert UnsupportedAdapterOperation();
+        }
         (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
             .estimateTransferAssets(params, options);
 
@@ -519,6 +524,18 @@ contract BridgeRouter is
             _assertPeerMappingExistsForChain(data.sourceChainId);
             operationId = data.operationId;
 
+            // Require recipient is a contract and supports ICrossChainReceiver
+            if (data.recipient.code.length == 0) revert InvalidParams();
+            try
+                IERC165(data.recipient).supportsInterface(
+                    type(ICrossChainReceiver).interfaceId
+                )
+            returns (bool supports) {
+                if (!supports) revert InvalidParams();
+            } catch {
+                revert InvalidParams();
+            }
+
             // Transfer the asset
             IERC20(data.asset).safeTransfer(data.recipient, data.amount);
 
@@ -536,6 +553,18 @@ contract BridgeRouter is
             // Additional defense: verify adapter has peer relationship with source chain
             _assertPeerMappingExistsForChain(data.sourceChainId);
             operationId = data.operationId;
+
+            // Require recipient is a contract and supports ICrossChainReceiver
+            if (data.recipient.code.length == 0) revert InvalidParams();
+            try
+                IERC165(data.recipient).supportsInterface(
+                    type(ICrossChainReceiver).interfaceId
+                )
+            returns (bool supportsMsg) {
+                if (!supportsMsg) revert InvalidParams();
+            } catch {
+                revert InvalidParams();
+            }
 
             ICrossChainReceiver(data.recipient).receiveOperation(
                 BridgeTypes.OperationType.MESSAGE,
@@ -561,6 +590,17 @@ contract BridgeRouter is
 
             address originator = readRequestToOriginator[data.operationId];
             if (originator == address(0)) revert InvalidParams();
+            // For read responses, deliver to originator (must be contract implementing interface)
+            if (originator.code.length == 0) revert InvalidParams();
+            try
+                IERC165(originator).supportsInterface(
+                    type(ICrossChainReceiver).interfaceId
+                )
+            returns (bool supportsRead) {
+                if (!supportsRead) revert InvalidParams();
+            } catch {
+                revert InvalidParams();
+            }
 
             ICrossChainReceiver(originator).receiveOperation(
                 BridgeTypes.OperationType.READ_STATE,
@@ -594,6 +634,8 @@ contract BridgeRouter is
     /// @inheritdoc IBridgeRouter
     function registerAdapter(address adapter) external onlyGovernor {
         if (adapters.contains(adapter)) revert AdapterAlreadyRegistered();
+        if (adapter == address(0)) revert InvalidParams();
+        if (adapter.code.length == 0) revert InvalidParams(); // prevent EOA registration
 
         adapters.add(adapter);
         emit AdapterRegistered(adapter);

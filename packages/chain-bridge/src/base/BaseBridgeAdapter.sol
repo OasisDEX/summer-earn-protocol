@@ -64,6 +64,9 @@ abstract contract BaseBridgeAdapter is
         address _registry,
         address _accessManager
     ) CrossChainConfigManaged(_registry) ProtocolAccessManaged(_accessManager) {
+        if (_accessManager == address(0)) {
+            revert InvalidParams();
+        }
         if (block.chainid > type(uint16).max) {
             revert ChainIdTooLarge(block.chainid);
         }

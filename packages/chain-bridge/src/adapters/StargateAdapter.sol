@@ -449,7 +449,8 @@ contract StargateAdapter is
         }
 
         // Get the source chain Stargate contract
-        address stargateContract = assetToStargateContract[params.asset];
+        address stargateContract = assetToStargateContract[asset];
+        if (stargateContract == address(0)) revert UnsupportedAsset();
 
         // Use dummy operationId for estimation
         bytes32 dummyOperationId = bytes32(uint256(uint160(params.target)));
