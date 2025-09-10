@@ -71,13 +71,6 @@ contract LayerZeroAdapter is
         uint64 confirmations
     );
 
-    /// @notice Emitted when read executor is configured
-    event ReadExecutorConfigured(
-        uint32 indexed readChannelId,
-        address indexed executor,
-        uint32 maxMessageSize
-    );
-
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
 
@@ -286,7 +279,7 @@ contract LayerZeroAdapter is
 
         // todo: should the read reponse also contain the operation type and the originator?
         if (_origin.srcEid > readChannelThreshold) {
-            _relayReadResponse(_origin, _guid, _payload);
+            _relayReadResponse(_guid, _payload);
         } else if (_payload.length >= 2) {
             // Decode the payload to extract operation type and data
             (
@@ -333,15 +326,10 @@ contract LayerZeroAdapter is
 
     /**
      * @dev Handles responses from lzRead operations
-     * @param _origin Source chain information
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Response payload
      */
-    function _relayReadResponse(
-        Origin calldata _origin,
-        bytes32 _guid,
-        bytes memory _payload
-    ) internal {
+    function _relayReadResponse(bytes32 _guid, bytes memory _payload) internal {
         // Extract requestId from the guid mapping
         bytes32 operationId = lzMessageToOperationId[_guid];
         if (operationId == bytes32(0)) {

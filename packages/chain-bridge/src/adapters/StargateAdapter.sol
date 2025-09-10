@@ -83,9 +83,6 @@ contract StargateAdapter is
         address stargateContract
     );
 
-    /// @notice Emitted when default transport mode is changed
-    event DefaultTransportModeChanged(bool useTaxi);
-
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
 
@@ -291,8 +288,7 @@ contract StargateAdapter is
             options
         );
 
-        (OFTLimit memory oftLimit, , OFTReceipt memory oftReceipt) = stargate
-            .quoteOFT(sendParam);
+        (, , OFTReceipt memory oftReceipt) = stargate.quoteOFT(sendParam);
 
         // Calculate minimum slippage threshold (use configurable tolerance)
         uint256 minExpectedAmount = (params.amount *

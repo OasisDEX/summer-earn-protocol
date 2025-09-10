@@ -31,9 +31,6 @@ interface IBridgeAdapter {
     error UnsupportedChain();
 
     /// @notice Thrown when the operation is not supported by the adapter
-    error UnsupportedOperation();
-
-    /// @notice Thrown when the operation is not supported by the adapter
     error OperationNotSupported();
 
     /// @notice Thrown when insufficient fee is provided for an operation

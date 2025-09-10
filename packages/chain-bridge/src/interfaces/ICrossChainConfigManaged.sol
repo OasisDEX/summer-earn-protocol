@@ -10,9 +10,6 @@ interface ICrossChainConfigManaged {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Thrown when the CrossChainConfigManager address is zero
-    error CrossChainConfigManagerZeroAddress();
-
     /// @notice Thrown when the caller is not an executor
     error OnlyAuthorizedExecutor();
 

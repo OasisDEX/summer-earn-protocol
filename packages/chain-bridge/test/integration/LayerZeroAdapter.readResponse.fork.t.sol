@@ -13,8 +13,6 @@ import {console} from "forge-std/Test.sol";
 contract LayerZeroAdapterReadResponseBaseForkTest is
     LayerZeroAdapterForkSetupTest
 {
-    // Events from LayerZero layerZeroAdapter
-    event ReadResponseDelivered(bytes32 indexed operationId, bytes payload);
     event ReadOperationNotFound(bytes32 indexed guid, string reason);
     event RelayFailed(bytes32 indexed operationId, bytes reason);
 

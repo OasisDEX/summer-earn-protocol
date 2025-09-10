@@ -56,11 +56,6 @@ contract CrossChainRegistryTest is Test {
     uint256 public constant DEFAULT_GAS_LIMIT = 200000;
     uint256 public constant NEW_GAS_LIMIT = 300000;
 
-    // Add new events
-    event BridgeQueueUpdated(
-        address indexed oldBridgeQueue,
-        address indexed newBridgeQueue
-    );
     event BridgeRouterUpdated(
         address indexed oldBridgeRouter,
         address indexed newBridgeRouter

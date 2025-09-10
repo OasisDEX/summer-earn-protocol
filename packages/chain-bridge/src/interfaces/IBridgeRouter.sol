@@ -57,12 +57,6 @@ interface IBridgeRouter is IERC165 {
         BridgeTypes.OperationType indexed operationType
     );
 
-    /// @notice Emitted when a chain's router address is updated
-    event ChainRouterAddressUpdated(
-        uint16 indexed chainId,
-        address routerAddress
-    );
-
     /// @notice Emitted when assets (ERC20 or native) are recovered from the router by governance
     /// @dev If `token` is address(0), the recovery represents native ETH.
     event RouterAssetsRecovered(
@@ -73,9 +67,6 @@ interface IBridgeRouter is IERC165 {
 
     /// @notice Emitted when the default gas limit is updated
     event DefaultGasLimitUpdated(uint256 newDefaultGasLimit);
-
-    /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
-    event BridgeQueueUpdated(address indexed newBridgeQueue);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -91,20 +82,10 @@ interface IBridgeRouter is IERC165 {
     error ReceiverRejectedCall(); // Keep, might be useful for callbacks
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
-
     /// @notice Error thrown when the originator is not the caller
     error InvalidOriginator();
-
-    /// @notice Error thrown when trying to update status in invalid direction
-    error InvalidStatusProgression();
-
-    /// @notice Error thrown when an invalid status is provided
-    error InvalidStatus();
-
     /// @notice Thrown when the contract is paused
     error Paused();
-    /// @notice Thrown when the provided fee is insufficient
-    error InsufficientFee();
     /// @notice Thrown when a native token transfer fails (e.g., refund)
     error TransferFailed();
     /// @notice Thrown when an adapter doesn't support a requested operation

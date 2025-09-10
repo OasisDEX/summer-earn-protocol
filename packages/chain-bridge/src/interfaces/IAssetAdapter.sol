@@ -22,14 +22,6 @@ interface IAssetAdapter {
         address recipient
     );
 
-    /// @notice Emitted when a transfer is received through the adapter
-    event TransferReceived(
-        bytes32 indexed transferId,
-        address asset,
-        uint256 amount,
-        address recipient
-    );
-
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
