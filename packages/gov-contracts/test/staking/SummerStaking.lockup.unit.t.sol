@@ -386,7 +386,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     function test_StakeWithMaxLockup() public {
         uint256 stakeAmount = STAKE_AMOUNT;
-        uint256 lockupPeriod = 0; // No lockup for now to avoid bucket cap issues
+        uint256 lockupPeriod = aMaxLockupPeriod;
 
         uint256 expectedWeightedAmount = _calculateExpectedWeightedAmountForPeriod(
                 stakeAmount,
