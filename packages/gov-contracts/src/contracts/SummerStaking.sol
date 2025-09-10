@@ -28,7 +28,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
     // Weighted stake calculation constants
     uint256 public constant WEIGHTED_STAKE_BASE = 5e16; // 0.05 in 60.18 fixed-point
-    uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 4e2; // 4e-16 * 1e18 = 400 in 60.18 fixed-point
+    uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 350; // 3.5e-16 * 1e18 = 350 in 60.18 fixed-point
 
     // Bucket period boundaries (in seconds)
     uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days - 1;
@@ -527,10 +527,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _amount,
         uint256 _lockupPeriod
     ) internal pure returns (uint256) {
-        if (_lockupPeriod == 0) {
-            return _amount; // No weighting for 0 lockup
-        }
-
         // Convert lockupPeriod into 60.18 fixed-point
         UD60x18 time = convert(_lockupPeriod);
 

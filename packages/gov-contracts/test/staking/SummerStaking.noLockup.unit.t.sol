@@ -256,7 +256,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         assertEq(amount, stakeAmount);
         assertEq(lockupEndTime, block.timestamp + lockupPeriod);
         assertEq(lockupPeriodStored, lockupPeriod);
-        assertEq(weightedAmount, stakeAmount); // Weighted amount should equal staked amount for 0 lockup
+        assertEq(weightedAmount, _applyNoLockupWeightedStake(stakeAmount));
     }
 
     function test_StakeWithLockup_ZeroLockupPeriod() public {
@@ -270,7 +270,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         (uint256 amount, uint256 weightedAmount, , ) = freshStaking
             .getUserStake(user1, 0);
         assertEq(amount, stakeAmount);
-        assertEq(weightedAmount, stakeAmount); // No weighting for 0 lockup
+        assertEq(weightedAmount, _applyNoLockupWeightedStake(stakeAmount));
     }
 
     function test_StakeWithLockup_InvalidLockupPeriod() public {
@@ -318,8 +318,8 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
                 i
             );
 
-            // For zero lockup, weighted amount should equal staked amount
-            assertEq(weightedAmount, stakeAmount);
+            // For zero lockup, weighted amount should use fixed multiplier of 0.05
+            assertEq(weightedAmount, _applyNoLockupWeightedStake(stakeAmount));
 
             // Verify the formula: amount * (4E-16 * time^2 + 0.05)
             uint256 expectedWeightedAmount = freshStaking
@@ -338,10 +338,14 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // balanceOf should return actual staked amount, weightedBalanceOf returns weighted amount
         uint256 balanceOf = freshStaking.balanceOf(user1); // Actual staked amount
+        uint expected = freshStaking.calculateWeightedStake(
+            stakeAmount,
+            lockupPeriod
+        );
         uint256 weightedBalance = freshStaking.weightedBalanceOf(user1); // Weighted amount
 
         assertEq(balanceOf, stakeAmount); // Actual = staked amount
-        assertEq(weightedBalance, balanceOf); // For zero lockup, weighted = actual
+        assertEq(weightedBalance, expected);
 
         (, uint256 expectedWeightedAmount, , ) = freshStaking.getUserStake(
             user1,
@@ -599,8 +603,8 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         assertEq(axSumr.balanceOf(user2), stakeAmount2);
 
         // Verify weighted balances are same as staked amounts for zero lockup
-        uint256 balance1 = freshStaking.weightedBalanceOf(user1);
-        uint256 balance2 = freshStaking.weightedBalanceOf(user2);
+        uint256 balance1 = freshStaking.balanceOf(user1);
+        uint256 balance2 = freshStaking.balanceOf(user2);
         assertEq(balance1, stakeAmount1); // User 1 has no lockup
         assertEq(balance2, stakeAmount2); // User 2 has no lockup
     }

@@ -8,6 +8,7 @@ import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.s
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 
 /*
  * @title SummerStaking Test Base
@@ -202,6 +203,10 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
 
     /**
      * @notice Wrapper that pranks as the user and calls stakeWithNewLockup
+     * @param user The address of the user staking
+     * @param amount The amount of tokens to stake
+     * @param lockupPeriod The lockup period in seconds
+     * @return The index of the stake
      */
     function _stake(
         address user,
@@ -572,6 +577,214 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _expectUnstakedWithPenaltyEventOnContract(
         SummerStaking staking,
+        address user,
+        uint256 unstaked,
+        uint256 penalty,
+        uint256 returnAmount
+    ) internal {
+        vm.expectEmit(true, false, false, false);
+        emit SummerStaking.UnstakedWithPenalty(
+            user,
+            unstaked,
+            penalty,
+            returnAmount
+        );
+    }
+
+    function _applyNoLockupWeightedStake(
+        uint256 stakeAmount
+    ) internal pure returns (uint256) {
+        return (0.05e18 * stakeAmount) / 1e18;
+    }
+
+    /**
+     * @notice Helper to advance time and mine blocks
+     */
+    function _advanceTime(uint256 time) internal {
+        vm.warp(block.timestamp + time);
+        vm.roll(block.number + (time / 12)); // Assuming 12 second block time
+    }
+
+    /**
+     * @notice Helper to create multiple stakes with different lockup periods
+     */
+    function _createMultipleStakes(
+        address user,
+        uint256[] memory amounts,
+        uint256[] memory lockupPeriods
+    ) internal returns (uint256[] memory) {
+        require(
+            amounts.length == lockupPeriods.length,
+            "Arrays must have same length"
+        );
+
+        uint256[] memory stakeIndices = new uint256[](amounts.length);
+
+        for (uint256 i = 0; i < amounts.length; i++) {
+            stakeIndices[i] = _stake(user, amounts[i], lockupPeriods[i]);
+        }
+
+        return stakeIndices;
+    }
+
+    /**
+     * @notice Helper to calculate expected weighted amount for a given lockup period
+     */
+    function _calculateExpectedWeightedAmountForPeriod(
+        uint256 amount,
+        uint256 lockupPeriod
+    ) internal pure returns (uint256) {
+        // Constants from contract
+        uint256 WEIGHTED_STAKE_BASE = 5e16;
+        uint256 WEIGHTED_STAKE_COEFFICIENT = 350; //
+        // Convert lockupPeriod into 60.18 fixed-point
+        UD60x18 time = convert(lockupPeriod);
+
+        // Square it safely in 60.18 format
+        UD60x18 timeSquared = time.mul(time);
+
+        // multiplier = (WEIGHTED_STAKE_COEFFICIENT * time^2) + WEIGHTED_STAKE_BASE
+        UD60x18 multiplier = ud60x18(WEIGHTED_STAKE_COEFFICIENT)
+            .mul(timeSquared)
+            .add(ud60x18(WEIGHTED_STAKE_BASE));
+
+        // weightedAmount = amount * multiplier
+        return ud60x18(amount).mul(multiplier).unwrap();
+    }
+
+    /**
+     * @notice Helper to verify bucket distribution
+     */
+    function _verifyBucketDistribution(
+        SummerStaking staking,
+        uint256[] memory expectedBucketAmounts
+    ) internal {
+        SummerStaking.Bucket[] memory buckets = new SummerStaking.Bucket[](4);
+        buckets[0] = SummerStaking.Bucket.ThreeToSixMonths;
+        buckets[1] = SummerStaking.Bucket.SixToTwelveMonths;
+        buckets[2] = SummerStaking.Bucket.OneToTwoYears;
+        buckets[3] = SummerStaking.Bucket.TwoToThreeYears;
+
+        for (uint256 i = 0; i < 4; i++) {
+            uint256 actualStaked = staking.getBucketTotalStaked(buckets[i]);
+            assertEq(
+                actualStaked,
+                expectedBucketAmounts[i],
+                string(abi.encodePacked("Bucket ", i, " mismatch"))
+            );
+        }
+    }
+
+    /**
+     * @notice Helper to check if a user has a specific stake
+     */
+    function _hasStake(
+        SummerStaking staking,
+        address user,
+        uint256 index
+    ) internal view returns (bool) {
+        (uint256 amount, , , ) = staking.getUserStake(user, index);
+        return amount > 0;
+    }
+
+    /**
+     * @notice Helper to get total staked amount for a user across all stakes
+     */
+    function _getTotalStakedAmount(
+        SummerStaking staking,
+        address user
+    ) internal view returns (uint256) {
+        uint256 total = 0;
+        uint256 stakeCount = staking.getUserStakesCount(user);
+
+        for (uint256 i = 0; i < stakeCount; i++) {
+            (uint256 amount, , , ) = staking.getUserStake(user, i);
+            total += amount;
+        }
+
+        return total;
+    }
+
+    /**
+     * @notice Helper to get total weighted amount for a user across all stakes
+     */
+    function _getTotalWeightedAmount(
+        SummerStaking staking,
+        address user
+    ) internal view returns (uint256) {
+        uint256 total = 0;
+        uint256 stakeCount = staking.getUserStakesCount(user);
+
+        for (uint256 i = 0; i < stakeCount; i++) {
+            (, uint256 weightedAmount, , ) = staking.getUserStake(user, i);
+            total += weightedAmount;
+        }
+
+        return total;
+    }
+
+    /**
+     * @notice Helper to verify reward distribution
+     */
+    function _verifyRewardDistribution(
+        SummerStaking staking,
+        address user,
+        uint256 expectedReward
+    ) internal {
+        uint256 actualReward = staking.earned(user, address(rewardToken));
+        assertEq(actualReward, expectedReward, "Reward amount mismatch");
+    }
+
+    /**
+     * @notice Helper to claim rewards for a user
+     */
+    function _claimRewards(SummerStaking staking, address user) internal {
+        vm.prank(user);
+        staking.getReward(address(rewardToken));
+    }
+
+    /**
+     * @notice Helper to check if a lockup period is valid
+     */
+    function _isValidLockupPeriod(
+        uint256 lockupPeriod
+    ) internal pure returns (bool) {
+        return lockupPeriod >= 90 days && lockupPeriod <= 3 * 365 days;
+    }
+
+    /**
+     * @notice Helper to calculate penalty percentage based on time remaining
+     */
+    function _calculatePenaltyPercentage(
+        uint256 timeRemaining,
+        uint256 originalLockupPeriod
+    ) internal view returns (uint256) {
+        if (originalLockupPeriod == 0) return 0;
+        return (timeRemaining * aMaxPenaltyPercentage) / (aMaxLockupPeriod);
+    }
+
+    /**
+     * @notice Helper to verify event emission with specific parameters
+     */
+    function _verifyStakedEvent(
+        address user,
+        uint256 amount,
+        uint256 lockupPeriod,
+        uint256 weightedAmount
+    ) internal {
+        vm.expectEmit(true, false, false, false);
+        emit SummerStaking.StakedWithLockup(
+            user,
+            amount,
+            lockupPeriod,
+            weightedAmount
+        );
+    }
+
+    /**
+     * @notice Helper to verify unstaked event with specific parameters
+     */
+    function _verifyUnstakedEvent(
         address user,
         uint256 unstaked,
         uint256 penalty,
