@@ -31,9 +31,6 @@ contract MockAdapter is
     // Add mapping to track supported operations
     mapping(BridgeTypes.OperationType => bool) public supportedOperations;
 
-    // Add mapping to track operation statuses
-    mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
-
     // Storage for received data
     bytes public lastReceivedResponse;
     address public lastReceivedSender;

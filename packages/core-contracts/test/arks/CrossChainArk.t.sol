@@ -96,12 +96,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
             options: ""
         });
 
-        ark = new CrossChainArk(
-            address(router),
-            address(registry),
-            TARGET_CHAIN_ID,
-            params
-        );
+        ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
 
         // Register the ark-proxy relationship in the registry
         vm.prank(governor);
@@ -719,14 +714,5 @@ contract CrossChainArkTest is Test, ArkTestBase {
             ark.supportsInterface(bytes4(0xffffffff)),
             "Should not support random interface"
         );
-    }
-
-    function _buildEmptyPayload() internal pure returns (bytes memory) {
-        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
-            operationId: bytes32(0),
-            originator: address(0),
-            sourceAsset: address(0)
-        });
-        return abi.encode(dp);
     }
 }

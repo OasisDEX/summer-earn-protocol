@@ -45,7 +45,7 @@ contract LayerZeroAdapter is
     /// @notice Binds a read response guid to the originally requested destination chain
     /// @dev Used to enforce registry trust checks for read-channel responses
     mapping(bytes32 guid => uint16 expectedChainId)
-        private expectedReadChainByGuid;
+        public expectedReadChainByGuid;
 
     /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
     /// @dev LayerZero routes read responses through a reserved "read channel" range
@@ -57,9 +57,6 @@ contract LayerZeroAdapter is
 
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
-
-    /// @notice Minimum gas limit for operations
-    uint128 public minGasLimit;
 
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(
@@ -355,11 +352,6 @@ contract LayerZeroAdapter is
 
         // Resolve the expected source chain from the original request's destination
         uint16 expectedChainId = expectedReadChainByGuid[_guid];
-        if (expectedChainId == 0) {
-            // Silently fail so it doesn't get locked with DVN
-            emit ReadOperationNotFound(_guid, "No expected read chain found");
-            return;
-        }
 
         bytes memory operationPayload = _encodeRelayedReadResponse(
             BridgeTypes.RelayedReadResponse({
@@ -367,12 +359,6 @@ contract LayerZeroAdapter is
                 operationId: operationId,
                 sourceChainId: expectedChainId
             })
-        );
-
-        // Enforce registry-declared peer mapping using the original destination chain
-        _assertTrustedSource(
-            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
-            expectedChainId
         );
 
         IBridgeRouter(bridgeRouter()).deliver(
@@ -699,25 +685,6 @@ contract LayerZeroAdapter is
             operationType
         );
         return quoteFee.nativeFee;
-    }
-
-    /**
-     * @notice Converts a LayerZero endpoint ID to our chain ID format
-     * @param _lzEid LayerZero endpoint ID
-     * @return chainId Standard chain ID used by our system
-     */
-    function _getLzChainId(
-        uint32 _lzEid
-    ) internal view returns (uint16 chainId) {
-        // Get the chain ID from our endpoint mapping
-        chainId = externalIdToChainId[_lzEid];
-
-        // If not found in the mapping, revert
-        if (chainId == 0) {
-            revert UnsupportedChain();
-        }
-
-        return chainId;
     }
 
     /// @inheritdoc IBridgeAdapter

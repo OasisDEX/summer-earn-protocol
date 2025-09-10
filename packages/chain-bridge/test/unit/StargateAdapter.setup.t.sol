@@ -96,8 +96,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         adapterA = new StargateAdapter(
             address(registryA),
             address(accessManagerA),
-            lzEndpointA,
-            address(harborCommandA)
+            lzEndpointA
         );
 
         // Set endpoint ID instead of addSupportedChain
@@ -135,8 +134,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         adapterB = new StargateAdapter(
             address(registryB),
             address(accessManagerB),
-            lzEndpointB,
-            address(harborCommandB)
+            lzEndpointB
         );
 
         // Set endpoint ID instead of addSupportedChain

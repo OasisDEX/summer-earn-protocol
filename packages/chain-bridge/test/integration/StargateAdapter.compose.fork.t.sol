@@ -89,8 +89,7 @@ contract StargateAdapterComposeForkTest is Test {
         adapterMainnet = new StargateAdapter(
             address(registryMainnet), // Use registry instead of config manager
             address(accessManager),
-            LAYERZERO_ENDPOINT_MAINNET,
-            address(0xdead) // Mock HarborCommand address for testing
+            LAYERZERO_ENDPOINT_MAINNET
         );
 
         // Configure mainnet adapter with basic chain support only
@@ -143,8 +142,7 @@ contract StargateAdapterComposeForkTest is Test {
         adapterArbitrum = new StargateAdapter(
             address(registryArbitrum), // Use registry instead of config manager
             address(accessManagerArb),
-            LAYERZERO_ENDPOINT_ARBITRUM,
-            address(0xdead) // Mock HarborCommand address for testing
+            LAYERZERO_ENDPOINT_ARBITRUM
         );
 
         // Configure Arbitrum adapter with basic chain support only

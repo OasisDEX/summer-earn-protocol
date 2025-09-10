@@ -144,8 +144,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         stargateAdapter = new StargateAdapter(
             address(registry), // _crossChainRegistry
             address(accessManager), // _accessManager
-            LZ_ENDPOINT_MAINNET, // _lzEndpoint
-            address(0xdead) // _harborCommand - using mock address for testing
+            LZ_ENDPOINT_MAINNET
         );
 
         // Register adapters with router
@@ -213,12 +212,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         });
 
         // Create CrossChainArk with the proper CrossChainConfigManager
-        ark = new CrossChainArk(
-            address(bridgeRouter),
-            address(registry),
-            DEST_CHAIN_ID,
-            params
-        );
+        ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
 
         // Register the ark-proxy relationship - use Stargate proxy since that's for asset transfers
         vm.startPrank(governor);

@@ -46,7 +46,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             sender: bytes32(uint256(uint160(address(layerZeroAdapter)))), // Peer layerZeroAdapter address
             nonce: 1
         });
-
+        layerZeroAdapter.setExpectedReadChainByGuid(guid, DEST_CHAIN_ID);
         // Simulate receiving the read response through LayerZero
         vm.prank(LZ_ENDPOINT_BASE); // Only the LZ endpoint can call lzReceive
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
