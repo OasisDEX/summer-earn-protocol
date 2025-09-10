@@ -101,6 +101,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Register the BridgeRouter as an executor
         registry.registerExecutor(address(bridgeRouter));
+
         vm.stopPrank();
 
         // ------------------------------------------------------------------
@@ -192,7 +193,23 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             DEST_CHAIN_ID,
             registry.PEER_RELATIONSHIP()
         );
+        // Register cross-chain relationships in registry
+        registry.registerRelationship(
+            ARB_STARGATE_PROXY,
+            address(stargateAdapter),
+            DEST_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
 
+        // Register LayerZero adapter with different proxy address
+        registry.registerRelationship(
+            ARB_LAYERZERO_PROXY,
+            address(layerZeroAdapter),
+            DEST_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
         // Register the BridgeRouter as an executor
 
         vm.stopPrank();
