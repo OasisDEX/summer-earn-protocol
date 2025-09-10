@@ -530,8 +530,8 @@ contract BridgeRouter is
                 IERC165(data.recipient).supportsInterface(
                     type(ICrossChainReceiver).interfaceId
                 )
-            returns (bool supports) {
-                if (!supports) revert InvalidParams();
+            returns (bool isSupported) {
+                if (!isSupported) revert InvalidParams();
             } catch {
                 revert InvalidParams();
             }
@@ -560,8 +560,8 @@ contract BridgeRouter is
                 IERC165(data.recipient).supportsInterface(
                     type(ICrossChainReceiver).interfaceId
                 )
-            returns (bool supportsMsg) {
-                if (!supportsMsg) revert InvalidParams();
+            returns (bool isSupportedMsg) {
+                if (!isSupportedMsg) revert InvalidParams();
             } catch {
                 revert InvalidParams();
             }
@@ -596,8 +596,8 @@ contract BridgeRouter is
                 IERC165(originator).supportsInterface(
                     type(ICrossChainReceiver).interfaceId
                 )
-            returns (bool supportsRead) {
-                if (!supportsRead) revert InvalidParams();
+            returns (bool isSupportedRead) {
+                if (!isSupportedRead) revert InvalidParams();
             } catch {
                 revert InvalidParams();
             }
