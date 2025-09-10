@@ -369,12 +369,6 @@ contract LayerZeroAdapter is
             })
         );
 
-        // Enforce registry-declared peer mapping using the original destination chain
-        _assertTrustedSource(
-            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
-            expectedChainId
-        );
-
         IBridgeRouter(bridgeRouter()).deliver(
             BridgeTypes.OperationType.READ_STATE,
             operationPayload
