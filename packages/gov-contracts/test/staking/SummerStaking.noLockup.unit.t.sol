@@ -283,7 +283,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_InvalidLockupPeriod(string)",
-                "Lockup period cannot exceed 4 years"
+                "Lockup period cannot exceed 3 years"
             )
         );
         freshStaking.stakeWithNewLockup(stakeAmount, invalidLockupPeriod);
@@ -833,8 +833,8 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         );
         assertEq(
             oneYearLockupPenalty,
-            (125 * Constants.WAD) / 1000,
-            "1-year lockup penalty should be 12.5% "
+            (aMaxPenaltyPercentage / 3),
+            "1-year lockup penalty should be 6.666666666666666666% "
         );
 
         // Verify the difference

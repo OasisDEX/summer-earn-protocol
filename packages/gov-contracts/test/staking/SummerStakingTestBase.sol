@@ -24,9 +24,14 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     MockERC20 public rewardToken;
 
     // Test lockup periods
-    uint256 public constant MIN_LOCKUP = 90 days;
-    uint256 public constant MAX_LOCKUP = 4 * 365 days;
+
     uint256 public constant MEDIUM_LOCKUP = 365 days;
+    uint256 public aMaxPenaltyPercentage;
+    uint256 public bMaxPenaltyPercentage;
+    uint256 public aMaxLockupPeriod;
+    uint256 public bMaxLockupPeriod;
+    uint256 public aMinLockupPeriod;
+    uint256 public bMinLockupPeriod;
 
     function setUp() public virtual override {
         super.setUp();
@@ -48,6 +53,13 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
             address(bxSumr)
         );
 
+        aMaxPenaltyPercentage = aStaking.MAX_PENALTY_PERCENTAGE();
+        bMaxPenaltyPercentage = bStaking.MAX_PENALTY_PERCENTAGE();
+        aMaxLockupPeriod = aStaking.MAX_LOCKUP_PERIOD();
+        bMaxLockupPeriod = bStaking.MAX_LOCKUP_PERIOD();
+        aMinLockupPeriod = aStaking.BUCKET_SHORT_TERM_MAX() + 1;
+        bMinLockupPeriod = bStaking.BUCKET_SHORT_TERM_MAX() + 1;
+
         vm.startPrank(address(timelockA));
         axSumr.addStakingModule(address(aStaking));
         aStaking.updateLockupBucketCap(
@@ -63,7 +75,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
             100000 ether
         );
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToFourYears,
+            SummerStaking.Bucket.TwoToThreeYears,
             100000 ether
         );
         vm.stopPrank();
@@ -83,7 +95,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
             100000 ether
         );
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToFourYears,
+            SummerStaking.Bucket.TwoToThreeYears,
             100000 ether
         );
         vm.stopPrank();

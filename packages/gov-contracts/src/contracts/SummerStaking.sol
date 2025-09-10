@@ -22,9 +22,9 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
 
     // Lockup configuration
-    uint256 public constant MAX_LOCKUP_PERIOD = 4 * 365 days; // 4 years
+    uint256 public constant MAX_LOCKUP_PERIOD = 3 * 365 days; // 3 years
     uint256 public constant MAX_AMOUNT_OF_STAKES = 10; // Maximum number of stakes per user
-    uint256 public constant MAX_PENALTY_PERCENTAGE = 0.5e18; // 50%
+    uint256 public constant MAX_PENALTY_PERCENTAGE = 0.2e18; // 20%
 
     // Weighted stake calculation constants
     uint256 public constant WEIGHTED_STAKE_BASE = 5e16; // 0.05 in 60.18 fixed-point
@@ -35,7 +35,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days;
     uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days;
     uint256 public constant BUCKET_ONE_TO_TWO_MAX = 730 days;
-    uint256 public constant BUCKET_TWO_TO_FOUR_MAX = MAX_LOCKUP_PERIOD;
+    uint256 public constant BUCKET_TWO_TO_THREE_MAX = MAX_LOCKUP_PERIOD;
 
     // Bucket enum for clear indexing
     enum Bucket {
@@ -44,7 +44,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         ThreeToSixMonths, // 90-180 days
         SixToTwelveMonths, // 180-365 days
         OneToTwoYears, // 365-730 days
-        TwoToFourYears // 731+ days
+        TwoToThreeYears // 731+ days
     }
 
     // User stake information with lockup details
@@ -119,7 +119,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             cap: type(uint256).max,
             staked: 0
         });
-        _bucketData[Bucket.TwoToFourYears] = BucketData({
+        _bucketData[Bucket.TwoToThreeYears] = BucketData({
             cap: type(uint256).max,
             staked: 0
         });
@@ -172,8 +172,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         if (_lockupPeriod <= BUCKET_ONE_TO_TWO_MAX) {
             return Bucket.OneToTwoYears;
         }
-        if (_lockupPeriod <= BUCKET_TWO_TO_FOUR_MAX) {
-            return Bucket.TwoToFourYears;
+        if (_lockupPeriod <= BUCKET_TWO_TO_THREE_MAX) {
+            return Bucket.TwoToThreeYears;
         }
         revert Staking_InvalidLockupPeriod(
             "Lockup period exceeds maximum allowed"
@@ -405,7 +405,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         if (_amount == 0) revert CannotStakeZero();
         if (_lockupPeriod > MAX_LOCKUP_PERIOD) {
             revert Staking_InvalidLockupPeriod(
-                "Lockup period cannot exceed 4 years"
+                "Lockup period cannot exceed 3 years"
             );
         }
 
@@ -503,9 +503,9 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         } else if (_bucket == Bucket.OneToTwoYears) {
             minLockupPeriod = BUCKET_SIX_TO_TWELVE_MAX + 1;
             maxLockupPeriod = BUCKET_ONE_TO_TWO_MAX;
-        } else if (_bucket == Bucket.TwoToFourYears) {
+        } else if (_bucket == Bucket.TwoToThreeYears) {
             minLockupPeriod = BUCKET_ONE_TO_TWO_MAX + 1;
-            maxLockupPeriod = BUCKET_TWO_TO_FOUR_MAX;
+            maxLockupPeriod = BUCKET_TWO_TO_THREE_MAX;
         }
     }
     /**
@@ -750,7 +750,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         buckets[2] = Bucket.ThreeToSixMonths;
         buckets[3] = Bucket.SixToTwelveMonths;
         buckets[4] = Bucket.OneToTwoYears;
-        buckets[5] = Bucket.TwoToFourYears;
+        buckets[5] = Bucket.TwoToThreeYears;
 
         for (uint256 i = 0; i < 6; i++) {
             Bucket bucket = buckets[i];
@@ -772,9 +772,9 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             } else if (bucket == Bucket.OneToTwoYears) {
                 minPeriods[i] = BUCKET_SIX_TO_TWELVE_MAX + 1;
                 maxPeriods[i] = BUCKET_ONE_TO_TWO_MAX;
-            } else if (bucket == Bucket.TwoToFourYears) {
+            } else if (bucket == Bucket.TwoToThreeYears) {
                 minPeriods[i] = BUCKET_ONE_TO_TWO_MAX + 1;
-                maxPeriods[i] = BUCKET_TWO_TO_FOUR_MAX;
+                maxPeriods[i] = BUCKET_TWO_TO_THREE_MAX;
             }
         }
     }
