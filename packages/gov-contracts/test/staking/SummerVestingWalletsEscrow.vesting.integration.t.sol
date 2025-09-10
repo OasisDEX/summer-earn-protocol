@@ -1457,4 +1457,20 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         );
         assertEq(aStaking.userStakedVestingFactories(alice).length, 0);
     }
+
+    function test_RescueWallet() public {
+        revert("Not implemented");
+    }
+
+    function test_RescueWallet_InvalidNewOwner() public {
+        revert("Not implemented");
+    }
+
+    function test_RescueToken() public {
+        revert("Not implemented");
+    }
+
+    function test_RescueToken_InvalidToken() public {
+        revert("Not implemented");
+    }
 }

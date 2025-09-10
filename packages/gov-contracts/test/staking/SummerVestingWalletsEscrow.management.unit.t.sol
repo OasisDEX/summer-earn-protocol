@@ -22,7 +22,7 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
     address public newVestingFactory1 = address(0x1001);
     address public newVestingFactory2 = address(0x1002);
 
-    function test_GetVestingFactoryCount_InitialState() public {
+    function test_GetVestingFactoryCount_InitialState() public view {
         // Initially should have 2 vesting factories from setup
         assertEq(
             aStaking.vestingFactories().length,
@@ -31,7 +31,7 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
         );
     }
 
-    function test_GetVestingFactory_ValidIndices() public {
+    function test_GetVestingFactory_ValidIndices() public view {
         // Test getting factories at valid indices
         address factory1 = aStaking.getVestingFactory(0);
         address factory2 = aStaking.getVestingFactory(1);
