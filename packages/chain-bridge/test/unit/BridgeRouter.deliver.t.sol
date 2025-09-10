@@ -274,11 +274,11 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
 
         // Register peer relationship for a different source chain
         vm.prank(governor);
-        registry.registerAdapterPeer(
-            address(mockAdapter), // source adapter
-            address(mockAdapter), // target adapter
-            anotherSourceChain, // different source chain
-            CURRENT_CHAIN_ID // target chain
+        registry.registerAdapterPeerPair(
+            address(mockAdapter),
+            address(mockAdapter),
+            anotherSourceChain,
+            CURRENT_CHAIN_ID
         );
 
         bytes32 operationId = keccak256("differentChainPeer");

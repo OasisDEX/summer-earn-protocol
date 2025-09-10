@@ -362,12 +362,7 @@ interface ICrossChainRegistry {
      * @param sourceChainId Chain ID where the source adapter is deployed
      * @param targetChainId Chain ID where the target adapter is deployed
      */
-    function registerAdapterPeer(
-        address sourceAdapter,
-        address targetAdapter,
-        uint16 sourceChainId,
-        uint16 targetChainId
-    ) external;
+    // registerAdapterPeer removed in favor of registerAdapterPeerPair to avoid misconfiguration
 
     /**
      * @notice Get the peer adapter address for a given source adapter and target chain
@@ -394,6 +389,68 @@ interface ICrossChainRegistry {
         uint16 sourceChainId,
         uint16 targetChainId
     ) external view returns (bool);
+
+    /**
+     * @notice Register a bidirectional peer relationship between two adapters in one call
+     * @dev Convenience that registers (adapterA -> adapterB) and (adapterB -> adapterA)
+     * @param adapterA Address of the adapter on chainA
+     * @param adapterB Address of the adapter on chainB
+     * @param chainA Chain ID where adapterA is deployed
+     * @param chainB Chain ID where adapterB is deployed
+     */
+    function registerAdapterPeerPair(
+        address adapterA,
+        address adapterB,
+        uint16 chainA,
+        uint16 chainB
+    ) external;
+
+    /**
+     * @notice Unregister a bidirectional peer relationship between two adapters in one call
+     * @param adapterA Address of the adapter on chainA
+     * @param adapterB Address of the adapter on chainB
+     * @param chainA Chain ID where adapterA is deployed
+     * @param chainB Chain ID where adapterB is deployed
+     */
+    function unregisterAdapterPeerPair(
+        address adapterA,
+        address adapterB,
+        uint16 chainA,
+        uint16 chainB
+    ) external;
+
+    /*//////////////////////////////////////////////////////////////
+                        ARK_FLEET CONVENIENCE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Register a bidirectional Ark-Fleet relationship in one call
+     * @dev Registers (ark -> fleetProxy) and (fleetProxy -> ark)
+     * @param ark Address of the Ark on arkChainId
+     * @param fleetProxy Address of the FleetProxy on fleetChainId
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the FleetProxy is deployed
+     */
+    function registerArkFleetPair(
+        address ark,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external;
+
+    /**
+     * @notice Unregister a bidirectional Ark-Fleet relationship in one call
+     * @param ark Address of the Ark on arkChainId
+     * @param fleetProxy Address of the FleetProxy on fleetChainId
+     * @param arkChainId Chain ID where the Ark is deployed
+     * @param fleetChainId Chain ID where the FleetProxy is deployed
+     */
+    function unregisterArkFleetPair(
+        address ark,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external;
 
     /*//////////////////////////////////////////////////////////////
                             EXECUTOR_RELATIONSHIP FUNCTIONS

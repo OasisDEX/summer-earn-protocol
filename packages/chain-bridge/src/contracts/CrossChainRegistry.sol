@@ -495,20 +495,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
      * @param sourceChainId Chain ID where the source adapter is deployed
      * @param targetChainId Chain ID where the target adapter is deployed
      */
-    function registerAdapterPeer(
-        address sourceAdapter,
-        address targetAdapter,
-        uint16 sourceChainId,
-        uint16 targetChainId
-    ) external onlyGovernor {
-        registerRelationship(
-            sourceAdapter,
-            targetAdapter,
-            sourceChainId,
-            targetChainId,
-            PEER_RELATIONSHIP
-        );
-    }
+    // registerAdapterPeer removed in favor of registerAdapterPeerPair to avoid misconfiguration
 
     /**
      * @notice Get the peer adapter address for a given source adapter and target chain
@@ -552,6 +539,45 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
     }
 
+    /**
+     * @notice Register a bidirectional peer relationship between two adapters in one call
+     * @dev Convenience that registers (adapterA -> adapterB) and (adapterB -> adapterA)
+     */
+    function registerAdapterPeerPair(
+        address adapterA,
+        address adapterB,
+        uint16 chainA,
+        uint16 chainB
+    ) external onlyGovernor {
+        registerRelationship(
+            adapterA,
+            adapterB,
+            chainA,
+            chainB,
+            PEER_RELATIONSHIP
+        );
+        registerRelationship(
+            adapterB,
+            adapterA,
+            chainB,
+            chainA,
+            PEER_RELATIONSHIP
+        );
+    }
+
+    /**
+     * @notice Unregister a bidirectional peer relationship between two adapters in one call
+     */
+    function unregisterAdapterPeerPair(
+        address adapterA,
+        address adapterB,
+        uint16 chainA,
+        uint16 chainB
+    ) external onlyGovernor {
+        unregisterRelationship(adapterA, PEER_RELATIONSHIP, chainB);
+        unregisterRelationship(adapterB, PEER_RELATIONSHIP, chainA);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -559,6 +585,44 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @inheritdoc ICrossChainRegistry
     function currentChainId() external view returns (uint16) {
         return CURRENT_CHAIN_ID;
+    }
+
+    /**
+     * @notice Register a bidirectional Ark-Fleet relationship in one call
+     */
+    function registerArkFleetPair(
+        address ark,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external onlyGovernor {
+        registerRelationship(
+            ark,
+            fleetProxy,
+            arkChainId,
+            fleetChainId,
+            ARK_FLEET_RELATIONSHIP
+        );
+        registerRelationship(
+            fleetProxy,
+            ark,
+            fleetChainId,
+            arkChainId,
+            ARK_FLEET_RELATIONSHIP
+        );
+    }
+
+    /**
+     * @notice Unregister a bidirectional Ark-Fleet relationship in one call
+     */
+    function unregisterArkFleetPair(
+        address ark,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external onlyGovernor {
+        unregisterRelationship(ark, ARK_FLEET_RELATIONSHIP, fleetChainId);
+        unregisterRelationship(fleetProxy, ARK_FLEET_RELATIONSHIP, arkChainId);
     }
 
     /*//////////////////////////////////////////////////////////////

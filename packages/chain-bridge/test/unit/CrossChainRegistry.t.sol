@@ -1003,6 +1003,115 @@ contract CrossChainRegistryTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
+                    BIDIRECTIONAL HELPER TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_registerAdapterPeerPair_and_unregister() public {
+        address adapterA = makeAddr("adapterA");
+        address adapterB = makeAddr("adapterB");
+        uint16 chainA = CURRENT_CHAIN_ID;
+        uint16 chainB = TARGET_CHAIN_ID;
+
+        vm.startPrank(governor);
+        registry.registerAdapterPeerPair(adapterA, adapterB, chainA, chainB);
+
+        // Validate both directions exist
+        assertTrue(
+            registry.isValidAdapterPeer(adapterA, adapterB, chainA, chainB)
+        );
+        assertTrue(
+            registry.isValidAdapterPeer(adapterB, adapterA, chainB, chainA)
+        );
+
+        // Unregister both in one call
+        registry.unregisterAdapterPeerPair(adapterA, adapterB, chainA, chainB);
+        vm.stopPrank();
+
+        // Both directions should be gone
+        assertFalse(
+            registry.isValidCrossChainPair(
+                adapterA,
+                adapterB,
+                chainA,
+                chainB,
+                registry.PEER_RELATIONSHIP()
+            )
+        );
+        assertFalse(
+            registry.isValidCrossChainPair(
+                adapterB,
+                adapterA,
+                chainB,
+                chainA,
+                registry.PEER_RELATIONSHIP()
+            )
+        );
+    }
+
+    function test_registerArkFleetPair_and_unregister() public {
+        address ark = makeAddr("arkPair");
+        address fleetProxy = makeAddr("fleetPair");
+        uint16 arkChainId = CURRENT_CHAIN_ID;
+        uint16 fleetChainId = TARGET_CHAIN_ID;
+
+        vm.startPrank(governor);
+        registry.registerArkFleetPair(
+            ark,
+            fleetProxy,
+            arkChainId,
+            fleetChainId
+        );
+
+        // Validate both directions exist under ARK_FLEET_RELATIONSHIP
+        assertTrue(
+            registry.isValidCrossChainPair(
+                ark,
+                fleetProxy,
+                arkChainId,
+                fleetChainId,
+                registry.ARK_FLEET_RELATIONSHIP()
+            )
+        );
+        assertTrue(
+            registry.isValidCrossChainPair(
+                fleetProxy,
+                ark,
+                fleetChainId,
+                arkChainId,
+                registry.ARK_FLEET_RELATIONSHIP()
+            )
+        );
+
+        // Unregister both in one call
+        registry.unregisterArkFleetPair(
+            ark,
+            fleetProxy,
+            arkChainId,
+            fleetChainId
+        );
+        vm.stopPrank();
+
+        assertFalse(
+            registry.isValidCrossChainPair(
+                ark,
+                fleetProxy,
+                arkChainId,
+                fleetChainId,
+                registry.ARK_FLEET_RELATIONSHIP()
+            )
+        );
+        assertFalse(
+            registry.isValidCrossChainPair(
+                fleetProxy,
+                ark,
+                fleetChainId,
+                arkChainId,
+                registry.ARK_FLEET_RELATIONSHIP()
+            )
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

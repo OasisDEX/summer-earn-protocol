@@ -144,18 +144,11 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         adapterB.mapEndpoint(CHAIN_ID_A, ENDPOINT_ID_A);
 
         // Register the cross-chain relationship between adapters ON CHAIN B
-        registryB.registerAdapterPeer(
-            address(adapterA), // sourceAdapter (on Chain A)
-            address(adapterB), // targetAdapter (on Chain B)
-            CHAIN_ID_A, // sourceChainId
-            CHAIN_ID_B // targetChainId
-        );
-
-        registryB.registerAdapterPeer(
-            address(adapterB), // sourceAdapter (on Chain B)
-            address(adapterA), // targetAdapter (on Chain A)
-            CHAIN_ID_B, // sourceChainId
-            CHAIN_ID_A // targetChainId
+        registryB.registerAdapterPeerPair(
+            address(adapterA),
+            address(adapterB),
+            CHAIN_ID_A,
+            CHAIN_ID_B
         );
 
         adapterB.addSupportedAsset(address(tokenB), address(stargateB));
@@ -168,18 +161,11 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         // Back to Chain A to register BOTH relationships
         useNetworkA();
         vm.startPrank(governor);
-        registryA.registerAdapterPeer(
-            address(adapterA), // sourceAdapter (on Chain A)
-            address(adapterB), // targetAdapter (on Chain B)
-            CHAIN_ID_A, // sourceChainId
-            CHAIN_ID_B // targetChainId
-        );
-
-        registryA.registerAdapterPeer(
-            address(adapterB), // sourceAdapter (on Chain B)
-            address(adapterA), // targetAdapter (on Chain A)
-            CHAIN_ID_B, // sourceChainId
-            CHAIN_ID_A // targetChainId
+        registryA.registerAdapterPeerPair(
+            address(adapterA),
+            address(adapterB),
+            CHAIN_ID_A,
+            CHAIN_ID_B
         );
         vm.stopPrank();
 
