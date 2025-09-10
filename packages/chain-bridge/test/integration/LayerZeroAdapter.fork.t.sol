@@ -2,6 +2,8 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IMessageLibManager, SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
 import {LayerZeroAdapterForkSetupTest} from "./LayerZeroAdapter.fork.setup.t.sol";
 import {console} from "forge-std/Test.sol";
 
@@ -132,6 +134,73 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         );
 
         console.log("[SUCCESS] LayerZero configuration verified");
+    }
+
+    function testExpectEndpointCallsOnConfigureReadLibrariesAndDVNs() public {
+        vm.startPrank(governor);
+
+        // Expect setSendLibrary and setReceiveLibrary during configureReadLibraries
+        vm.expectCall(
+            LZ_ENDPOINT_BASE,
+            abi.encodeWithSelector(
+                IMessageLibManager.setSendLibrary.selector,
+                address(layerZeroAdapter),
+                READ_CHANNEL_ID,
+                READ_LIB_1002_BASE
+            )
+        );
+
+        vm.expectCall(
+            LZ_ENDPOINT_BASE,
+            abi.encodeWithSelector(
+                IMessageLibManager.setReceiveLibrary.selector,
+                address(layerZeroAdapter),
+                READ_CHANNEL_ID,
+                READ_LIB_1002_BASE,
+                0
+            )
+        );
+
+        layerZeroAdapter.configureReadLibraries(READ_LIB_1002_BASE);
+
+        // Prepare DVN config to match adapter encoding
+        address[] memory readDVNs = new address[](1);
+        readDVNs[0] = READ_DVN_BASE;
+        ReadLibConfig memory cfg = ReadLibConfig({
+            executor: EXECUTOR_BASE,
+            requiredDVNCount: uint8(readDVNs.length),
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: readDVNs,
+            optionalDVNs: new address[](0)
+        });
+        bytes memory encodedConfig = abi.encode(cfg);
+        SetConfigParam[] memory params = new SetConfigParam[](1);
+        params[0] = SetConfigParam({
+            eid: READ_CHANNEL_ID,
+            configType: 1,
+            config: encodedConfig
+        });
+
+        // Expect setConfig during configureReadDVNs
+        vm.expectCall(
+            LZ_ENDPOINT_BASE,
+            abi.encodeWithSelector(
+                IMessageLibManager.setConfig.selector,
+                address(layerZeroAdapter),
+                READ_LIB_1002_BASE,
+                params
+            )
+        );
+
+        layerZeroAdapter.configureReadDVNs(
+            READ_LIB_1002_BASE,
+            readDVNs,
+            15,
+            EXECUTOR_BASE
+        );
+
+        vm.stopPrank();
     }
 
     // Helper function to execute a bridge message operation

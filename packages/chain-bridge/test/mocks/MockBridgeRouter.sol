@@ -22,6 +22,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // --- Mock State ---
     uint256 public mockFeeMultiplier = 200; // Default 200%
     address public mockBridgeQueueAddress;
+    address public mockAuthorizedExecutor;
     address public constant MOCK_ADAPTER_ADDRESS = address(0xAA);
     uint256 public constant QUOTE_GAS = 50000; // Example gas estimate
     bool public shouldRevert = false; // Flag to control reverting behavior
@@ -100,10 +101,12 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // --- Modifiers ---
     modifier onlyAuthorizedExecutor() {
-        // todo: add access manager or something similar
-        // if (msg.sender != mockBridgeQueueAddress) {
-        //     revert CallerNotAuthorized();
-        // }
+        address expected = mockAuthorizedExecutor == address(0)
+            ? mockBridgeQueueAddress
+            : mockAuthorizedExecutor;
+        if (expected != address(0) && msg.sender != expected) {
+            revert CallerNotBridgeQueue();
+        }
         _;
     }
 
@@ -123,6 +126,15 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     function setUseRefundAddress(bool _use) external {
         useRefundAddressInsteadOfSender = _use;
+    }
+
+    function setAuthorizedExecutor(address executor) external {
+        mockAuthorizedExecutor = executor;
+    }
+
+    function setBridgeQueue(address queue) external {
+        mockBridgeQueueAddress = queue;
+    }
     }
 
     // Add registerAdapter function
