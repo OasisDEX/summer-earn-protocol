@@ -145,6 +145,7 @@ contract LayerZeroAdapter is
         if (_readChannelId == 0 || _readChannelId <= readChannelThreshold) {
             revert InvalidParams();
         }
+        setReadChannel(readChannelId, false);
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
         emit ReadChannelActivated(_readChannelId);
