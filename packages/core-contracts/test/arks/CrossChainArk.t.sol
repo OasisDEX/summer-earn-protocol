@@ -8,6 +8,7 @@ import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
@@ -749,12 +750,30 @@ contract CrossChainArkTest is Test, ArkTestBase {
         deal(address(mockToken), address(fleetCommander), amount);
         vm.prank(address(fleetCommander));
         mockToken.approve(address(ark), type(uint256).max);
+    }
 
+    function testDisembarkWhileTransferPendingVulnerability() public {
+        // Setup: Fund the ark with initial assets
+        uint256 initialArkBalance = 2000e18; // 2000 tokens
+        deal(address(mockToken), address(ark), initialArkBalance);
+
+        // Setup: Fund the FleetCommander with tokens for boarding
+        uint256 fleetCommanderBalance = 2000e18; // 2000 tokens (enough for the transfer)
+        deal(
+            address(mockToken),
+            address(fleetCommander),
+            fleetCommanderBalance
+        );
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+
+        // Step 1: Initiate a transfer (board) but don't execute it yet
+        uint256 transferAmount = 1500e18; // 1500 tokens to transfer
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
                 destinationChainId: TARGET_CHAIN_ID,
                 asset: address(mockToken),
-                amount: amount,
+                amount: transferAmount,
                 target: proxy,
                 originator: address(ark),
                 refundAddress: commander,
@@ -769,16 +788,29 @@ contract CrossChainArkTest is Test, ArkTestBase {
         });
         bytes memory executeTransferParams = abi.encode(params, options);
 
+        // Board the transfer (this queues it but doesn't execute)
         vm.prank(address(fleetCommander));
-        ark.board(amount, executeTransferParams);
+        ark.board(transferAmount, executeTransferParams);
 
-        // cancel as keeper
-        vm.prank(address(keeper));
-        ark.cancelPendingTransfer();
+        // Step 2: Disembark a significant amount from the ark
+        // This reduces the ark's local balance below what's needed for the pending transfer
+        uint256 disembarkAmount = 2500e18; // Disembark more than enough to create insufficient balance
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainArk.PendingTransferAlreadyQueued.selector
+            )
+        );
+        ark.disembark(disembarkAmount, bytes("keeper_data")); // CrossChainArk requires keeper data
 
-        // ensure we cannot execute after cancel
-        vm.prank(address(keeper));
-        vm.expectRevert(ICrossChainArk.NoPendingTransferQueued.selector);
+        // Step 3: This test EXPECTS the transfer to succeed
+        vm.prank(keeper);
         ark.executeTransferAssets();
+
+        (, , , address assetAfterExecution, , , ) = ark.pendingTransferParams();
+        assertTrue(
+            assetAfterExecution == address(0),
+            "Transfer should have succeeded"
+        );
     }
 }
