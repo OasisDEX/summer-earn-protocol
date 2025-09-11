@@ -203,7 +203,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         // Create adapter params for testing
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter),
-            gasLimit: 0,
+            gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
             options: ""
@@ -319,6 +319,25 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         // Verify quote
         assertEq(specifiedAdapter, address(mockAdapter));
         assertTrue(nativeFee > 0);
+    }
+
+    function testQuoteZeroGasReverts() public {
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 0,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
+
+        vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
+        router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
     }
 
     function testQuoteNoSuitableAdapter() public {

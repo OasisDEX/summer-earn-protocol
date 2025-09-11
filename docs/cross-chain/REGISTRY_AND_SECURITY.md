@@ -73,3 +73,8 @@ require(ok, "Invalid source relationship");
 - Register all Ark ↔ Proxy relationships with consistent parameters across chains.
 - Verify that invalid operations revert with clear registry errors.
 - Configure emergency pause mechanisms and monitoring for validation failures.
+
+Additional registry configuration:
+- Initialize registry bridge config once per chain with the router address:
+  - `initializeBridgeConfiguration(address bridgeRouter)`
+- The registry no longer manages a default gas limit. All operations must pass a non-zero gas limit in `BridgeOptions` via the router.

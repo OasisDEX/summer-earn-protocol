@@ -118,9 +118,10 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         });
 
         // Simulate receiving the read response - should handle delivery failure gracefully
-        // todo: implement recoverey/retry mechanism
+        // Expect an event rather than a revert when expected read chain mapping is missing
+        vm.expectEmit(true, false, false, true, address(layerZeroAdapter));
+        emit ReadOperationNotFound(guid, "No expected read chain found");
         vm.prank(LZ_ENDPOINT_BASE);
-        vm.expectRevert();
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 
         // Reset router behavior

@@ -328,7 +328,8 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         uint256 requiredFee = layerZeroAdapter.getRequiredFee(
             READ_CHANNEL_ID, // Use read channel ID for state reads
             BridgeTypes.OperationType.READ_STATE,
-            payload
+            payload,
+            300000
         );
 
         assertGt(requiredFee, 0, "Required fee should be greater than 0");

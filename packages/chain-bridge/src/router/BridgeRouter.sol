@@ -274,6 +274,7 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        if (options.gasLimit == 0) revert ZeroGasLimit();
         _validateTransferParams(params);
         _validateOriginator(params.originator);
 
@@ -336,6 +337,7 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        if (options.gasLimit == 0) revert ZeroGasLimit();
         _validateReadStateParams(params);
         _validateOriginator(params.originator);
 
@@ -399,6 +401,7 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        if (options.gasLimit == 0) revert ZeroGasLimit();
         _validateSendMessageParams(params);
         _validateOriginator(params.originator);
 
@@ -451,6 +454,7 @@ contract BridgeRouter is
 
         if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
         if (!this.isValidAdapter(specifiedAdapter)) revert UnknownAdapter();
+        if (options.gasLimit == 0) revert ZeroGasLimit();
 
         (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter).estimateFee(
             destinationChainId,
