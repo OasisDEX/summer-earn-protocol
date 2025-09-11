@@ -66,3 +66,34 @@ export function updatePosition(
     position.save()
   }
 }
+
+export function updatePositionBalancesOnly(
+  positionDetails: PositionDetails,
+  block: ethereum.Block,
+): void {
+  const position = getOrCreatePosition(positionDetails.positionId, block)
+  if (position) {
+    position.inputTokenBalance = positionDetails.inputTokenBalance
+    position.stakedInputTokenBalance = positionDetails.stakedInputTokenBalance
+    position.unstakedInputTokenBalance = positionDetails.unstakedInputTokenBalance
+    position.outputTokenBalance = positionDetails.outputTokenBalance
+    position.stakedOutputTokenBalance = positionDetails.stakedOutputTokenBalance
+    position.unstakedOutputTokenBalance = positionDetails.unstakedOutputTokenBalance
+    position.inputTokenBalanceNormalized = positionDetails.inputTokenBalanceNormalized
+    position.stakedInputTokenBalanceNormalized = positionDetails.stakedInputTokenBalanceNormalized
+    position.unstakedInputTokenBalanceNormalized =
+      positionDetails.unstakedInputTokenBalanceNormalized
+    position.inputTokenBalanceNormalizedInUSD = positionDetails.inputTokenBalanceNormalizedUSD
+    position.stakedInputTokenBalanceNormalizedInUSD =
+      positionDetails.stakedInputTokenBalanceNormalizedUSD
+    position.unstakedInputTokenBalanceNormalizedInUSD =
+      positionDetails.unstakedInputTokenBalanceNormalizedUSD
+    for (let i = 0; i < positionDetails.rewards.length; i++) {
+      const reward = positionDetails.rewards[i]
+      reward.save()
+    }
+    position.claimableSummerToken = positionDetails.claimableSummerToken
+    position.claimableSummerTokenNormalized = positionDetails.claimableSummerTokenNormalized
+    position.save()
+  }
+}

@@ -84,6 +84,14 @@
         "asset": "WETH",
         "protocol": "origin"
       }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Euler_Frontier_Puffer",
+        "protocol": "erc4626"
+      }
     }
   ]
 }

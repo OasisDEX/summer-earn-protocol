@@ -143,6 +143,9 @@ const KNOWN_ABIS = {
   updateDelay: 'function updateDelay(uint256 newDelay) external',
   addToWhitelist: 'function addToWhitelist(address account) external',
   setRaft: 'function setRaft(address raft) external',
+
+  // fleet commander functions
+  setFleetTokenTransferability: 'function setFleetTokenTransferability() external',
 }
 
 // Create interfaces for each ABI

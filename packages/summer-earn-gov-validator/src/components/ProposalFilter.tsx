@@ -1,6 +1,6 @@
 import React from 'react'
 
-export type ProposalStatus = 'Pending' | 'Executed' | 'Active' | 'Queued' | 'Ready'
+export type ProposalStatus = 'Pending' | 'Executed' | 'Active' | 'Succeeded' | 'Queued' | 'Ready'
 
 interface ProposalFilterProps {
   selectedStatuses: ProposalStatus[]
@@ -11,7 +11,14 @@ export const ProposalFilter: React.FC<ProposalFilterProps> = ({
   selectedStatuses,
   onStatusChange,
 }) => {
-  const allStatuses: ProposalStatus[] = ['Pending', 'Queued', 'Ready', 'Executed', 'Active']
+  const allStatuses: ProposalStatus[] = [
+    'Pending',
+    'Active',
+    'Succeeded',
+    'Queued',
+    'Ready',
+    'Executed',
+  ]
 
   const handleStatusChange = (status: ProposalStatus) => {
     if (selectedStatuses.includes(status)) {
