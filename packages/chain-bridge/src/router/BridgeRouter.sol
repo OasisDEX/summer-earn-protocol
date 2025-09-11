@@ -897,18 +897,36 @@ contract BridgeRouter is
         if (decodedId != operationId) revert InvalidParams();
         if (sourceChainId != r.sourceChainId) revert InvalidParams();
 
-        this._processDelivery(
-            r.operationType,
-            effectivePayload,
-            effectiveAdapter
-        );
+        try
+            this._processDelivery(
+                r.operationType,
+                effectivePayload,
+                effectiveAdapter
+            )
+        {
+            _clearFailedDelivery(operationId);
+            emit OperationRetrySucceeded(
+                operationId,
+                r.operationType,
+                effectiveAdapter
+            );
+        } catch (bytes memory err) {
+            // Do not create a new failure record; update existing metadata only
+            FailedDeliveryRecord storage existing = failedDeliveries[
+                operationId
+            ];
+            existing.errorData = err;
+            existing.numAttempts += 1;
+            existing.failedAt = block.timestamp;
 
-        _clearFailedDelivery(operationId);
-        emit OperationRetrySucceeded(
-            operationId,
-            r.operationType,
-            effectiveAdapter
-        );
+            emit OperationRetryFailed(
+                operationId,
+                r.operationType,
+                effectiveAdapter,
+                err
+            );
+            // Intentionally do not revert so governance execution does not get stuck
+        }
     }
 
     /// @inheritdoc IERC165
