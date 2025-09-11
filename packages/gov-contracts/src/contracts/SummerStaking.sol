@@ -513,7 +513,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @param _amount The base amount to stake
      * @param _lockupPeriod The lockup period in seconds
      * @return The weighted stake amount for reward calculations
-     * @dev Uses formula: amount * (4E-16 * time^2 + 0.05)
+     * @dev Uses formula: amount * (3.5E-16 * time^2 + 0.05)
      * @dev For 0 lockup period, returns the original amount (no weighting)
      */
     function calculateWeightedStake(
@@ -527,10 +527,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         uint256 _amount,
         uint256 _lockupPeriod
     ) internal pure returns (uint256) {
-        // Convert lockupPeriod into 60.18 fixed-point
         UD60x18 time = convert(_lockupPeriod);
-
-        // Square it safely in 60.18 format
         UD60x18 timeSquared = time.mul(time);
 
         // multiplier = (WEIGHTED_STAKE_COEFFICIENT * time^2) + WEIGHTED_STAKE_BASE
@@ -557,13 +554,13 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @notice Calculate penalty for early unstaking
      * @param _stakeIndex The index of the stake to calculate penalty for
      * @return The penalty percentage in WAD
-     * @dev Penalty formula: penalty = weighted_amount × 50% × (time_remaining / original_lockup_period)
+     * @dev Penalty formula: penaltyPercentage = max_penalty_percentage × (time_remaining / max_lockup_period)
      * @dev Examples:
-     *      - 4-year lockup, unstake immediately: 50% penalty
-     *      - 4-year lockup, unstake after 2 years: 25% penalty
-     *      - 4-year lockup, unstake after 4 years: 0% penalty
-     *      - 1-year lockup, unstake immediately: 12.5% penalty
-     *      - 2-year lockup, unstake immediately: 25% penalty
+     *      - 3-year lockup, unstake immediately: 20% penalty
+     *      - 3-year lockup, unstake after 1.5 years: 10% penalty
+     *      - 3-year lockup, unstake after 3 years: 0% penalty
+     *      - 1-year lockup, unstake immediately: 6.66% penalty
+     *      - 2-year lockup, unstake immediately: 13.33% penalty
      */
     function calculatePenaltyPercentage(
         address _user,
@@ -608,8 +605,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     function _removeStake(address _user, uint256 _index) internal {
         UserStake[] storage stakes = userStakes[_user];
         if (_index >= stakes.length) return;
-
-        // Move the last element to the position being removed
         stakes[_index] = stakes[stakes.length - 1];
         stakes.pop();
     }
@@ -625,6 +620,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
     /**
      * @notice Get stake details for a user
+     * @dev returns 0 for all fields if the index is out of bounds
      * @param _user The user address
      * @param _index The stake index
      * @return amount The staked amount
@@ -672,7 +668,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             address(this),
             _amount
         );
-        IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burn(_amount);
+        STAKED_SUMMER_TOKEN.burn(_amount);
     }
 
     /**
@@ -682,7 +678,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
      * @dev Mints new staked tokens to the user
      */
     function _mint(address _user, uint256 _amount) internal {
-        IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).mint(_user, _amount);
+        STAKED_SUMMER_TOKEN.mint(_user, _amount);
     }
 
     /**
@@ -707,6 +703,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
             Constants.WAD +
             rewards[rewardToken][account];
     }
+
     /**
      * @notice Exit function to unstake all and claim rewards (not allowed)
      * @dev Users must use unstakeFromLockup instead for individual stakes
