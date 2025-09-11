@@ -17,9 +17,9 @@ This document provides a practical runbook for keepers and operators.
 - Source chain: router execution events, adapter send events, Ark transfer events.
 - Destination chain: adapter delivery events, router delivery, FleetProxy deposit events.
 - Alert on: delivery failures, registry validation failures, pause state changes, abnormal fee quotes.
-- Reconciliation:
-  - Ark: `inflightAssets` updates when transfers are initiated; `lastRemoteAssetBalance` updates on message/read responses tied to the latest outgoing transfer.
-  - FleetProxy: `latestIncomingTransferId` advances on deposits; `notifySourceChain(...)` can update the source with current fleet balance.
+- Reconciliation (updated):
+  - Ark: `inflightAssets` is set on execution and cleared when a corresponding remote balance update is processed for the latest outgoing operation. Track `InflightSet(amount, operationId)` and `InflightCleared(operationId, amount)` alongside `RemoteAssetBalanceUpdated`.
+  - FleetProxy: `latestIncomingTransferId` advances on deposits. For withdrawals, track `InflightSet(amount, operationId)` on initiation and clear inflight via `acknowledgeHubReceipt(operationId)` (SuperKeeper) once receipt is verified on the hub, emitting `InflightCleared(operationId, amount)`. Governance can `forceUpdateInflightAssets(amount)` for emergency correction.
 
 #### Failure and Recovery
 

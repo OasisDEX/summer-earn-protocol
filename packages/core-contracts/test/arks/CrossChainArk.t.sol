@@ -15,13 +15,13 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
+    event InflightCleared(bytes32 operationId, uint256 amount);
     CrossChainArk ark;
     MockBridgeRouter router;
     CrossChainRegistry registry;
@@ -544,18 +544,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
-        // Set some inflight assets first
-        vm.prank(address(router));
-        ark.updateInflightAssets(500);
+        // Set some inflight assets first (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(500);
         assertEq(
             ark.inflightAssets(),
             500,
             "Setup: inflight assets should be 500"
         );
 
-        // Receive state read should reset inflight assets
+        // Receive state read should reset inflight assets (new event semantics)
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(requestId, 500);
 
         vm.prank(address(router));
         ark.receiveOperation(
@@ -651,9 +651,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Setup inflight assets
-        vm.prank(address(router));
-        ark.updateInflightAssets(inflightAmount);
+        // Setup inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(inflightAmount);
 
         // Test total assets calculation
         uint256 expectedTotal = localBalance + remoteBalance + inflightAmount;
@@ -708,10 +708,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertTrue(
             ark.supportsInterface(type(ICrossChainArk).interfaceId),
             "Should support ICrossChainArk"
-        );
-        assertTrue(
-            ark.supportsInterface(type(IInflightAssetTracking).interfaceId),
-            "Should support IInflightAssetTracking"
         );
         assertTrue(
             ark.supportsInterface(type(IERC165).interfaceId),

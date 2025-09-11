@@ -54,19 +54,29 @@ sequenceDiagram
 - Destination chain: Router authenticates adapters and peer mappings; FleetProxy trusts only the
   router, then validates the source Ark + chain pair via the registry before depositing.
 
-#### Events and Monitoring (typical)
+#### Single-Flight Gating and Inflight Accounting
 
-- Router/adapter lifecycle events (transfer initiated, delivered, failed).
-- FleetProxy deposit event on the destination chain.
-- Keeper systems should track queue state, executed amounts, inflightAssets updates on Ark, and any
-  recoverable failures from adapters.
+- CrossChain Ark enforces single-flight semantics: it will not queue/execute a new outbound transfer
+  while `inflightAssets` is non-zero or a pending transfer is present.
+- When `executeTransferAssets()` is called, Ark sets `inflightAssets = amount` and emits
+  `InflightSet(amount, operationId)` after the router returns the operation ID.
+- Ark clears inflight on receipt of the next successful remote balance update corresponding to the
+  latest outgoing operation, emitting `InflightCleared(operationId, amount)`. It also resets
+  `lastSentAmount`.
+- FleetProxy enforces single-flight on withdrawals: it rejects a new withdraw-and-transfer while a
+  previous withdrawal is inflight (`InFlight`). On initiating a withdrawal, it sets
+  `inflightWithdrawals = amount` and emits `InflightSet(amount, operationId)`.
+- FleetProxy inflight is cleared via an off-chain ACK path (`acknowledgeHubReceipt(operationId)` by
+  SuperKeeper) once receipt is verified on the hub, or via governance using
+  `forceUpdateInflightAssets(amount)` for emergency corrections.
 
-Additional reconciliation cues:
+#### Events and Monitoring (updated)
 
-- Ark: `inflightAssets` is best-effort set by the router; `lastRemoteAssetBalance` updates on
-  message/read responses that match the latest outgoing transferId.
-- FleetProxy: updates `latestIncomingTransferId` on deposits and can notify the source chain with
-  its current `fleetBalance`.
+- Track Ark: `PendingTransferQueued`, `InflightSet(amount, operationId)`,
+  `InflightCleared(operationId, amount)`, `RemoteAssetBalanceUpdated(...)`.
+- Track FleetProxy: `AssetsWithdrawnAndTransferred(...)`, `InflightSet(amount, operationId)`,
+  `InflightCleared(operationId, amount)`, `ProxyDeposit(...)`.
+- Router/adapter lifecycle events (initiate, deliver, fail) remain important for end-to-end tracing.
 
 #### Failure Modes (typical)
 
@@ -76,7 +86,9 @@ Additional reconciliation cues:
 - Pause state: routers or proxies may be paused by guardians/governance; resume only after incident
   resolution.
 
-Withdrawals (destination → hub):
+#### Withdrawals (destination → hub)
 
-- Keepers on the destination chain call `FleetProxy.withdrawAndTransfer(amount, options)`, which
-  withdraws from the local fleet and bridges assets back to the Ark on the hub chain.
+- Keepers on the destination chain call `FleetProxy.withdrawAndTransfer(amount, options)` to withdraw
+  from the local fleet and bridge assets back to the Ark on the hub chain.
+- Single-flight applies; a new withdrawal cannot be initiated until inflight is cleared via
+  `acknowledgeHubReceipt` or governance override.
