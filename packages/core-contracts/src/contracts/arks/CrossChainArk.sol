@@ -11,6 +11,7 @@ import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChain
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 
 /**
  * @title CrossChainArk
@@ -131,6 +132,7 @@ contract CrossChainArk is
     ) external pure override(CrossChainReceiverBase, IERC165) returns (bool) {
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
+            interfaceId == type(IInflightAssetTracking).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
