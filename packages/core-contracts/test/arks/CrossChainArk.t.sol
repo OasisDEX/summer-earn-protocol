@@ -710,10 +710,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
             "Should support ICrossChainArk"
         );
         assertTrue(
-            ark.supportsInterface(type(IInflightAssetTracking).interfaceId),
-            "Should support IInflightAssetTracking"
-        );
-        assertTrue(
             ark.supportsInterface(type(IERC165).interfaceId),
             "Should support IERC165"
         );
