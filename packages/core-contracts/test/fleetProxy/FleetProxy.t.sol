@@ -247,16 +247,32 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(proxy.totalAssets(), baseline + 123);
     }
 
-    function test_UpdateInflightAssets_AccessControl() public {
-        // Unauthorized caller reverts
-        vm.prank(address(0xDEAD));
-        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
-        proxy.updateInflightAssets(77);
+    function test_AcknowledgeHubReceipt_AccessControlAndClearsInflight()
+        public
+    {
+        // Set inflight as governor via emergency function
+        vm.prank(governor);
+        proxy.forceUpdateInflightAssets(77);
 
-        // Bridge router is authorized
-        vm.prank(address(mockBridgeRouter));
-        proxy.updateInflightAssets(77);
-        assertEq(proxy.inflightWithdrawals(), 77);
+        // Unauthorized caller cannot acknowledge
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotSuperKeeper(address)",
+                address(0xDEAD)
+            )
+        );
+        proxy.acknowledgeHubReceipt(bytes32(uint256(1)));
+
+        // Grant SUPER_KEEPER to governor and then acknowledge
+        vm.prank(governor);
+        accessManager.grantSuperKeeperRole(governor);
+
+        vm.prank(governor);
+        proxy.acknowledgeHubReceipt(bytes32(uint256(1)));
+
+        // Inflight should be cleared
+        assertEq(proxy.inflightWithdrawals(), 0);
     }
 
     //----------------- Access Control & Pausable -----------------//

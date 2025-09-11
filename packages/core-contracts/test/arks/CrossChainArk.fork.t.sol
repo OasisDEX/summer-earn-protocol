@@ -15,7 +15,6 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
@@ -24,6 +23,7 @@ import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICross
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
+    event InflightCleared(bytes32 operationId, uint256 amount);
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
 
@@ -645,9 +645,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         // Verify initial state
         assertEq(
@@ -697,9 +697,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
@@ -708,7 +708,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(params.operationId, initialInflightAssets);
 
         // Simulate the adapter calling deliver()
         vm.prank(address(layerZeroAdapter));
@@ -765,9 +765,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint256 mockRemoteBalance = 2500 * 10 ** 6; // 2500 USDC
         uint256 initialInflight = 100 * 10 ** 6; // 100 USDC
 
-        // Setup initial state
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflight);
+        // Setup initial state (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflight);
 
         // === STEP 1: Request remote balance update directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -894,9 +894,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         // Verify initial state
         assertEq(
@@ -978,7 +978,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(TEST_OP_ID, initialInflightAssets);
 
         // Simulate LayerZero endpoint calling lzReceive on the adapter
         // The adapter should recognize this as a read response and call deliver()
