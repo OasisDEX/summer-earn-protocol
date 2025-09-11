@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
+import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 
@@ -793,7 +794,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         SummerStaking freshStaking = createFreshStaking();
         vm.startPrank(address(timelockA));
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
+            ISummerStaking.Bucket.SixToTwelveMonths,
             100000 ether
         );
         uint256 stakeAmount = 1000 ether;

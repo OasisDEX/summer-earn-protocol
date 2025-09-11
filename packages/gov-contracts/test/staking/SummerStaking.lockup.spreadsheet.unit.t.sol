@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
+import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
@@ -44,19 +45,19 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Configure bucket caps
         vm.startPrank(address(timelockA));
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
+            ISummerStaking.Bucket.ThreeToSixMonths,
             1000000 ether
         );
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
+            ISummerStaking.Bucket.SixToTwelveMonths,
             100000 ether
         );
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
+            ISummerStaking.Bucket.OneToTwoYears,
             100000 ether
         );
         freshStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToThreeYears,
+            ISummerStaking.Bucket.TwoToThreeYears,
             100000 ether
         );
         vm.stopPrank();

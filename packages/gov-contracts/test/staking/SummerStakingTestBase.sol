@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
+import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
@@ -64,19 +65,19 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.startPrank(address(timelockA));
         axSumr.addStakingModule(address(aStaking));
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
+            ISummerStaking.Bucket.ThreeToSixMonths,
             1000000 ether
         );
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
+            ISummerStaking.Bucket.SixToTwelveMonths,
             100000 ether
         );
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
+            ISummerStaking.Bucket.OneToTwoYears,
             100000 ether
         );
         aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToThreeYears,
+            ISummerStaking.Bucket.TwoToThreeYears,
             100000 ether
         );
         vm.stopPrank();
@@ -84,19 +85,19 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.startPrank(address(timelockB));
         bxSumr.addStakingModule(address(bStaking));
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
+            ISummerStaking.Bucket.ThreeToSixMonths,
             1000000 ether
         );
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
+            ISummerStaking.Bucket.SixToTwelveMonths,
             100000 ether
         );
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
+            ISummerStaking.Bucket.OneToTwoYears,
             100000 ether
         );
         bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToThreeYears,
+            ISummerStaking.Bucket.TwoToThreeYears,
             100000 ether
         );
         vm.stopPrank();
@@ -321,7 +322,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      * @notice Asserts that a specific bucket has the expected total staked amount
      */
     function _assertBucket(
-        SummerStaking.Bucket bucket,
+        ISummerStaking.Bucket bucket,
         uint256 expectedStaked
     ) internal view {
         uint256 actualStaked = aStaking.getBucketTotalStaked(bucket);
@@ -338,7 +339,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 weightedAmount
     ) internal {
         vm.expectEmit(true, false, false, false);
-        emit SummerStaking.StakedWithLockup(
+        emit ISummerStaking.StakedWithLockup(
             user,
             amount,
             lockupPeriod,
@@ -356,7 +357,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 returnAmount
     ) internal {
         vm.expectEmit(true, false, false, false);
-        emit SummerStaking.UnstakedWithPenalty(
+        emit ISummerStaking.UnstakedWithPenalty(
             user,
             unstaked,
             penalty,
@@ -438,11 +439,11 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         SummerStaking staking,
         uint256[] memory expectedBucketAmounts
     ) internal {
-        SummerStaking.Bucket[] memory buckets = new SummerStaking.Bucket[](4);
-        buckets[0] = SummerStaking.Bucket.ThreeToSixMonths;
-        buckets[1] = SummerStaking.Bucket.SixToTwelveMonths;
-        buckets[2] = SummerStaking.Bucket.OneToTwoYears;
-        buckets[3] = SummerStaking.Bucket.TwoToThreeYears;
+        ISummerStaking.Bucket[] memory buckets = new ISummerStaking.Bucket[](4);
+        buckets[0] = ISummerStaking.Bucket.ThreeToSixMonths;
+        buckets[1] = ISummerStaking.Bucket.SixToTwelveMonths;
+        buckets[2] = ISummerStaking.Bucket.OneToTwoYears;
+        buckets[3] = ISummerStaking.Bucket.TwoToThreeYears;
 
         for (uint256 i = 0; i < 4; i++) {
             uint256 actualStaked = staking.getBucketTotalStaked(buckets[i]);
@@ -552,7 +553,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 weightedAmount
     ) internal {
         vm.expectEmit(true, false, false, false);
-        emit SummerStaking.StakedWithLockup(
+        emit ISummerStaking.StakedWithLockup(
             user,
             amount,
             lockupPeriod,
@@ -570,7 +571,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 returnAmount
     ) internal {
         vm.expectEmit(true, false, false, false);
-        emit SummerStaking.UnstakedWithPenalty(
+        emit ISummerStaking.UnstakedWithPenalty(
             user,
             unstaked,
             penalty,
