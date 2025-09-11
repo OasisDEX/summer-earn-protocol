@@ -177,12 +177,6 @@ interface ICrossChainRegistry {
     function bridgeRouter() external view returns (address);
 
     /**
-     * @notice Initializes the bridge configuration parameters
-     * @param _bridgeRouter The address of the bridge router contract
-     */
-    function initializeBridgeConfiguration(address _bridgeRouter) external;
-
-    /**
      * @notice Sets the bridge router address
      * @param newBridgeRouter The new bridge router address
      */

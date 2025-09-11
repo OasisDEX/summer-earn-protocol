@@ -95,7 +95,8 @@ contract BridgeRouterSetup is Test {
         router.registerAdapter(address(mockAdapter));
 
         /* --------- Registry initialisation --------- */
-        registry.initializeBridgeConfiguration(address(router));
+        registry.setBridgeRouter(address(router));
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
 
         // Only register relationships where one end is CURRENT_CHAIN_ID
         // Check if relationships already exist to avoid RelationshipAlreadyExists errors

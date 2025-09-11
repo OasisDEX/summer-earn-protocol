@@ -799,8 +799,11 @@ contract CrossChainRegistryTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit BridgeRouterUpdated(address(0), mockBridgeRouter);
+        registry.setBridgeRouter(mockBridgeRouter);
 
-        registry.initializeBridgeConfiguration(mockBridgeRouter);
+        vm.expectEmit(false, false, false, true);
+        emit DefaultGasLimitUpdated(0, DEFAULT_GAS_LIMIT);
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
 
         // Verify state
         assertEq(registry.bridgeRouter(), mockBridgeRouter);
@@ -812,21 +815,22 @@ contract CrossChainRegistryTest is Test {
         public
     {
         vm.startPrank(governor);
-
-        registry.initializeBridgeConfiguration(mockBridgeRouter);
-
-        vm.expectRevert(
-            ICrossChainRegistry.BridgeConfigAlreadyInitialized.selector
-        );
-        registry.initializeBridgeConfiguration(mockBridgeRouter);
-
+        registry.setBridgeRouter(mockBridgeRouter);
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
+        // No longer reverts on calling setters again, so we simulate by expecting events
+        vm.expectEmit(true, true, false, true);
+        emit BridgeRouterUpdated(mockBridgeRouter, mockBridgeRouter);
+        registry.setBridgeRouter(mockBridgeRouter);
+        vm.expectEmit(false, false, false, true);
+        emit DefaultGasLimitUpdated(DEFAULT_GAS_LIMIT, DEFAULT_GAS_LIMIT);
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
         vm.stopPrank();
     }
 
     function test_initializeBridgeConfiguration_revertUnauthorized() public {
         vm.prank(user);
         vm.expectRevert();
-        registry.initializeBridgeConfiguration(mockBridgeRouter);
+        registry.setBridgeRouter(mockBridgeRouter);
     }
 
     function test_initializeBridgeConfiguration_revertZeroBridgeRouter()
@@ -834,10 +838,14 @@ contract CrossChainRegistryTest is Test {
     {
         vm.prank(governor);
         vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
-        registry.initializeBridgeConfiguration(address(0));
+        registry.setBridgeRouter(address(0));
     }
 
-    // Zero gas limit no longer applicable: default gas removed
+    function test_initializeBridgeConfiguration_revertZeroGasLimit() public {
+        vm.prank(governor);
+        vm.expectRevert(ICrossChainRegistry.InvalidGasLimit.selector);
+        registry.setDefaultGasLimit(0);
+    }
 
     function test_setBridgeRouter() public {
         _initializeBridgeConfig();
@@ -916,8 +924,10 @@ contract CrossChainRegistryTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function _initializeBridgeConfig() internal {
-        vm.prank(governor);
-        registry.initializeBridgeConfiguration(mockBridgeRouter);
+        vm.startPrank(governor);
+        registry.setBridgeRouter(mockBridgeRouter);
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
+        vm.stopPrank();
     }
 
     function test_constructor() public view {

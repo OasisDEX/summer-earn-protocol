@@ -71,7 +71,8 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        registry.initializeBridgeConfiguration(address(router));
+        registry.setBridgeRouter(address(router));
+        registry.setDefaultGasLimit(200000);
         vm.stopPrank();
 
         ArkParams memory params = ArkParams({
