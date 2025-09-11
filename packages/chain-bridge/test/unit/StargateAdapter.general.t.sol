@@ -103,8 +103,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         assertEq(adapterRegistry, expectedRegistry);
     }
 
-    // default gas limit removed from registry and adapters
-
     /*//////////////////////////////////////////////////////////////
                           GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/

@@ -53,7 +53,6 @@ contract CrossChainRegistryTest is Test {
     address public mockBridgeRouter = makeAddr("bridgeRouter");
     address public newMockBridgeQueue = makeAddr("newBridgeQueue");
     address public newMockBridgeRouter = makeAddr("newBridgeRouter");
-    // default gas limit removed; these constants are no longer used
 
     // Add new events
     event BridgeQueueUpdated(
@@ -64,7 +63,6 @@ contract CrossChainRegistryTest is Test {
         address indexed oldBridgeRouter,
         address indexed newBridgeRouter
     );
-    // DefaultGasLimitUpdated event removed from registry
 
     function setUp() public {
         // Deploy access manager
@@ -879,8 +877,6 @@ contract CrossChainRegistryTest is Test {
         vm.expectRevert();
         registry.setBridgeRouter(newMockBridgeRouter);
 
-        // no-op: default gas API removed
-
         vm.stopPrank();
     }
 
@@ -899,8 +895,6 @@ contract CrossChainRegistryTest is Test {
         vm.stopPrank();
     }
 
-    // setSameValueDefaultGasLimit removed
-
     function test_multipleUpdatesBridgeRouter() public {
         _initializeBridgeConfig();
 
@@ -916,8 +910,6 @@ contract CrossChainRegistryTest is Test {
 
         vm.stopPrank();
     }
-
-    // multipleUpdatesDefaultGasLimit removed
 
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
