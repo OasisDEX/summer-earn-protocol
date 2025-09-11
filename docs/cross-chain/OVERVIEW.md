@@ -64,6 +64,11 @@ Note on withdrawals:
 - Disembark (withdraw) checks ensure sufficient local assets. Cross-chain withdrawals are initiated
   on the destination by keepers via `FleetProxy.withdrawAndTransfer(...)` and delivered back to the
   Ark on the hub chain.
+- Single-flight semantics apply to both Ark (outbound) and FleetProxy (withdrawals). Ark clears its
+  inflight state when the next remote balance update tied to the latest outgoing transfer is
+  confirmed. FleetProxy clears inflight via an off-chain acknowledgment path
+  (`acknowledgeHubReceipt(operationId)` by SuperKeeper) once receipt is verified on the hub, or via
+  governance emergency functions.
 
 #### Where to go next
 
