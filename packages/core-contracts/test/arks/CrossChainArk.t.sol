@@ -15,6 +15,7 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
@@ -728,5 +729,59 @@ contract CrossChainArkTest is Test, ArkTestBase {
             sourceAsset: address(0)
         });
         return abi.encode(dp);
+    }
+
+    // ========================================================================
+    // cancelPendingTransfer TESTS
+    // ========================================================================
+
+    function testCancelPendingTransferUnauthorized() public {
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(IAccessControlErrors.CallerIsNotKeeper.selector);
+        ark.cancelPendingTransfer();
+    }
+
+    function testCancelPendingTransferNoPending() public {
+        vm.prank(address(keeper));
+        vm.expectRevert(ICrossChainArk.NoPendingTransferQueued.selector);
+        ark.cancelPendingTransfer();
+    }
+
+    function testCancelPendingTransferAfterQueue() public {
+        uint256 amount = 1000;
+        deal(address(mockToken), address(fleetCommander), amount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: amount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
+
+        vm.prank(address(fleetCommander));
+        ark.board(amount, executeTransferParams);
+
+        // cancel as keeper
+        vm.prank(address(keeper));
+        ark.cancelPendingTransfer();
+
+        // ensure we cannot execute after cancel
+        vm.prank(address(keeper));
+        vm.expectRevert(ICrossChainArk.NoPendingTransferQueued.selector);
+        ark.executeTransferAssets();
     }
 }
