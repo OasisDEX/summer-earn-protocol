@@ -288,10 +288,7 @@ contract SummerStakingIntegrationTest is SummerStakingTestBase {
         );
 
         // Alice unstakes
-        vm.startPrank(alice);
-        axSumr.approve(address(aStaking), stakeAmount);
-        aStaking.unstakeFromLockup(0, stakeAmount);
-        vm.stopPrank();
+        _approveAndUnstake(aStaking, alice, 0, stakeAmount);
 
         advanceTimeAndBlock();
 
@@ -328,10 +325,7 @@ contract SummerStakingIntegrationTest is SummerStakingTestBase {
         );
 
         // Alice partially unstakes
-        vm.startPrank(alice);
-        axSumr.approve(address(aStaking), unstakeAmount);
-        aStaking.unstakeFromLockup(0, unstakeAmount);
-        vm.stopPrank();
+        _approveAndUnstake(aStaking, alice, 0, unstakeAmount);
 
         advanceTimeAndBlock();
 
@@ -376,10 +370,7 @@ contract SummerStakingIntegrationTest is SummerStakingTestBase {
 
         // Alice unstakes partially
         uint256 partialUnstakeAmount = stakeAmount1 / 2;
-        vm.startPrank(alice);
-        axSumr.approve(address(aStaking), partialUnstakeAmount);
-        aStaking.unstakeFromLockup(0, partialUnstakeAmount);
-        vm.stopPrank();
+        _approveAndUnstake(aStaking, alice, 0, partialUnstakeAmount);
 
         advanceTimeAndBlock();
 
@@ -398,10 +389,7 @@ contract SummerStakingIntegrationTest is SummerStakingTestBase {
         uint256 remainingAmount = stakeAmount1 +
             stakeAmount2 -
             partialUnstakeAmount;
-        vm.startPrank(alice);
-        axSumr.approve(address(aStaking), remainingAmount);
-        aStaking.unstakeFromLockup(0, remainingAmount);
-        vm.stopPrank();
+        _approveAndUnstake(aStaking, alice, 0, remainingAmount);
 
         advanceTimeAndBlock();
 

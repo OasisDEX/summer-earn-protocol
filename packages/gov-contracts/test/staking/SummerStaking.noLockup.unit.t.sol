@@ -84,7 +84,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
         // Stake tokens with lockup using helper
-        _stake(user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Check balances after staking
         assertEq(
@@ -135,14 +135,14 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // First stake some tokens with lockup using helper
-        _stake(user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Get balances before unstaking
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
         // Unstake tokens from specific stake using helper (no penalty since no lockup)
-        _approveAndUnstake(user1, 0, stakeAmount);
+        _approveAndUnstake(aStaking, user1, 0, stakeAmount);
 
         // Check balances after unstaking - should get full amount back
         assertEq(
@@ -156,7 +156,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // First stake some tokens using helper
-        _stake(user1, STAKE_AMOUNT, lockupPeriod);
+        _stake(aStaking, user1, STAKE_AMOUNT, lockupPeriod);
 
         // Unstake zero amount should revert
         vm.prank(user1);
@@ -172,7 +172,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // First stake some tokens using helper
-        _stake(user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Approve less than unstake amount
         vm.prank(user1);
@@ -189,7 +189,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // First stake some tokens using helper
-        _stake(user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Approve staking contract
         vm.prank(user1);
@@ -209,7 +209,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 initialSummerBalance = aSummerToken.balanceOf(user1);
 
         // Stake tokens with lockup using helper
-        _stake(user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Verify staking worked
         assertEq(axSumr.balanceOf(user1), stakeAmount);
@@ -219,7 +219,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         );
 
         // Unstake tokens from specific stake using helper
-        _approveAndUnstake(user1, 0, stakeAmount);
+        _approveAndUnstake(aStaking, user1, 0, stakeAmount);
 
         // Verify round trip worked - should get full amount back (no penalty)
         assertEq(axSumr.balanceOf(user1), 0);
@@ -236,7 +236,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
         // Stake with lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Check balances after staking
         assertEq(
@@ -264,7 +264,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
 
         // Stake with zero lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount, 0);
+        _stake(freshStaking, user1, stakeAmount, 0);
 
         // Check stake details - weighted amount should equal actual amount
         (uint256 amount, uint256 weightedAmount, , ) = freshStaking
@@ -306,12 +306,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         lockupPeriods[0] = 0; // No lockup
 
         for (uint256 i = 0; i < lockupPeriods.length; i++) {
-            _stakeOnContract(
-                freshStaking,
-                user1,
-                stakeAmount,
-                lockupPeriods[i]
-            );
+            _stake(freshStaking, user1, stakeAmount, lockupPeriods[i]);
 
             (, uint256 weightedAmount, , ) = freshStaking.getUserStake(
                 user1,
@@ -334,7 +329,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // Stake with lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // balanceOf should return actual staked amount, weightedBalanceOf returns weighted amount
         uint256 balanceOf = freshStaking.balanceOf(user1); // Actual staked amount
@@ -360,7 +355,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // Stake with lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Penalty should be 0 for zero lockup
         uint256 penalty = freshStaking.calculatePenaltyPercentage(user1, 0);
@@ -373,7 +368,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // Stake with lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Penalty should be 0 for zero lockup
         uint256 penalty = freshStaking.calculatePenaltyPercentage(user1, 0);
@@ -389,12 +384,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         lockupPeriods[0] = 0; // No lockup
 
         for (uint256 i = 0; i < lockupPeriods.length; i++) {
-            _stakeOnContract(
-                freshStaking,
-                user1,
-                stakeAmount,
-                lockupPeriods[i]
-            );
+            _stake(freshStaking, user1, stakeAmount, lockupPeriods[i]);
 
             // Calculate penalty immediately (no time passed)
             uint256 penalty = freshStaking.calculatePenaltyPercentage(user1, i);
@@ -410,13 +400,13 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // Stake with lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
         // Unstake from specific stake using helper - should get full amount back
-        _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount);
+        _approveAndUnstake(freshStaking, user1, 0, stakeAmount);
 
         // Check balances - should get full amount back (no penalty)
         assertEq(
@@ -449,7 +439,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // Stake with lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
@@ -462,7 +452,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 expectedReturnAmount = stakeAmount - expectedPenalty;
 
         // Unstake from specific stake using helper
-        _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount);
+        _approveAndUnstake(freshStaking, user1, 0, stakeAmount);
 
         // Check balances - should get full amount back (no penalty)
         assertEq(
@@ -485,7 +475,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup for test
 
         // Stake with lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
@@ -499,7 +489,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         assertEq(expectedPenalty, 0);
 
         // Partial unstake from specific stake using helper
-        _approveAndUnstakeOnContract(freshStaking, user1, 0, unstakeAmount);
+        _approveAndUnstake(freshStaking, user1, 0, unstakeAmount);
 
         // Check balances
         assertEq(
@@ -537,8 +527,8 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod2 = 0; // No lockup for test
 
         // Stake two different amounts with different lockup periods using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount1, lockupPeriod1);
-        _stakeOnContract(freshStaking, user1, stakeAmount2, lockupPeriod2);
+        _stake(freshStaking, user1, stakeAmount1, lockupPeriod1);
+        _stake(freshStaking, user1, stakeAmount2, lockupPeriod2);
 
         uint256 totalStaked = stakeAmount1 + stakeAmount2;
         uint256 unstakeAmount = 800 ether; // Unstake 800 out of 1500 total
@@ -550,7 +540,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
         // Proportional unstake using helper
-        _approveAndUnstakeOnContract(freshStaking, user1, 0, unstakeAmount);
+        _approveAndUnstake(freshStaking, user1, 0, unstakeAmount);
 
         // Check balances (no penalties for zero lockup)
         assertEq(
@@ -593,10 +583,10 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 stakeAmount2 = STAKE_AMOUNT / 2;
 
         // User 1 stakes with lockup using helper
-        _stakeOnContract(freshStaking, user1, stakeAmount1, 0);
+        _stake(freshStaking, user1, stakeAmount1, 0);
 
         // User 2 stakes with lockup using helper
-        _stakeOnContract(freshStaking, user2, stakeAmount2, 0);
+        _stake(freshStaking, user2, stakeAmount2, 0);
 
         // Verify both users have correct balances
         assertEq(axSumr.balanceOf(user1), stakeAmount1);
@@ -619,12 +609,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         // Stake multiple times with lockup using helper
         for (uint256 i = 0; i < 4; i++) {
             if (i == 0) {
-                _stakeOnContract(
-                    freshStaking,
-                    user1,
-                    stakeAmount,
-                    lockupPeriod
-                );
+                _stake(freshStaking, user1, stakeAmount, lockupPeriod);
             } else {
                 _addToStakeOnContract(freshStaking, user1, 0, stakeAmount);
             }
@@ -636,7 +621,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Unstake multiple times (unstake from specific stakes) using helper
         for (uint256 i = 0; i < 4; i++) {
-            _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount); // Unstake from first remaining stake
+            _approveAndUnstake(freshStaking, user1, 0, stakeAmount); // Unstake from first remaining stake
         }
 
         // Verify final balances
@@ -651,7 +636,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup
 
         // Stake with no lockup
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Calculate expected penalty: 0% for no lockup
         uint256 expectedPenaltyPercentage = 0; // 0%
@@ -665,7 +650,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         );
 
         // Unstake immediately
-        _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount);
+        _approveAndUnstake(freshStaking, user1, 0, stakeAmount);
 
         // Verify penalty calculation
         assertEq(
@@ -690,7 +675,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup
 
         // Stake with no lockup
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Test penalty calculation - should always be 0 for no lockup
         uint256 contractPenalty = freshStaking.calculatePenaltyPercentage(
@@ -722,9 +707,9 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup
 
         // Create multiple stakes with no lockup
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Test penalty calculation for each stake - should all be 0
         for (uint256 i = 0; i < 3; i++) {
@@ -746,7 +731,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         );
 
         for (uint256 i = 0; i < 3; i++) {
-            _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount); // Always unstake from index 0 as stakes get removed
+            _approveAndUnstake(freshStaking, user1, 0, stakeAmount); // Always unstake from index 0 as stakes get removed
         }
 
         // Verify no penalties were applied
@@ -768,7 +753,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup
 
         // Stake with no lockup
-        _stakeOnContract(freshStaking, user1, stakeAmount, lockupPeriod);
+        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
 
         // Warp time significantly
         vm.warp(block.timestamp + 10 * 365 days); // 10 years
@@ -790,7 +775,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
             freshStaking.treasury()
         );
 
-        _approveAndUnstakeOnContract(freshStaking, user1, 0, stakeAmount);
+        _approveAndUnstake(freshStaking, user1, 0, stakeAmount);
 
         assertEq(
             aSummerToken.balanceOf(freshStaking.treasury()),
@@ -814,10 +799,10 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
 
         // Create one stake with no lockup
-        _stakeOnContract(freshStaking, user1, stakeAmount, 0);
+        _stake(freshStaking, user1, stakeAmount, 0);
 
         // Create another stake with 1-year lockup
-        _stakeOnContract(freshStaking, user2, stakeAmount, 365 days);
+        _stake(freshStaking, user2, stakeAmount, 365 days);
 
         // Compare penalties
         uint256 noLockupPenalty = freshStaking.calculatePenaltyPercentage(

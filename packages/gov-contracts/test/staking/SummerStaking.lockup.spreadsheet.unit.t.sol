@@ -27,52 +27,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function setUp() public override {
         super.setUp();
 
-        // Setup additional test users with tokens
-        deal(address(aSummerToken), user3, STAKE_AMOUNT * 10);
-
-        // Update lockup bucket caps for enhanced testing
-        vm.startPrank(address(timelockA));
-        aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
-            1000000 ether
-        );
-        aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
-            100000 ether
-        );
-        aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
-            100000 ether
-        );
-        aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToThreeYears,
-            100000 ether
-        );
-        vm.stopPrank();
-
-        vm.startPrank(address(timelockB));
-        bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
-            1000000 ether
-        );
-        bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
-            100000 ether
-        );
-        bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
-            100000 ether
-        );
-        bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToThreeYears,
-            100000 ether
-        );
-        vm.stopPrank();
-
-        // Setup reward token
-        rewardToken = new MockERC20();
-        deal(address(rewardToken), address(timelockA), REWARD_AMOUNT * 1000);
-
         vm.startPrank(whale);
         axSumr.burn(axSumr.balanceOf(whale));
         bxSumr.burn(bxSumr.balanceOf(whale));

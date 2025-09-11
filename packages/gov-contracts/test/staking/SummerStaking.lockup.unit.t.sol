@@ -30,49 +30,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Setup additional test users with tokens
         deal(address(aSummerToken), user3, STAKE_AMOUNT * 10);
 
-        // Update lockup bucket caps for enhanced testing
-        vm.startPrank(address(timelockA));
-        aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
-            1000000 ether
-        );
-        aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
-            100000 ether
-        );
-        aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
-            100000 ether
-        );
-        aStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToThreeYears,
-            100000 ether
-        );
-        vm.stopPrank();
-
-        vm.startPrank(address(timelockB));
-        bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.ThreeToSixMonths,
-            1000000 ether
-        );
-        bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.SixToTwelveMonths,
-            100000 ether
-        );
-        bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.OneToTwoYears,
-            100000 ether
-        );
-        bStaking.updateLockupBucketCap(
-            SummerStaking.Bucket.TwoToThreeYears,
-            100000 ether
-        );
-        vm.stopPrank();
-
-        // Setup reward token
-        rewardToken = new MockERC20();
-        deal(address(rewardToken), address(timelockA), REWARD_AMOUNT * 1000);
-
         vm.startPrank(whale);
         axSumr.burn(axSumr.balanceOf(whale));
         bxSumr.burn(bxSumr.balanceOf(whale));
@@ -163,7 +120,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             );
         uint256 expectedLockupEndTime = block.timestamp + lockupPeriod;
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         _assertStake(
             user1,
@@ -200,7 +157,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             );
         uint256 expectedLockupEndTime = block.timestamp + lockupPeriod;
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         _assertStake(
             user1,
@@ -227,7 +184,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
                 );
             uint256 expectedLockupEndTime = block.timestamp + lockupPeriods[i];
 
-            uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, lockupPeriods[i]);
+            uint256 stakeIndex = _stake(
+                aStaking,
+                user1,
+                STAKE_AMOUNT,
+                lockupPeriods[i]
+            );
             _assertStake(
                 user1,
                 stakeIndex,
@@ -258,7 +220,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
         uint256 totalSupplyBefore = aStaking.totalSupply();
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Check user balances
         assertEq(
@@ -328,7 +290,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Revert_StakeWhenMaxStakesReached() public {
         // Create 10 stakes to reach the maximum
         for (uint256 i = 0; i < 10; i++) {
-            _stake(user1, STAKE_AMOUNT / 10, aMinLockupPeriod);
+            _stake(aStaking, user1, STAKE_AMOUNT / 10, aMinLockupPeriod);
         }
 
         assertEq(aStaking.getUserStakesCount(user1), 10);
@@ -366,7 +328,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = aMinLockupPeriod;
 
         // Create initial stake
-        uint256 stakeIndex = _stake(user1, initialAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            initialAmount,
+            lockupPeriod
+        );
 
         // Get initial state
         (
@@ -402,7 +369,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = aMinLockupPeriod;
 
         // Create initial stake
-        uint256 stakeIndex = _stake(user1, initialAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            initialAmount,
+            lockupPeriod
+        );
 
         // Get state before adding
         uint256 balanceBefore = aStaking.balanceOf(user1);
@@ -420,7 +392,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     // Failure Cases
     function test_Revert_AddToStakeWithInvalidIndex() public {
-        uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, aMinLockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            STAKE_AMOUNT,
+            aMinLockupPeriod
+        );
 
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
@@ -431,7 +408,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     function test_Revert_AddToStakeOnExpiredLockup() public {
         uint256 lockupPeriod = aMinLockupPeriod;
-        uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, lockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            STAKE_AMOUNT,
+            lockupPeriod
+        );
 
         // Warp time past the lockup end
         vm.warp(block.timestamp + lockupPeriod + 1 days);
@@ -455,7 +437,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for now to avoid bucket cap issues
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // No need to warp time since there's no lockup
 
@@ -464,7 +446,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
 
         // Unstake full amount
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify user received full amount back (no penalty)
         assertEq(
@@ -483,13 +465,13 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 unstakeAmount = stakeAmount / 2;
         uint256 lockupPeriod = aMinLockupPeriod;
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Warp time past lockup end
         vm.warp(block.timestamp + lockupPeriod + 1 days);
 
         // Unstake partial amount
-        _approveAndUnstake(user1, stakeIndex, unstakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, unstakeAmount);
 
         // Verify remaining stake
         (uint256 remainingAmount, , , ) = aStaking.getUserStake(
@@ -506,7 +488,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMinLockupPeriod;
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Warp time past lockup end
         vm.warp(block.timestamp + lockupPeriod + 1 days);
@@ -517,7 +499,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 totalSupplyBefore = aStaking.totalSupply();
 
         // Unstake full amount
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify state changes
         assertEq(aStaking.balanceOf(user1), balanceBefore - stakeAmount);
@@ -546,9 +528,9 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMaxLockupPeriod; // 3 years for maximum penalty
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
-        // Calculate expected penalty (should be 50% for immediate unstake)
+        // Calculate expected penalty (should be 20% for immediate unstake)
         uint256 expectedPenalty = _calculatePenaltyPercentage(
             lockupPeriod,
             lockupPeriod
@@ -593,7 +575,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMaxLockupPeriod; // 3 years
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Warp time to 50% of lockup period
         vm.warp(block.timestamp + lockupPeriod / 2);
@@ -605,7 +587,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Unstake halfway through
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify penalty is approximately half of immediate unstake penalty
         assertApproxEqRel(
@@ -619,7 +601,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMaxLockupPeriod;
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Get state before unstaking
         uint256 balanceBefore = aStaking.balanceOf(user1);
@@ -630,7 +612,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Unstake with penalty
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify penalty sent to treasury
         assertGt(
@@ -663,7 +645,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     // Failure Cases
     function test_Revert_UnstakeZeroAmount() public {
-        uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, aMinLockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            STAKE_AMOUNT,
+            aMinLockupPeriod
+        );
 
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("CannotUnstakeZero()"));
@@ -671,7 +658,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     function test_Revert_UnstakeWithInvalidIndex() public {
-        uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, aMinLockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            STAKE_AMOUNT,
+            aMinLockupPeriod
+        );
 
         vm.startPrank(user1);
         axSumr.approve(address(aStaking), STAKE_AMOUNT);
@@ -681,7 +673,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     function test_Revert_UnstakeMoreThanTotalBalance() public {
-        uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, aMinLockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            STAKE_AMOUNT,
+            aMinLockupPeriod
+        );
 
         vm.startPrank(user1);
         axSumr.approve(address(aStaking), STAKE_AMOUNT * 2);
@@ -723,7 +720,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         aStaking.updateLockupBucketCap(bucket, cap);
 
         // Stake up to the cap
-        _stake(user1, cap, aMinLockupPeriod);
+        _stake(aStaking, user1, cap, aMinLockupPeriod);
 
         // Attempt to stake more should revert
         vm.startPrank(user2);
@@ -737,14 +734,14 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         SummerStaking.Bucket bucket = SummerStaking.Bucket.ThreeToSixMonths;
 
         // Stake in ThreeToSixMonths bucket (90 days to 180 days)
-        _stake(user1, STAKE_AMOUNT, aMinLockupPeriod);
-        _stake(user2, STAKE_AMOUNT, aMinLockupPeriod);
+        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
+        _stake(aStaking, user2, STAKE_AMOUNT, aMinLockupPeriod);
 
         // Verify bucket total
         _assertBucket(bucket, STAKE_AMOUNT * 2);
 
         // Unstake from user1
-        _approveAndUnstake(user1, 0, STAKE_AMOUNT);
+        _approveAndUnstake(aStaking, user1, 0, STAKE_AMOUNT);
 
         // Verify bucket total updated
         _assertBucket(bucket, STAKE_AMOUNT);
@@ -756,7 +753,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMinLockupPeriod;
 
-        _stake(user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Add rewards
         _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
@@ -771,10 +768,10 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_EarnedIsProportionalToWeightedBalance() public {
         // User1 stakes with longer lockup (higher weight)
         uint256 stakeAmount = STAKE_AMOUNT;
-        _stake(user1, stakeAmount, aMinLockupPeriod);
+        _stake(aStaking, user1, stakeAmount, aMinLockupPeriod);
 
         // User2 stakes with maximum lockup (highest weight)
-        _stake(user2, stakeAmount, aMaxLockupPeriod);
+        _stake(aStaking, user2, stakeAmount, aMaxLockupPeriod);
 
         // Add rewards
         _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
@@ -793,7 +790,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMinLockupPeriod;
 
-        _stake(user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Add rewards with short duration
         _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
@@ -820,7 +817,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMinLockupPeriod;
 
-        _stake(user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Add rewards
         _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
@@ -903,7 +900,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         deal(address(aSummerToken), user1, amount);
 
         // Stake should succeed with valid parameters
-        uint256 stakeIndex = _stake(user1, amount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, amount, lockupPeriod);
 
         // Verify stake was created
         (uint256 stakedAmount, , , ) = aStaking.getUserStake(user1, stakeIndex);
@@ -912,7 +909,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     function test_Fuzz_AddToStake(uint128 amount) public {
         // Create initial stake
-        uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, aMinLockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            STAKE_AMOUNT,
+            aMinLockupPeriod
+        );
 
         // Bound the additional amount
         amount = uint128(bound(amount, 1 ether, STAKE_AMOUNT));
@@ -927,7 +929,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     function test_Fuzz_Unstake(uint128 amount) public {
         // Create stake
-        uint256 stakeIndex = _stake(user1, STAKE_AMOUNT, aMinLockupPeriod);
+        uint256 stakeIndex = _stake(
+            aStaking,
+            user1,
+            STAKE_AMOUNT,
+            aMinLockupPeriod
+        );
 
         // Bound the unstake amount
         amount = uint128(bound(amount, 1 ether, STAKE_AMOUNT));
@@ -936,7 +943,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.warp(block.timestamp + aMinLockupPeriod + 1 days);
 
         // Unstake should succeed
-        _approveAndUnstake(user1, stakeIndex, amount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, amount);
 
         // Verify remaining amount
         (uint256 remainingAmount, , , ) = aStaking.getUserStake(
@@ -954,7 +961,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 3 * 365 days; // 3 years
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Calculate expected penalty: 20% for immediate unstake
         uint256 expectedPenaltyPercentage = _calculatePenaltyPercentage(
@@ -972,7 +979,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Unstake immediately
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify penalty calculation
         assertEq(
@@ -983,7 +990,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertEq(
             aSummerToken.balanceOf(user1),
             userSummerBalanceBefore + expectedReturnAmount,
-            "User should receive 50% of staked amount"
+            "User should receive 80% of staked amount"
         );
     }
 
@@ -993,7 +1000,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 3 * 365 days; // 3 years
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Warp time to 2 years (50% of lockup period)
         vm.warp(block.timestamp + 2 * 365 days);
@@ -1014,7 +1021,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Unstake after 2 years
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify penalty calculation
         assertEq(
@@ -1033,7 +1040,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 3 * 365 days; // 3 years
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Warp time to exactly 3 years (lockup period ends)
         vm.warp(block.timestamp + 3 * 365 days);
@@ -1054,7 +1061,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Unstake after lockup period ends
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify penalty calculation
         assertEq(
@@ -1077,7 +1084,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 365 days; // 1 year
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Calculate expected penalty for immediate unstake of 1-year lockup
         uint256 expectedPenaltyPercentage = _calculatePenaltyPercentage(
@@ -1095,7 +1102,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Unstake immediately
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify penalty calculation
         assertEq(
@@ -1116,7 +1123,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 2 * 365 days; // 2 years
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Calculate expected penalty for immediate unstake of 2-year lockup
         uint256 expectedPenaltyPercentage = _calculatePenaltyPercentage(
@@ -1134,7 +1141,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Unstake immediately
-        _approveAndUnstake(user1, stakeIndex, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify penalty calculation
         assertEq(
@@ -1153,7 +1160,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 3 * 365 days; // 3 years
 
-        uint256 stakeIndex = _stake(user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Test immediate unstake penalty calculation
         uint256 contractPenalty = aStaking.calculatePenaltyPercentage(
@@ -1210,7 +1217,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
 
         // Test 1-year lockup
-        uint256 stakeIndex1 = _stake(user1, stakeAmount, 365 days);
+        uint256 stakeIndex1 = _stake(aStaking, user1, stakeAmount, 365 days);
         uint256 penalty1 = aStaking.calculatePenaltyPercentage(
             user1,
             stakeIndex1
@@ -1226,7 +1233,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Test 2-year lockup
-        uint256 stakeIndex2 = _stake(user2, stakeAmount, 2 * 365 days);
+        uint256 stakeIndex2 = _stake(
+            aStaking,
+            user2,
+            stakeAmount,
+            2 * 365 days
+        );
         uint256 penalty2 = aStaking.calculatePenaltyPercentage(
             user2,
             stakeIndex2
@@ -1242,7 +1254,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Test 6-month lockup
-        uint256 stakeIndex3 = _stake(user3, stakeAmount, 365 days / 2);
+        uint256 stakeIndex3 = _stake(
+            aStaking,
+            user3,
+            stakeAmount,
+            365 days / 2
+        );
         uint256 penalty3 = aStaking.calculatePenaltyPercentage(
             user3,
             stakeIndex3
@@ -1262,9 +1279,9 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     function test_Invariant_SupplyConsistency() public {
         // Create multiple stakes
-        _stake(user1, STAKE_AMOUNT, aMinLockupPeriod);
-        _stake(user1, STAKE_AMOUNT, MEDIUM_LOCKUP);
-        _stake(user2, STAKE_AMOUNT, aMaxLockupPeriod);
+        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
+        _stake(aStaking, user1, STAKE_AMOUNT, MEDIUM_LOCKUP);
+        _stake(aStaking, user2, STAKE_AMOUNT, aMaxLockupPeriod);
 
         // Verify totalSupply equals sum of weighted balances
         uint256 totalWeightedBalance = aStaking.weightedBalanceOf(user1) +
@@ -1280,8 +1297,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount1 = STAKE_AMOUNT;
         uint256 stakeAmount2 = STAKE_AMOUNT / 2;
 
-        _stake(user1, stakeAmount1, aMinLockupPeriod);
-        _stake(user1, stakeAmount2, MEDIUM_LOCKUP);
+        _stake(aStaking, user1, stakeAmount1, aMinLockupPeriod);
+        _stake(aStaking, user1, stakeAmount2, MEDIUM_LOCKUP);
 
         // Verify user's total balance equals sum of individual stakes
         uint256 totalStaked = stakeAmount1 + stakeAmount2;
@@ -1296,14 +1313,14 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
 
         // Stake in bucket 0 (90 days to 180 days)
-        _stake(user1, stakeAmount, aMinLockupPeriod);
+        _stake(aStaking, user1, stakeAmount, aMinLockupPeriod);
 
         // Verify bucket total matches staked amount
         _assertBucket(SummerStaking.Bucket.ThreeToSixMonths, stakeAmount);
 
         // Unstake and verify bucket total is updated
         vm.warp(block.timestamp + aMinLockupPeriod + 1 days);
-        _approveAndUnstake(user1, 0, stakeAmount);
+        _approveAndUnstake(aStaking, user1, 0, stakeAmount);
 
         _assertBucket(SummerStaking.Bucket.ThreeToSixMonths, 0);
     }
@@ -1311,7 +1328,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Invariant_TokenAccounting() public {
         uint256 stakeAmount = STAKE_AMOUNT;
 
-        _stake(user1, stakeAmount, aMinLockupPeriod);
+        _stake(aStaking, user1, stakeAmount, aMinLockupPeriod);
 
         // Verify sSUMMER token supply equals staked amount
         assertEq(
@@ -1322,7 +1339,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         // Unstake and verify
         vm.warp(block.timestamp + aMinLockupPeriod + 1 days);
-        _approveAndUnstake(user1, 0, stakeAmount);
+        _approveAndUnstake(aStaking, user1, 0, stakeAmount);
 
         assertEq(
             axSumr.totalSupply(),
