@@ -119,6 +119,9 @@ interface ICrossChainRegistry {
     /// @notice Thrown when an invalid relationship type is provided
     error InvalidRelationshipType(bytes32 relationshipType);
 
+    /// @notice Thrown when attempting to use a relationship type that is not supported/whitelisted
+    error UnsupportedRelationshipType(bytes32 relationshipType);
+
     /// @notice Thrown when trying to register a target contract that's already registered to another source contract
     error TargetContractAlreadyRegistered(
         address targetContract,
@@ -344,6 +347,12 @@ interface ICrossChainRegistry {
         external
         view
         returns (bytes32[] memory relationshipTypes);
+
+    /**
+     * @notice Add a supported relationship type (governor-only)
+     * @param relationshipType The relationship type hash to add
+     */
+    function addSupportedRelationshipType(bytes32 relationshipType) external;
 
     /**
      * @notice Get the current chain ID

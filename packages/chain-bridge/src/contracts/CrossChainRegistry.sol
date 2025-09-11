@@ -484,6 +484,16 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         return supportedRelationshipTypes;
     }
 
+    /**
+     * @notice Add a supported relationship type (governor-only)
+     * @param relationshipType The relationship type hash to add
+     */
+    function addSupportedRelationshipType(
+        bytes32 relationshipType
+    ) external onlyGovernor {
+        _addRelationshipType(relationshipType);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         ADAPTER PEER_RELATIONSHIP CONVENIENCE
     //////////////////////////////////////////////////////////////*/
@@ -715,9 +725,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         if (relationshipType == bytes32(0))
             revert InvalidRelationshipType(relationshipType);
 
-        // add relationship type if new
+        // enforce that relationship type must be supported
         if (!relationshipTypeSupported[relationshipType]) {
-            _addRelationshipType(relationshipType);
+            revert UnsupportedRelationshipType(relationshipType);
         }
 
         bytes32 relationshipKey = _getRelationshipKey(
