@@ -172,12 +172,13 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Normalizes gas limit using user input or default
+     * @notice Requires a non-zero gas limit and returns it
      * @param userGas User-provided gas limit
-     * @return Normalized gas limit
+     * @return gasLimit The validated gas limit
      */
-    function _normalizeGas(uint64 userGas) internal view returns (uint64) {
-        return userGas > 0 ? userGas : uint64(defaultGasLimit());
+    function _requireGasLimit(uint64 userGas) internal pure returns (uint64) {
+        if (userGas == 0) revert InvalidParams();
+        return userGas;
     }
 
     function _decodeRelayedMessageParams(

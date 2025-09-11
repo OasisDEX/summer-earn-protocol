@@ -46,9 +46,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice The bridge router contract address
     address public bridgeRouter;
 
-    /// @notice The gas limit for cross-chain messages
-    uint256 public defaultGasLimit;
-
     /// @notice Constants for relationship types
     bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
     bytes32 public constant ARK_FLEET_RELATIONSHIP =
@@ -142,11 +139,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /**
      * @notice Initializes the bridge configuration parameters
      * @param _bridgeRouter The address of the bridge router contract
-     * @param _defaultGasLimit The default gas limit for cross-chain transactions
      */
     function initializeBridgeConfiguration(
-        address _bridgeRouter,
-        uint256 _defaultGasLimit
+        address _bridgeRouter
     ) external onlyGovernor {
         if (bridgeRouter != address(0)) {
             revert BridgeConfigAlreadyInitialized();
@@ -156,15 +151,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             revert AddressZero();
         }
 
-        if (_defaultGasLimit == 0) {
-            revert InvalidGasLimit();
-        }
-
         bridgeRouter = _bridgeRouter;
-        defaultGasLimit = _defaultGasLimit;
 
         emit BridgeRouterUpdated(address(0), _bridgeRouter);
-        emit DefaultGasLimitUpdated(0, _defaultGasLimit);
     }
 
     /**
@@ -177,20 +166,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         }
         emit BridgeRouterUpdated(bridgeRouter, newBridgeRouter);
         bridgeRouter = newBridgeRouter;
-    }
-
-    /**
-     * @notice Updates the message gas limit
-     * @param newDefaultGasLimit The new message gas limit
-     */
-    function setDefaultGasLimit(
-        uint256 newDefaultGasLimit
-    ) external onlyGovernor {
-        if (newDefaultGasLimit == 0) {
-            revert InvalidGasLimit();
-        }
-        emit DefaultGasLimitUpdated(defaultGasLimit, newDefaultGasLimit);
-        defaultGasLimit = newDefaultGasLimit;
     }
 
     /*//////////////////////////////////////////////////////////////

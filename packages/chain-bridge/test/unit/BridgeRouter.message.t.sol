@@ -263,6 +263,34 @@ contract BridgeRouterMessageTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
+    function testExecuteSendMessage_ZeroGasLimitReverts() public {
+        bytes memory testMessage = abi.encode("Zero gas");
+
+        vm.startPrank(keeper);
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 0,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: user,
+                message: testMessage,
+                originator: keeper,
+                refundAddress: keeper
+            });
+
+        vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
+        router.executeSendMessage{value: 0.101 ether}(params, options);
+
+        vm.stopPrank();
+    }
+
     // Test demonstrating the security improvement from hardening item #1
     function testExecuteSendMessage_OriginatorValidationPreventsSpoof() public {
         // This test specifically validates the fix for hardening todo item #1

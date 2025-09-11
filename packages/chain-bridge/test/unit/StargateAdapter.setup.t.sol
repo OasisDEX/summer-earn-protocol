@@ -87,10 +87,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(registryA)
         );
 
-        registryA.initializeBridgeConfiguration(
-            address(routerA),
-            400000 // defaultGasLimit
-        );
+        registryA.initializeBridgeConfiguration(address(routerA));
 
         // Deploy adapter with registry instead of config manager
         adapterA = new StargateAdapter(
@@ -126,10 +123,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(registryB)
         );
 
-        registryB.initializeBridgeConfiguration(
-            address(routerB),
-            400000 // defaultGasLimit
-        );
+        registryB.initializeBridgeConfiguration(address(routerB));
 
         // Deploy adapter with registry instead of config manager
         adapterB = new StargateAdapter(
