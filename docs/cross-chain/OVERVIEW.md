@@ -59,6 +59,9 @@ sequenceDiagram
 - Pausing and governance-controlled emergency actions at routers/proxies.
 - Reentrancy protection on critical entry points.
 
+Operational requirement:
+- All cross-chain operations include explicit `BridgeOptions` with a non-zero `gasLimit`. There is no registry-level default gas limit.
+
 Note on withdrawals:
 
 - Disembark (withdraw) checks ensure sufficient local assets. Cross-chain withdrawals are initiated
