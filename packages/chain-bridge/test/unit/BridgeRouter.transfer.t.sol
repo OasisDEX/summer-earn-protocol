@@ -209,7 +209,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // Try calling transferAsset with simple parameters
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter),
-            gasLimit: 0,
+            gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
             options: "0x"
@@ -501,6 +501,34 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
             );
             console.logBytes(lowLevelData);
         }
+
+        vm.stopPrank();
+    }
+
+    function testExecuteTransferAssets_ZeroGasLimitReverts() public {
+        vm.startPrank(keeper);
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 0,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(token),
+                amount: 1,
+                target: user,
+                originator: keeper,
+                refundAddress: keeper,
+                message: ""
+            });
+
+        vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
+        router.executeTransferAssets(params, options);
 
         vm.stopPrank();
     }

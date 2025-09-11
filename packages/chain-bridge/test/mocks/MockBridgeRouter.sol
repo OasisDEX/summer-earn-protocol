@@ -77,6 +77,22 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     // Add mapping for registered adapters
     mapping(address => bool) public registeredAdapters;
 
+    // --- Extended recording for stricter tests ---
+    bool public useRefundAddressInsteadOfSender = false;
+    address public lastRefundAddress;
+    address public lastOriginator;
+    address public lastTarget;
+    address public lastAsset;
+    uint256 public lastAmount;
+    uint16 public lastDestinationChainId;
+    uint256 public lastMsgValue;
+
+    address public lastMsgRefundAddress;
+    address public lastMsgOriginator;
+    address public lastMsgTarget;
+    uint16 public lastMsgDestinationChainId;
+    bytes public lastMsgMessage;
+
     // --- Errors ---
     error CallerNotBridgeQueue();
     error RefundFailed();
@@ -102,6 +118,10 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     function setShouldRevert(bool _shouldRevert) external {
         shouldRevert = _shouldRevert;
+    }
+
+    function setUseRefundAddress(bool _use) external {
+        useRefundAddressInsteadOfSender = _use;
     }
 
     // Add registerAdapter function
@@ -145,6 +165,15 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             revert("MockRouter: Execution failed");
         }
 
+        // Record params for assertions in tests
+        lastOriginator = params.originator;
+        lastTarget = params.target;
+        lastAsset = params.asset;
+        lastAmount = params.amount;
+        lastDestinationChainId = params.destinationChainId;
+        lastRefundAddress = params.refundAddress;
+        lastMsgValue = msg.value;
+
         operationId = keccak256(abi.encodePacked("transfer", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
@@ -169,10 +198,13 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             MOCK_ADAPTER_ADDRESS
         );
 
-        // Refund any excess native fee to the keeper
+        // Refund any excess native fee to the keeper or provided refundAddress (for stricter tests)
         uint256 baseFee = 0.1 ether; // Base fee from quote
         if (msg.value > baseFee) {
-            (bool success, ) = msg.sender.call{value: msg.value - baseFee}("");
+            address refundTo = useRefundAddressInsteadOfSender
+                ? params.refundAddress
+                : msg.sender;
+            (bool success, ) = refundTo.call{value: msg.value - baseFee}("");
             if (!success) revert RefundFailed();
         }
 
@@ -210,6 +242,14 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     function _executeSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata params
     ) internal returns (bytes32 operationId) {
+        // Record params for assertions in tests
+        lastMsgOriginator = params.originator;
+        lastMsgTarget = params.target;
+        lastMsgDestinationChainId = params.destinationChainId;
+        lastMsgMessage = params.message;
+        lastMsgRefundAddress = params.refundAddress;
+        lastMsgValue = msg.value;
+
         operationId = keccak256(abi.encodePacked("message", operationNonce++));
         operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
@@ -223,10 +263,13 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             MOCK_ADAPTER_ADDRESS
         );
 
-        // Refund any excess native fee to the keeper
+        // Refund any excess native fee to the keeper or provided refundAddress (for stricter tests)
         uint256 baseFee = 0.1 ether; // Base fee from quote
         if (msg.value > baseFee) {
-            (bool success, ) = msg.sender.call{value: msg.value - baseFee}("");
+            address refundTo = useRefundAddressInsteadOfSender
+                ? params.refundAddress
+                : msg.sender;
+            (bool success, ) = refundTo.call{value: msg.value - baseFee}("");
             if (!success) revert RefundFailed();
         }
 

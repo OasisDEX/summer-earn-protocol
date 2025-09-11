@@ -15,7 +15,6 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
@@ -24,6 +23,7 @@ import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICross
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
+    event InflightCleared(bytes32 operationId, uint256 amount);
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
 
@@ -94,10 +94,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Now that both contracts are deployed, initialize the bridge configuration
-        registry.initializeBridgeConfiguration(
-            address(bridgeRouter),
-            200000 // defaultGasLimit
-        );
+        registry.initializeBridgeConfiguration(address(bridgeRouter));
 
         // Register the BridgeRouter as an executor
         registry.registerExecutor(address(bridgeRouter));
@@ -168,7 +165,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Set up peer for Arbitrum chain (LayerZero)
         bytes32 peerAddressBytes32 = bytes32(
-            uint256(uint160(ARB_STARGATE_PROXY))
+            uint256(uint160(ARB_LAYERZERO_PROXY))
         );
         layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
@@ -191,6 +188,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             ARB_LAYERZERO_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
+
+        // Register reverse peer mapping for LayerZero adapter (Arbitrum -> Mainnet)
+        registry.registerRelationship(
+            ARB_LAYERZERO_PROXY,
+            address(layerZeroAdapter),
+            DEST_CHAIN_ID,
+            SOURCE_CHAIN_ID,
             registry.PEER_RELATIONSHIP()
         );
 
@@ -556,6 +562,60 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
     }
 
+    function test_ExecuteTransfer_SetsInflightAssets() public {
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+
+        // Fund keeper/commander and approve Ark to take funds on board
+        deal(address(usdc), commander, amount);
+        vm.prank(commander);
+        usdc.approve(address(ark), amount);
+
+        // Prepare options and params for a Stargate transfer
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(stargateAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(usdc),
+                amount: amount,
+                target: ARB_STARGATE_PROXY,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+
+        // Board the assets to set pending transfer (Ark holds tokens)
+        bytes memory executeTransferParams = abi.encode(params, options);
+        vm.prank(commander);
+        ark.board(amount, executeTransferParams);
+
+        // Quote and execute transfer via Ark (keeper role is granted to commander)
+        (uint256 nativeFee, , ) = bridgeRouter.quote(
+            DEST_CHAIN_ID,
+            address(usdc),
+            amount,
+            options,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        );
+        vm.deal(commander, nativeFee);
+
+        vm.prank(commander);
+        ark.executeTransferAssets{value: nativeFee}();
+
+        // After execution, BridgeRouter should have called updateInflightAssets on Ark
+        assertEq(
+            ark.inflightAssets(),
+            amount,
+            "Inflight assets should equal transfer amount"
+        );
+    }
+
     // Event declaration for the event we expect from StargateAdapter
     event TransferInitiated(
         bytes32 indexed transferId,
@@ -582,9 +642,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         // Verify initial state
         assertEq(
@@ -634,9 +694,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
@@ -645,7 +705,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(params.operationId, initialInflightAssets);
 
         // Simulate the adapter calling deliver()
         vm.prank(address(layerZeroAdapter));
@@ -702,9 +762,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint256 mockRemoteBalance = 2500 * 10 ** 6; // 2500 USDC
         uint256 initialInflight = 100 * 10 ** 6; // 100 USDC
 
-        // Setup initial state
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflight);
+        // Setup initial state (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflight);
 
         // === STEP 1: Request remote balance update directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -831,9 +891,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         // Verify initial state
         assertEq(
@@ -899,7 +959,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create the Origin struct that LayerZero would pass to _lzReceive
         Origin memory origin = Origin({
             srcEid: readResponseEid,
-            sender: bytes32(uint256(uint160(ARB_STARGATE_PROXY))), // Mock sender
+            sender: bytes32(uint256(uint160(ARB_LAYERZERO_PROXY))), // Mock sender
             nonce: 1
         });
 
@@ -915,7 +975,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(TEST_OP_ID, initialInflightAssets);
 
         // Simulate LayerZero endpoint calling lzReceive on the adapter
         // The adapter should recognize this as a read response and call deliver()

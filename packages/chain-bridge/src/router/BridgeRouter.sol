@@ -5,7 +5,6 @@ import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "../interfaces/IInflightAssetTracking.sol";
 import {IMessageAdapter} from "../interfaces/IMessageAdapter.sol";
 import {IAssetAdapter} from "../interfaces/IAssetAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -427,6 +426,7 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        if (options.gasLimit == 0) revert ZeroGasLimit();
         _validateTransferParams(params);
         _validateOriginator(params.originator);
 
@@ -441,27 +441,6 @@ contract BridgeRouter is
 
         // Now approve the adapter to spend Router's tokens
         IERC20(params.asset).forceApprove(specifiedAdapter, params.amount);
-
-        // Notify originator that assets are now officially in-flight
-        // Attempt to call updateInflightAssets if the originator supports it
-        if (params.originator.code.length > 0) {
-            try
-                IERC165(params.originator).supportsInterface(
-                    type(IInflightAssetTracking).interfaceId
-                )
-            returns (bool supported) {
-                if (supported) {
-                    try
-                        IInflightAssetTracking(params.originator)
-                            .updateInflightAssets(params.amount)
-                    {} catch {
-                        // Ignore failures in updateInflightAssets
-                    }
-                }
-            } catch {
-                // Originator doesn't support ERC165 or IInflightAssetTracking, ignore
-            }
-        }
 
         // Generate the operation ID ONCE - Router is the source of truth
         operationId = _generateOperationId(
@@ -510,6 +489,7 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        if (options.gasLimit == 0) revert ZeroGasLimit();
         _validateReadStateParams(params);
         _validateOriginator(params.originator);
 
@@ -573,6 +553,7 @@ contract BridgeRouter is
         )
         returns (bytes32 operationId)
     {
+        if (options.gasLimit == 0) revert ZeroGasLimit();
         _validateSendMessageParams(params);
         _validateOriginator(params.originator);
 
@@ -625,6 +606,7 @@ contract BridgeRouter is
 
         if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
         if (!this.isValidAdapter(specifiedAdapter)) revert UnknownAdapter();
+        if (options.gasLimit == 0) revert ZeroGasLimit();
 
         (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter).estimateFee(
             destinationChainId,

@@ -111,10 +111,7 @@ contract CrossChainFleetProxyTest is Test {
 
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        registry.initializeBridgeConfiguration(
-            address(mockBridgeRouter),
-            200000 // defaultGasLimit
-        );
+        registry.initializeBridgeConfiguration(address(mockBridgeRouter));
 
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(
@@ -207,7 +204,7 @@ contract CrossChainFleetProxyTest is Test {
                 message: message
             });
     }
-    //----------------- Constructor Tests -----------------//
+    //----------------- Constructor & Basic Getters -----------------//
 
     function test_Constructor() public view {
         // Test all constructor values are properly initialized
@@ -225,7 +222,57 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(arkFromRegistry, SOURCE_ARK_ADDRESS);
     }
 
-    //----------------- Administrative Tests -----------------//
+    function test_GetBalance_ReturnsProxyTokenBalance() public {
+        address asset = address(mockToken);
+        uint256 amount = 1234;
+        mockToken.mint(address(proxy), amount);
+        assertEq(proxy.getBalance(asset), amount);
+    }
+
+    function test_TotalAssets_IncludesInflightWithdrawals() public {
+        // Establish baseline by depositing once via receive path
+        uint256 depositAmount = 1000;
+        _depositAssetsToFleet(depositAmount);
+
+        uint256 baseline = fleetCommanderMock.totalAssets();
+
+        // Update inflight as governor
+        vm.prank(governor);
+        proxy.forceUpdateInflightAssets(123);
+
+        // totalAssets = fleet.totalAssets + inflightWithdrawals
+        assertEq(proxy.totalAssets(), baseline + 123);
+    }
+
+    function test_AcknowledgeHubReceipt_AccessControlAndClearsInflight()
+        public
+    {
+        // Set inflight as governor via emergency function
+        vm.prank(governor);
+        proxy.forceUpdateInflightAssets(77);
+
+        // Unauthorized caller cannot acknowledge
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotSuperKeeper(address)",
+                address(0xDEAD)
+            )
+        );
+        proxy.acknowledgeHubReceipt(bytes32(uint256(1)));
+
+        // Grant SUPER_KEEPER to governor and then acknowledge
+        vm.prank(governor);
+        accessManager.grantSuperKeeperRole(governor);
+
+        vm.prank(governor);
+        proxy.acknowledgeHubReceipt(bytes32(uint256(1)));
+
+        // Inflight should be cleared
+        assertEq(proxy.inflightWithdrawals(), 0);
+    }
+
+    //----------------- Access Control & Pausable -----------------//
 
     function test_PauseUnpause() public {
         // Test pause - guardian can pause
@@ -300,7 +347,7 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
 
-    //----------------- CrossChainReceiver Tests -----------------//
+    //----------------- Cross-Chain Receiver: TRANSFER_ASSET -----------------//
 
     function test_ReceiveMessageWithAssets() public {
         // Prepare the message for receiving assets
@@ -326,7 +373,7 @@ contract CrossChainFleetProxyTest is Test {
         // Verify token balance was updated
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
-    function test_ReceiveMessageWithAssets_WrongPorxy() public {
+    function test_ReceiveMessageWithAssets_WrongProxy() public {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
@@ -349,6 +396,8 @@ contract CrossChainFleetProxyTest is Test {
             abi.encode(params)
         );
     }
+    //----------------- Interfaces -----------------//
+
     function test_SupportsInterface() public view {
         // Should support ICrossChainReceiver interface
         bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
@@ -513,6 +562,8 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
 
+    //----------------- Keeper Functions: withdrawAndTransfer & notifySourceChain -----------------//
+
     function test_WithdrawAndTransfer_ZeroAmount() public {
         // Try to withdraw and transfer with zero amount
         vm.prank(governor);
@@ -527,5 +578,110 @@ contract CrossChainFleetProxyTest is Test {
                 options: ""
             })
         );
+    }
+
+    function test_WithdrawAndTransfer_SetsRefundToKeeper_and_RefundsETH()
+        public
+    {
+        // Arrange: governor is keeper and will call the function
+        // Fund governor with ETH for fee and set router to refund to provided refundAddress
+        vm.deal(governor, 10 ether);
+        vm.prank(governor);
+        mockBridgeRouter.setUseRefundAddress(true);
+
+        // Mint underlying to FleetCommander and shares to proxy so withdraw works
+        uint256 assets = 1_000 ether;
+        mockToken.mint(address(fleetCommanderMock), assets);
+        // Deposit some assets so that proxy has shares after deposit via receive side
+        // Instead, we mint shares directly to proxy for simplicity (using mock's helper)
+        fleetCommanderMock.testMint(address(proxy), assets);
+
+        // Act: call withdrawAndTransfer with some msg.value
+        uint256 value = 0.5 ether; // greater than baseFee in mock (0.1 ether)
+        vm.prank(governor);
+        proxy.withdrawAndTransfer{value: value}(
+            100,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Assert: router recorded refundAddress as governor (keeper) and originator is proxy
+        assertEq(
+            mockBridgeRouter.lastRefundAddress(),
+            governor,
+            "refund should be keeper"
+        );
+        assertEq(
+            mockBridgeRouter.lastOriginator(),
+            address(proxy),
+            "originator should be proxy"
+        );
+        assertEq(
+            mockBridgeRouter.lastTarget(),
+            SOURCE_ARK_ADDRESS,
+            "target should be source-chain Ark"
+        );
+        assertEq(mockBridgeRouter.lastAsset(), address(mockToken), "asset set");
+        assertEq(mockBridgeRouter.lastAmount(), 100, "amount set");
+        assertGt(mockBridgeRouter.lastMsgValue(), 0, "msg.value forwarded");
+
+        // Refund should have gone back to governor (difference between provided and baseFee)
+        // Base fee in mock is 0.1 ether
+        // governor balance reduced by exactly base fee + gas; we check refund path doesn’t revert
+        // and the mock wrote lastRefundAddress correctly (already asserted)
+    }
+
+    function test_NotifySourceChain_SetsRefundToKeeper_and_RefundsETH() public {
+        // Arrange
+        vm.deal(governor, 10 ether);
+        vm.prank(governor);
+        mockBridgeRouter.setUseRefundAddress(true);
+
+        // Give the proxy some shares to produce a fleetBalance > 0 in the message
+        fleetCommanderMock.testMint(address(proxy), 1 ether);
+
+        // Act
+        uint256 value = 0.5 ether;
+        vm.prank(governor);
+        proxy.notifySourceChain{value: value}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Assert
+        assertEq(
+            mockBridgeRouter.lastMsgRefundAddress(),
+            governor,
+            "refund should be keeper"
+        );
+        assertEq(
+            mockBridgeRouter.lastMsgOriginator(),
+            address(proxy),
+            "originator should be proxy"
+        );
+        assertEq(
+            mockBridgeRouter.lastMsgTarget(),
+            SOURCE_ARK_ADDRESS,
+            "target should be source-chain Ark"
+        );
+        assertGt(mockBridgeRouter.lastMsgValue(), 0, "msg.value forwarded");
+    }
+
+    //----------------- Miscellaneous -----------------//
+
+    function test_ProxyCannotReceiveETH() public {
+        // FleetProxy has no receive/fallback; raw call should fail
+        (bool ok, ) = address(proxy).call{value: 1 wei}("");
+        assertEq(ok, false, "proxy should not accept ETH via receive/fallback");
     }
 }

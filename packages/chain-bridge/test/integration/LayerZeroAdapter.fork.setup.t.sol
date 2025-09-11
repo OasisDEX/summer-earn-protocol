@@ -88,10 +88,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         vm.startPrank(governor);
 
         // Initialize bridge configuration
-        registry.initializeBridgeConfiguration(
-            address(router),
-            DEFAULT_GAS_LIMIT
-        );
+        registry.initializeBridgeConfiguration(address(router));
         vm.stopPrank();
 
         // Setup supported chains configuration
@@ -174,6 +171,14 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             address(layerZeroAdapter), // target layerZeroAdapter (same address since it's a mirror setup)
             SOURCE_CHAIN_ID, // Base chain ID (8453)
             DEST_CHAIN_ID // Arbitrum chain ID (42161)
+        );
+
+        // Also register the reverse mapping for inbound validation (Arbitrum -> Base)
+        registry.registerAdapterPeer(
+            address(layerZeroAdapter), // source adapter on Arbitrum
+            address(layerZeroAdapter), // target adapter on Base
+            DEST_CHAIN_ID, // Arbitrum chain ID (42161)
+            SOURCE_CHAIN_ID // Base chain ID (8453)
         );
 
         vm.stopPrank();

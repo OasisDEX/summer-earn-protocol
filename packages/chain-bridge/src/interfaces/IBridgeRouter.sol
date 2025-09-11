@@ -71,9 +71,6 @@ interface IBridgeRouter is IERC165 {
         uint256 amount
     );
 
-    /// @notice Emitted when the default gas limit is updated
-    event DefaultGasLimitUpdated(uint256 newDefaultGasLimit);
-
     /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
     event BridgeQueueUpdated(address indexed newBridgeQueue);
 
@@ -115,6 +112,9 @@ interface IBridgeRouter is IERC165 {
     error InsufficientBalance();
 
     error UnsupportedOperationType();
+
+    /// @notice Thrown when BridgeOptions.gasLimit is zero
+    error ZeroGasLimit();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS

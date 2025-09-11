@@ -236,6 +236,37 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         assertGe(attempts, 1);
     }
 
+    function testExecuteReadState_ZeroGasLimitReverts() public {
+        address targetContract = address(token);
+        bytes4 targetSelector = bytes4(keccak256("symbol()"));
+        bytes memory targetCalldata = bytes("");
+
+        vm.startPrank(keeper);
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 0,
+            calldataSize: 100,
+            msgValue: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: keeper,
+                refundAddress: keeper
+            });
+
+        vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
+        router.executeReadState{value: 0.01 ether}(params, options);
+
+        vm.stopPrank();
+    }
+
     function testDeliverReadResponseReceiverRejects() public {
         bytes32 operationId; // Declare operationId
         address targetContract = address(0x123);
