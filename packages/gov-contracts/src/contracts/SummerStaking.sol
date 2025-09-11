@@ -20,6 +20,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
     ISummerToken public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
+    WrappedStakingToken public immutable WRAPPED_SUMMER_TOKEN;
 
     // Lockup configuration
     uint256 public constant MAX_LOCKUP_PERIOD = 3 * 365 days; // 3 years
@@ -28,10 +29,10 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
     // Weighted stake calculation constants
     uint256 public constant WEIGHTED_STAKE_BASE = 5e16; // 0.05 in 60.18 fixed-point
-    uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 350; // 3.5e-16 * 1e18 = 350 in 60.18 fixed-point
+    uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 350; // 3.5e-16 * 1e18 in 60.18 fixed-point
 
     // Bucket period boundaries (in seconds)
-    uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days - 1;
+    uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days;
     uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days;
     uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days;
     uint256 public constant BUCKET_ONE_TO_TWO_MAX = 730 days;
@@ -64,9 +65,6 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
     mapping(address => uint256) public weightedBalances;
     mapping(Bucket => BucketData) public _bucketData;
 
-    // Wrapped version of staking token for internal accounting
-    address public immutable wrappedStakingToken;
-
     constructor(
         address _protocolAccessManager,
         address _configurationManager,
@@ -90,7 +88,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         SUMMER_TOKEN = ISummerToken(_summerToken);
         STAKED_SUMMER_TOKEN = IStakedSummerToken(_stakedSummerToken);
 
-        wrappedStakingToken = address(new WrappedStakingToken(_summerToken));
+        WRAPPED_SUMMER_TOKEN = new WrappedStakingToken(_summerToken);
         stakingToken = _summerToken;
 
         _initializeDefaultLockupBuckets();
@@ -304,10 +302,7 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         // Burn staked tokens and return SUMMER tokens from wrapped token
         _burn(_amount);
 
-        WrappedStakingToken(wrappedStakingToken).withdrawTo(
-            address(this),
-            _amount
-        );
+        WRAPPED_SUMMER_TOKEN.withdrawTo(address(this), _amount);
         SUMMER_TOKEN.safeTransfer(_msgSender(), _amount - unstakePenalty);
         SUMMER_TOKEN.safeTransfer(treasury(), unstakePenalty);
 
@@ -356,11 +351,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
         }
 
         SUMMER_TOKEN.safeTransferFrom(_msgSender(), address(this), _amount);
-        SUMMER_TOKEN.forceApprove(wrappedStakingToken, _amount);
-        WrappedStakingToken(wrappedStakingToken).depositFor(
-            address(this),
-            _amount
-        );
+        SUMMER_TOKEN.forceApprove(address(WRAPPED_SUMMER_TOKEN), _amount);
+        WRAPPED_SUMMER_TOKEN.depositFor(address(this), _amount);
 
         // Mint equivalent amount of governance tokens
         _mint(_msgSender(), _amount);
@@ -420,11 +412,8 @@ contract SummerStaking is StakingRewardsManagerBase, ConfigurationManaged {
 
         // Transfer SUMMER tokens from user to contract and wrap them
         SUMMER_TOKEN.safeTransferFrom(_from, address(this), _amount);
-        SUMMER_TOKEN.forceApprove(wrappedStakingToken, _amount);
-        WrappedStakingToken(wrappedStakingToken).depositFor(
-            address(this),
-            _amount
-        );
+        SUMMER_TOKEN.forceApprove(address(WRAPPED_SUMMER_TOKEN), _amount);
+        WRAPPED_SUMMER_TOKEN.depositFor(address(this), _amount);
 
         // Mint equivalent amount of governance tokens
         _mint(_receiver, _amount);

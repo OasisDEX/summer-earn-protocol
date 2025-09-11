@@ -72,10 +72,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_CorrectInitialization() public {
         assertEq(address(aStaking.SUMMER_TOKEN()), address(aSummerToken));
         assertEq(address(aStaking.STAKED_SUMMER_TOKEN()), address(axSumr));
-        assertEq(
-            aStaking.wrappedStakingToken(),
-            address(aStaking.wrappedStakingToken())
-        );
 
         // Check default bucket configurations
 
@@ -1210,6 +1206,30 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             contractPenalty,
             expectedPenaltyPercentage,
             "Contract penalty calculation should match expected 0%"
+        );
+    }
+    function test_EdgeCase_BUCKET_SHORT_TERM_MAX() public {
+        uint256 stakeAmount = 1000 ether;
+        uint256 lockupPeriod = aStaking.BUCKET_SHORT_TERM_MAX();
+
+        aSummerToken.approve(address(aStaking), stakeAmount);
+        vm.expectRevert(SummerStaking.Staking_BucketCapExceeded.selector);
+        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
+
+        lockupPeriod = lockupPeriod + 1;
+
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
+        assertEq(aStaking.getUserStakesCount(user1), 1);
+        _assertStake(
+            user1,
+            stakeIndex,
+            stakeAmount,
+            _calculateExpectedWeightedAmountForPeriod(
+                stakeAmount,
+                lockupPeriod
+            ),
+            block.timestamp + lockupPeriod,
+            lockupPeriod
         );
     }
 
