@@ -37,7 +37,6 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     uint16 public immutable CURRENT_CHAIN_ID = uint16(block.chainid);
     uint16 public constant DEST_CHAIN_ID = 10;
     uint16 public constant SOURCE_CHAIN_ID = 111;
-    uint256 public constant DEFAULT_GAS_LIMIT = 500000;
 
     uint256 public constant INITIAL_ROUTER_BALANCE = 500 ether;
 
@@ -81,10 +80,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         router.registerAdapter(address(mockAdapterNoPeer));
 
         // Registry wiring
-        registry.initializeBridgeConfiguration(
-            address(router),
-            DEFAULT_GAS_LIMIT
-        );
+        registry.initializeBridgeConfiguration(address(router));
 
         // CURRENT -> DEST
         registry.registerAdapterPeer(

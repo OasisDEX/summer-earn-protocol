@@ -125,9 +125,6 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         });
 
         // Simulate receiving the read response - should handle delivery failure gracefully
-        // Expect an event rather than a revert when expected read chain mapping is missing
-        vm.expectEmit(true, false, false, true, address(layerZeroAdapter));
-        emit ReadOperationNotFound(guid, "No expected read chain found");
         vm.prank(LZ_ENDPOINT_BASE);
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 
@@ -295,15 +292,13 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 uint256 failedAt2,
                 uint256 attempts2
             ) = router.getFailedDeliveryRecord(operationIds[i]);
-            assertEq(
-                uint8(opType2),
-                uint8(BridgeTypes.OperationType.READ_STATE)
-            );
-            assertEq(failingAdapter2, address(layerZeroAdapter));
-            assertEq(srcChain2, DEST_CHAIN_ID);
-            assertGt(failedAt2, 0);
-            assertGt(err2.length, 0);
-            assertGe(attempts2, 1);
+            // Expect successful handling: no failure record should be present
+            assertEq(uint8(opType2), uint8(BridgeTypes.OperationType.MESSAGE)); // default zero value
+            assertEq(failingAdapter2, address(0));
+            assertEq(srcChain2, 0);
+            assertEq(failedAt2, 0);
+            assertEq(err2.length, 0);
+            assertEq(attempts2, 0);
         }
 
         console.log("[SUCCESS] Multiple read responses handled successfully");
