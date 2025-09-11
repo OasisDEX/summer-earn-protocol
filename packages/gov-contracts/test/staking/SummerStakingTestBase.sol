@@ -118,7 +118,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     ) internal {
         vm.startPrank(user);
         aSummerToken.approve(address(aStaking), amount);
-        aStaking.stakeWithNewLockup(amount, 0);
+        aStaking.stakeLockup(amount, 0);
         if (delegateToSelf) {
             axSumr.delegate(user);
         }
@@ -202,7 +202,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     }
 
     /**
-     * @notice Wrapper that pranks as the user and calls stakeWithNewLockup
+     * @notice Wrapper that pranks as the user and calls stakeLockup
      * @param user The address of the user staking
      * @param amount The amount of tokens to stake
      * @param lockupPeriod The lockup period in seconds
@@ -216,7 +216,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     ) internal returns (uint256) {
         vm.startPrank(user);
         aSummerToken.approve(address(staking), amount);
-        staking.stakeWithNewLockup(amount, lockupPeriod);
+        staking.stakeLockup(amount, lockupPeriod);
         uint256 stakeIndex = staking.getUserStakesCount(user) - 1;
         vm.stopPrank();
         return stakeIndex;

@@ -103,7 +103,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
     }
 
-    // ============ STAKING TESTS (stakeWithNewLockup) ============
+    // ============ STAKING TESTS (stakeLockup) ============
 
     // Success Cases
     function test_StakeWithMinLockup() public {
@@ -255,7 +255,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Revert_StakeWithZeroAmount() public {
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("CannotStakeZero()"));
-        aStaking.stakeWithNewLockup(0, aMinLockupPeriod);
+        aStaking.stakeLockup(0, aMinLockupPeriod);
     }
 
     function test_Revert_StakeWithLockupBelowMin() public {
@@ -264,7 +264,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded()"));
-        aStaking.stakeWithNewLockup(STAKE_AMOUNT, invalidLockupPeriod);
+        aStaking.stakeLockup(STAKE_AMOUNT, invalidLockupPeriod);
         vm.stopPrank();
     }
 
@@ -279,7 +279,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
                 "Lockup period cannot exceed 3 years"
             )
         );
-        aStaking.stakeWithNewLockup(STAKE_AMOUNT, invalidLockupPeriod);
+        aStaking.stakeLockup(STAKE_AMOUNT, invalidLockupPeriod);
         vm.stopPrank();
     }
 
@@ -295,7 +295,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(abi.encodeWithSignature("Staking_MaxStakesReached()"));
-        aStaking.stakeWithNewLockup(STAKE_AMOUNT, aMinLockupPeriod);
+        aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
         vm.stopPrank();
     }
 
@@ -305,14 +305,14 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), largeAmount);
         vm.expectRevert(); // ERC20 will revert on insufficient balance
-        aStaking.stakeWithNewLockup(largeAmount, aMinLockupPeriod);
+        aStaking.stakeLockup(largeAmount, aMinLockupPeriod);
         vm.stopPrank();
     }
 
     function test_Revert_StakeWithoutApproval() public {
         vm.prank(user1);
         vm.expectRevert(); // SafeERC20 will revert on insufficient allowance
-        aStaking.stakeWithNewLockup(STAKE_AMOUNT, aMinLockupPeriod);
+        aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
     }
 
     // ============ ADDING TO STAKE TESTS (addToStake) ============
@@ -722,7 +722,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.startPrank(user2);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded()"));
-        aStaking.stakeWithNewLockup(STAKE_AMOUNT, aMinLockupPeriod);
+        aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
         vm.stopPrank();
     }
 
@@ -839,7 +839,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_DirectStakeNotAllowed(string)",
-                "Use stakeWithNewLockup instead"
+                "Use stakeLockup instead"
             )
         );
         aStaking.stake(STAKE_AMOUNT);
@@ -1214,7 +1214,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         aSummerToken.approve(address(aStaking), stakeAmount);
         vm.expectRevert(SummerStaking.Staking_BucketCapExceeded.selector);
-        aStaking.stakeWithNewLockup(stakeAmount, lockupPeriod);
+        aStaking.stakeLockup(stakeAmount, lockupPeriod);
 
         lockupPeriod = lockupPeriod + 1;
 
@@ -1292,6 +1292,154 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             penalty3,
             expectedPenalty3,
             "6-month lockup immediate penalty should be 3.333333333333333333%"
+        );
+    }
+
+    // ============ TOKEN TRANSFER TESTS ============
+
+    function test_StakeLockupOnBehalf_TokensTransferredCorrectly() public {
+        uint256 stakeAmount = STAKE_AMOUNT;
+        uint256 lockupPeriod = aMinLockupPeriod;
+        address receiver = user2;
+        address sender = user1;
+
+        // Get initial balances
+        uint256 senderSummerBalanceBefore = aSummerToken.balanceOf(sender);
+        uint256 receiverSummerBalanceBefore = aSummerToken.balanceOf(receiver);
+        uint256 senderXSumrBalanceBefore = axSumr.balanceOf(sender);
+        uint256 receiverXSumrBalanceBefore = axSumr.balanceOf(receiver);
+
+        // Sender approves and stakes on behalf of receiver
+        vm.startPrank(sender);
+        aSummerToken.approve(address(aStaking), stakeAmount);
+        aStaking.stakeLockupOnBehalf(receiver, stakeAmount, lockupPeriod);
+        vm.stopPrank();
+
+        // Verify SUMMER tokens were pulled from sender
+        assertEq(
+            aSummerToken.balanceOf(sender),
+            senderSummerBalanceBefore - stakeAmount,
+            "SUMMER tokens should be pulled from sender"
+        );
+
+        // Verify receiver's SUMMER balance unchanged (they didn't send tokens)
+        assertEq(
+            aSummerToken.balanceOf(receiver),
+            receiverSummerBalanceBefore,
+            "Receiver's SUMMER balance should be unchanged"
+        );
+
+        // Verify staked tokens (xSUMR) were minted to receiver, not sender
+        assertEq(
+            axSumr.balanceOf(receiver),
+            receiverXSumrBalanceBefore + stakeAmount,
+            "xSUMR tokens should be minted to receiver"
+        );
+
+        // Verify sender did NOT receive xSUMR tokens
+        assertEq(
+            axSumr.balanceOf(sender),
+            senderXSumrBalanceBefore,
+            "Sender should not receive xSUMR tokens"
+        );
+
+        // Verify staking contract state reflects receiver as the staker
+        assertEq(
+            aStaking.balanceOf(receiver),
+            stakeAmount,
+            "Receiver should have staking balance"
+        );
+
+        assertEq(
+            aStaking.balanceOf(sender),
+            0,
+            "Sender should not have staking balance"
+        );
+
+        assertEq(
+            aStaking.getUserStakesCount(receiver),
+            1,
+            "Receiver should have one stake"
+        );
+
+        assertEq(
+            aStaking.getUserStakesCount(sender),
+            0,
+            "Sender should have no stakes"
+        );
+
+        // Now test addToStakeOnBehalf with the same stake
+        uint256 additionalAmount = STAKE_AMOUNT / 2;
+
+        // Get balances before adding to stake
+        uint256 senderSummerBalanceBeforeAdd = aSummerToken.balanceOf(sender);
+        uint256 receiverSummerBalanceBeforeAdd = aSummerToken.balanceOf(
+            receiver
+        );
+        uint256 senderXSumrBalanceBeforeAdd = axSumr.balanceOf(sender);
+        uint256 receiverXSumrBalanceBeforeAdd = axSumr.balanceOf(receiver);
+
+        // Sender adds to receiver's stake
+        vm.startPrank(sender);
+        aSummerToken.approve(address(aStaking), additionalAmount);
+        aStaking.addToStakeOnBehalf(receiver, 0, additionalAmount); // stake index 0
+        vm.stopPrank();
+
+        // Verify SUMMER tokens were pulled from sender for the addition
+        assertEq(
+            aSummerToken.balanceOf(sender),
+            senderSummerBalanceBeforeAdd - additionalAmount,
+            "Additional SUMMER tokens should be pulled from sender"
+        );
+
+        // Verify receiver's SUMMER balance unchanged for the addition
+        assertEq(
+            aSummerToken.balanceOf(receiver),
+            receiverSummerBalanceBeforeAdd,
+            "Receiver's SUMMER balance should remain unchanged after addition"
+        );
+
+        // Verify additional xSUMR tokens were minted to receiver, not sender
+        assertEq(
+            axSumr.balanceOf(receiver),
+            receiverXSumrBalanceBeforeAdd + additionalAmount,
+            "Additional xSUMR tokens should be minted to receiver"
+        );
+
+        // Verify sender still did NOT receive additional xSUMR tokens
+        assertEq(
+            axSumr.balanceOf(sender),
+            senderXSumrBalanceBeforeAdd,
+            "Sender should not receive additional xSUMR tokens"
+        );
+
+        // Verify receiver's stake amount increased
+        assertEq(
+            aStaking.balanceOf(receiver),
+            stakeAmount + additionalAmount,
+            "Receiver's staking balance should increase"
+        );
+
+        // Verify sender still has no staking balance
+        assertEq(
+            aStaking.balanceOf(sender),
+            0,
+            "Sender should still have no staking balance"
+        );
+
+        // Verify receiver still has only one stake (amount increased, not new stake)
+        assertEq(
+            aStaking.getUserStakesCount(receiver),
+            1,
+            "Receiver should still have one stake"
+        );
+
+        // Verify the stake amount was updated correctly
+        (uint256 updatedStakeAmount, , , ) = aStaking.getUserStake(receiver, 0);
+        assertEq(
+            updatedStakeAmount,
+            stakeAmount + additionalAmount,
+            "Stake amount should be updated to include additional amount"
         );
     }
 

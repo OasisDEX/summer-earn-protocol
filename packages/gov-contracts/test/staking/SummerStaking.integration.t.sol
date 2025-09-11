@@ -497,7 +497,7 @@ contract SummerStakingIntegrationTest is SummerStakingTestBase {
         vm.startPrank(alice);
         aSummerToken.approve(address(aStaking), stakeAmount * 2);
         vm.expectRevert(); // Should revert due to insufficient balance
-        aStaking.stakeWithNewLockup(stakeAmount * 2, 0);
+        aStaking.stakeLockup(stakeAmount * 2, 0);
         vm.stopPrank();
 
         // Check that voting power is still zero

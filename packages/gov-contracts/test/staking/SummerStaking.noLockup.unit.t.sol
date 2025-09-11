@@ -98,7 +98,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         // Stake zero amount should revert
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("CannotStakeZero()"));
-        aStaking.stakeWithNewLockup(0, 0); // No lockup for test
+        aStaking.stakeLockup(0, 0); // No lockup for test
 
         // Balances should remain unchanged
         assertEq(axSumr.balanceOf(user1), 0);
@@ -114,7 +114,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         // Attempt to stake - should revert
         vm.prank(user1);
         vm.expectRevert(); // SafeERC20 will revert on insufficient allowance
-        aStaking.stakeWithNewLockup(stakeAmount, 0); // No lockup for test
+        aStaking.stakeLockup(stakeAmount, 0); // No lockup for test
     }
 
     function test_Stake_InsufficientBalance() public {
@@ -127,7 +127,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         // Attempt to stake - should revert
         vm.prank(user1);
         vm.expectRevert(); // ERC20 will revert on insufficient balance
-        aStaking.stakeWithNewLockup(stakeAmount, 0); // No lockup for test
+        aStaking.stakeLockup(stakeAmount, 0); // No lockup for test
     }
 
     function test_Unstake_ValidAmount() public {
@@ -286,7 +286,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
                 "Lockup period cannot exceed 3 years"
             )
         );
-        freshStaking.stakeWithNewLockup(stakeAmount, invalidLockupPeriod);
+        freshStaking.stakeLockup(stakeAmount, invalidLockupPeriod);
     }
 
     function test_StakeWithLockup_ZeroAmount() public {
@@ -294,7 +294,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("CannotStakeZero()"));
-        freshStaking.stakeWithNewLockup(0, 0); // No lockup for test
+        freshStaking.stakeLockup(0, 0); // No lockup for test
     }
 
     function test_WeightedStakeCalculation() public {
@@ -569,7 +569,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_DirectStakeNotAllowed(string)",
-                "Use stakeWithNewLockup instead"
+                "Use stakeLockup instead"
             )
         );
         freshStaking.stake(stakeAmount);
