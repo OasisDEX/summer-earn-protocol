@@ -13,6 +13,7 @@ import {ConfigurationManaged} from "@summerfi/earn-protocol-contracts/contracts/
 import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {ISummerStaking} from "../interfaces/ISummerStaking.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title SummerStaking
@@ -55,6 +56,7 @@ contract SummerStaking is
     mapping(address => UserStake[]) public userStakes;
     mapping(address => uint256) public weightedBalances;
     mapping(Bucket => BucketData) public bucketData;
+    bool public penaltyEnabled = true;
 
     // ============ CONSTRUCTOR ============
 
@@ -88,10 +90,12 @@ contract SummerStaking is
 
     // ============ EXTERNAL FUNCTIONS - STAKING ============
 
+    /// @inheritdoc ISummerStaking
     function stakeLockup(uint256 _amount, uint256 _lockupPeriod) external {
         _stakeWithLockup(_msgSender(), _msgSender(), _amount, _lockupPeriod);
     }
 
+    /// @inheritdoc ISummerStaking
     function stakeLockupOnBehalf(
         address _receiver,
         uint256 _amount,
@@ -100,16 +104,89 @@ contract SummerStaking is
         _stakeWithLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
+    /// @inheritdoc ISummerStaking
     function addToStake(uint256 _stakeIndex, uint256 _amount) external {
         _addToStake(_msgSender(), _msgSender(), _stakeIndex, _amount);
     }
 
+    /// @inheritdoc ISummerStaking
     function addToStakeOnBehalf(
         address _receiver,
         uint256 _stakeIndex,
         uint256 _amount
     ) external updateReward(_receiver) {
         _addToStake(_msgSender(), _receiver, _stakeIndex, _amount);
+    }
+
+    /// @inheritdoc ISummerStaking
+    function transferStakes(address _to) external updateReward(_msgSender()) {
+        address from = _msgSender();
+        if (_to == address(0))
+            revert Staking_InvalidAddress("Target address cannot be zero");
+        if (from == _to)
+            revert Staking_InvalidAddress("Cannot move stakes to self");
+
+        if (userStakes[_to].length != 0)
+            revert Staking_ExistingTarget("Target already has stakes");
+        if (_balances[_to] != 0 || weightedBalances[_to] != 0) {
+            revert Staking_ExistingTarget("Target already has balances");
+        }
+
+        UserStake[] storage fromStakes = userStakes[from];
+        uint256 stakeCount = fromStakes.length;
+        if (stakeCount == 0) revert Staking_InvalidStakeIndex();
+
+        uint256 rewardTokenCount = EnumerableSet.length(_rewardTokensList);
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            address rewardTokenAddress = EnumerableSet.at(_rewardTokensList, i);
+            // also ensure target has no unclaimed rewards for any token
+            if (
+                rewards[rewardTokenAddress][_to] != 0 ||
+                userRewardPerTokenPaid[rewardTokenAddress][_to] != 0
+            ) revert Staking_ExistingTarget("Target already has rewards");
+            uint256 fromReward = rewards[rewardTokenAddress][from];
+            if (fromReward != 0) {
+                rewards[rewardTokenAddress][from] = 0;
+                rewards[rewardTokenAddress][_to] += fromReward;
+            }
+            // Align paid markers to current snapshot for correctness going forward
+            userRewardPerTokenPaid[rewardTokenAddress][from] = rewardData[
+                rewardTokenAddress
+            ].rewardPerTokenStored;
+            userRewardPerTokenPaid[rewardTokenAddress][_to] = rewardData[
+                rewardTokenAddress
+            ].rewardPerTokenStored;
+        }
+
+        // Ensure target doesn't hold xSUMR and move xSUMR from from -> to
+        if (STAKED_SUMMER_TOKEN.balanceOf(_to) != 0) {
+            revert Staking_ExistingTarget("Target already holds xSUMR");
+        }
+        uint256 xsumrToMove = _balances[from];
+        if (xsumrToMove != 0) {
+            STAKED_SUMMER_TOKEN.safeTransferFrom(from, _to, xsumrToMove);
+        }
+
+        // Move stake array by copying; clear source afterwards
+        UserStake[] storage toStakes = userStakes[_to];
+        for (uint256 i = 0; i < stakeCount; i++) {
+            toStakes.push(fromStakes[i]);
+        }
+        delete userStakes[from];
+
+        // Move accounting balances
+        uint256 fromAmount = _balances[from];
+        uint256 fromWeighted = weightedBalances[from];
+
+        _balances[from] = 0;
+        weightedBalances[from] = 0;
+
+        _balances[_to] += fromAmount;
+        weightedBalances[_to] += fromWeighted;
+
+        // Rewards debt already updated via updateReward modifiers
+        // Emit generic events for visibility
+        emit StakesTransferred(from, _to);
     }
 
     // ============ EXTERNAL FUNCTIONS - UNSTAKING ============
@@ -166,6 +243,11 @@ contract SummerStaking is
     ) external onlyGovernor {
         bucketData[_bucket].cap = _newCap;
         emit LockupBucketUpdated(_bucket, _newCap);
+    }
+
+    function updatePenaltyEnabled(bool _penaltyEnabled) external onlyGovernor {
+        penaltyEnabled = _penaltyEnabled;
+        emit PenaltyEnabledUpdated(_penaltyEnabled);
     }
 
     // ============ EXTERNAL VIEW FUNCTIONS - STAKE INFORMATION ============
@@ -266,6 +348,9 @@ contract SummerStaking is
         address _user,
         uint256 _stakeIndex
     ) public view returns (uint256) {
+        if (!penaltyEnabled) {
+            return 0;
+        }
         UserStake storage userStake = userStakes[_user][_stakeIndex];
 
         if (block.timestamp >= userStake.lockupEndTime) {

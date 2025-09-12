@@ -105,12 +105,22 @@ interface ISummerStaking is IStakingRewardsManagerBase {
         uint256 _amount
     ) external;
 
+    /**
+     * @notice Move all stake positions and accounting from caller to a fresh target wallet
+     * @param _to The target wallet that must currently have zero stakes
+     * @dev Does not transfer xSUMR tokens. Only internal staking accounting moves.
+     * @dev this is in case of compromised wallet or any other reason that might require a wallet to be cleaned up
+     * @dev Reverts if target wallet already has at least one stake
+     */
+    function transferStakes(address _to) external;
+
     // ============ UNSTAKING FUNCTIONS ============
 
     /**
      * @notice Unstake tokens from a specific stake position with penalty calculation
      * @param _stakeIndex The index of the stake to unstake from (0-based)
      * @param _amount The amount of tokens to unstake (must be > 0 and <= stake amount)
+     * @dev can only be called by the wallet that owns the stake, there is no onBehalf version due to the penalty
      * @dev Applies penalty for early withdrawal based on remaining lockup time
      * @dev Penalty formula: penalty% = (timeRemaining / maxLockupPeriod) * 20%
      * @dev Examples:
@@ -275,6 +285,15 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      */
     function updateLockupBucketCap(Bucket _bucket, uint256 _newCap) external;
 
+    /**
+     * @notice Update the penalty enabled status
+     * @param _penaltyEnabled The new penalty enabled status
+     * @dev Only callable by protocol governor
+     * @dev Used to manage protocol risk and control staking distribution
+     * @dev Emits PenaltyEnabledUpdated event
+     */
+    function updatePenaltyEnabled(bool _penaltyEnabled) external;
+
     // ============ EVENTS ============
 
     /**
@@ -313,6 +332,13 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     event LockupBucketUpdated(Bucket indexed bucket, uint256 cap);
 
     /**
+     * @notice Emitted when stakes are transferred from one wallet to another
+     * @param from The address that transferred the stakes
+     * @param to The address that received the stakes
+     */
+    event StakesTransferred(address indexed from, address indexed to);
+
+    /**
      * @notice Emitted when the treasury address is updated
      * @param oldTreasury The previous treasury address
      * @param newTreasury The new treasury address
@@ -321,6 +347,12 @@ interface ISummerStaking is IStakingRewardsManagerBase {
         address indexed oldTreasury,
         address indexed newTreasury
     );
+
+    /**
+     * @notice Emitted when the penalty enabled status is updated
+     * @param penaltyEnabled The new penalty enabled status
+     */
+    event PenaltyEnabledUpdated(bool penaltyEnabled);
 
     // ============ ERRORS ============
 
@@ -353,4 +385,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
 
     /// @notice Thrown when trying to stake amount that would exceed bucket cap
     error Staking_BucketCapExceeded();
+
+    /// @notice Thrown when trying to move stakes to a wallet that already has stakes
+    error Staking_ExistingTarget(string message);
 }
