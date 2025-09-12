@@ -229,7 +229,7 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(proxy.getBalance(asset), amount);
     }
 
-    function test_TotalAssets_IncludesInflightWithdrawals() public {
+    function test_TotalAssets_IncludesManuallySetInflightWithdrawals() public {
         // Establish baseline by depositing once via receive path
         uint256 depositAmount = 1000;
         _depositAssetsToFleet(depositAmount);
@@ -449,9 +449,9 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(proxy.totalAssets(), expected);
         assertEq(proxy.totalAssets(), amount);
 
-        // Act: bridge updates inflight to 0
-        vm.prank(address(mockBridgeRouter));
-        proxy.updateInflightAssets(0);
+        // Act: governor updates inflight to 0 (simulating bridge completion)
+        vm.prank(governor);
+        proxy.forceUpdateInflightAssets(0);
 
         // Assert: totalAssets now equals remaining shares in fleet only
         uint256 expectedAfter = fleetCommanderMock.convertToAssets(shares);
