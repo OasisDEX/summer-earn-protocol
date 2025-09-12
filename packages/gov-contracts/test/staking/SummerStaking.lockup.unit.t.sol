@@ -1519,7 +1519,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     // ============ MOVE STAKES TESTS ============
 
-    function test_MoveAllStakesTo_FreshWallet_AccountingMoves_NoXSumrTransfers()
+    function test_MoveAllStakesTo_FreshWallet_AccountingMoves_XSumrTransfers()
         public
     {
         // Prepare: user1 has multiple stakes; user2 has none
@@ -1663,6 +1663,17 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             aStaking.earned(user2, address(rewardToken)),
             0,
             "earned should reset after claim"
+        );
+
+        uint user1RewardsBalanceBefore = rewardToken.balanceOf(user1);
+        // User1 can't claim
+        vm.prank(user1);
+        aStaking.getReward(address(rewardToken));
+        uint user1RewardsBalanceAfter = rewardToken.balanceOf(user1);
+        assertEq(
+            user1RewardsBalanceAfter,
+            user1RewardsBalanceBefore,
+            "user1 should not receive rewards after claim"
         );
     }
 

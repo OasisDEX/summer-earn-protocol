@@ -140,14 +140,13 @@ contract SummerStaking is
         for (uint256 i = 0; i < rewardTokenCount; i++) {
             address rewardTokenAddress = EnumerableSet.at(_rewardTokensList, i);
             // also ensure target has no unclaimed rewards for any token
-            if (
-                rewards[rewardTokenAddress][_to] != 0 ||
-                userRewardPerTokenPaid[rewardTokenAddress][_to] != 0
-            ) revert Staking_ExistingTarget("Target already has rewards");
+            // user could have unstaked but not claimed rewards
+            if (userRewardPerTokenPaid[rewardTokenAddress][_to] != 0)
+                revert Staking_ExistingTarget("Target already has rewards");
             uint256 fromReward = rewards[rewardTokenAddress][from];
             if (fromReward != 0) {
                 rewards[rewardTokenAddress][from] = 0;
-                rewards[rewardTokenAddress][_to] += fromReward;
+                rewards[rewardTokenAddress][_to] = fromReward;
             }
             // Align paid markers to current snapshot for correctness going forward
             userRewardPerTokenPaid[rewardTokenAddress][from] = rewardData[
