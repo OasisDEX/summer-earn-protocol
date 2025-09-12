@@ -466,7 +466,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Should emit the event when receiving assets
+        // Should emit the remote balance update and assets received events when receiving assets
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
+            remoteBalanceAfterWithdrawal,
+            requestId
+        );
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.AssetsReceived(tokenAddress, amount, sourceChain);
 
