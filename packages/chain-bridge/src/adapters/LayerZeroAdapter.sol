@@ -81,6 +81,12 @@ contract LayerZeroAdapter is
         uint32 maxMessageSize
     );
 
+    /// @notice Emitted when a read channel is activated
+    event ReadChannelActivated(uint32 indexed readChannelId);
+
+    /// @notice Emitted when per-chain read support is updated
+    event ChainReadSupportUpdated(uint16 indexed chainId, bool supported);
+
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
 
@@ -143,6 +149,7 @@ contract LayerZeroAdapter is
         }
         readChannelId = _readChannelId;
         setReadChannel(_readChannelId, true);
+        emit ReadChannelActivated(_readChannelId);
     }
 
     /**
@@ -235,6 +242,7 @@ contract LayerZeroAdapter is
         bool supported
     ) external onlyGovernor {
         chainSupportsRead[chainId] = supported;
+        emit ChainReadSupportUpdated(chainId, supported);
     }
 
     /*//////////////////////////////////////////////////////////////

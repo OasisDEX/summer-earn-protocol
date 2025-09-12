@@ -610,11 +610,13 @@ contract BridgeRouter is
     /// @inheritdoc IBridgeRouter
     function pause() external onlyGuardianOrGovernor {
         paused = true;
+        emit RouterPaused(msg.sender);
     }
 
     /// @inheritdoc IBridgeRouter
     function unpause() external onlyGovernor {
         paused = false;
+        emit RouterUnpaused(msg.sender);
     }
 
     /// @inheritdoc IBridgeRouter

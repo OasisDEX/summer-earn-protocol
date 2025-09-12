@@ -16,6 +16,12 @@ interface IBridgeRouter is IERC165 {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when the router is paused
+    event RouterPaused(address indexed account);
+
+    /// @notice Emitted when the router is unpaused
+    event RouterUnpaused(address indexed account);
+
     /// @notice Emitted when a new adapter is registered
     event AdapterRegistered(address indexed adapter);
 
