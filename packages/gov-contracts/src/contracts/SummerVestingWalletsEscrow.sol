@@ -6,28 +6,46 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {ISummerVestingWalletsEscrow} from "../interfaces/ISummerVestingWalletsEscrow.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {IMinimalVestingFactory} from "../interfaces/IMinimalVestingFactory.sol";
 import {IMinimalVestingWallet} from "../interfaces/IMinimalVestingWallet.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-// @dev this is a mvp for staking, it will be replaced with a more complex staking contract
-// @dev this contract will be used to stake and unstake SUMMER_TOKEN for STAKED_SUMMER_TOKEN
-contract SummerVestingWalletsEscrow is ProtocolAccessManaged, ReentrancyGuard {
+/**
+ * @title SummerVestingWalletsEscrow
+ * @notice Escrow staking that mints xSUMR against SUMR balances held in vesting wallets
+ * @dev Used to stake and unstake SUMMER_TOKEN for STAKED_SUMMER_TOKEN without moving funds from vesting wallets.
+ *      While staked, vesting wallets must be owned by this contract. Released tokens during the staked period are
+ *      forwarded back to the original vesting wallet owner during unstake.
+ * @author Summer.fi Protocol
+ */
+contract SummerVestingWalletsEscrow is
+    ISummerVestingWalletsEscrow,
+    ProtocolAccessManaged,
+    ReentrancyGuard
+{
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
+    // ============ IMMUTABLE STATE ============
+
     ISummerToken public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
+
+    // ============ STORAGE ============
+
     EnumerableSet.AddressSet private _vestingFactories;
     mapping(address user => EnumerableMap.AddressToUintMap stakedVestingFactories)
         private _userStakedVestingFactories;
     mapping(address user => EnumerableMap.AddressToUintMap stakedVestingFactoriesReleased)
         private _userStakedVestingFactoriesReleased;
+
+    // ============ CONSTRUCTOR ============
 
     constructor(
         address _protocolAccessManager,
@@ -59,38 +77,48 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged, ReentrancyGuard {
         }
     }
 
-    function vestingFactories() external view returns (address[] memory) {
+    /// @inheritdoc ISummerVestingWalletsEscrow
+    function vestingFactories()
+        external
+        view
+        override
+        returns (address[] memory)
+    {
         return _vestingFactories.values();
     }
-    /**
-     * @dev Returns the vesting factory at the specified index
-     */
-    function getVestingFactory(uint256 index) external view returns (address) {
+
+    /// @inheritdoc ISummerVestingWalletsEscrow
+    function getVestingFactory(
+        uint256 index
+    ) external view override returns (address) {
         if (index >= _vestingFactories.length()) {
             revert Staking_InvalidIndex();
         }
         return _vestingFactories.at(index);
     }
 
+    /// @inheritdoc ISummerVestingWalletsEscrow
     function userStakedVestingFactories(
         address _user
-    ) external view returns (address[] memory) {
+    ) external view override returns (address[] memory) {
         return _userStakedVestingFactories[_user].keys();
     }
 
+    /// @inheritdoc ISummerVestingWalletsEscrow
     function getUserStakedVestingFactory(
         address _user,
         uint256 _index
-    ) external view returns (address) {
+    ) external view override returns (address) {
         (address factory, ) = _userStakedVestingFactories[_user].at(_index);
         return factory;
     }
 
-    /**
-     * @dev Adds a new vesting factory to the array
-     * @param _vestingFactory The vesting factory address to add
-     */
-    function addVestingFactory(address _vestingFactory) external onlyGovernor {
+    // ============ EXTERNAL FUNCTIONS - ADMIN ============
+
+    /// @inheritdoc ISummerVestingWalletsEscrow
+    function addVestingFactory(
+        address _vestingFactory
+    ) external override onlyGovernor {
         if (_vestingFactory == address(0)) {
             revert Staking_InvalidAddress(
                 "Vesting factory address cannot be zero"
@@ -103,13 +131,10 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged, ReentrancyGuard {
         emit VestingFactoryAdded(_vestingFactory);
     }
 
-    /**
-     * @dev Removes a vesting factory from the array
-     * @param _vestingFactory The vesting factory address to remove
-     */
+    /// @inheritdoc ISummerVestingWalletsEscrow
     function removeVestingFactory(
         address _vestingFactory
-    ) external onlyGovernor {
+    ) external override onlyGovernor {
         if (_vestingFactory == address(0)) {
             revert Staking_InvalidAddress(
                 "Vesting factory address cannot be zero"
@@ -122,38 +147,34 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged, ReentrancyGuard {
 
         emit VestingFactoryRemoved(_vestingFactory);
     }
-    /**
-     * @dev Rescues a vesting wallet and transfers ownership to the new owner
-     * @dev can only be called by the governor
-     * @dev the new owner can't be the zero address
-     * @dev it's governor responsibility to get the governance token back in case of emergency
-     * @param _wallet The address of the vesting wallet to rescue
-     * @param _newOwner The address of the new owner
-     */
+    // ============ EXTERNAL FUNCTIONS - RESCUE ============
+
+    /// @inheritdoc ISummerVestingWalletsEscrow
     function rescueWallet(
         address _wallet,
         address _newOwner
-    ) external onlyGovernor {
+    ) external override onlyGovernor {
         if (_newOwner == address(0)) {
             revert Staking_InvalidAddress("New owner cannot be zero address");
         }
         IMinimalVestingWallet(_wallet).transferOwnership(_newOwner);
     }
 
-    /**
-     * @dev Rescues a token and transfers it to the new owner
-     * @dev can only be called by the governor
-     * @param _token The address of the token to rescue
-     * @param _to The address of the new owner
-     */
-    function rescueToken(address _token, address _to) external onlyGovernor {
+    /// @inheritdoc ISummerVestingWalletsEscrow
+    function rescueToken(
+        address _token,
+        address _to
+    ) external override onlyGovernor {
         IERC20(_token).safeTransfer(
             _to,
             IERC20(_token).balanceOf(address(this))
         );
     }
 
-    function stakeWithVesting() public nonReentrant {
+    // ============ EXTERNAL FUNCTIONS - USER FLOWS ============
+
+    /// @inheritdoc ISummerVestingWalletsEscrow
+    function stakeWithVesting() public override nonReentrant {
         uint256 totalBalance = 0;
 
         for (uint256 i = 0; i < _vestingFactories.length(); i++) {
@@ -191,8 +212,8 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged, ReentrancyGuard {
             revert Staking_VestingWalletsEmpty();
         }
     }
-
-    function unstakeVesting() public nonReentrant {
+    /// @inheritdoc ISummerVestingWalletsEscrow
+    function unstakeVesting() public override nonReentrant {
         uint256 totalBalance = 0;
 
         while (_userStakedVestingFactories[msg.sender].length() > 0) {
@@ -231,6 +252,8 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged, ReentrancyGuard {
             revert Staking_NoVestingWalletsStaked();
         }
     }
+
+    // ============ INTERNAL FUNCTIONS ============
 
     /**
      * @dev Internal method to stake tokens from a single vesting wallet
@@ -283,23 +306,22 @@ contract SummerVestingWalletsEscrow is ProtocolAccessManaged, ReentrancyGuard {
         }
     }
 
+    // ============ INTERNAL FUNCTIONS - TOKEN SUPPLY ============
+
+    /**
+     * @dev Internal function to burn xSUMR tokens
+     * @param _amount The amount of xSUMR tokens to burn
+     */
     function _burn(uint256 _amount) internal {
         IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burn(_amount);
     }
 
+    /**
+     * @dev Internal function to mint xSUMR tokens
+     * @param _user The address to mint the tokens to
+     * @param _amount The amount of xSUMR tokens to mint
+     */
     function _mint(address _user, uint256 _amount) internal {
         IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).mint(_user, _amount);
     }
-
-    error Staking_InvalidAddress(string message);
-    error Staking__InvalidOwner(string message);
-    error Staking_InvalidIndex();
-    error Staking_DuplicateFactory();
-    error Staking_FactoryNotFound();
-    error Staking_InvalidBalance();
-    error Staking_VestingWalletsEmpty();
-    error Staking_NoVestingWalletsStaked();
-
-    event VestingFactoryAdded(address indexed vestingFactory);
-    event VestingFactoryRemoved(address indexed vestingFactory);
 }
