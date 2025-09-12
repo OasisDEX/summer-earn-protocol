@@ -294,6 +294,15 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      */
     function updatePenaltyEnabled(bool _penaltyEnabled) external;
 
+    /**
+     * @notice Rescues a token and transfers it to the new owner
+     * @param _token The address of the token to rescue
+     * @param _to The address of the new owner
+     * @dev Only callable by protocol governor
+     * @dev Used to rescue tokens in case of emergency
+     */
+    function rescueToken(address _token, address _to) external;
+
     // ============ EVENTS ============
 
     /**

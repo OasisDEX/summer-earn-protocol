@@ -235,7 +235,7 @@ contract SummerStaking is
     }
 
     // ============ EXTERNAL FUNCTIONS - ADMIN ============
-
+    /// @inheritdoc ISummerStaking
     function updateLockupBucketCap(
         Bucket _bucket,
         uint256 _newCap
@@ -244,9 +244,21 @@ contract SummerStaking is
         emit LockupBucketUpdated(_bucket, _newCap);
     }
 
+    /// @inheritdoc ISummerStaking
     function updatePenaltyEnabled(bool _penaltyEnabled) external onlyGovernor {
         penaltyEnabled = _penaltyEnabled;
         emit PenaltyEnabledUpdated(_penaltyEnabled);
+    }
+
+    /// @inheritdoc ISummerStaking
+    function rescueToken(address _token, address _to) external onlyGovernor {
+        if (_token == address(WRAPPED_SUMMER_TOKEN)) {
+            revert Staking_InvalidAddress("Cannot rescue wrapped summer token");
+        }
+        IERC20(_token).safeTransfer(
+            _to,
+            IERC20(_token).balanceOf(address(this))
+        );
     }
 
     // ============ EXTERNAL VIEW FUNCTIONS - STAKE INFORMATION ============
