@@ -299,27 +299,6 @@ contract BridgeRouter is
                       FAILURE RECORDING UTILITIES
     //////////////////////////////////////////////////////////////*/
 
-    event OperationFailed(
-        bytes32 indexed operationId,
-        BridgeTypes.OperationType indexed operationType,
-        address indexed adapter,
-        uint16 sourceChainId,
-        bytes errorData
-    );
-
-    event OperationRetrySucceeded(
-        bytes32 indexed operationId,
-        BridgeTypes.OperationType indexed operationType,
-        address indexed adapter
-    );
-
-    event OperationRetryFailed(
-        bytes32 indexed operationId,
-        BridgeTypes.OperationType indexed operationType,
-        address indexed adapter,
-        bytes errorData
-    );
-
     function _recordFailedDelivery(
         bytes32 operationId,
         BridgeTypes.OperationType operationType,

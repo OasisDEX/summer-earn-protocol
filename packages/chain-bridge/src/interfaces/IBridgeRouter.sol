@@ -74,6 +74,30 @@ interface IBridgeRouter is IERC165 {
     /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
     event BridgeQueueUpdated(address indexed newBridgeQueue);
 
+    /// @notice Emitted when a cross-chain operation fails during delivery
+    event OperationFailed(
+        bytes32 indexed operationId,
+        BridgeTypes.OperationType indexed operationType,
+        address indexed adapter,
+        uint16 sourceChainId,
+        bytes errorData
+    );
+
+    /// @notice Emitted when a retry of a failed operation succeeds
+    event OperationRetrySucceeded(
+        bytes32 indexed operationId,
+        BridgeTypes.OperationType indexed operationType,
+        address indexed adapter
+    );
+
+    /// @notice Emitted when a retry of a failed operation fails again
+    event OperationRetryFailed(
+        bytes32 indexed operationId,
+        BridgeTypes.OperationType indexed operationType,
+        address indexed adapter,
+        bytes errorData
+    );
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
