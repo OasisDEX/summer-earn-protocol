@@ -294,6 +294,16 @@ contract CrossChainArk is
     }
 
     /**
+     * @notice Asserts that the board or disembark can be performed
+     * @dev This function asserts that the pending transfer params are not already queued
+     */
+    function _assertCanBoardOrDisembark() internal view {
+        if (pendingTransferParams.asset != address(0)) {
+            revert PendingTransferAlreadyQueued();
+        }
+    }
+
+    /**
      * @notice Handles TRANSFER_ASSET operation type (asset withdrawals from FleetProxy)
      * @param params Decoded transfer parameters
      */

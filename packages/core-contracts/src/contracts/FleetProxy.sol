@@ -158,8 +158,11 @@ contract FleetProxy is
             address(this),
             address(this)
         );
-        uint256 fleetBalance = IFleetCommander(fleetAddress).balanceOf(
+        uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
+        );
+        uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
+            fleetShares
         );
 
         // 3. Verify we received the expected amount
@@ -180,7 +183,7 @@ contract FleetProxy is
                 target: _getSourceChainArk(hubChainId),
                 asset: asset,
                 amount: amount,
-                message: abi.encode(fleetBalance),
+                message: abi.encode(fleetAssets),
                 refundAddress: msg.sender
             });
 
@@ -207,15 +210,18 @@ contract FleetProxy is
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
-        uint256 fleetBalance = IFleetCommander(fleetAddress).balanceOf(
+        uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
+        );
+        uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
+            fleetShares
         );
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
             .ExecuteSendMessageParams({
                 originator: address(this),
                 destinationChainId: hubChainId,
                 target: _getSourceChainArk(hubChainId),
-                message: abi.encode(fleetBalance, latestIncomingTransferId),
+                message: abi.encode(fleetAssets, latestIncomingTransferId),
                 refundAddress: msg.sender
             });
         bridgeRouter.executeSendMessage{value: msg.value}(params, options);
