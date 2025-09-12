@@ -28,6 +28,7 @@ contract SummerStaking is
 {
     using SafeERC20 for IStakedSummerToken;
     using SafeERC20 for ISummerToken;
+    using SafeERC20 for IERC20;
 
     // ============ IMMUTABLE STATE ============
 
