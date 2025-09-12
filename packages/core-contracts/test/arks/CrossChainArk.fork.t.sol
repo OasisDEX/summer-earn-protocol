@@ -191,7 +191,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             registry.PEER_RELATIONSHIP()
         );
 
-        // Register reverse peer mapping for LayerZero adapter (Arbitrum -> Mainnet)
+        // For MESSAGE delivery peer verification in BridgeRouter.deliver(),
+        // also register the reverse mapping so getSourceForTarget succeeds
         registry.registerRelationship(
             ARB_LAYERZERO_PROXY,
             address(layerZeroAdapter),

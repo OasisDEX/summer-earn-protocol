@@ -92,8 +92,15 @@ contract FleetProxy is
 
     /// @inheritdoc IFleetProxy
     function totalAssets() external view returns (uint256) {
-        return
-            IFleetCommander(fleetAddress).totalAssets() + inflightWithdrawals;
+        // Assets owned by this proxy are represented by:
+        // - Shares held in the FleetCommander converted to assets
+        // - Any local balance of the main asset held by this proxy
+        // - Inflight withdrawals currently being bridged back
+        address asset = IERC4626(fleetAddress).asset();
+        uint256 shares = IFleetCommander(fleetAddress).balanceOf(address(this));
+        uint256 assetsInFleet = IERC4626(fleetAddress).convertToAssets(shares);
+        uint256 localBalance = IERC20(asset).balanceOf(address(this));
+        return assetsInFleet + localBalance + inflightWithdrawals;
     }
 
     /// @inheritdoc IFleetProxy
