@@ -33,6 +33,7 @@ contract BridgeRouter is
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for EnumerableSet.Bytes32Set;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -73,12 +74,8 @@ contract BridgeRouter is
     mapping(bytes32 operationId => FailedDeliveryRecord record)
         public failedDeliveries;
 
-    /// @notice List of failed operationIds for enumeration/pagination
-    bytes32[] private failedDeliveryIds;
-
-    /// @notice Index (+1) of operationId in failedDeliveryIds, allows O(1) remove
-    mapping(bytes32 operationId => uint256 indexPlusOne)
-        private failedDeliveryIndexPlusOne;
+    /// @notice Set of failed operationIds for enumeration/pagination
+    EnumerableSet.Bytes32Set private failedDeliveryIds;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -319,8 +316,7 @@ contract BridgeRouter is
                 failedAt: block.timestamp,
                 numAttempts: 1
             });
-            failedDeliveryIds.push(operationId);
-            failedDeliveryIndexPlusOne[operationId] = failedDeliveryIds.length; // 1-based
+            failedDeliveryIds.add(operationId);
         } else {
             // Update existing record
             existing.errorData = errorData;
@@ -339,20 +335,7 @@ contract BridgeRouter is
     }
 
     function _clearFailedDelivery(bytes32 operationId) internal {
-        uint256 indexPlusOne = failedDeliveryIndexPlusOne[operationId];
-        if (indexPlusOne == 0) return; // nothing to clear
-
-        uint256 idx = indexPlusOne - 1;
-        uint256 lastIdx = failedDeliveryIds.length - 1;
-
-        if (idx != lastIdx) {
-            bytes32 lastId = failedDeliveryIds[lastIdx];
-            failedDeliveryIds[idx] = lastId;
-            failedDeliveryIndexPlusOne[lastId] = idx + 1;
-        }
-
-        failedDeliveryIds.pop();
-        delete failedDeliveryIndexPlusOne[operationId];
+        failedDeliveryIds.remove(operationId);
         delete failedDeliveries[operationId];
     }
 
@@ -745,7 +728,7 @@ contract BridgeRouter is
         uint256 cursor,
         uint256 size
     ) external view returns (bytes32[] memory ids, uint256 nextCursor) {
-        uint256 len = failedDeliveryIds.length;
+        uint256 len = failedDeliveryIds.length();
         if (cursor >= len) {
             return (new bytes32[](0), cursor);
         }
@@ -754,7 +737,7 @@ contract BridgeRouter is
         uint256 pageSize = end - cursor;
         ids = new bytes32[](pageSize);
         for (uint256 i = 0; i < pageSize; i++) {
-            ids[i] = failedDeliveryIds[cursor + i];
+            ids[i] = failedDeliveryIds.at(cursor + i);
         }
         nextCursor = end;
     }
