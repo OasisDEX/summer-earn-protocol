@@ -103,17 +103,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         assertEq(adapterRegistry, expectedRegistry);
     }
 
-    function testDefaultGasLimitFromRegistry() public {
-        useNetworkA();
-
-        // Verify default gas limit is accessible through the adapter
-        uint256 adapterGasLimit = adapterA.defaultGasLimit();
-        uint256 registryGasLimit = registryA.defaultGasLimit();
-
-        assertEq(adapterGasLimit, registryGasLimit);
-        assertEq(adapterGasLimit, 400000); // From setup
-    }
-
     /*//////////////////////////////////////////////////////////////
                           GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/

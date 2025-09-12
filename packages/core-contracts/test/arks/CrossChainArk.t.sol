@@ -16,13 +16,14 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
+    event InflightCleared(bytes32 operationId, uint256 amount);
     CrossChainArk ark;
     MockBridgeRouter router;
     CrossChainRegistry registry;
@@ -70,10 +71,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        registry.initializeBridgeConfiguration(
-            address(router),
-            200000 // defaultGasLimit
-        );
+        registry.initializeBridgeConfiguration(address(router));
         vm.stopPrank();
 
         ArkParams memory params = ArkParams({
@@ -545,18 +543,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
-        // Set some inflight assets first
-        vm.prank(address(router));
-        ark.updateInflightAssets(500);
+        // Set some inflight assets first (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(500);
         assertEq(
             ark.inflightAssets(),
             500,
             "Setup: inflight assets should be 500"
         );
 
-        // Receive state read should reset inflight assets
+        // Receive state read should reset inflight assets (new event semantics)
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(requestId, 500);
 
         vm.prank(address(router));
         ark.receiveOperation(
@@ -652,9 +650,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Setup inflight assets
-        vm.prank(address(router));
-        ark.updateInflightAssets(inflightAmount);
+        // Setup inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(inflightAmount);
 
         // Test total assets calculation
         uint256 expectedTotal = localBalance + remoteBalance + inflightAmount;
@@ -729,6 +727,29 @@ contract CrossChainArkTest is Test, ArkTestBase {
             sourceAsset: address(0)
         });
         return abi.encode(dp);
+    }
+
+    // ========================================================================
+    // cancelPendingTransfer TESTS
+    // ========================================================================
+
+    function testCancelPendingTransferUnauthorized() public {
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(IAccessControlErrors.CallerIsNotKeeper.selector);
+        ark.cancelPendingTransfer();
+    }
+
+    function testCancelPendingTransferNoPending() public {
+        vm.prank(address(keeper));
+        vm.expectRevert(ICrossChainArk.NoPendingTransferQueued.selector);
+        ark.cancelPendingTransfer();
+    }
+
+    function testCancelPendingTransferAfterQueue() public {
+        uint256 amount = 1000;
+        deal(address(mockToken), address(fleetCommander), amount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
     }
 
     function testDisembarkWhileTransferPendingVulnerability() public {

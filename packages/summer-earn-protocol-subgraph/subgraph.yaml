@@ -5,7 +5,7 @@ features:
   - grafting
 graft:
   base: Qmdf3Yv1qg3sbiq5R77vs7FgtSkwo3rPiAM6DeN4EN3xm9
-  block: 33276900
+  block: 35006991
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
@@ -182,6 +182,9 @@ templates:
           receipt: true
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
+          receipt: true
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleShareTransfer
           receipt: true
         - event: Rebalanced(indexed address,(address,address,uint256,bytes,bytes)[])
           handler: handleRebalance
