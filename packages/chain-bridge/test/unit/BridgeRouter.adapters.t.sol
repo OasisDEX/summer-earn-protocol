@@ -372,12 +372,17 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         });
 
         vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
-        router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: user,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
     }
 
