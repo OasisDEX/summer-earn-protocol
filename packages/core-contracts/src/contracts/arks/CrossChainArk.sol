@@ -323,6 +323,10 @@ contract CrossChainArk is
         // Update the remote asset tracking
 
         lastRemoteAssetBalance = remoteBalance;
+        emit RemoteAssetBalanceUpdated(
+            lastRemoteAssetBalance,
+            params.operationId
+        );
 
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
     }

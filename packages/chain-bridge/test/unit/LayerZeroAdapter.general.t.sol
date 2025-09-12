@@ -133,10 +133,14 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         uint32 secondChannelId = baseThreshold + 2;
 
         vm.startPrank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit LayerZeroAdapter.ReadChannelActivated(firstChannelId);
         adapterA.activateReadChannel(firstChannelId);
         assertEq(adapterA.readChannelId(), firstChannelId);
 
         // Update to a new read channel
+        vm.expectEmit(true, false, false, true);
+        emit LayerZeroAdapter.ReadChannelActivated(secondChannelId);
         adapterA.activateReadChannel(secondChannelId);
         assertEq(adapterA.readChannelId(), secondChannelId);
         vm.stopPrank();

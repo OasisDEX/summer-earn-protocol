@@ -46,10 +46,14 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
 
         // Pause
         assertFalse(router.paused());
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(governor);
         router.pause();
         assertTrue(router.paused());
 
         // Unpause
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterUnpaused(governor);
         router.unpause();
         assertFalse(router.paused());
 
@@ -61,6 +65,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
 
         // Guardian can pause
         assertFalse(router.paused());
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(guardian);
         router.pause();
         assertTrue(router.paused());
 
@@ -94,6 +100,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
     function testSendWhenPaused() public {
         // Pause the router
         vm.prank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(governor);
         router.pause();
 
         // User attempts to queue (NO VALUE)
@@ -150,6 +158,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
     function testReadStateWhenPaused() public {
         // Pause the router
         vm.prank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(governor);
         router.pause();
 
         vm.startPrank(user);
@@ -199,6 +209,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
     function testSendMessageWhenPaused() public {
         // Pause the router
         vm.prank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(governor);
         router.pause();
 
         vm.startPrank(user);
