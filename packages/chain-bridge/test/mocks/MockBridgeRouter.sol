@@ -458,6 +458,15 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         onlyAuthorizedExecutor
         returns (bytes32 operationId)
     {
+        // Record the call
+        messageCalls.push(
+            MessageCall({
+                destinationChainId: params.destinationChainId,
+                target: params.target,
+                message: params.message
+            })
+        );
+
         return _executeSendMessage(params);
     }
 
