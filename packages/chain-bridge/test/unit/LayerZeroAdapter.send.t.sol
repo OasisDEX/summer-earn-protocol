@@ -152,13 +152,16 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             options: bytes("")
         });
 
-        // Call estimateFee directly on the adapter
-        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        // Call estimateSendMessage directly on the adapter
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: address(0x1234), // Target contract
+                message: abi.encode("Test message"),
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            options
         );
 
         assertTrue(nativeFee > 0, "Native fee should be greater than 0");

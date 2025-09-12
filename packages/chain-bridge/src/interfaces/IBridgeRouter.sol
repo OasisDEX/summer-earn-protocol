@@ -183,22 +183,48 @@ interface IBridgeRouter is IERC165 {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Estimate the base fee for a bridge operation without executing it.
-     * @param destinationChainId ID of the destination/source chain.
-     * @param asset Address of the asset (address(0) for non-asset ops).
-     * @param amount Amount to transfer (0 for non-asset ops).
-     * @param options Bridge options including adapter choice and params.
-     * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET).
-     * @return nativeFee Estimated base fee in native currency.
-     * @return tokenFee Estimated base fee in the asset token (if applicable).
-     * @return specifiedAdapter The adapter that was specified in the options.
+     * @notice Estimate fees for a transfer operation
+     * @param params Transfer parameters identical to executeTransferAssets
+     * @param options Bridge options including adapter choice
+     * @return nativeFee Estimated base fee in native currency
+     * @return tokenFee Estimated base fee in the asset token
+     * @return specifiedAdapter The adapter that was specified in the options
      */
-    function quote(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+    function quoteTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter);
+
+    /**
+     * @notice Estimate fees for a read state operation
+     * @param params Read state parameters identical to executeReadState
+     * @param options Bridge options including adapter choice
+     * @return nativeFee Estimated base fee in native currency
+     * @return tokenFee Estimated base fee in the asset token
+     * @return specifiedAdapter The adapter that was specified in the options
+     */
+    function quoteReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter);
+
+    /**
+     * @notice Estimate fees for a message send operation
+     * @param params Message parameters identical to executeSendMessage
+     * @param options Bridge options including adapter choice
+     * @return nativeFee Estimated base fee in native currency
+     * @return tokenFee Estimated base fee in the asset token
+     * @return specifiedAdapter The adapter that was specified in the options
+     */
+    function quoteSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         view

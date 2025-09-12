@@ -390,41 +390,94 @@ contract LayerZeroAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
-        uint16 destinationChainId,
-        address,
-        uint256,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+    function estimateTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata /* params */,
+        BridgeTypes.BridgeOptions calldata /* options */
+    ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         view
-        onlyTrustedDestination(destinationChainId)
+        onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
-        if (!supportsOperation(operationType)) revert OperationNotSupported();
-
-        // Use operation-specific builders
-        uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
-        bytes memory payload;
-
-        if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            payload = _createReadStatePayload(
-                lzDstEid,
-                address(0x1),
-                new bytes(0)
-            );
-        } else {
-            payload = _createMessagePayload(_createDummyMessageParams());
+        if (!supportsOperation(BridgeTypes.OperationType.READ_STATE)) {
+            revert OperationNotSupported();
         }
 
-        bytes memory lzOptions = _createLzOptions(options, operationType);
-        EndpointFee memory fee = _quoteOperationFee(
+        // Ensure read channel is configured
+        if (readChannelId == 0) revert ReadChannelNotConfigured();
+
+        // Check if the destination chain supports read operations
+        if (!chainSupportsRead[params.destinationChainId]) {
+            revert UnsupportedChain();
+        }
+
+        uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
+
+        // Create realistic payload using actual parameters
+        bytes memory payload = _createReadStatePayload(
             lzDstEid,
+            params.target,
+            abi.encodePacked(params.selector, params.readParams)
+        );
+
+        bytes memory lzOptions = _createLzOptions(
+            options,
+            BridgeTypes.OperationType.READ_STATE
+        );
+
+        EndpointFee memory fee = _quote(
+            readChannelId,
             payload,
             lzOptions,
-            operationType
+            false
         );
+
+        return (fee.nativeFee, fee.lzTokenFee);
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        onlyTrustedDestination(params.destinationChainId)
+        returns (uint256 nativeFee, uint256 tokenFee)
+    {
+        if (!supportsOperation(BridgeTypes.OperationType.MESSAGE)) {
+            revert OperationNotSupported();
+        }
+
+        uint32 lzDstEid = _getLayerZeroEid(params.destinationChainId);
+        bytes32 dummyBytes32 = bytes32(uint256(uint160(params.target)));
+
+        // Create realistic payload using actual parameters
+        bytes memory payload = _createMessagePayload(
+            BridgeTypes.RelayedMessageParams({
+                recipient: params.target,
+                message: params.message,
+                operationId: dummyBytes32,
+                originator: params.originator,
+                sourceChainId: uint16(block.chainid)
+            })
+        );
+
+        bytes memory lzOptions = _createLzOptions(
+            options,
+            BridgeTypes.OperationType.MESSAGE
+        );
+
+        EndpointFee memory fee = _quote(lzDstEid, payload, lzOptions, false);
+
         return (fee.nativeFee, fee.lzTokenFee);
     }
 
@@ -627,77 +680,6 @@ contract LayerZeroAdapter is
         BridgeTypes.RelayedMessageParams memory params
     ) internal pure returns (bytes memory payload) {
         return _encodeRelayedMessageParamsWithType(params);
-    }
-
-    /**
-     * @notice Quotes fee for a specific operation type
-     * @param lzDstEid LayerZero destination endpoint ID
-     * @param payload Operation payload
-     * @param lzOptions LayerZero options
-     * @param operationType Type of operation
-     * @return fee Quoted fee structure
-     */
-    function _quoteOperationFee(
-        uint32 lzDstEid,
-        bytes memory payload,
-        bytes memory lzOptions,
-        BridgeTypes.OperationType operationType
-    ) internal view returns (EndpointFee memory fee) {
-        if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            if (readChannelId == 0) revert ReadChannelNotConfigured();
-            return _quote(readChannelId, payload, lzOptions, false);
-        } else {
-            return _quote(lzDstEid, payload, lzOptions, false);
-        }
-    }
-
-    /**
-     * @notice Calculate required fees based on minimum gas limits
-     * @param _dstEid Destination endpoint ID
-     * @param operationType Operation type
-     * @param _payload Message payload
-     * @return requiredFee Minimum fee required for operation
-     */
-    function getRequiredFee(
-        uint32 _dstEid,
-        BridgeTypes.OperationType operationType,
-        bytes memory _payload,
-        uint128 gasLimit
-    ) public view returns (uint256 requiredFee) {
-        if (gasLimit == 0) revert InvalidParams();
-
-        // Create options with explicit gas limit - no fallback
-        bytes memory options;
-        {
-            BridgeTypes.BridgeOptions memory params = BridgeTypes
-                .BridgeOptions({
-                    specifiedAdapter: address(this),
-                    gasLimit: uint64(gasLimit),
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: bytes("")
-                });
-
-            if (operationType == BridgeTypes.OperationType.READ_STATE) {
-                options = LayerZeroOptionsHelper.createLzReadOptions(
-                    params,
-                    gasLimit
-                );
-            } else {
-                options = LayerZeroOptionsHelper.createMessagingOptions(
-                    params,
-                    gasLimit
-                );
-            }
-        }
-
-        EndpointFee memory quoteFee = _quoteOperationFee(
-            _dstEid,
-            _payload,
-            options,
-            operationType
-        );
-        return quoteFee.nativeFee;
     }
 
     /**

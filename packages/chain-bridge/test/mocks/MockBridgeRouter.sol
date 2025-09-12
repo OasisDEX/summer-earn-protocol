@@ -138,6 +138,45 @@ contract MockBridgeRouter is Test, IBridgeRouter {
 
     // --- Main Functions ---
 
+    function quoteTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata /* params */,
+        BridgeTypes.BridgeOptions calldata /* options */
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
+    {
+        nativeFee = mockFee;
+        tokenFee = 0;
+        specifiedAdapter = MOCK_ADAPTER_ADDRESS;
+    }
+
+    function quoteReadState(
+        BridgeTypes.ExecuteReadStateParams calldata /* params */,
+        BridgeTypes.BridgeOptions calldata /* options */
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
+    {
+        nativeFee = mockFee / 2; // Lower fee for read operations
+        tokenFee = 0;
+        specifiedAdapter = MOCK_ADAPTER_ADDRESS;
+    }
+
+    function quoteSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata /* params */,
+        BridgeTypes.BridgeOptions calldata /* options */
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
+    {
+        nativeFee = mockFee / 5; // Lower fee for message operations
+        tokenFee = 0;
+        specifiedAdapter = MOCK_ADAPTER_ADDRESS;
+    }
+
     function quote(
         uint16 /* destinationChainId */,
         address /* asset */,
