@@ -99,6 +99,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
 
         // Set endpoint ID instead of addSupportedChain
         adapterA.mapExternalId(CHAIN_ID_A, ENDPOINT_ID_A);
+        adapterA.mapExternalId(CHAIN_ID_B, ENDPOINT_ID_B);
 
         adapterA.addSupportedAsset(address(tokenA), address(stargateA));
 
