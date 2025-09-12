@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
@@ -36,9 +37,6 @@ abstract contract BaseBridgeAdapter is
 
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
-
-    /// @notice Error thrown when a chain is unsupported or unmapped
-    error UnsupportedChain();
 
     uint16 public immutable THIS_CHAIN;
 
@@ -215,7 +213,7 @@ abstract contract BaseBridgeAdapter is
     ) internal view returns (uint32 externalId) {
         externalId = chainToExternalId[chainId];
         if (externalId == 0) {
-            revert UnsupportedChain();
+            revert IBridgeAdapter.UnsupportedChain();
         }
         return externalId;
     }
@@ -231,38 +229,7 @@ abstract contract BaseBridgeAdapter is
     ) internal view returns (uint16 chainId) {
         chainId = externalIdToChainId[externalId];
         if (chainId == 0) {
-            revert UnsupportedChain();
-        }
-        return chainId;
-    }
-
-    /**
-     * @notice Normalizes gas limit using user input or default
-     * @param userGas User-provided gas limit
-     * @return Normalized gas limit
-     */
-    function _externalIdForChain(
-        uint16 chainId
-    ) internal view returns (uint32 externalId) {
-        externalId = chainToExternalId[chainId];
-        if (externalId == 0) {
-            revert UnsupportedChain();
-        }
-        return externalId;
-    }
-
-    /**
-     * @notice Resolve canonical chainId from an adapter-specific externalId
-     * @dev Reverts with UnsupportedChain when no mapping exists
-     * @param externalId Adapter/bridge external identifier (e.g., LayerZero EID)
-     * @return chainId Canonical EVM chain ID
-     */
-    function _chainIdFromExternalId(
-        uint32 externalId
-    ) internal view returns (uint16 chainId) {
-        chainId = externalIdToChainId[externalId];
-        if (chainId == 0) {
-            revert UnsupportedChain();
+            revert IBridgeAdapter.UnsupportedChain();
         }
         return chainId;
     }
