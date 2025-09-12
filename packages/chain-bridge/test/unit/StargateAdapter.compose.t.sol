@@ -687,7 +687,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Ensure the endpoint mapping matches the Tenderly packet's srcEid → maps to actual source chain from payload
         vm.prank(governor);
-        adapterB.mapEndpoint(decoded.sourceChainId, srcEid);
+        adapterB.mapExternalId(decoded.sourceChainId, srcEid);
 
         // Allow the composeFrom OApp (source) as a valid peer for the real source chain from payload
         vm.prank(governor);
