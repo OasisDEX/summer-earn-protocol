@@ -237,33 +237,6 @@ contract LayerZeroAdapter is
         chainSupportsRead[chainId] = supported;
     }
 
-    /**
-     * @notice Map a new chain-id → endpoint-id pair for LayerZero endpoints.
-     * @dev Governance utility. This only updates the local mapping; it does NOT
-     *      grant permission to send. That second layer of permission is still
-     *      enforced via the CrossChainRegistry.
-     *
-     * @param chainId     Canonical EVM chain ID.
-     * @param endpointId  LayerZero endpoint identifier (EID).
-     */
-    function mapEndpoint(
-        uint16 chainId,
-        uint32 endpointId
-    ) external onlyGovernor {
-        if (endpointId == 0) {
-            revert InvalidParams();
-        }
-        _mapChainExternalId(chainId, endpointId);
-    }
-
-    /**
-     * @notice Delete the endpoint mapping for a chain.
-     * @param chainId Chain ID whose mapping should be removed.
-     */
-    function unmapEndpoint(uint16 chainId) external onlyGovernor {
-        _unmapChainExternalId(chainId);
-    }
-
     /*//////////////////////////////////////////////////////////////
                             OAPP RECEIVER
     //////////////////////////////////////////////////////////////*/
@@ -611,14 +584,7 @@ contract LayerZeroAdapter is
         uint16 chainId
     ) internal view returns (uint32 lzEid) {
         // Get the LayerZero EID from our endpoint mapping
-        lzEid = chainToExternalId[chainId];
-
-        // If not found in the mapping, revert
-        if (lzEid == 0) {
-            revert UnsupportedChain();
-        }
-
-        return lzEid;
+        return _externalIdForChain(chainId);
     }
 
     /**
@@ -691,14 +657,7 @@ contract LayerZeroAdapter is
         uint32 _lzEid
     ) internal view returns (uint16 chainId) {
         // Get the chain ID from our endpoint mapping
-        chainId = externalIdToChainId[_lzEid];
-
-        // If not found in the mapping, revert
-        if (chainId == 0) {
-            revert UnsupportedChain();
-        }
-
-        return chainId;
+        return _chainIdFromExternalId(_lzEid);
     }
 
     /// @inheritdoc IBridgeAdapter

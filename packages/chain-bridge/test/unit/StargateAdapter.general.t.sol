@@ -127,7 +127,7 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Set the endpoint ID
-        adapterA.mapEndpoint(newChainId, newEndpointId);
+        adapterA.mapExternalId(newChainId, newEndpointId);
 
         // Register the peer relationship in the registry
         registryA.registerAdapterPeer(

@@ -217,33 +217,6 @@ contract StargateAdapter is
         emit AssetSupported(uint16(block.chainid), asset, stargateContract);
     }
 
-    /**
-     * @notice Map a new chain-id → endpoint-id pair for LayerZero endpoints.
-     * @dev Governance utility. This only updates the local mapping; it does NOT
-     *      grant permission to send. That second layer of permission is still
-     *      enforced via the CrossChainRegistry.
-     *
-     * @param chainId     Canonical EVM chain ID.
-     * @param endpointId  LayerZero endpoint identifier (EID).
-     */
-    function mapEndpoint(
-        uint16 chainId,
-        uint32 endpointId
-    ) external onlyGovernor {
-        if (endpointId == 0) {
-            revert InvalidParams();
-        }
-        _mapChainExternalId(chainId, endpointId);
-    }
-
-    /**
-     * @notice Delete the endpoint mapping for a chain.
-     * @param chainId Chain ID whose mapping should be removed.
-     */
-    function unmapEndpoint(uint16 chainId) external onlyGovernor {
-        _unmapChainExternalId(chainId);
-    }
-
     /*//////////////////////////////////////////////////////////////
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
@@ -365,7 +338,7 @@ contract StargateAdapter is
 
         return
             SendParam({
-                dstEid: chainToExternalId[destinationChainId],
+                dstEid: _externalIdForChain(destinationChainId),
                 to: destinationAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount,
@@ -545,7 +518,7 @@ contract StargateAdapter is
         // A misconfigured remote adapter will cause compose failures that require manual recovery.
         return
             assetToStargateContract[asset] != address(0) &&
-            _peerAdapter(destinationChainId) != address(0);
+            isTrustedDestination(destinationChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -633,7 +606,9 @@ contract StargateAdapter is
         //  - word 3 (32B): composeFrom (address left-padded to 32B)
         // The variable-length composeMsg follows after offset 96.
         if (message.length < 96) revert InvalidMessage();
-        srcEid = uint32(bytes4(message[8:12]));
+        // Prefer official codec for srcEid if available; maintain layout sanity check above
+        // Fallback to manual extraction is unnecessary if codec provides srcEid
+        srcEid = OFTComposeMsgCodec.srcEid(message);
         amountLD = OFTComposeMsgCodec.amountLD(message);
         composeMsg = OFTComposeMsgCodec.composeMsg(message);
         composeFrom = OFTComposeMsgCodec.composeFrom(message).toAddress();
