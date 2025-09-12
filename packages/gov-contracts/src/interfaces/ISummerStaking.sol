@@ -108,7 +108,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     /**
      * @notice Move all stake positions and accounting from caller to a fresh target wallet
      * @param _to The target wallet that must currently have zero stakes
-     * @dev Does not transfer xSUMR tokens. Only internal staking accounting moves.
+     * @dev Moves xSumr from caller to target
      * @dev this is in case of compromised wallet or any other reason that might require a wallet to be cleaned up
      * @dev Reverts if target wallet already has at least one stake
      */
