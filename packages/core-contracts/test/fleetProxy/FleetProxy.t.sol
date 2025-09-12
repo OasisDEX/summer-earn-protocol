@@ -632,6 +632,11 @@ contract CrossChainFleetProxyTest is Test {
         vm.prank(governor);
         mockBridgeRouter.setUseRefundAddress(true);
 
+        // Clear any previous message calls
+        mockBridgeRouter.clearCalls();
+        uint256 initialMessageCallCount = mockBridgeRouter
+            .getMessageCallCount();
+
         // Mint underlying to FleetCommander and shares to proxy so withdraw works
         uint256 assets = 1_000 ether;
         mockToken.mint(address(fleetCommanderMock), assets);
@@ -814,7 +819,10 @@ contract CrossChainFleetProxyTest is Test {
             BridgeTypes.BridgeOptions({
                 specifiedAdapter: address(mockAdapter),
                 gasLimit: 100000,
-                calldataSize: 100,
+                calldataSize: 100
+            })
+        );
+        
         // Assert: router recorded refundAddress as governor (keeper) and originator is proxy
         assertEq(
             mockBridgeRouter.lastRefundAddress(),
