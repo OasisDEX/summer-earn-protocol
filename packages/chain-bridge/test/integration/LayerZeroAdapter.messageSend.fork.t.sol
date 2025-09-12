@@ -29,16 +29,19 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             options: ""
         });
 
-        // Get quote for fees
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
-
         bytes memory message = abi.encode("Hello Cross-Chain!");
+
+        // Get quote for fees
+        (uint256 nativeFee, , ) = router.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(0x1234), // Target contract
+                message: message,
+                originator: keeper,
+                refundAddress: keeper
+            }),
+            options
+        );
 
         // 2. Execute the operation
         vm.startPrank(keeper);
@@ -70,12 +73,15 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             options: ""
         });
 
-        (uint256 nativeFee, ) = layerZeroAdapter.estimateFee(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 nativeFee, ) = layerZeroAdapter.estimateSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(0x1234), // Target contract
+                message: message,
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Set up operation mapping
@@ -147,13 +153,17 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             options: ""
         });
 
-        (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter.estimateFee(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        (uint256 nativeFee, uint256 tokenFee) = layerZeroAdapter
+            .estimateSendMessage(
+                BridgeTypes.ExecuteSendMessageParams({
+                    destinationChainId: DEST_CHAIN_ID,
+                    target: address(0x1234), // Target contract
+                    message: abi.encode("Fee estimation test"),
+                    originator: address(this),
+                    refundAddress: address(this)
+                }),
+                options
+            );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
         assertEq(tokenFee, 0, "Token fee should be 0 for LayerZero");

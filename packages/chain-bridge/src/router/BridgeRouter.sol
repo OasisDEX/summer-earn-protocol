@@ -439,35 +439,67 @@ contract BridgeRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeRouter
-    function quote(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+    function quoteTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         view
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         specifiedAdapter = options.specifiedAdapter;
-
         if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
-        if (!this.isValidAdapter(specifiedAdapter)) revert UnknownAdapter();
+        if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
         if (options.gasLimit == 0) revert ZeroGasLimit();
 
-        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter).estimateFee(
-            destinationChainId,
-            asset,
-            amount,
-            options,
-            operationType
-        );
+        _validateTransferParams(params);
+        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
+            .estimateTransferAssets(params, options);
 
         nativeFee = _applyFeeBuffer(nativeFee);
         tokenFee = _applyFeeBuffer(tokenFee);
+    }
 
-        return (nativeFee, tokenFee, specifiedAdapter);
+    /// @inheritdoc IBridgeRouter
+    function quoteReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
+    {
+        specifiedAdapter = options.specifiedAdapter;
+        if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
+        if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
+
+        _validateReadStateParams(params);
+        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
+            .estimateReadState(params, options);
+
+        nativeFee = _applyFeeBuffer(nativeFee);
+        tokenFee = _applyFeeBuffer(tokenFee);
+    }
+
+    /// @inheritdoc IBridgeRouter
+    function quoteSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
+    {
+        specifiedAdapter = options.specifiedAdapter;
+        if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
+        if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
+
+        _validateSendMessageParams(params);
+        (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
+            .estimateSendMessage(params, options);
+
+        nativeFee = _applyFeeBuffer(nativeFee);
+        tokenFee = _applyFeeBuffer(tokenFee);
     }
 
     /// @inheritdoc IBridgeRouter

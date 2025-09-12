@@ -108,13 +108,19 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         });
 
         // Get fee estimate first (for keeper execution)
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
+        (uint256 nativeFee, , address specifiedAdapter) = router
+            .quoteTransferAssets(
+                BridgeTypes.ExecuteTransferParams({
+                    originator: user,
+                    destinationChainId: DEST_CHAIN_ID,
+                    target: recipient,
+                    asset: address(token),
+                    amount: TRANSFER_AMOUNT,
+                    message: "",
+                    refundAddress: user
+                }),
+                options
+            );
         // vm.deal(user, nativeFee); // REMOVED: User no longer pays
 
         // Verify the specified adapter matches what we provided
@@ -162,12 +168,16 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(executor);
 
         // Get quote for execution
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(0), // No asset
-            0, // No amount
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 nativeFee, , ) = router.quoteReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(0x1234), // Target contract
+                selector: bytes4(keccak256("someFunction()")),
+                readParams: "",
+                originator: user,
+                refundAddress: user
+            }),
+            options
         );
 
         vm.expectRevert(IBridgeRouter.Paused.selector);
