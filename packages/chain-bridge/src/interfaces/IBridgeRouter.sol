@@ -82,6 +82,8 @@ interface IBridgeRouter is IERC165 {
     error AdapterAlreadyRegistered();
     /// @notice Error thrown when an adapter is not registered
     error UnknownAdapter();
+    /// @notice Error thrown when a failure record is not found for the given operation ID
+    error FailureRecordNotFound();
     /// @notice Error thrown when a caller is not authorized (e.g., not a registered adapter)
     error Unauthorized();
     /// @notice Error thrown when the receiver rejects a call (e.g., in deliverReadResponse)

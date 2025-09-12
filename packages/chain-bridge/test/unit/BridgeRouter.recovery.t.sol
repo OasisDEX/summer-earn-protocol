@@ -130,6 +130,35 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         assertEq(token.balanceOf(address(mockReceiver)), correctedAmount);
     }
 
+    function testGetFailedDelivery_NonExistentOperationId_RevertsWithFailureRecordNotFound()
+        public
+    {
+        bytes32 nonExistentOpId = keccak256("non-existent-operation");
+
+        vm.expectRevert(IBridgeRouter.FailureRecordNotFound.selector);
+        router.getFailedDelivery(nonExistentOpId);
+    }
+
+    function testGetFailedDelivery_ExistingOperationId_ReturnsRecord() public {
+        // Create a failed operation
+        bytes32 opId = _makeFailedTransfer(keccak256("test-op"), 1 ether);
+
+        // Get the failure record
+        BridgeRouter.FailedDeliveryRecord memory record = router
+            .getFailedDelivery(opId);
+
+        // Verify the record contains expected data
+        assertEq(
+            uint8(record.operationType),
+            uint8(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
+        assertEq(record.adapter, address(mockAdapter));
+        assertEq(record.sourceChainId, SOURCE_CHAIN_ID);
+        assertEq(record.failedAt, block.timestamp);
+        assertEq(record.numAttempts, 1);
+        assertTrue(record.errorData.length > 0);
+    }
+
     /* ------------------------------------------------------------ */
     /*                     Recover assets (moved)                    */
     /* ------------------------------------------------------------ */

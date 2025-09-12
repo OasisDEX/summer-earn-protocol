@@ -43,6 +43,9 @@ abstract contract BaseBridgeAdapter is
     /// @notice Thrown when the contract has insufficient balance
     error InsufficientBalance();
 
+    /// @notice Thrown when a native token transfer fails
+    error TransferFailed();
+
     uint16 public immutable THIS_CHAIN;
 
     /// @notice Mapping of supported chains to their external bridge protocol IDs
@@ -278,7 +281,7 @@ abstract contract BaseBridgeAdapter is
 
     /**
      * @notice Governance-only sweep to recover tokens held by this adapter
-     * @param asset Token to recover
+     * @param asset Token to recover (address(0) for native ETH)
      * @param to Recipient of the recovered tokens
      * @param amount Amount to sweep
      */
@@ -288,9 +291,19 @@ abstract contract BaseBridgeAdapter is
         uint256 amount
     ) external onlyGovernor nonReentrant {
         if (to == address(0)) revert InvalidParams();
-        uint256 balance = IERC20(asset).balanceOf(address(this));
-        if (balance < amount) revert InsufficientBalance();
-        IERC20(asset).safeTransfer(to, amount);
+
+        if (asset == address(0)) {
+            // Handle native ETH
+            if (address(this).balance < amount) revert InsufficientBalance();
+            (bool success, ) = to.call{value: amount}("");
+            if (!success) revert TransferFailed();
+        } else {
+            // Handle ERC20 tokens
+            uint256 balance = IERC20(asset).balanceOf(address(this));
+            if (balance < amount) revert InsufficientBalance();
+            IERC20(asset).safeTransfer(to, amount);
+        }
+
         emit TokensRecovered(asset, amount, to);
     }
 }

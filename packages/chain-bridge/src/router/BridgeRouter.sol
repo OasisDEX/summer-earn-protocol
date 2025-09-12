@@ -785,7 +785,7 @@ contract BridgeRouter is
         bytes32 operationId
     ) external view returns (FailedDeliveryRecord memory) {
         FailedDeliveryRecord memory r = failedDeliveries[operationId];
-        if (r.failedAt == 0) revert UnknownAdapter(); // reuse error to indicate missing; alternatively create new error
+        if (r.failedAt == 0) revert FailureRecordNotFound();
         return r;
     }
 
