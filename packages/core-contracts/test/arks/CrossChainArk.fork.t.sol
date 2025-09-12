@@ -434,13 +434,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertEq(calldataSize, 0, "Incorrect calldata size");
         assertEq(opts, "", "Incorrect options");
         // === STEP 3: Get Quote and Execute Transfer ===
-        (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(usdc),
-            amount,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
+        (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter
+            .quoteTransferAssets(transferParams, options);
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
         assertEq(tokenFee, 0, "Token fee should be 0 for Stargate");
@@ -596,12 +591,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         ark.board(amount, executeTransferParams);
 
         // Quote and execute transfer via Ark (keeper role is granted to commander)
-        (uint256 nativeFee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(usdc),
-            amount,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, , ) = bridgeRouter.quoteTransferAssets(
+            params,
+            options
         );
         vm.deal(commander, nativeFee);
 
@@ -664,12 +656,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         });
 
         // Get quote for the read operation
-        (uint256 nativeFee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0), // No asset for read
-            0, // No amount for read
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 nativeFee, , ) = bridgeRouter.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(ark),
+                message: abi.encode("remote-balance-read"),
+                originator: commander,
+                refundAddress: commander
+            }),
+            options
         );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
@@ -775,12 +770,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             options: ""
         });
 
-        (uint256 fee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 fee, , ) = bridgeRouter.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(ark),
+                message: abi.encode("remote-balance-read"),
+                originator: commander,
+                refundAddress: commander
+            }),
+            options
         );
 
         vm.deal(commander, fee);
@@ -913,12 +911,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         });
 
         // Get quote for the read operation
-        (uint256 nativeFee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0), // No asset for read
-            0, // No amount for read
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 nativeFee, , ) = bridgeRouter.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(ark),
+                message: abi.encode("remote-balance-read"),
+                originator: commander,
+                refundAddress: commander
+            }),
+            options
         );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
@@ -1064,12 +1065,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             options: ""
         });
 
-        (uint256 fee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 fee, , ) = bridgeRouter.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(ark),
+                message: abi.encode("remote-balance-read"),
+                originator: commander,
+                refundAddress: commander
+            }),
+            options
         );
 
         vm.deal(commander, fee);

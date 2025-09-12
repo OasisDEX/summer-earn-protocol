@@ -39,6 +39,7 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         address asset;
         uint256 amount;
         address target;
+        bytes message;
     }
 
     struct MessageCall {
@@ -227,6 +228,17 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         ); // Pull from queue
         // Keep tokens in the router for testing purposes
         // In a real scenario, this would transfer to the adapter or burn/lock
+
+        // Record the call (align with behavior that transfer carries message)
+        transferCalls.push(
+            TransferCall({
+                destinationChainId: params.destinationChainId,
+                asset: params.asset,
+                amount: params.amount,
+                target: params.target,
+                message: params.message
+            })
+        );
 
         emit TransferInitiated(
             operationId,
@@ -540,7 +552,8 @@ contract MockBridgeRouter is Test, IBridgeRouter {
                 destinationChainId: destinationChainId,
                 asset: asset,
                 amount: amount,
-                target: target
+                target: target,
+                message: ""
             })
         );
 

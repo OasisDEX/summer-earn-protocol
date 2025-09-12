@@ -295,9 +295,10 @@ contract CrossChainArk is
 
     /**
      * @notice Asserts that the board or disembark can be performed
-     * @dev This function asserts that the pending transfer params are not already queued
+     * @dev This function asserts that no inflight transfer exists and no pending transfer is queued
      */
     function _assertCanBoardOrDisembark() internal view {
+        if (inflightAssets != 0) revert InFlight();
         if (pendingTransferParams.asset != address(0)) {
             revert PendingTransferAlreadyQueued();
         }
@@ -333,17 +334,6 @@ contract CrossChainArk is
     error InvalidSender();
     /// @notice Error thrown when trying to start a new outbound while inflight > 0
     error InFlight();
-
-    /**
-     * @notice Ensures no inflight transfer and no pending queued transfer exists
-     * @dev Used to gate both boarding and disembarking flows
-     */
-    function _assertCanBoardOrDisembark() internal view {
-        if (inflightAssets != 0) revert InFlight();
-        if (pendingTransferParams.asset != address(0)) {
-            revert PendingTransferAlreadyQueued();
-        }
-    }
 
     /**
      * @notice Ensures ready for executing a pending transfer: no inflight and has pending
