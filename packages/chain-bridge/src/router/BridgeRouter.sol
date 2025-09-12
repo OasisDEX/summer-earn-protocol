@@ -101,7 +101,7 @@ contract BridgeRouter is
     ) {
         // If no adapter specified, surface a dedicated error
         if (adapter == address(0)) revert NoSuitableAdapter();
-        if (!this.isValidAdapter(adapter)) revert UnknownAdapter();
+        if (!adapters.contains(adapter)) revert UnknownAdapter();
         _validateAdapterSupportsOperation(adapter, operationType);
         _;
     }
@@ -468,20 +468,17 @@ contract BridgeRouter is
     )
         external
         view
-        validAdapter(options.specifiedAdapter, operationType)
+        validAdapter(
+            options.specifiedAdapter,
+            BridgeTypes.OperationType.TRANSFER_ASSET
+        )
         returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter)
     {
         specifiedAdapter = options.specifiedAdapter;
-        if (specifiedAdapter == address(0)) revert NoSuitableAdapter();
-        if (!adapters.contains(specifiedAdapter)) revert UnknownAdapter();
+
         if (options.gasLimit == 0) revert ZeroGasLimit();
 
         _validateTransferParams(params);
-        if (
-            !IBridgeAdapter(specifiedAdapter).supportsOperation(operationType)
-        ) {
-            revert UnsupportedAdapterOperation();
-        }
         (nativeFee, tokenFee) = IBridgeAdapter(specifiedAdapter)
             .estimateTransferAssets(params, options);
 

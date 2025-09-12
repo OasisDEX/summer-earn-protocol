@@ -102,7 +102,10 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
         // Set the read request originator (required for deliverReadResponse)
-        router.setReadRequestOriginator(operationId, user);
+        router.setReadRequestOriginator(
+            operationId,
+            address(mockCrossChainStateReadReceiver)
+        );
 
         // Map the GUID to operation ID
         _setOperationMapping(guid, operationId);
