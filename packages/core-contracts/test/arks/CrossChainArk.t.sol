@@ -734,8 +734,11 @@ contract CrossChainArkTest is Test, ArkTestBase {
     // ========================================================================
 
     function testCancelPendingTransferUnauthorized() public {
-        vm.prank(address(0xBEEF));
-        vm.expectRevert(IAccessControlErrors.CallerIsNotKeeper.selector);
+        address unauthorized = address(0xBEEF);
+        vm.prank(unauthorized);
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotKeeper(address)", unauthorized)
+        );
         ark.cancelPendingTransfer();
     }
 
