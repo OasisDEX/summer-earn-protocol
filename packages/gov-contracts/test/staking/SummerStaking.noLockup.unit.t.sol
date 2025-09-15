@@ -162,7 +162,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         // Unstake zero amount should revert
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("CannotUnstakeZero()"));
-        aStaking.unstakeFromLockup(0, 0);
+        aStaking.unstakeLockup(0, 0);
 
         // StakedSummerToken balance should remain unchanged
         assertEq(axSumr.balanceOf(user1), STAKE_AMOUNT);
@@ -182,7 +182,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         // Attempt to unstake - should revert
         vm.prank(user1);
         vm.expectRevert(); // SafeERC20 will revert on insufficient allowance
-        aStaking.unstakeFromLockup(0, stakeAmount);
+        aStaking.unstakeLockup(0, stakeAmount);
     }
 
     function test_Unstake_InsufficientBalance() public {
@@ -199,7 +199,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         // Attempt to unstake more than available from specific stake - should revert
         vm.prank(user1);
         vm.expectRevert(); // Will revert due to insufficient stake amount
-        aStaking.unstakeFromLockup(0, stakeAmount * 2);
+        aStaking.unstakeLockup(0, stakeAmount * 2);
     }
 
     function test_StakeUnstake_RoundTrip() public {

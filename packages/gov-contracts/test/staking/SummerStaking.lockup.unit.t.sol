@@ -316,7 +316,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
     }
 
-    // ============ UNSTAKING TESTS (unstakeFromLockup) ============
+    // ============ UNSTAKING TESTS (unstakeLockup) ============
 
     // After Lockup (No Penalty)
     function test_UnstakeFullAmountAfterLockup() public {
@@ -436,7 +436,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Unstake immediately
         _verifyUnstakedEvent(
             user1,
-            aStaking.stakeId(user1),
+            aStaking.stakePortfolioId(user1),
             stakeIndex,
             stakeAmount,
             (stakeAmount * expectedPenalty) / Constants.WAD,
@@ -542,7 +542,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("CannotUnstakeZero()"));
-        aStaking.unstakeFromLockup(stakeIndex, 0);
+        aStaking.unstakeLockup(stakeIndex, 0);
     }
 
     function test_Revert_UnstakeWithInvalidIndex() public {
@@ -556,7 +556,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.startPrank(user1);
         axSumr.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(abi.encodeWithSignature("Staking_InvalidStakeIndex()"));
-        aStaking.unstakeFromLockup(stakeIndex + 1, STAKE_AMOUNT);
+        aStaking.unstakeLockup(stakeIndex + 1, STAKE_AMOUNT);
         vm.stopPrank();
     }
 
@@ -573,7 +573,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("Staking_InsufficientBalance()")
         );
-        aStaking.unstakeFromLockup(stakeIndex, STAKE_AMOUNT * 2);
+        aStaking.unstakeLockup(stakeIndex, STAKE_AMOUNT * 2);
         vm.stopPrank();
     }
 
@@ -747,7 +747,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_DirectUnstakeNotAllowed(string)",
-                "Use unstakeFromLockup instead"
+                "Use unstakeLockup instead"
             )
         );
         aStaking.unstake(STAKE_AMOUNT);
@@ -758,7 +758,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_DirectUnstakeNotAllowed(string)",
-                "Use unstakeFromLockup instead"
+                "Use unstakeLockup instead"
             )
         );
         aStaking.exit();

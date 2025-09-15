@@ -200,7 +200,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     }
 
     /**
-     * @notice Wrapper that pranks as the user and calls approve and unstakeFromLockup
+     * @notice Wrapper that pranks as the user and calls approve and unstakeLockup
      */
     function _approveAndUnstake(
         SummerStaking staking,
@@ -210,16 +210,16 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     ) internal {
         vm.startPrank(user);
         axSumr.approve(address(staking), amount);
-        staking.unstakeFromLockup(index, amount);
+        staking.unstakeLockup(index, amount);
         vm.stopPrank();
     }
 
     /**
-     * @notice Wrapper that pranks as the user and calls unstakeFromLockup
+     * @notice Wrapper that pranks as the user and calls unstakeLockup
      */
     function _unstake(address user, uint256 index, uint256 amount) internal {
         vm.startPrank(user);
-        aStaking.unstakeFromLockup(index, amount);
+        aStaking.unstakeLockup(index, amount);
         vm.stopPrank();
     }
 

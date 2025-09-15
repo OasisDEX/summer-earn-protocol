@@ -55,10 +55,11 @@ contract SummerStaking is
 
     // ============ STORAGE ============
 
-    mapping(uint256 stakeId => UserStake[] stakes) public stakesById;
+    mapping(uint256 portfolioId => UserStake[] stakes)
+        public stakesByPortfolioId;
     // id ID for user's stakes; 0 = no stakes
-    mapping(address owner => uint256 stakeId) public stakeId;
-    uint256 private _nextId = 1;
+    mapping(address owner => uint256 portfolioId) public stakePortfolioId;
+    uint256 private _nextPortfolioId = 1;
 
     mapping(address => uint256) public weightedBalances;
     mapping(Bucket => BucketData) public bucketData;
@@ -97,24 +98,24 @@ contract SummerStaking is
     // ============ INTERNAL - ID HELPERS ============
 
     /**
-     * @notice Get the id for a given owner address
+     * @notice Get the portfolio id for a given owner address
      * @param owner The address to get the id for
-     * @return The id for the address
+     * @return The portfolio id for the address
      */
-    function _stakeId(address owner) internal view returns (uint256) {
-        return stakeId[owner];
+    function _getPortfolioId(address owner) internal view returns (uint256) {
+        return stakePortfolioId[owner];
     }
 
     /**
-     * @notice Ensure an id for a given owner address
+     * @notice Ensure a portfolio id for a given owner address
      * @param owner The address to ensure an id for
-     * @return The id for the address
+     * @return The portfolio id for the address
      */
-    function _ensureStakeId(address owner) internal returns (uint256) {
-        if (stakeId[owner] == 0) {
-            uint256 _stakeId = _nextId++;
-            stakeId[owner] = _stakeId;
-            stakesById[_stakeId].push(
+    function _ensurePortfolioId(address owner) internal returns (uint256) {
+        if (stakePortfolioId[owner] == 0) {
+            uint256 _stakePortfolioId = _nextPortfolioId++;
+            stakePortfolioId[owner] = _stakePortfolioId;
+            stakesByPortfolioId[_stakePortfolioId].push(
                 UserStake({
                     amount: 0,
                     weightedAmount: 0,
@@ -123,7 +124,7 @@ contract SummerStaking is
                 })
             );
         }
-        return stakeId[owner];
+        return stakePortfolioId[owner];
     }
 
     // ============ EXTERNAL FUNCTIONS - STAKING ============
@@ -150,19 +151,23 @@ contract SummerStaking is
         if (from == _to)
             revert Staking_InvalidAddress("Cannot move stakes to self");
 
-        if (stakesById[_stakeId(_to)].length != 0)
+        if (stakesByPortfolioId[_getPortfolioId(_to)].length != 0)
             revert Staking_ExistingTarget("Target already has stakes");
         if (_balances[_to] != 0 || weightedBalances[_to] != 0) {
             revert Staking_ExistingTarget("Target already has balances");
         }
 
-        UserStake[] storage fromStakes = stakesById[_stakeId(from)];
+        UserStake[] storage fromStakes = stakesByPortfolioId[
+            _getPortfolioId(from)
+        ];
         uint256 stakeCount = fromStakes.length;
         if (stakeCount == 0) revert Staking_InvalidStakeIndex();
 
         uint256 rewardTokenCount = EnumerableSet.length(_rewardTokensList);
         for (uint256 i = 0; i < rewardTokenCount; i++) {
             address rewardTokenAddress = EnumerableSet.at(_rewardTokensList, i);
+            if (userRewardPerTokenPaid[rewardTokenAddress][_to] != 0)
+                revert Staking_ExistingTarget("Target already has rewards");
             uint256 fromReward = rewards[rewardTokenAddress][from];
             if (fromReward != 0) {
                 rewards[rewardTokenAddress][from] = 0;
@@ -186,8 +191,8 @@ contract SummerStaking is
             STAKED_SUMMER_TOKEN.safeTransferFrom(from, _to, xsumrToMove);
         }
 
-        stakeId[_to] = _stakeId(from);
-        stakeId[from] = 0;
+        stakePortfolioId[_to] = _getPortfolioId(from);
+        stakePortfolioId[from] = 0;
 
         // Move accounting balances
         uint256 fromAmount = _balances[from];
@@ -201,20 +206,20 @@ contract SummerStaking is
 
         // Rewards debt already updated via updateReward modifiers
         // Emit generic events for visibility
-        emit StakesTransferred(from, _to, stakeId[_to]);
+        emit StakesTransferred(from, _to, stakePortfolioId[_to]);
     }
 
     // ============ EXTERNAL FUNCTIONS - UNSTAKING ============
 
-    function unstakeFromLockup(
+    function unstakeLockup(
         uint256 _stakeIndex,
         uint256 _amount
     ) public virtual updateReward(_msgSender()) {
         if (_amount == 0) revert CannotUnstakeZero();
         if (_amount > _balances[_msgSender()])
             revert Staking_InsufficientBalance();
-        uint256 _stakeId = _stakeId(_msgSender());
-        UserStake[] storage stakes = stakesById[_stakeId];
+        uint256 _stakePortfolioId = _getPortfolioId(_msgSender());
+        UserStake[] storage stakes = stakesByPortfolioId[_stakePortfolioId];
         if (_stakeIndex >= stakes.length) revert Staking_InvalidStakeIndex();
 
         UserStake memory processedStake = stakes[_stakeIndex];
@@ -234,7 +239,7 @@ contract SummerStaking is
         _updateBalancesOnUnstake(_msgSender(), _amount, weightedAmountToRemove);
         _subtractFromBucketTotal(processedStake.lockupPeriod, _amount);
 
-        if (processedStake.amount == 0 && processedStake.lockupPeriod != 0) {
+        if (processedStake.amount == 0 && !_isNoLockupStakeIndex(_stakeIndex)) {
             _removeStake(_msgSender(), _stakeIndex);
         } else {
             stakes[_stakeIndex] = processedStake;
@@ -244,7 +249,7 @@ contract SummerStaking is
 
         emit UnstakedWithPenalty(
             _msgSender(),
-            _stakeId,
+            _stakePortfolioId,
             _stakeIndex,
             _amount,
             unstakePenalty,
@@ -283,7 +288,7 @@ contract SummerStaking is
     // ============ EXTERNAL VIEW FUNCTIONS - STAKE INFORMATION ============
 
     function getUserStakesCount(address _user) external view returns (uint256) {
-        return stakesById[_stakeId(_user)].length;
+        return stakesByPortfolioId[_getPortfolioId(_user)].length;
     }
 
     function getUserStake(
@@ -299,8 +304,8 @@ contract SummerStaking is
             uint256 lockupPeriod
         )
     {
-        uint256 stakeId = _stakeId(_user);
-        UserStake[] storage stakes = stakesById[stakeId];
+        uint256 stakePortfolioId = _getPortfolioId(_user);
+        UserStake[] storage stakes = stakesByPortfolioId[stakePortfolioId];
         if (_index < stakes.length) {
             amount = stakes[_index].amount;
             weightedAmount = stakes[_index].weightedAmount;
@@ -383,7 +388,9 @@ contract SummerStaking is
         if (!penaltyEnabled) {
             return 0;
         }
-        UserStake storage userStake = stakesById[_stakeId(_user)][_stakeIndex];
+        UserStake storage userStake = stakesByPortfolioId[
+            _getPortfolioId(_user)
+        ][_stakeIndex];
 
         if (block.timestamp >= userStake.lockupEndTime) {
             return 0;
@@ -472,7 +479,7 @@ contract SummerStaking is
         virtual
         override(StakingRewardsManagerBase, IStakingRewardsManagerBase)
     {
-        revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
+        revert Staking_DirectUnstakeNotAllowed("Use unstakeLockup instead");
     }
 
     function exit()
@@ -480,7 +487,7 @@ contract SummerStaking is
         pure
         override(StakingRewardsManagerBase, IStakingRewardsManagerBase)
     {
-        revert Staking_DirectUnstakeNotAllowed("Use unstakeFromLockup instead");
+        revert Staking_DirectUnstakeNotAllowed("Use unstakeLockup instead");
     }
 
     // ============ INTERNAL FUNCTIONS - STAKING LOGIC ============
@@ -499,7 +506,10 @@ contract SummerStaking is
                 "Lockup period cannot exceed 3 years"
             );
         }
-        if (stakesById[_stakeId(_receiver)].length >= MAX_AMOUNT_OF_STAKES) {
+        if (
+            stakesByPortfolioId[_getPortfolioId(_receiver)].length >=
+            MAX_AMOUNT_OF_STAKES
+        ) {
             revert Staking_MaxStakesReached();
         }
         if (_wouldExceedBucketCap(_lockupPeriod, _amount)) {
@@ -510,10 +520,17 @@ contract SummerStaking is
             _amount,
             _lockupPeriod
         );
-        uint256 _stakeId = _ensureStakeId(_receiver);
+        uint256 _stakePortfolioId = _ensurePortfolioId(_receiver);
 
-        if (_lockupPeriod > 0) {
-            stakesById[_stakeId].push(
+        uint256 _stakeIndex;
+        if (_lockupPeriod == 0) {
+            UserStake storage noLockupStake = _noLockupStake(_stakePortfolioId);
+            noLockupStake.amount += _amount;
+            noLockupStake.weightedAmount += weightedAmount;
+            noLockupStake.lockupEndTime = block.timestamp;
+            _stakeIndex = NO_LOCKUP_INDEX;
+        } else {
+            stakesByPortfolioId[_stakePortfolioId].push(
                 UserStake({
                     amount: _amount,
                     weightedAmount: weightedAmount,
@@ -521,15 +538,8 @@ contract SummerStaking is
                     lockupPeriod: _lockupPeriod
                 })
             );
-        } else {
-            UserStake storage exisitngStake = stakesById[_stakeId][
-                NO_LOCKUP_INDEX
-            ];
-            exisitngStake.amount += _amount;
-            exisitngStake.weightedAmount += weightedAmount;
-            exisitngStake.lockupEndTime = block.timestamp;
+            _stakeIndex = stakesByPortfolioId[_stakePortfolioId].length - 1;
         }
-        uint256 _stakeIndex = stakesById[_stakeId].length - 1;
         _updateBalancesOnStake(_receiver, _amount, weightedAmount);
         _addToBucketTotal(_lockupPeriod, _amount);
         _handleTokenTransfersOnStake(_from, _receiver, _amount);
@@ -537,7 +547,7 @@ contract SummerStaking is
         emit Staked(_from, _receiver, _amount);
         emit StakedWithLockup(
             _receiver,
-            _stakeId,
+            _stakePortfolioId,
             _stakeIndex,
             _amount,
             _lockupPeriod,
@@ -721,9 +731,30 @@ contract SummerStaking is
     }
 
     function _removeStake(address _user, uint256 _index) internal {
-        UserStake[] storage stakes = stakesById[_stakeId(_user)];
+        UserStake[] storage stakes = stakesByPortfolioId[
+            _getPortfolioId(_user)
+        ];
         if (_index >= stakes.length) return;
         stakes[_index] = stakes[stakes.length - 1];
         stakes.pop();
+    }
+    // ============ INTERNAL FUNCTIONS - INDEX HELPERS ============
+    /**
+     * @notice Check if the index is the no lockup index
+     * @param index The index to check
+     * @return True if the index is the no lockup index, false otherwise
+     */
+    function _isNoLockupStakeIndex(uint256 index) internal pure returns (bool) {
+        return index == NO_LOCKUP_INDEX;
+    }
+    /**
+     * @notice Get the no lockup stake for a given portfolio id
+     * @param portfolioId The portfolio id to get the no lockup stake for
+     * @return The no lockup stake for the portfolio id
+     */
+    function _noLockupStake(
+        uint256 portfolioId
+    ) internal view returns (UserStake storage) {
+        return stakesByPortfolioId[portfolioId][NO_LOCKUP_INDEX];
     }
 }

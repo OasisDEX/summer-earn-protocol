@@ -106,7 +106,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @dev Emits UnstakedWithPenalty and Unstaked events
      * @dev Reverts if amount is 0, stake index invalid, or insufficient balance
      */
-    function unstakeFromLockup(uint256 _stakeIndex, uint256 _amount) external;
+    function unstakeLockup(uint256 _stakeIndex, uint256 _amount) external;
 
     // ============ VIEW FUNCTIONS - STAKE INFORMATION ============
 
@@ -358,7 +358,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     /// @notice Thrown when trying to use direct stake function instead of stakeLockup
     error Staking_DirectStakeNotAllowed(string message);
 
-    /// @notice Thrown when trying to use direct unstake function instead of unstakeFromLockup
+    /// @notice Thrown when trying to use direct unstake function instead of unstakeLockup
     error Staking_DirectUnstakeNotAllowed(string message);
 
     /// @notice Thrown when lockup period is invalid (too long, ended, etc.)
