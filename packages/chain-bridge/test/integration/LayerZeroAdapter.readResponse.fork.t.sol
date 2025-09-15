@@ -102,7 +102,10 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
         // Set the read request originator (required for deliverReadResponse)
-        router.setReadRequestOriginator(operationId, user);
+        router.setReadRequestOriginator(
+            operationId,
+            address(mockCrossChainStateReadReceiver)
+        );
 
         // Map the GUID to operation ID
         _setOperationMapping(guid, operationId);
@@ -118,9 +121,8 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         });
 
         // Simulate receiving the read response - should handle delivery failure gracefully
-        // Expect an event rather than a revert when expected read chain mapping is missing
-        vm.expectEmit(true, false, false, true, address(layerZeroAdapter));
-        emit ReadOperationNotFound(guid, "No expected read chain found");
+        // Ensure adapter has expected chain mapping so it attempts delivery and hits router revert
+        layerZeroAdapter.setExpectedReadChainByGuid(guid, DEST_CHAIN_ID);
         vm.prank(LZ_ENDPOINT_BASE);
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 

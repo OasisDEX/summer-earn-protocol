@@ -8,11 +8,14 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
     ReentrancyGuard,
-    ProtocolAccessManaged
+    ProtocolAccessManaged,
+    IERC165
 {
     /// @notice Error thrown when destination chain peer is not trusted by governance
     error UntrustedDestinationChain(uint16 chainId);
@@ -64,6 +67,9 @@ abstract contract BaseBridgeAdapter is
         address _registry,
         address _accessManager
     ) CrossChainConfigManaged(_registry) ProtocolAccessManaged(_accessManager) {
+        if (_accessManager == address(0)) {
+            revert InvalidParams();
+        }
         if (block.chainid > type(uint16).max) {
             revert ChainIdTooLarge(block.chainid);
         }
@@ -96,6 +102,12 @@ abstract contract BaseBridgeAdapter is
      */
     function unmapExternalId(uint16 chainId) external onlyGovernor {
         _unmapChainExternalId(chainId);
+    }
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return (interfaceId == type(IBridgeAdapter).interfaceId ||
+            interfaceId == type(IERC165).interfaceId);
     }
 
     /**
