@@ -131,7 +131,7 @@ contract SummerStaking is
 
     /// @inheritdoc ISummerStaking
     function stakeLockup(uint256 _amount, uint256 _lockupPeriod) external {
-        _stakeWithLockup(_msgSender(), _msgSender(), _amount, _lockupPeriod);
+        _stakeLockup(_msgSender(), _msgSender(), _amount, _lockupPeriod);
     }
 
     /// @inheritdoc ISummerStaking
@@ -140,7 +140,7 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) external {
-        _stakeWithLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
+        _stakeLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
     /// @inheritdoc ISummerStaking
@@ -492,7 +492,7 @@ contract SummerStaking is
 
     // ============ INTERNAL FUNCTIONS - STAKING LOGIC ============
 
-    function _stakeWithLockup(
+    function _stakeLockup(
         address _from,
         address _receiver,
         uint256 _amount,
