@@ -59,9 +59,7 @@ contract BridgeRouter is
         address adapter;
         uint16 sourceChainId;
         bytes operationPayload; // original encoded payload
-        bytes errorData; // revert reason data
         uint256 failedAt; // block timestamp
-        uint256 numAttempts; // how many times processing has been attempted (including first failure)
     }
 
     /// @notice Optional overrides when retrying a failed delivery
@@ -312,15 +310,11 @@ contract BridgeRouter is
                 adapter: adapter,
                 sourceChainId: sourceChainId,
                 operationPayload: operationPayload,
-                errorData: errorData,
-                failedAt: block.timestamp,
-                numAttempts: 1
+                failedAt: block.timestamp
             });
             failedDeliveryIds.add(operationId);
         } else {
             // Update existing record
-            existing.errorData = errorData;
-            existing.numAttempts += 1;
             existing.failedAt = block.timestamp;
             // Keep original payload and metadata
         }
@@ -859,8 +853,6 @@ contract BridgeRouter is
             FailedDeliveryRecord storage existing = failedDeliveries[
                 operationId
             ];
-            existing.errorData = err;
-            existing.numAttempts += 1;
             existing.failedAt = block.timestamp;
 
             emit OperationRetryFailed(
