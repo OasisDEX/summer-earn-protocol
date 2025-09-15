@@ -280,7 +280,13 @@ contract LayerZeroAdapter is
         // srcEid - Read Channel ID for Read operations -
         // https://docs.layerzero.network/v2/developers/evm/lzread/overview#hybrid-messaging--read
 
-        // todo: should the read reponse also contain the operation type and the originator?
+        // Read responses are identified by the read-channel `srcEid` and do NOT carry an
+        // operation type prefix. The raw LayerZero read payload is forwarded as
+        // `RelayedReadResponse.readResponseData`. The Router binds the response to the
+        // original request using `operationId` (tracked via `lzMessageToOperationId`) and
+        // resolves the `originator` from its own storage (`readRequestToOriginator`).
+        // Therefore, the read response payload itself should not include an operation type
+        // or originator.
         if (_origin.srcEid > readChannelThreshold) {
             _relayReadResponse(_origin, _guid, _payload);
         } else if (_payload.length >= 2) {
