@@ -839,7 +839,6 @@ contract BridgeRouter is
                 effectiveAdapter,
                 err
             );
-            // Intentionally do not revert so governance execution does not get stuck
         }
     }
 
