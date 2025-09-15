@@ -85,6 +85,35 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
+    function testRegisterAdapterZeroAddress() public {
+        vm.startPrank(governor);
+
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.registerAdapter(address(0));
+
+        vm.stopPrank();
+    }
+
+    function testRegisterAdapterEOA() public {
+        vm.startPrank(governor);
+
+        address eoa = address(0xBEEF);
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.registerAdapter(eoa);
+
+        vm.stopPrank();
+    }
+
+    function testRegisterAdapterNonIBridgeAdapterContract() public {
+        vm.startPrank(governor);
+
+        // mockReceiver is a contract but does not implement IBridgeAdapter
+        vm.expectRevert(IBridgeRouter.InvalidParams.selector);
+        router.registerAdapter(address(mockReceiver));
+
+        vm.stopPrank();
+    }
+
     function testGetAdapters() public {
         vm.startPrank(governor);
 

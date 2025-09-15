@@ -59,13 +59,11 @@ contract FleetProxy is
     /**
      * @notice Initializes the CrossChainFleetProxy
      * @param _accessManager Address of the access manager
-     * @param _bridgeRouter Address of the bridge router
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _fleetAddress Address of the Fleet contract this proxy covers
      */
     constructor(
         address _accessManager,
-        address _bridgeRouter,
         address _crossChainRegistry,
         address _fleetAddress,
         uint16 _sourceChainId
@@ -73,9 +71,11 @@ contract FleetProxy is
         ProtocolAccessManaged(_accessManager)
         CrossChainConfigManaged(_crossChainRegistry)
     {
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_fleetAddress == address(0)) revert InvalidFleetContract();
+        if (_sourceChainId == 0) revert InvalidSatelliteChain();
+        address registryRouter = bridgeRouter();
+        if (registryRouter == address(0)) revert InvalidBridgeRouter();
 
         fleetAddress = _fleetAddress;
         hubChainId = _sourceChainId;
