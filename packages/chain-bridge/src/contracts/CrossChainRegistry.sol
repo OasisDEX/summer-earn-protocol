@@ -108,69 +108,10 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         bytes32 relationshipType,
         uint16 targetChainId
     ) public onlyGovernor {
-        bytes32 relationshipKey = _getRelationshipKey(
+        _unregisterRelationship(
             sourceContract,
             relationshipType,
             targetChainId
-        );
-
-        // Check if this specific relationship exists
-        if (crossChainRelations[relationshipKey].sourceContract == address(0)) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                targetChainId
-            );
-        }
-
-        CrossChainRelation memory relation = crossChainRelations[
-            relationshipKey
-        ];
-
-        // Remove reverse mapping only when it was stored (inter-chain)
-        bool sameChain = _isSameChain(
-            relation.sourceChainId,
-            relation.targetChainId
-        );
-        bytes32 targetKey = _getTargetKey(
-            relation.sourceChainId,
-            relation.targetChainId,
-            relation.targetContract,
-            relationshipType
-        );
-
-        if (!sameChain && targetToSource[targetKey] == sourceContract) {
-            delete targetToSource[targetKey];
-        }
-
-        // Remove from sourceToTargetChains
-        bytes32 sourceTrackingKey = _getSourceTrackingKey(
-            sourceContract,
-            relationshipType
-        );
-        uint16[] storage targetChains = sourceToTargetChains[sourceTrackingKey];
-        for (uint256 i = 0; i < targetChains.length; i++) {
-            if (targetChains[i] == targetChainId) {
-                targetChains[i] = targetChains[targetChains.length - 1];
-                targetChains.pop();
-                break;
-            }
-        }
-
-        // Remove from registered source contracts if no more relationships exist
-        if (targetChains.length == 0) {
-            registeredSourceContracts[relationshipType].remove(sourceContract);
-        }
-
-        // Clean up mappings
-        delete crossChainRelations[relationshipKey];
-
-        emit CrossChainRelationshipUnregistered(
-            sourceContract,
-            relation.targetContract,
-            relation.sourceChainId,
-            relation.targetChainId,
-            relationshipType
         );
     }
 
@@ -187,7 +128,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
     /// @inheritdoc ICrossChainRegistry
     function removeExecutor(address executor) external onlyGovernor {
-        unregisterRelationship(
+        _unregisterRelationship(
             executor,
             EXECUTOR_RELATIONSHIP,
             CURRENT_CHAIN_ID
@@ -540,14 +481,14 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 chainA,
         uint16 chainB
     ) external onlyGovernor {
-        registerRelationship(
+        _registerRelationship(
             adapterA,
             adapterB,
             chainA,
             chainB,
             PEER_RELATIONSHIP
         );
-        registerRelationship(
+        _registerRelationship(
             adapterB,
             adapterA,
             chainB,
@@ -565,8 +506,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 chainA,
         uint16 chainB
     ) external onlyGovernor {
-        unregisterRelationship(adapterA, PEER_RELATIONSHIP, chainB);
-        unregisterRelationship(adapterB, PEER_RELATIONSHIP, chainA);
+        _unregisterRelationship(adapterA, PEER_RELATIONSHIP, chainB);
+        _unregisterRelationship(adapterB, PEER_RELATIONSHIP, chainA);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -587,14 +528,14 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 arkChainId,
         uint16 fleetChainId
     ) external onlyGovernor {
-        registerRelationship(
+        _registerRelationship(
             ark,
             fleetProxy,
             arkChainId,
             fleetChainId,
             ARK_FLEET_RELATIONSHIP
         );
-        registerRelationship(
+        _registerRelationship(
             fleetProxy,
             ark,
             fleetChainId,
@@ -612,8 +553,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 arkChainId,
         uint16 fleetChainId
     ) external onlyGovernor {
-        unregisterRelationship(ark, ARK_FLEET_RELATIONSHIP, fleetChainId);
-        unregisterRelationship(fleetProxy, ARK_FLEET_RELATIONSHIP, arkChainId);
+        _unregisterRelationship(ark, ARK_FLEET_RELATIONSHIP, fleetChainId);
+        _unregisterRelationship(fleetProxy, ARK_FLEET_RELATIONSHIP, arkChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -835,6 +776,79 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             targetContract,
             sourceChainId,
             targetChainId,
+            relationshipType
+        );
+    }
+    /**
+     * @notice Internal helper to remove a relationship by explicit target chain
+     */
+    function _unregisterRelationship(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    ) internal {
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType,
+            targetChainId
+        );
+
+        // Check if this specific relationship exists
+        if (crossChainRelations[relationshipKey].sourceContract == address(0)) {
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                targetChainId
+            );
+        }
+
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
+
+        // Remove reverse mapping only when it was stored (inter-chain)
+        bool sameChain = _isSameChain(
+            relation.sourceChainId,
+            relation.targetChainId
+        );
+        bytes32 targetKey = _getTargetKey(
+            relation.sourceChainId,
+            relation.targetChainId,
+            relation.targetContract,
+            relationshipType
+        );
+
+        if (!sameChain && targetToSource[targetKey] == sourceContract) {
+            delete targetToSource[targetKey];
+        }
+
+        // Remove from sourceToTargetChains
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+            sourceContract,
+            relationshipType
+        );
+        uint16[] storage targetChains = sourceToTargetChains[sourceTrackingKey];
+        for (uint256 i = 0; i < targetChains.length; i++) {
+            if (targetChains[i] == targetChainId) {
+                targetChains[i] = targetChains[targetChains.length - 1];
+                targetChains.pop();
+                break;
+            }
+        }
+
+        // Remove from registered source contracts if no more relationships exist
+        if (targetChains.length == 0) {
+            registeredSourceContracts[relationshipType].remove(sourceContract);
+        }
+
+        // Clean up mappings
+        delete crossChainRelations[relationshipKey];
+
+        emit CrossChainRelationshipUnregistered(
+            sourceContract,
+            relation.targetContract,
+            relation.sourceChainId,
+            relation.targetChainId,
             relationshipType
         );
     }
