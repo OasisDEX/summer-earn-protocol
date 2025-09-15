@@ -1064,6 +1064,9 @@ contract CrossChainRegistryTest is Test {
         address src = makeAddr("localSrc");
         address dst = makeAddr("localDst");
 
+        vm.prank(governor);
+        registry.addSupportedRelationshipType(localRelationship);
+
         vm.expectEmit(true, true, true, true);
         emit CrossChainRelationshipRegistered(
             src,
