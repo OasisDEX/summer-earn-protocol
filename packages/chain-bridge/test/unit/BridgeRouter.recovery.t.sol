@@ -88,7 +88,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry without overrides
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         // Failure cleared
@@ -177,7 +177,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         // Verify success
@@ -231,7 +231,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should revert with InvalidRecipient
-        vm.prank(governor);
+        vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InvalidRecipient.selector);
         router.retryFailedDelivery(opId, "");
     }
@@ -247,7 +247,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed (non-ark recipients are allowed)
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         // Verify success
@@ -293,7 +293,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         // Verify success
@@ -339,7 +339,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should revert with InvalidRecipient
-        vm.prank(governor);
+        vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InvalidRecipient.selector);
         router.retryFailedDelivery(opId, "");
     }
@@ -398,7 +398,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
         // Verify success with original amount
@@ -429,7 +429,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
             })
         );
 
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
         // Verify success with new asset
@@ -462,7 +462,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
             })
         );
 
-        vm.prank(governor);
+        vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InsufficientBalance.selector);
         router.retryFailedDelivery(opId, overrideData);
     }
@@ -488,7 +488,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
             })
         );
 
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
         // Verify success with new asset and new receiver

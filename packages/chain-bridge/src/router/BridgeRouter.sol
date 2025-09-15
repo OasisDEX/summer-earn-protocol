@@ -782,7 +782,7 @@ contract BridgeRouter is
     function retryFailedDelivery(
         bytes32 operationId,
         bytes calldata overrideData
-    ) external nonReentrant onlyGovernor whenNotPaused {
+    ) external nonReentrant onlyKeeper whenNotPaused {
         FailedDeliveryRecord memory r = failedDeliveries[operationId];
 
         if (r.failedAt == 0) revert InvalidParams();

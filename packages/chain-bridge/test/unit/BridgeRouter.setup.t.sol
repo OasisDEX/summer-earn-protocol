@@ -137,6 +137,7 @@ contract BridgeRouterSetup is Test {
 
         /* --------- Roles --------- */
         accessManager.grantGuardianRole(guardian);
+        accessManager.grantKeeperRole(address(router), keeper);
 
         /* --------- Assets & receivers --------- */
         token = new ERC20Mock();

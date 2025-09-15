@@ -117,6 +117,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         registry.registerExecutor(address(mockAdapter));
 
         accessManager.grantGuardianRole(guardian);
+        accessManager.grantKeeperRole(address(router), keeper);
 
         // Assets and receiver
         token = new ERC20Mock();
@@ -167,7 +168,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry without overrides
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         (bytes32[] memory ids2, ) = router.getFailedDeliveryIds(0, 10);
@@ -221,7 +222,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
                 asset: address(0) // keep original asset
             });
         bytes memory overrideData = abi.encode(overrides);
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
         (bytes32[] memory ids2, ) = router.getFailedDeliveryIds(0, 10);
@@ -257,7 +258,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
         // Retry with same payload after enabling receiver
         mockReceiver.setReceiveSuccess(true);
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         (bytes32[] memory ids2, ) = router.getFailedDeliveryIds(0, 10);
@@ -331,7 +332,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         // Verify success
@@ -381,7 +382,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should revert with InvalidRecipient
-        vm.prank(governor);
+        vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InvalidRecipient.selector);
         router.retryFailedDelivery(opId, "");
     }
@@ -419,7 +420,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         // Verify success
@@ -461,7 +462,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should revert with InvalidRecipient
-        vm.prank(governor);
+        vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InvalidRecipient.selector);
         router.retryFailedDelivery(opId, "");
     }
@@ -516,7 +517,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
         // Verify success with original amount
@@ -536,7 +537,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed (non-ark recipients are allowed)
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, "");
 
         // Verify success
@@ -567,7 +568,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             })
         );
 
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
         // Verify success with new asset
@@ -602,7 +603,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             })
         );
 
-        vm.prank(governor);
+        vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InsufficientBalance.selector);
         router.retryFailedDelivery(opId, overrideData);
     }
@@ -628,7 +629,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             })
         );
 
-        vm.prank(governor);
+        vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
         // Verify success with new asset and new receiver
