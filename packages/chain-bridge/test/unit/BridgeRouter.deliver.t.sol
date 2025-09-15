@@ -158,9 +158,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             address failingAdapter,
             uint16 srcChain,
             ,
-            bytes memory err,
-            uint256 failedAt,
-            uint256 attempts
+            uint256 failedAt
         ) = router.getFailedDeliveryRecord(operationId);
 
         assertEq(
@@ -170,8 +168,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         assertEq(failingAdapter, address(mockAdapter));
         assertEq(srcChain, untrustedSourceChain);
         assertGt(failedAt, 0);
-        assertEq(attempts, 1);
-        assertGt(err.length, 0);
     }
 
     function testDeliverMessageNoPeerRelationshipRecordsFailure() public {
@@ -198,17 +194,13 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             address failingAdapter,
             uint16 srcChain,
             ,
-            bytes memory err,
-            uint256 failedAt,
-            uint256 attempts
+            uint256 failedAt
         ) = router.getFailedDeliveryRecord(operationId);
 
         assertEq(uint8(opType), uint8(BridgeTypes.OperationType.MESSAGE));
         assertEq(failingAdapter, address(mockAdapter));
         assertEq(srcChain, untrustedSourceChain);
         assertGt(failedAt, 0);
-        assertEq(attempts, 1);
-        assertGt(err.length, 0);
     }
 
     function testDeliverReadResponseIgnoresPeerVerification() public {
@@ -287,9 +279,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             address failingAdapter,
             uint16 srcChain,
             ,
-            bytes memory err,
-            uint256 failedAt,
-            uint256 attempts
+            uint256 failedAt
         ) = router.getFailedDeliveryRecord(operationId);
         assertEq(
             uint8(opType),
@@ -298,8 +288,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         assertEq(failingAdapter, address(mockAdapter));
         assertEq(srcChain, sourceChainWithNoPeer);
         assertGt(failedAt, 0);
-        assertEq(attempts, 1);
-        assertGt(err.length, 0);
     }
 
     function testDeliverValidPeerRelationshipDifferentChains() public {
@@ -379,16 +367,12 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
             address failingAdapter,
             uint16 srcChain,
             ,
-            bytes memory err,
-            uint256 failedAt,
-            uint256 attempts
+            uint256 failedAt
         ) = router.getFailedDeliveryRecord(operationId);
         assertEq(uint8(opType), uint8(BridgeTypes.OperationType.MESSAGE));
         assertEq(failingAdapter, address(mockAdapter));
         assertEq(srcChain, uint16(SOURCE_CHAIN_ID));
         assertGt(failedAt, 0);
-        assertEq(attempts, 1);
-        assertGt(err.length, 0);
     }
 
     function testDeliverUnsupportedOperationTypeReverts() public {

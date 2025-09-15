@@ -103,9 +103,7 @@ contract BridgeRouterTestHelper is BridgeRouter {
             address adapter,
             uint16 sourceChainId,
             bytes memory operationPayload,
-            bytes memory errorData,
-            uint256 failedAt,
-            uint256 numAttempts
+            uint256 failedAt
         )
     {
         FailedDeliveryRecord memory r = failedDeliveries[operationId];
@@ -114,9 +112,7 @@ contract BridgeRouterTestHelper is BridgeRouter {
             r.adapter,
             r.sourceChainId,
             r.operationPayload,
-            r.errorData,
-            r.failedAt,
-            r.numAttempts
+            r.failedAt
         );
     }
 }

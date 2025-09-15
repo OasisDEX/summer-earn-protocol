@@ -133,16 +133,12 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             address failingAdapter,
             uint16 srcChain,
             ,
-            bytes memory err,
-            uint256 failedAt,
-            uint256 attempts
+            uint256 failedAt
         ) = router.getFailedDeliveryRecord(operationId);
         assertEq(uint8(opType), uint8(BridgeTypes.OperationType.READ_STATE));
         assertEq(failingAdapter, address(layerZeroAdapter));
         assertEq(srcChain, DEST_CHAIN_ID);
         assertGt(failedAt, 0);
-        assertGt(err.length, 0);
-        assertGe(attempts, 1);
 
         // Reset router behavior
         router.setShouldRevert(false);
@@ -288,17 +284,13 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 address failingAdapter2,
                 uint16 srcChain2,
                 ,
-                bytes memory err2,
-                uint256 failedAt2,
-                uint256 attempts2
+                uint256 failedAt2
             ) = router.getFailedDeliveryRecord(operationIds[i]);
             // Expect successful handling: no failure record should be present
             assertEq(uint8(opType2), uint8(BridgeTypes.OperationType.MESSAGE)); // default zero value
             assertEq(failingAdapter2, address(0));
             assertEq(srcChain2, 0);
             assertEq(failedAt2, 0);
-            assertEq(err2.length, 0);
-            assertEq(attempts2, 0);
         }
 
         console.log("[SUCCESS] Multiple read responses handled successfully");

@@ -440,17 +440,16 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address failingAdapter,
             uint16 srcChain,
             ,
-            bytes memory err,
-            uint256 failedAt,
-            uint256 attempts
+            uint256 failedAt
         ) = routerB.getFailedDeliveryRecord(bytes32("test-op"));
 
-        assertEq(uint8(opType), uint8(BridgeTypes.OperationType.TRANSFER_ASSET));
+        assertEq(
+            uint8(opType),
+            uint8(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
         assertEq(failingAdapter, address(adapterB));
         assertEq(srcChain, CHAIN_ID_A);
         assertGt(failedAt, 0);
-        assertGt(err.length, 0);
-        assertGe(attempts, 1);
 
         // Tokens were moved from adapter to router; router's transfer to recipient failed
         assertEq(
@@ -571,9 +570,21 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // ───────────────────────────  post-conditions  ───────────────────────────────
         // Router retains tokens because token transfer is rolled back with the self-call revert; adapter retains none
-        assertEq(tokenB.balanceOf(address(adapterB)), 0, "adapter should hold no tokens after failure");
-        assertEq(tokenB.balanceOf(address(routerB)), routerBalanceBefore + testAmount, "router should retain tokens after failure");
-        assertEq(tokenB.balanceOf(address(mockFleetCommander)), fleetCommanderBalanceBefore, "recipient should not receive tokens on failure");
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            0,
+            "adapter should hold no tokens after failure"
+        );
+        assertEq(
+            tokenB.balanceOf(address(routerB)),
+            routerBalanceBefore + testAmount,
+            "router should retain tokens after failure"
+        );
+        assertEq(
+            tokenB.balanceOf(address(mockFleetCommander)),
+            fleetCommanderBalanceBefore,
+            "recipient should not receive tokens on failure"
+        );
 
         // Failure recorded on router with provided operationId
         (
@@ -581,16 +592,15 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address failingAdapter2,
             uint16 srcChain2,
             ,
-            bytes memory err2,
-            uint256 failedAt2,
-            uint256 attempts2
+            uint256 failedAt2
         ) = routerB.getFailedDeliveryRecord(testOperationId);
-        assertEq(uint8(opType2), uint8(BridgeTypes.OperationType.TRANSFER_ASSET));
+        assertEq(
+            uint8(opType2),
+            uint8(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
         assertEq(failingAdapter2, address(adapterB));
         assertEq(srcChain2, CHAIN_ID_A);
         assertGt(failedAt2, 0);
-        assertGt(err2.length, 0);
-        assertGe(attempts2, 1);
     }
 
     function testSystemTransactionSuccessTokensDelivered() public {

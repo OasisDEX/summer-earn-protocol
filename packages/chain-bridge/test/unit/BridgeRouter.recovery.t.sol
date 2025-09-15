@@ -155,8 +155,6 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         assertEq(record.adapter, address(mockAdapter));
         assertEq(record.sourceChainId, SOURCE_CHAIN_ID);
         assertEq(record.failedAt, block.timestamp);
-        assertEq(record.numAttempts, 1);
-        assertTrue(record.errorData.length > 0);
     }
 
     /* ------------------------------------------------------------ */

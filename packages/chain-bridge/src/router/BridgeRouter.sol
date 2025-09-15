@@ -584,32 +584,10 @@ contract BridgeRouter is
         bytes calldata operationPayload
     ) external onlyRegisteredAdapter nonReentrant {
         // Pre-decode minimal fields for logging/recording
-        bytes32 operationId;
-        uint16 sourceChainId = 0;
-        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.RelayedTransferParams memory d = abi.decode(
-                operationPayload,
-                (BridgeTypes.RelayedTransferParams)
-            );
-            operationId = d.operationId;
-            sourceChainId = d.sourceChainId;
-        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.RelayedMessageParams memory d = abi.decode(
-                operationPayload,
-                (BridgeTypes.RelayedMessageParams)
-            );
-            operationId = d.operationId;
-            sourceChainId = d.sourceChainId;
-        } else if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            BridgeTypes.RelayedReadResponse memory d = abi.decode(
-                operationPayload,
-                (BridgeTypes.RelayedReadResponse)
-            );
-            operationId = d.operationId;
-            sourceChainId = d.sourceChainId;
-        } else {
-            revert UnsupportedOperationType();
-        }
+        (bytes32 operationId, uint16 sourceChainId) = _decodeOperationMeta(
+            operationType,
+            operationPayload
+        );
 
         // Attempt processing in a self-call so we can capture reverts without
         // rolling back the outer call (adapter delivery pathway)

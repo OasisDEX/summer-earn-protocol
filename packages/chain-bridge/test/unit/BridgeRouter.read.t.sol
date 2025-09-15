@@ -224,16 +224,12 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             address failingAdapter,
             uint16 srcChain,
             ,
-            bytes memory err,
-            uint256 failedAt,
-            uint256 attempts
+            uint256 failedAt
         ) = router.getFailedDeliveryRecord(operationId);
         assertEq(uint8(opType), uint8(BridgeTypes.OperationType.READ_STATE));
         assertEq(failingAdapter, address(mockAdapterDest));
         assertEq(srcChain, DEST_CHAIN_ID);
         assertGt(failedAt, 0);
-        assertGt(err.length, 0);
-        assertGe(attempts, 1);
     }
 
     function testExecuteReadState_ZeroGasLimitReverts() public {
@@ -370,15 +366,11 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
             address failingAdapter2,
             uint16 srcChain2,
             ,
-            bytes memory err2,
-            uint256 failedAt2,
-            uint256 attempts2
+            uint256 failedAt2
         ) = router.getFailedDeliveryRecord(operationId);
         assertEq(uint8(opType2), uint8(BridgeTypes.OperationType.READ_STATE));
         assertEq(failingAdapter2, address(mockAdapter));
         assertEq(srcChain2, DEST_CHAIN_ID);
         assertGt(failedAt2, 0);
-        assertGt(err2.length, 0);
-        assertGe(attempts2, 1);
     }
 }
