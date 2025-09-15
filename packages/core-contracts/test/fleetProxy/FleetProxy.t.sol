@@ -116,7 +116,6 @@ contract CrossChainFleetProxyTest is Test {
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(
             address(accessManager),
-            address(mockBridgeRouter),
             address(registry),
             address(fleetCommanderMock),
             SOURCE_CHAIN_ID

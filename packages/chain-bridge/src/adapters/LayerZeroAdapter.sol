@@ -61,6 +61,11 @@ contract LayerZeroAdapter is
     /// @notice Minimum gas limit for operations
     uint128 public minGasLimit;
 
+    /// @notice Governance cap for number of DVNs allowed in read config
+    /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
+    ///      This cap avoids overly large configurations and removes magic numbers.
+    uint8 public constant MAX_SUPPORTED_DVNS = 8;
+
     /// @notice Emitted when read libraries are configured
     event ReadLibrariesConfigured(
         address indexed readLib1002,
@@ -119,6 +124,8 @@ contract LayerZeroAdapter is
         Ownable(_initialOwner)
         BaseBridgeAdapter(_crossChainRegistry, _accessManager)
     {
+        if (_endpoint == address(0)) revert InvalidParams();
+        if (_initialOwner == address(0)) revert InvalidParams();
         if (_endpointChains.length != _endpointIds.length)
             revert InvalidParams();
         if (_readChannelThreshold == 0) revert InvalidParams();
@@ -126,6 +133,7 @@ contract LayerZeroAdapter is
 
         // Setup chain ID to LayerZero EID mappings using base functionality
         for (uint256 i = 0; i < _endpointChains.length; i++) {
+            if (_endpointIds[i] == 0) revert InvalidParams();
             _mapChainExternalId(_endpointChains[i], _endpointIds[i]);
         }
     }
@@ -161,6 +169,7 @@ contract LayerZeroAdapter is
         address readLib1002Address
     ) external onlyGovernor {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
+        if (readLib1002Address == address(0)) revert InvalidParams();
 
         // Set send library for read channel
         endpoint.setSendLibrary(
@@ -196,11 +205,14 @@ contract LayerZeroAdapter is
     ) external onlyGovernor {
         if (readChannelId == 0) revert ReadChannelNotConfigured();
         if (readDVNs.length == 0) revert InvalidParams();
+        if (readDVNs.length > MAX_SUPPORTED_DVNS) revert InvalidParams();
         if (readLib1002Address == address(0)) revert InvalidParams();
         if (executor == address(0)) revert InvalidParams();
 
         // Verify DVNs are sorted (required by LayerZero)
-        for (uint256 i = 1; i < readDVNs.length; i++) {
+        for (uint256 i = 0; i < readDVNs.length; i++) {
+            if (readDVNs[i] == address(0)) revert InvalidParams();
+            if (i == 0) continue;
             if (readDVNs[i] <= readDVNs[i - 1]) revert InvalidParams(); // Must be sorted
         }
 
