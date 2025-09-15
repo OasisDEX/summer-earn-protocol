@@ -5,6 +5,7 @@ import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {IMessageLibManager, SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
 import {LayerZeroAdapterForkSetupTest} from "./LayerZeroAdapter.fork.setup.t.sol";
+import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 import {console} from "forge-std/Test.sol";
 
 /**
@@ -137,14 +138,20 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
     }
 
     function testExpectEndpointCallsOnConfigureReadLibrariesAndDVNs() public {
+        // Deploy a fresh, unconfigured adapter for this test
+        LayerZeroAdapterTestHelper freshAdapter = _deployUnconfiguredAdapter();
+
         vm.startPrank(governor);
+
+        // First activate the read channel for the fresh adapter
+        freshAdapter.activateReadChannel(READ_CHANNEL_ID);
 
         // Expect setSendLibrary and setReceiveLibrary during configureReadLibraries
         vm.expectCall(
             LZ_ENDPOINT_BASE,
             abi.encodeWithSelector(
                 IMessageLibManager.setSendLibrary.selector,
-                address(layerZeroAdapter),
+                address(freshAdapter),
                 READ_CHANNEL_ID,
                 READ_LIB_1002_BASE
             )
@@ -154,14 +161,14 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             LZ_ENDPOINT_BASE,
             abi.encodeWithSelector(
                 IMessageLibManager.setReceiveLibrary.selector,
-                address(layerZeroAdapter),
+                address(freshAdapter),
                 READ_CHANNEL_ID,
                 READ_LIB_1002_BASE,
                 0
             )
         );
 
-        layerZeroAdapter.configureReadLibraries(READ_LIB_1002_BASE);
+        freshAdapter.configureReadLibraries(READ_LIB_1002_BASE);
 
         // Prepare DVN config to match adapter encoding
         address[] memory readDVNs = new address[](1);
@@ -187,13 +194,13 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             LZ_ENDPOINT_BASE,
             abi.encodeWithSelector(
                 IMessageLibManager.setConfig.selector,
-                address(layerZeroAdapter),
+                address(freshAdapter),
                 READ_LIB_1002_BASE,
                 params
             )
         );
 
-        layerZeroAdapter.configureReadDVNs(
+        freshAdapter.configureReadDVNs(
             READ_LIB_1002_BASE,
             readDVNs,
             15,

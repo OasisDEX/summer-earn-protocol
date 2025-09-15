@@ -135,7 +135,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
     function setBridgeQueue(address queue) external {
         mockBridgeQueueAddress = queue;
     }
-    }
 
     // Add registerAdapter function
     function registerAdapter(address adapter) external {
