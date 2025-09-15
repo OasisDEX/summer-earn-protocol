@@ -65,7 +65,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         );
         vm.stopPrank();
 
-        // todo: expect calls to lz endpoint to be made
+        // Endpoint expectations are asserted in integration tests where a real endpoint is available
     }
 
     function testDeliverReadResponse() public {

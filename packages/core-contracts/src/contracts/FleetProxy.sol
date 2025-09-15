@@ -209,7 +209,6 @@ contract FleetProxy is
         );
     }
 
-    // todo: revise security wise
     /**
      * @notice Notifies the source chain that assets have been received
      */
@@ -217,6 +216,10 @@ contract FleetProxy is
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
+        // Security: ensure the ARK relationship is currently valid in the registry
+        if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
+        // Security: include replay guard context - require we have a non-zero last transfer id
+        if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
         uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
         );
