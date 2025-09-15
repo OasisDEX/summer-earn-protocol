@@ -580,7 +580,7 @@ contract StargateAdapter is
 
     /**
      * @dev Decode OFT compose message header and payload
-     * Layout: [8b nonce][4b srcEid][32b amountLD][20b composeFrom][bytes composeMsg]
+     * Layout: [8b nonce][4b srcEid][32b amountLD][32b composeFrom][bytes composeMsg]
      */
     function _decodeOFTCompose(
         bytes calldata message
