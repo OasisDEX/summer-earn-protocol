@@ -142,6 +142,9 @@ interface IBridgeRouter is IERC165 {
     /// @notice Thrown when BridgeOptions.gasLimit is zero
     error ZeroGasLimit();
 
+    /// @notice Thrown when the recipient address is invalid (not a registered ark/fleet proxy)
+    error InvalidRecipient();
+
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
     //////////////////////////////////////////////////////////////*/

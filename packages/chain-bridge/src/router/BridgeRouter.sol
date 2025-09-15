@@ -64,8 +64,10 @@ contract BridgeRouter is
 
     /// @notice Optional overrides when retrying a failed delivery
     struct RetryOverrideParams {
-        address adapter; // set to address(0) to keep stored adapter
-        bytes operationPayload; // set to empty to keep stored payload
+        address recipient; // set to address(0) to keep stored recipient
+        address asset; // set to address(0) to keep stored asset, or override with actual received asset
+        // Note: Adapters typically override asset addresses for cross-chain compatibility,
+        // but this allows manual override if needed for edge cases
     }
 
     /// @notice Mapping from operationId to failure record (exists if failed)
@@ -785,25 +787,31 @@ contract BridgeRouter is
 
         if (r.failedAt == 0) revert InvalidParams();
 
-        address effectiveAdapter = r.adapter;
-
-        bytes memory effectivePayload = r.operationPayload;
-
-        if (overrideData.length > 0) {
-            (address adapterOverride, bytes memory payloadOverride) = abi
-                .decode(overrideData, (address, bytes));
-
-            if (adapterOverride != address(0)) {
-                effectiveAdapter = adapterOverride;
-            }
-
-            if (payloadOverride.length != 0) {
-                effectivePayload = payloadOverride;
-            }
+        // State reads should not be retryable as they are read-only operations
+        if (r.operationType == BridgeTypes.OperationType.READ_STATE) {
+            revert UnsupportedOperationType();
         }
 
-        // Adapter must be registered
-        if (!adapters.contains(effectiveAdapter)) revert UnknownAdapter();
+        // Use the original adapter - no override needed
+        address effectiveAdapter = r.adapter;
+
+        // Decode the original payload
+        bytes memory effectivePayload = r.operationPayload;
+
+        // Apply overrides if provided
+        if (overrideData.length > 0) {
+            RetryOverrideParams memory overrides = abi.decode(
+                overrideData,
+                (RetryOverrideParams)
+            );
+
+            // Apply overrides to the payload
+            effectivePayload = _applyRetryOverrides(
+                r.operationType,
+                effectivePayload,
+                overrides
+            );
+        }
 
         // Validate that payload decodes and carries the same operationId and sourceChainId
         (bytes32 decodedId, uint16 sourceChainId) = _decodeOperationMeta(
@@ -812,6 +820,14 @@ contract BridgeRouter is
         );
         if (decodedId != operationId) revert InvalidParams();
         if (sourceChainId != r.sourceChainId) revert InvalidParams();
+
+        // Enhanced payload validation
+        _validateRetryPayload(
+            r.operationType,
+            effectivePayload,
+            r.sourceChainId,
+            effectiveAdapter
+        );
 
         try
             this._processDelivery(
@@ -839,6 +855,197 @@ contract BridgeRouter is
                 effectiveAdapter,
                 err
             );
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        RETRY OVERRIDE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Applies retry overrides to the operation payload
+     * @param operationType Type of operation being retried
+     * @param originalPayload The original payload
+     * @param overrides The override parameters
+     * @return modifiedPayload The payload with overrides applied
+     */
+    function _applyRetryOverrides(
+        BridgeTypes.OperationType operationType,
+        bytes memory originalPayload,
+        RetryOverrideParams memory overrides
+    ) internal pure returns (bytes memory modifiedPayload) {
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.RelayedTransferParams memory params = abi.decode(
+                originalPayload,
+                (BridgeTypes.RelayedTransferParams)
+            );
+
+            // Apply recipient override
+            if (overrides.recipient != address(0)) {
+                params.recipient = overrides.recipient;
+            }
+
+            // CRITICAL: Apply asset override for cross-chain operations
+            // This fixes the asset address mismatch issue where the original payload
+            // contains the source chain asset address, but the BridgeRouter actually
+            // holds the target chain asset address after adapter processing.
+            if (overrides.asset != address(0)) {
+                params.asset = overrides.asset;
+            }
+
+            return abi.encode(params);
+        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            BridgeTypes.RelayedMessageParams memory params = abi.decode(
+                originalPayload,
+                (BridgeTypes.RelayedMessageParams)
+            );
+
+            // Apply recipient override
+            if (overrides.recipient != address(0)) {
+                params.recipient = overrides.recipient;
+            }
+
+            return abi.encode(params);
+        } else {
+            // For unsupported operation types, return original payload
+            return originalPayload;
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        PAYLOAD VALIDATION FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Validates retry payload integrity and system state
+     * @param operationType Type of operation being retried
+     * @param payload The payload to validate
+     * @param sourceChainId Expected source chain ID
+     * @param adapter The adapter that will process the retry
+     */
+    function _validateRetryPayload(
+        BridgeTypes.OperationType operationType,
+        bytes memory payload,
+        uint16 sourceChainId,
+        address adapter
+    ) internal view {
+        // Validate payload integrity based on operation type
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            _validateTransferPayload(payload, sourceChainId, adapter);
+        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            _validateMessagePayload(payload, sourceChainId, adapter);
+        }
+    }
+
+    /**
+     * @notice Validates transfer asset payload integrity
+     * @param payload The transfer payload to validate
+     * @param sourceChainId Expected source chain ID
+     * @param adapter The adapter that will process the retry
+     */
+    function _validateTransferPayload(
+        bytes memory payload,
+        uint16 sourceChainId,
+        address adapter
+    ) internal view {
+        BridgeTypes.RelayedTransferParams memory params = abi.decode(
+            payload,
+            (BridgeTypes.RelayedTransferParams)
+        );
+
+        // Validate ark-fleet relationship in both directions
+        _validateArkFleetRelationship(
+            params.originator,
+            params.recipient,
+            sourceChainId
+        );
+
+        // Validate asset is still supported and sufficient amount is available
+        _validateAssetStillSupported(params.asset, params.amount);
+    }
+
+    /**
+     * @notice Validates message payload integrity
+     * @param payload The message payload to validate
+     * @param sourceChainId Expected source chain ID
+     * @param adapter The adapter that will process the retry
+     */
+    function _validateMessagePayload(
+        bytes memory payload,
+        uint16 sourceChainId,
+        address adapter
+    ) internal view {
+        BridgeTypes.RelayedMessageParams memory params = abi.decode(
+            payload,
+            (BridgeTypes.RelayedMessageParams)
+        );
+
+        // Validate ark-fleet relationship in both directions
+        _validateArkFleetRelationship(
+            params.originator,
+            params.recipient,
+            sourceChainId
+        );
+    }
+
+    /**
+     * @notice Validates that ark-fleet relationship is valid in both directions
+     * @param originator The originator address (fleet)
+     * @param recipient The recipient address (ark)
+     * @param sourceChainId The source chain ID
+     */
+    function _validateArkFleetRelationship(
+        address originator,
+        address recipient,
+        uint16 sourceChainId
+    ) internal view {
+        // Check if recipient is a registered ark proxy
+        bool isArkProxy = CROSS_CHAIN_REGISTRY.isSourceContractRegistered(
+            recipient,
+            CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
+        );
+
+        if (isArkProxy) {
+            // Validate ark -> fleet relationship (recipient -> originator)
+            (address expectedFleet, ) = CROSS_CHAIN_REGISTRY.getTargetForSource(
+                recipient,
+                CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
+            );
+            if (expectedFleet != originator) {
+                revert InvalidRecipient();
+            }
+
+            // Validate fleet -> ark relationship (originator -> recipient) using cross-chain pair validation
+            bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
+                originator,
+                recipient,
+                sourceChainId,
+                uint16(block.chainid),
+                CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
+            );
+
+            if (!isValidPair) {
+                revert InvalidRecipient();
+            }
+        }
+        // If recipient is not an ark proxy, we allow the operation to proceed
+        // This maintains backward compatibility and allows for non-ark recipients
+    }
+
+    /**
+     * @notice Validates that the required amount of assets is available for retry
+     * @param asset The asset address to validate
+     * @param amount The amount of assets required for the retry
+     */
+    function _validateAssetStillSupported(
+        address asset,
+        uint256 amount
+    ) internal view {
+        // Check if the router has sufficient balance of the asset for the retry
+        // This is critical because after a failed delivery, assets should remain in the router
+        uint256 routerBalance = IERC20(asset).balanceOf(address(this));
+        if (routerBalance < amount) {
+            revert InsufficientBalance();
         }
     }
 
