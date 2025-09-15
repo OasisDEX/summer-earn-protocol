@@ -190,14 +190,14 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             _assertStake(
                 user1,
                 stakeIndex,
-                STAKE_AMOUNT,
-                expectedWeightedAmount,
+                STAKE_AMOUNT * (i + 1),
+                expectedWeightedAmount * (i + 1),
                 expectedLockupEndTime,
                 lockupPeriods[i]
             );
         }
-
-        assertEq(aStaking.getUserStakesCount(user1), 3);
+        // using only 0 index - no lcokup
+        assertEq(aStaking.getUserStakesCount(user1), 1);
         assertEq(aStaking.balanceOf(user1), STAKE_AMOUNT * 3);
     }
 
@@ -286,11 +286,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     function test_Revert_StakeWhenMaxStakesReached() public {
         // Create 10 stakes to reach the maximum
-        for (uint256 i = 0; i < 10; i++) {
-            _stake(aStaking, user1, STAKE_AMOUNT / 10, aMinLockupPeriod);
+        for (uint256 i = 0; i < 999; i++) {
+            _stake(aStaking, user1, STAKE_AMOUNT / 999, aMinLockupPeriod);
         }
 
-        assertEq(aStaking.getUserStakesCount(user1), 10);
+        assertEq(aStaking.getUserStakesCount(user1), 1000);
 
         // Attempt to create an 11th stake should revert
         vm.startPrank(user1);
@@ -316,118 +316,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
     }
 
-    // ============ ADDING TO STAKE TESTS (addToStake) ============
-
-    // Success Cases
-    function test_AddToExistingStake() public {
-        uint256 initialAmount = STAKE_AMOUNT;
-        uint256 additionalAmount = STAKE_AMOUNT / 2;
-        uint256 lockupPeriod = aMinLockupPeriod;
-
-        // Create initial stake
-        uint256 stakeIndex = _stake(
-            aStaking,
-            user1,
-            initialAmount,
-            lockupPeriod
-        );
-
-        // Get initial state
-        (
-            uint256 initialStakeAmount,
-            uint256 initialWeightedAmount,
-            ,
-
-        ) = aStaking.getUserStake(user1, stakeIndex);
-
-        // Add to existing stake
-        _addToStake(user1, stakeIndex, additionalAmount);
-
-        // Get updated state
-        (
-            uint256 updatedStakeAmount,
-            uint256 updatedWeightedAmount,
-            ,
-
-        ) = aStaking.getUserStake(user1, stakeIndex);
-
-        // Verify amounts increased
-        assertEq(updatedStakeAmount, initialStakeAmount + additionalAmount);
-        assertGt(updatedWeightedAmount, initialWeightedAmount);
-
-        // Verify total balances
-        assertEq(aStaking.balanceOf(user1), initialAmount + additionalAmount);
-        assertEq(aStaking.weightedBalanceOf(user1), updatedWeightedAmount);
-    }
-
-    function test_CorrectStateChangesOnAddToStake() public {
-        uint256 initialAmount = STAKE_AMOUNT;
-        uint256 additionalAmount = STAKE_AMOUNT / 2;
-        uint256 lockupPeriod = aMinLockupPeriod;
-
-        // Create initial stake
-        uint256 stakeIndex = _stake(
-            aStaking,
-            user1,
-            initialAmount,
-            lockupPeriod
-        );
-
-        // Get state before adding
-        uint256 balanceBefore = aStaking.balanceOf(user1);
-        uint256 weightedBalanceBefore = aStaking.weightedBalanceOf(user1);
-        uint256 totalSupplyBefore = aStaking.totalSupply();
-
-        // Add to stake
-        _addToStake(user1, stakeIndex, additionalAmount);
-
-        // Verify state changes
-        assertEq(aStaking.balanceOf(user1), balanceBefore + additionalAmount);
-        assertGt(aStaking.weightedBalanceOf(user1), weightedBalanceBefore);
-        assertGt(aStaking.totalSupply(), totalSupplyBefore);
-    }
-
-    // Failure Cases
-    function test_Revert_AddToStakeWithInvalidIndex() public {
-        uint256 stakeIndex = _stake(
-            aStaking,
-            user1,
-            STAKE_AMOUNT,
-            aMinLockupPeriod
-        );
-
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
-        vm.expectRevert(abi.encodeWithSignature("Staking_InvalidStakeIndex()"));
-        aStaking.addToStake(stakeIndex + 1, STAKE_AMOUNT); // Invalid index
-        vm.stopPrank();
-    }
-
-    function test_Revert_AddToStakeOnExpiredLockup() public {
-        uint256 lockupPeriod = aMinLockupPeriod;
-        uint256 stakeIndex = _stake(
-            aStaking,
-            user1,
-            STAKE_AMOUNT,
-            lockupPeriod
-        );
-
-        // Warp time past the lockup end
-        vm.warp(block.timestamp + lockupPeriod + 1 days);
-
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidLockupPeriod(string)",
-                "Lockup period has ended"
-            )
-        );
-        aStaking.addToStake(stakeIndex, STAKE_AMOUNT);
-        vm.stopPrank();
-    }
-
-    // ============ UNSTAKING TESTS (unstakeFromLockup) ============
+    // ============ UNSTAKING TESTS (unstakeLockup) ============
 
     // After Lockup (No Penalty)
     function test_UnstakeFullAmountAfterLockup() public {
@@ -547,6 +436,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Unstake immediately
         _verifyUnstakedEvent(
             user1,
+            aStaking.stakePortfolioId(user1),
+            stakeIndex,
             stakeAmount,
             (stakeAmount * expectedPenalty) / Constants.WAD,
             expectedReturnAmount
@@ -651,7 +542,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSignature("CannotUnstakeZero()"));
-        aStaking.unstakeFromLockup(stakeIndex, 0);
+        aStaking.unstakeLockup(stakeIndex, 0);
     }
 
     function test_Revert_UnstakeWithInvalidIndex() public {
@@ -665,7 +556,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.startPrank(user1);
         axSumr.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(abi.encodeWithSignature("Staking_InvalidStakeIndex()"));
-        aStaking.unstakeFromLockup(stakeIndex + 1, STAKE_AMOUNT);
+        aStaking.unstakeLockup(stakeIndex + 1, STAKE_AMOUNT);
         vm.stopPrank();
     }
 
@@ -682,7 +573,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("Staking_InsufficientBalance()")
         );
-        aStaking.unstakeFromLockup(stakeIndex, STAKE_AMOUNT * 2);
+        aStaking.unstakeLockup(stakeIndex, STAKE_AMOUNT * 2);
         vm.stopPrank();
     }
 
@@ -731,14 +622,19 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         ISummerStaking.Bucket bucket = ISummerStaking.Bucket.ThreeToSixMonths;
 
         // Stake in ThreeToSixMonths bucket (90 days to 180 days)
-        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
+        uint256 stakeIndex1 = _stake(
+            aStaking,
+            user1,
+            STAKE_AMOUNT,
+            aMinLockupPeriod
+        );
         _stake(aStaking, user2, STAKE_AMOUNT, aMinLockupPeriod);
 
         // Verify bucket total
         _assertBucket(bucket, STAKE_AMOUNT * 2);
 
         // Unstake from user1
-        _approveAndUnstake(aStaking, user1, 0, STAKE_AMOUNT);
+        _approveAndUnstake(aStaking, user1, stakeIndex1, STAKE_AMOUNT);
 
         // Verify bucket total updated
         _assertBucket(bucket, STAKE_AMOUNT);
@@ -851,7 +747,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_DirectUnstakeNotAllowed(string)",
-                "Use unstakeFromLockup instead"
+                "Use unstakeLockup instead"
             )
         );
         aStaking.unstake(STAKE_AMOUNT);
@@ -862,7 +758,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking_DirectUnstakeNotAllowed(string)",
-                "Use unstakeFromLockup instead"
+                "Use unstakeLockup instead"
             )
         );
         aStaking.exit();
@@ -902,26 +798,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Verify stake was created
         (uint256 stakedAmount, , , ) = aStaking.getUserStake(user1, stakeIndex);
         assertEq(stakedAmount, amount);
-    }
-
-    function test_Fuzz_AddToStake(uint128 amount) public {
-        // Create initial stake
-        uint256 stakeIndex = _stake(
-            aStaking,
-            user1,
-            STAKE_AMOUNT,
-            aMinLockupPeriod
-        );
-
-        // Bound the additional amount
-        amount = uint128(bound(amount, 1 ether, STAKE_AMOUNT));
-
-        // Add to stake should succeed
-        _addToStake(user1, stakeIndex, amount);
-
-        // Verify total amount increased
-        (uint256 totalAmount, , , ) = aStaking.getUserStake(user1, stakeIndex);
-        assertEq(totalAmount, STAKE_AMOUNT + amount);
     }
 
     function test_Fuzz_Unstake(uint128 amount) public {
@@ -1220,7 +1096,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         lockupPeriod = lockupPeriod + 1;
 
         uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
-        assertEq(aStaking.getUserStakesCount(user1), 1);
+        // first stake is no lockup - automatically created
+        assertEq(aStaking.getUserStakesCount(user1), 2);
         _assertStake(
             user1,
             stakeIndex,
@@ -1359,8 +1236,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         assertEq(
             aStaking.getUserStakesCount(receiver),
-            1,
-            "Receiver should have one stake"
+            2,
+            "Receiver should have two stakes (including no lockup one)"
         );
 
         assertEq(
@@ -1369,82 +1246,16 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             "Sender should have no stakes"
         );
 
-        // Now test addToStakeOnBehalf with the same stake
-        uint256 additionalAmount = STAKE_AMOUNT / 2;
-
-        // Get balances before adding to stake
-        uint256 senderSummerBalanceBeforeAdd = aSummerToken.balanceOf(sender);
-        uint256 receiverSummerBalanceBeforeAdd = aSummerToken.balanceOf(
-            receiver
-        );
-        uint256 senderXSumrBalanceBeforeAdd = axSumr.balanceOf(sender);
-        uint256 receiverXSumrBalanceBeforeAdd = axSumr.balanceOf(receiver);
-
-        // Sender adds to receiver's stake
-        vm.startPrank(sender);
-        aSummerToken.approve(address(aStaking), additionalAmount);
-        aStaking.addToStakeOnBehalf(receiver, 0, additionalAmount); // stake index 0
-        vm.stopPrank();
-
-        // Verify SUMMER tokens were pulled from sender for the addition
-        assertEq(
-            aSummerToken.balanceOf(sender),
-            senderSummerBalanceBeforeAdd - additionalAmount,
-            "Additional SUMMER tokens should be pulled from sender"
-        );
-
-        // Verify receiver's SUMMER balance unchanged for the addition
-        assertEq(
-            aSummerToken.balanceOf(receiver),
-            receiverSummerBalanceBeforeAdd,
-            "Receiver's SUMMER balance should remain unchanged after addition"
-        );
-
-        // Verify additional xSUMR tokens were minted to receiver, not sender
-        assertEq(
-            axSumr.balanceOf(receiver),
-            receiverXSumrBalanceBeforeAdd + additionalAmount,
-            "Additional xSUMR tokens should be minted to receiver"
-        );
-
-        // Verify sender still did NOT receive additional xSUMR tokens
-        assertEq(
-            axSumr.balanceOf(sender),
-            senderXSumrBalanceBeforeAdd,
-            "Sender should not receive additional xSUMR tokens"
-        );
-
-        // Verify receiver's stake amount increased
-        assertEq(
-            aStaking.balanceOf(receiver),
-            stakeAmount + additionalAmount,
-            "Receiver's staking balance should increase"
-        );
-
-        // Verify sender still has no staking balance
-        assertEq(
-            aStaking.balanceOf(sender),
-            0,
-            "Sender should still have no staking balance"
-        );
-
-        // Verify receiver still has only one stake (amount increased, not new stake)
-        assertEq(
-            aStaking.getUserStakesCount(receiver),
-            1,
-            "Receiver should still have one stake"
-        );
-
         // Verify the stake amount was updated correctly
-        (uint256 updatedStakeAmount, , , ) = aStaking.getUserStake(receiver, 0);
+        (uint256 _stakeAmount, , , ) = aStaking.getUserStake(receiver, 1);
         assertEq(
-            updatedStakeAmount,
-            stakeAmount + additionalAmount,
+            _stakeAmount,
+            stakeAmount,
             "Stake amount should be updated to include additional amount"
         );
     }
 
-    // ============ INVARIANT TESTS ============
+    // ============ INVARIANT(ISH) TESTS ============
 
     function test_Invariant_SupplyConsistency() public {
         // Create multiple stakes
@@ -1482,14 +1293,19 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = STAKE_AMOUNT;
 
         // Stake in bucket 0 (90 days to 180 days)
-        _stake(aStaking, user1, stakeAmount, aMinLockupPeriod);
+        uint256 stakeIndex1 = _stake(
+            aStaking,
+            user1,
+            stakeAmount,
+            aMinLockupPeriod
+        );
 
         // Verify bucket total matches staked amount
         _assertBucket(ISummerStaking.Bucket.ThreeToSixMonths, stakeAmount);
 
         // Unstake and verify bucket total is updated
         vm.warp(block.timestamp + aMinLockupPeriod + 1 days);
-        _approveAndUnstake(aStaking, user1, 0, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex1, stakeAmount);
 
         _assertBucket(ISummerStaking.Bucket.ThreeToSixMonths, 0);
     }
@@ -1497,7 +1313,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Invariant_TokenAccounting() public {
         uint256 stakeAmount = STAKE_AMOUNT;
 
-        _stake(aStaking, user1, stakeAmount, aMinLockupPeriod);
+        uint256 stakeIndex1 = _stake(
+            aStaking,
+            user1,
+            stakeAmount,
+            aMinLockupPeriod
+        );
 
         // Verify sSUMMER token supply equals staked amount
         assertEq(
@@ -1508,12 +1329,285 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         // Unstake and verify
         vm.warp(block.timestamp + aMinLockupPeriod + 1 days);
-        _approveAndUnstake(aStaking, user1, 0, stakeAmount);
+        _approveAndUnstake(aStaking, user1, stakeIndex1, stakeAmount);
 
         assertEq(
             axSumr.totalSupply(),
             0,
             "sSUMMER supply should be zero after unstaking"
         );
+    }
+
+    // ============ MOVE STAKES TESTS ============
+
+    function test_MoveAllStakesTo_FreshWallet_AccountingMoves_XSumrTransfers()
+        public
+    {
+        // Prepare: user1 has multiple stakes; user2 has none
+        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
+        _stake(aStaking, user1, STAKE_AMOUNT / 2, 0);
+        assertEq(aStaking.getUserStakesCount(user1), 2);
+        assertEq(aStaking.getUserStakesCount(user2), 0);
+
+        // Snapshot pre-state
+        uint256 fromRawBefore = aStaking.balanceOf(user1);
+        uint256 fromWeightedBefore = aStaking.weightedBalanceOf(user1);
+        uint256 toRawBefore = aStaking.balanceOf(user2);
+        uint256 toWeightedBefore = aStaking.weightedBalanceOf(user2);
+        uint256 totalSupplyBefore = aStaking.totalSupply();
+        uint256 xFromBefore = axSumr.balanceOf(user1);
+        uint256 xToBefore = axSumr.balanceOf(user2);
+
+        // Approve xSUMR transfer and move all stakes from user1 to user2
+        vm.prank(user1);
+        axSumr.approve(address(aStaking), fromRawBefore);
+        vm.prank(user1);
+        aStaking.transferStakes(user2);
+
+        // Source is cleared
+        assertEq(
+            aStaking.getUserStakesCount(user1),
+            0,
+            "from stakes should be cleared"
+        );
+        assertEq(
+            aStaking.balanceOf(user1),
+            0,
+            "from raw balance should be zero"
+        );
+        assertEq(
+            aStaking.weightedBalanceOf(user1),
+            0,
+            "from weighted balance should be zero"
+        );
+
+        // Target receives balances and stakes
+        assertEq(
+            aStaking.getUserStakesCount(user2),
+            2,
+            "to should receive all stakes"
+        );
+        assertEq(
+            aStaking.balanceOf(user2),
+            toRawBefore + fromRawBefore,
+            "to raw balance should increase by from raw"
+        );
+        assertEq(
+            aStaking.weightedBalanceOf(user2),
+            toWeightedBefore + fromWeightedBefore,
+            "to weighted balance should increase by from weighted"
+        );
+
+        // Total weighted supply unchanged
+        assertEq(
+            aStaking.totalSupply(),
+            totalSupplyBefore,
+            "totalSupply must remain unchanged"
+        );
+
+        // xSUMR token balances moved
+        assertEq(
+            axSumr.balanceOf(user1),
+            xFromBefore - fromRawBefore,
+            "xSUMR of from should decrease by raw amount"
+        );
+        assertEq(
+            axSumr.balanceOf(user2),
+            xToBefore + fromRawBefore,
+            "xSUMR of to should increase by raw amount"
+        );
+
+        // Check moved stake data coherence (non-zero amounts)
+        (uint256 amt0, , , ) = aStaking.getUserStake(user2, 0);
+        (uint256 amt1, , , ) = aStaking.getUserStake(user2, 1);
+        assertGt(amt0, 0);
+        assertGt(amt1, 0);
+    }
+
+    function test_TransferStakes_MovesAccruedRewards_ReceiverCanClaim() public {
+        // Stake by user1
+        uint256 stakeAmount = STAKE_AMOUNT;
+        _stake(aStaking, user1, stakeAmount, aMinLockupPeriod);
+
+        // Notify rewards and accrue
+        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
+        vm.warp(block.timestamp + 30 days);
+
+        // Earned before transfer should be > 0 for user1
+        uint256 earnedBefore = aStaking.earned(user1, address(rewardToken));
+        assertGt(
+            earnedBefore,
+            0,
+            "user1 should have accrued rewards before transfer"
+        );
+
+        // Approve xSUMR transfer
+        vm.prank(user1);
+        axSumr.approve(address(aStaking), stakeAmount);
+
+        // Transfer stakes to user2
+        vm.prank(user1);
+        aStaking.transferStakes(user2);
+
+        // After transfer: user1 can't earn prior rewards, user2 has them
+        assertEq(
+            aStaking.earned(user1, address(rewardToken)),
+            0,
+            "user1 accrued rewards should be moved"
+        );
+        uint256 earnedTo = aStaking.earned(user2, address(rewardToken));
+        assertEq(
+            earnedTo,
+            earnedBefore,
+            "user2 should inherit accrued rewards"
+        );
+
+        // xSUMR moved from user1 to user2
+        assertEq(axSumr.balanceOf(user1), 0, "from xSUMR should be moved");
+        assertEq(
+            axSumr.balanceOf(user2),
+            stakeAmount,
+            "to xSUMR should increase by staked amount"
+        );
+
+        // User2 can claim
+        uint256 user2RewardBalanceBefore = rewardToken.balanceOf(user2);
+        vm.prank(user2);
+        aStaking.getReward(address(rewardToken));
+        uint256 user2RewardBalanceAfter = rewardToken.balanceOf(user2);
+        assertEq(
+            user2RewardBalanceAfter,
+            user2RewardBalanceBefore + earnedTo,
+            "user2 should receive accrued rewards on claim"
+        );
+        assertEq(
+            aStaking.earned(user2, address(rewardToken)),
+            0,
+            "earned should reset after claim"
+        );
+
+        uint user1RewardsBalanceBefore = rewardToken.balanceOf(user1);
+        // User1 can't claim
+        vm.prank(user1);
+        aStaking.getReward(address(rewardToken));
+        uint user1RewardsBalanceAfter = rewardToken.balanceOf(user1);
+        assertEq(
+            user1RewardsBalanceAfter,
+            user1RewardsBalanceBefore,
+            "user1 should not receive rewards after claim"
+        );
+    }
+
+    function test_Revert_TransferStakes_TargetHasUnclaimedRewards() public {
+        // Prepare target with unclaimed rewards but zero stakes
+        // Step 1: user2 stakes and accrues rewards
+        uint256 stakeIndex1 = _stake(
+            aStaking,
+            user2,
+            STAKE_AMOUNT,
+            aMinLockupPeriod
+        );
+        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
+        vm.warp(block.timestamp + 10 days);
+        // Step 2: user2 fully unstakes (after lockup), leaving accrued rewards
+        vm.warp(block.timestamp + aMinLockupPeriod + 1 days);
+        _approveAndUnstake(aStaking, user2, stakeIndex1, STAKE_AMOUNT);
+        assertEq(
+            aStaking.getUserStakesCount(user2),
+            1,
+            "user2 should have one stake (no Lockup)"
+        );
+        assertGt(
+            aStaking.earned(user2, address(rewardToken)),
+            0,
+            "user2 should have unclaimed rewards"
+        );
+
+        // Now user1 stakes and tries to transfer to user2
+        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_ExistingTarget.selector,
+                "Target already has stakes"
+            )
+        );
+        aStaking.transferStakes(user2);
+    }
+
+    function test_PenaltyDisabled_ImmediateUnstake_NoPenalty() public {
+        uint256 stakeAmount = STAKE_AMOUNT;
+        uint256 lockupPeriod = aMaxLockupPeriod; // otherwise would have max penalty
+
+        // Stake by user1
+        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
+
+        // Sanity: penalty > 0 when enabled
+        uint256 penaltyBefore = aStaking.calculatePenaltyPercentage(
+            user1,
+            stakeIndex
+        );
+        assertGt(penaltyBefore, 0, "penalty should be > 0 before disabling");
+
+        // Disable penalty by governor
+        vm.prank(address(timelockA));
+        aStaking.updatePenaltyEnabled(false);
+
+        // Now penalty should be 0
+        uint256 penaltyAfter = aStaking.calculatePenaltyPercentage(
+            user1,
+            stakeIndex
+        );
+        assertEq(penaltyAfter, 0, "penalty should be 0 after disabling");
+
+        uint256 userSummerBefore = aSummerToken.balanceOf(user1);
+        uint256 treasuryBefore = aSummerToken.balanceOf(aStaking.treasury());
+        _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
+        assertEq(
+            aSummerToken.balanceOf(aStaking.treasury()),
+            treasuryBefore,
+            "treasury should not receive penalty"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            userSummerBefore + stakeAmount,
+            "user receives full amount back"
+        );
+    }
+
+    function test_create_multiple_stakes_and_transfer_measure_gas() public {
+        deal(address(aSummerToken), user1, STAKE_AMOUNT * 100);
+        uint[] memory counts = new uint[](10);
+        for (uint256 i = 0; i < 10; i++) {
+            counts[i] = i * 50 + 50;
+        }
+        for (uint256 i = 0; i < 10; i++) {
+            _create_multiple_stakes_and_transfer_measure_gas(counts[i]);
+        }
+    }
+    function _create_multiple_stakes_and_transfer_measure_gas(
+        uint count
+    ) internal {
+        SummerStaking freshStaking = createFreshStakingWithConfig();
+        for (uint256 i = 0; i < count; i++) {
+            _stake(
+                freshStaking,
+                user1,
+                STAKE_AMOUNT / 100,
+                aMinLockupPeriod + i
+            );
+        }
+
+        uint256 gasBefore = gasleft();
+        vm.prank(user1);
+        axSumr.approve(address(freshStaking), STAKE_AMOUNT * 100);
+        address newUser = makeAddr(string(abi.encodePacked("user", count)));
+        vm.prank(user1);
+        freshStaking.transferStakes(newUser);
+        uint256 gasAfter = gasleft();
+        uint256 gasUsed = gasBefore - gasAfter;
+        assertLt(gasUsed, 200000);
+        assertEq(freshStaking.getUserStakesCount(user1), 0);
+        assertEq(freshStaking.getUserStakesCount(newUser), count + 1);
     }
 }

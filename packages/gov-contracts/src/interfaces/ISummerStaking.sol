@@ -80,30 +80,13 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     ) external;
 
     /**
-     * @notice Add more tokens to an existing stake position
-     * @param _stakeIndex The index of the existing stake to add to (0-based)
-     * @param _amount The amount of SUMMER tokens to add (must be > 0)
-     * @dev Can only add to stakes where lockup period is still active
-     * @dev Weighted amount is calculated based on remaining lockup time
-     * @dev Does not extend the original lockup end time
-     * @dev Emits StakedWithLockup and Staked events
-     * @dev Reverts if stake index invalid, lockup ended, or bucket cap exceeded
+     * @notice Move all stake positions and accounting from caller to a fresh target wallet
+     * @param _to The target wallet that must currently have zero stakes
+     * @dev Moves xSumr from caller to target
+     * @dev this is in case of compromised wallet or any other reason that might require a wallet to be cleaned up
+     * @dev Reverts if target wallet already has at least one stake
      */
-    function addToStake(uint256 _stakeIndex, uint256 _amount) external;
-
-    /**
-     * @notice Add tokens to an existing stake on behalf of another address
-     * @param _receiver The address that owns the stake to add to
-     * @param _stakeIndex The index of the existing stake to add to
-     * @param _amount The amount of SUMMER tokens to add
-     * @dev SUMMER tokens transferred from caller, added to receiver's stake
-     * @dev Same mechanics and validations as addToStake()
-     */
-    function addToStakeOnBehalf(
-        address _receiver,
-        uint256 _stakeIndex,
-        uint256 _amount
-    ) external;
+    function transferStakes(address _to) external;
 
     // ============ UNSTAKING FUNCTIONS ============
 
@@ -111,6 +94,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @notice Unstake tokens from a specific stake position with penalty calculation
      * @param _stakeIndex The index of the stake to unstake from (0-based)
      * @param _amount The amount of tokens to unstake (must be > 0 and <= stake amount)
+     * @dev can only be called by the wallet that owns the stake, there is no onBehalf version due to the penalty
      * @dev Applies penalty for early withdrawal based on remaining lockup time
      * @dev Penalty formula: penalty% = (timeRemaining / maxLockupPeriod) * 20%
      * @dev Examples:
@@ -122,7 +106,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @dev Emits UnstakedWithPenalty and Unstaked events
      * @dev Reverts if amount is 0, stake index invalid, or insufficient balance
      */
-    function unstakeFromLockup(uint256 _stakeIndex, uint256 _amount) external;
+    function unstakeLockup(uint256 _stakeIndex, uint256 _amount) external;
 
     // ============ VIEW FUNCTIONS - STAKE INFORMATION ============
 
@@ -275,17 +259,39 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      */
     function updateLockupBucketCap(Bucket _bucket, uint256 _newCap) external;
 
+    /**
+     * @notice Update the penalty enabled status
+     * @param _penaltyEnabled The new penalty enabled status
+     * @dev Only callable by protocol governor
+     * @dev Used to manage protocol risk and control staking distribution
+     * @dev Emits PenaltyEnabledUpdated event
+     */
+    function updatePenaltyEnabled(bool _penaltyEnabled) external;
+
+    /**
+     * @notice Rescues a token and transfers it to the new owner
+     * @param _token The address of the token to rescue
+     * @param _to The address of the new owner
+     * @dev Only callable by protocol governor
+     * @dev Used to rescue tokens in case of emergency
+     */
+    function rescueToken(address _token, address _to) external;
+
     // ============ EVENTS ============
 
     /**
      * @notice Emitted when tokens are staked with a lockup period
-     * @param user The address that staked the tokens
+     * @param receiver The address that staked the tokens
+     * @param stakeId The id of the stake
+     * @param stakeIndex The index of the stake that was staked
      * @param amount The amount of tokens staked
      * @param lockupPeriod The lockup period in seconds
      * @param weightedAmount The weighted amount calculated for rewards
      */
     event StakedWithLockup(
-        address indexed user,
+        address indexed receiver,
+        uint256 indexed stakeId,
+        uint256 indexed stakeIndex,
         uint256 amount,
         uint256 lockupPeriod,
         uint256 weightedAmount
@@ -293,13 +299,17 @@ interface ISummerStaking is IStakingRewardsManagerBase {
 
     /**
      * @notice Emitted when tokens are unstaked with a penalty applied
-     * @param user The address that unstaked the tokens
+     * @param receiver The owner of the stake that unstaked the tokens
+     * @param stakeId The id of the stake array
+     * @param stakeIndex The index of the stake that was unstaked
      * @param unstakedAmount The gross amount unstaked before penalty
      * @param penalty The penalty amount sent to treasury
      * @param returnAmount The net amount returned to user (unstakedAmount - penalty)
      */
     event UnstakedWithPenalty(
-        address indexed user,
+        address indexed receiver,
+        uint256 indexed stakeId,
+        uint256 indexed stakeIndex,
         uint256 unstakedAmount,
         uint256 penalty,
         uint256 returnAmount
@@ -313,6 +323,18 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     event LockupBucketUpdated(Bucket indexed bucket, uint256 cap);
 
     /**
+     * @notice Emitted when stakes are transferred from one wallet to another
+     * @param from The address that transferred the stakes
+     * @param to The address that received the stakes
+     * @param stakeId The id of the stake
+     */
+    event StakesTransferred(
+        address indexed from,
+        address indexed to,
+        uint256 indexed stakeId
+    );
+
+    /**
      * @notice Emitted when the treasury address is updated
      * @param oldTreasury The previous treasury address
      * @param newTreasury The new treasury address
@@ -322,6 +344,12 @@ interface ISummerStaking is IStakingRewardsManagerBase {
         address indexed newTreasury
     );
 
+    /**
+     * @notice Emitted when the penalty enabled status is updated
+     * @param penaltyEnabled The new penalty enabled status
+     */
+    event PenaltyEnabledUpdated(bool penaltyEnabled);
+
     // ============ ERRORS ============
 
     /// @notice Thrown when trying to use an invalid address (zero address)
@@ -330,7 +358,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     /// @notice Thrown when trying to use direct stake function instead of stakeLockup
     error Staking_DirectStakeNotAllowed(string message);
 
-    /// @notice Thrown when trying to use direct unstake function instead of unstakeFromLockup
+    /// @notice Thrown when trying to use direct unstake function instead of unstakeLockup
     error Staking_DirectUnstakeNotAllowed(string message);
 
     /// @notice Thrown when lockup period is invalid (too long, ended, etc.)
@@ -353,4 +381,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
 
     /// @notice Thrown when trying to stake amount that would exceed bucket cap
     error Staking_BucketCapExceeded();
+
+    /// @notice Thrown when trying to move stakes to a wallet that already has stakes
+    error Staking_ExistingTarget(string message);
 }
