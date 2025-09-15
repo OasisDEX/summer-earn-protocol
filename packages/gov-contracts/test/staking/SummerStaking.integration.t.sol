@@ -353,7 +353,7 @@ contract SummerStakingIntegrationTest is SummerStakingTestBase {
 
         // Alice stakes twice
         stakeAndDelegate(alice, stakeAmount1, false);
-        stakeAndDelegate(alice, stakeAmount2, true, 0);
+        stakeAndDelegate(alice, stakeAmount2, true);
 
         advanceTimeAndBlock();
 

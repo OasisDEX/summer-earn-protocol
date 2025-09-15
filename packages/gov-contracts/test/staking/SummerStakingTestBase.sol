@@ -133,30 +133,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     }
 
     /**
-     * @notice Internal helper to add to existing stake and delegate
-     */
-    function stakeAndDelegate(
-        address user,
-        uint256 amount,
-        bool delegateToSelf,
-        uint256 index
-    ) internal {
-        vm.startPrank(user);
-        aSummerToken.approve(address(aStaking), amount);
-        aStaking.addToStake(index, amount);
-        if (delegateToSelf) {
-            axSumr.delegate(user);
-        }
-        vm.stopPrank();
-        // SummerGovernorV2TestBase gives the whale 100% of the StakedSummerToken supply
-        // to make the tests easier and make total gov token invariant we burn the amount of tokens
-        // that are staked for the user
-        vm.startPrank(whale);
-        axSumr.burn(amount);
-        vm.stopPrank();
-    }
-
-    /**
      * @notice Internal helper to create a proposal for testing governance integration
      */
     function createStakingProposal()
@@ -221,31 +197,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 stakeIndex = staking.getUserStakesCount(user) - 1;
         vm.stopPrank();
         return stakeIndex;
-    }
-
-    /**
-     * @notice Wrapper that pranks as the user and calls addToStake
-     */
-    function _addToStake(address user, uint256 index, uint256 amount) internal {
-        vm.startPrank(user);
-        aSummerToken.approve(address(aStaking), amount);
-        aStaking.addToStake(index, amount);
-        vm.stopPrank();
-    }
-
-    /**
-     * @notice Wrapper that pranks as the user and calls addToStake on a specific staking contract
-     */
-    function _addToStakeOnContract(
-        SummerStaking staking,
-        address user,
-        uint256 index,
-        uint256 amount
-    ) internal {
-        vm.startPrank(user);
-        aSummerToken.approve(address(staking), amount);
-        staking.addToStake(index, amount);
-        vm.stopPrank();
     }
 
     /**
@@ -334,6 +285,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _expectStakedWithLockupEvent(
         address user,
+        uint256 stakeId,
+        uint256 stakeIndex,
         uint256 amount,
         uint256 lockupPeriod,
         uint256 weightedAmount
@@ -341,6 +294,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.expectEmit(true, false, false, false);
         emit ISummerStaking.StakedWithLockup(
             user,
+            stakeId,
+            stakeIndex,
             amount,
             lockupPeriod,
             weightedAmount
@@ -352,6 +307,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _expectUnstakedWithPenaltyEvent(
         address user,
+        uint256 stakeId,
+        uint256 stakeIndex,
         uint256 unstaked,
         uint256 penalty,
         uint256 returnAmount
@@ -359,6 +316,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.expectEmit(true, false, false, false);
         emit ISummerStaking.UnstakedWithPenalty(
             user,
+            stakeId,
+            stakeIndex,
             unstaked,
             penalty,
             returnAmount
@@ -548,6 +507,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _verifyStakedEvent(
         address user,
+        uint256 stakeId,
+        uint256 stakeIndex,
         uint256 amount,
         uint256 lockupPeriod,
         uint256 weightedAmount
@@ -555,6 +516,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.expectEmit(true, false, false, false);
         emit ISummerStaking.StakedWithLockup(
             user,
+            stakeId,
+            stakeIndex,
             amount,
             lockupPeriod,
             weightedAmount
@@ -566,6 +529,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _verifyUnstakedEvent(
         address user,
+        uint256 stakeId,
+        uint256 stakeIndex,
         uint256 unstaked,
         uint256 penalty,
         uint256 returnAmount
@@ -573,6 +538,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.expectEmit(true, false, false, false);
         emit ISummerStaking.UnstakedWithPenalty(
             user,
+            stakeId,
+            stakeIndex,
             unstaked,
             penalty,
             returnAmount

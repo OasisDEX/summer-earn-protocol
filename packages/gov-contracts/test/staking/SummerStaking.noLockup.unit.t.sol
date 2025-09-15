@@ -430,7 +430,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         ) = freshStaking.getUserStake(user1, 0);
         assertEq(amount, 0, "amount");
         assertEq(weightedAmount, 0, "weightedAmount");
-        assertEq(lockupEndTime, 0, "lockupEndTime");
+        assertLe(lockupEndTime, block.timestamp, "lockupEndTime");
         assertEq(_lockupPeriod, 0, "lockupPeriod");
     }
 
@@ -609,16 +609,15 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Stake multiple times with lockup using helper
         for (uint256 i = 0; i < 4; i++) {
-            if (i == 0) {
-                _stake(freshStaking, user1, stakeAmount, lockupPeriod);
-            } else {
-                _addToStakeOnContract(freshStaking, user1, 0, stakeAmount);
-            }
+            _stake(freshStaking, user1, stakeAmount, lockupPeriod);
         }
 
         // Verify accumulated staking
-        assertEq(axSumr.balanceOf(user1), stakeAmount * 4);
-        // Note: Contract balance will be 0 since tokens are wrapped
+        assertEq(
+            axSumr.balanceOf(user1),
+            stakeAmount * 4,
+            "should have equivalent balance of gov token"
+        );
 
         // Unstake multiple times (unstake from specific stakes) using helper
         for (uint256 i = 0; i < 4; i++) {
@@ -626,7 +625,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         }
 
         // Verify final balances
-        assertEq(axSumr.balanceOf(user1), 0);
+        assertEq(axSumr.balanceOf(user1), 0, "should have no gov token left");
     }
 
     // ============ NO LOCKUP PENALTY TESTS ============
@@ -708,15 +707,33 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 lockupPeriod = 0; // No lockup
 
         // Create multiple stakes with no lockup
-        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
-        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
-        _stake(freshStaking, user1, stakeAmount, lockupPeriod);
+        uint256 stakeIndex1 = _stake(
+            freshStaking,
+            user1,
+            stakeAmount,
+            lockupPeriod
+        );
+        uint256 stakeIndex2 = _stake(
+            freshStaking,
+            user1,
+            stakeAmount,
+            lockupPeriod
+        );
+        uint256 stakeIndex3 = _stake(
+            freshStaking,
+            user1,
+            stakeAmount,
+            lockupPeriod
+        );
+        assertEq(stakeIndex1, stakeIndex2);
+        assertEq(stakeIndex2, stakeIndex3);
+        assertEq(stakeIndex3, stakeIndex1);
 
         // Test penalty calculation for each stake - should all be 0
         for (uint256 i = 0; i < 3; i++) {
             uint256 contractPenalty = freshStaking.calculatePenaltyPercentage(
                 user1,
-                i
+                stakeIndex1
             );
             assertEq(
                 contractPenalty,
@@ -800,19 +817,24 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         uint256 stakeAmount = 1000 ether;
 
         // Create one stake with no lockup
-        _stake(freshStaking, user1, stakeAmount, 0);
+        uint256 stakeIndex = _stake(freshStaking, user1, stakeAmount, 0);
 
         // Create another stake with 1-year lockup
-        _stake(freshStaking, user2, stakeAmount, 365 days);
+        uint256 stakeIndex2 = _stake(
+            freshStaking,
+            user2,
+            stakeAmount,
+            365 days
+        );
 
         // Compare penalties
         uint256 noLockupPenalty = freshStaking.calculatePenaltyPercentage(
             user1,
-            0
+            stakeIndex
         );
         uint256 oneYearLockupPenalty = freshStaking.calculatePenaltyPercentage(
             user2,
-            0
+            stakeIndex2
         );
 
         assertEq(noLockupPenalty, 0, "No lockup penalty should be 0%");
