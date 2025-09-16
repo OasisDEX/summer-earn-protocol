@@ -655,6 +655,81 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /**
+     * @dev Common unregistration implementation used by both public entry points.
+     *      Performs relationship cleanup and validation.
+     */
+    function _unregisterRelationship(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    ) internal {
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType,
+            targetChainId
+        );
+
+        // Check if this specific relationship exists
+        if (crossChainRelations[relationshipKey].sourceContract == address(0)) {
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                targetChainId
+            );
+        }
+
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
+
+        // Remove reverse mapping only when it was stored (inter-chain)
+        bool sameChain = _isSameChain(
+            relation.sourceChainId,
+            relation.targetChainId
+        );
+        bytes32 targetKey = _getTargetKey(
+            relation.sourceChainId,
+            relation.targetChainId,
+            relation.targetContract,
+            relationshipType
+        );
+
+        if (!sameChain && targetToSource[targetKey] == sourceContract) {
+            delete targetToSource[targetKey];
+        }
+
+        // Remove from sourceToTargetChains
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+            sourceContract,
+            relationshipType
+        );
+        uint16[] storage targetChains = sourceToTargetChains[sourceTrackingKey];
+        for (uint256 i = 0; i < targetChains.length; i++) {
+            if (targetChains[i] == targetChainId) {
+                targetChains[i] = targetChains[targetChains.length - 1];
+                targetChains.pop();
+                break;
+            }
+        }
+
+        // Remove from registered source contracts if no more relationships exist
+        if (targetChains.length == 0) {
+            registeredSourceContracts[relationshipType].remove(sourceContract);
+        }
+
+        // Clean up mappings
+        delete crossChainRelations[relationshipKey];
+
+        emit CrossChainRelationshipUnregistered(
+            sourceContract,
+            relation.targetContract,
+            relation.sourceChainId,
+            relation.targetChainId,
+            relationshipType
+        );
+    }
+
+    /**
      * @dev Common registration implementation used by both public entry points.
      *      Performs basic parameter validation and handles registration logic.
      */
