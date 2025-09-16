@@ -7,7 +7,7 @@ import {IWETH} from "../../interfaces/misc/IWETH.sol";
 
 /**
  * @title ArmArk
- * @notice Ark contract for managing ETH deposits into ARM protocol via the ARM contract
+ * @notice Ark contract for managing ETH deposits into Origin ARM via the ARM contract
  * @dev Implements strategy for depositing ETH through the ARM contract, withdrawing ARM LP shares, and tracking yield
  */
 contract ArmArk is ArkWithWithdrawalRequest {
@@ -48,7 +48,7 @@ contract ArmArk is ArkWithWithdrawalRequest {
 
     /**
      * @inheritdoc IArk
-     * @notice Returns the total assets managed by thi  s Ark in the ARM protocol
+     * @notice Returns the total assets managed by this Ark in the ARM protocol
      * @return assets The total balance of underlying assets held in the vault for this Ark,
      *                including any pending withdrawal amounts
      */
