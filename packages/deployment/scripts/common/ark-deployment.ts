@@ -1,6 +1,7 @@
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
+import { deployArmArk } from '../arks/deploy-arm-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
@@ -236,6 +237,20 @@ export async function deployArk(
       deployedArk = ark
       break
     }
+    case ArkType.ArmArk: {
+      // ArmArk only supports WETH
+      if (token !== Token.WETH) {
+        throw new Error('ArmArk only supports WETH as the asset')
+      }
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const armArkParams = {
+        ...baseArkParams,
+        vaultName: vaultName,
+      }
+      const ark = await deployArmArk(config, armArkParams)
+      deployedArk = ark
+      break
+    }
     case ArkType.SiloManagedVaultArk: {
       const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
       const vaultId = validateErc4626Address(
@@ -329,6 +344,10 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
 
     case ArkType.SiloManagedVaultArk: {
       deployedArk = await deploySiloManagedVaultArk(config)
+      break
+    }
+    case ArkType.ArmArk: {
+      deployedArk = await deployArmArk(config)
       break
     }
 

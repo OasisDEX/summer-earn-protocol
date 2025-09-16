@@ -28,6 +28,7 @@ export enum ArkType {
   SiloArk = 'SiloArk',
   SiloManagedVaultArk = 'SiloManagedVaultArk',
   OriginETHArk = 'OriginETHArk',
+  ArmArk = 'ArmArk',
   FluidLiteArk = 'FluidLiteArk',
 }
 
@@ -49,6 +50,7 @@ export const arkTypes = [
   { title: 'SiloArk', value: ArkType.SiloArk },
   { title: 'SiloManagedVaultArk', value: ArkType.SiloManagedVaultArk },
   { title: 'OriginETHArk', value: ArkType.OriginETHArk },
+  { title: 'ArmArk', value: ArkType.ArmArk },
   { title: 'FluidLiteArk', value: ArkType.FluidLiteArk },
 ]
 
@@ -209,6 +211,11 @@ export interface BaseConfig {
     originETH: {
       originETH: Address
       arm: Address
+      arms: {
+        [key in Token]: {
+          [key: string]: Address
+        }
+      }
     }
   }
 }
