@@ -585,7 +585,7 @@ contract StargateAdapter is
 
     /**
      * @dev Decode OFT compose message header and payload
-     * Layout: [8b nonce][4b srcEid][32b amountLD][20b composeFrom][bytes composeMsg]
+     * Layout: [8b nonce][4b srcEid][32b amountLD][32b composeFrom][bytes composeMsg]
      */
     function _decodeOFTCompose(
         bytes calldata message
@@ -600,14 +600,13 @@ contract StargateAdapter is
         )
     {
         // Sanity-check the OFT compose header is fully present before decoding.
-        // Header occupies 96 bytes (three 32-byte words):
-        //  - word 1 (32B): [8B nonce | 4B srcEid | 20B padding]
-        //  - word 2 (32B): amountLD
-        //  - word 3 (32B): composeFrom (address left-padded to 32B)
-        // The variable-length composeMsg follows after offset 96.
-        if (message.length < 96) revert InvalidMessage();
-        // Prefer official codec for srcEid if available; maintain layout sanity check above
-        // Fallback to manual extraction is unnecessary if codec provides srcEid
+        // Layout (ABI-aligned as produced by OFTComposeMsgCodec):
+        //  - 8B nonce | 4B srcEid                                   (total so far: 12 bytes)
+        //  - 32B amountLD                                           (total so far: 44 bytes)
+        //  - 32B composeFrom (left-padded address, present when composeMsg != empty)
+        // Minimum length when composeFrom is present: 12 + 32 + 32 = 76 bytes.
+        if (message.length < 76) revert InvalidMessage();
+        // Use official codec for srcEid extraction
         srcEid = OFTComposeMsgCodec.srcEid(message);
         amountLD = OFTComposeMsgCodec.amountLD(message);
         composeMsg = OFTComposeMsgCodec.composeMsg(message);
