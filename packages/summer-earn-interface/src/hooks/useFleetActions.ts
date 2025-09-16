@@ -1,27 +1,33 @@
 'use client'
 
-import { VIEM_CHAIN_ENTITIES } from '@/config/chains'
+import { CHAIN_BLOCK_EXPLORERS, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { parseUnits } from 'viem'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { erc20Abi } from '../abis/ERC20'
 import { fleetCommanderAbi } from '../abis/FleetCommander'
+import type { ChainId } from '../types'
 
 interface UseFleetActionsProps {
   fleetAddress: `0x${string}`
   assetAddress: `0x${string}`
   assetDecimals: number
+  chainId: ChainId
 }
 
 export function useFleetActions({
   fleetAddress,
   assetAddress,
   assetDecimals,
+  chainId,
 }: UseFleetActionsProps) {
   const [depositPending, setDepositPending] = useState(false)
   const [withdrawPending, setWithdrawPending] = useState(false)
   const [approvePending, setApprovePending] = useState(false)
-  const { chainId } = useAccount()
+  const [approveToastId, setApproveToastId] = useState<string | number | undefined>(undefined)
+  const [depositToastId, setDepositToastId] = useState<string | number | undefined>(undefined)
+  const [withdrawToastId, setWithdrawToastId] = useState<string | number | undefined>(undefined)
   const { address } = useAccount()
 
   // Ensure we have valid addresses before proceeding
@@ -53,17 +59,68 @@ export function useFleetActions({
   } = useWriteContract()
 
   // Waiting for transactions
-  const { isLoading: isApproveLoading } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isApproveLoading,
+    isSuccess: isApproveSuccess,
+    isError: isApproveError,
+  } = useWaitForTransactionReceipt({
     hash: approveHash,
   })
 
-  const { isLoading: isDepositLoading } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isDepositLoading,
+    isSuccess: isDepositSuccess,
+    isError: isDepositError,
+  } = useWaitForTransactionReceipt({
     hash: depositHash,
   })
 
-  const { isLoading: isWithdrawLoading } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isWithdrawLoading,
+    isSuccess: isWithdrawSuccess,
+    isError: isWithdrawError,
+  } = useWaitForTransactionReceipt({
     hash: withdrawHash,
   })
+
+  const openTx = (hash?: `0x${string}`) => {
+    if (!hash) return
+    const urlBase = CHAIN_BLOCK_EXPLORERS[chainId]
+    const url = `${urlBase}/tx/${hash}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  // Toast lifecycle effects
+  if (isApproveSuccess && approveToastId) {
+    toast.success('Approval confirmed', {
+      id: approveToastId,
+      action: { label: 'View', onClick: () => openTx(approveHash as `0x${string}`) },
+    })
+    setApproveToastId(undefined)
+  } else if (isApproveError && approveToastId) {
+    toast.error('Approval failed on-chain', { id: approveToastId })
+    setApproveToastId(undefined)
+  }
+  if (isDepositSuccess && depositToastId) {
+    toast.success('Deposit confirmed', {
+      id: depositToastId,
+      action: { label: 'View', onClick: () => openTx(depositHash as `0x${string}`) },
+    })
+    setDepositToastId(undefined)
+  } else if (isDepositError && depositToastId) {
+    toast.error('Deposit failed on-chain', { id: depositToastId })
+    setDepositToastId(undefined)
+  }
+  if (isWithdrawSuccess && withdrawToastId) {
+    toast.success('Withdraw confirmed', {
+      id: withdrawToastId,
+      action: { label: 'View', onClick: () => openTx(withdrawHash as `0x${string}`) },
+    })
+    setWithdrawToastId(undefined)
+  } else if (isWithdrawError && withdrawToastId) {
+    toast.error('Withdraw failed on-chain', { id: withdrawToastId })
+    setWithdrawToastId(undefined)
+  }
 
   // Actions
   const approve = async (amount: string) => {
@@ -72,16 +129,19 @@ export function useFleetActions({
     setApprovePending(true)
     try {
       const parsedAmount = parseUnits(amount, assetDecimals)
+      const id = toast.loading('Approving…')
+      setApproveToastId(id)
       writeApprove({
         address: assetAddress,
         abi: erc20Abi,
         functionName: 'approve',
         args: [fleetAddress, parsedAmount],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {
       console.error('Error approving tokens:', error)
+      toast.error('Approval failed')
     } finally {
       setApprovePending(false)
     }
@@ -93,16 +153,19 @@ export function useFleetActions({
     setDepositPending(true)
     try {
       const parsedAmount = parseUnits(amount, assetDecimals)
+      const id = toast.loading('Depositing…')
+      setDepositToastId(id)
       writeDeposit({
         address: fleetAddress,
         abi: fleetCommanderAbi,
         functionName: 'deposit',
         args: [parsedAmount, address],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {
       console.error('Error depositing:', error)
+      toast.error('Deposit failed')
     } finally {
       setDepositPending(false)
     }
@@ -114,16 +177,19 @@ export function useFleetActions({
     setWithdrawPending(true)
     try {
       const parsedAmount = parseUnits(amount, assetDecimals)
+      const id = toast.loading('Withdrawing…')
+      setWithdrawToastId(id)
       writeWithdraw({
         address: fleetAddress,
         abi: fleetCommanderAbi,
         functionName: 'withdraw',
         args: [parsedAmount, address, address],
-        chain: VIEM_CHAIN_ENTITIES[chainId as unknown as keyof typeof VIEM_CHAIN_ENTITIES],
+        chain: VIEM_CHAIN_ENTITIES[chainId],
         account: address,
       })
     } catch (error) {
       console.error('Error withdrawing:', error)
+      toast.error('Withdraw failed')
     } finally {
       setWithdrawPending(false)
     }

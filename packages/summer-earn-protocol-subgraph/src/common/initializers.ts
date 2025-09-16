@@ -425,9 +425,13 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance
-    vault.stakingRewardsManager = Address.fromString(
-      getOrCreateRewardsManager(config.stakingRewardsManager).id,
-    )
+    if (config.stakingRewardsManager != ADDRESS_ZERO) {
+      vault.stakingRewardsManager = Address.fromString(
+        getOrCreateRewardsManager(config.stakingRewardsManager).id,
+      )
+    } else {
+      vault.stakingRewardsManager = ADDRESS_ZERO
+    }
 
     vault.maxRebalanceOperations = config.maxRebalanceOperations
     vault.details = utils.readValue<string>(vaultContract.try_details(), '')
@@ -781,7 +785,9 @@ export function getOrCreatePositionHourlySnapshot(
     position.save()
   }
   position = null
-  snapshot.save()
+  if (snapshot.inputTokenBalanceNormalizedInUSD.gt(constants.SNAPSHOT_CREATION_THRESHOLD)) {
+    snapshot.save()
+  }
 }
 
 // Function to create or update position daily snapshots
@@ -825,7 +831,9 @@ export function getOrCreatePositionDailySnapshot(
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
   }
   position = null
-  snapshot.save()
+  if (snapshot.inputTokenBalanceNormalizedInUSD.gt(constants.SNAPSHOT_CREATION_THRESHOLD)) {
+    snapshot.save()
+  }
 }
 
 // Function to create or update position weekly snapshots
@@ -869,8 +877,9 @@ export function getOrCreatePositionWeeklySnapshot(
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
   }
   position = null
-
-  snapshot.save()
+  if (snapshot.inputTokenBalanceNormalizedInUSD.gt(constants.SNAPSHOT_CREATION_THRESHOLD)) {
+    snapshot.save()
+  }
 }
 
 export function getOrCreateVaultWeeklySnapshots(vault: Vault, block: ethereum.Block): void {

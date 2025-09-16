@@ -62,6 +62,14 @@
       }
     },
     {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Gauntlet_WETH_Core",
+        "protocol": "morpho"
+      }
+    },
+    {
       "type": "OriginETHArk",
       "params": {
         "asset": "WETH",
@@ -74,6 +82,30 @@
         "asset": "WETH",
         "vaultName": "Seamless_WETH",
         "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Extrafi_XLend_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Yearn_OG_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Euler_Alterscope_LRT_WETH",
+        "protocol": "erc4626"
       }
     }
   ]

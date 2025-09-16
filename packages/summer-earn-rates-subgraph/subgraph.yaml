@@ -5,8 +5,8 @@ schema:
 features:
   - grafting
 graft:
-  base: QmZF2rRiwya1bAstzUaBWkbfCeEmnHpdc7NoJCySUaBRWV
-  block: 22822692
+  base: QmWK1LoGZRkke5ouTnh9zo4b3TYgbHaWwWsuChkfWTEa4M
+  block: 23349999
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
@@ -85,6 +85,10 @@ dataSources:
           file: ./abis/silo/ISiloVaultIncentivesModule.json
         - name: ERC4626FluidLite
           file: ./abis/ERC4626FluidLite.json
+        - name: AeraVault
+          file: ./abis/aera/Vault.json
+        - name: AeraFeeCalculator
+          file: ./abis/aera/PriceAndFeeCalculator.json
       blockHandlers:
         - handler: handleBlock
           filter:

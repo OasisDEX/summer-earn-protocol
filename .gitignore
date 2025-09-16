@@ -97,3 +97,5 @@ broadcast
 cache_forge/
 **/cache_forge/
 .cursorignore
+
+SYSTEM_PROMPT.md

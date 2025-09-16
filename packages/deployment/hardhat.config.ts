@@ -2,7 +2,7 @@ import '@nomicfoundation/hardhat-verify'
 import { default as dotenv } from 'dotenv'
 import 'hardhat-contract-sizer'
 import { resolve } from 'path'
-// import './plugins/multiSourceCompile'
+import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
@@ -32,6 +32,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://api.sonicscan.org/api`,
           browserURL: `https://sonicscan.org`,
+        },
+      },
+      {
+        network: 'unichain',
+        chainId: 130,
+        urls: {
+          apiURL: `https://api.unichainscan.org/api`,
+          browserURL: `https://uniscan.xyz`,
         },
       },
     ],
@@ -74,6 +82,11 @@ const config: HardhatUserConfig = {
       url: `${process.env.OPTIMISM_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
       chainId: 10,
+    },
+    unichain: {
+      url: `${process.env.UNICHAIN_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 130,
     },
     arbitrum: {
       url: `${process.env.ARBITRUM_RPC_URL}`,

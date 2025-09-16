@@ -5,6 +5,7 @@ import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import '@rainbow-me/rainbowkit/styles.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Toaster } from 'sonner'
 import { http, WagmiProvider } from 'wagmi'
 import { arbitrum, base, mainnet, sonic } from 'wagmi/chains'
 
@@ -13,7 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const config = getDefaultConfig({
     appName: 'Summer Earn Protocol Interface',
-    projectId: '1', // Replace with a real WalletConnect project ID
+    projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_ID || 'demo',
     chains: [mainnet, arbitrum, base, sonic],
     transports: {
       [mainnet.id]: http(CHAIN_RPC_URLS[mainnet.id]),
@@ -27,7 +28,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        <RainbowKitProvider>
+          {children}
+          <Toaster richColors position="top-right" />
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )

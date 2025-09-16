@@ -1,8 +1,13 @@
+import fs from 'fs'
+import kleur from 'kleur'
+import path from 'path'
 import { Address } from 'viem'
 import { ArkType, BaseConfig, FleetConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployArmArk } from '../arks/deploy-arm-ark'
+import { deployAeraArk } from '../arks/deploy-aera-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
+import { deployCrossChainArk } from '../arks/deploy-cross-chain-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployFluidLiteArk } from '../arks/deploy-fluid-lite-ark'
 import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
@@ -13,11 +18,13 @@ import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySiloArk } from '../arks/deploy-silo-ark'
+import { deploySiloArkV2 } from '../arks/deploy-silo-ark-v2'
 import { deploySiloManagedVaultArk } from '../arks/deploy-silo-managed-vault-ark'
 import { deploySkyRewardsArk } from '../arks/deploy-sky-rewards-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
+import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
 import {
   validateAddress,
@@ -32,8 +39,9 @@ export type ArkConfig = {
   type: ArkType
   params: {
     asset: string
-    protocol: string
-    vaultName?: string // For ERC4626Ark
+    protocol?: string
+    vaultName?: string
+    targetChainId?: string
     depositCap?: string // For FluidLiteArk
     maxRebalanceOutflow?: string // For FluidLiteArk
     maxRebalanceInflow?: string // For FluidLiteArk
@@ -232,6 +240,71 @@ export async function deployArk(
       deployedArk = await deploySiloArk(config, siloParams)
       break
     }
+
+    case ArkType.CrossChainArk: {
+      const targetChainId = Number(arkConfig.params.targetChainId)
+      const targetProtocol = arkConfig.params.protocol
+
+      if (!targetChainId || !targetProtocol) {
+        console.log(kleur.red('Missing targetChainId or protocol in ark configuration.'))
+        throw new Error('CrossChainArk requires targetChainId and protocol parameters')
+      }
+
+      // Get bridge components from config
+      const bridgeQueue = config.deployedContracts.bridge?.bridgeQueue?.address as Address
+      const bridgeRouter = config.deployedContracts.bridge?.bridgeRouter?.address as Address
+
+      if (!bridgeQueue || !bridgeRouter) {
+        throw new Error('Bridge components not found in config')
+      }
+
+      // Get cross-chain config
+      const configDir = path.join(process.cwd(), 'config', 'cross-chain')
+      const configFiles = fs.readdirSync(configDir).filter((file) => file.endsWith('.json'))
+
+      if (configFiles.length === 0) {
+        throw new Error('No cross-chain config files found')
+      }
+
+      // Load the config
+      const configPath = path.join(configDir, configFiles[0])
+      const crossChainConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+      // Find the protocol configuration
+      const destination = crossChainConfig.destinations.find(
+        (d: any) => d.chainId === targetChainId,
+      )
+      if (!destination) {
+        throw new Error(`Destination with chain ID ${targetChainId} not found in config`)
+      }
+
+      const protocol = destination.protocols.find((p: any) => p.protocol === targetProtocol)
+
+      deployedArk = await deployCrossChainArk(config, {
+        ...baseArkParams,
+        targetChainId,
+        targetProtocol,
+        bridgeQueue,
+        bridgeRouter,
+        ...protocol,
+      })
+      break
+    }
+
+    case ArkType.SiloArkV2: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.silo.pools[token][vaultName],
+        `Silo-${vaultName}`,
+      )
+      const siloParams = {
+        ...baseArkParams,
+        siloId: vaultId,
+        siloName: vaultName,
+      }
+      deployedArk = await deploySiloArkV2(config, siloParams)
+      break
+    }
     case ArkType.OriginETHArk: {
       const ark = await deployOriginETHArk(config, baseArkParams)
       deployedArk = ark
@@ -265,6 +338,32 @@ export async function deployArk(
       deployedArk = await deploySiloManagedVaultArk(config, siloManagedVaultParams)
       break
     }
+    case ArkType.AeraArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const provisioner = validateAddress(
+        config.protocolSpecific.gauntlet.vaults[token][vaultName].provisioner,
+        `Aera-${vaultName}`,
+      )
+      const ark = await deployAeraArk(config, {
+        ...baseArkParams,
+        provisioner: provisioner,
+        vaultName: vaultName,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.StargateV2PoolArk: {
+      const stargatePoolAddress = validateAddress(
+        config.protocolSpecific.stargate.pools[token],
+        `StargateV2-${token}`,
+      )
+      const ark = await deployStargateV2PoolArk(config, {
+        ...baseArkParams,
+        stargatePoolAddress: stargatePoolAddress,
+      })
+      deployedArk = ark
+      break
+    }
     default:
       throw new Error(`Unknown Ark type: ${type}`)
   }
@@ -277,7 +376,8 @@ export async function deployArk(
 }
 
 export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
-  let deployedArk
+  let deployedArk: any
+
   switch (arkType) {
     case ArkType.SyrupArk:
       deployedArk = await deploySyrupArk(config)
@@ -342,12 +442,27 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
       break
     }
 
+    case ArkType.AeraArk: {
+      deployedArk = await deployAeraArk(config)
+      break
+    }
+
     case ArkType.SiloManagedVaultArk: {
       deployedArk = await deploySiloManagedVaultArk(config)
       break
     }
     case ArkType.ArmArk: {
       deployedArk = await deployArmArk(config)
+      break
+    }
+
+    case ArkType.CrossChainArk: {
+      deployedArk = await deployCrossChainArk(config)
+      break
+    }
+
+    case ArkType.StargateV2PoolArk: {
+      deployedArk = await deployStargateV2PoolArk(config)
       break
     }
 

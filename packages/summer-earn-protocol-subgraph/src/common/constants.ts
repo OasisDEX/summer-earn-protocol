@@ -137,6 +137,9 @@ export class BigDecimalConstants {
   static DAY_IN_SECONDS: BigDecimal = BigDecimal.fromString('86400')
   static WEEK_IN_SECONDS: BigDecimal = BigDecimal.fromString('604800')
 }
+
+export const SNAPSHOT_CREATION_THRESHOLD = BigDecimalConstants.ONE
+
 export class BigIntConstants {
   static MINUS_ONE: BigInt = BigInt.fromI32(-1)
   static ZERO: BigInt = BigInt.fromI32(0)
