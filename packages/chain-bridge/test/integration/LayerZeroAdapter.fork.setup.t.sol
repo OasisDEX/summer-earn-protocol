@@ -166,19 +166,12 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         layerZeroAdapter.setPeer(READ_CHANNEL_THRESHOLD, peerAddressBytes32);
 
         // Register the layerZeroAdapter peer relationship in the registry
+        // This registers both directions: (Base -> Arbitrum) and (Arbitrum -> Base)
         registry.registerAdapterPeerPair(
             address(layerZeroAdapter),
             address(layerZeroAdapter),
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID
-        );
-
-        // Also register the reverse mapping for inbound validation (Arbitrum -> Base)
-        registry.registerAdapterPeer(
-            address(layerZeroAdapter), // source adapter on Arbitrum
-            address(layerZeroAdapter), // target adapter on Base
-            DEST_CHAIN_ID, // Arbitrum chain ID (42161)
-            SOURCE_CHAIN_ID // Base chain ID (8453)
         );
 
         vm.stopPrank();
