@@ -46,10 +46,14 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
 
         // Pause
         assertFalse(router.paused());
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(governor);
         router.pause();
         assertTrue(router.paused());
 
         // Unpause
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterUnpaused(governor);
         router.unpause();
         assertFalse(router.paused());
 
@@ -61,6 +65,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
 
         // Guardian can pause
         assertFalse(router.paused());
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(guardian);
         router.pause();
         assertTrue(router.paused());
 
@@ -94,6 +100,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
     function testSendWhenPaused() public {
         // Pause the router
         vm.prank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(governor);
         router.pause();
 
         // User attempts to queue (NO VALUE)
@@ -108,13 +116,19 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         });
 
         // Get fee estimate first (for keeper execution)
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
+        (uint256 nativeFee, , address specifiedAdapter) = router
+            .quoteTransferAssets(
+                BridgeTypes.ExecuteTransferParams({
+                    originator: user,
+                    destinationChainId: DEST_CHAIN_ID,
+                    target: recipient,
+                    asset: address(token),
+                    amount: TRANSFER_AMOUNT,
+                    message: "",
+                    refundAddress: user
+                }),
+                options
+            );
         // vm.deal(user, nativeFee); // REMOVED: User no longer pays
 
         // Verify the specified adapter matches what we provided
@@ -144,6 +158,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
     function testReadStateWhenPaused() public {
         // Pause the router
         vm.prank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(governor);
         router.pause();
 
         vm.startPrank(user);
@@ -162,12 +178,16 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.startPrank(executor);
 
         // Get quote for execution
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(0), // No asset
-            0, // No amount
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 nativeFee, , ) = router.quoteReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(0x1234), // Target contract
+                selector: bytes4(keccak256("someFunction()")),
+                readParams: "",
+                originator: user,
+                refundAddress: user
+            }),
+            options
         );
 
         vm.expectRevert(IBridgeRouter.Paused.selector);
@@ -189,6 +209,8 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
     function testSendMessageWhenPaused() public {
         // Pause the router
         vm.prank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit IBridgeRouter.RouterPaused(governor);
         router.pause();
 
         vm.startPrank(user);

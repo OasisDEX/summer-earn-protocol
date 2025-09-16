@@ -214,5 +214,23 @@
     "decayType": "linear",
     "maxMultiplier": 2,
     "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "usdf",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.00023,
+      "usdt": 1.0,
+      "usdc": 1.0,
+      "dai": 1.0,
+      "usde": 1.0,
+      "usdce": 1.0,
+      "eurc": 1.0
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
   }
 ]

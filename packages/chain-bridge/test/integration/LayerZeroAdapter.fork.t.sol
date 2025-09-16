@@ -2,7 +2,10 @@
 pragma solidity 0.8.28;
 
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IMessageLibManager, SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {ReadLibConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/readlib/ReadLibBase.sol";
 import {LayerZeroAdapterForkSetupTest} from "./LayerZeroAdapter.fork.setup.t.sol";
+import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 import {console} from "forge-std/Test.sol";
 
 /**
@@ -25,7 +28,9 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
 
         // Test complete workflow: execute → verify
         // This demonstrates the integration between Router, and Adapter
-
+        vm.startPrank(governor);
+        layerZeroAdapter.setChainReadSupport(DEST_CHAIN_ID, true);
+        vm.stopPrank();
         _executeBridgeMessage("Integration workflow test");
         _executeBridgeStateRead();
 
@@ -132,6 +137,79 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         console.log("[SUCCESS] LayerZero configuration verified");
     }
 
+    function testExpectEndpointCallsOnConfigureReadLibrariesAndDVNs() public {
+        // Deploy a fresh, unconfigured adapter for this test
+        LayerZeroAdapterTestHelper freshAdapter = _deployUnconfiguredAdapter();
+
+        vm.startPrank(governor);
+
+        // First activate the read channel for the fresh adapter
+        freshAdapter.activateReadChannel(READ_CHANNEL_ID);
+
+        // Expect setSendLibrary and setReceiveLibrary during configureReadLibraries
+        vm.expectCall(
+            LZ_ENDPOINT_BASE,
+            abi.encodeWithSelector(
+                IMessageLibManager.setSendLibrary.selector,
+                address(freshAdapter),
+                READ_CHANNEL_ID,
+                READ_LIB_1002_BASE
+            )
+        );
+
+        vm.expectCall(
+            LZ_ENDPOINT_BASE,
+            abi.encodeWithSelector(
+                IMessageLibManager.setReceiveLibrary.selector,
+                address(freshAdapter),
+                READ_CHANNEL_ID,
+                READ_LIB_1002_BASE,
+                0
+            )
+        );
+
+        freshAdapter.configureReadLibraries(READ_LIB_1002_BASE);
+
+        // Prepare DVN config to match adapter encoding
+        address[] memory readDVNs = new address[](1);
+        readDVNs[0] = READ_DVN_BASE;
+        ReadLibConfig memory cfg = ReadLibConfig({
+            executor: EXECUTOR_BASE,
+            requiredDVNCount: uint8(readDVNs.length),
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: readDVNs,
+            optionalDVNs: new address[](0)
+        });
+        bytes memory encodedConfig = abi.encode(cfg);
+        SetConfigParam[] memory params = new SetConfigParam[](1);
+        params[0] = SetConfigParam({
+            eid: READ_CHANNEL_ID,
+            configType: 1,
+            config: encodedConfig
+        });
+
+        // Expect setConfig during configureReadDVNs
+        vm.expectCall(
+            LZ_ENDPOINT_BASE,
+            abi.encodeWithSelector(
+                IMessageLibManager.setConfig.selector,
+                address(freshAdapter),
+                READ_LIB_1002_BASE,
+                params
+            )
+        );
+
+        freshAdapter.configureReadDVNs(
+            READ_LIB_1002_BASE,
+            readDVNs,
+            15,
+            EXECUTOR_BASE
+        );
+
+        vm.stopPrank();
+    }
+
     // Helper function to execute a bridge message operation
     function _executeBridgeMessage(string memory messageContent) internal {
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -143,12 +221,15 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         });
 
         bytes memory message = abi.encode(messageContent);
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 nativeFee, , ) = router.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(0x1234), // Target contract
+                message: message,
+                originator: keeper,
+                refundAddress: keeper
+            }),
+            options
         );
         // Execute the operation (can be anyone, e.g., keeper or user) (PAYS FEE)
         vm.startPrank(keeper); // Or user
@@ -179,13 +260,17 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         bytes memory callData = abi.encode(user); // Reading user balance
 
         // Now get quote for fees FOR EXECUTION
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote( // Capture specified layerZeroAdapter
-                DEST_CHAIN_ID,
-                address(0),
-                0,
-                options, // Use defined options
-                BridgeTypes.OperationType.READ_STATE
-            );
+        (uint256 nativeFee, , address specifiedAdapter) = router.quoteReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(0x1234), // Target contract
+                selector: selector,
+                readParams: callData,
+                originator: keeper,
+                refundAddress: keeper
+            }),
+            options
+        );
         // Verify the specified layerZeroAdapter matches what we provided
         assertEq(specifiedAdapter, address(layerZeroAdapter));
 

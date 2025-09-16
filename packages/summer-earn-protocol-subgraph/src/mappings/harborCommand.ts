@@ -197,6 +197,13 @@ function processHourlyVaultUpdate(
 }
 
 export function handleInterval(block: ethereum.Block): void {
+  // ENABLE ONLY for separate subgraph deployment
+  // temporary solution to track self managed vault deployment on base for institutional demo app
+  // if (dataSource.network() == 'base') {
+  //   const usdcDemoFleetOnBase = Address.fromString('0x29f13a877F3d1A14AC0B15B07536D4423b35E198')
+  //   getOrCreateVault(usdcDemoFleetOnBase, block)
+  // }
+
   if (!block || !block.timestamp) {
     log.warning('Invalid block or timestamp in handleInterval', [])
     return

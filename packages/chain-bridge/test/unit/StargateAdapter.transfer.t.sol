@@ -38,12 +38,17 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         });
 
         // Estimate fee for transferring assets
-        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Verify the fee is returned properly
@@ -72,12 +77,17 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
                 9999
             )
         );
-        adapterA.estimateFee(
-            9999, // Unsupported chain
-            address(tokenA),
-            1 ether,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: 9999, // Unsupported chain
+                target: recipient,
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
         );
     }
 
@@ -97,12 +107,17 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         vm.expectRevert(
             abi.encodeWithSelector(IBridgeAdapter.UnsupportedAsset.selector)
         );
-        adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(0xdead), // Unsupported asset
-            1 ether,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(0xdead), // Unsupported asset
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
         );
     }
 
@@ -120,12 +135,17 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         });
 
         // First estimate the fee
-        (uint256 nativeFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, ) = adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Transfer tokens to the router and approve the adapter
@@ -320,12 +340,17 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         });
 
         // Estimate the required fee
-        (uint256 requiredFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 requiredFee, ) = adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Transfer tokens to the router and approve the adapter
@@ -395,12 +420,17 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         });
 
         // Estimate the required fee
-        (uint256 requiredFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 requiredFee, ) = adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Transfer tokens to the router and approve the adapter
@@ -491,12 +521,17 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         });
 
         // Test with 1 wei less than required - should fail
-        (uint256 requiredFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 requiredFee, ) = adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: recipient,
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
         );
 
         vm.prank(user);

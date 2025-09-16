@@ -37,13 +37,13 @@ contract BridgeRouterSetup is Test {
     address public constant user = address(0x3);
     address public constant keeper = address(0x4);
     address public constant executor = address(0x5);
+    address public constant recipient = address(0x6);
     /// forge-lint: disable-end(screaming-snake-case-const)
 
     /* ────────────────  Chain / value constants  ──────────────── */
     uint16 public immutable CURRENT_CHAIN_ID = uint16(block.chainid);
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism in tests
     uint16 public constant SOURCE_CHAIN_ID = 111; // Arbitrary test chain
-    uint256 public constant DEFAULT_GAS_LIMIT = 500000;
 
     uint256 public constant INITIAL_ROUTER_BALANCE = 500 ether; // asset tests
     uint256 public constant TRANSFER_AMOUNT = 1000 ether;
@@ -95,10 +95,7 @@ contract BridgeRouterSetup is Test {
         router.registerAdapter(address(mockAdapter));
 
         /* --------- Registry initialisation --------- */
-        registry.initializeBridgeConfiguration(
-            address(router),
-            DEFAULT_GAS_LIMIT
-        );
+        registry.initializeBridgeConfiguration(address(router));
 
         // Only register relationships where one end is CURRENT_CHAIN_ID
 

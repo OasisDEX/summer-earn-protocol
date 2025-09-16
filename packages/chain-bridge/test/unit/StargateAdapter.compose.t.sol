@@ -153,12 +153,17 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         });
 
         // Estimate fee
-        (uint256 nativeFee, ) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(tokenA),
-            1 ether,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, ) = adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: address(0x1234), // Target contract
+                asset: address(tokenA),
+                amount: 1 ether,
+                message: "",
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Transfer tokens to router and approve
@@ -682,7 +687,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Ensure the endpoint mapping matches the Tenderly packet's srcEid → maps to actual source chain from payload
         vm.prank(governor);
-        adapterB.mapEndpoint(decoded.sourceChainId, srcEid);
+        adapterB.mapExternalId(decoded.sourceChainId, srcEid);
 
         // Allow the composeFrom OApp (source) as a valid peer for the real source chain from payload
         vm.prank(governor);

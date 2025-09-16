@@ -3,15 +3,19 @@ pragma solidity 0.8.28;
 
 import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol";
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 
 abstract contract BaseBridgeAdapter is
     CrossChainConfigManaged,
     ReentrancyGuard,
-    ProtocolAccessManaged
+    ProtocolAccessManaged,
+    IERC165
 {
     /// @notice Error thrown when destination chain peer is not trusted by governance
     error UntrustedDestinationChain(uint16 chainId);
@@ -63,10 +67,47 @@ abstract contract BaseBridgeAdapter is
         address _registry,
         address _accessManager
     ) CrossChainConfigManaged(_registry) ProtocolAccessManaged(_accessManager) {
+        if (_accessManager == address(0)) {
+            revert InvalidParams();
+        }
         if (block.chainid > type(uint16).max) {
             revert ChainIdTooLarge(block.chainid);
         }
         THIS_CHAIN = uint16(block.chainid);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            GOVERNANCE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Map a canonical chain ID to an adapter-specific external ID
+     * @dev Governance utility. Centralizes mapping logic and events.
+     * @param chainId Canonical EVM chain ID
+     * @param externalId Adapter/bridge external identifier (e.g., LayerZero EID)
+     */
+    function mapExternalId(
+        uint16 chainId,
+        uint32 externalId
+    ) external onlyGovernor {
+        if (externalId == 0) {
+            revert InvalidParams();
+        }
+        _mapChainExternalId(chainId, externalId);
+    }
+
+    /**
+     * @notice Remove the external ID mapping for a canonical chain ID
+     * @param chainId Canonical EVM chain ID to unmap
+     */
+    function unmapExternalId(uint16 chainId) external onlyGovernor {
+        _unmapChainExternalId(chainId);
+    }
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return (interfaceId == type(IBridgeAdapter).interfaceId ||
+            interfaceId == type(IERC165).interfaceId);
     }
 
     /**
@@ -80,12 +121,7 @@ abstract contract BaseBridgeAdapter is
      * 2. External ID mapping: "Do I know how to talk to the bridge on that chain?" (technical capability)
      */
     modifier onlyTrustedDestination(uint16 dstChain) {
-        if (
-            ICrossChainRegistry(CROSS_CHAIN_REGISTRY).getAdapterPeer(
-                address(this),
-                dstChain
-            ) == address(0)
-        ) {
+        if (!isTrustedDestination(dstChain)) {
             revert UntrustedDestinationChain(dstChain);
         }
         _;
@@ -116,6 +152,13 @@ abstract contract BaseBridgeAdapter is
 
     function _peerAdapter(uint16 dstChain) internal view returns (address) {
         return CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain);
+    }
+
+    /**
+     * @notice Returns true if governance has registered a peer adapter for `dstChain`
+     */
+    function isTrustedDestination(uint16 dstChain) public view returns (bool) {
+        return _peerAdapter(dstChain) != address(0);
     }
 
     /// @dev Reverts if `srcAdapter` is **not** the registry-declared peer for `srcChain`.
@@ -172,12 +215,45 @@ abstract contract BaseBridgeAdapter is
     }
 
     /**
-     * @notice Normalizes gas limit using user input or default
-     * @param userGas User-provided gas limit
-     * @return Normalized gas limit
+     * @notice Resolve external adapter-specific ID from canonical chainId
+     * @dev Reverts with UnsupportedChain when no mapping exists
+     * @param chainId Canonical EVM chain ID
+     * @return externalId Adapter/bridge external identifier (e.g., LayerZero EID)
      */
-    function _normalizeGas(uint64 userGas) internal view returns (uint64) {
-        return userGas > 0 ? userGas : uint64(defaultGasLimit());
+    function _externalIdForChain(
+        uint16 chainId
+    ) internal view returns (uint32 externalId) {
+        externalId = chainToExternalId[chainId];
+        if (externalId == 0) {
+            revert IBridgeAdapter.UnsupportedChain();
+        }
+        return externalId;
+    }
+
+    /**
+     * @notice Resolve canonical chainId from an adapter-specific externalId
+     * @dev Reverts with UnsupportedChain when no mapping exists
+     * @param externalId Adapter/bridge external identifier (e.g., LayerZero EID)
+     * @return chainId Canonical EVM chain ID
+     */
+    function _chainIdFromExternalId(
+        uint32 externalId
+    ) internal view returns (uint16 chainId) {
+        chainId = externalIdToChainId[externalId];
+        if (chainId == 0) {
+            revert IBridgeAdapter.UnsupportedChain();
+        }
+        return chainId;
+    }
+
+    /**
+     * @notice Requires a non-zero gas limit and returns it
+     * @param userGas User-provided gas limit
+     * @return gasLimit The validated gas limit
+     */
+    function _requireGasLimit(uint64 userGas) internal pure returns (uint64) {
+        if (userGas == 0) revert InvalidParams();
+        return userGas;
     }
 
     function _decodeRelayedMessageParams(

@@ -65,6 +65,13 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
         lzMessageToOperationId[guid] = operationId;
     }
 
+    function setExpectedReadChainByGuid(
+        bytes32 guid,
+        uint16 expectedChainId
+    ) external {
+        expectedReadChainByGuid[guid] = expectedChainId;
+    }
+
     /**
      * @notice Exposes the internal getLayerZeroChainId function for testing
      * @param chainId Chain ID

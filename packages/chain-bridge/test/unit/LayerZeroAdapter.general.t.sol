@@ -91,13 +91,16 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
             options: bytes("")
         });
 
-        // Call estimateFee directly on the adapter
-        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateFee(
-            CHAIN_ID_B,
-            address(0), // No asset for general message
-            0, // No amount for general message
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        // Call estimateSendMessage directly on the adapter
+        (uint256 nativeFee, uint256 tokenFee) = adapterA.estimateSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: address(0x1234), // Target contract
+                message: abi.encode("Test message"),
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            options
         );
 
         // Fee should be non-zero
@@ -130,10 +133,14 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         uint32 secondChannelId = baseThreshold + 2;
 
         vm.startPrank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit LayerZeroAdapter.ReadChannelActivated(firstChannelId);
         adapterA.activateReadChannel(firstChannelId);
         assertEq(adapterA.readChannelId(), firstChannelId);
 
         // Update to a new read channel
+        vm.expectEmit(true, false, false, true);
+        emit LayerZeroAdapter.ReadChannelActivated(secondChannelId);
         adapterA.activateReadChannel(secondChannelId);
         assertEq(adapterA.readChannelId(), secondChannelId);
         vm.stopPrank();
