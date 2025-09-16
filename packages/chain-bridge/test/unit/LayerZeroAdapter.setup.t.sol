@@ -175,7 +175,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         // Outgoing: adapterA -> adapterB (for sending messages TO chain B)
-        registryA.registerAdapterPeer(
+        registryA.registerAdapterPeerPair(
             address(adapterA),
             address(adapterB),
             CHAIN_ID_A,
@@ -183,7 +183,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
 
         // Incoming: adapterB -> adapterA (for receiving messages FROM chain B)
-        registryA.registerAdapterPeer(
+        registryA.registerAdapterPeerPair(
             address(adapterB), // source adapter (on chain B)
             address(adapterA), // target adapter (on chain A)
             CHAIN_ID_B, // source chain
@@ -198,7 +198,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         // Outgoing: adapterB -> adapterA (for sending messages TO chain A)
-        registryB.registerAdapterPeer(
+        registryB.registerAdapterPeerPair(
             address(adapterB),
             address(adapterA),
             CHAIN_ID_B,
@@ -206,7 +206,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
 
         // Incoming: adapterA -> adapterB (for receiving messages FROM chain A)
-        registryB.registerAdapterPeer(
+        registryB.registerAdapterPeerPair(
             address(adapterA), // source adapter (on chain A)
             address(adapterB), // target adapter (on chain B)
             CHAIN_ID_A, // source chain

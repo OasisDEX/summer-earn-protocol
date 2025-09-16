@@ -100,7 +100,7 @@ contract BridgeRouterSetup is Test {
         // Only register relationships where one end is CURRENT_CHAIN_ID
 
         // Relationship: CURRENT_CHAIN_ID -> DEST_CHAIN_ID
-        registry.registerAdapterPeer(
+        registry.registerAdapterPeerPair(
             address(mockAdapter), // sourceAdapter (local)
             address(mockAdapterDest), // targetAdapter (remote)
             CURRENT_CHAIN_ID, // sourceChainId
@@ -108,7 +108,7 @@ contract BridgeRouterSetup is Test {
         );
 
         // Relationship: DEST_CHAIN_ID -> CURRENT_CHAIN_ID
-        registry.registerAdapterPeer(
+        registry.registerAdapterPeerPair(
             address(mockAdapterDest), // sourceAdapter (remote)
             address(mockAdapter), // targetAdapter (local)
             DEST_CHAIN_ID, // sourceChainId
@@ -116,7 +116,7 @@ contract BridgeRouterSetup is Test {
         );
 
         // Relationship: SOURCE_CHAIN_ID -> CURRENT_CHAIN_ID
-        registry.registerAdapterPeer(
+        registry.registerAdapterPeerPair(
             address(mockAdapterSource), // sourceAdapter (remote)
             address(mockAdapter), // targetAdapter (local)
             SOURCE_CHAIN_ID, // sourceChainId
@@ -124,7 +124,7 @@ contract BridgeRouterSetup is Test {
         );
 
         // Relationship: CURRENT_CHAIN_ID -> SOURCE_CHAIN_ID
-        registry.registerAdapterPeer(
+        registry.registerAdapterPeerPair(
             address(mockAdapter), // sourceAdapter (local)
             address(mockAdapterSource), // targetAdapter (remote)
             CURRENT_CHAIN_ID, // sourceChainId
