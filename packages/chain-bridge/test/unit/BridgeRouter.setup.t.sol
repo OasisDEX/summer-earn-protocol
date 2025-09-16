@@ -101,42 +101,50 @@ contract BridgeRouterSetup is Test {
         // Check if relationships already exist to avoid RelationshipAlreadyExists errors
 
         // Relationship: CURRENT_CHAIN_ID -> DEST_CHAIN_ID
-        try registry.registerAdapterPeerPair(
-            address(mockAdapter), // sourceAdapter (local)
-            address(mockAdapterDest), // targetAdapter (remote)
-            CURRENT_CHAIN_ID, // sourceChainId
-            DEST_CHAIN_ID // targetChainId
-        ) {} catch {
+        try
+            registry.registerAdapterPeerPair(
+                address(mockAdapter), // sourceAdapter (local)
+                address(mockAdapterDest), // targetAdapter (remote)
+                CURRENT_CHAIN_ID, // sourceChainId
+                DEST_CHAIN_ID // targetChainId
+            )
+        {} catch {
             // Relationship already exists, ignore the error
         }
 
         // Relationship: DEST_CHAIN_ID -> CURRENT_CHAIN_ID
-        try registry.registerAdapterPeerPair(
-            address(mockAdapterDest), // sourceAdapter (remote)
-            address(mockAdapter), // targetAdapter (local)
-            DEST_CHAIN_ID, // sourceChainId
-            CURRENT_CHAIN_ID // targetChainId
-        ) {} catch {
+        try
+            registry.registerAdapterPeerPair(
+                address(mockAdapterDest), // sourceAdapter (remote)
+                address(mockAdapter), // targetAdapter (local)
+                DEST_CHAIN_ID, // sourceChainId
+                CURRENT_CHAIN_ID // targetChainId
+            )
+        {} catch {
             // Relationship already exists, ignore the error
         }
 
         // Relationship: SOURCE_CHAIN_ID -> CURRENT_CHAIN_ID
-        try registry.registerAdapterPeerPair(
-            address(mockAdapterSource), // sourceAdapter (remote)
-            address(mockAdapter), // targetAdapter (local)
-            SOURCE_CHAIN_ID, // sourceChainId
-            CURRENT_CHAIN_ID // targetChainId
-        ) {} catch {
+        try
+            registry.registerAdapterPeerPair(
+                address(mockAdapterSource), // sourceAdapter (remote)
+                address(mockAdapter), // targetAdapter (local)
+                SOURCE_CHAIN_ID, // sourceChainId
+                CURRENT_CHAIN_ID // targetChainId
+            )
+        {} catch {
             // Relationship already exists, ignore the error
         }
 
         // Relationship: CURRENT_CHAIN_ID -> SOURCE_CHAIN_ID
-        try registry.registerAdapterPeerPair(
-            address(mockAdapter), // sourceAdapter (local)
-            address(mockAdapterSource), // targetAdapter (remote)
-            CURRENT_CHAIN_ID, // sourceChainId
-            SOURCE_CHAIN_ID // targetChainId
-        ) {} catch {
+        try
+            registry.registerAdapterPeerPair(
+                address(mockAdapter), // sourceAdapter (local)
+                address(mockAdapterSource), // targetAdapter (remote)
+                CURRENT_CHAIN_ID, // sourceChainId
+                SOURCE_CHAIN_ID // targetChainId
+            )
+        {} catch {
             // Relationship already exists, ignore the error
         }
 
