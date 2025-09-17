@@ -166,7 +166,7 @@ contract StargateAdapterComposeForkTest is Test {
         vm.startPrank(governor);
 
         adapterMainnet.mapExternalId(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
-        registryMainnet.registerAdapterPeer(
+        registryMainnet.registerAdapterPeerPair(
             address(adapterMainnet),
             address(adapterArbitrum),
             CHAIN_ID_MAINNET,

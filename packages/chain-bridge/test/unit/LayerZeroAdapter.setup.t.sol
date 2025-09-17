@@ -175,20 +175,28 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         // Outgoing: adapterA -> adapterB (for sending messages TO chain B)
-        registryA.registerAdapterPeer(
-            address(adapterA),
-            address(adapterB),
-            CHAIN_ID_A,
-            CHAIN_ID_B
-        );
+        try
+            registryA.registerAdapterPeerPair(
+                address(adapterA),
+                address(adapterB),
+                CHAIN_ID_A,
+                CHAIN_ID_B
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         // Incoming: adapterB -> adapterA (for receiving messages FROM chain B)
-        registryA.registerAdapterPeer(
-            address(adapterB), // source adapter (on chain B)
-            address(adapterA), // target adapter (on chain A)
-            CHAIN_ID_B, // source chain
-            CHAIN_ID_A // target chain
-        );
+        try
+            registryA.registerAdapterPeerPair(
+                address(adapterB), // source adapter (on chain B)
+                address(adapterA), // target adapter (on chain A)
+                CHAIN_ID_B, // source chain
+                CHAIN_ID_A // target chain
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
         vm.stopPrank();
@@ -198,20 +206,28 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         // Outgoing: adapterB -> adapterA (for sending messages TO chain A)
-        registryB.registerAdapterPeer(
-            address(adapterB),
-            address(adapterA),
-            CHAIN_ID_B,
-            CHAIN_ID_A
-        );
+        try
+            registryB.registerAdapterPeerPair(
+                address(adapterB),
+                address(adapterA),
+                CHAIN_ID_B,
+                CHAIN_ID_A
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         // Incoming: adapterA -> adapterB (for receiving messages FROM chain A)
-        registryB.registerAdapterPeer(
-            address(adapterA), // source adapter (on chain A)
-            address(adapterB), // target adapter (on chain B)
-            CHAIN_ID_A, // source chain
-            CHAIN_ID_B // target chain
-        );
+        try
+            registryB.registerAdapterPeerPair(
+                address(adapterA), // source adapter (on chain A)
+                address(adapterB), // target adapter (on chain B)
+                CHAIN_ID_A, // source chain
+                CHAIN_ID_B // target chain
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
         vm.stopPrank();

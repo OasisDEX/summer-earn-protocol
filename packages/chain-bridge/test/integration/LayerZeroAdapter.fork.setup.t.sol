@@ -166,19 +166,12 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         layerZeroAdapter.setPeer(READ_CHANNEL_THRESHOLD, peerAddressBytes32);
 
         // Register the layerZeroAdapter peer relationship in the registry
-        registry.registerAdapterPeer(
-            address(layerZeroAdapter), // source layerZeroAdapter
-            address(layerZeroAdapter), // target layerZeroAdapter (same address since it's a mirror setup)
-            SOURCE_CHAIN_ID, // Base chain ID (8453)
-            DEST_CHAIN_ID // Arbitrum chain ID (42161)
-        );
-
-        // Also register the reverse mapping for inbound validation (Arbitrum -> Base)
-        registry.registerAdapterPeer(
-            address(layerZeroAdapter), // source adapter on Arbitrum
-            address(layerZeroAdapter), // target adapter on Base
-            DEST_CHAIN_ID, // Arbitrum chain ID (42161)
-            SOURCE_CHAIN_ID // Base chain ID (8453)
+        // This registers both directions: (Base -> Arbitrum) and (Arbitrum -> Base)
+        registry.registerAdapterPeerPair(
+            address(layerZeroAdapter),
+            address(layerZeroAdapter),
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID
         );
 
         vm.stopPrank();
@@ -265,9 +258,9 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
 
         // Add peer relationship registration so the adapter can pass initial peer checks
         // but don't configure the read channel (which is what the test expects to fail)
-        registry.registerAdapterPeer(
-            address(unconfiguredAdapter), // source adapter
-            address(unconfiguredAdapter), // target adapter (same address since it's a mirror setup)
+        registry.registerAdapterPeerPair(
+            address(unconfiguredAdapter), // adapter A
+            address(unconfiguredAdapter), // adapter B (same address since it's a mirror setup)
             SOURCE_CHAIN_ID, // Base chain ID (8453)
             DEST_CHAIN_ID // Arbitrum chain ID (42161)
         );

@@ -796,14 +796,31 @@ contract CrossChainFleetProxyTest is Test {
     }
 
     function test_NotifySourceChain_ZeroFleetAssets() public {
-        // Don't deposit any assets - fleet should have zero assets
+        // First deposit some assets to set latestIncomingTransferId (required for notifySourceChain)
+        // Then withdraw them to get back to zero assets
+        _depositAssetsToFleet(1000);
+
+        // Withdraw all assets to get back to zero fleet assets
+        vm.prank(governor);
+        proxy.withdrawAndTransfer(
+            1000,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Now fleet should have zero assets but latestIncomingTransferId is still set
         uint256 expectedFleetAssets = fleetCommanderMock.convertToAssets(
             fleetCommanderMock.balanceOf(address(proxy))
         );
         assertEq(
             expectedFleetAssets,
             0,
-            "Fleet should have zero assets initially"
+            "Fleet should have zero assets after withdrawal"
         );
 
         // Clear any previous message calls
@@ -853,11 +870,10 @@ contract CrossChainFleetProxyTest is Test {
             "Fleet assets should match expected zero amount"
         );
 
-        // Verify the transfer ID (should be zero since no transfers have occurred)
-        assertEq(
-            transferId,
-            bytes32(0),
-            "Transfer ID should be zero when no transfers have occurred"
+        // Verify the transfer ID (should be the ID from the deposit operation)
+        assertTrue(
+            transferId != bytes32(0),
+            "Transfer ID should be set from the deposit operation"
         );
     }
 
@@ -934,6 +950,9 @@ contract CrossChainFleetProxyTest is Test {
 
         // Give the proxy some shares to produce a fleetBalance > 0 in the message
         fleetCommanderMock.testMint(address(proxy), 1 ether);
+
+        // First deposit some assets to set latestIncomingTransferId (required for notifySourceChain)
+        _depositAssetsToFleet(1000);
 
         // Act
         uint256 value = 0.5 ether;

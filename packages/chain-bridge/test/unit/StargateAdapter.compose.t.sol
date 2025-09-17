@@ -691,7 +691,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
 
         // Allow the composeFrom OApp (source) as a valid peer for the real source chain from payload
         vm.prank(governor);
-        registryB.registerAdapterPeer(
+        registryB.registerAdapterPeerPair(
             composeFrom,
             address(adapterB),
             decoded.sourceChainId,
