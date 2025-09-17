@@ -81,7 +81,8 @@ contract StargateAdapterComposeForkTest is Test {
             address(registryMainnet)
         );
 
-        registryMainnet.initializeBridgeConfiguration(address(routerMainnet));
+        registryMainnet.setBridgeRouter(address(routerMainnet));
+        registryMainnet.setDefaultGasLimit(400000);
 
         adapterMainnet = new StargateAdapter(
             address(registryMainnet), // Use registry instead of config manager
@@ -131,7 +132,8 @@ contract StargateAdapterComposeForkTest is Test {
             address(registryArbitrum)
         );
 
-        registryArbitrum.initializeBridgeConfiguration(address(routerArbitrum));
+        registryArbitrum.setBridgeRouter(address(routerArbitrum));
+        registryArbitrum.setDefaultGasLimit(400000);
 
         adapterArbitrum = new StargateAdapter(
             address(registryArbitrum), // Use registry instead of config manager

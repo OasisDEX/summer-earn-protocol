@@ -111,7 +111,8 @@ contract CrossChainFleetProxyTest is Test {
 
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        registry.initializeBridgeConfiguration(address(mockBridgeRouter));
+        registry.setBridgeRouter(address(mockBridgeRouter));
+        registry.setDefaultGasLimit(200000);
 
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(

@@ -100,7 +100,8 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
 
         // Initialize bridge configuration in registry
-        registryA.initializeBridgeConfiguration(address(routerA));
+        registryA.setBridgeRouter(address(routerA));
+        registryA.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
 
         // Deploy token and adapter with registry
         tokenA = new ERC20Mock();
@@ -148,7 +149,8 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
 
         // Initialize bridge configuration in registry
-        registryB.initializeBridgeConfiguration(address(routerB));
+        registryB.setBridgeRouter(address(routerB));
+        registryB.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
 
         // Deploy token and adapter with registry
         tokenB = new ERC20Mock();
