@@ -143,6 +143,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         emit LayerZeroAdapter.ReadChannelActivated(secondChannelId);
         adapterA.activateReadChannel(secondChannelId);
         assertEq(adapterA.readChannelId(), secondChannelId);
+        assertEq(adapterA.peers(firstChannelId), bytes32(0));
         vm.stopPrank();
     }
 
