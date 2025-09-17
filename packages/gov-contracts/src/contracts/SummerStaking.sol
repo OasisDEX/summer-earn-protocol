@@ -304,8 +304,8 @@ contract SummerStaking is
             uint256 lockupPeriod
         )
     {
-        uint256 stakePortfolioId = _getPortfolioId(_user);
-        UserStake[] storage stakes = stakesByPortfolioId[stakePortfolioId];
+        uint256 portfolioId = _getPortfolioId(_user);
+        UserStake[] storage stakes = stakesByPortfolioId[portfolioId];
         if (_index < stakes.length) {
             amount = stakes[_index].amount;
             weightedAmount = stakes[_index].weightedAmount;

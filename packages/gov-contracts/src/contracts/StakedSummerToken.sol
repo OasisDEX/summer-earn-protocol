@@ -20,7 +20,6 @@ contract StakedSummerToken is
     ERC20Permit,
     ERC20Votes
 {
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     constructor(
@@ -38,26 +37,23 @@ contract StakedSummerToken is
             );
         }
         _grantRole(MINTER_ROLE, _stakingModule);
-        _grantRole(PAUSER_ROLE, _stakingModule);
 
         emit StakingModuleAdded(_stakingModule);
     }
 
     function removeStakingModule(address _stakingModule) public onlyGovernor {
         _revokeRole(MINTER_ROLE, _stakingModule);
-        // todo: for pauser use guardian
-        _revokeRole(PAUSER_ROLE, _stakingModule);
         emit StakingModuleRemoved(_stakingModule);
     }
 
     event StakingModuleAdded(address indexed stakingModule);
     event StakingModuleRemoved(address indexed stakingModule);
 
-    function pause() public onlyRole(PAUSER_ROLE) {
+    function pause() public onlyGuardianOrGovernor {
         _pause();
     }
 
-    function unpause() public onlyRole(PAUSER_ROLE) {
+    function unpause() public onlyGuardianOrGovernor {
         _unpause();
     }
 
@@ -106,14 +102,6 @@ contract StakedSummerToken is
 
     function revokeMinterRole(address _minter) public onlyGovernor {
         _revokeRole(MINTER_ROLE, _minter);
-    }
-
-    function grantPauserRole(address _pauser) public onlyGovernor {
-        _grantRole(PAUSER_ROLE, _pauser);
-    }
-
-    function revokePauserRole(address _pauser) public onlyGovernor {
-        _revokeRole(PAUSER_ROLE, _pauser);
     }
 
     /**

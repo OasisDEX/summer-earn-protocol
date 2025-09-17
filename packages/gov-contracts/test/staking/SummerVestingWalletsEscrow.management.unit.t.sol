@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
+import {ISummerVestingWalletsEscrow} from "../../src/interfaces/ISummerVestingWalletsEscrow.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
@@ -66,7 +67,9 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
         // Add a new vesting factory
         vm.prank(address(timelockA)); // Only governor can add
         vm.expectEmit(true, false, false, false);
-        emit SummerVestingWalletsEscrow.VestingFactoryAdded(newVestingFactory1);
+        emit ISummerVestingWalletsEscrow.VestingFactoryAdded(
+            newVestingFactory1
+        );
         aStaking.addVestingFactory(newVestingFactory1);
 
         // Check count increased
@@ -126,7 +129,7 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
         // Remove the factory
         vm.prank(address(timelockA));
         vm.expectEmit(true, false, false, false);
-        emit SummerVestingWalletsEscrow.VestingFactoryRemoved(
+        emit ISummerVestingWalletsEscrow.VestingFactoryRemoved(
             newVestingFactory1
         );
         aStaking.removeVestingFactory(newVestingFactory1);
