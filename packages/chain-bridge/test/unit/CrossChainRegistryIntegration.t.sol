@@ -24,8 +24,7 @@ contract CrossChainRegistryIntegrationTest is Test {
     uint16 public constant CURRENT_CHAIN_ID = 1;
     uint16 public constant TARGET_CHAIN_ID = 42161;
 
-    bytes32 public constant ARK_FLEET_RELATIONSHIP =
-        keccak256("ARK_FLEET_RELATIONSHIP");
+    bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
 
     event CrossChainRelationshipRegistered(
         address indexed sourceContract,
@@ -70,7 +69,7 @@ contract CrossChainRegistryIntegrationTest is Test {
             proxyAddress,
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
 
         vm.prank(governor);
@@ -79,13 +78,13 @@ contract CrossChainRegistryIntegrationTest is Test {
             proxyAddress,
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
 
         // Verify the relationship
         (address targetContract, uint16 chainId) = registry.getTargetForSource(
             arkAddress,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
         assertEq(targetContract, proxyAddress);
         assertEq(chainId, TARGET_CHAIN_ID);
@@ -94,7 +93,7 @@ contract CrossChainRegistryIntegrationTest is Test {
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
             proxyAddress,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
         assertEq(sourceContract, arkAddress);
 
@@ -105,7 +104,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 proxyAddress,
                 CURRENT_CHAIN_ID,
                 TARGET_CHAIN_ID,
-                ARK_FLEET_RELATIONSHIP
+                PEER_RELATIONSHIP
             )
         );
     }
@@ -123,7 +122,7 @@ contract CrossChainRegistryIntegrationTest is Test {
             proxyAddress,
             differentSourceChain,
             differentTargetChain,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
 
         // Verify with correct chain IDs
@@ -133,7 +132,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 proxyAddress,
                 differentSourceChain,
                 differentTargetChain,
-                ARK_FLEET_RELATIONSHIP
+                PEER_RELATIONSHIP
             )
         );
 
@@ -144,14 +143,14 @@ contract CrossChainRegistryIntegrationTest is Test {
                 proxyAddress,
                 CURRENT_CHAIN_ID,
                 TARGET_CHAIN_ID, // Different target chain
-                ARK_FLEET_RELATIONSHIP
+                PEER_RELATIONSHIP
             )
         );
 
         // Verify target chain ID in relationship data
         (address targetContract, uint16 chainId) = registry.getTargetForSource(
             arkAddress,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
         assertEq(targetContract, proxyAddress);
         assertEq(chainId, differentTargetChain);
@@ -162,7 +161,7 @@ contract CrossChainRegistryIntegrationTest is Test {
         address proxy1 = makeAddr("proxy1");
         address proxy2 = makeAddr("proxy2");
 
-        bytes32 arkFleetType = keccak256("ARK_FLEET_RELATIONSHIP");
+        bytes32 arkFleetType = keccak256("PEER_RELATIONSHIP");
         bytes32 bridgeType = keccak256("BRIDGE_ADAPTER");
 
         vm.prank(governor);
@@ -240,7 +239,7 @@ contract CrossChainRegistryIntegrationTest is Test {
             proxy1,
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
 
         vm.prank(governor);
@@ -249,10 +248,10 @@ contract CrossChainRegistryIntegrationTest is Test {
             proxy2,
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
 
-        assertEq(registry.getRelationshipCount(ARK_FLEET_RELATIONSHIP), 2);
+        assertEq(registry.getRelationshipCount(PEER_RELATIONSHIP), 2);
 
         // Unregister first one
         vm.expectEmit(true, true, true, true);
@@ -261,29 +260,29 @@ contract CrossChainRegistryIntegrationTest is Test {
             proxy1,
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
 
         vm.prank(governor);
         registry.unregisterRelationship(
             ark1,
-            ARK_FLEET_RELATIONSHIP,
+            PEER_RELATIONSHIP,
             TARGET_CHAIN_ID
         );
 
         // Verify first is gone, second remains
-        assertEq(registry.getRelationshipCount(ARK_FLEET_RELATIONSHIP), 1);
+        assertEq(registry.getRelationshipCount(PEER_RELATIONSHIP), 1);
         assertFalse(
-            registry.isSourceContractRegistered(ark1, ARK_FLEET_RELATIONSHIP)
+            registry.isSourceContractRegistered(ark1, PEER_RELATIONSHIP)
         );
         assertTrue(
-            registry.isSourceContractRegistered(ark2, ARK_FLEET_RELATIONSHIP)
+            registry.isSourceContractRegistered(ark2, PEER_RELATIONSHIP)
         );
 
         // Verify second relationship still works
         (address targetContract, uint16 chainId) = registry.getTargetForSource(
             ark2,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
         assertEq(targetContract, proxy2);
         assertEq(chainId, TARGET_CHAIN_ID);
@@ -292,7 +291,7 @@ contract CrossChainRegistryIntegrationTest is Test {
             CURRENT_CHAIN_ID,
             TARGET_CHAIN_ID,
             proxy2,
-            ARK_FLEET_RELATIONSHIP
+            PEER_RELATIONSHIP
         );
         assertEq(sourceContract, ark2);
 
@@ -302,7 +301,7 @@ contract CrossChainRegistryIntegrationTest is Test {
                 proxy2,
                 CURRENT_CHAIN_ID,
                 TARGET_CHAIN_ID,
-                ARK_FLEET_RELATIONSHIP
+                PEER_RELATIONSHIP
             )
         );
     }
@@ -375,13 +374,24 @@ contract CrossChainRegistryIntegrationTest is Test {
     }
 
     function test_supportedRelationshipTypes() public {
-        // Initially should have ARK_FLEET_RELATIONSHIP type pre-registered in constructor
+        // Initially should have PEER_RELATIONSHIP type pre-registered in constructor
         bytes32[] memory supportedTypes = registry
             .getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 3);
-        assertEq(supportedTypes[0], keccak256("PEER_RELATIONSHIP"));
-        assertEq(supportedTypes[1], keccak256("ARK_FLEET_RELATIONSHIP"));
-        assertEq(supportedTypes[2], keccak256("EXECUTOR_RELATIONSHIP"));
+        assertEq(supportedTypes.length, 2);
+        // Check that both relationship types are present (order may vary)
+        bool hasPeer = false;
+        bool hasExecutor = false;
+        for (uint256 i = 0; i < supportedTypes.length; i++) {
+            if (supportedTypes[i] == keccak256("PEER_RELATIONSHIP")) {
+                hasPeer = true;
+            } else if (
+                supportedTypes[i] == keccak256("EXECUTOR_RELATIONSHIP")
+            ) {
+                hasExecutor = true;
+            }
+        }
+        assertTrue(hasPeer, "PEER_RELATIONSHIP not found");
+        assertTrue(hasExecutor, "EXECUTOR_RELATIONSHIP not found");
 
         // Add a new relationship type by using it
         bytes32 newType = keccak256("NEW_TYPE");
@@ -400,19 +410,29 @@ contract CrossChainRegistryIntegrationTest is Test {
             newType
         );
 
-        // Should now have 2 supported types
+        // Should now have 3 supported types
         supportedTypes = registry.getSupportedRelationshipTypes();
-        assertEq(supportedTypes.length, 4);
+        assertEq(supportedTypes.length, 3);
 
-        // Check both types are present (order may vary)
-        bool hasArkFleet = false;
+        // Check all types are present (order may vary)
+        bool hasPeer2 = false;
+        bool hasExecutor2 = false;
         bool hasNewType = false;
         for (uint256 i = 0; i < supportedTypes.length; i++) {
-            if (supportedTypes[i] == keccak256("ARK_FLEET_RELATIONSHIP"))
-                hasArkFleet = true;
+            if (supportedTypes[i] == keccak256("PEER_RELATIONSHIP"))
+                hasPeer2 = true;
+            if (supportedTypes[i] == keccak256("EXECUTOR_RELATIONSHIP"))
+                hasExecutor2 = true;
             if (supportedTypes[i] == newType) hasNewType = true;
         }
-        assertTrue(hasArkFleet);
-        assertTrue(hasNewType);
+        assertTrue(
+            hasPeer2,
+            "PEER_RELATIONSHIP not found after adding new type"
+        );
+        assertTrue(
+            hasExecutor2,
+            "EXECUTOR_RELATIONSHIP not found after adding new type"
+        );
+        assertTrue(hasNewType, "NEW_TYPE not found");
     }
 }

@@ -48,8 +48,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
     /// @notice Constants for relationship types
     bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
-    bytes32 public constant ARK_FLEET_RELATIONSHIP =
-        keccak256("ARK_FLEET_RELATIONSHIP");
     bytes32 public constant EXECUTOR_RELATIONSHIP =
         keccak256("EXECUTOR_RELATIONSHIP");
 
@@ -71,7 +69,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         CURRENT_CHAIN_ID = _currentChainId;
 
         _addRelationshipType(PEER_RELATIONSHIP);
-        _addRelationshipType(ARK_FLEET_RELATIONSHIP);
         _addRelationshipType(EXECUTOR_RELATIONSHIP);
 
         emit RegistryInitialized(_currentChainId);
@@ -482,44 +479,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @inheritdoc ICrossChainRegistry
     function currentChainId() external view returns (uint16) {
         return CURRENT_CHAIN_ID;
-    }
-
-    /**
-     * @notice Register a bidirectional Ark-Fleet relationship in one call
-     */
-    function registerArkFleetPair(
-        address ark,
-        address fleetProxy,
-        uint16 arkChainId,
-        uint16 fleetChainId
-    ) external onlyGovernor {
-        _registerRelationship(
-            ark,
-            fleetProxy,
-            arkChainId,
-            fleetChainId,
-            ARK_FLEET_RELATIONSHIP
-        );
-        _registerRelationship(
-            fleetProxy,
-            ark,
-            fleetChainId,
-            arkChainId,
-            ARK_FLEET_RELATIONSHIP
-        );
-    }
-
-    /**
-     * @notice Unregister a bidirectional Ark-Fleet relationship in one call
-     */
-    function unregisterArkFleetPair(
-        address ark,
-        address fleetProxy,
-        uint16 arkChainId,
-        uint16 fleetChainId
-    ) external onlyGovernor {
-        _unregisterRelationship(ark, ARK_FLEET_RELATIONSHIP, fleetChainId);
-        _unregisterRelationship(fleetProxy, ARK_FLEET_RELATIONSHIP, arkChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
