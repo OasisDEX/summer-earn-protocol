@@ -207,7 +207,7 @@ contract SummerVestingWalletsEscrow is
         }
 
         if (totalBalance > 0) {
-            _mint(msg.sender, totalBalance);
+            STAKED_SUMMER_TOKEN.mint(msg.sender, totalBalance);
         } else {
             revert Staking_VestingWalletsEmpty();
         }
@@ -242,12 +242,7 @@ contract SummerVestingWalletsEscrow is
             );
         }
         if (totalBalance > 0) {
-            STAKED_SUMMER_TOKEN.safeTransferFrom(
-                msg.sender,
-                address(this),
-                totalBalance
-            );
-            _burn(totalBalance);
+            STAKED_SUMMER_TOKEN.burnFrom(msg.sender, totalBalance);
         } else {
             revert Staking_NoVestingWalletsStaked();
         }
@@ -304,24 +299,5 @@ contract SummerVestingWalletsEscrow is
         if (balance > 0 && originalOwner == _user) {
             IMinimalVestingWallet(_vestingWallet).transferOwnership(_user);
         }
-    }
-
-    // ============ INTERNAL FUNCTIONS - TOKEN SUPPLY ============
-
-    /**
-     * @dev Internal function to burn xSUMR tokens
-     * @param _amount The amount of xSUMR tokens to burn
-     */
-    function _burn(uint256 _amount) internal {
-        IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).burn(_amount);
-    }
-
-    /**
-     * @dev Internal function to mint xSUMR tokens
-     * @param _user The address to mint the tokens to
-     * @param _amount The amount of xSUMR tokens to mint
-     */
-    function _mint(address _user, uint256 _amount) internal {
-        IStakedSummerToken(address(STAKED_SUMMER_TOKEN)).mint(_user, _amount);
     }
 }

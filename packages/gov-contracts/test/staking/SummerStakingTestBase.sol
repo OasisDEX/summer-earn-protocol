@@ -16,8 +16,6 @@ import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
  * @dev Base contract for SummerStaking tests with common helper methods.
  */
 contract SummerStakingTestBase is SummerGovernorV2TestBase {
-    address public user1 = address(0x1001);
-    address public user2 = address(0x1002);
     uint256 public constant STAKE_AMOUNT = 1000 ether;
     uint256 public constant REWARD_AMOUNT = 100 ether;
 

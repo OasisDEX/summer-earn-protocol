@@ -436,60 +436,6 @@ contract SummerStakingIntegrationTest is SummerStakingTestBase {
         vm.stopPrank();
     }
 
-    function test_Staking_VotingPower_TransferAfterDelegation() public {
-        uint256 stakeAmount = USER_1_STAKE_AMOUNT;
-
-        // Alice stakes and delegates to herself
-        stakeAndDelegate(alice, stakeAmount, true);
-
-        advanceTimeAndBlock();
-
-        // Alice transfers some StakedSummerToken to Bob
-        uint256 transferAmount = stakeAmount / 4;
-        vm.prank(alice);
-        axSumr.transfer(bob, transferAmount);
-
-        advanceTimeAndBlock();
-
-        uint256 aliceVotingPowerAfterTransfer = governorA.getVotes(
-            alice,
-            block.timestamp - 1
-        );
-        uint256 bobVotingPowerAfterTransfer = governorA.getVotes(
-            bob,
-            block.timestamp - 1
-        );
-
-        assertEq(
-            aliceVotingPowerAfterTransfer,
-            stakeAmount - transferAmount,
-            "Alice's voting power should decrease after transfer"
-        );
-
-        assertEq(
-            bobVotingPowerAfterTransfer,
-            0,
-            "Bob should have no voting power (received tokens but not delegated)"
-        );
-
-        // Bob delegates to himself
-        vm.prank(bob);
-        axSumr.delegate(bob);
-
-        advanceTimeAndBlock();
-
-        uint256 bobVotingPowerAfterDelegation = governorA.getVotes(
-            bob,
-            block.timestamp - 1
-        );
-
-        assertEq(
-            bobVotingPowerAfterDelegation,
-            transferAmount,
-            "Bob should have voting power after delegation"
-        );
-    }
-
     function test_Staking_VotingPower_InsufficientBalance() public {
         uint256 stakeAmount = USER_1_STAKE_AMOUNT;
         deal(address(aSummerToken), alice, stakeAmount);

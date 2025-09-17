@@ -21,6 +21,7 @@ contract StakedSummerToken is
     ERC20Votes
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     constructor(
         address _protocolAccessManager
@@ -37,17 +38,16 @@ contract StakedSummerToken is
             );
         }
         _grantRole(MINTER_ROLE, _stakingModule);
+        _grantRole(BURNER_ROLE, _stakingModule);
 
         emit StakingModuleAdded(_stakingModule);
     }
 
     function removeStakingModule(address _stakingModule) public onlyGovernor {
         _revokeRole(MINTER_ROLE, _stakingModule);
+        _revokeRole(BURNER_ROLE, _stakingModule);
         emit StakingModuleRemoved(_stakingModule);
     }
-
-    event StakingModuleAdded(address indexed stakingModule);
-    event StakingModuleRemoved(address indexed stakingModule);
 
     function pause() public onlyGuardianOrGovernor {
         _pause();
@@ -67,8 +67,14 @@ contract StakedSummerToken is
         super.burn(amount);
     }
 
-    function burnFrom(address from, uint256 amount) public override {
-        revert xSumr__NotImplemented();
+    function burnFrom(
+        address from,
+        uint256 amount
+    ) public override(ERC20Burnable, IStakedSummerToken) {
+        if (msg.sender != from && !hasRole(BURNER_ROLE, msg.sender)) {
+            revert xSumr__NotAuthorized();
+        }
+        super.burnFrom(from, amount);
     }
 
     function clock() public view override returns (uint48) {
@@ -87,6 +93,9 @@ contract StakedSummerToken is
         address to,
         uint256 value
     ) internal override(ERC20, ERC20Pausable, ERC20Votes) {
+        if (!_canTransfer(from, to)) {
+            revert xSumr_TransferNotAllowed();
+        }
         super._update(from, to, value);
     }
 
@@ -120,6 +129,10 @@ contract StakedSummerToken is
         revert DirectRevokeIsDisabled(msg.sender);
     }
 
-    error xSumr_InvalidStakingModule(string message);
-    error xSumr__NotImplemented();
+    function _canTransfer(
+        address from,
+        address to
+    ) internal view returns (bool) {
+        return from == address(0) || to == address(0);
+    }
 }

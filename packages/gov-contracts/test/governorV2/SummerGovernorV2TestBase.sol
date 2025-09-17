@@ -33,12 +33,14 @@ contract SummerGovernorV2TestBase is
     uint256 public constant PROPOSAL_THRESHOLD = 10_000e18;
     uint256 public constant QUORUM_FRACTION = 40;
 
-    address public alice = address(0x111);
-    address public bob = address(0x112);
-    address public charlie = address(0x113);
-    address public david = address(0x114);
-    address public guardian = address(0x115);
-    address public whale = address(0x116);
+    address public user1 = makeAddr("user1");
+    address public user2 = makeAddr("user2");
+    address public alice = makeAddr("alice");
+    address public bob = makeAddr("bob");
+    address public charlie = makeAddr("charlie");
+    address public david = makeAddr("david");
+    address public guardian = makeAddr("guardian");
+    address public whale = makeAddr("whale");
 
     address public foundation;
     SummerVestingWalletFactory public factoryVesting;
@@ -340,16 +342,20 @@ contract SummerGovernorV2TestBase is
     ) internal {
         if (useChainA) {
             // whale has 100% of the token supply
-            vm.startPrank(whale);
-            axSumr.transfer(user, amount);
-            vm.stopPrank();
+            vm.prank(whale);
+            axSumr.burn(amount);
+
+            vm.prank(address(timelockA));
+            axSumr.mint(user, amount);
 
             // Delegate StakedSummerToken for voting
         } else {
             // Transfer SUMMER tokens to user first
-            vm.startPrank(whale);
-            bxSumr.transfer(user, amount);
-            vm.stopPrank();
+            vm.prank(whale);
+            bxSumr.burn(amount);
+
+            vm.prank(address(timelockB));
+            bxSumr.mint(user, amount);
         }
 
         advanceTimeAndBlock();

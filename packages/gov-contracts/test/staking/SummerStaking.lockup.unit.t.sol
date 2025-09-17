@@ -1606,8 +1606,16 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         freshStaking.transferStakes(newUser);
         uint256 gasAfter = gasleft();
         uint256 gasUsed = gasBefore - gasAfter;
-        assertLt(gasUsed, 200000);
-        assertEq(freshStaking.getUserStakesCount(user1), 0);
-        assertEq(freshStaking.getUserStakesCount(newUser), count + 1);
+        assertLt(gasUsed, 250000, "gas used should be less than 250000");
+        assertEq(
+            freshStaking.getUserStakesCount(user1),
+            0,
+            "user1 should have 0 stakes"
+        );
+        assertEq(
+            freshStaking.getUserStakesCount(newUser),
+            count + 1,
+            "newUser should have count + 1 stakes"
+        );
     }
 }

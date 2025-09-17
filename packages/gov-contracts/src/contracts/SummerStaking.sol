@@ -130,7 +130,10 @@ contract SummerStaking is
     // ============ EXTERNAL FUNCTIONS - STAKING ============
 
     /// @inheritdoc ISummerStaking
-    function stakeLockup(uint256 _amount, uint256 _lockupPeriod) external {
+    function stakeLockup(
+        uint256 _amount,
+        uint256 _lockupPeriod
+    ) external nonReentrant {
         _stakeLockup(_msgSender(), _msgSender(), _amount, _lockupPeriod);
     }
 
@@ -139,12 +142,14 @@ contract SummerStaking is
         address _receiver,
         uint256 _amount,
         uint256 _lockupPeriod
-    ) external {
+    ) external nonReentrant {
         _stakeLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
     /// @inheritdoc ISummerStaking
-    function transferStakes(address _to) external updateReward(_msgSender()) {
+    function transferStakes(
+        address _to
+    ) external updateReward(_msgSender()) nonReentrant {
         address from = _msgSender();
         if (_to == address(0))
             revert Staking_InvalidAddress("Target address cannot be zero");
@@ -188,7 +193,8 @@ contract SummerStaking is
         }
         uint256 xsumrToMove = _balances[from];
         if (xsumrToMove != 0) {
-            STAKED_SUMMER_TOKEN.safeTransferFrom(from, _to, xsumrToMove);
+            STAKED_SUMMER_TOKEN.burnFrom(from, xsumrToMove);
+            STAKED_SUMMER_TOKEN.mint(_to, xsumrToMove);
         }
 
         stakePortfolioId[_to] = _getPortfolioId(from);
@@ -214,7 +220,7 @@ contract SummerStaking is
     function unstakeLockup(
         uint256 _stakeIndex,
         uint256 _amount
-    ) public virtual updateReward(_msgSender()) {
+    ) public virtual updateReward(_msgSender()) nonReentrant {
         if (_amount == 0) revert CannotUnstakeZero();
         if (_amount > _balances[_msgSender()])
             revert Staking_InsufficientBalance();
@@ -704,8 +710,7 @@ contract SummerStaking is
             WRAPPED_SUMMER_TOKEN.withdrawTo(from, amount);
         }
 
-        STAKED_SUMMER_TOKEN.safeTransferFrom(from, address(this), amount);
-        STAKED_SUMMER_TOKEN.burn(amount);
+        STAKED_SUMMER_TOKEN.burnFrom(from, amount);
     }
 
     // ============ INTERNAL FUNCTIONS - BALANCE MANAGEMENT ============

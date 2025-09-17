@@ -5,9 +5,8 @@ import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.s
 import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 
 contract SummerVestingWalletsEscrowTestBase is SummerGovernorV2TestBase {
-    // address public user1 = address(0x1001);
-    // address public user2 = address(0x1002);
-    uint256 public constant STAKE_AMOUNT = 1000 ether;
+    uint256 public constant VESTING_AMOUNT_WALLET_1 = 1000 ether;
+    uint256 public constant VESTING_AMOUNT_WALLET_2 = 500 ether;
 
     SummerVestingWalletsEscrow public aStaking;
     SummerVestingWalletsEscrow public bStaking;

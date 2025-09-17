@@ -8,5 +8,15 @@ interface IStakedSummerToken is IERC20 {
 
     function burn(uint256 _amount) external;
 
+    function burnFrom(address _from, uint256 _amount) external;
+
     function addStakingModule(address _stakingModule) external;
+
+    error xSumr_InvalidStakingModule(string message);
+    error xSumr__NotImplemented();
+    error xSumr__NotAuthorized();
+    error xSumr_TransferNotAllowed();
+
+    event StakingModuleAdded(address indexed stakingModule);
+    event StakingModuleRemoved(address indexed stakingModule);
 }
