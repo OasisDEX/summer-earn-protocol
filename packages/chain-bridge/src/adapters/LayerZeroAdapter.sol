@@ -76,6 +76,12 @@ contract LayerZeroAdapter is
         uint64 confirmations
     );
 
+    /// @notice Emitted when a read channel is activated
+    event ReadChannelActivated(uint32 indexed readChannelId);
+
+    /// @notice Emitted when per-chain read support is updated
+    event ChainReadSupportUpdated(uint16 indexed chainId, bool supported);
+
     /// @notice Mapping of chains that support read operations
     mapping(uint16 chainId => bool supportsRead) public chainSupportsRead;
 
@@ -640,78 +646,6 @@ contract LayerZeroAdapter is
         BridgeTypes.RelayedMessageParams memory params
     ) internal pure returns (bytes memory payload) {
         return _encodeRelayedMessageParamsWithType(params);
-    }
-
-    /**
-     * @notice Quotes fee for a specific operation type
-     * @param lzDstEid LayerZero destination endpoint ID
-     * @param payload Operation payload
-     * @param lzOptions LayerZero options
-     * @param operationType Type of operation
-     * @return fee Quoted fee structure
-     */
-    function _quoteOperationFee(
-        uint32 lzDstEid,
-        bytes memory payload,
-        bytes memory lzOptions,
-        BridgeTypes.OperationType operationType
-    ) internal view returns (EndpointFee memory fee) {
-        if (operationType == BridgeTypes.OperationType.READ_STATE) {
-            if (readChannelId == 0) revert ReadChannelNotConfigured();
-            return _quote(readChannelId, payload, lzOptions, false);
-        } else {
-            return _quote(lzDstEid, payload, lzOptions, false);
-        }
-    }
-
-    /**
-     * @notice Calculate required fees based on minimum gas limits
-     * @param _dstEid Destination endpoint ID
-     * @param operationType Operation type
-     * @param _payload Message payload
-     * @return requiredFee Minimum fee required for operation
-     */
-    function getRequiredFee(
-        uint32 _dstEid,
-        BridgeTypes.OperationType operationType,
-        bytes memory _payload
-    ) public view returns (uint256 requiredFee) {
-        // Create default options with minimum - use scoping to avoid stack too deep
-        bytes memory options;
-        {
-            // Create params in limited scope
-            BridgeTypes.BridgeOptions memory params = BridgeTypes
-                .BridgeOptions({
-                    specifiedAdapter: address(this),
-                    gasLimit: uint64(defaultGasLimit()),
-                    msgValue: 0,
-                    calldataSize: 0,
-                    options: bytes("")
-                });
-
-            if (operationType == BridgeTypes.OperationType.READ_STATE) {
-                // For state read, create read options with minimum gas
-                options = LayerZeroOptionsHelper.createLzReadOptions(
-                    params,
-                    uint128(defaultGasLimit())
-                );
-            } else {
-                // For standard messaging, create messaging options with minimum gas
-                options = LayerZeroOptionsHelper.createMessagingOptions(
-                    params,
-                    uint128(defaultGasLimit())
-                );
-            }
-        }
-
-        // Quote the fee with our generated options
-        EndpointFee memory quoteFee = _quoteOperationFee(
-            _dstEid,
-            _payload,
-            options,
-            operationType
-        );
-        return quoteFee.nativeFee;
     }
 
     /// @inheritdoc IBridgeAdapter
