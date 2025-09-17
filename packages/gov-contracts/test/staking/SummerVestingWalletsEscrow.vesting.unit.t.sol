@@ -123,7 +123,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Set staking module so testStaking can mint/burn StakedSummerToken
         vm.prank(address(timelockA));
-        axSumr.setStakingModule(address(testStaking));
+        axSumr.addStakingModule(address(testStaking));
 
         // Setup test users with tokens
         deal(address(aSummerToken), user1, STAKE_AMOUNT * 2);

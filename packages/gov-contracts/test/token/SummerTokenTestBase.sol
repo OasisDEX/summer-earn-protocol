@@ -16,6 +16,8 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {ConfigurationManager} from "@summerfi/earn-protocol-contracts/contracts/ConfigurationManager.sol";
+import {ConfigurationManagerParams} from "@summerfi/earn-protocol-contracts/types/ConfigurationManagerTypes.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerTimelockController} from "../../src/contracts/SummerTimelockController.sol";
@@ -36,6 +38,13 @@ contract SummerTokenTestBase is TestHelperOz5 {
     ExposedSummerTimelockController public timelockA;
     ExposedSummerTimelockController public timelockB;
 
+    address raft = makeAddr("raft");
+    address treasury = makeAddr("treasury");
+    address tipJar = makeAddr("tipJar");
+    address harborCommand = makeAddr("harborCommand");
+    address fleetCommanderRewardsManagerFactory =
+        makeAddr("fleetCommanderRewardsManagerFactory");
+
     address public lzEndpointA;
     address public lzEndpointB;
 
@@ -43,6 +52,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
 
     ProtocolAccessManager public accessManagerA;
     ProtocolAccessManager public accessManagerB;
+    ConfigurationManager public configurationManagerA;
+    ConfigurationManager public configurationManagerB;
     MockSummerGovernor public mockGovernor;
 
     uint40 public constant MIN_DECAY_FREE_WINDOW = 30 days;
@@ -108,6 +119,35 @@ contract SummerTokenTestBase is TestHelperOz5 {
         accessManagerA.revokeGovernorRole(fakeDeployerKey);
         accessManagerB.revokeGovernorRole(fakeDeployerKey);
         vm.stopPrank();
+
+        configurationManagerA = new ConfigurationManager(
+            address(accessManagerA)
+        );
+        configurationManagerB = new ConfigurationManager(
+            address(accessManagerB)
+        );
+        vm.prank(address(timelockA));
+        configurationManagerA.initializeConfiguration(
+            ConfigurationManagerParams({
+                raft: raft,
+                tipJar: tipJar,
+                treasury: treasury,
+                harborCommand: harborCommand,
+                fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory
+            })
+        );
+        vm.prank(address(timelockB));
+        configurationManagerB.initializeConfiguration(
+            ConfigurationManagerParams({
+                raft: raft,
+                tipJar: tipJar,
+                treasury: treasury,
+                harborCommand: harborCommand,
+                fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory
+            })
+        );
+        vm.label(address(configurationManagerA), "ConfigurationManager A");
+        vm.label(address(configurationManagerB), "ConfigurationManager B");
 
         vm.label(address(timelockA), "SummerTimelockController A");
         vm.label(address(timelockB), "SummerTimelockController B");

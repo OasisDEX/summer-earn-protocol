@@ -23,8 +23,6 @@ contract StakedSummerToken is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    address public stakingModule;
-
     constructor(
         address _protocolAccessManager
     )
@@ -33,20 +31,27 @@ contract StakedSummerToken is
         ProtocolAccessManaged(_protocolAccessManager)
     {}
 
-    function setStakingModule(address _stakingModule) public onlyGovernor {
+    function addStakingModule(address _stakingModule) public onlyGovernor {
         if (_stakingModule == address(0)) {
             revert xSumr_InvalidStakingModule(
                 "Staking module address cannot be zero"
             );
         }
-        stakingModule = _stakingModule;
-        _grantRole(PAUSER_ROLE, _stakingModule);
         _grantRole(MINTER_ROLE, _stakingModule);
+        _grantRole(PAUSER_ROLE, _stakingModule);
 
-        emit StakingModuleSet(_stakingModule);
+        emit StakingModuleAdded(_stakingModule);
     }
 
-    event StakingModuleSet(address indexed stakingModule);
+    function removeStakingModule(address _stakingModule) public onlyGovernor {
+        _revokeRole(MINTER_ROLE, _stakingModule);
+        // todo: for pauser use guardian
+        _revokeRole(PAUSER_ROLE, _stakingModule);
+        emit StakingModuleRemoved(_stakingModule);
+    }
+
+    event StakingModuleAdded(address indexed stakingModule);
+    event StakingModuleRemoved(address indexed stakingModule);
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();

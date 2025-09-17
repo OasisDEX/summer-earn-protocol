@@ -8,5 +8,5 @@ interface IStakedSummerToken is IERC20 {
 
     function burn(uint256 _amount) external;
 
-    function setStakingModule(address _stakingModule) external;
+    function addStakingModule(address _stakingModule) external;
 }

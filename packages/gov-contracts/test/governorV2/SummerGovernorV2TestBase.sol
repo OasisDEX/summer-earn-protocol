@@ -132,12 +132,12 @@ contract SummerGovernorV2TestBase is
 
         // whale gets 100% of the StakedSummerToken supply
         vm.startPrank(address(timelockA));
-        axSumr.setStakingModule(address(timelockA));
+        axSumr.addStakingModule(address(timelockA));
         axSumr.mint(whale, aSummerToken.totalSupply());
         vm.stopPrank();
 
         vm.startPrank(address(timelockB));
-        bxSumr.setStakingModule(address(timelockB));
+        bxSumr.addStakingModule(address(timelockB));
         bxSumr.mint(whale, bSummerToken.totalSupply());
         vm.stopPrank();
 
