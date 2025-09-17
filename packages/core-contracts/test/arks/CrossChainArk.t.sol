@@ -8,6 +8,7 @@ import {IBridgeRouter} from "@summerfi/chain-bridge/interfaces/IBridgeRouter.sol
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {ICrossChainArk} from "@summerfi/chain-bridge/interfaces/ICrossChainArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {MockBridgeRouter} from "@summerfi/chain-bridge-test/mocks/MockBridgeRouter.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
@@ -15,13 +16,14 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {Percentage, PERCENTAGE_1} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MockAdapter} from "@summerfi/chain-bridge-test/mocks/MockAdapter.sol";
 import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICrossChainConfigManaged.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkTest is Test, ArkTestBase {
+    event InflightCleared(bytes32 operationId, uint256 amount);
     CrossChainArk ark;
     MockBridgeRouter router;
     CrossChainRegistry registry;
@@ -69,10 +71,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
 
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        registry.initializeBridgeConfiguration(
-            address(router),
-            200000 // defaultGasLimit
-        );
+        registry.initializeBridgeConfiguration(address(router));
         vm.stopPrank();
 
         ArkParams memory params = ArkParams({
@@ -462,7 +461,12 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Should emit the event when receiving assets
+        // Should emit the remote balance update and assets received events when receiving assets
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.RemoteAssetBalanceUpdated(
+            remoteBalanceAfterWithdrawal,
+            requestId
+        );
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.AssetsReceived(tokenAddress, amount, sourceChain);
 
@@ -539,18 +543,18 @@ contract CrossChainArkTest is Test, ArkTestBase {
             bytes32(0) // latestOutgoingTransferId is not set yet
         );
 
-        // Set some inflight assets first
-        vm.prank(address(router));
-        ark.updateInflightAssets(500);
+        // Set some inflight assets first (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(500);
         assertEq(
             ark.inflightAssets(),
             500,
             "Setup: inflight assets should be 500"
         );
 
-        // Receive state read should reset inflight assets
+        // Receive state read should reset inflight assets (new event semantics)
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(requestId, 500);
 
         vm.prank(address(router));
         ark.receiveOperation(
@@ -646,9 +650,9 @@ contract CrossChainArkTest is Test, ArkTestBase {
             abi.encode(params)
         );
 
-        // Setup inflight assets
-        vm.prank(address(router));
-        ark.updateInflightAssets(inflightAmount);
+        // Setup inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(inflightAmount);
 
         // Test total assets calculation
         uint256 expectedTotal = localBalance + remoteBalance + inflightAmount;
@@ -713,6 +717,103 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertFalse(
             ark.supportsInterface(bytes4(0xffffffff)),
             "Should not support random interface"
+        );
+    }
+
+    function _buildEmptyPayload() internal pure returns (bytes memory) {
+        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
+            operationId: bytes32(0),
+            originator: address(0),
+            sourceAsset: address(0)
+        });
+        return abi.encode(dp);
+    }
+
+    // ========================================================================
+    // cancelPendingTransfer TESTS
+    // ========================================================================
+
+    function testCancelPendingTransferUnauthorized() public {
+        address unauthorized = address(0xBEEF);
+        vm.prank(unauthorized);
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotKeeper(address)", unauthorized)
+        );
+        ark.cancelPendingTransfer();
+    }
+
+    function testCancelPendingTransferNoPending() public {
+        vm.prank(address(keeper));
+        vm.expectRevert(ICrossChainArk.NoPendingTransferQueued.selector);
+        ark.cancelPendingTransfer();
+    }
+
+    function testCancelPendingTransferAfterQueue() public {
+        uint256 amount = 1000;
+        deal(address(mockToken), address(fleetCommander), amount);
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+    }
+
+    function testDisembarkWhileTransferPendingVulnerability() public {
+        // Setup: Fund the ark with initial assets
+        uint256 initialArkBalance = 2000e18; // 2000 tokens
+        deal(address(mockToken), address(ark), initialArkBalance);
+
+        // Setup: Fund the FleetCommander with tokens for boarding
+        uint256 fleetCommanderBalance = 2000e18; // 2000 tokens (enough for the transfer)
+        deal(
+            address(mockToken),
+            address(fleetCommander),
+            fleetCommanderBalance
+        );
+        vm.prank(address(fleetCommander));
+        mockToken.approve(address(ark), type(uint256).max);
+
+        // Step 1: Initiate a transfer (board) but don't execute it yet
+        uint256 transferAmount = 1500e18; // 1500 tokens to transfer
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: TARGET_CHAIN_ID,
+                asset: address(mockToken),
+                amount: transferAmount,
+                target: proxy,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
+
+        // Board the transfer (this queues it but doesn't execute)
+        vm.prank(address(fleetCommander));
+        ark.board(transferAmount, executeTransferParams);
+
+        // Step 2: Disembark a significant amount from the ark
+        // This reduces the ark's local balance below what's needed for the pending transfer
+        uint256 disembarkAmount = 2500e18; // Disembark more than enough to create insufficient balance
+        vm.prank(address(fleetCommander));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainArk.PendingTransferAlreadyQueued.selector
+            )
+        );
+        ark.disembark(disembarkAmount, bytes("keeper_data")); // CrossChainArk requires keeper data
+
+        // Step 3: This test EXPECTS the transfer to succeed
+        vm.prank(keeper);
+        ark.executeTransferAssets();
+
+        (, , , address assetAfterExecution, , , ) = ark.pendingTransferParams();
+        assertTrue(
+            assetAfterExecution == address(0),
+            "Transfer should have succeeded"
         );
     }
 }

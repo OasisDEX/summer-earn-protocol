@@ -81,10 +81,7 @@ contract StargateAdapterComposeForkTest is Test {
             address(registryMainnet)
         );
 
-        registryMainnet.initializeBridgeConfiguration(
-            address(routerMainnet),
-            400000 // defaultGasLimit
-        );
+        registryMainnet.initializeBridgeConfiguration(address(routerMainnet));
 
         adapterMainnet = new StargateAdapter(
             address(registryMainnet), // Use registry instead of config manager
@@ -93,7 +90,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Configure mainnet adapter with basic chain support only
-        adapterMainnet.mapEndpoint(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
+        adapterMainnet.mapExternalId(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
         // Don't add CHAIN_ID_ARBITRUM yet - will add after arbitrum adapter is deployed
 
         // Deploy mock Stargate contract for mainnet USDC
@@ -134,10 +131,7 @@ contract StargateAdapterComposeForkTest is Test {
             address(registryArbitrum)
         );
 
-        registryArbitrum.initializeBridgeConfiguration(
-            address(routerArbitrum),
-            400000 // defaultGasLimit
-        );
+        registryArbitrum.initializeBridgeConfiguration(address(routerArbitrum));
 
         adapterArbitrum = new StargateAdapter(
             address(registryArbitrum), // Use registry instead of config manager
@@ -146,8 +140,8 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Configure Arbitrum adapter with basic chain support only
-        adapterArbitrum.mapEndpoint(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
-        adapterArbitrum.mapEndpoint(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
+        adapterArbitrum.mapExternalId(CHAIN_ID_MAINNET, LZ_EID_MAINNET);
+        adapterArbitrum.mapExternalId(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
 
         routerArbitrum.registerAdapter(address(adapterArbitrum));
 
@@ -169,8 +163,8 @@ contract StargateAdapterComposeForkTest is Test {
         vm.selectFork(0);
         vm.startPrank(governor);
 
-        adapterMainnet.mapEndpoint(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
-        registryMainnet.registerAdapterPeer(
+        adapterMainnet.mapExternalId(CHAIN_ID_ARBITRUM, LZ_EID_ARBITRUM);
+        registryMainnet.registerAdapterPeerPair(
             address(adapterMainnet),
             address(adapterArbitrum),
             CHAIN_ID_MAINNET,

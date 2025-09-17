@@ -43,12 +43,6 @@ interface ICrossChainRegistry {
         address indexed newBridgeRouter
     );
 
-    /// @notice Emitted when the default gas limit is updated
-    event DefaultGasLimitUpdated(
-        uint256 oldDefaultGasLimit,
-        uint256 newDefaultGasLimit
-    );
-
     /// @notice Emitted when a cross-chain relationship is registered
     event CrossChainRelationshipRegistered(
         address indexed sourceContract,
@@ -76,9 +70,6 @@ interface ICrossChainRegistry {
 
     /// @notice Thrown when bridge configuration is already initialized
     error BridgeConfigAlreadyInitialized();
-
-    /// @notice Thrown when an invalid gas limit is provided
-    error InvalidGasLimit();
 
     /// @notice Thrown when an address parameter is zero
     error AddressZero();
@@ -182,30 +173,17 @@ interface ICrossChainRegistry {
     /// @notice Returns the address of the bridge router contract
     function bridgeRouter() external view returns (address);
 
-    /// @notice Returns the default gas limit for cross-chain operations
-    function defaultGasLimit() external view returns (uint256);
-
     /**
      * @notice Initializes the bridge configuration parameters
      * @param _bridgeRouter The address of the bridge router contract
-     * @param _defaultGasLimit The default gas limit for cross-chain transactions
      */
-    function initializeBridgeConfiguration(
-        address _bridgeRouter,
-        uint256 _defaultGasLimit
-    ) external;
+    function initializeBridgeConfiguration(address _bridgeRouter) external;
 
     /**
      * @notice Sets the bridge router address
      * @param newBridgeRouter The new bridge router address
      */
     function setBridgeRouter(address newBridgeRouter) external;
-
-    /**
-     * @notice Sets the default gas limit for cross-chain operations
-     * @param newDefaultGasLimit The new default gas limit
-     */
-    function setDefaultGasLimit(uint256 newDefaultGasLimit) external;
 
     /*//////////////////////////////////////////////////////////////
                             QUERY FUNCTIONS
@@ -351,20 +329,6 @@ interface ICrossChainRegistry {
     /*//////////////////////////////////////////////////////////////
                         ADAPTER PEER_RELATIONSHIP CONVENIENCE
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Register a peer relationship between two bridge adapters
-     * @param sourceAdapter Address of the source adapter
-     * @param targetAdapter Address of the target adapter
-     * @param sourceChainId Chain ID where the source adapter is deployed
-     * @param targetChainId Chain ID where the target adapter is deployed
-     */
-    function registerAdapterPeer(
-        address sourceAdapter,
-        address targetAdapter,
-        uint16 sourceChainId,
-        uint16 targetChainId
-    ) external;
 
     /**
      * @notice Get the peer adapter address for a given source adapter and target chain

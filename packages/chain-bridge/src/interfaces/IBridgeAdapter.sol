@@ -59,22 +59,39 @@ interface IBridgeAdapter {
     error Untrusted(string what, address from, address additionalInfo);
 
     /**
-     * @notice Estimate fees for a cross-chain operation (unified interface)
-     * @param destinationChainId ID of the destination chain
-     * @param asset Address of the asset to transfer (address(0) for non-asset operations)
-     * @param amount Amount of the asset to transfer (0 for non-asset operations)
+     * @notice Estimate fees for a transfer operation using execution parameters
+     * @param params Transfer parameters identical to execute methods
      * @param options Bridge options including adapter selection and parameters
-     * @param operationType Type of operation (0=MESSAGE, 1=READ_STATE, 2=TRANSFER_ASSET)
      * @return nativeFee Fee in the chain's native token
      * @return tokenFee Fee in the transferred token (if applicable)
-     * @dev This method delegates to estimateTransferFee or estimateMessageFee based on operationType
      */
-    function estimateFee(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+    function estimateTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    ) external view returns (uint256 nativeFee, uint256 tokenFee);
+
+    /**
+     * @notice Estimate fees for a read state operation using execution parameters
+     * @param params Read state parameters identical to execute methods
+     * @param options Bridge options including adapter selection and parameters
+     * @return nativeFee Fee in the chain's native token
+     * @return tokenFee Fee in the transferred token (if applicable)
+     */
+    function estimateReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    ) external view returns (uint256 nativeFee, uint256 tokenFee);
+
+    /**
+     * @notice Estimate fees for a message send operation using execution parameters
+     * @param params Message parameters identical to execute methods
+     * @param options Bridge options including adapter selection and parameters
+     * @return nativeFee Fee in the chain's native token
+     * @return tokenFee Fee in the transferred token (if applicable)
+     */
+    function estimateSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     ) external view returns (uint256 nativeFee, uint256 tokenFee);
 
     /**

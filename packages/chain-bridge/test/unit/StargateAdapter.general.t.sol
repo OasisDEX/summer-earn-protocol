@@ -69,17 +69,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         assertEq(adapterRegistry, expectedRegistry);
     }
 
-    function testDefaultGasLimitFromRegistry() public {
-        useNetworkA();
-
-        // Verify default gas limit is accessible through the adapter
-        uint256 adapterGasLimit = adapterA.defaultGasLimit();
-        uint256 registryGasLimit = registryA.defaultGasLimit();
-
-        assertEq(adapterGasLimit, registryGasLimit);
-        assertEq(adapterGasLimit, 400000); // From setup
-    }
-
     /*//////////////////////////////////////////////////////////////
                           GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -104,10 +93,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Set the endpoint ID
-        adapterA.mapEndpoint(newChainId, newEndpointId);
+        adapterA.mapExternalId(newChainId, newEndpointId);
 
         // Register the peer relationship in the registry
-        registryA.registerAdapterPeer(
+        registryA.registerAdapterPeerPair(
             address(adapterA),
             mockArbitrumAdapter,
             CHAIN_ID_A,

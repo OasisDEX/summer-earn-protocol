@@ -29,12 +29,16 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            targetContract, // Use target contract in quote
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 fee, , address specifiedAdapter) = router.quoteReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: address(mockReceiver),
+                refundAddress: address(mockReceiver)
+            }),
+            options
         );
 
         // Verify the specified adapter matches what we provided
@@ -61,7 +65,7 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         );
         vm.stopPrank();
 
-        // todo: expect calls to lz endpoint to be made
+        // Endpoint expectations are asserted in integration tests where a real endpoint is available
     }
 
     function testDeliverReadResponse() public {
@@ -83,12 +87,16 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            targetContract,
-            0,
-            options,
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 fee, , ) = router.quoteReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: address(mockReceiver),
+                refundAddress: address(mockReceiver)
+            }),
+            options
         );
 
         vm.stopPrank(); // mockReceiver stops queueing
@@ -168,12 +176,16 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            targetContract,
-            0,
-            options, // Use options
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 fee, , ) = router.quoteReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: address(mockReceiver),
+                refundAddress: address(mockReceiver)
+            }),
+            options
         );
 
         vm.stopPrank(); // mockReceiver stops queueing
@@ -221,6 +233,37 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         );
     }
 
+    function testExecuteReadState_ZeroGasLimitReverts() public {
+        address targetContract = address(token);
+        bytes4 targetSelector = bytes4(keccak256("symbol()"));
+        bytes memory targetCalldata = bytes("");
+
+        vm.startPrank(keeper);
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 0,
+            calldataSize: 100,
+            msgValue: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteReadStateParams memory params = BridgeTypes
+            .ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: keeper,
+                refundAddress: keeper
+            });
+
+        vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
+        router.executeReadState{value: 0.01 ether}(params, options);
+
+        vm.stopPrank();
+    }
+
     function testDeliverReadResponseReceiverRejects() public {
         bytes32 operationId; // Declare operationId
         address targetContract = address(0x123);
@@ -243,12 +286,16 @@ contract BridgeRouterReadStateTest is BridgeRouterSetup {
         });
 
         // Quote fee FOR EXECUTION
-        (uint256 fee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            targetContract,
-            0,
-            options, // Use options
-            BridgeTypes.OperationType.READ_STATE
+        (uint256 fee, , ) = router.quoteReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: targetContract,
+                selector: targetSelector,
+                readParams: targetCalldata,
+                originator: address(mockReceiver),
+                refundAddress: address(mockReceiver)
+            }),
+            options
         );
 
         vm.stopPrank(); // mockReceiver stops queueing

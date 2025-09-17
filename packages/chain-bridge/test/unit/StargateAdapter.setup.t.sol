@@ -87,10 +87,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(registryA)
         );
 
-        registryA.initializeBridgeConfiguration(
-            address(routerA),
-            400000 // defaultGasLimit
-        );
+        registryA.initializeBridgeConfiguration(address(routerA));
 
         // Deploy adapter with registry instead of config manager
         adapterA = new StargateAdapter(
@@ -100,7 +97,8 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         );
 
         // Set endpoint ID instead of addSupportedChain
-        adapterA.mapEndpoint(CHAIN_ID_A, ENDPOINT_ID_A);
+        adapterA.mapExternalId(CHAIN_ID_A, ENDPOINT_ID_A);
+        adapterA.mapExternalId(CHAIN_ID_B, ENDPOINT_ID_B);
 
         adapterA.addSupportedAsset(address(tokenA), address(stargateA));
 
@@ -125,10 +123,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
             address(registryB)
         );
 
-        registryB.initializeBridgeConfiguration(
-            address(routerB),
-            400000 // defaultGasLimit
-        );
+        registryB.initializeBridgeConfiguration(address(routerB));
 
         // Deploy adapter with registry instead of config manager
         adapterB = new StargateAdapter(
@@ -138,23 +133,31 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         );
 
         // Set endpoint ID instead of addSupportedChain
-        adapterB.mapEndpoint(CHAIN_ID_B, ENDPOINT_ID_B);
-        adapterB.mapEndpoint(CHAIN_ID_A, ENDPOINT_ID_A);
+        adapterB.mapExternalId(CHAIN_ID_B, ENDPOINT_ID_B);
+        adapterB.mapExternalId(CHAIN_ID_A, ENDPOINT_ID_A);
 
         // Register the cross-chain relationship between adapters ON CHAIN B
-        registryB.registerAdapterPeer(
-            address(adapterA), // sourceAdapter (on Chain A)
-            address(adapterB), // targetAdapter (on Chain B)
-            CHAIN_ID_A, // sourceChainId
-            CHAIN_ID_B // targetChainId
-        );
+        try
+            registryB.registerAdapterPeerPair(
+                address(adapterA), // sourceAdapter (on Chain A)
+                address(adapterB), // targetAdapter (on Chain B)
+                CHAIN_ID_A, // sourceChainId
+                CHAIN_ID_B // targetChainId
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
-        registryB.registerAdapterPeer(
-            address(adapterB), // sourceAdapter (on Chain B)
-            address(adapterA), // targetAdapter (on Chain A)
-            CHAIN_ID_B, // sourceChainId
-            CHAIN_ID_A // targetChainId
-        );
+        try
+            registryB.registerAdapterPeerPair(
+                address(adapterB), // sourceAdapter (on Chain B)
+                address(adapterA), // targetAdapter (on Chain A)
+                CHAIN_ID_B, // sourceChainId
+                CHAIN_ID_A // targetChainId
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         adapterB.addSupportedAsset(address(tokenB), address(stargateB));
 
@@ -166,19 +169,27 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         // Back to Chain A to register BOTH relationships
         useNetworkA();
         vm.startPrank(governor);
-        registryA.registerAdapterPeer(
-            address(adapterA), // sourceAdapter (on Chain A)
-            address(adapterB), // targetAdapter (on Chain B)
-            CHAIN_ID_A, // sourceChainId
-            CHAIN_ID_B // targetChainId
-        );
+        try
+            registryA.registerAdapterPeerPair(
+                address(adapterA), // sourceAdapter (on Chain A)
+                address(adapterB), // targetAdapter (on Chain B)
+                CHAIN_ID_A, // sourceChainId
+                CHAIN_ID_B // targetChainId
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
-        registryA.registerAdapterPeer(
-            address(adapterB), // sourceAdapter (on Chain B)
-            address(adapterA), // targetAdapter (on Chain A)
-            CHAIN_ID_B, // sourceChainId
-            CHAIN_ID_A // targetChainId
-        );
+        try
+            registryA.registerAdapterPeerPair(
+                address(adapterB), // sourceAdapter (on Chain B)
+                address(adapterA), // targetAdapter (on Chain A)
+                CHAIN_ID_B, // sourceChainId
+                CHAIN_ID_A // targetChainId
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
         vm.stopPrank();
 
         vm.label(address(tokenA), "Token A");

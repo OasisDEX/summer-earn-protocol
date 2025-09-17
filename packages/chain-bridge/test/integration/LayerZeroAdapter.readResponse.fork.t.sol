@@ -100,7 +100,10 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
         // Set the read request originator (required for deliverReadResponse)
-        router.setReadRequestOriginator(operationId, user);
+        router.setReadRequestOriginator(
+            operationId,
+            address(mockCrossChainStateReadReceiver)
+        );
 
         // Map the GUID to operation ID
         _setOperationMapping(guid, operationId);
@@ -116,9 +119,9 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         });
 
         // Simulate receiving the read response - should handle delivery failure gracefully
-        // todo: implement recoverey/retry mechanism
+        // Ensure adapter has expected chain mapping so it attempts delivery and hits router revert
+        layerZeroAdapter.setExpectedReadChainByGuid(guid, DEST_CHAIN_ID);
         vm.prank(LZ_ENDPOINT_BASE);
-        vm.expectRevert();
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 
         // Reset router behavior
@@ -225,8 +228,11 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 address(layerZeroAdapter)
             );
 
-            // Set the read request originator (required for deliverReadResponse)
-            router.setReadRequestOriginator(operationIds[i], user);
+            // Set the read request originator to a contract that implements ICrossChainReceiver
+            router.setReadRequestOriginator(
+                operationIds[i],
+                address(mockCrossChainStateReadReceiver)
+            );
         }
 
         // Process each read response
@@ -242,9 +248,13 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 nonce: uint64(i + 1)
             });
 
-            // todo: implement recoverey/retry mechanism for all operations
+            // Ensure expected chain mapping is present so adapter can deliver
+            layerZeroAdapter.setExpectedReadChainByGuid(
+                guids[i],
+                DEST_CHAIN_ID
+            );
+
             vm.prank(LZ_ENDPOINT_BASE);
-            vm.expectRevert();
             layerZeroAdapter.lzReceive(
                 origin,
                 guids[i],

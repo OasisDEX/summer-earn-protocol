@@ -83,6 +83,12 @@ export default function Home() {
             >
               ⚡ Intent System
             </a>
+            <a
+              href="/rewards"
+              className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              💰 Rewards Dashboard
+            </a>
           </div>
         </div>
 

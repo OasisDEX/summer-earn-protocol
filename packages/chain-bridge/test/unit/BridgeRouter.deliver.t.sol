@@ -274,7 +274,7 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
 
         // Register peer relationship for a different source chain
         vm.prank(governor);
-        registry.registerAdapterPeer(
+        registry.registerAdapterPeerPair(
             address(mockAdapter), // source adapter
             address(mockAdapter), // target adapter
             anotherSourceChain, // different source chain

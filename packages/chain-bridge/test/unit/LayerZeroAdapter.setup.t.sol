@@ -54,9 +54,6 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
 
-    // Default gas limit for testing
-    uint256 public constant DEFAULT_GAS_LIMIT = 200000;
-
     function setUp() public virtual override {
         super.setUp();
         _setupEndpoints();
@@ -103,10 +100,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
 
         // Initialize bridge configuration in registry
-        registryA.initializeBridgeConfiguration(
-            address(routerA),
-            DEFAULT_GAS_LIMIT
-        );
+        registryA.initializeBridgeConfiguration(address(routerA));
 
         // Deploy token and adapter with registry
         tokenA = new ERC20Mock();
@@ -154,10 +148,7 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         );
 
         // Initialize bridge configuration in registry
-        registryB.initializeBridgeConfiguration(
-            address(routerB),
-            DEFAULT_GAS_LIMIT
-        );
+        registryB.initializeBridgeConfiguration(address(routerB));
 
         // Deploy token and adapter with registry
         tokenB = new ERC20Mock();
@@ -184,20 +175,28 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         // Outgoing: adapterA -> adapterB (for sending messages TO chain B)
-        registryA.registerAdapterPeer(
-            address(adapterA),
-            address(adapterB),
-            CHAIN_ID_A,
-            CHAIN_ID_B
-        );
+        try
+            registryA.registerAdapterPeerPair(
+                address(adapterA),
+                address(adapterB),
+                CHAIN_ID_A,
+                CHAIN_ID_B
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         // Incoming: adapterB -> adapterA (for receiving messages FROM chain B)
-        registryA.registerAdapterPeer(
-            address(adapterB), // source adapter (on chain B)
-            address(adapterA), // target adapter (on chain A)
-            CHAIN_ID_B, // source chain
-            CHAIN_ID_A // target chain
-        );
+        try
+            registryA.registerAdapterPeerPair(
+                address(adapterB), // source adapter (on chain B)
+                address(adapterA), // target adapter (on chain A)
+                CHAIN_ID_B, // source chain
+                CHAIN_ID_A // target chain
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         adapterA.setPeer(LZ_EID_B, addressToBytes32(address(adapterB)));
         vm.stopPrank();
@@ -207,20 +206,28 @@ contract LayerZeroAdapterSetupTest is TestHelperOz5 {
         vm.startPrank(governor);
 
         // Outgoing: adapterB -> adapterA (for sending messages TO chain A)
-        registryB.registerAdapterPeer(
-            address(adapterB),
-            address(adapterA),
-            CHAIN_ID_B,
-            CHAIN_ID_A
-        );
+        try
+            registryB.registerAdapterPeerPair(
+                address(adapterB),
+                address(adapterA),
+                CHAIN_ID_B,
+                CHAIN_ID_A
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         // Incoming: adapterA -> adapterB (for receiving messages FROM chain A)
-        registryB.registerAdapterPeer(
-            address(adapterA), // source adapter (on chain A)
-            address(adapterB), // target adapter (on chain B)
-            CHAIN_ID_A, // source chain
-            CHAIN_ID_B // target chain
-        );
+        try
+            registryB.registerAdapterPeerPair(
+                address(adapterA), // source adapter (on chain A)
+                address(adapterB), // target adapter (on chain B)
+                CHAIN_ID_A, // source chain
+                CHAIN_ID_B // target chain
+            )
+        {} catch {
+            // Relationship already exists, ignore the error
+        }
 
         adapterB.setPeer(LZ_EID_A, addressToBytes32(address(adapterA)));
         vm.stopPrank();

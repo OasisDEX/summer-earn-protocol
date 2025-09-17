@@ -25,13 +25,19 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         });
 
         // Get a quote first to determine the required fee FOR EXECUTION
-        (uint256 nativeFee, , address specifiedAdapter) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
+        (uint256 nativeFee, , address specifiedAdapter) = router
+            .quoteTransferAssets(
+                BridgeTypes.ExecuteTransferParams({
+                    originator: user,
+                    destinationChainId: DEST_CHAIN_ID,
+                    target: recipient,
+                    asset: address(token),
+                    amount: TRANSFER_AMOUNT,
+                    message: "",
+                    refundAddress: user
+                }),
+                options
+            );
         // vm.deal(user, nativeFee); // REMOVED: User no longer pays fee
 
         // Verify the specified adapter matches what we provided
@@ -73,12 +79,17 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
 
         // Should revert when no adapter is specified
         vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
-        router.quote(
-            DEST_CHAIN_ID, // Use supported chain ID
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: user,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: user
+            }),
+            options
         );
 
         vm.stopPrank();
@@ -98,12 +109,17 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
             options: ""
         });
 
-        (uint256 nativeFee, , ) = router.quote( // Quote needed for keeper execution
-                DEST_CHAIN_ID,
-                address(token),
-                TRANSFER_AMOUNT,
-                options,
-                BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, , ) = router.quoteTransferAssets( // Quote needed for keeper execution
+                BridgeTypes.ExecuteTransferParams({
+                    originator: user,
+                    destinationChainId: DEST_CHAIN_ID,
+                    target: recipient,
+                    asset: address(token),
+                    amount: TRANSFER_AMOUNT,
+                    message: "",
+                    refundAddress: user
+                }),
+                options
             );
 
         vm.stopPrank();
@@ -156,18 +172,23 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
 
         // Test interface casting with IBridgeAdapter
         try
-            IBridgeAdapter(address(mockAdapter)).estimateFee(
-                DEST_CHAIN_ID,
-                address(token),
-                1000e18,
+            IBridgeAdapter(address(mockAdapter)).estimateTransferAssets(
+                BridgeTypes.ExecuteTransferParams({
+                    originator: address(this),
+                    destinationChainId: DEST_CHAIN_ID,
+                    target: recipient,
+                    asset: address(token),
+                    amount: 1000e18,
+                    message: "",
+                    refundAddress: address(this)
+                }),
                 BridgeTypes.BridgeOptions({
                     specifiedAdapter: address(mockAdapter), // Explicitly specify adapter
                     gasLimit: 500000,
                     calldataSize: 0,
                     msgValue: 0,
                     options: ""
-                }),
-                BridgeTypes.OperationType.TRANSFER_ASSET
+                })
             )
         returns (uint256 nativeFee, uint256) {
             console.log("IBridgeAdapter cast works, nativeFee:", nativeFee);
@@ -209,7 +230,7 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         // Try calling transferAsset with simple parameters
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter),
-            gasLimit: 0,
+            gasLimit: 500000,
             calldataSize: 0,
             msgValue: 0,
             options: "0x"
@@ -337,12 +358,17 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         });
 
         // Get quote
-        (uint256 nativeFee, , ) = router.quote(
-            DEST_CHAIN_ID,
-            address(token),
-            TRANSFER_AMOUNT,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
+        (uint256 nativeFee, , ) = router.quoteTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: authorizedCaller,
+                destinationChainId: DEST_CHAIN_ID,
+                target: recipient,
+                asset: address(token),
+                amount: TRANSFER_AMOUNT,
+                message: "",
+                refundAddress: authorizedCaller
+            }),
+            options
         );
 
         // Call executeTransferAssets directly from BridgeQueue
@@ -501,6 +527,34 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
             );
             console.logBytes(lowLevelData);
         }
+
+        vm.stopPrank();
+    }
+
+    function testExecuteTransferAssets_ZeroGasLimitReverts() public {
+        vm.startPrank(keeper);
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 0,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(token),
+                amount: 1,
+                target: user,
+                originator: keeper,
+                refundAddress: keeper,
+                message: ""
+            });
+
+        vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
+        router.executeTransferAssets(params, options);
 
         vm.stopPrank();
     }
