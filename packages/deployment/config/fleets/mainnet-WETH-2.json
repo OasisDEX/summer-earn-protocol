@@ -157,6 +157,14 @@
         "vaultName": "Euler_Alterscope_LRT_WETH",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "ArmArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "steth",
+        "protocol": "origin-arm"
+      }
     }
   ]
 }
