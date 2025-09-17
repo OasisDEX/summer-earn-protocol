@@ -44,6 +44,32 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
     /*                    Failure recording & retry                 */
     /* ------------------------------------------------------------ */
 
+    function setUp() public override {
+        super.setUp();
+
+        // Setup ark-fleet relationship for retry tests
+        address fleetProxy = address(0x1002);
+
+        vm.startPrank(governor);
+        // Register fleetProxy -> mockReceiver relationship (source chain -> current chain)
+        registry.registerRelationship(
+            fleetProxy,
+            address(mockReceiver),
+            SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        // Register mockReceiver -> fleetProxy relationship (current chain -> source chain)
+        registry.registerRelationship(
+            address(mockReceiver),
+            fleetProxy,
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        vm.stopPrank();
+    }
+
     function _makeFailedTransfer(
         bytes32 opId,
         uint256 amount
@@ -51,11 +77,14 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         // Configure receiver to fail
         mockReceiver.setReceiveSuccess(false);
 
+        // Use fleetProxy as originator for ARK fleet relationship
+        address fleetProxy = address(0x1002);
+
         // Build transfer payload
         BridgeTypes.RelayedTransferParams memory p = BridgeTypes
             .RelayedTransferParams({
                 operationId: opId,
-                originator: user,
+                originator: fleetProxy,
                 sourceChainId: SOURCE_CHAIN_ID,
                 recipient: address(mockReceiver),
                 asset: address(token),
@@ -236,24 +265,32 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         router.retryFailedDelivery(opId, "");
     }
 
-    function testRetryWithNonArkRecipient_Succeeds() public {
+    function testRetryWithNonArkRecipient_Reverts() public {
         bytes32 opId = keccak256("non-ark-recipient");
         uint256 amount = 10 ether;
 
-        // Create failed transfer with non-ark recipient (should be allowed)
-        _makeFailedTransfer(opId, amount);
+        // Create failed transfer with non-ark recipient (should now be rejected)
+        // Use a recipient that is NOT registered in the ark-fleet relationship
+        address nonArkRecipient = address(0x9999);
+        _makeFailedTransferWithArkFleet(
+            opId,
+            amount,
+            nonArkRecipient, // This recipient is not registered in ark-fleet relationship
+            address(0x1002) // fleetProxy as originator
+        );
 
-        // Allow receiver to succeed
+        // Allow receiver to succeed (though it won't matter since validation will fail first)
         mockReceiver.setReceiveSuccess(true);
 
-        // Retry should succeed (non-ark recipients are allowed)
+        // Retry should revert with InvalidRecipient (non-ark recipients are no longer allowed)
         vm.prank(keeper);
+        vm.expectRevert(IBridgeRouter.InvalidRecipient.selector);
         router.retryFailedDelivery(opId, "");
 
-        // Verify success
+        // Verify failure record still exists
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
-        assertEq(ids.length, 0);
-        assertEq(token.balanceOf(address(mockReceiver)), amount);
+        assertEq(ids.length, 1);
+        assertEq(ids[0], opId);
     }
 
     function testRetryWithMessagePayload_ValidArkFleet_Succeeds() public {
@@ -389,8 +426,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         // No overrides needed - just retry with original parameters
         bytes memory overrideData = abi.encode(
             BridgeRouter.RetryOverrideParams({
-                recipient: address(0), // keep original recipient
-                asset: address(0) // keep original asset
+                recipient: address(0) // keep original recipient
             })
         );
 
@@ -407,58 +443,51 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         assertEq(token.balanceOf(address(mockReceiver)), amount);
     }
 
-    function testRetryWithAssetOverride_Succeeds() public {
-        bytes32 opId = keccak256("asset-override-test");
+    function testRetryWithNoOverrides_Succeeds() public {
+        bytes32 opId = keccak256("no-overrides-test");
         uint256 amount = 5 ether;
 
         // Create failed transfer with original asset
         _makeFailedTransfer(opId, amount);
 
-        // Deploy a different token to simulate cross-chain asset mapping
-        ERC20Mock newToken = new ERC20Mock();
-        newToken.mint(address(router), amount);
-
         // Allow receiver to succeed
         mockReceiver.setReceiveSuccess(true);
 
-        // Retry with asset override
+        // Retry with no overrides
         bytes memory overrideData = abi.encode(
             BridgeRouter.RetryOverrideParams({
-                recipient: address(0), // keep original recipient
-                asset: address(newToken) // override with new asset
+                recipient: address(0) // keep original recipient
             })
         );
 
         vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
-        // Verify success with new asset
+        // Verify success with original asset
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
         assertEq(ids.length, 0);
-        assertEq(newToken.balanceOf(address(mockReceiver)), amount);
-        // Original token should not have been transferred
-        assertEq(token.balanceOf(address(mockReceiver)), 0);
+        assertEq(token.balanceOf(address(mockReceiver)), amount);
     }
 
-    function testRetryWithAssetOverride_InsufficientBalance_Reverts() public {
-        bytes32 opId = keccak256("asset-override-insufficient");
+    function testRetryWithInsufficientBalance_Reverts() public {
+        bytes32 opId = keccak256("insufficient-balance-test");
         uint256 amount = 5 ether;
 
         // Create failed transfer
         _makeFailedTransfer(opId, amount);
 
-        // Deploy a different token but don't mint any to router
-        ERC20Mock newToken = new ERC20Mock();
-        // No minting - router has 0 balance
+        // Remove ALL tokens from router to simulate insufficient balance
+        uint256 routerBalance = token.balanceOf(address(router));
+        vm.prank(address(router));
+        token.transfer(governor, routerBalance);
 
         // Allow receiver to succeed
         mockReceiver.setReceiveSuccess(true);
 
-        // Retry with asset override
+        // Retry with no overrides
         bytes memory overrideData = abi.encode(
             BridgeRouter.RetryOverrideParams({
-                recipient: address(0), // keep original recipient
-                asset: address(newToken) // override with new asset
+                recipient: address(0) // keep original recipient
             })
         );
 
@@ -467,34 +496,64 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         router.retryFailedDelivery(opId, overrideData);
     }
 
-    function testRetryWithBothOverrides_Succeeds() public {
-        bytes32 opId = keccak256("both-overrides-test");
+    function testRetryWithRecipientOverride_Succeeds() public {
+        bytes32 opId = keccak256("recipient-override-test");
         uint256 amount = 3 ether;
 
         // Create failed transfer
         _makeFailedTransfer(opId, amount);
 
-        // Deploy new token and new receiver
-        ERC20Mock newToken = new ERC20Mock();
-        newToken.mint(address(router), amount);
+        // Deploy new receiver
         MockCrossChainReceiver newReceiver = new MockCrossChainReceiver();
         newReceiver.setReceiveSuccess(true);
 
-        // Retry with both overrides
+        // Unregister the existing relationship for mockReceiver first
+        address fleetProxy = address(0x1002);
+        vm.startPrank(governor);
+        registry.unregisterRelationship(
+            address(mockReceiver),
+            registry.ARK_FLEET_RELATIONSHIP(),
+            SOURCE_CHAIN_ID
+        );
+        registry.unregisterRelationship(
+            fleetProxy,
+            registry.ARK_FLEET_RELATIONSHIP(),
+            CURRENT_CHAIN_ID
+        );
+
+        // Register the new receiver in the ark-fleet relationship
+        // Register fleetProxy -> newReceiver relationship (source chain -> current chain)
+        registry.registerRelationship(
+            fleetProxy,
+            address(newReceiver),
+            SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        // Register newReceiver -> fleetProxy relationship (current chain -> source chain)
+        registry.registerRelationship(
+            address(newReceiver),
+            fleetProxy,
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        vm.stopPrank();
+
+        // Retry with recipient override only
         bytes memory overrideData = abi.encode(
             BridgeRouter.RetryOverrideParams({
-                recipient: address(newReceiver), // override recipient
-                asset: address(newToken) // override asset
+                recipient: address(newReceiver) // override recipient
             })
         );
 
         vm.prank(keeper);
         router.retryFailedDelivery(opId, overrideData);
 
-        // Verify success with new asset and new receiver
+        // Verify success with original asset and new receiver
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
         assertEq(ids.length, 0);
-        assertEq(newToken.balanceOf(address(newReceiver)), amount);
+        assertEq(token.balanceOf(address(newReceiver)), amount);
         // Original receiver should not have received anything
         assertEq(token.balanceOf(address(mockReceiver)), 0);
     }

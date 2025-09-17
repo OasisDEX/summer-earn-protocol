@@ -65,9 +65,8 @@ contract BridgeRouter is
     /// @notice Optional overrides when retrying a failed delivery
     struct RetryOverrideParams {
         address recipient; // set to address(0) to keep stored recipient
-        address asset; // set to address(0) to keep stored asset, or override with actual received asset
-        // Note: Adapters typically override asset addresses for cross-chain compatibility,
-        // but this allows manual override if needed for edge cases
+        // Note: Asset addresses are handled by adapters for cross-chain compatibility
+        // No manual override needed - adapters are responsible for correct target chain asset
     }
 
     /// @notice Mapping from operationId to failure record (exists if failed)
@@ -809,7 +808,16 @@ contract BridgeRouter is
             effectivePayload = _applyRetryOverrides(
                 r.operationType,
                 effectivePayload,
-                overrides
+                overrides,
+                r.sourceChainId
+            );
+        } else {
+            // Validate original payload even when no overrides are applied
+            _validateRetryPayload(
+                r.operationType,
+                effectivePayload,
+                r.sourceChainId,
+                effectiveAdapter
             );
         }
 
@@ -817,16 +825,6 @@ contract BridgeRouter is
         (bytes32 decodedId, uint16 sourceChainId) = _decodeOperationMeta(
             r.operationType,
             effectivePayload
-        );
-        if (decodedId != operationId) revert InvalidParams();
-        if (sourceChainId != r.sourceChainId) revert InvalidParams();
-
-        // Enhanced payload validation
-        _validateRetryPayload(
-            r.operationType,
-            effectivePayload,
-            r.sourceChainId,
-            effectiveAdapter
         );
 
         try
@@ -867,31 +865,33 @@ contract BridgeRouter is
      * @param operationType Type of operation being retried
      * @param originalPayload The original payload
      * @param overrides The override parameters
+     * @param sourceChainId The source chain ID for validation
      * @return modifiedPayload The payload with overrides applied
      */
     function _applyRetryOverrides(
         BridgeTypes.OperationType operationType,
         bytes memory originalPayload,
-        RetryOverrideParams memory overrides
-    ) internal pure returns (bytes memory modifiedPayload) {
+        RetryOverrideParams memory overrides,
+        uint16 sourceChainId
+    ) internal view returns (bytes memory modifiedPayload) {
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory params = abi.decode(
                 originalPayload,
                 (BridgeTypes.RelayedTransferParams)
             );
 
-            // Apply recipient override
+            // Apply recipient override only
+            // Asset addresses are handled by adapters for cross-chain compatibility
             if (overrides.recipient != address(0)) {
                 params.recipient = overrides.recipient;
             }
 
-            // CRITICAL: Apply asset override for cross-chain operations
-            // This fixes the asset address mismatch issue where the original payload
-            // contains the source chain asset address, but the BridgeRouter actually
-            // holds the target chain asset address after adapter processing.
-            if (overrides.asset != address(0)) {
-                params.asset = overrides.asset;
-            }
+            _validateArkFleetRelationship(
+                params.originator,
+                params.recipient,
+                sourceChainId
+            );
+            _validateAssetStillSupported(params.asset, params.amount);
 
             return abi.encode(params);
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
@@ -904,6 +904,13 @@ contract BridgeRouter is
             if (overrides.recipient != address(0)) {
                 params.recipient = overrides.recipient;
             }
+
+            // Validate the modified parameters immediately to avoid double decoding
+            _validateArkFleetRelationship(
+                params.originator,
+                params.recipient,
+                sourceChainId
+            );
 
             return abi.encode(params);
         } else {
@@ -930,6 +937,7 @@ contract BridgeRouter is
         address adapter
     ) internal view {
         // Validate payload integrity based on operation type
+        // Using the existing validation functions that handle decoding internally
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             _validateTransferPayload(payload, sourceChainId, adapter);
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
@@ -990,8 +998,8 @@ contract BridgeRouter is
 
     /**
      * @notice Validates that ark-fleet relationship is valid in both directions
-     * @param originator The originator address (fleet)
-     * @param recipient The recipient address (ark)
+     * @param originator The originator address (ark or fleet)
+     * @param recipient The recipient address (fleet or ark)
      * @param sourceChainId The source chain ID
      */
     function _validateArkFleetRelationship(
@@ -999,37 +1007,31 @@ contract BridgeRouter is
         address recipient,
         uint16 sourceChainId
     ) internal view {
-        // Check if recipient is a registered ark proxy
-        bool isArkProxy = CROSS_CHAIN_REGISTRY.isSourceContractRegistered(
+        // Check if recipient is registered in the ark-fleet relationship on current chain
+        bool isRecipientRegistered = CROSS_CHAIN_REGISTRY
+            .isSourceContractRegistered(
+                recipient,
+                CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
+            );
+
+        if (!isRecipientRegistered) {
+            revert InvalidRecipient();
+        }
+
+        // Validate the bidirectional relationship using cross-chain pair validation
+        // This ensures the originator and recipient have a valid ark-fleet relationship
+        // across the specified source and target chains
+        bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
+            originator,
             recipient,
+            sourceChainId,
+            uint16(block.chainid),
             CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
         );
 
-        if (isArkProxy) {
-            // Validate ark -> fleet relationship (recipient -> originator)
-            (address expectedFleet, ) = CROSS_CHAIN_REGISTRY.getTargetForSource(
-                recipient,
-                CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
-            );
-            if (expectedFleet != originator) {
-                revert InvalidRecipient();
-            }
-
-            // Validate fleet -> ark relationship (originator -> recipient) using cross-chain pair validation
-            bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
-                originator,
-                recipient,
-                sourceChainId,
-                uint16(block.chainid),
-                CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
-            );
-
-            if (!isValidPair) {
-                revert InvalidRecipient();
-            }
+        if (!isValidPair) {
+            revert InvalidRecipient();
         }
-        // If recipient is not an ark proxy, we allow the operation to proceed
-        // This maintains backward compatibility and allows for non-ark recipients
     }
 
     /**
