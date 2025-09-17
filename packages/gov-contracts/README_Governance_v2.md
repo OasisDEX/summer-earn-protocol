@@ -40,7 +40,7 @@ removeStakingModule() →
 - ✅ Governor can add/remove staking modules without redeployment
 
 **Risk Considerations**:
-- �� **Multiple Minters**: More attack surface - each staking module can mint
+- 🔴 **Multiple Minters**: More attack surface - each staking module can mint
 - 🔴 **Role Proliferation**: Each added module gets both MINTER and PAUSER roles
 - 🔴 **Governance Control**: Only governor can add/remove modules
 
@@ -69,21 +69,20 @@ removeStakingModule() →
 **Critical Flows**:
 ```solidity
 stakeWithVesting() → 
-  - Transfers vesting wallet ownership to escrow
-  - Mints xSUMR tokens
-  - Tracks staked amounts per factory
+  - Requires vesting wallet to already be owned by escrow (precondition)
+  - Mints xSUMR equal to current SUMR balance in each qualifying vesting wallet
+  - Tracks staked amounts and the 'released' counter per factory
 
 unstakeVesting() → 
-  - Returns vesting wallet ownership
+  - Computes SUMR released while staked and forwards it to the original owner ( in case `release()` was called on the vesting wallet)
+  - Returns vesting wallet ownership to the user if they are the recorded original owner
   - Burns xSUMR tokens
-  - Handles released tokens during staking period
 ```
 
 **Security Considerations**:
-- **Ownership Transfer**: Escrow takes ownership of vesting wallets during staking
+- **Ownership Expectations**: Escrow must already own the vesting wallets to stake from them; this contract does not transfer ownership during stake
 - **Factory Validation**: Only pre-approved vesting factories allowed
 - **All-or-Nothing**: Users must stake/unstake from ALL vesting wallets ( this will be changed - more granular stake unstake based on factory addresses passed as parameter)
-- **IMPORTANT**: due to the reward calcualtions - the totalSupply is in fact weightedTotalSupply - that's becasue we cant override `rewardPerToken()` in the `StakingRewardsManagerBase.sol` contract, and we need to use the total weighted amounts for the rewards calculations.
 
 **Audit Focus Areas**:
 - Vesting wallet ownership management
@@ -95,19 +94,25 @@ unstakeVesting() →
 **Purpose**: Main staking contract with lockup periods, weighted rewards, and bucket-based caps.
 
 **Key Features**:
-- **Lockup Periods**: 3 months minimum, 4 years maximum
-- **Weighted Staking**: Longer lockups = higher reward multipliers
+- **Lockup Periods**: 0 to 3 years (0 = no lockup via a dedicated aggregated stake at index 0)
+- **Weighted Staking**: Longer lockups = higher reward multipliers ( 0.05x to 3x - quadratic)
 - **Bucket System**: Configurable caps per lockup duration
-- **Penalty System**: Early unstaking incurs time-based penalties
+- **Penalty System**: Early unstaking incurs time-based penalties (governor can toggle penalties on/off)
+- **Stake Portfolio Management**: One portfolio per address; index 0 aggregates no-lockup stake; up to 1000 stakes; full-portfolio transfer supported via `transferStakes(to)` to a fresh target
+- **Default Caps**: ShortTerm (below 3 months) bucket disabled by default (cap = 0); other buckets are uncapped initially
 
 **Critical Calculations**:
 ```solidity
 // Weighted stake formula
-weightedAmount = amount * (4E-16 * time² + 0.05)
+weightedAmount = amount * (3.5e-16 * time² + 0.05) // time in seconds
 
 // Penalty calculation  
-penalty = 50% * (remaining_time / original_lockup_period)
+// 0 if penalties disabled or lockup expired
+penalty = 20% * (remaining_time / 3 years)
 ```
+
+**Rewards Accounting**:
+- The `totalSupply` used for rewards is actually the weighted total supply. Because the base rewards manager requires `rewardPerToken()` to use `totalSupply`, this staking contract accounts `totalSupply` as the sum of weighted amounts to ensure correct reward distribution.
 
 **Security Model**:
 - **Bucket Caps**: Governor-controlled limits per lockup duration
@@ -124,7 +129,7 @@ penalty = 50% * (remaining_time / original_lockup_period)
 
 ### Staking Flow
 ```
-User → SummerStaking.stakeWithNewLockup() → 
+User → SummerStaking.stakeLockup() → 
   - Transfers SUMMER tokens
   - Wraps via WrappedStakingToken
   - Mints xSUMR via StakedSummerToken.mint()
@@ -142,7 +147,7 @@ xSUMR holders → SummerGovernorV2.propose() →
 ### Vesting Integration
 ```
 Vesting Wallets → SummerVestingWalletsEscrow → 
-  - Temporary ownership transfer
+  - Vesting wallet ownership must be transferred to escrow prior to staking
   - xSUMR minting/burning
   - Release tracking during staking
 ```
