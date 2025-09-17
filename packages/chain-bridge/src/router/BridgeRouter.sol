@@ -62,13 +62,6 @@ contract BridgeRouter is
         uint256 failedAt; // block timestamp
     }
 
-    /// @notice Optional overrides when retrying a failed delivery
-    struct RetryOverrideParams {
-        address recipient; // set to address(0) to keep stored recipient
-        // Note: Asset addresses are handled by adapters for cross-chain compatibility
-        // No manual override needed - adapters are responsible for correct target chain asset
-    }
-
     /// @notice Mapping from operationId to failure record (exists if failed)
     mapping(bytes32 operationId => FailedDeliveryRecord record)
         public failedDeliveries;
@@ -775,12 +768,12 @@ contract BridgeRouter is
         emit RouterAssetsRecovered(token, recipient, amount);
     }
 
-    /// @notice Retries a previously failed delivery with optional overrides. Only callable by governor.
+    /// @notice Retries a previously failed delivery with optional recipient override. Only callable by keeper.
     /// @param operationId The failed operation identifier
-    /// @param overrideData ABI-encoded RetryOverrideParams; pass empty to use stored values
+    /// @param newRecipient New recipient address; pass address(0) to use original recipient
     function retryFailedDelivery(
         bytes32 operationId,
-        bytes calldata overrideData
+        address newRecipient
     ) external nonReentrant onlyKeeper whenNotPaused {
         FailedDeliveryRecord memory r = failedDeliveries[operationId];
 
@@ -797,34 +790,21 @@ contract BridgeRouter is
         // Decode the original payload
         bytes memory effectivePayload = r.operationPayload;
 
-        // Apply overrides if provided
-        if (overrideData.length > 0) {
-            RetryOverrideParams memory overrides = abi.decode(
-                overrideData,
-                (RetryOverrideParams)
-            );
-
-            // Apply overrides to the payload
-            effectivePayload = _applyRetryOverrides(
+        // Apply recipient override if provided
+        if (newRecipient != address(0)) {
+            // Apply recipient override to the payload
+            effectivePayload = _applyRecipientOverride(
                 r.operationType,
                 effectivePayload,
-                overrides,
-                r.sourceChainId
-            );
-        } else {
-            // Validate original payload even when no overrides are applied
-            _validateRetryPayload(
-                r.operationType,
-                effectivePayload,
-                r.sourceChainId,
-                effectiveAdapter
+                newRecipient
             );
         }
 
-        // Validate that payload decodes and carries the same operationId and sourceChainId
-        (bytes32 decodedId, uint16 sourceChainId) = _decodeOperationMeta(
+        _validateRetryPayload(
             r.operationType,
-            effectivePayload
+            effectivePayload,
+            r.sourceChainId,
+            effectiveAdapter
         );
 
         try
@@ -857,41 +837,30 @@ contract BridgeRouter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                        RETRY OVERRIDE FUNCTIONS
+                        RETRY RECIPIENT OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Applies retry overrides to the operation payload
+     * @notice Applies recipient override to the operation payload
      * @param operationType Type of operation being retried
      * @param originalPayload The original payload
-     * @param overrides The override parameters
-     * @param sourceChainId The source chain ID for validation
-     * @return modifiedPayload The payload with overrides applied
+     * @param newRecipient The new recipient address
+     * @return modifiedPayload The payload with recipient override applied
+     * @dev This function only modifies the payload. Validations are performed separately by _validateRetryPayload
      */
-    function _applyRetryOverrides(
+    function _applyRecipientOverride(
         BridgeTypes.OperationType operationType,
         bytes memory originalPayload,
-        RetryOverrideParams memory overrides,
-        uint16 sourceChainId
-    ) internal view returns (bytes memory modifiedPayload) {
+        address newRecipient
+    ) internal pure returns (bytes memory modifiedPayload) {
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory params = abi.decode(
                 originalPayload,
                 (BridgeTypes.RelayedTransferParams)
             );
 
-            // Apply recipient override only
-            // Asset addresses are handled by adapters for cross-chain compatibility
-            if (overrides.recipient != address(0)) {
-                params.recipient = overrides.recipient;
-            }
-
-            _validateArkFleetRelationship(
-                params.originator,
-                params.recipient,
-                sourceChainId
-            );
-            _validateAssetStillSupported(params.asset, params.amount);
+            // Apply recipient override
+            params.recipient = newRecipient;
 
             return abi.encode(params);
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
@@ -901,16 +870,7 @@ contract BridgeRouter is
             );
 
             // Apply recipient override
-            if (overrides.recipient != address(0)) {
-                params.recipient = overrides.recipient;
-            }
-
-            // Validate the modified parameters immediately to avoid double decoding
-            _validateArkFleetRelationship(
-                params.originator,
-                params.recipient,
-                sourceChainId
-            );
+            params.recipient = newRecipient;
 
             return abi.encode(params);
         } else {
@@ -967,9 +927,6 @@ contract BridgeRouter is
             params.recipient,
             sourceChainId
         );
-
-        // Validate asset is still supported and sufficient amount is available
-        _validateAssetStillSupported(params.asset, params.amount);
     }
 
     /**
@@ -1007,17 +964,6 @@ contract BridgeRouter is
         address recipient,
         uint16 sourceChainId
     ) internal view {
-        // Check if recipient is registered in the ark-fleet relationship on current chain
-        bool isRecipientRegistered = CROSS_CHAIN_REGISTRY
-            .isSourceContractRegistered(
-                recipient,
-                CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
-            );
-
-        if (!isRecipientRegistered) {
-            revert InvalidRecipient();
-        }
-
         // Validate the bidirectional relationship using cross-chain pair validation
         // This ensures the originator and recipient have a valid ark-fleet relationship
         // across the specified source and target chains
@@ -1031,23 +977,6 @@ contract BridgeRouter is
 
         if (!isValidPair) {
             revert InvalidRecipient();
-        }
-    }
-
-    /**
-     * @notice Validates that the required amount of assets is available for retry
-     * @param asset The asset address to validate
-     * @param amount The amount of assets required for the retry
-     */
-    function _validateAssetStillSupported(
-        address asset,
-        uint256 amount
-    ) internal view {
-        // Check if the router has sufficient balance of the asset for the retry
-        // This is critical because after a failed delivery, assets should remain in the router
-        uint256 routerBalance = IERC20(asset).balanceOf(address(this));
-        if (routerBalance < amount) {
-            revert InsufficientBalance();
         }
     }
 

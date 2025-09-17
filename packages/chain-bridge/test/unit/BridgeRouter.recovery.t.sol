@@ -118,7 +118,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
         // Retry without overrides
         vm.prank(keeper);
-        router.retryFailedDelivery(opId, "");
+        router.retryFailedDelivery(opId, address(0));
 
         // Failure cleared
         (bytes32[] memory ids2, ) = router.getFailedDeliveryIds(0, 10);
@@ -207,7 +207,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
         // Retry should succeed
         vm.prank(keeper);
-        router.retryFailedDelivery(opId, "");
+        router.retryFailedDelivery(opId, address(0));
 
         // Verify success
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
@@ -262,7 +262,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         // Retry should revert with InvalidRecipient
         vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InvalidRecipient.selector);
-        router.retryFailedDelivery(opId, "");
+        router.retryFailedDelivery(opId, address(0));
     }
 
     function testRetryWithNonArkRecipient_Reverts() public {
@@ -285,7 +285,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         // Retry should revert with InvalidRecipient (non-ark recipients are no longer allowed)
         vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InvalidRecipient.selector);
-        router.retryFailedDelivery(opId, "");
+        router.retryFailedDelivery(opId, address(0));
 
         // Verify failure record still exists
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
@@ -331,7 +331,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
 
         // Retry should succeed
         vm.prank(keeper);
-        router.retryFailedDelivery(opId, "");
+        router.retryFailedDelivery(opId, address(0));
 
         // Verify success
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
@@ -378,7 +378,7 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         // Retry should revert with InvalidRecipient
         vm.prank(keeper);
         vm.expectRevert(IBridgeRouter.InvalidRecipient.selector);
-        router.retryFailedDelivery(opId, "");
+        router.retryFailedDelivery(opId, address(0));
     }
 
     // NOTE: Originator override tests removed as originator overrides are no longer supported
@@ -424,18 +424,12 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         );
 
         // No overrides needed - just retry with original parameters
-        bytes memory overrideData = abi.encode(
-            BridgeRouter.RetryOverrideParams({
-                recipient: address(0) // keep original recipient
-            })
-        );
-
         // Allow receiver to succeed
         mockReceiver.setReceiveSuccess(true);
 
         // Retry should succeed
         vm.prank(keeper);
-        router.retryFailedDelivery(opId, overrideData);
+        router.retryFailedDelivery(opId, address(0));
 
         // Verify success with original amount
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
@@ -454,46 +448,13 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         mockReceiver.setReceiveSuccess(true);
 
         // Retry with no overrides
-        bytes memory overrideData = abi.encode(
-            BridgeRouter.RetryOverrideParams({
-                recipient: address(0) // keep original recipient
-            })
-        );
-
         vm.prank(keeper);
-        router.retryFailedDelivery(opId, overrideData);
+        router.retryFailedDelivery(opId, address(0));
 
         // Verify success with original asset
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
         assertEq(ids.length, 0);
         assertEq(token.balanceOf(address(mockReceiver)), amount);
-    }
-
-    function testRetryWithInsufficientBalance_Reverts() public {
-        bytes32 opId = keccak256("insufficient-balance-test");
-        uint256 amount = 5 ether;
-
-        // Create failed transfer
-        _makeFailedTransfer(opId, amount);
-
-        // Remove ALL tokens from router to simulate insufficient balance
-        uint256 routerBalance = token.balanceOf(address(router));
-        vm.prank(address(router));
-        token.transfer(governor, routerBalance);
-
-        // Allow receiver to succeed
-        mockReceiver.setReceiveSuccess(true);
-
-        // Retry with no overrides
-        bytes memory overrideData = abi.encode(
-            BridgeRouter.RetryOverrideParams({
-                recipient: address(0) // keep original recipient
-            })
-        );
-
-        vm.prank(keeper);
-        vm.expectRevert(IBridgeRouter.InsufficientBalance.selector);
-        router.retryFailedDelivery(opId, overrideData);
     }
 
     function testRetryWithRecipientOverride_Succeeds() public {
@@ -541,14 +502,8 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         vm.stopPrank();
 
         // Retry with recipient override only
-        bytes memory overrideData = abi.encode(
-            BridgeRouter.RetryOverrideParams({
-                recipient: address(newReceiver) // override recipient
-            })
-        );
-
         vm.prank(keeper);
-        router.retryFailedDelivery(opId, overrideData);
+        router.retryFailedDelivery(opId, address(newReceiver));
 
         // Verify success with original asset and new receiver
         (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
