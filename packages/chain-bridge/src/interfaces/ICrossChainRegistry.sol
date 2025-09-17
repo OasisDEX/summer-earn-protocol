@@ -334,20 +334,6 @@ interface ICrossChainRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Register a peer relationship between two bridge adapters
-     * @param sourceAdapter Address of the source adapter
-     * @param targetAdapter Address of the target adapter
-     * @param sourceChainId Chain ID where the source adapter is deployed
-     * @param targetChainId Chain ID where the target adapter is deployed
-     */
-    function registerAdapterPeer(
-        address sourceAdapter,
-        address targetAdapter,
-        uint16 sourceChainId,
-        uint16 targetChainId
-    ) external;
-
-    /**
      * @notice Get the peer adapter address for a given source adapter and target chain
      * @param sourceAdapter Address of the source adapter
      * @param targetChainId Chain ID where the target adapter is deployed
