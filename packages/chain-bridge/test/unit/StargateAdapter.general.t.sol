@@ -56,40 +56,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
     }
 
     /*//////////////////////////////////////////////////////////////
-                          TRANSPORT MODE TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testSetDefaultTransportMode() public {
-        useNetworkA();
-
-        // Check initial value (should be true - taxi mode)
-        assertEq(adapterA.defaultUseTaxi(), true);
-
-        // Update to taxi mode
-        vm.prank(governor);
-        adapterA.setDefaultTransportMode(true);
-
-        // Verify the value was updated
-        assertEq(adapterA.defaultUseTaxi(), true);
-
-        // Update back to bus mode
-        vm.prank(governor);
-        adapterA.setDefaultTransportMode(false);
-
-        // Verify the value was updated
-        assertEq(adapterA.defaultUseTaxi(), false);
-    }
-
-    function testSetDefaultTransportModeUnauthorized() public {
-        useNetworkA();
-
-        // Try to update transport mode as unauthorized user
-        vm.prank(user);
-        vm.expectRevert();
-        adapterA.setDefaultTransportMode(true);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                           CONFIG MANAGER INTEGRATION TESTS
     //////////////////////////////////////////////////////////////*/
 
@@ -101,17 +67,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         address expectedRegistry = address(registryA);
 
         assertEq(adapterRegistry, expectedRegistry);
-    }
-
-    function testDefaultGasLimitFromRegistry() public {
-        useNetworkA();
-
-        // Verify default gas limit is accessible through the adapter
-        uint256 adapterGasLimit = adapterA.defaultGasLimit();
-        uint256 registryGasLimit = registryA.defaultGasLimit();
-
-        assertEq(adapterGasLimit, registryGasLimit);
-        assertEq(adapterGasLimit, 400000); // From setup
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -138,10 +93,10 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         );
 
         // Set the endpoint ID
-        adapterA.mapEndpoint(newChainId, newEndpointId);
+        adapterA.mapExternalId(newChainId, newEndpointId);
 
         // Register the peer relationship in the registry
-        registryA.registerAdapterPeer(
+        registryA.registerAdapterPeerPair(
             address(adapterA),
             mockArbitrumAdapter,
             CHAIN_ID_A,
@@ -255,9 +210,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         // Setup test user
         address testUser = makeAddr("testUser");
 
-        // Check initial nonce is 0
-        assertEq(adapterA.nonces(testUser), 0);
-
         // Test that identical parameters generate different operation IDs due to nonce
         uint16 destinationChainId = CHAIN_ID_B;
         uint256 amount = 1 ether;
@@ -313,16 +265,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
 
         // Test that different users have independent nonces
         address otherUser = makeAddr("otherUser");
-        assertEq(
-            adapterA.nonces(testUser),
-            0,
-            "testUser nonce should start at 0"
-        );
-        assertEq(
-            adapterA.nonces(otherUser),
-            0,
-            "otherUser nonce should start at 0"
-        );
 
         // Test with different users having same parameters but different nonces
         bytes32 testUserOpId = keccak256(
@@ -350,40 +292,6 @@ contract StargateAdapterGeneralTest is StargateAdapterSetupTest {
         assertTrue(
             testUserOpId != otherUserOpId,
             "Different users should generate different operation IDs"
-        );
-    }
-
-    function testNonceIncrementForDifferentUsers() public {
-        useNetworkA();
-
-        address user1 = makeAddr("user1");
-        address user2 = makeAddr("user2");
-
-        // Both users start with nonce 0
-        assertEq(adapterA.nonces(user1), 0);
-        assertEq(adapterA.nonces(user2), 0);
-
-        // Test that the nonces() function correctly shows 0 for new users
-        address newUser = makeAddr("newUser");
-        assertEq(adapterA.nonces(newUser), 0, "New user should have nonce 0");
-
-        // Test that each user has independent nonce space
-        // Even without calling functions, we can verify the nonce getter works
-        assertTrue(
-            adapterA.nonces(user1) == adapterA.nonces(user2),
-            "Both users should start with same nonce"
-        );
-
-        // Verify the nonce function is working and users are independent
-        assertEq(adapterA.nonces(user1), 0, "User1 should have nonce 0");
-        assertEq(adapterA.nonces(user2), 0, "User2 should have nonce 0");
-
-        // Test edge case: very large address still returns 0 for initial nonce
-        address maxAddr = address(type(uint160).max);
-        assertEq(
-            adapterA.nonces(maxAddr),
-            0,
-            "Even max address should have nonce 0 initially"
         );
     }
 }

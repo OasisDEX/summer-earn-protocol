@@ -9,7 +9,6 @@ import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
@@ -30,7 +29,6 @@ contract StargateAdapter is
     IAssetAdapter,
     IBridgeAdapter,
     ILayerZeroComposer,
-    Nonces,
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
@@ -50,12 +48,6 @@ contract StargateAdapter is
         bool isDeposit; // true for deposits to FleetProxy, false for withdrawals to CrossChainArk
     }
 
-    /// @notice Mapping of operation IDs to failed compose details
-    mapping(bytes32 => FailedCompose) public failedComposes;
-
-    /// @notice Array of failed operation IDs for easier iteration
-    bytes32[] public failedOperationIds;
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -70,10 +62,6 @@ contract StargateAdapter is
     /// @notice Mapping of Stargate contracts to their assets on THIS chain only
     mapping(address stargateContract => address asset)
         public stargateContractToAsset;
-
-    /// @notice Default transport mode (true = taxi, false = bus)
-    /// @dev Taxi mode is required for composability - bus mode does not support compose
-    bool public defaultUseTaxi = true;
 
     /// @notice Maximum slippage tolerance (10% = 1000 basis points)
     uint256 public constant MAX_SLIPPAGE_BPS = 1000;
@@ -95,20 +83,8 @@ contract StargateAdapter is
         address stargateContract
     );
 
-    /// @notice Emitted when default transport mode is changed
-    event DefaultTransportModeChanged(bool useTaxi);
-
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
-
-    /// @notice Emitted when composed assets are handled
-    event ComposedAssetHandled(
-        bytes32 indexed operationId,
-        address indexed fleetProxy,
-        address indexed asset,
-        uint256 amount,
-        uint16 sourceChainId
-    );
 
     /// @notice Emitted when compose call fails
     event ComposeCallFailed(
@@ -141,16 +117,13 @@ contract StargateAdapter is
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _accessManager Address of the AccessManager contract
      * @param _lzEndpoint LayerZero endpoint for compose functionality
-     * @param _harborCommand Address of the HarborCommand contract for fleet commander validation
      */
     constructor(
         address _crossChainRegistry,
         address _accessManager,
-        address _lzEndpoint,
-        address _harborCommand
+        address _lzEndpoint
     ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
         if (_lzEndpoint == address(0)) revert InvalidParams();
-        if (_harborCommand == address(0)) revert InvalidParams();
 
         LZ_ENDPOINT = _lzEndpoint;
     }
@@ -158,15 +131,6 @@ contract StargateAdapter is
     /*//////////////////////////////////////////////////////////////
                           GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Sets the default transport mode
-     * @param _useTaxi True for taxi mode (immediate), false for bus mode (batched)
-     */
-    function setDefaultTransportMode(bool _useTaxi) external onlyGovernor {
-        defaultUseTaxi = _useTaxi;
-        emit DefaultTransportModeChanged(_useTaxi);
-    }
 
     /**
      * @notice Sets the slippage tolerance for fallback minimum amount calculation
@@ -215,33 +179,6 @@ contract StargateAdapter is
         stargateContractToAsset[stargateContract] = asset;
 
         emit AssetSupported(uint16(block.chainid), asset, stargateContract);
-    }
-
-    /**
-     * @notice Map a new chain-id → endpoint-id pair for LayerZero endpoints.
-     * @dev Governance utility. This only updates the local mapping; it does NOT
-     *      grant permission to send. That second layer of permission is still
-     *      enforced via the CrossChainRegistry.
-     *
-     * @param chainId     Canonical EVM chain ID.
-     * @param endpointId  LayerZero endpoint identifier (EID).
-     */
-    function mapEndpoint(
-        uint16 chainId,
-        uint32 endpointId
-    ) external onlyGovernor {
-        if (endpointId == 0) {
-            revert InvalidParams();
-        }
-        _mapChainExternalId(chainId, endpointId);
-    }
-
-    /**
-     * @notice Delete the endpoint mapping for a chain.
-     * @param chainId Chain ID whose mapping should be removed.
-     */
-    function unmapEndpoint(uint16 chainId) external onlyGovernor {
-        _unmapChainExternalId(chainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -302,46 +239,16 @@ contract StargateAdapter is
         // Approve Stargate contract to spend the tokens
         IERC20(params.asset).forceApprove(stargateContract, params.amount);
 
-        // Resolve destination adapter via registry
-        address destinationAdapter = _peerAdapter(params.destinationChainId);
-
-        // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
-        SendParam memory sendParam = _buildSendParam(
-            params.destinationChainId,
-            destinationAdapter,
-            params.amount,
-            _encodeRelayedTransferParams(
-                BridgeTypes.RelayedTransferParams({
-                    recipient: params.target,
-                    asset: params.asset,
-                    amount: params.amount,
-                    sourceChainId: uint16(block.chainid),
-                    operationId: operationId,
-                    originator: params.originator,
-                    message: params.message
-                })
-            ),
-            options
-        );
-
-        (OFTLimit memory oftLimit, , OFTReceipt memory oftReceipt) = stargate
-            .quoteOFT(sendParam);
-
-        // Calculate minimum slippage threshold (use configurable tolerance)
-        uint256 minExpectedAmount = (params.amount *
-            (10000 - slippageToleranceBps)) / 10000;
-
-        // Revert if slippage exceeds tolerance
-        if (oftReceipt.amountReceivedLD < minExpectedAmount) {
-            revert SlippageExceedsTolerance(
-                minExpectedAmount,
-                oftReceipt.amountReceivedLD,
-                slippageToleranceBps
+        // Prepare validated SendParam with slippage protection
+        (
+            SendParam memory sendParam,
+            OFTReceipt memory oftReceipt
+        ) = _prepareSendParamWithSlippageValidation(
+                params,
+                operationId,
+                options,
+                stargateContract
             );
-        }
-
-        // Use the quoted amount since it's within tolerance
-        sendParam.minAmountLD = oftReceipt.amountReceivedLD;
 
         // Get messaging fee and perform transfer
         MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
@@ -390,12 +297,12 @@ contract StargateAdapter is
 
         // Add compose options when compose message is present
         bytes memory extraOptions = composeMsg.length > 0
-            ? _composeOptions(uint128(_normalizeGas(options.gasLimit)))
+            ? _composeOptions(uint128(_requireGasLimit(options.gasLimit)))
             : bytes("");
 
         return
             SendParam({
-                dstEid: chainToExternalId[destinationChainId],
+                dstEid: _externalIdForChain(destinationChainId),
                 to: destinationAdapter.toBytes32(),
                 amountLD: amount,
                 minAmountLD: amount,
@@ -403,6 +310,67 @@ contract StargateAdapter is
                 composeMsg: composeMsg,
                 oftCmd: oftCmd // Always "" for taxi mode
             });
+    }
+
+    /**
+     * @dev Prepares a validated SendParam with slippage protection
+     * @param params Transfer parameters
+     * @param operationId The operation ID for this transfer
+     * @param options Bridge options
+     * @param stargateContract The Stargate V2 contract for quotes
+     * @return sendParam Validated SendParam ready for execution
+     * @return oftReceipt Quote receipt with slippage-validated amounts
+     */
+    function _prepareSendParamWithSlippageValidation(
+        BridgeTypes.ExecuteTransferParams memory params,
+        bytes32 operationId,
+        BridgeTypes.BridgeOptions memory options,
+        address stargateContract
+    )
+        internal
+        view
+        returns (SendParam memory sendParam, OFTReceipt memory oftReceipt)
+    {
+        // Resolve destination adapter via registry
+        address destinationAdapter = _peerAdapter(params.destinationChainId);
+
+        // Build SendParam - Stargate will wrap this with OFTComposeMsgCodec internally
+        sendParam = _buildSendParam(
+            params.destinationChainId,
+            destinationAdapter,
+            params.amount,
+            _encodeRelayedTransferParams(
+                BridgeTypes.RelayedTransferParams({
+                    recipient: params.target,
+                    asset: params.asset,
+                    amount: params.amount,
+                    sourceChainId: uint16(block.chainid),
+                    operationId: operationId,
+                    originator: params.originator,
+                    message: params.message
+                })
+            ),
+            options
+        );
+
+        // Get quote from Stargate
+        (, , oftReceipt) = IStargateV2(stargateContract).quoteOFT(sendParam);
+
+        // Calculate minimum slippage threshold (use configurable tolerance)
+        uint256 minExpectedAmount = (params.amount *
+            (10000 - slippageToleranceBps)) / 10000;
+
+        // Revert if slippage exceeds tolerance
+        if (oftReceipt.amountReceivedLD < minExpectedAmount) {
+            revert SlippageExceedsTolerance(
+                minExpectedAmount,
+                oftReceipt.amountReceivedLD,
+                slippageToleranceBps
+            );
+        }
+
+        // Use the quoted amount since it's within tolerance
+        sendParam.minAmountLD = oftReceipt.amountReceivedLD;
     }
 
     /**
@@ -424,63 +392,48 @@ contract StargateAdapter is
     function _isTaxiMode(bytes memory oftCmd) internal pure returns (bool) {
         return oftCmd.length == 0; // taxi() returns empty bytes, bus() returns bytes with length 1
     }
-
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
-        uint16 dstChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+    function estimateTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
-        public
+        external
         view
-        onlyTrustedDestination(dstChainId)
+        onlyTrustedDestination(params.destinationChainId)
         returns (uint256 nativeFee, uint256 tokenFee)
     {
+        if (!this.supportsOperation(BridgeTypes.OperationType.TRANSFER_ASSET)) {
+            revert OperationNotSupported();
+        }
+
         // Check if asset is supported on current chain
-        if (
-            operationType == BridgeTypes.OperationType.TRANSFER_ASSET &&
-            assetToStargateContract[asset] == address(0)
-        ) {
+        if (assetToStargateContract[params.asset] == address(0)) {
             revert UnsupportedAsset();
         }
 
         // Get the source chain Stargate contract
-        address stargateContract = assetToStargateContract[asset];
+        address stargateContract = assetToStargateContract[params.asset];
 
-        // Use compose gas limit from adapter params if provided, otherwise use default
-        uint256 gasLimit = _normalizeGas(options.gasLimit);
+        // Use dummy operationId for estimation
+        bytes32 dummyOperationId = bytes32(uint256(uint160(params.target)));
 
-        // Always include compose options in fee estimation
-        bytes memory extraOptions = _composeOptions(uint128(gasLimit));
+        // Prepare validated SendParam with slippage protection
+        (
+            SendParam memory sendParam,
 
-        // Check if a compose message is provided in adapter params
-        bytes memory composeMsg;
-        if (options.options.length > 0) {
-            // Use the provided compose message for accurate fee estimation
-            composeMsg = options.options;
-        } else {
-            // Fall back to dummy compose message for legacy compatibility
-            composeMsg = abi.encode(
-                uint16(block.chainid),
-                bytes32(0),
-                address(0)
+        ) = _prepareSendParamWithSlippageValidation(
+                params,
+                dummyOperationId,
+                BridgeTypes.BridgeOptions({
+                    specifiedAdapter: options.specifiedAdapter,
+                    gasLimit: options.gasLimit,
+                    calldataSize: options.calldataSize,
+                    msgValue: options.msgValue,
+                    options: options.options
+                }),
+                stargateContract
             );
-        }
 
-        // Prepare SendParam for quote
-        SendParam memory sendParam = SendParam({
-            dstEid: chainToExternalId[dstChainId],
-            to: address(0xdead).toBytes32(),
-            amountLD: amount,
-            minAmountLD: amount,
-            extraOptions: extraOptions,
-            composeMsg: composeMsg,
-            oftCmd: OftCmdHelper.taxi() // Always use taxi mode
-        });
-
-        // Get messaging fee quote
         MessagingFee memory msgFee = IStargateV2(stargateContract).quoteSend(
             sendParam,
             false
@@ -489,10 +442,25 @@ contract StargateAdapter is
     }
 
     /// @inheritdoc IBridgeAdapter
+    function estimateReadState(
+        BridgeTypes.ExecuteReadStateParams calldata,
+        BridgeTypes.BridgeOptions calldata
+    ) external pure returns (uint256, uint256) {
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata,
+        BridgeTypes.BridgeOptions calldata
+    ) external pure returns (uint256, uint256) {
+        revert OperationNotSupported();
+    }
+
+    /// @inheritdoc IBridgeAdapter
     function supportsOperation(
         BridgeTypes.OperationType operationType
     ) external pure override returns (bool) {
-        // Stargate V2 supports asset transfers
         return operationType == BridgeTypes.OperationType.TRANSFER_ASSET;
     }
 
@@ -513,7 +481,7 @@ contract StargateAdapter is
         // A misconfigured remote adapter will cause compose failures that require manual recovery.
         return
             assetToStargateContract[asset] != address(0) &&
-            _peerAdapter(destinationChainId) != address(0);
+            isTrustedDestination(destinationChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -580,7 +548,7 @@ contract StargateAdapter is
 
     /**
      * @dev Decode OFT compose message header and payload
-     * Layout: [8b nonce][4b srcEid][32b amountLD][20b composeFrom][bytes composeMsg]
+     * Layout: [8b nonce][4b srcEid][32b amountLD][32b composeFrom][bytes composeMsg]
      */
     function _decodeOFTCompose(
         bytes calldata message
@@ -595,13 +563,14 @@ contract StargateAdapter is
         )
     {
         // Sanity-check the OFT compose header is fully present before decoding.
-        // Header occupies 96 bytes (three 32-byte words):
-        //  - word 1 (32B): [8B nonce | 4B srcEid | 20B padding]
-        //  - word 2 (32B): amountLD
-        //  - word 3 (32B): composeFrom (address left-padded to 32B)
-        // The variable-length composeMsg follows after offset 96.
-        if (message.length < 96) revert InvalidMessage();
-        srcEid = uint32(bytes4(message[8:12]));
+        // Layout (ABI-aligned as produced by OFTComposeMsgCodec):
+        //  - 8B nonce | 4B srcEid                                   (total so far: 12 bytes)
+        //  - 32B amountLD                                           (total so far: 44 bytes)
+        //  - 32B composeFrom (left-padded address, present when composeMsg != empty)
+        // Minimum length when composeFrom is present: 12 + 32 + 32 = 76 bytes.
+        if (message.length < 76) revert InvalidMessage();
+        // Use official codec for srcEid extraction
+        srcEid = OFTComposeMsgCodec.srcEid(message);
         amountLD = OFTComposeMsgCodec.amountLD(message);
         composeMsg = OFTComposeMsgCodec.composeMsg(message);
         composeFrom = OFTComposeMsgCodec.composeFrom(message).toAddress();
@@ -683,43 +652,7 @@ contract StargateAdapter is
             }
         }
 
-        // Clear failed compose record if provided
-        if (operationId != bytes32(0)) {
-            delete failedComposes[operationId];
-
-            // Remove from failed operation IDs array
-            for (uint256 i = 0; i < failedOperationIds.length; i++) {
-                if (failedOperationIds[i] == operationId) {
-                    // Move last element to this position and pop
-                    failedOperationIds[i] = failedOperationIds[
-                        failedOperationIds.length - 1
-                    ];
-                    failedOperationIds.pop();
-                    break;
-                }
-            }
-        }
-
         emit TokensRecovered(asset, amount, recipient);
-    }
-
-    /**
-     * @notice Get all failed compose operations
-     * @return Array of failed operation IDs
-     */
-    function getFailedOperations() external view returns (bytes32[] memory) {
-        return failedOperationIds;
-    }
-
-    /**
-     * @notice Get details of a specific failed operation
-     * @param operationId Operation ID to query
-     * @return Failed compose details
-     */
-    function getFailedCompose(
-        bytes32 operationId
-    ) external view returns (FailedCompose memory) {
-        return failedComposes[operationId];
     }
 
     /**

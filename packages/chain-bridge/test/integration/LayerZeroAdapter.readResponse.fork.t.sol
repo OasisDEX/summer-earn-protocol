@@ -13,8 +13,6 @@ import {console} from "forge-std/Test.sol";
 contract LayerZeroAdapterReadResponseBaseForkTest is
     LayerZeroAdapterForkSetupTest
 {
-    // Events from LayerZero layerZeroAdapter
-    event ReadResponseDelivered(bytes32 indexed operationId, bytes payload);
     event ReadOperationNotFound(bytes32 indexed guid, string reason);
     event RelayFailed(bytes32 indexed operationId, bytes reason);
 
@@ -46,7 +44,7 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             sender: bytes32(uint256(uint160(address(layerZeroAdapter)))), // Peer layerZeroAdapter address
             nonce: 1
         });
-
+        layerZeroAdapter.setExpectedReadChainByGuid(guid, DEST_CHAIN_ID);
         // Simulate receiving the read response through LayerZero
         vm.prank(LZ_ENDPOINT_BASE); // Only the LZ endpoint can call lzReceive
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
@@ -102,7 +100,10 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         router.setOperationToAdapter(operationId, address(layerZeroAdapter));
 
         // Set the read request originator (required for deliverReadResponse)
-        router.setReadRequestOriginator(operationId, user);
+        router.setReadRequestOriginator(
+            operationId,
+            address(mockCrossChainStateReadReceiver)
+        );
 
         // Map the GUID to operation ID
         _setOperationMapping(guid, operationId);
@@ -118,7 +119,8 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         });
 
         // Simulate receiving the read response - should handle delivery failure gracefully
-        // todo: implement recoverey/retry mechanism
+        // Ensure adapter has expected chain mapping so it attempts delivery and hits router revert
+        layerZeroAdapter.setExpectedReadChainByGuid(guid, DEST_CHAIN_ID);
         vm.prank(LZ_ENDPOINT_BASE);
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
 
@@ -226,8 +228,11 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 address(layerZeroAdapter)
             );
 
-            // Set the read request originator (required for deliverReadResponse)
-            router.setReadRequestOriginator(operationIds[i], user);
+            // Set the read request originator to a contract that implements ICrossChainReceiver
+            router.setReadRequestOriginator(
+                operationIds[i],
+                address(mockCrossChainStateReadReceiver)
+            );
         }
 
         // Process each read response
@@ -242,6 +247,12 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 sender: bytes32(uint256(uint160(address(layerZeroAdapter)))),
                 nonce: uint64(i + 1)
             });
+
+            // Ensure expected chain mapping is present so adapter can deliver
+            layerZeroAdapter.setExpectedReadChainByGuid(
+                guids[i],
+                DEST_CHAIN_ID
+            );
 
             vm.prank(LZ_ENDPOINT_BASE);
             layerZeroAdapter.lzReceive(

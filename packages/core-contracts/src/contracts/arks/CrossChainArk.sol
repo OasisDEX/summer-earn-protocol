@@ -45,30 +45,37 @@ contract CrossChainArk is
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
 
+    /// @notice The last amount sent in the latest outgoing transfer
+    uint256 public lastSentAmount;
+
     /// @notice Pending transfer params for the cross-chain transfer
     BridgeTypes.ExecuteTransferParams public pendingTransferParams;
 
     /// @notice Pending transfer options for the cross-chain transfer
     BridgeTypes.BridgeOptions public pendingTransferOptions;
 
+    /// @notice Emitted when inflight is set for an outbound transfer
+    event InflightSet(uint256 amount, bytes32 operationId);
+    /// @notice Emitted when inflight is cleared following an ACK/state update
+    event InflightCleared(bytes32 operationId, uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    // singleFlight modifier removed in favor of explicit assertions for clarity
+
     /**
      * @notice Constructor to set up the CrossChainArk
-     * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address _bridgeRouter,
         address _crossChainRegistry,
         uint16 _satelliteChainId,
         ArkParams memory _params
     ) Ark(_params) CrossChainConfigManaged(_crossChainRegistry) {
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
 
         satelliteChainId = _satelliteChainId;
@@ -84,18 +91,8 @@ contract CrossChainArk is
     /// in case of bridge failures or accounting discrepancies
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
         inflightAssets = amount;
-        emit InflightAssetsUpdated(amount);
-    }
-
-    /// @notice Updates the inflight assets amount when a bridge operation is executed
-    /// @param amount Amount of assets that are now in-flight
-    function updateInflightAssets(uint256 amount) external {
-        // Only the bridge router should be able to call this
-        if (msg.sender != bridgeRouter()) {
-            revert Unauthorized();
-        }
-        inflightAssets = amount;
-        emit InflightAssetsUpdated(amount);
+        lastSentAmount = amount;
+        emit InflightSet(amount, bytes32(0));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -128,7 +125,7 @@ contract CrossChainArk is
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure override(CrossChainReceiverBase, IERC165) returns (bool) {
+    ) external pure override(CrossChainReceiverBase) returns (bool) {
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
             interfaceId == type(ICrossChainArk).interfaceId ||
@@ -148,9 +145,7 @@ contract CrossChainArk is
         uint256 amount,
         bytes calldata executeTransferParams
     ) internal override {
-        if (pendingTransferParams.asset != address(0)) {
-            revert PendingTransferAlreadyQueued();
-        }
+        _assertCanBoardOrDisembark();
         address proxyAddress = _getTargetProxy();
 
         (
@@ -175,22 +170,37 @@ contract CrossChainArk is
     }
 
     function executeTransferAssets() external payable onlyKeeper {
-        if (pendingTransferParams.asset == address(0))
-            revert NoPendingTransferQueued();
+        _assertCanExecuteTransfer();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
         config.asset.approve(
             address(bridgeRouter),
             pendingTransferParams.amount
         );
+        // Set inflight before initiating the transfer
+        inflightAssets = pendingTransferParams.amount;
+        lastSentAmount = pendingTransferParams.amount;
         bytes32 operationId = bridgeRouter.executeTransferAssets{
             value: msg.value
         }(pendingTransferParams, pendingTransferOptions);
 
         latestOutgoingTransferId = operationId;
+        emit InflightSet(inflightAssets, operationId);
         emit PendingTransferQueued(
             pendingTransferParams,
             pendingTransferOptions
         );
+        _resetPendingTransferParams();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL KEEPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Cancels a queued pending transfer
+    /// @dev Resets pending transfer params and options; callable by keeper
+    function cancelPendingTransfer() external onlyKeeper {
+        if (pendingTransferParams.asset == address(0))
+            revert NoPendingTransferQueued();
         _resetPendingTransferParams();
     }
 
@@ -202,6 +212,7 @@ contract CrossChainArk is
      * FleetProxy.withdrawAndTransfer() which transfers assets back to this contract
      */
     function _disembark(uint256 amount, bytes calldata) internal view override {
+        _assertCanBoardOrDisembark();
         // Ensure we have enough assets on the contract
         uint256 availableAssets = config.asset.balanceOf(address(this));
         if (availableAssets < amount) {
@@ -274,7 +285,19 @@ contract CrossChainArk is
         // Reset inflight assets as the state read now reflects the current remote balance
         if (inflightAssets > 0) {
             inflightAssets = 0;
-            emit InflightAssetsUpdated(0);
+            emit InflightCleared(params.operationId, lastSentAmount);
+            lastSentAmount = 0;
+        }
+    }
+
+    /**
+     * @notice Asserts that the board or disembark can be performed
+     * @dev This function asserts that no inflight transfer exists and no pending transfer is queued
+     */
+    function _assertCanBoardOrDisembark() internal view {
+        if (inflightAssets != 0) revert InFlight();
+        if (pendingTransferParams.asset != address(0)) {
+            revert PendingTransferAlreadyQueued();
         }
     }
 
@@ -297,6 +320,10 @@ contract CrossChainArk is
         // Update the remote asset tracking
 
         lastRemoteAssetBalance = remoteBalance;
+        emit RemoteAssetBalanceUpdated(
+            lastRemoteAssetBalance,
+            params.operationId
+        );
 
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
     }
@@ -306,6 +333,19 @@ contract CrossChainArk is
     //////////////////////////////////////////////////////////////*/
 
     error InvalidSender();
+    /// @notice Error thrown when trying to start a new outbound while inflight > 0
+    error InFlight();
+
+    /**
+     * @notice Ensures ready for executing a pending transfer: no inflight and has pending
+     * @dev Used to gate executeTransferAssets
+     */
+    function _assertCanExecuteTransfer() internal view {
+        if (inflightAssets != 0) revert InFlight();
+        if (pendingTransferParams.asset == address(0)) {
+            revert NoPendingTransferQueued();
+        }
+    }
 
     /**
      * @notice Gets the target proxy address from the registry

@@ -16,6 +16,12 @@ interface IBridgeRouter is IERC165 {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when the router is paused
+    event RouterPaused(address indexed account);
+
+    /// @notice Emitted when the router is unpaused
+    event RouterUnpaused(address indexed account);
+
     /// @notice Emitted when a new adapter is registered
     event AdapterRegistered(address indexed adapter);
 
@@ -57,12 +63,6 @@ interface IBridgeRouter is IERC165 {
         BridgeTypes.OperationType indexed operationType
     );
 
-    /// @notice Emitted when a chain's router address is updated
-    event ChainRouterAddressUpdated(
-        uint16 indexed chainId,
-        address routerAddress
-    );
-
     /// @notice Emitted when assets (ERC20 or native) are recovered from the router by governance
     /// @dev If `token` is address(0), the recovery represents native ETH.
     event RouterAssetsRecovered(
@@ -70,9 +70,6 @@ interface IBridgeRouter is IERC165 {
         address indexed recipient,
         uint256 amount
     );
-
-    /// @notice Emitted when the default gas limit is updated
-    event DefaultGasLimitUpdated(uint256 newDefaultGasLimit);
 
     /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
     event BridgeQueueUpdated(address indexed newBridgeQueue);
@@ -91,20 +88,10 @@ interface IBridgeRouter is IERC165 {
     error ReceiverRejectedCall(); // Keep, might be useful for callbacks
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
-
     /// @notice Error thrown when the originator is not the caller
     error InvalidOriginator();
-
-    /// @notice Error thrown when trying to update status in invalid direction
-    error InvalidStatusProgression();
-
-    /// @notice Error thrown when an invalid status is provided
-    error InvalidStatus();
-
     /// @notice Thrown when the contract is paused
     error Paused();
-    /// @notice Thrown when the provided fee is insufficient
-    error InsufficientFee();
     /// @notice Thrown when a native token transfer fails (e.g., refund)
     error TransferFailed();
     /// @notice Thrown when an adapter doesn't support a requested operation
@@ -115,6 +102,9 @@ interface IBridgeRouter is IERC165 {
     error InsufficientBalance();
 
     error UnsupportedOperationType();
+
+    /// @notice Thrown when BridgeOptions.gasLimit is zero
+    error ZeroGasLimit();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
@@ -183,22 +173,48 @@ interface IBridgeRouter is IERC165 {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Estimate the base fee for a bridge operation without executing it.
-     * @param destinationChainId ID of the destination/source chain.
-     * @param asset Address of the asset (address(0) for non-asset ops).
-     * @param amount Amount to transfer (0 for non-asset ops).
-     * @param options Bridge options including adapter choice and params.
-     * @param operationType Type of operation (MESSAGE, READ_STATE, TRANSFER_ASSET).
-     * @return nativeFee Estimated base fee in native currency.
-     * @return tokenFee Estimated base fee in the asset token (if applicable).
-     * @return specifiedAdapter The adapter that was specified in the options.
+     * @notice Estimate fees for a transfer operation
+     * @param params Transfer parameters identical to executeTransferAssets
+     * @param options Bridge options including adapter choice
+     * @return nativeFee Estimated base fee in native currency
+     * @return tokenFee Estimated base fee in the asset token
+     * @return specifiedAdapter The adapter that was specified in the options
      */
-    function quote(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
-        BridgeTypes.BridgeOptions calldata options,
-        BridgeTypes.OperationType operationType
+    function quoteTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter);
+
+    /**
+     * @notice Estimate fees for a read state operation
+     * @param params Read state parameters identical to executeReadState
+     * @param options Bridge options including adapter choice
+     * @return nativeFee Estimated base fee in native currency
+     * @return tokenFee Estimated base fee in the asset token
+     * @return specifiedAdapter The adapter that was specified in the options
+     */
+    function quoteReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 tokenFee, address specifiedAdapter);
+
+    /**
+     * @notice Estimate fees for a message send operation
+     * @param params Message parameters identical to executeSendMessage
+     * @param options Bridge options including adapter choice
+     * @return nativeFee Estimated base fee in native currency
+     * @return tokenFee Estimated base fee in the asset token
+     * @return specifiedAdapter The adapter that was specified in the options
+     */
+    function quoteSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata options
     )
         external
         view

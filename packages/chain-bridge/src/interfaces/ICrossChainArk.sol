@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IInflightAssetTracking} from "./IInflightAssetTracking.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
  * @title ICrossChainArk
  * @notice Interface for the CrossChainArk contract which manages cross-chain assets
- * @dev Extends IInflightAssetTracking for consistent inflight asset management
+ * @dev Interface for CrossChainArk without inflight tracking extension
  */
-interface ICrossChainArk is IInflightAssetTracking {
+interface ICrossChainArk {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -43,9 +42,6 @@ interface ICrossChainArk is IInflightAssetTracking {
 
     /// @notice Thrown when the provided amount is invalid.
     error InvalidAmount();
-
-    /// @notice Thrown when the provided bridge router address is invalid.
-    error InvalidBridgeRouter();
 
     /// @notice Thrown when the provided cross chain registry address is invalid.
     error InvalidCrossChainRegistry();

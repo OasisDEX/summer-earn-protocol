@@ -31,9 +31,6 @@ contract MockAdapter is
     // Add mapping to track supported operations
     mapping(BridgeTypes.OperationType => bool) public supportedOperations;
 
-    // Add mapping to track operation statuses
-    mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
-
     // Storage for received data
     bytes public lastReceivedResponse;
     address public lastReceivedSender;
@@ -157,20 +154,47 @@ contract MockAdapter is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
-        uint16 destinationChainId,
-        address /* asset */,
-        uint256 /* amount */,
-        BridgeTypes.BridgeOptions calldata /* options */,
-        BridgeTypes.OperationType /* operationType */
+    function estimateTransferAssets(
+        BridgeTypes.ExecuteTransferParams calldata params,
+        BridgeTypes.BridgeOptions calldata /* options */
     ) external view returns (uint256 nativeFee, uint256 tokenFee) {
         // Check if chain is supported
-        if (!supportedChains[destinationChainId]) {
+        if (!supportedChains[params.destinationChainId]) {
             revert UnsupportedChain();
         }
 
         // Return base fee of 0.1 ETH multiplied by the fee multiplier
         nativeFee = (0.1 ether * feeMultiplier) / 100;
+        tokenFee = 0;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateReadState(
+        BridgeTypes.ExecuteReadStateParams calldata params,
+        BridgeTypes.BridgeOptions calldata /* options */
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        // Check if chain is supported
+        if (!supportedChains[params.destinationChainId]) {
+            revert UnsupportedChain();
+        }
+
+        // Return base fee of 0.05 ETH for read operations
+        nativeFee = (0.05 ether * feeMultiplier) / 100;
+        tokenFee = 0;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateSendMessage(
+        BridgeTypes.ExecuteSendMessageParams calldata params,
+        BridgeTypes.BridgeOptions calldata /* options */
+    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
+        // Check if chain is supported
+        if (!supportedChains[params.destinationChainId]) {
+            revert UnsupportedChain();
+        }
+
+        // Return base fee of 0.02 ETH for message operations
+        nativeFee = (0.02 ether * feeMultiplier) / 100;
         tokenFee = 0;
     }
 

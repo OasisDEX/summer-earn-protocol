@@ -31,6 +31,7 @@ enum Token {
   XSILO = 'xsilo',
   COMP = 'comp',
   SPK = 'spk',
+  USDF = 'usdf',
 }
 const addresses: Record<
   SupportedChain,
@@ -59,6 +60,7 @@ const addresses: Record<
       xsilo: '0x0000000000000000000000000000000000000000',
       comp: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
       spk: '0x0000000000000000000000000000000000000000',
+      usdf: '0x0000000000000000000000000000000000000000',
     },
   },
   mainnet: {
@@ -80,6 +82,7 @@ const addresses: Record<
       silo: '0xF0B2dd79324A66d2108C961d680F7616E1486bB0',
       comp: '0xc00e94cb662c3520282e6f5717214004a7f26888',
       spk: '0xc20059e0317DE91738d13af027DfC4a50781b066',
+      usdf: '0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2',
     },
   },
   sonic: {
@@ -98,6 +101,7 @@ const addresses: Record<
       xsilo: '0x4451765739b2D7BCe5f8BC95Beaf966c45E1Dcc9',
       comp: '0x0000000000000000000000000000000000000000',
       spk: '0x0000000000000000000000000000000000000000',
+      usdf: '0x0000000000000000000000000000000000000000',
     },
   },
   arbitrum: {
@@ -116,6 +120,7 @@ const addresses: Record<
       xsilo: '0xf3775f959bc64923bd809085299dbc984d3e6c8a',
       comp: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
       spk: '0x0000000000000000000000000000000000000000',
+      usdf: '0x0000000000000000000000000000000000000000',
     },
   },
 }
@@ -429,6 +434,7 @@ function getAssetDecimals(assetSymbol: string): bigint {
     case 'xsilo':
     case 'comp':
     case 'spk':
+    case 'usdf':
       return EIGHTEEN_DECIMALS
     case 'usdc':
     case 'usdce':
@@ -494,9 +500,9 @@ function calculateAuctionMultipliers(
 const rewardsConfig: Record<string, Record<string, Token[]>> = {
   mainnet: {
     'sky-rewards': [Token.SKY, Token.SPK],
-    // morpho: [Token.MORPHO, Token.SYRUP, Token.SPK],
+    morpho: [Token.MORPHO],
     euler: [Token.REUL, Token.SPK],
-    gearbox: [Token.GEAR, Token.SPK],
+    gearbox: [Token.GEAR, Token.SPK, Token.USDF],
     siloV2: [Token.SILO, Token.XSILO, Token.SPK],
     compound_v3: [Token.COMP, Token.SPK],
     maple: [Token.SYRUP],

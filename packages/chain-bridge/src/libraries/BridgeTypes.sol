@@ -7,14 +7,6 @@ pragma solidity 0.8.28;
  */
 library BridgeTypes {
     /**
-     * @notice Status of a cross-chain transfer
-     */
-    enum OperationStatus {
-        SENT, // Operation has been sent to the destination chain
-        FAILED // Operation has failed
-    }
-
-    /**
      * @notice Bridge options structure
      * @dev This struct is used to pass options to the bridge.
      * @dev The specifiedAdapter is the address of the adapter to use.
@@ -122,11 +114,5 @@ library BridgeTypes {
         uint16 sourceChainId;
         address recipient;
         bytes message;
-    }
-
-    struct DeliverPayload {
-        bytes32 operationId; // cross-chain operation ID
-        address originator; // original msg.sender on the source chain
-        address sourceAsset; // token the user supplied on the source chain
     }
 }
