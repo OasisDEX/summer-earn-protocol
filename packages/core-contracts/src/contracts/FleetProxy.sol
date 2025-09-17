@@ -74,8 +74,6 @@ contract FleetProxy is
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_fleetAddress == address(0)) revert InvalidFleetContract();
         if (_sourceChainId == 0) revert InvalidSatelliteChain();
-        address registryRouter = bridgeRouter();
-        if (registryRouter == address(0)) revert InvalidBridgeRouter();
 
         fleetAddress = _fleetAddress;
         hubChainId = _sourceChainId;

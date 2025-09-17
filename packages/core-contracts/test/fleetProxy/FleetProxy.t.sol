@@ -158,10 +158,18 @@ contract CrossChainFleetProxyTest is Test {
                                HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Build an “empty” payload (operationId == 0x0) – this triggers
+    /// @dev Build an "empty" payload (operationId == 0x0) – this triggers
     ///      the MessageContentNotExpected branch in the proxy.
     function _buildEmptyPayload() internal pure returns (bytes memory) {
         return bytes("");
+    }
+
+    /// @dev Build a deliver payload for the given asset
+    function _buildDeliverPayload(
+        address asset
+    ) internal pure returns (bytes memory) {
+        // Create a simple payload that includes the asset address
+        return abi.encode(asset);
     }
 
     /// @dev Build a well-formed delivered transfer params for the given asset.

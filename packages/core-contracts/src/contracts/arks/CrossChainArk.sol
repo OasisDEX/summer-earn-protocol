@@ -77,8 +77,6 @@ contract CrossChainArk is
         ArkParams memory _params
     ) Ark(_params) CrossChainConfigManaged(_crossChainRegistry) {
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
-        // Optional: ensure registry has a nonzero bridge router configured
-        if (bridgeRouter() == address(0)) revert InvalidBridgeRouter();
 
         satelliteChainId = _satelliteChainId;
     }

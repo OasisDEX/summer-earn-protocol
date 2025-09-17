@@ -721,12 +721,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     }
 
     function _buildEmptyPayload() internal pure returns (bytes memory) {
-        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
-            operationId: bytes32(0),
-            originator: address(0),
-            sourceAsset: address(0)
-        });
-        return abi.encode(dp);
+        return bytes("");
     }
 
     // ========================================================================
