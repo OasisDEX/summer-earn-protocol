@@ -72,7 +72,6 @@ contract CrossChainArkTest is Test, ArkTestBase {
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
         registry.setBridgeRouter(address(router));
-        registry.setDefaultGasLimit(200000);
         vm.stopPrank();
 
         ArkParams memory params = ArkParams({
@@ -99,14 +98,15 @@ contract CrossChainArkTest is Test, ArkTestBase {
         ark = new CrossChainArk(address(registry), TARGET_CHAIN_ID, params);
 
         // Register the ark-proxy relationship in the registry
-        vm.prank(governor);
+        vm.startPrank(governor);
         registry.registerRelationship(
             address(ark),
             proxy,
             SOURCE_CHAIN_ID,
             TARGET_CHAIN_ID,
-            keccak256("ARK_FLEET_RELATIONSHIP")
+            registry.PEER_RELATIONSHIP()
         );
+        vm.stopPrank();
 
         // Set up FleetCommander with BufferArk
         (address fleetCommanderAddress, ) = setupFleetCommanderWithBufferArk(

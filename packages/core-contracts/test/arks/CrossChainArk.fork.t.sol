@@ -65,6 +65,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
     uint32 public constant ARB_LZ_EID = 30110; // LayerZero v2 EID for Arbitrum One
     address public constant ARB_STARGATE_PROXY = address(0x999); // Mock Stargate proxy address on Arbitrum
     address public constant ARB_LAYERZERO_PROXY = address(0x888); // Mock LayerZero proxy address on Arbitrum
+    address public constant ARK_PROXY = address(0x777); // Different proxy address for ark
 
     uint256 public constant FORK_BLOCK = 22_145_762;
 
@@ -95,7 +96,6 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Now that both contracts are deployed, initialize the bridge configuration
         registry.setBridgeRouter(address(bridgeRouter));
-        registry.setDefaultGasLimit(200000);
 
         // Register the BridgeRouter as an executor
         registry.registerExecutor(address(bridgeRouter));
@@ -232,14 +232,14 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create CrossChainArk with the proper CrossChainConfigManager
         ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
 
-        // Register the ark-proxy relationship - use Stargate proxy since that's for asset transfers
+        // Register the ark-proxy relationship - use a different proxy address to avoid conflicts
         vm.startPrank(governor);
         registry.registerRelationship(
             address(ark),
-            ARB_STARGATE_PROXY,
+            ARK_PROXY,
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            keccak256("ARK_FLEET_RELATIONSHIP")
+            registry.PEER_RELATIONSHIP()
         );
 
         // Setup permissions
@@ -269,7 +269,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(usdc),
                 amount: amount,
-                target: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
+                target: ARK_PROXY, // Use ark proxy for asset transfers
                 originator: address(ark),
                 refundAddress: commander,
                 message: ""
@@ -317,7 +317,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         assertEq(asset, address(usdc), "Incorrect asset address");
         assertEq(storedAmount, amount, "Incorrect stored amount");
-        assertEq(target, ARB_STARGATE_PROXY, "Incorrect recipient address");
+        assertEq(target, ARK_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
         assertEq(refundAddress, commander, "Incorrect keeper address");
         assertEq(
@@ -375,7 +375,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(usdc),
                 amount: amount,
-                target: ARB_STARGATE_PROXY, // Use Stargate proxy for asset transfers
+                target: ARK_PROXY, // Use ark proxy for asset transfers
                 originator: address(ark),
                 refundAddress: commander,
                 message: ""
@@ -427,7 +427,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
         assertEq(asset, address(usdc), "Incorrect asset address");
         assertEq(storedAmount, amount, "Incorrect stored amount");
-        assertEq(target, ARB_STARGATE_PROXY, "Incorrect recipient address");
+        assertEq(target, ARK_PROXY, "Incorrect recipient address");
         assertEq(originator, address(ark), "Incorrect originator address");
         assertEq(refundAddress, commander, "Incorrect keeper address");
         assertEq(
@@ -469,7 +469,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             DEST_CHAIN_ID,
             address(usdc),
             amount,
-            ARB_STARGATE_PROXY,
+            ARK_PROXY,
             address(stargateAdapter)
         );
 
@@ -557,7 +557,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         emit log_named_uint("Native Fee Paid", nativeFee);
         emit log_named_address("Keeper", commander);
         emit log_named_uint("Amount Transferred", amount);
-        emit log_named_address("Destination", ARB_STARGATE_PROXY);
+        emit log_named_address("Destination", ARK_PROXY);
         emit log_string(
             "SUCCESS: Full integration test completed - CrossChain Ark -> BridgeRouter -> Stargate Adapter"
         );
@@ -585,7 +585,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(usdc),
                 amount: amount,
-                target: ARB_STARGATE_PROXY,
+                target: ARK_PROXY,
                 originator: address(ark),
                 refundAddress: commander,
                 message: ""
@@ -680,7 +680,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // The response should contain the encoded remote balance
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             bytes32(0),
-            ARB_STARGATE_PROXY,
+            ARK_PROXY,
             address(ark),
             mockRemoteBalance,
             DEST_CHAIN_ID,
@@ -715,7 +715,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             abi.encode(
                 BridgeTypes.RelayedMessageParams({
                     operationId: params.operationId,
-                    originator: ARB_STARGATE_PROXY,
+                    originator: ARK_PROXY,
                     sourceChainId: DEST_CHAIN_ID,
                     recipient: address(ark),
                     message: params.message
@@ -792,7 +792,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 3: Test error handling scenarios ===
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             bytes32(0),
-            ARB_STARGATE_PROXY,
+            ARK_PROXY,
             address(ark),
             mockRemoteBalance,
             DEST_CHAIN_ID,
@@ -839,7 +839,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             operationId,
-            ARB_STARGATE_PROXY,
+            ARK_PROXY,
             address(ark),
             mockRemoteBalance,
             DEST_CHAIN_ID,
@@ -956,7 +956,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create the response payload (encoded remote balance)
         bytes memory responsePayload = _encodeMessage(
             bytes32(0),
-            ARB_STARGATE_PROXY,
+            ARK_PROXY,
             address(ark),
             mockRemoteBalance,
             DEST_CHAIN_ID,
@@ -1011,7 +1011,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 abi.encode(
                     BridgeTypes.RelayedMessageParams({
                         operationId: TEST_OP_ID,
-                        originator: ARB_STARGATE_PROXY,
+                        originator: ARK_PROXY,
                         recipient: address(ark),
                         message: responsePayload,
                         sourceChainId: DEST_CHAIN_ID
@@ -1087,7 +1087,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 2: Test LayerZero adapter's response handling directly ===
         BridgeTypes.RelayedMessageParams memory params = _encodeMessage(
             bytes32(0),
-            ARB_STARGATE_PROXY,
+            ARK_PROXY,
             address(ark),
             mockRemoteBalance,
             DEST_CHAIN_ID,
@@ -1130,7 +1130,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
                 destinationChainId: DEST_CHAIN_ID,
                 asset: address(usdc),
                 amount: transferAmount,
-                target: ARB_STARGATE_PROXY,
+                target: ARK_PROXY,
                 originator: address(ark),
                 refundAddress: commander,
                 message: ""
