@@ -137,26 +137,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the bridge configuration parameters
-     * @param _bridgeRouter The address of the bridge router contract
-     */
-    function initializeBridgeConfiguration(
-        address _bridgeRouter
-    ) external onlyGovernor {
-        if (bridgeRouter != address(0)) {
-            revert BridgeConfigAlreadyInitialized();
-        }
-
-        if (_bridgeRouter == address(0)) {
-            revert AddressZero();
-        }
-
-        bridgeRouter = _bridgeRouter;
-
-        emit BridgeRouterUpdated(address(0), _bridgeRouter);
-    }
-
-    /**
      * @notice Updates the bridge router address
      * @param newBridgeRouter The new bridge router address
      */

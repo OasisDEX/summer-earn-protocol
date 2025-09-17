@@ -94,7 +94,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Now that both contracts are deployed, initialize the bridge configuration
-        registry.initializeBridgeConfiguration(address(bridgeRouter));
+        registry.setBridgeRouter(address(bridgeRouter));
+        registry.setDefaultGasLimit(200000);
 
         // Register the BridgeRouter as an executor
         registry.registerExecutor(address(bridgeRouter));
