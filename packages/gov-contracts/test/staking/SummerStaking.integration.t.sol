@@ -442,7 +442,15 @@ contract SummerStakingIntegrationTest is SummerStakingTestBase {
         // Alice tries to stake more than she has
         vm.startPrank(alice);
         aSummerToken.approve(address(aStaking), stakeAmount * 2);
-        vm.expectRevert(); // Should revert due to insufficient balance
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC20InsufficientBalance(address,uint256,uint256)",
+                alice,
+                stakeAmount,
+                stakeAmount * 2
+            )
+        );
         aStaking.stakeLockup(stakeAmount * 2, 0);
         vm.stopPrank();
 

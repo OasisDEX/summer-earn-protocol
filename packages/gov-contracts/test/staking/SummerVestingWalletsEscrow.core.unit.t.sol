@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
@@ -10,6 +9,7 @@ import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
@@ -42,7 +42,12 @@ contract StakingCoreTest is SummerVestingWalletsEscrowTestBase {
     function test_Constructor_ZeroProtocolAccessManager() public {
         address[] memory vestingFactories = new address[](0);
 
-        vm.expectRevert(); // Should revert due to ProtocolAccessManaged constructor
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.InvalidAccessManagerAddress.selector,
+                address(0)
+            )
+        );
         new SummerVestingWalletsEscrow(
             address(0), // Zero protocol access manager
             address(aSummerToken),

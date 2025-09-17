@@ -5,7 +5,8 @@ import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
-
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 /*
  * @title SummerStaking No Lockup Tests
  * @dev Test contract for SummerStaking contract constructor and core functionality.
@@ -37,7 +38,12 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_Constructor_ZeroProtocolAccessManager() public {
-        vm.expectRevert(); // Should revert due to ProtocolAccessManaged constructor
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.InvalidAccessManagerAddress.selector,
+                address(0)
+            )
+        );
         new SummerStaking(
             address(0), // Zero protocol access manager
             address(configurationManagerA),
@@ -114,7 +120,15 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Attempt to stake - should revert
         vm.prank(user1);
-        vm.expectRevert(); // SafeERC20 will revert on insufficient allowance
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                address(aStaking),
+                stakeAmount - 1,
+                stakeAmount
+            )
+        );
         aStaking.stakeLockup(stakeAmount, 0); // No lockup for test
     }
 
@@ -127,7 +141,15 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Attempt to stake - should revert
         vm.prank(user1);
-        vm.expectRevert(); // ERC20 will revert on insufficient balance
+        // ERC20 transferFrom will revert on insufficient balance
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                user1,
+                3 * STAKE_AMOUNT,
+                stakeAmount
+            )
+        );
         aStaking.stakeLockup(stakeAmount, 0); // No lockup for test
     }
 
@@ -181,7 +203,15 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Attempt to unstake - should revert
         vm.prank(user1);
-        vm.expectRevert(); // SafeERC20 will revert on insufficient allowance
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                address(aStaking),
+                stakeAmount - 1,
+                stakeAmount
+            )
+        );
         aStaking.unstakeLockup(0, stakeAmount);
     }
 
@@ -198,7 +228,12 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Attempt to unstake more than available from specific stake - should revert
         vm.prank(user1);
-        vm.expectRevert(); // Will revert due to insufficient stake amount
+        // Reverts due to insufficient stake amount in selected index
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InsufficientBalance.selector
+            )
+        );
         aStaking.unstakeLockup(0, stakeAmount * 2);
     }
 

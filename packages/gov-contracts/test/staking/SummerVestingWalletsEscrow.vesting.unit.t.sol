@@ -196,7 +196,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         assertEq(aSummerToken.balanceOf(address(testStaking)), 0);
     }
 
-    function test_StakeWithVesting_UserHasVOneVestingWallet() public {
+    function test_StakeWithVesting_UserHasOneVestingWallet() public {
         mockVestingFactory2.removeVestingWallet(user1);
         // expected total from two vesting wallets
         uint256 expectedTotal = VESTING_AMOUNT_WALLET_1;
@@ -540,7 +540,14 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         vm.startPrank(user1);
         axSumr.approve(address(testStaking), 4 * remainingAmount);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC20InsufficientBalance(address,uint256,uint256)",
+                user1,
+                remainingAmount,
+                VESTING_AMOUNT_WALLET_1 + VESTING_AMOUNT_WALLET_2
+            )
+        );
         testStaking.unstakeVesting();
         vm.stopPrank();
 

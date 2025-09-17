@@ -14,6 +14,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SummerVestingWalletsEscrowTestBase} from "./SummerVestingWalletsEscrowTestBase.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 /*
  * @title SummerVestingWalletsEscrow Management Tests
@@ -114,7 +115,12 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
     function test_AddVestingFactory_AccessControl() public {
         // Try to add factory without governor role - should revert
         vm.prank(alice); // Alice is not governor
-        vm.expectRevert(); // Should revert due to access control
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                alice
+            )
+        );
         aStaking.addVestingFactory(newVestingFactory1);
     }
 
@@ -177,7 +183,13 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
 
         // Try to remove without governor role - should revert
         vm.prank(alice); // Alice is not governor
-        vm.expectRevert(); // Should revert due to access control
+        // Access control revert (non-governor)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                alice
+            )
+        );
         aStaking.removeVestingFactory(newVestingFactory1);
     }
 

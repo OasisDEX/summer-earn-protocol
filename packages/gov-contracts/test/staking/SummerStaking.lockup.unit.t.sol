@@ -17,7 +17,8 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
-
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 /*
  * @title SummerStaking Lockup Tests
  * @dev Comprehensive test suite for SummerStaking contract with helper methods and extensive coverage.
@@ -85,7 +86,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     function test_Revert_DeployWithZeroSummerToken() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking_InvalidAddress(string)",
+                "Summer token address cannot be zero"
+            )
+        );
         new SummerStaking(
             address(accessManagerA),
             address(configurationManagerA),
@@ -95,7 +101,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     function test_Revert_DeployWithZeroStakedSummerToken() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking_InvalidAddress(string)",
+                "StakedSummerToken address cannot be zero"
+            )
+        );
         new SummerStaking(
             address(accessManagerA),
             address(configurationManagerA),
@@ -305,14 +316,28 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), largeAmount);
-        vm.expectRevert(); // ERC20 will revert on insufficient balance
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                user1,
+                aSummerToken.balanceOf(user1),
+                largeAmount
+            )
+        );
         aStaking.stakeLockup(largeAmount, aMinLockupPeriod);
         vm.stopPrank();
     }
 
     function test_Revert_StakeWithoutApproval() public {
         vm.prank(user1);
-        vm.expectRevert(); // SafeERC20 will revert on insufficient allowance
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                address(aStaking),
+                0,
+                STAKE_AMOUNT
+            )
+        );
         aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
     }
 
@@ -595,7 +620,13 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         ISummerStaking.Bucket bucket = ISummerStaking.Bucket.ThreeToSixMonths;
 
         vm.prank(user1);
-        vm.expectRevert(); // Should revert due to access control
+        // Access control revert (non-governor)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user1
+            )
+        );
         aStaking.updateLockupBucketCap(bucket, newCap);
     }
 
