@@ -67,7 +67,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         bytes message
     );
 
-    mapping(bytes32 => BridgeTypes.OperationStatus) public operationStatuses;
     mapping(bytes32 => address) public operationOriginators; // Track who requested via queue
     mapping(bytes32 => address) public operationAdapters;
     mapping(bytes32 => uint256) public operationBaseFeesPaid; // Track fee forwarded by queue
@@ -226,7 +225,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         lastMsgValue = msg.value;
 
         operationId = keccak256(abi.encodePacked("transfer", operationNonce++));
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS; // Store specified adapter
         operationBaseFeesPaid[operationId] = msg.value; // Track base fee received
@@ -277,7 +275,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.ExecuteReadStateParams calldata params
     ) internal returns (bytes32 operationId) {
         operationId = keccak256(abi.encodePacked("read", operationNonce++));
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
         operationBaseFeesPaid[operationId] = msg.value;
@@ -313,7 +310,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         lastMsgValue = msg.value;
 
         operationId = keccak256(abi.encodePacked("message", operationNonce++));
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationOriginators[operationId] = params.originator;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
         operationBaseFeesPaid[operationId] = msg.value;
@@ -406,13 +402,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         emit OperationDelivered(operationId, operationType);
     }
 
-    // --- View Functions ---
-    function getOperationStatus(
-        bytes32 operationId
-    ) external view returns (BridgeTypes.OperationStatus) {
-        return operationStatuses[operationId];
-    }
-
     // Implement other view functions simply returning mock/default values
 
     function getAdapters() external pure returns (address[] memory) {
@@ -459,13 +448,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
             IERC20(token).safeTransfer(recipient, amount);
         }
         emit RouterAssetsRecovered(token, recipient, amount);
-    }
-
-    function recoverOperationStatus(
-        bytes32 operationId,
-        BridgeTypes.OperationStatus status
-    ) external {
-        operationStatuses[operationId] = status;
     }
 
     // --- Interface Support ---
@@ -569,7 +551,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         );
 
         bytes32 operationId = nextTransferId;
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
 
         emit TransferInitiated(
@@ -612,7 +593,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         );
 
         bytes32 operationId = nextMessageId;
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
 
         emit MessageInitiated(
@@ -658,7 +638,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         if (shouldRevert) revert ReceiverRejectedCall();
 
         bytes32 operationId = nextReadId;
-        operationStatuses[operationId] = BridgeTypes.OperationStatus.SENT;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
 
         emit ReadRequestInitiated(

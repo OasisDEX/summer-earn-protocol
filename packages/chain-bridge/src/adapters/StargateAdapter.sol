@@ -9,7 +9,6 @@ import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {BaseBridgeAdapter} from "../base/BaseBridgeAdapter.sol";
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {MessagingFee, OFTFeeDetail, OFTLimit, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
@@ -30,7 +29,6 @@ contract StargateAdapter is
     IAssetAdapter,
     IBridgeAdapter,
     ILayerZeroComposer,
-    Nonces,
     BaseBridgeAdapter
 {
     using SafeERC20 for IERC20;
@@ -50,12 +48,6 @@ contract StargateAdapter is
         bool isDeposit; // true for deposits to FleetProxy, false for withdrawals to CrossChainArk
     }
 
-    /// @notice Mapping of operation IDs to failed compose details
-    mapping(bytes32 => FailedCompose) public failedComposes;
-
-    /// @notice Array of failed operation IDs for easier iteration
-    bytes32[] public failedOperationIds;
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -70,10 +62,6 @@ contract StargateAdapter is
     /// @notice Mapping of Stargate contracts to their assets on THIS chain only
     mapping(address stargateContract => address asset)
         public stargateContractToAsset;
-
-    /// @notice Default transport mode (true = taxi, false = bus)
-    /// @dev Taxi mode is required for composability - bus mode does not support compose
-    bool public defaultUseTaxi = true;
 
     /// @notice Maximum slippage tolerance (10% = 1000 basis points)
     uint256 public constant MAX_SLIPPAGE_BPS = 1000;
@@ -95,20 +83,8 @@ contract StargateAdapter is
         address stargateContract
     );
 
-    /// @notice Emitted when default transport mode is changed
-    event DefaultTransportModeChanged(bool useTaxi);
-
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
-
-    /// @notice Emitted when composed assets are handled
-    event ComposedAssetHandled(
-        bytes32 indexed operationId,
-        address indexed fleetProxy,
-        address indexed asset,
-        uint256 amount,
-        uint16 sourceChainId
-    );
 
     /// @notice Emitted when compose call fails
     event ComposeCallFailed(
@@ -141,16 +117,13 @@ contract StargateAdapter is
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _accessManager Address of the AccessManager contract
      * @param _lzEndpoint LayerZero endpoint for compose functionality
-     * @param _harborCommand Address of the HarborCommand contract for fleet commander validation
      */
     constructor(
         address _crossChainRegistry,
         address _accessManager,
-        address _lzEndpoint,
-        address _harborCommand
+        address _lzEndpoint
     ) BaseBridgeAdapter(_crossChainRegistry, _accessManager) {
         if (_lzEndpoint == address(0)) revert InvalidParams();
-        if (_harborCommand == address(0)) revert InvalidParams();
 
         LZ_ENDPOINT = _lzEndpoint;
     }
@@ -158,15 +131,6 @@ contract StargateAdapter is
     /*//////////////////////////////////////////////////////////////
                           GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Sets the default transport mode
-     * @param _useTaxi True for taxi mode (immediate), false for bus mode (batched)
-     */
-    function setDefaultTransportMode(bool _useTaxi) external onlyGovernor {
-        defaultUseTaxi = _useTaxi;
-        emit DefaultTransportModeChanged(_useTaxi);
-    }
 
     /**
      * @notice Sets the slippage tolerance for fallback minimum amount calculation
@@ -278,7 +242,7 @@ contract StargateAdapter is
         // Prepare validated SendParam with slippage protection
         (
             SendParam memory sendParam,
-
+            OFTReceipt memory oftReceipt
         ) = _prepareSendParamWithSlippageValidation(
                 params,
                 operationId,
@@ -428,7 +392,6 @@ contract StargateAdapter is
     function _isTaxiMode(bytes memory oftCmd) internal pure returns (bool) {
         return oftCmd.length == 0; // taxi() returns empty bytes, bus() returns bytes with length 1
     }
-
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
@@ -689,43 +652,7 @@ contract StargateAdapter is
             }
         }
 
-        // Clear failed compose record if provided
-        if (operationId != bytes32(0)) {
-            delete failedComposes[operationId];
-
-            // Remove from failed operation IDs array
-            for (uint256 i = 0; i < failedOperationIds.length; i++) {
-                if (failedOperationIds[i] == operationId) {
-                    // Move last element to this position and pop
-                    failedOperationIds[i] = failedOperationIds[
-                        failedOperationIds.length - 1
-                    ];
-                    failedOperationIds.pop();
-                    break;
-                }
-            }
-        }
-
         emit TokensRecovered(asset, amount, recipient);
-    }
-
-    /**
-     * @notice Get all failed compose operations
-     * @return Array of failed operation IDs
-     */
-    function getFailedOperations() external view returns (bytes32[] memory) {
-        return failedOperationIds;
-    }
-
-    /**
-     * @notice Get details of a specific failed operation
-     * @param operationId Operation ID to query
-     * @return Failed compose details
-     */
-    function getFailedCompose(
-        bytes32 operationId
-    ) external view returns (FailedCompose memory) {
-        return failedComposes[operationId];
     }
 
     /**

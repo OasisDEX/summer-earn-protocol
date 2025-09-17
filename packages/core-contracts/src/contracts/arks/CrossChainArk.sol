@@ -67,21 +67,16 @@ contract CrossChainArk is
 
     /**
      * @notice Constructor to set up the CrossChainArk
-     * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address _bridgeRouter,
         address _crossChainRegistry,
         uint16 _satelliteChainId,
         ArkParams memory _params
     ) Ark(_params) CrossChainConfigManaged(_crossChainRegistry) {
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
-        // Optional: ensure registry has a nonzero bridge router configured
-        if (bridgeRouter() == address(0)) revert InvalidBridgeRouter();
 
         satelliteChainId = _satelliteChainId;
     }

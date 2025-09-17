@@ -97,9 +97,6 @@ interface ICrossChainRegistry {
     /// @notice Thrown when an invalid chain ID is provided
     error InvalidChainId(uint16 chainId);
 
-    /// @notice Thrown when trying to register a same-chain relationship in a cross-chain registry
-    error SameChainRelationship(uint16 chainId);
-
     /// @notice Thrown when neither source nor target chain matches the deployment chain
     error InvalidChainRelationship(
         uint16 sourceChainId,

@@ -21,10 +21,4 @@ interface IFleetProxyInflightTracking is IERC165 {
      * @return Amount of withdrawal assets currently in-flight
      */
     function inflightWithdrawals() external view returns (uint256);
-
-    /**
-     * @notice Emitted when inflight withdrawal assets amount is updated
-     * @param amount The new amount of in-flight withdrawal assets
-     */
-    event InflightWithdrawalsUpdated(uint256 amount);
 }

@@ -31,9 +31,6 @@ interface IBridgeAdapter {
     error UnsupportedChain();
 
     /// @notice Thrown when the operation is not supported by the adapter
-    error UnsupportedOperation();
-
-    /// @notice Thrown when the operation is not supported by the adapter
     error OperationNotSupported();
 
     /// @notice Thrown when insufficient fee is provided for an operation
@@ -41,9 +38,6 @@ interface IBridgeAdapter {
 
     /// @notice Thrown when a read channel is not configured for a chain
     error ReadChannelNotConfigured();
-
-    /// @notice Thrown when trying to set bridge router to zero address
-    error InvalidBridgeRouter();
 
     /// @notice Thrown when an asset is not supported by the adapter
     error UnsupportedAsset();
