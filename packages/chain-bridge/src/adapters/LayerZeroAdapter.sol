@@ -45,7 +45,7 @@ contract LayerZeroAdapter is
     /// @notice Binds a read response guid to the originally requested destination chain
     /// @dev Used to enforce registry trust checks for read-channel responses
     mapping(bytes32 guid => uint16 expectedChainId)
-        internal expectedReadChainByGuid;
+        public expectedReadChainByGuid;
 
     /// @notice Threshold used to distinguish LayerZero lzRead responses by `srcEid`
     /// @dev LayerZero routes read responses through a reserved "read channel" range
@@ -57,9 +57,6 @@ contract LayerZeroAdapter is
 
     /// @notice Active read channel ID for sending read requests
     uint32 public readChannelId;
-
-    /// @notice Minimum gas limit for operations
-    uint128 public minGasLimit;
 
     /// @notice Governance cap for number of DVNs allowed in read config
     /// @dev Practical deployments typically use a small DVN set (e.g. 1-3).
@@ -77,13 +74,6 @@ contract LayerZeroAdapter is
         uint32 indexed readChannelId,
         address[] readDVNs,
         uint64 confirmations
-    );
-
-    /// @notice Emitted when read executor is configured
-    event ReadExecutorConfigured(
-        uint32 indexed readChannelId,
-        address indexed executor,
-        uint32 maxMessageSize
     );
 
     /// @notice Emitted when a read channel is activated
@@ -288,7 +278,7 @@ contract LayerZeroAdapter is
         // Therefore, the read response payload itself should not include an operation type
         // or originator.
         if (_origin.srcEid > readChannelThreshold) {
-            _relayReadResponse(_origin, _guid, _payload);
+            _relayReadResponse(_guid, _payload);
         } else if (_payload.length >= 2) {
             // Decode the payload to extract operation type and data
             (
@@ -335,15 +325,10 @@ contract LayerZeroAdapter is
 
     /**
      * @dev Handles responses from lzRead operations
-     * @param _origin Source chain information
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Response payload
      */
-    function _relayReadResponse(
-        Origin calldata _origin,
-        bytes32 _guid,
-        bytes memory _payload
-    ) internal {
+    function _relayReadResponse(bytes32 _guid, bytes memory _payload) internal {
         // Extract requestId from the guid mapping
         bytes32 operationId = lzMessageToOperationId[_guid];
         if (operationId == bytes32(0)) {
@@ -354,11 +339,6 @@ contract LayerZeroAdapter is
 
         // Resolve the expected source chain from the original request's destination
         uint16 expectedChainId = expectedReadChainByGuid[_guid];
-        if (expectedChainId == 0) {
-            // Silently fail so it doesn't get locked with DVN
-            emit ReadOperationNotFound(_guid, "No expected read chain found");
-            return;
-        }
 
         bytes memory operationPayload = _encodeRelayedReadResponse(
             BridgeTypes.RelayedReadResponse({
@@ -366,12 +346,6 @@ contract LayerZeroAdapter is
                 operationId: operationId,
                 sourceChainId: expectedChainId
             })
-        );
-
-        // Enforce registry-declared peer mapping using the original destination chain
-        _assertTrustedSource(
-            Bytes32AddressLib.fromLast20Bytes(_origin.sender),
-            expectedChainId
         );
 
         IBridgeRouter(bridgeRouter()).deliver(
@@ -672,18 +646,6 @@ contract LayerZeroAdapter is
         BridgeTypes.RelayedMessageParams memory params
     ) internal pure returns (bytes memory payload) {
         return _encodeRelayedMessageParamsWithType(params);
-    }
-
-    /**
-     * @notice Converts a LayerZero endpoint ID to our chain ID format
-     * @param _lzEid LayerZero endpoint ID
-     * @return chainId Standard chain ID used by our system
-     */
-    function _getLzChainId(
-        uint32 _lzEid
-    ) internal view returns (uint16 chainId) {
-        // Get the chain ID from our endpoint mapping
-        return _chainIdFromExternalId(_lzEid);
     }
 
     /// @inheritdoc IBridgeAdapter

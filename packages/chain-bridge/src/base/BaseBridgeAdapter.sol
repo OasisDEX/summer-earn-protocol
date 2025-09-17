@@ -127,11 +127,6 @@ abstract contract BaseBridgeAdapter is
         _;
     }
 
-    modifier onlyTrustedSource(address srcAdapter, uint16 srcChain) {
-        _assertTrustedSource(srcAdapter, srcChain);
-        _;
-    }
-
     /**
      * @notice Get the list of chain IDs that governance has registered as having trusted peer adapters
      * @dev This queries the CrossChainRegistry for chains we are authorized to talk to
@@ -176,13 +171,6 @@ abstract contract BaseBridgeAdapter is
         ) {
             revert UntrustedSourceAdapter(srcAdapter, srcChain);
         }
-    }
-
-    function _assertReceivedAmount(
-        uint256 amountSD,
-        uint256 amount
-    ) internal pure {
-        if (amountSD != amount) revert InvalidAmount();
     }
 
     function _assertSourceChainId(

@@ -54,11 +54,6 @@ contract CrossChainRegistryTest is Test {
     address public newMockBridgeQueue = makeAddr("newBridgeQueue");
     address public newMockBridgeRouter = makeAddr("newBridgeRouter");
 
-    // Add new events
-    event BridgeQueueUpdated(
-        address indexed oldBridgeQueue,
-        address indexed newBridgeQueue
-    );
     event BridgeRouterUpdated(
         address indexed oldBridgeRouter,
         address indexed newBridgeRouter

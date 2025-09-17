@@ -33,22 +33,9 @@ interface IMessageAdapter {
     /// @notice Emitted when a read operation is not found through the adapter
     event ReadOperationNotFound(bytes32 indexed guid, string reason);
 
-    /// @notice Emitted when a message is delivered through the adapter
-    event MessageDelivered(
-        bytes32 indexed messageId,
-        address recipient,
-        bool delivered
-    );
-
-    /// @notice Emitted when a read response is delivered through the adapter
-    event ReadResponseDelivered(bytes32 indexed requestId, bytes response);
-
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when a message operation fails
-    error MessageFailed();
 
     /// @notice Thrown when a read operation fails
     error ReadFailed();

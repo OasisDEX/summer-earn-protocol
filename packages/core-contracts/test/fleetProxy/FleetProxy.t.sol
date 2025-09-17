@@ -158,29 +158,18 @@ contract CrossChainFleetProxyTest is Test {
                                HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Build a well-formed deliver payload for the given asset.
-    function _buildDeliverPayload(
-        address asset
-    ) internal view returns (bytes memory) {
-        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
-            operationId: keccak256(
-                abi.encodePacked("op", asset, block.timestamp)
-            ),
-            originator: address(this),
-            sourceAsset: asset
-        });
-        return abi.encode(dp);
-    }
-
-    /// @dev Build an “empty” payload (operationId == 0x0) – this triggers
+    /// @dev Build an "empty" payload (operationId == 0x0) – this triggers
     ///      the MessageContentNotExpected branch in the proxy.
     function _buildEmptyPayload() internal pure returns (bytes memory) {
-        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
-            operationId: bytes32(0),
-            originator: address(0),
-            sourceAsset: address(0)
-        });
-        return abi.encode(dp);
+        return bytes("");
+    }
+
+    /// @dev Build a deliver payload for the given asset
+    function _buildDeliverPayload(
+        address asset
+    ) internal pure returns (bytes memory) {
+        // Create a simple payload that includes the asset address
+        return abi.encode(asset);
     }
 
     /// @dev Build a well-formed delivered transfer params for the given asset.
@@ -283,7 +272,7 @@ contract CrossChainFleetProxyTest is Test {
         // Try to receive assets while paused
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
         mockToken.mint(address(proxy), amount);
 
         // Should revert with Paused error
@@ -352,7 +341,7 @@ contract CrossChainFleetProxyTest is Test {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
 
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
@@ -470,7 +459,7 @@ contract CrossChainFleetProxyTest is Test {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
 
         BridgeTypes.RelayedTransferParams
             memory params = _buildDeliveredTransferParams(
@@ -517,7 +506,7 @@ contract CrossChainFleetProxyTest is Test {
         mockToken.mint(address(proxy), amount);
 
         // Prepare the message for receiving assets
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
         bytes32 messageId = keccak256(
             abi.encode("deposit", amount, block.timestamp)
         );
@@ -546,7 +535,7 @@ contract CrossChainFleetProxyTest is Test {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
 
         // Mint tokens to the proxy
         mockToken.mint(address(proxy), amount);
@@ -575,7 +564,7 @@ contract CrossChainFleetProxyTest is Test {
         ERC20Mock invalidToken = new ERC20Mock();
         uint256 amount = 1000;
 
-        bytes memory message = _buildDeliverPayload(address(invalidToken));
+        bytes memory message = _buildEmptyPayload();
 
         // Mint invalid tokens to the proxy
         invalidToken.mint(address(proxy), amount);
@@ -603,7 +592,7 @@ contract CrossChainFleetProxyTest is Test {
         address asset = address(mockToken);
         uint256 amount = 0;
 
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
 
         // Call from the adapter with zero amount
         vm.prank(address(mockBridgeRouter));
