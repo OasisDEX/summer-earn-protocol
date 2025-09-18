@@ -47,6 +47,9 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
+        },
+        "summerOracleFactory": {
+          "address": "0x5511C30c50762520E36CCC42af2B528EE759721A"
         }
       }
     },
@@ -453,6 +456,9 @@
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
+        },
+        "summerOracleFactory": {
+          "address": "0xD3bBA5e519674a40e59a630F1bb99d0D272b3291"
         }
       }
     },
