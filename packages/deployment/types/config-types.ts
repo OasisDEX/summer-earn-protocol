@@ -105,6 +105,7 @@ export interface BaseConfig {
       harborCommand: { address: string }
       admiralsQuarters: { address: string }
       fleetCommanderRewardsManagerFactory: { address: string }
+      summerOracleFactory: { address: string }
     }
     bridge?: {
       bridgeRouter: { address: string }

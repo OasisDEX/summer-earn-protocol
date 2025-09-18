@@ -14,8 +14,6 @@ import {ISummerOracleFactory} from "../interfaces/ISummerOracleFactory.sol";
 /// @notice Oracle adapter that quotes between FleetCommander ERC4626 shares and its underlying asset.
 /// @dev Implements Morpho's IOracle (single price scaled by 1e36) and Euler's / ERC-7726 IPriceOracle (quotes for fleet/quote).
 contract SummerOracleFactory is ISummerOracleFactory {
-    using Math for uint256;
-
     mapping(address fleet => ISummerOracle summerOracle) public summerOracles;
 
     IHarborCommand public immutable harborCommand;

@@ -26,6 +26,7 @@
     "deploy:buy-and-burn": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-buy-and-burn.ts --network $NETWORK",
     "deploy:aq": "hardhat run scripts/redeploy-admirals-quarters.ts --network $NETWORK",
     "deploy:raft": "hardhat run scripts/redeploy-raft.ts --network $NETWORK",
+    "deploy:summer-oracle-factory": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-summer-oracle-factory.ts --network $NETWORK",
     "gov:setup-aq": "hardhat run scripts/governance/setup-admirals-quarters.ts --network $NETWORK",
     "gov:setup-raft": "hardhat run scripts/governance/setup-raft.ts --network $NETWORK",
     "deploy:fleet": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-fleet.ts --network $NETWORK",
