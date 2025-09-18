@@ -870,20 +870,11 @@ contract BridgeRouter is
         bytes memory effectivePayload = r.operationPayload;
 
         // Apply recipient override if provided
-        if (newRecipient != address(0)) {
-            // Apply recipient override to the payload
-            effectivePayload = _applyRecipientOverride(
-                r.operationType,
-                effectivePayload,
-                newRecipient
-            );
-        }
-
-        _validateRetryPayload(
+        // validation happens inside _applyRecipientOverride
+        effectivePayload = _applyRecipientOverride(
             r.operationType,
             effectivePayload,
-            r.sourceChainId,
-            effectiveAdapter
+            newRecipient
         );
 
         try
@@ -925,21 +916,33 @@ contract BridgeRouter is
      * @param originalPayload The original payload
      * @param newRecipient The new recipient address
      * @return modifiedPayload The payload with recipient override applied
-     * @dev This function only modifies the payload. Validations are performed separately by _validateRetryPayload
+     * @dev Applies recipient override and validates ark-fleet relationship for the final recipient
      */
     function _applyRecipientOverride(
         BridgeTypes.OperationType operationType,
         bytes memory originalPayload,
         address newRecipient
-    ) internal pure returns (bytes memory modifiedPayload) {
+    ) internal view returns (bytes memory modifiedPayload) {
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory params = abi.decode(
                 originalPayload,
                 (BridgeTypes.RelayedTransferParams)
             );
 
-            // Apply recipient override
-            params.recipient = newRecipient;
+            // Apply recipient override (use original if newRecipient is zero)
+            address finalRecipient = newRecipient != address(0)
+                ? newRecipient
+                : params.recipient;
+
+            // Validate ark-fleet relationship for the final recipient
+            _validateArkFleetRelationship(
+                params.originator,
+                finalRecipient,
+                params.sourceChainId
+            );
+
+            // Update the payload with the final recipient
+            params.recipient = finalRecipient;
 
             return abi.encode(params);
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
@@ -948,8 +951,20 @@ contract BridgeRouter is
                 (BridgeTypes.RelayedMessageParams)
             );
 
-            // Apply recipient override
-            params.recipient = newRecipient;
+            // Apply recipient override (use original if newRecipient is zero)
+            address finalRecipient = newRecipient != address(0)
+                ? newRecipient
+                : params.recipient;
+
+            // Validate ark-fleet relationship for the final recipient
+            _validateArkFleetRelationship(
+                params.originator,
+                finalRecipient,
+                params.sourceChainId
+            );
+
+            // Update the payload with the final recipient
+            params.recipient = finalRecipient;
 
             return abi.encode(params);
         } else {
@@ -961,43 +976,6 @@ contract BridgeRouter is
     /*//////////////////////////////////////////////////////////////
                         PAYLOAD VALIDATION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Validates retry payload integrity and system state
-     * @param operationType Type of operation being retried
-     * @param payload The payload to validate
-     * @param sourceChainId Expected source chain ID
-     * @param adapter The adapter that will process the retry
-     */
-    function _validateRetryPayload(
-        BridgeTypes.OperationType operationType,
-        bytes memory payload,
-        uint16 sourceChainId,
-        address adapter
-    ) internal view {
-        // Validate payload integrity based on operation type
-        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            BridgeTypes.RelayedTransferParams memory params = abi.decode(
-                payload,
-                (BridgeTypes.RelayedTransferParams)
-            );
-            _validateArkFleetRelationship(
-                params.originator,
-                params.recipient,
-                sourceChainId
-            );
-        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            BridgeTypes.RelayedMessageParams memory params = abi.decode(
-                payload,
-                (BridgeTypes.RelayedMessageParams)
-            );
-            _validateArkFleetRelationship(
-                params.originator,
-                params.recipient,
-                sourceChainId
-            );
-        }
-    }
 
     /**
      * @notice Validates that ark-fleet relationship is valid in both directions
