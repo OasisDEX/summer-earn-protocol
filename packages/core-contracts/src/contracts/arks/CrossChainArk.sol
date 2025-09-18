@@ -67,18 +67,15 @@ contract CrossChainArk is
 
     /**
      * @notice Constructor to set up the CrossChainArk
-     * @param _bridgeRouter Address of the BridgeRouter contract
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _satelliteChainId ID of the satellite chain where the fleet proxy operates
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address _bridgeRouter,
         address _crossChainRegistry,
         uint16 _satelliteChainId,
         ArkParams memory _params
     ) Ark(_params) CrossChainConfigManaged(_crossChainRegistry) {
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_satelliteChainId == 0) revert InvalidSatelliteChain();
 
         satelliteChainId = _satelliteChainId;
@@ -294,6 +291,17 @@ contract CrossChainArk is
     }
 
     /**
+     * @notice Asserts that the board or disembark can be performed
+     * @dev This function asserts that no inflight transfer exists and no pending transfer is queued
+     */
+    function _assertCanBoardOrDisembark() internal view {
+        if (inflightAssets != 0) revert InFlight();
+        if (pendingTransferParams.asset != address(0)) {
+            revert PendingTransferAlreadyQueued();
+        }
+    }
+
+    /**
      * @notice Handles TRANSFER_ASSET operation type (asset withdrawals from FleetProxy)
      * @param params Decoded transfer parameters
      */
@@ -312,6 +320,10 @@ contract CrossChainArk is
         // Update the remote asset tracking
 
         lastRemoteAssetBalance = remoteBalance;
+        emit RemoteAssetBalanceUpdated(
+            lastRemoteAssetBalance,
+            params.operationId
+        );
 
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
     }
@@ -323,17 +335,6 @@ contract CrossChainArk is
     error InvalidSender();
     /// @notice Error thrown when trying to start a new outbound while inflight > 0
     error InFlight();
-
-    /**
-     * @notice Ensures no inflight transfer and no pending queued transfer exists
-     * @dev Used to gate both boarding and disembarking flows
-     */
-    function _assertCanBoardOrDisembark() internal view {
-        if (inflightAssets != 0) revert InFlight();
-        if (pendingTransferParams.asset != address(0)) {
-            revert PendingTransferAlreadyQueued();
-        }
-    }
 
     /**
      * @notice Ensures ready for executing a pending transfer: no inflight and has pending

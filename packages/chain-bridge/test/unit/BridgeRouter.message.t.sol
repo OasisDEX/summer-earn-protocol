@@ -229,7 +229,7 @@ contract BridgeRouterMessageTest is BridgeRouterSetup {
                 refundAddress: keeper
             });
 
-        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
+        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
         router.executeSendMessage{value: 0.101 ether}(params, options);
 
         vm.stopPrank();

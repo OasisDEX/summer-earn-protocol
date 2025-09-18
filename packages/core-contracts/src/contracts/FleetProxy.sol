@@ -59,13 +59,11 @@ contract FleetProxy is
     /**
      * @notice Initializes the CrossChainFleetProxy
      * @param _accessManager Address of the access manager
-     * @param _bridgeRouter Address of the bridge router
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _fleetAddress Address of the Fleet contract this proxy covers
      */
     constructor(
         address _accessManager,
-        address _bridgeRouter,
         address _crossChainRegistry,
         address _fleetAddress,
         uint16 _sourceChainId
@@ -73,9 +71,9 @@ contract FleetProxy is
         ProtocolAccessManaged(_accessManager)
         CrossChainConfigManaged(_crossChainRegistry)
     {
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_fleetAddress == address(0)) revert InvalidFleetContract();
+        if (_sourceChainId == 0) revert InvalidSatelliteChain();
 
         fleetAddress = _fleetAddress;
         hubChainId = _sourceChainId;
@@ -92,8 +90,15 @@ contract FleetProxy is
 
     /// @inheritdoc IFleetProxy
     function totalAssets() external view returns (uint256) {
-        return
-            IFleetCommander(fleetAddress).totalAssets() + inflightWithdrawals;
+        // Assets owned by this proxy are represented by:
+        // - Shares held in the FleetCommander converted to assets
+        // - Any local balance of the main asset held by this proxy
+        // - Inflight withdrawals currently being bridged back
+        address asset = IERC4626(fleetAddress).asset();
+        uint256 shares = IFleetCommander(fleetAddress).balanceOf(address(this));
+        uint256 assetsInFleet = IERC4626(fleetAddress).convertToAssets(shares);
+        uint256 localBalance = IERC20(asset).balanceOf(address(this));
+        return assetsInFleet + localBalance + inflightWithdrawals;
     }
 
     /// @inheritdoc IFleetProxy
@@ -158,8 +163,11 @@ contract FleetProxy is
             address(this),
             address(this)
         );
-        uint256 fleetBalance = IFleetCommander(fleetAddress).balanceOf(
+        uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
+        );
+        uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
+            fleetShares
         );
 
         // 3. Verify we received the expected amount
@@ -180,7 +188,7 @@ contract FleetProxy is
                 target: _getSourceChainArk(hubChainId),
                 asset: asset,
                 amount: amount,
-                message: abi.encode(fleetBalance),
+                message: abi.encode(fleetAssets),
                 refundAddress: msg.sender
             });
 
@@ -199,7 +207,6 @@ contract FleetProxy is
         );
     }
 
-    // todo: revise security wise
     /**
      * @notice Notifies the source chain that assets have been received
      */
@@ -207,15 +214,22 @@ contract FleetProxy is
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
-        uint256 fleetBalance = IFleetCommander(fleetAddress).balanceOf(
+        // Security: ensure the ARK relationship is currently valid in the registry
+        if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
+        // Security: include replay guard context - require we have a non-zero last transfer id
+        if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+        uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
+        );
+        uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
+            fleetShares
         );
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
             .ExecuteSendMessageParams({
                 originator: address(this),
                 destinationChainId: hubChainId,
                 target: _getSourceChainArk(hubChainId),
-                message: abi.encode(fleetBalance, latestIncomingTransferId),
+                message: abi.encode(fleetAssets, latestIncomingTransferId),
                 refundAddress: msg.sender
             });
         bridgeRouter.executeSendMessage{value: msg.value}(params, options);

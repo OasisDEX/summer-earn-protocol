@@ -165,6 +165,9 @@ contract CrossChainRegistryIntegrationTest is Test {
         bytes32 arkFleetType = keccak256("ARK_FLEET_RELATIONSHIP");
         bytes32 bridgeType = keccak256("BRIDGE_ADAPTER");
 
+        vm.prank(governor);
+        registry.addSupportedRelationshipType(bridgeType);
+
         // Register ark with two different relationship types
         vm.prank(governor);
         registry.registerRelationship(
@@ -311,6 +314,11 @@ contract CrossChainRegistryIntegrationTest is Test {
         bytes32 type1 = keccak256("TYPE_1");
         bytes32 type2 = keccak256("TYPE_2");
 
+        vm.prank(governor);
+        registry.addSupportedRelationshipType(type1);
+        vm.prank(governor);
+        registry.addSupportedRelationshipType(type2);
+
         // Register same source-target pair with different types
         vm.prank(governor);
         registry.registerRelationship(
@@ -379,6 +387,9 @@ contract CrossChainRegistryIntegrationTest is Test {
         bytes32 newType = keccak256("NEW_TYPE");
         address arkAddress = makeAddr("ark");
         address proxyAddress = makeAddr("proxy");
+
+        vm.prank(governor);
+        registry.addSupportedRelationshipType(newType);
 
         vm.prank(governor);
         registry.registerRelationship(

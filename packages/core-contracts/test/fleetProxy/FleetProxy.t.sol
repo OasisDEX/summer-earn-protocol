@@ -111,12 +111,12 @@ contract CrossChainFleetProxyTest is Test {
 
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
-        registry.initializeBridgeConfiguration(address(mockBridgeRouter));
+        registry.setBridgeRouter(address(mockBridgeRouter));
+        registry.setDefaultGasLimit(200000);
 
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(
             address(accessManager),
-            address(mockBridgeRouter),
             address(registry),
             address(fleetCommanderMock),
             SOURCE_CHAIN_ID
@@ -159,29 +159,18 @@ contract CrossChainFleetProxyTest is Test {
                                HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Build a well-formed deliver payload for the given asset.
-    function _buildDeliverPayload(
-        address asset
-    ) internal view returns (bytes memory) {
-        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
-            operationId: keccak256(
-                abi.encodePacked("op", asset, block.timestamp)
-            ),
-            originator: address(this),
-            sourceAsset: asset
-        });
-        return abi.encode(dp);
-    }
-
-    /// @dev Build an “empty” payload (operationId == 0x0) – this triggers
+    /// @dev Build an "empty" payload (operationId == 0x0) – this triggers
     ///      the MessageContentNotExpected branch in the proxy.
     function _buildEmptyPayload() internal pure returns (bytes memory) {
-        BridgeTypes.DeliverPayload memory dp = BridgeTypes.DeliverPayload({
-            operationId: bytes32(0),
-            originator: address(0),
-            sourceAsset: address(0)
-        });
-        return abi.encode(dp);
+        return bytes("");
+    }
+
+    /// @dev Build a deliver payload for the given asset
+    function _buildDeliverPayload(
+        address asset
+    ) internal pure returns (bytes memory) {
+        // Create a simple payload that includes the asset address
+        return abi.encode(asset);
     }
 
     /// @dev Build a well-formed delivered transfer params for the given asset.
@@ -229,7 +218,7 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(proxy.getBalance(asset), amount);
     }
 
-    function test_TotalAssets_IncludesInflightWithdrawals() public {
+    function test_TotalAssets_IncludesManuallySetInflightWithdrawals() public {
         // Establish baseline by depositing once via receive path
         uint256 depositAmount = 1000;
         _depositAssetsToFleet(depositAmount);
@@ -284,7 +273,7 @@ contract CrossChainFleetProxyTest is Test {
         // Try to receive assets while paused
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
         mockToken.mint(address(proxy), amount);
 
         // Should revert with Paused error
@@ -353,7 +342,7 @@ contract CrossChainFleetProxyTest is Test {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
 
         // Call from the bridge router address
         mockToken.mint(address(proxy), amount);
@@ -373,11 +362,105 @@ contract CrossChainFleetProxyTest is Test {
         // Verify token balance was updated
         assertEq(fleetCommanderMock.totalAssets(), amount);
     }
-    function test_ReceiveMessageWithAssets_WrongProxy() public {
+
+    function test_TotalAssets_Empty() public view {
+        assertEq(proxy.totalAssets(), 0);
+    }
+
+    function test_TotalAssets_AfterDeposit_EqualsProxyOwnedAssets() public {
+        // Arrange
+        address asset = address(mockToken);
+        uint256 amount = 1_000;
+        bytes memory message = _buildDeliverPayload(asset);
+
+        // Act: bridge delivers tokens to proxy and proxy deposits into FleetCommander
+        mockToken.mint(address(proxy), amount);
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
+            )
+        );
+
+        // Assert: proxy.totalAssets equals its own shares converted to assets
+        uint256 shares = fleetCommanderMock.balanceOf(address(proxy));
+        uint256 expected = fleetCommanderMock.convertToAssets(shares);
+        assertEq(proxy.totalAssets(), expected);
+        assertEq(proxy.totalAssets(), amount);
+    }
+
+    function test_TotalAssets_IncludesInflightWithdrawals() public {
+        // Arrange
+        address asset = address(mockToken);
+        uint256 amount = 1_000;
+        bytes memory message = _buildDeliverPayload(asset);
+
+        // Deposit via bridge
+        mockToken.mint(address(proxy), amount);
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(
+                _buildDeliveredTransferParams(
+                    asset,
+                    amount,
+                    message,
+                    SOURCE_CHAIN_ID
+                )
+            )
+        );
+
+        // Act: withdraw and transfer a portion, which should burn proxy shares and add inflight
+        uint256 withdrawAmount = 400;
+        vm.prank(governor);
+        proxy.withdrawAndTransfer(
+            withdrawAmount,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Assert inflight reflected and totalAssets unchanged (shares assets + inflight)
+        uint256 shares = fleetCommanderMock.balanceOf(address(proxy));
+        uint256 expected = fleetCommanderMock.convertToAssets(shares) +
+            proxy.inflightWithdrawals();
+        assertEq(proxy.inflightWithdrawals(), withdrawAmount);
+        assertEq(proxy.totalAssets(), expected);
+        assertEq(proxy.totalAssets(), amount);
+
+        // Act: governor updates inflight to 0 (simulating bridge completion)
+        vm.prank(governor);
+        proxy.forceUpdateInflightAssets(0);
+
+        // Assert: totalAssets now equals remaining shares in fleet only
+        uint256 expectedAfter = fleetCommanderMock.convertToAssets(shares);
+        assertEq(proxy.totalAssets(), expectedAfter);
+        assertEq(proxy.totalAssets(), amount - withdrawAmount);
+    }
+
+    function test_TotalAssets_IncludesLocalBalance() public {
+        // Arrange: mint tokens directly to the proxy without depositing
+        uint256 localAmount = 50;
+        mockToken.mint(address(proxy), localAmount);
+
+        // Assert: totalAssets reflects local balance
+        assertEq(proxy.totalAssets(), localAmount);
+    }
+    function test_ReceiveMessageWithAssets_WrongPorxy() public {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
 
         BridgeTypes.RelayedTransferParams
             memory params = _buildDeliveredTransferParams(
@@ -424,7 +507,7 @@ contract CrossChainFleetProxyTest is Test {
         mockToken.mint(address(proxy), amount);
 
         // Prepare the message for receiving assets
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
         bytes32 messageId = keccak256(
             abi.encode("deposit", amount, block.timestamp)
         );
@@ -453,7 +536,7 @@ contract CrossChainFleetProxyTest is Test {
         // Prepare the message for receiving assets
         address asset = address(mockToken);
         uint256 amount = 1000;
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
 
         // Mint tokens to the proxy
         mockToken.mint(address(proxy), amount);
@@ -482,7 +565,7 @@ contract CrossChainFleetProxyTest is Test {
         ERC20Mock invalidToken = new ERC20Mock();
         uint256 amount = 1000;
 
-        bytes memory message = _buildDeliverPayload(address(invalidToken));
+        bytes memory message = _buildEmptyPayload();
 
         // Mint invalid tokens to the proxy
         invalidToken.mint(address(proxy), amount);
@@ -510,7 +593,7 @@ contract CrossChainFleetProxyTest is Test {
         address asset = address(mockToken);
         uint256 amount = 0;
 
-        bytes memory message = _buildDeliverPayload(asset);
+        bytes memory message = _buildEmptyPayload();
 
         // Call from the adapter with zero amount
         vm.prank(address(mockBridgeRouter));
@@ -580,6 +663,49 @@ contract CrossChainFleetProxyTest is Test {
         );
     }
 
+    function test_NotifySourceChain_CorrectMessage() public {
+        // First, deposit some assets to the fleet to have something to notify about
+        uint256 depositAmount = 1000;
+        _depositAssetsToFleet(depositAmount);
+
+        // Verify the fleet has assets
+        uint256 expectedFleetAssets = fleetCommanderMock.convertToAssets(
+            fleetCommanderMock.balanceOf(address(proxy))
+        );
+        assertEq(
+            expectedFleetAssets,
+            depositAmount,
+            "Fleet should have the deposited assets"
+        );
+
+        // Get the latest transfer ID that should be set after the deposit
+        bytes32 expectedTransferId = proxy.latestIncomingTransferId();
+        assertTrue(
+            expectedTransferId != bytes32(0),
+            "Transfer ID should be set after deposit"
+        );
+
+        // Clear any previous message calls
+        mockBridgeRouter.clearCalls();
+        uint256 initialMessageCallCount = mockBridgeRouter
+            .getMessageCallCount();
+
+        // Give the governor some ETH for the transaction
+        vm.deal(governor, 1 ether);
+
+        // Call notifySourceChain
+        vm.prank(governor);
+        proxy.notifySourceChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+    }
+
     function test_WithdrawAndTransfer_SetsRefundToKeeper_and_RefundsETH()
         public
     {
@@ -588,6 +714,11 @@ contract CrossChainFleetProxyTest is Test {
         vm.deal(governor, 10 ether);
         vm.prank(governor);
         mockBridgeRouter.setUseRefundAddress(true);
+
+        // Clear any previous message calls
+        mockBridgeRouter.clearCalls();
+        uint256 initialMessageCallCount = mockBridgeRouter
+            .getMessageCallCount();
 
         // Mint underlying to FleetCommander and shares to proxy so withdraw works
         uint256 assets = 1_000 ether;
@@ -610,30 +741,195 @@ contract CrossChainFleetProxyTest is Test {
             })
         );
 
-        // Assert: router recorded refundAddress as governor (keeper) and originator is proxy
-        assertEq(
-            mockBridgeRouter.lastRefundAddress(),
-            governor,
-            "refund should be keeper"
-        );
-        assertEq(
-            mockBridgeRouter.lastOriginator(),
-            address(proxy),
-            "originator should be proxy"
-        );
-        assertEq(
-            mockBridgeRouter.lastTarget(),
-            SOURCE_ARK_ADDRESS,
-            "target should be source-chain Ark"
-        );
-        assertEq(mockBridgeRouter.lastAsset(), address(mockToken), "asset set");
-        assertEq(mockBridgeRouter.lastAmount(), 100, "amount set");
-        assertGt(mockBridgeRouter.lastMsgValue(), 0, "msg.value forwarded");
+        // Verify a transfer was sent
+        uint256 finalTransferCallCount = mockBridgeRouter
+            .getTransferCallCount();
+        assertEq(finalTransferCallCount, 1, "Should have sent one transfer");
 
-        // Refund should have gone back to governor (difference between provided and baseFee)
-        // Base fee in mock is 0.1 ether
-        // governor balance reduced by exactly base fee + gas; we check refund path doesn’t revert
-        // and the mock wrote lastRefundAddress correctly (already asserted)
+        // Get the last transfer call
+        (
+            uint16 destinationChainId,
+            address asset,
+            uint256 amount,
+            address target,
+            bytes memory message
+        ) = mockBridgeRouter.transferCalls(finalTransferCallCount - 1);
+
+        // Verify the destination chain ID
+        assertEq(
+            destinationChainId,
+            SOURCE_CHAIN_ID,
+            "Should send to source chain"
+        );
+
+        // Verify the target is the source ark
+        address expectedTarget = registry.getSourceForTarget(
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            address(proxy),
+            keccak256("ARK_FLEET_RELATIONSHIP")
+        );
+        assertEq(target, expectedTarget, "Target should be the source ark");
+
+        // Decode and verify the message content
+        uint256 fleetAssets = abi.decode(message, (uint256));
+        uint256 expectedFleetAssets = fleetCommanderMock.convertToAssets(
+            fleetCommanderMock.balanceOf(address(proxy))
+        );
+
+        // Verify the fleet assets amount
+        assertEq(
+            fleetAssets,
+            expectedFleetAssets,
+            "Message should contain correct fleet assets amount"
+        );
+    }
+
+    function test_NotifySourceChain_ZeroFleetAssets() public {
+        // First deposit some assets to set latestIncomingTransferId (required for notifySourceChain)
+        // Then withdraw them to get back to zero assets
+        _depositAssetsToFleet(1000);
+
+        // Withdraw all assets to get back to zero fleet assets
+        vm.prank(governor);
+        proxy.withdrawAndTransfer(
+            1000,
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Now fleet should have zero assets but latestIncomingTransferId is still set
+        uint256 expectedFleetAssets = fleetCommanderMock.convertToAssets(
+            fleetCommanderMock.balanceOf(address(proxy))
+        );
+        assertEq(
+            expectedFleetAssets,
+            0,
+            "Fleet should have zero assets after withdrawal"
+        );
+
+        // Clear any previous message calls
+        mockBridgeRouter.clearCalls();
+        uint256 initialMessageCallCount = mockBridgeRouter
+            .getMessageCallCount();
+
+        // Give the governor some ETH for the transaction
+        vm.deal(governor, 1 ether);
+
+        // Call notifySourceChain
+        vm.prank(governor);
+        proxy.notifySourceChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Verify a message was sent
+        uint256 finalMessageCallCount = mockBridgeRouter.getMessageCallCount();
+        assertEq(
+            finalMessageCallCount,
+            initialMessageCallCount + 1,
+            "Should have sent one message"
+        );
+
+        // Get the last message call
+        (, , bytes memory message) = mockBridgeRouter.messageCalls(
+            finalMessageCallCount - 1
+        );
+
+        // Decode and verify the message content
+        (uint256 fleetAssets, bytes32 transferId) = abi.decode(
+            message,
+            (uint256, bytes32)
+        );
+
+        // Verify the fleet assets amount is zero
+        assertEq(fleetAssets, 0, "Message should contain zero fleet assets");
+        assertEq(
+            fleetAssets,
+            expectedFleetAssets,
+            "Fleet assets should match expected zero amount"
+        );
+
+        // Verify the transfer ID (should be the ID from the deposit operation)
+        assertTrue(
+            transferId != bytes32(0),
+            "Transfer ID should be set from the deposit operation"
+        );
+    }
+
+    function test_NotifySourceChain_UnauthorizedCaller() public {
+        // Try to call notifySourceChain from unauthorized address
+        address unauthorizedCaller = address(0x123);
+        vm.deal(unauthorizedCaller, 1 ether);
+        vm.prank(unauthorizedCaller);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotKeeper(address)",
+                unauthorizedCaller
+            )
+        );
+        proxy.notifySourceChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+    }
+
+    function test_NotifySourceChain_WhenPaused() public {
+        // Pause the proxy
+        vm.prank(guardian);
+        proxy.pause();
+        assertTrue(proxy.paused(), "Proxy should be paused");
+
+        // Give the governor some ETH for the transaction
+        vm.deal(governor, 1 ether);
+
+        // Try to call notifySourceChain when paused
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        proxy.notifySourceChain{value: 0.1 ether}(
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(mockAdapter),
+                gasLimit: 100000,
+                calldataSize: 100,
+                msgValue: 0,
+                options: ""
+            })
+        );
+
+        // Assert: router was NOT called because the proxy is paused
+        assertEq(
+            mockBridgeRouter.getMessageCallCount(),
+            0,
+            "router should not be called when paused"
+        );
+        assertEq(
+            mockBridgeRouter.lastMsgOriginator(),
+            address(0),
+            "originator should remain unset"
+        );
+        assertEq(
+            mockBridgeRouter.lastMsgTarget(),
+            address(0),
+            "target should remain unset"
+        );
+        assertEq(mockBridgeRouter.lastMsgValue(), 0, "no msg.value forwarded");
+
+        // Refund/balance checks are not applicable since call reverts before router interaction
     }
 
     function test_NotifySourceChain_SetsRefundToKeeper_and_RefundsETH() public {
@@ -644,6 +940,9 @@ contract CrossChainFleetProxyTest is Test {
 
         // Give the proxy some shares to produce a fleetBalance > 0 in the message
         fleetCommanderMock.testMint(address(proxy), 1 ether);
+
+        // First deposit some assets to set latestIncomingTransferId (required for notifySourceChain)
+        _depositAssetsToFleet(1000);
 
         // Act
         uint256 value = 0.5 ether;
