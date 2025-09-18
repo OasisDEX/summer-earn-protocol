@@ -28,6 +28,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     uint256 public constant MEDIUM_LOCKUP = 365 days;
     uint256 public aMaxPenaltyPercentage;
     uint256 public bMaxPenaltyPercentage;
+    uint256 public aMinPenaltyPercentage;
+    uint256 public bMinPenaltyPercentage;
     uint256 public aMaxLockupPeriod;
     uint256 public bMaxLockupPeriod;
     uint256 public aMinLockupPeriod;
@@ -59,6 +61,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         bMaxLockupPeriod = bStaking.MAX_LOCKUP_PERIOD();
         aMinLockupPeriod = aStaking.BUCKET_SHORT_TERM_MAX() + 1;
         bMinLockupPeriod = bStaking.BUCKET_SHORT_TERM_MAX() + 1;
+        aMinPenaltyPercentage = aStaking.MIN_PENALTY_PERCENTAGE();
+        bMinPenaltyPercentage = bStaking.MIN_PENALTY_PERCENTAGE();
 
         vm.startPrank(address(timelockA));
         axSumr.addStakingModule(address(aStaking));
