@@ -928,16 +928,31 @@ contract BridgeRouter is
             uint16 sourceChainId
         ) = _decodeOperationMeta(operationType, operationPayload);
 
-        if (
-            operationType == BridgeTypes.OperationType.TRANSFER_ASSET ||
-            operationType == BridgeTypes.OperationType.MESSAGE
-        ) {
-            // Validate ark-fleet relationship for transfer/message payloads
-            _validateRetryPayload(
-                operationType,
+        // Decode payload to validate structure and validate ark-fleet relationship
+        // Note: peer mapping and receiver validation happen inside _processDelivery
+        if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
+            BridgeTypes.RelayedTransferParams memory params = abi.decode(
                 operationPayload,
-                sourceChainId,
-                adapter
+                (BridgeTypes.RelayedTransferParams)
+            );
+
+            // Validate ark-fleet relationship
+            _validateArkFleetRelationship(
+                params.originator,
+                params.recipient,
+                params.sourceChainId
+            );
+        } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
+            BridgeTypes.RelayedMessageParams memory params = abi.decode(
+                operationPayload,
+                (BridgeTypes.RelayedMessageParams)
+            );
+
+            // Validate ark-fleet relationship
+            _validateArkFleetRelationship(
+                params.originator,
+                params.recipient,
+                params.sourceChainId
             );
         } else {
             revert UnsupportedOperationType();
