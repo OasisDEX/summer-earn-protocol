@@ -80,7 +80,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         stargateA = new MockStargateV2Pool(address(tokenA));
 
         accessManagerA = new ProtocolAccessManager(governor);
-        registryA = new CrossChainRegistry(address(accessManagerA), CHAIN_ID_A);
+        registryA = new CrossChainRegistry(address(accessManagerA));
         harborCommandA = new MockHarborCommand();
         routerA = new BridgeRouterTestHelper(
             address(accessManagerA),
@@ -117,7 +117,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         stargateB = new MockStargateV2Pool(address(tokenB));
 
         accessManagerB = new ProtocolAccessManager(governor);
-        registryB = new CrossChainRegistry(address(accessManagerB), CHAIN_ID_B);
+        registryB = new CrossChainRegistry(address(accessManagerB));
         harborCommandB = new MockHarborCommand();
         routerB = new BridgeRouterTestHelper(
             address(accessManagerB),

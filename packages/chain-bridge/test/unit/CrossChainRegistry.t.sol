@@ -22,7 +22,7 @@ contract CrossChainRegistryTest is Test {
     address public proxy2 = makeAddr("proxy2");
     address public proxy3 = makeAddr("proxy3");
 
-    uint16 public constant CURRENT_CHAIN_ID = 1;
+    uint16 public constant CURRENT_CHAIN_ID = 31337;
     uint16 public constant TARGET_CHAIN_ID = 42161;
 
     bytes32 public constant ARK_FLEET_RELATIONSHIP =
@@ -65,10 +65,7 @@ contract CrossChainRegistryTest is Test {
 
         // Deploy registry
         vm.prank(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -957,13 +954,6 @@ contract CrossChainRegistryTest is Test {
 
         // Test that current chain ID is set correctly
         assertEq(registry.currentChainId(), CURRENT_CHAIN_ID);
-    }
-
-    function test_constructor_revertZeroChainId() public {
-        vm.startPrank(governor);
-        vm.expectRevert(ICrossChainRegistry.InvalidCurrentChainId.selector);
-        new CrossChainRegistry(address(accessManager), 0);
-        vm.stopPrank();
     }
 
     /*─────────────────────────────────────────────────────────────────
