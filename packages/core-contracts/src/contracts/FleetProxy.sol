@@ -170,7 +170,7 @@ contract FleetProxy is
             fleetShares
         );
 
-        // 3. Verify we received the expected amount
+        // 3. Verify we have sufficient balance to continue
         if (IERC20(asset).balanceOf(address(this)) < amount)
             revert WithdrawalFailed();
 

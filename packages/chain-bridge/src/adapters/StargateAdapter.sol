@@ -508,8 +508,8 @@ contract StargateAdapter is
         atm.asset = receivedAsset;
 
         // ---------------------------------------------------------------
-        // 3. Continue normal handling (the SD amount from the Taxi header is
-        // informational; the real LD amount lives inside the composeMsg)
+        // 3. Continue normal handling (the OFT amount from the compose header is
+        // authoritative; the real LD amount is provided by the OFT protocol)
         // ---------------------------------------------------------------
 
         IERC20(receivedAsset).safeTransfer(bridgeRouter(), atm.amount);

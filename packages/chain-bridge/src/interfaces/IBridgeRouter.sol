@@ -7,9 +7,9 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 /**
  * @title IBridgeRouter
  * @notice Interface for the BridgeRouter contract that coordinates cross-chain operations
- * @dev Defines external functions for adapter callbacks, BridgeQueue calls,
- *      and governance. Access control is managed through ProtocolAccessManaged.
- *      User-initiated operations are intended to go through the BridgeQueue.
+ * @dev Defines external functions for adapter callbacks and governance.
+ *      Access control is managed through ProtocolAccessManaged.
+ *      Operations are initiated through authorized executors.
  */
 interface IBridgeRouter is IERC165 {
     /*//////////////////////////////////////////////////////////////

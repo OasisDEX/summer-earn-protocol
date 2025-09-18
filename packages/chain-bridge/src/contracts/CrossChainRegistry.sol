@@ -22,7 +22,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     uint16 private immutable CURRENT_CHAIN_ID;
 
     /// @notice Mapping from relationship key to relationship information
-    /// Key: keccak256(abi.encode(sourceContract, relationshipType))
+    /// Key: keccak256(abi.encode(sourceContract, relationshipType, targetChainId))
     mapping(bytes32 => CrossChainRelation) private crossChainRelations;
 
     /// @notice Mapping from target key to source contract address

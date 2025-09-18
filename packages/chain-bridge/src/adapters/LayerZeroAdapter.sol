@@ -238,7 +238,7 @@ contract LayerZeroAdapter is
      * @notice Configure read support for specific chains
      * @param chainId The chain ID to configure
      * @param supported Whether read operations are supported on this chain
-     * @dev Can only be called by the contract owner
+     * @dev Can only be called by the governor
      */
     function setChainReadSupport(
         uint16 chainId,
@@ -551,7 +551,7 @@ contract LayerZeroAdapter is
         );
 
         // Send message through OApp's _lzSend
-        // Use tx.origin as refund address since that's the keeper who initiated the transaction
+        // Use params.refundAddress which is set to the keeper who initiated the transaction
         MessagingReceipt memory receipt = _lzSend(
             lzDstEid,
             payload,
