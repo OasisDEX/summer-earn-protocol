@@ -109,7 +109,6 @@ contract CrossChainFleetProxyTest is Test {
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);
         registry.setBridgeRouter(address(mockBridgeRouter));
-        registry.setDefaultGasLimit(200000);
 
         // Create FleetProxy with the proper CrossChainConfigManager
         proxy = new FleetProxy(
@@ -143,7 +142,7 @@ contract CrossChainFleetProxyTest is Test {
             address(proxy),
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            keccak256("ARK_FLEET_RELATIONSHIP")
+            registry.PEER_RELATIONSHIP()
         );
 
         accessManager.grantKeeperRole(address(proxy), governor);
@@ -203,7 +202,7 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
             address(proxy),
-            keccak256("ARK_FLEET_RELATIONSHIP")
+            registry.PEER_RELATIONSHIP()
         );
         assertEq(arkFromRegistry, SOURCE_ARK_ADDRESS);
     }
@@ -764,7 +763,7 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
             address(proxy),
-            keccak256("ARK_FLEET_RELATIONSHIP")
+            registry.PEER_RELATIONSHIP()
         );
         assertEq(target, expectedTarget, "Target should be the source ark");
 

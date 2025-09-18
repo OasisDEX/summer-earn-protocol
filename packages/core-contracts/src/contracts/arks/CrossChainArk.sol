@@ -24,9 +24,9 @@ contract CrossChainArk is
     CrossChainReceiverBase,
     ICrossChainArk
 {
-    /// @notice Relationship type constant for ARK-FLEET relationships
-    bytes32 private constant ARK_FLEET_RELATIONSHIP =
-        keccak256("ARK_FLEET_RELATIONSHIP");
+    /// @notice Relationship type constant for ARK-PEER relationships
+    bytes32 private constant ARK_PEER_RELATIONSHIP =
+        keccak256("PEER_RELATIONSHIP");
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -357,7 +357,7 @@ contract CrossChainArk is
             memory relation = ICrossChainRegistry(crossChainRegistry())
                 .getRelationshipByTarget(
                     address(this),
-                    ARK_FLEET_RELATIONSHIP,
+                    ARK_PEER_RELATIONSHIP,
                     satelliteChainId
                 );
         return relation.targetContract;

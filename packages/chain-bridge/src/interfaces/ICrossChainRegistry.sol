@@ -17,7 +17,7 @@ interface ICrossChainRegistry {
      * @param targetContract The address of the target contract
      * @param sourceChainId The chain ID where the source contract is deployed
      * @param targetChainId The chain ID where the target contract is deployed
-     * @param relationshipType The type of relationship (e.g., keccak256("ARK_FLEET_RELATIONSHIP"))
+     * @param relationshipType The type of relationship (e.g., keccak256("PEER_RELATIONSHIP"))
      */
     struct CrossChainRelation {
         address sourceContract;
@@ -127,10 +127,6 @@ interface ICrossChainRegistry {
     /// @notice Returns the constant for adapter peer relationship type
     /// @return bytes32 value of keccak256("PEER_RELATIONSHIP")
     function PEER_RELATIONSHIP() external pure returns (bytes32);
-
-    /// @notice Returns the constant for ark fleet relationship type
-    /// @return bytes32 value of keccak256("ARK_FLEET_RELATIONSHIP")
-    function ARK_FLEET_RELATIONSHIP() external pure returns (bytes32);
 
     /// @notice Returns the constant for executor relationship type
     /// @return bytes32 value of keccak256("EXECUTOR_RELATIONSHIP")
