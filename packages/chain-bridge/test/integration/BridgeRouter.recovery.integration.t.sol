@@ -734,6 +734,127 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     }
 
     /* ------------------------------------------------------------ */
+    /*         Governor force retry (full override) integration      */
+    /* ------------------------------------------------------------ */
+
+    function testIntegration_ForceRetryFailedDelivery_Succeeds_WithOverridePayload()
+        public
+    {
+        // Setup ark-fleet relationship for a new receiver
+        address fleetProxy = address(0xABCD);
+        MockCrossChainReceiver newReceiver = new MockCrossChainReceiver();
+        newReceiver.setReceiveSuccess(true);
+
+        vm.startPrank(governor);
+        registry.registerRelationship(
+            address(newReceiver),
+            fleetProxy,
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        registry.registerRelationship(
+            fleetProxy,
+            address(newReceiver),
+            SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        vm.stopPrank();
+
+        bytes32 opId = keccak256("integration-force-retry-success");
+        uint256 amount = 9 ether;
+
+        // First create a failed delivery (to mockReceiver, failing)
+        _makeFailedTransfer(opId, amount);
+
+        // Build fully overridden payload targeting the new receiver
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: fleetProxy,
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(newReceiver),
+                asset: address(token),
+                amount: amount,
+                message: ""
+            });
+        bytes memory payload = abi.encode(params);
+
+        // Governor forces retry
+        vm.prank(governor);
+        router.forceRetryFailedDelivery(
+            opId,
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            address(mockAdapter),
+            payload
+        );
+
+        (bytes32[] memory ids2, ) = router.getFailedDeliveryIds(0, 10);
+        assertEq(ids2.length, 0);
+        assertEq(token.balanceOf(address(newReceiver)), amount);
+    }
+
+    function testIntegration_ForceRetryFailedDelivery_PayloadStillFails_KeepsRecord()
+        public
+    {
+        // Setup ark-fleet relationship for failing receiver
+        address fleetProxy = address(0xBEEF);
+
+        vm.startPrank(governor);
+        registry.registerRelationship(
+            address(mockReceiver),
+            fleetProxy,
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        registry.registerRelationship(
+            fleetProxy,
+            address(mockReceiver),
+            SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        vm.stopPrank();
+
+        bytes32 opId = keccak256("integration-force-retry-fails");
+        uint256 amount = 2 ether;
+
+        // Create failed transfer (receiver fails)
+        _makeFailedTransfer(opId, amount);
+
+        // Keep receiver failing
+        mockReceiver.setReceiveSuccess(false);
+
+        // Build payload still pointing to failing receiver
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: fleetProxy,
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(mockReceiver),
+                asset: address(token),
+                amount: amount,
+                message: ""
+            });
+        bytes memory payload = abi.encode(params);
+
+        vm.prank(governor);
+        router.forceRetryFailedDelivery(
+            opId,
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            address(mockAdapter),
+            payload
+        );
+
+        (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
+        assertEq(ids.length, 1);
+        assertEq(ids[0], opId);
+        assertEq(token.balanceOf(address(mockReceiver)), 0);
+    }
+
+    /* ------------------------------------------------------------ */
     /*                    Helper Functions for Validation Tests      */
     /* ------------------------------------------------------------ */
 

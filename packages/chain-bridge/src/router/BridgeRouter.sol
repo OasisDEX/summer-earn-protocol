@@ -906,6 +906,43 @@ contract BridgeRouter is
         }
     }
 
+    /// @notice Governor-only force retry for a failed delivery with full override of adapter, type, and payload
+    /// @param failedOperationId The failed operation identifier to reference/clear on success
+    /// @param operationType The operation type to process
+    /// @param adapter The adapter address to attribute for peer checks and authorization
+    /// @param operationPayload The fully-formed payload to deliver
+    function forceRetryFailedDelivery(
+        bytes32 failedOperationId,
+        BridgeTypes.OperationType operationType,
+        address adapter,
+        bytes calldata operationPayload
+    ) external nonReentrant onlyGovernor whenNotPaused {
+        FailedDeliveryRecord memory r = failedDeliveries[failedOperationId];
+        if (r.failedAt == 0) revert FailureRecordNotFound();
+
+        if (!adapters.contains(adapter)) revert UnknownAdapter();
+
+        try this._processDelivery(operationType, operationPayload, adapter) {
+            _clearFailedDelivery(failedOperationId);
+            emit OperationRetrySucceeded(
+                failedOperationId,
+                operationType,
+                adapter
+            );
+        } catch (bytes memory err) {
+            FailedDeliveryRecord storage existing = failedDeliveries[
+                failedOperationId
+            ];
+            existing.failedAt = block.timestamp;
+            emit OperationRetryFailed(
+                failedOperationId,
+                operationType,
+                adapter,
+                err
+            );
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                         RETRY RECIPIENT OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/

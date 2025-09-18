@@ -828,6 +828,208 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
     }
 
     /* ------------------------------------------------------------ */
+    /*                Governor force retry (full override)           */
+    /* ------------------------------------------------------------ */
+
+    function testForceRetryFailedDelivery_Succeeds_WithOverridePayload()
+        public
+    {
+        bytes32 opId = keccak256("force-retry-success");
+        uint256 amount = 4 ether;
+
+        _makeFailedTransfer(opId, amount);
+
+        // Create a new receiver and register ark-fleet relationship
+        MockCrossChainReceiver newReceiver = new MockCrossChainReceiver();
+        newReceiver.setReceiveSuccess(true);
+
+        address fleetProxy = address(0x1002);
+        vm.startPrank(governor);
+        registry.unregisterRelationship(
+            address(mockReceiver),
+            registry.ARK_FLEET_RELATIONSHIP(),
+            SOURCE_CHAIN_ID
+        );
+        registry.unregisterRelationship(
+            fleetProxy,
+            registry.ARK_FLEET_RELATIONSHIP(),
+            CURRENT_CHAIN_ID
+        );
+        registry.registerRelationship(
+            fleetProxy,
+            address(newReceiver),
+            SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        registry.registerRelationship(
+            address(newReceiver),
+            fleetProxy,
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.ARK_FLEET_RELATIONSHIP()
+        );
+        vm.stopPrank();
+
+        // Build fully overridden payload using the same opId
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: fleetProxy,
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(newReceiver),
+                asset: address(token),
+                amount: amount,
+                message: ""
+            });
+        bytes memory payload = abi.encode(params);
+
+        // Governor forces retry with full override
+        vm.prank(governor);
+        router.forceRetryFailedDelivery(
+            opId,
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            address(mockAdapter),
+            payload
+        );
+
+        // Failure cleared
+        (bytes32[] memory ids2, ) = router.getFailedDeliveryIds(0, 10);
+        assertEq(ids2.length, 0);
+
+        // Assets delivered to new receiver
+        assertEq(token.balanceOf(address(newReceiver)), amount);
+    }
+
+    function testForceRetryFailedDelivery_PayloadStillFails_KeepsRecord()
+        public
+    {
+        bytes32 opId = keccak256("force-retry-fails");
+        uint256 amount = 2 ether;
+
+        _makeFailedTransfer(opId, amount);
+
+        // Ensure mockReceiver still fails
+        mockReceiver.setReceiveSuccess(false);
+
+        // Build payload pointing to failing receiver
+        address fleetProxy = address(0x1002);
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: fleetProxy,
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(mockReceiver),
+                asset: address(token),
+                amount: amount,
+                message: ""
+            });
+        bytes memory payload = abi.encode(params);
+
+        // Governor forces retry; should fail and keep record
+        vm.prank(governor);
+        router.forceRetryFailedDelivery(
+            opId,
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            address(mockAdapter),
+            payload
+        );
+
+        (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
+        assertEq(ids.length, 1);
+        assertEq(ids[0], opId);
+        assertEq(token.balanceOf(address(mockReceiver)), 0);
+    }
+
+    function testForceRetryFailedDelivery_AccessControl() public {
+        bytes32 opId = keccak256("force-retry-acl");
+        uint256 amount = 1 ether;
+        _makeFailedTransfer(opId, amount);
+
+        address fleetProxy = address(0x1002);
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: fleetProxy,
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(mockReceiver),
+                asset: address(token),
+                amount: amount,
+                message: ""
+            });
+        bytes memory payload = abi.encode(params);
+
+        vm.prank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
+        router.forceRetryFailedDelivery(
+            opId,
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            address(mockAdapter),
+            payload
+        );
+    }
+
+    function testForceRetryFailedDelivery_UnknownAdapter_Reverts() public {
+        bytes32 opId = keccak256("force-retry-unknown-adapter");
+        uint256 amount = 1 ether;
+        _makeFailedTransfer(opId, amount);
+
+        address fleetProxy = address(0x1002);
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: fleetProxy,
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(mockReceiver),
+                asset: address(token),
+                amount: amount,
+                message: ""
+            });
+        bytes memory payload = abi.encode(params);
+
+        vm.prank(governor);
+        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
+        router.forceRetryFailedDelivery(
+            opId,
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            address(0xBEEFCAFEBABE),
+            payload
+        );
+    }
+
+    function testForceRetryFailedDelivery_FailureRecordNotFound_Reverts()
+        public
+    {
+        bytes32 opId = keccak256("force-retry-missing");
+        address fleetProxy = address(0x1002);
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: opId,
+                originator: fleetProxy,
+                sourceChainId: SOURCE_CHAIN_ID,
+                recipient: address(mockReceiver),
+                asset: address(token),
+                amount: 1 ether,
+                message: ""
+            });
+        bytes memory payload = abi.encode(params);
+
+        vm.prank(governor);
+        vm.expectRevert(IBridgeRouter.FailureRecordNotFound.selector);
+        router.forceRetryFailedDelivery(
+            opId,
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            address(mockAdapter),
+            payload
+        );
+    }
+
+    /* ------------------------------------------------------------ */
     /*                    Helper Functions for Validation Tests      */
     /* ------------------------------------------------------------ */
 
