@@ -644,8 +644,7 @@ contract BridgeRouter is
         // Attempt processing in a self-call so we can capture reverts without
         // rolling back the outer call (adapter delivery pathway)
         try this._processDelivery(operationType, operationPayload, msg.sender) {
-            // Success path
-            // If there was a stale failure record (edge-case), clear it
+            // Success path - clear any existing failure record for this operation
             _clearFailedDelivery(operationId);
             emit OperationDelivered(operationId, operationType);
         } catch (bytes memory err) {
@@ -657,7 +656,8 @@ contract BridgeRouter is
                 operationPayload,
                 err
             );
-            // Do not revert; adapter can mark as delivered on-chain while we recorded failure
+            // Do not revert; from the interchain messaging protocol perspective, the transaction is considered successful even if delivery failed here
+            // This allows us to retry failed deliveries without trapping a message with the underlying interchain messaging protocol
         }
     }
 
@@ -866,7 +866,7 @@ contract BridgeRouter is
         // Use the original adapter - no override needed
         address effectiveAdapter = r.adapter;
 
-        // Decode the original payload
+        // Retrieve the payload from the failed delivery record
         bytes memory effectivePayload = r.operationPayload;
 
         // Apply recipient override if provided
