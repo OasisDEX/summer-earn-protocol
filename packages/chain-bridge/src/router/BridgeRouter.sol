@@ -976,60 +976,27 @@ contract BridgeRouter is
         address adapter
     ) internal view {
         // Validate payload integrity based on operation type
-        // Using the existing validation functions that handle decoding internally
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
-            _validateTransferPayload(payload, sourceChainId, adapter);
+            BridgeTypes.RelayedTransferParams memory params = abi.decode(
+                payload,
+                (BridgeTypes.RelayedTransferParams)
+            );
+            _validateArkFleetRelationship(
+                params.originator,
+                params.recipient,
+                sourceChainId
+            );
         } else if (operationType == BridgeTypes.OperationType.MESSAGE) {
-            _validateMessagePayload(payload, sourceChainId, adapter);
+            BridgeTypes.RelayedMessageParams memory params = abi.decode(
+                payload,
+                (BridgeTypes.RelayedMessageParams)
+            );
+            _validateArkFleetRelationship(
+                params.originator,
+                params.recipient,
+                sourceChainId
+            );
         }
-    }
-
-    /**
-     * @notice Validates transfer asset payload integrity
-     * @param payload The transfer payload to validate
-     * @param sourceChainId Expected source chain ID
-     * @param adapter The adapter that will process the retry
-     */
-    function _validateTransferPayload(
-        bytes memory payload,
-        uint16 sourceChainId,
-        address adapter
-    ) internal view {
-        BridgeTypes.RelayedTransferParams memory params = abi.decode(
-            payload,
-            (BridgeTypes.RelayedTransferParams)
-        );
-
-        // Validate ark-fleet relationship in both directions
-        _validateArkFleetRelationship(
-            params.originator,
-            params.recipient,
-            sourceChainId
-        );
-    }
-
-    /**
-     * @notice Validates message payload integrity
-     * @param payload The message payload to validate
-     * @param sourceChainId Expected source chain ID
-     * @param adapter The adapter that will process the retry
-     */
-    function _validateMessagePayload(
-        bytes memory payload,
-        uint16 sourceChainId,
-        address adapter
-    ) internal view {
-        BridgeTypes.RelayedMessageParams memory params = abi.decode(
-            payload,
-            (BridgeTypes.RelayedMessageParams)
-        );
-
-        // Validate ark-fleet relationship in both directions
-        _validateArkFleetRelationship(
-            params.originator,
-            params.recipient,
-            sourceChainId
-        );
     }
 
     /**
