@@ -23,12 +23,12 @@ This audit covers **new contracts** that extend previously audited functionality
 ```solidity
 addStakingModule() → 
   - Grants MINTER_ROLE to new staking module
-  - Grants PAUSER_ROLE to new staking module
+  - Grants BURNER_ROLE to new staking module
   - Emits StakingModuleAdded event
 
 removeStakingModule() → 
   - Revokes MINTER_ROLE from staking module
-  - Revokes PAUSER_ROLE from staking module  
+  - Revokes BURNER_ROLE from staking module  
   - Emits StakingModuleRemoved event
 ```
 
@@ -36,18 +36,18 @@ removeStakingModule() →
 
 **Enhanced Flexibility**:
 - ✅ Multiple staking contracts can mint xSUMR tokens
-- ✅ Each staking module has independent minting/pausing authority
+- ✅ Each staking module has independent minting/burning authority
 - ✅ Governor can add/remove staking modules without redeployment
 
 **Risk Considerations**:
 - 🔴 **Multiple Minters**: More attack surface - each staking module can mint
-- 🔴 **Role Proliferation**: Each added module gets both MINTER and PAUSER roles
+- 🔴 **Role Proliferation**: Each added module gets both MINTER and BURNER roles
 - 🔴 **Governance Control**: Only governor can add/remove modules
 
 **Audit Focus Areas**:
 - Role escalation prevention (direct role granting disabled)
 - Staking module address validation
-- Minting authorization flow
+- Minting/burning authorization flow (note: BURNER_ROLE does not bypass ERC20 allowance)
 
 ### 2. SummerGovernorV2.sol vs SummerGovernor.sol
 
@@ -155,7 +155,7 @@ Vesting Wallets → SummerVestingWalletsEscrow →
 ## Critical Security Considerations
 
 1. **Role Management**: StakedSummerToken disables direct role granting - only governor can manage
-2. **Staking Module Control**: The staking module has both minting and pausing authority
+2. **Staking Module Control**: The staking module has both minting and burning authority
 3. **Vesting Wallet Ownership**: Escrow takes temporary ownership - ensure proper return
 4. **Weighted Calculations**: Complex math for rewards and penalties - verify precision
 5. **Bucket Caps**: Governor-controlled limits that could affect staking economics

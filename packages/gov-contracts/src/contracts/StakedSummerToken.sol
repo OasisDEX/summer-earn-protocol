@@ -11,6 +11,20 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
 
+/**
+ * @title StakedSummerToken (xSUMR)
+ * @notice Non-transferable staked representation of SUMR used for governance and rewards accounting.
+ * @dev Key properties:
+ *      - Minting/Burning controlled by governance-authorized staking modules
+ *      - Direct transfers disabled; only mint (from address(0)) and burn (to address(0)) allowed
+ *      - Pausable by guardian/governor for emergency response
+ *      - Integrates ERC20Permit and ERC20Votes for signatures and governance snapshots
+ *
+ * Access control model:
+ *      - Governor can add/remove staking modules, which grants MINTER and BURNER roles
+ *      - Only modules with MINTER_ROLE can mint
+ *      - burnFrom requires either the token owner or an address with BURNER_ROLE plus standard allowance
+ */
 contract StakedSummerToken is
     IStakedSummerToken,
     ERC20Burnable,
@@ -20,9 +34,11 @@ contract StakedSummerToken is
     ERC20Permit,
     ERC20Votes
 {
+    // ============ ROLES ============
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
+    // ============ CONSTRUCTOR ============
     constructor(
         address _protocolAccessManager
     )
@@ -31,6 +47,8 @@ contract StakedSummerToken is
         ProtocolAccessManaged(_protocolAccessManager)
     {}
 
+    // ============ GOVERNANCE ============
+    /// @inheritdoc IStakedSummerToken
     function addStakingModule(address _stakingModule) public onlyGovernor {
         if (_stakingModule == address(0)) {
             revert xSumr_InvalidStakingModule(
@@ -49,39 +67,52 @@ contract StakedSummerToken is
         emit StakingModuleRemoved(_stakingModule);
     }
 
+    // ============ PAUSING ============
+    /// @notice Pauses token operations that honor pausability (e.g., burns).
+    /// @dev Callable by guardian or governor.
     function pause() public onlyGuardianOrGovernor {
         _pause();
     }
 
+    /// @notice Unpauses token operations.
+    /// @dev Callable by guardian or governor.
     function unpause() public onlyGuardianOrGovernor {
         _unpause();
     }
 
+    // ============ MINT / BURN API ============
+    /// @inheritdoc IStakedSummerToken
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
 
+    /// @inheritdoc IStakedSummerToken
     function burn(
         uint256 amount
     ) public override(ERC20Burnable, IStakedSummerToken) {
         super.burn(amount);
     }
 
+    /// @inheritdoc IStakedSummerToken
     function burnFrom(
         address from,
         uint256 amount
     ) public override(ERC20Burnable, IStakedSummerToken) {
-        if (msg.sender != from && !hasRole(BURNER_ROLE, msg.sender)) {
+        if (!_canBurnFrom(from, msg.sender)) {
             revert xSumr__NotAuthorized();
         }
+
         super.burnFrom(from, amount);
     }
 
+    // ============ ERC6372 / ERC20Votes ============
+    /// @notice Returns the current clock in seconds, used by ERC20Votes for timestamp-based checkpoints.
     function clock() public view override returns (uint48) {
         return uint48(block.timestamp);
     }
 
     // solhint-disable-next-line func-name-mixedcase
+    /// @notice Returns the clock mode string as required by ERC-6372.
     function CLOCK_MODE() public pure override returns (string memory) {
         return "mode=timestamp";
     }
@@ -105,10 +136,15 @@ contract StakedSummerToken is
         return super.nonces(owner);
     }
 
+    // ============ ROLE MANAGEMENT (GOVERNOR) ============
+    /// @notice Grants MINTER_ROLE to a specified address. Governor-only.
+    // @notice only for emergency use - ie user burned xSUMR and needs to be able to redeem vesting wallet or summer tokens
     function grantMinterRole(address _minter) public onlyGovernor {
         _grantRole(MINTER_ROLE, _minter);
     }
 
+    /// @notice Revokes MINTER_ROLE from a specified address. Governor-only.
+    /// @notice only for emergency use - ie user burned xSUMR and needs to be able to redeem vesting wallet or summer tokens
     function revokeMinterRole(address _minter) public onlyGovernor {
         _revokeRole(MINTER_ROLE, _minter);
     }
@@ -129,10 +165,21 @@ contract StakedSummerToken is
         revert DirectRevokeIsDisabled(msg.sender);
     }
 
+    // ============ INTERNAL HELPERS ============
+    /// @dev Only allow mint (from == address(0)) and burn (to == address(0)) movements. Block user-to-user transfers.
+    /// @notice all staking module interactions are based on mint() and burnFrom()
     function _canTransfer(
         address from,
         address to
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         return from == address(0) || to == address(0);
+    }
+
+    /// @notice only allow burnFrom if spender burns owned token or has the BURNER_ROLE
+    function _canBurnFrom(
+        address from,
+        address spender
+    ) internal view returns (bool) {
+        return spender == from || hasRole(BURNER_ROLE, spender);
     }
 }
