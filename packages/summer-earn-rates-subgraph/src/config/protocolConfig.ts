@@ -663,6 +663,12 @@ class ProtocolConfig {
           BigInt.fromI32(22822692),
           'Silo',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F'),
+          BigInt.fromI32(23388531),
+          'Silo',
+        ),
       ]),
     ]
   }
