@@ -484,15 +484,15 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
     }
 
-    function test_UnstakeAfter2months_MinimumLockupPeriod() public {
+    function test_ImmediateUnstake_MinimumLockupPeriod() public {
         uint256 stakeAmount = STAKE_AMOUNT;
-        uint256 lockupPeriod = aMinLockupPeriod; // 6 months
+        uint256 lockupPeriod = aMinLockupPeriod; // 3 months
 
         uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
-        vm.warp(block.timestamp + 4 * 30 days + 1);
+        vm.warp(block.timestamp);
 
-        // Calculate expected penalty (should be flat 2% for immediate unstake within 4 months)
+        // Calculate expected penalty (should be flat 2% for immediate unstake )
         uint256 expectedPenalty = aMinPenaltyPercentage;
         uint256 expectedReturnAmount = stakeAmount -
             (stakeAmount * expectedPenalty) /
@@ -505,7 +505,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
         vm.prank(user1);
         axSumr.approve(address(aStaking), stakeAmount);
-        // Unstake after 2 months
+        // Unstake immediately
         _verifyUnstakedEvent(
             user1,
             aStaking.stakePortfolioId(user1),
