@@ -29,7 +29,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
     CrossChainRegistry registry;
     MockAdapter mockAdapter;
     address proxy = address(0x5);
-    uint16 constant SOURCE_CHAIN_ID = 1; // Current chain (mainnet)
+    uint16 constant SOURCE_CHAIN_ID = 31337; // Current chain (mainnet)
     uint16 constant TARGET_CHAIN_ID = 1234; // Target chain (satellite)
     FleetCommander fleetCommander;
 
@@ -64,10 +64,7 @@ contract CrossChainArkTest is Test, ArkTestBase {
         router = new MockBridgeRouter();
 
         // Deploy CrossChainRegistry BEFORE using it
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            SOURCE_CHAIN_ID // Current chain ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
 
         // Initialize the bridge configuration in the registry
         vm.startPrank(governor);

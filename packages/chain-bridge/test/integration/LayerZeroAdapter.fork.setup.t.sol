@@ -69,10 +69,7 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         accessManager = new ProtocolAccessManager(governor);
 
         // Deploy registry
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            SOURCE_CHAIN_ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
 
         // Configure roles
         vm.startPrank(governor);

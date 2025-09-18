@@ -20,11 +20,11 @@ import {FleetProxy} from "../../src/contracts/FleetProxy.sol";
 import {IFleetProxy} from "../../src/interfaces/IFleetProxy.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 
-uint16 constant DEST_CHAIN_ID = 42161;
+uint16 constant DEST_CHAIN_ID = 31337;
 
 contract CrossChainFleetProxyTest is Test {
     // Constants
-    uint16 constant SOURCE_CHAIN_ID = 111;
+    uint16 constant SOURCE_CHAIN_ID = 42161;
     address constant SOURCE_ARK_ADDRESS = address(0xBEEF);
     address constant MOCK_ADAPTER = address(0xADADADA); // Mock adapter address
 
@@ -61,10 +61,7 @@ contract CrossChainFleetProxyTest is Test {
         mockToken = new ERC20Mock();
         mockBridgeRouter = new MockBridgeRouter();
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            DEST_CHAIN_ID // current chain ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
         mockAdapter = new MockAdapter(
             address(registry),
             address(accessManager)

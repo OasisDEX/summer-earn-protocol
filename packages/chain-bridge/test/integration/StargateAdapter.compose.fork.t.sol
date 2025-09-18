@@ -71,10 +71,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Deploy and initialize CrossChainRegistry for mainnet
-        registryMainnet = new CrossChainRegistry(
-            address(accessManager),
-            CHAIN_ID_MAINNET
-        );
+        registryMainnet = new CrossChainRegistry(address(accessManager));
 
         routerMainnet = new BridgeRouterTestHelper(
             address(accessManager),
@@ -122,10 +119,7 @@ contract StargateAdapterComposeForkTest is Test {
             governor
         );
 
-        registryArbitrum = new CrossChainRegistry(
-            address(accessManagerArb),
-            CHAIN_ID_ARBITRUM
-        );
+        registryArbitrum = new CrossChainRegistry(address(accessManagerArb));
 
         routerArbitrum = new BridgeRouterTestHelper(
             address(accessManagerArb),
