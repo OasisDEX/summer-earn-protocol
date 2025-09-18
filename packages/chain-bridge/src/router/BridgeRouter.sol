@@ -922,6 +922,27 @@ contract BridgeRouter is
 
         if (!adapters.contains(adapter)) revert UnknownAdapter();
 
+        // Pre-validate payload integrity and registry relationships before attempting delivery
+        (
+            bytes32 operationIdFromPayload,
+            uint16 sourceChainId
+        ) = _decodeOperationMeta(operationType, operationPayload);
+
+        if (
+            operationType == BridgeTypes.OperationType.TRANSFER_ASSET ||
+            operationType == BridgeTypes.OperationType.MESSAGE
+        ) {
+            // Validate ark-fleet relationship for transfer/message payloads
+            _validateRetryPayload(
+                operationType,
+                operationPayload,
+                sourceChainId,
+                adapter
+            );
+        } else {
+            revert UnsupportedOperationType();
+        }
+
         try this._processDelivery(operationType, operationPayload, adapter) {
             _clearFailedDelivery(failedOperationId);
             emit OperationRetrySucceeded(

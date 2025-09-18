@@ -365,6 +365,32 @@ contract StargateAdapter is
     function _isTaxiMode(bytes memory oftCmd) internal pure returns (bool) {
         return oftCmd.length == 0; // taxi() returns empty bytes, bus() returns bytes with length 1
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        GOVERNOR RECOVERY PATHS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Governor-only redelivery when OFT compose failed and tokens are stranded on this adapter
+     * @dev Transfers `params.amount` of `params.asset` from this adapter to the BridgeRouter, then calls Router.deliver
+     *      with the provided RelayedTransferParams. This reuses the normal delivery pathway and receiver hooks.
+     */
+    function forceRedeliverTransfer(
+        BridgeTypes.RelayedTransferParams calldata params
+    ) external nonReentrant onlyGovernor {
+        if (params.asset == address(0) || params.recipient == address(0)) {
+            revert InvalidParams();
+        }
+        uint256 bal = IERC20(params.asset).balanceOf(address(this));
+        if (bal < params.amount) revert InsufficientBalance();
+
+        // Move tokens to Router, then invoke normal delivery pathway
+        IERC20(params.asset).safeTransfer(bridgeRouter(), params.amount);
+        IBridgeRouter(bridgeRouter()).deliver(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+    }
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,

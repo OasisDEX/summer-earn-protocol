@@ -11,6 +11,7 @@ import {BridgeRouterTestHelper} from "../helpers/BridgeRouterTestHelper.sol";
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {StargateAdapter} from "../../src/adapters/StargateAdapter.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 contract StargateAdapterComposeTest is StargateAdapterSetupTest {
     MockFleetProxy public fleetProxyA;
@@ -765,5 +766,85 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Call as the authorised LZ endpoint – should NOT revert
         vm.prank(lzEndpointB);
         adapterB.lzCompose(fromPool, guid, realMessage, caller, extraData);
+    }
+
+    function testForceRedeliverTransfer_Succeeds() public {
+        useNetworkB();
+
+        // Prepare a stranded balance scenario: tokens are on adapterB but no router failed record
+        uint256 amount = 5 ether;
+        tokenB.mint(address(adapterB), amount);
+
+        // Setup a valid recipient that can receive
+        MockFleetProxy fleet = new MockFleetProxy(address(tokenB));
+
+        // Create params
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                recipient: address(fleet),
+                asset: address(tokenB),
+                amount: amount,
+                sourceChainId: CHAIN_ID_A,
+                operationId: bytes32("force-redeliver"),
+                originator: address(adapterA),
+                message: ""
+            });
+
+        // Peer mapping already registered in setup; no action required here
+
+        // Call as governor
+        uint256 routerBefore = tokenB.balanceOf(address(routerB));
+        vm.prank(governor);
+        adapterB.forceRedeliverTransfer(params);
+
+        // Router should have forwarded to recipient (adapter moves to router; router to recipient)
+        assertEq(tokenB.balanceOf(address(adapterB)), 0);
+        assertEq(tokenB.balanceOf(address(routerB)), routerBefore);
+        assertEq(tokenB.balanceOf(address(fleet)), amount);
+        assertTrue(fleet.receivedAssets());
+    }
+
+    function testForceRedeliverTransfer_AccessControl() public {
+        useNetworkB();
+        uint256 amount = 1 ether;
+        tokenB.mint(address(adapterB), amount);
+        MockFleetProxy fleet = new MockFleetProxy(address(tokenB));
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                recipient: address(fleet),
+                asset: address(tokenB),
+                amount: amount,
+                sourceChainId: CHAIN_ID_A,
+                operationId: bytes32("force-redeliver-acl"),
+                originator: address(adapterA),
+                message: ""
+            });
+        vm.prank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
+        adapterB.forceRedeliverTransfer(params);
+    }
+
+    function testForceRedeliverTransfer_InsufficientBalance_Reverts() public {
+        useNetworkB();
+        uint256 amount = 1 ether;
+        MockFleetProxy fleet = new MockFleetProxy(address(tokenB));
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                recipient: address(fleet),
+                asset: address(tokenB),
+                amount: amount,
+                sourceChainId: CHAIN_ID_A,
+                operationId: bytes32("force-redeliver-no-balance"),
+                originator: address(adapterA),
+                message: ""
+            });
+        vm.prank(governor);
+        vm.expectRevert(BaseBridgeAdapter.InsufficientBalance.selector);
+        adapterB.forceRedeliverTransfer(params);
     }
 }
