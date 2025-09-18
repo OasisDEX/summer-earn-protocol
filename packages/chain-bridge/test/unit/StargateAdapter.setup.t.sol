@@ -88,7 +88,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         );
 
         registryA.setBridgeRouter(address(routerA));
-        registryA.setDefaultGasLimit(400000);
+        // setDefaultGasLimit method no longer exists in CrossChainRegistry
 
         // Deploy adapter with registry instead of config manager
         adapterA = new StargateAdapter(
@@ -125,7 +125,7 @@ contract StargateAdapterSetupTest is TestHelperOz5 {
         );
 
         registryB.setBridgeRouter(address(routerB));
-        registryB.setDefaultGasLimit(400000);
+        // setDefaultGasLimit method no longer exists in CrossChainRegistry
 
         // Deploy adapter with registry instead of config manager
         adapterB = new StargateAdapter(

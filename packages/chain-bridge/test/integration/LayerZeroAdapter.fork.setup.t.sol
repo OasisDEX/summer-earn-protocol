@@ -89,7 +89,6 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
 
         // Initialize bridge configuration
         registry.setBridgeRouter(address(router));
-        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
         vm.stopPrank();
 
         // Setup supported chains configuration

@@ -80,31 +80,16 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         router.registerAdapter(address(mockAdapterNoPeer));
 
         // Registry wiring
-        registry.initializeBridgeConfiguration(address(router));
+        registry.setBridgeRouter(address(router));
 
-        // CURRENT -> DEST
-        registry.registerAdapterPeer(
+        // Register bidirectional adapter peer relationships
+        registry.registerAdapterPeerPair(
             address(mockAdapter),
             address(mockAdapterDest),
             CURRENT_CHAIN_ID,
             DEST_CHAIN_ID
         );
-        // DEST -> CURRENT
-        registry.registerAdapterPeer(
-            address(mockAdapterDest),
-            address(mockAdapter),
-            DEST_CHAIN_ID,
-            CURRENT_CHAIN_ID
-        );
-        // SOURCE -> CURRENT
-        registry.registerAdapterPeer(
-            address(mockAdapterSource),
-            address(mockAdapter),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID
-        );
-        // CURRENT -> SOURCE
-        registry.registerAdapterPeer(
+        registry.registerAdapterPeerPair(
             address(mockAdapter),
             address(mockAdapterSource),
             CURRENT_CHAIN_ID,
@@ -163,20 +148,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerArkFleetPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -267,15 +243,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
         // Unregister the existing relationship for testReceiver first, then register goodReceiver with same fleetProxy
         vm.startPrank(governor);
-        registry.unregisterRelationship(
+        registry.unregisterArkFleetPair(
             address(testReceiver),
-            registry.ARK_FLEET_RELATIONSHIP(),
-            SOURCE_CHAIN_ID
-        );
-        registry.unregisterRelationship(
             fleetProxy,
-            registry.ARK_FLEET_RELATIONSHIP(),
-            CURRENT_CHAIN_ID
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID
         );
 
         // Set up ark-fleet relationship for the new receiver with the same fleetProxy
@@ -313,20 +285,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerArkFleetPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -396,20 +359,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerArkFleetPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -446,20 +400,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address wrongFleet = address(0x9999);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerArkFleetPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -641,20 +586,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerRelationship(
+        registry.registerArkFleetPair(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
-        );
-        // Register reverse relationship for validation
-        registry.registerRelationship(
-            fleetProxy,
-            address(mockReceiver),
-            SOURCE_CHAIN_ID,
-            CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            SOURCE_CHAIN_ID
         );
         vm.stopPrank();
 
@@ -724,15 +660,11 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
         // Unregister the existing relationship for testReceiver first
         vm.startPrank(governor);
-        registry.unregisterRelationship(
+        registry.unregisterArkFleetPair(
             address(testReceiver),
-            registry.ARK_FLEET_RELATIONSHIP(),
-            SOURCE_CHAIN_ID
-        );
-        registry.unregisterRelationship(
             fleetProxy,
-            registry.ARK_FLEET_RELATIONSHIP(),
-            CURRENT_CHAIN_ID
+            CURRENT_CHAIN_ID,
+            SOURCE_CHAIN_ID
         );
 
         // Set up ark-fleet relationship for the new receiver with the same fleet proxy

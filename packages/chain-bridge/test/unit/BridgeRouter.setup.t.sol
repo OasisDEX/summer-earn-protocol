@@ -96,7 +96,6 @@ contract BridgeRouterSetup is Test {
 
         /* --------- Registry initialisation --------- */
         registry.setBridgeRouter(address(router));
-        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
 
         // Only register relationships where one end is CURRENT_CHAIN_ID
         // Check if relationships already exist to avoid RelationshipAlreadyExists errors

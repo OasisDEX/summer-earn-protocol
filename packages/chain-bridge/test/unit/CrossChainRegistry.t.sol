@@ -796,10 +796,6 @@ contract CrossChainRegistryTest is Test {
         emit BridgeRouterUpdated(address(0), mockBridgeRouter);
         registry.setBridgeRouter(mockBridgeRouter);
 
-        vm.expectEmit(false, false, false, true);
-        emit DefaultGasLimitUpdated(0, DEFAULT_GAS_LIMIT);
-        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
-
         // Verify state
         assertEq(registry.bridgeRouter(), mockBridgeRouter);
 
@@ -811,14 +807,11 @@ contract CrossChainRegistryTest is Test {
     {
         vm.startPrank(governor);
         registry.setBridgeRouter(mockBridgeRouter);
-        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
         // No longer reverts on calling setters again, so we simulate by expecting events
         vm.expectEmit(true, true, false, true);
         emit BridgeRouterUpdated(mockBridgeRouter, mockBridgeRouter);
         registry.setBridgeRouter(mockBridgeRouter);
-        vm.expectEmit(false, false, false, true);
-        emit DefaultGasLimitUpdated(DEFAULT_GAS_LIMIT, DEFAULT_GAS_LIMIT);
-        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
+
         vm.stopPrank();
     }
 
@@ -837,9 +830,9 @@ contract CrossChainRegistryTest is Test {
     }
 
     function test_initializeBridgeConfiguration_revertZeroGasLimit() public {
-        vm.prank(governor);
-        vm.expectRevert(ICrossChainRegistry.InvalidGasLimit.selector);
-        registry.setDefaultGasLimit(0);
+        // This test is no longer applicable as setDefaultGasLimit method no longer exists in CrossChainRegistry
+        // The gas limit functionality has been removed from the registry
+        assertTrue(true); // Placeholder assertion
     }
 
     function test_setBridgeRouter() public {
@@ -921,7 +914,6 @@ contract CrossChainRegistryTest is Test {
     function _initializeBridgeConfig() internal {
         vm.startPrank(governor);
         registry.setBridgeRouter(mockBridgeRouter);
-        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
         vm.stopPrank();
     }
 

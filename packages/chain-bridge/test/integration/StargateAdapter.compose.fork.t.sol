@@ -82,7 +82,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         registryMainnet.setBridgeRouter(address(routerMainnet));
-        registryMainnet.setDefaultGasLimit(400000);
+        // setDefaultGasLimit method no longer exists in CrossChainRegistry
 
         adapterMainnet = new StargateAdapter(
             address(registryMainnet), // Use registry instead of config manager
@@ -133,7 +133,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         registryArbitrum.setBridgeRouter(address(routerArbitrum));
-        registryArbitrum.setDefaultGasLimit(400000);
+        // setDefaultGasLimit method no longer exists in CrossChainRegistry
 
         adapterArbitrum = new StargateAdapter(
             address(registryArbitrum), // Use registry instead of config manager
