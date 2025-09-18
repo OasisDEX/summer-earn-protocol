@@ -169,6 +169,9 @@ contract CrossChainArk is
         pendingTransferOptions = options;
     }
 
+    /// @notice Executes the pending cross-chain transfer to the satellite chain
+    /// @dev This function initiates the actual bridge transfer after validation
+    /// @dev Only callable by keeper role
     function executeTransferAssets() external payable onlyKeeper {
         _assertCanExecuteTransfer();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
