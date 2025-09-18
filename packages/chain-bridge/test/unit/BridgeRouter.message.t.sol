@@ -229,7 +229,7 @@ contract BridgeRouterMessageTest is BridgeRouterSetup {
                 refundAddress: keeper
             });
 
-        vm.expectRevert(IBridgeRouter.UnknownAdapter.selector);
+        vm.expectRevert(IBridgeRouter.NoSuitableAdapter.selector);
         router.executeSendMessage{value: 0.101 ether}(params, options);
 
         vm.stopPrank();
@@ -259,6 +259,34 @@ contract BridgeRouterMessageTest is BridgeRouterSetup {
         );
 
         assertTrue(operationId != bytes32(0));
+
+        vm.stopPrank();
+    }
+
+    function testExecuteSendMessage_ZeroGasLimitReverts() public {
+        bytes memory testMessage = abi.encode("Zero gas");
+
+        vm.startPrank(keeper);
+
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(mockAdapter),
+            gasLimit: 0,
+            calldataSize: 0,
+            msgValue: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: user,
+                message: testMessage,
+                originator: keeper,
+                refundAddress: keeper
+            });
+
+        vm.expectRevert(IBridgeRouter.ZeroGasLimit.selector);
+        router.executeSendMessage{value: 0.101 ether}(params, options);
 
         vm.stopPrank();
     }

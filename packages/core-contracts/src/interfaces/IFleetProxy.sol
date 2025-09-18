@@ -116,8 +116,6 @@ interface IFleetProxy is ICrossChainReceiver {
     /// @notice Error thrown when the satellite chain is invalid
     error InvalidSatelliteChain();
 
-    /// @notice Error thrown when bridge router address is invalid
-    error InvalidBridgeRouter();
     /// @notice Error thrown when registry address is invalid
     error InvalidRegistry();
 

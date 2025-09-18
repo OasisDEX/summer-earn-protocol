@@ -53,21 +53,10 @@ contract CrossChainRegistryTest is Test {
     address public mockBridgeRouter = makeAddr("bridgeRouter");
     address public newMockBridgeQueue = makeAddr("newBridgeQueue");
     address public newMockBridgeRouter = makeAddr("newBridgeRouter");
-    uint256 public constant DEFAULT_GAS_LIMIT = 200000;
-    uint256 public constant NEW_GAS_LIMIT = 300000;
 
-    // Add new events
-    event BridgeQueueUpdated(
-        address indexed oldBridgeQueue,
-        address indexed newBridgeQueue
-    );
     event BridgeRouterUpdated(
         address indexed oldBridgeRouter,
         address indexed newBridgeRouter
-    );
-    event DefaultGasLimitUpdated(
-        uint256 oldDefaultGasLimit,
-        uint256 newDefaultGasLimit
     );
 
     function setUp() public {
@@ -795,7 +784,6 @@ contract CrossChainRegistryTest is Test {
 
     function test_bridgeConfigInitialState() public view {
         assertEq(registry.bridgeRouter(), address(0));
-        assertEq(registry.defaultGasLimit(), 0);
     }
 
     function test_initializeBridgeConfiguration() public {
@@ -803,18 +791,14 @@ contract CrossChainRegistryTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit BridgeRouterUpdated(address(0), mockBridgeRouter);
+        registry.setBridgeRouter(mockBridgeRouter);
 
         vm.expectEmit(false, false, false, true);
         emit DefaultGasLimitUpdated(0, DEFAULT_GAS_LIMIT);
-
-        registry.initializeBridgeConfiguration(
-            mockBridgeRouter,
-            DEFAULT_GAS_LIMIT
-        );
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
 
         // Verify state
         assertEq(registry.bridgeRouter(), mockBridgeRouter);
-        assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
 
         vm.stopPrank();
     }
@@ -823,30 +807,22 @@ contract CrossChainRegistryTest is Test {
         public
     {
         vm.startPrank(governor);
-
-        registry.initializeBridgeConfiguration(
-            mockBridgeRouter,
-            DEFAULT_GAS_LIMIT
-        );
-
-        vm.expectRevert(
-            ICrossChainRegistry.BridgeConfigAlreadyInitialized.selector
-        );
-        registry.initializeBridgeConfiguration(
-            mockBridgeRouter,
-            DEFAULT_GAS_LIMIT
-        );
-
+        registry.setBridgeRouter(mockBridgeRouter);
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
+        // No longer reverts on calling setters again, so we simulate by expecting events
+        vm.expectEmit(true, true, false, true);
+        emit BridgeRouterUpdated(mockBridgeRouter, mockBridgeRouter);
+        registry.setBridgeRouter(mockBridgeRouter);
+        vm.expectEmit(false, false, false, true);
+        emit DefaultGasLimitUpdated(DEFAULT_GAS_LIMIT, DEFAULT_GAS_LIMIT);
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
         vm.stopPrank();
     }
 
     function test_initializeBridgeConfiguration_revertUnauthorized() public {
         vm.prank(user);
         vm.expectRevert();
-        registry.initializeBridgeConfiguration(
-            mockBridgeRouter,
-            DEFAULT_GAS_LIMIT
-        );
+        registry.setBridgeRouter(mockBridgeRouter);
     }
 
     function test_initializeBridgeConfiguration_revertZeroBridgeRouter()
@@ -854,13 +830,13 @@ contract CrossChainRegistryTest is Test {
     {
         vm.prank(governor);
         vm.expectRevert(ICrossChainRegistry.AddressZero.selector);
-        registry.initializeBridgeConfiguration(address(0), DEFAULT_GAS_LIMIT);
+        registry.setBridgeRouter(address(0));
     }
 
     function test_initializeBridgeConfiguration_revertZeroGasLimit() public {
         vm.prank(governor);
         vm.expectRevert(ICrossChainRegistry.InvalidGasLimit.selector);
-        registry.initializeBridgeConfiguration(mockBridgeRouter, 0);
+        registry.setDefaultGasLimit(0);
     }
 
     function test_setBridgeRouter() public {
@@ -893,36 +869,6 @@ contract CrossChainRegistryTest is Test {
         registry.setBridgeRouter(address(0));
     }
 
-    function test_setDefaultGasLimit() public {
-        _initializeBridgeConfig();
-
-        vm.startPrank(governor);
-
-        vm.expectEmit(false, false, false, true);
-        emit DefaultGasLimitUpdated(DEFAULT_GAS_LIMIT, NEW_GAS_LIMIT);
-
-        registry.setDefaultGasLimit(NEW_GAS_LIMIT);
-        assertEq(registry.defaultGasLimit(), NEW_GAS_LIMIT);
-
-        vm.stopPrank();
-    }
-
-    function test_setDefaultGasLimit_revertUnauthorized() public {
-        _initializeBridgeConfig();
-
-        vm.prank(user);
-        vm.expectRevert();
-        registry.setDefaultGasLimit(NEW_GAS_LIMIT);
-    }
-
-    function test_setDefaultGasLimit_revertZero() public {
-        _initializeBridgeConfig();
-
-        vm.prank(governor);
-        vm.expectRevert(ICrossChainRegistry.InvalidGasLimit.selector);
-        registry.setDefaultGasLimit(0);
-    }
-
     function test_guardianCannotCallBridgeConfigSetters() public {
         _initializeBridgeConfig();
 
@@ -930,9 +876,6 @@ contract CrossChainRegistryTest is Test {
 
         vm.expectRevert();
         registry.setBridgeRouter(newMockBridgeRouter);
-
-        vm.expectRevert();
-        registry.setDefaultGasLimit(NEW_GAS_LIMIT);
 
         vm.stopPrank();
     }
@@ -948,21 +891,6 @@ contract CrossChainRegistryTest is Test {
 
         registry.setBridgeRouter(mockBridgeRouter);
         assertEq(registry.bridgeRouter(), mockBridgeRouter);
-
-        vm.stopPrank();
-    }
-
-    function test_setSameValueDefaultGasLimit() public {
-        _initializeBridgeConfig();
-
-        vm.startPrank(governor);
-
-        // Setting the same value should still emit event
-        vm.expectEmit(false, false, false, true);
-        emit DefaultGasLimitUpdated(DEFAULT_GAS_LIMIT, DEFAULT_GAS_LIMIT);
-
-        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
-        assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
 
         vm.stopPrank();
     }
@@ -983,38 +911,20 @@ contract CrossChainRegistryTest is Test {
         vm.stopPrank();
     }
 
-    function test_multipleUpdatesDefaultGasLimit() public {
-        _initializeBridgeConfig();
-
-        vm.startPrank(governor);
-
-        // First update
-        registry.setDefaultGasLimit(NEW_GAS_LIMIT);
-        assertEq(registry.defaultGasLimit(), NEW_GAS_LIMIT);
-
-        // Second update back to original
-        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
-        assertEq(registry.defaultGasLimit(), DEFAULT_GAS_LIMIT);
-
-        vm.stopPrank();
-    }
-
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     function _initializeBridgeConfig() internal {
-        vm.prank(governor);
-        registry.initializeBridgeConfiguration(
-            mockBridgeRouter,
-            DEFAULT_GAS_LIMIT
-        );
+        vm.startPrank(governor);
+        registry.setBridgeRouter(mockBridgeRouter);
+        registry.setDefaultGasLimit(DEFAULT_GAS_LIMIT);
+        vm.stopPrank();
     }
 
     function test_constructor() public view {
         // Test initial state after constructor
         assertEq(registry.bridgeRouter(), address(0));
-        assertEq(registry.defaultGasLimit(), 0);
 
         // Test that both PEER_RELATIONSHIP and ARK_FLEET_RELATIONSHIP relationship types are supported by default
         bytes32[] memory supportedTypes = registry
@@ -1053,6 +963,9 @@ contract CrossChainRegistryTest is Test {
         bytes32 localRelationship = keccak256("LOCAL_REL");
         address src = makeAddr("localSrc");
         address dst = makeAddr("localDst");
+
+        vm.prank(governor);
+        registry.addSupportedRelationshipType(localRelationship);
 
         vm.expectEmit(true, true, true, true);
         emit CrossChainRelationshipRegistered(

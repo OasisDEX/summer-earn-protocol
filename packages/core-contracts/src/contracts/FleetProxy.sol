@@ -11,7 +11,6 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {CrossChainConfigManaged} from "@summerfi/chain-bridge/contracts/CrossChainConfigManaged.sol";
 import {CrossChainReceiverBase} from "@summerfi/chain-bridge/base/CrossChainReceiverBase.sol";
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {ICrossChainRegistry} from "@summerfi/chain-bridge/interfaces/ICrossChainRegistry.sol";
 import {BridgeTypes} from "@summerfi/chain-bridge/libraries/BridgeTypes.sol";
 import {IFleetProxy} from "../interfaces/IFleetProxy.sol";
@@ -27,7 +26,6 @@ contract FleetProxy is
     ProtocolAccessManaged,
     CrossChainConfigManaged,
     CrossChainReceiverBase,
-    IInflightAssetTracking,
     IFleetProxy,
     Pausable,
     ReentrancyGuard
@@ -61,13 +59,11 @@ contract FleetProxy is
     /**
      * @notice Initializes the CrossChainFleetProxy
      * @param _accessManager Address of the access manager
-     * @param _bridgeRouter Address of the bridge router
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _fleetAddress Address of the Fleet contract this proxy covers
      */
     constructor(
         address _accessManager,
-        address _bridgeRouter,
         address _crossChainRegistry,
         address _fleetAddress,
         uint16 _sourceChainId
@@ -75,9 +71,9 @@ contract FleetProxy is
         ProtocolAccessManaged(_accessManager)
         CrossChainConfigManaged(_crossChainRegistry)
     {
-        if (_bridgeRouter == address(0)) revert InvalidBridgeRouter();
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_fleetAddress == address(0)) revert InvalidFleetContract();
+        if (_sourceChainId == 0) revert InvalidSatelliteChain();
 
         fleetAddress = _fleetAddress;
         hubChainId = _sourceChainId;
@@ -94,8 +90,15 @@ contract FleetProxy is
 
     /// @inheritdoc IFleetProxy
     function totalAssets() external view returns (uint256) {
-        return
-            IFleetCommander(fleetAddress).totalAssets() + inflightWithdrawals;
+        // Assets owned by this proxy are represented by:
+        // - Shares held in the FleetCommander converted to assets
+        // - Any local balance of the main asset held by this proxy
+        // - Inflight withdrawals currently being bridged back
+        address asset = IERC4626(fleetAddress).asset();
+        uint256 shares = IFleetCommander(fleetAddress).balanceOf(address(this));
+        uint256 assetsInFleet = IERC4626(fleetAddress).convertToAssets(shares);
+        uint256 localBalance = IERC20(asset).balanceOf(address(this));
+        return assetsInFleet + localBalance + inflightWithdrawals;
     }
 
     /// @inheritdoc IFleetProxy
@@ -113,20 +116,30 @@ contract FleetProxy is
     /// @dev This is an emergency function that allows governance to manually correct inflight withdrawal tracking
     /// in case of bridge failures or accounting discrepancies
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
+        uint256 previous = inflightWithdrawals;
         inflightWithdrawals = amount;
-        emit InflightAssetsUpdated(amount);
-    }
-
-    /// @inheritdoc IInflightAssetTracking
-    function updateInflightAssets(uint256 amount) external {
-        // Only the bridge router should be able to call this
-        if (msg.sender != address(bridgeRouter())) {
-            revert Unauthorized();
+        if (amount == 0) {
+            emit InflightCleared(bytes32(0), previous);
+        } else {
+            emit InflightSet(amount, bytes32(0));
         }
-
-        inflightWithdrawals = amount;
-        emit InflightAssetsUpdated(amount);
     }
+
+    /// @notice SuperKeeper ACK to clear inflight withdrawals once hub receipt is verified off-chain
+    /// @param operationId The outbound transfer operation ID being acknowledged (for audit/logging)
+    function acknowledgeHubReceipt(
+        bytes32 operationId
+    ) external whenNotPaused nonReentrant onlySuperKeeper {
+        uint256 previous = inflightWithdrawals;
+        if (previous == 0) revert InvalidOperation();
+        inflightWithdrawals = 0;
+        emit InflightCleared(operationId, previous);
+    }
+
+    /// @notice Emitted when inflight withdrawals are set locally
+    event InflightSet(uint256 amount, bytes32 operationId);
+    /// @notice Emitted when inflight withdrawals are cleared
+    event InflightCleared(bytes32 operationId, uint256 amount);
 
     /// @notice Keeper function to withdraw and transfer assets
     /// @param amount The amount of assets to withdraw
@@ -138,7 +151,7 @@ contract FleetProxy is
         uint amount,
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
-        if (amount == 0) revert NoAssets();
+        _assertCanWithdraw(amount);
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
 
         // 1. Get the asset from fleet contract
@@ -150,17 +163,19 @@ contract FleetProxy is
             address(this),
             address(this)
         );
-        uint256 fleetBalance = IFleetCommander(fleetAddress).balanceOf(
+        uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
+        );
+        uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
+            fleetShares
         );
 
         // 3. Verify we received the expected amount
         if (IERC20(asset).balanceOf(address(this)) < amount)
             revert WithdrawalFailed();
 
-        // 4. Track inflight withdrawals before bridging
-        inflightWithdrawals += amount;
-        emit InflightAssetsUpdated(inflightWithdrawals);
+        // 4. Track inflight withdrawals before bridging (single-flight semantics)
+        inflightWithdrawals = amount;
 
         // 5. Approve the bridge router to transfer the assets
         IERC20(asset).forceApprove(address(bridgeRouter), amount);
@@ -173,12 +188,17 @@ contract FleetProxy is
                 target: _getSourceChainArk(hubChainId),
                 asset: asset,
                 amount: amount,
-                message: abi.encode(fleetBalance),
-                refundAddress: address(this)
+                message: abi.encode(fleetAssets),
+                refundAddress: msg.sender
             });
 
         // 7. Execute the cross-chain transfer back to the Ark on the hub chain
-        bridgeRouter.executeTransferAssets{value: msg.value}(params, options);
+        bytes32 opId = bridgeRouter.executeTransferAssets{value: msg.value}(
+            params,
+            options
+        );
+
+        emit InflightSet(inflightWithdrawals, opId);
 
         emit AssetsWithdrawnAndTransferred(
             params.amount,
@@ -187,7 +207,6 @@ contract FleetProxy is
         );
     }
 
-    // todo: revise security wise
     /**
      * @notice Notifies the source chain that assets have been received
      */
@@ -195,18 +214,25 @@ contract FleetProxy is
         BridgeTypes.BridgeOptions calldata options
     ) external payable whenNotPaused nonReentrant onlyKeeper {
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
-        uint256 fleetBalance = IFleetCommander(fleetAddress).balanceOf(
+        // Security: ensure the ARK relationship is currently valid in the registry
+        if (!_isValidSourceChain(hubChainId)) revert InvalidSourceChain();
+        // Security: include replay guard context - require we have a non-zero last transfer id
+        if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+        uint256 fleetShares = IFleetCommander(fleetAddress).balanceOf(
             address(this)
+        );
+        uint256 fleetAssets = IFleetCommander(fleetAddress).convertToAssets(
+            fleetShares
         );
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
             .ExecuteSendMessageParams({
                 originator: address(this),
                 destinationChainId: hubChainId,
                 target: _getSourceChainArk(hubChainId),
-                message: abi.encode(fleetBalance, latestIncomingTransferId),
-                refundAddress: address(this)
+                message: abi.encode(fleetAssets, latestIncomingTransferId),
+                refundAddress: msg.sender
             });
-        bridgeRouter.executeSendMessage(params, options);
+        bridgeRouter.executeSendMessage{value: msg.value}(params, options);
     }
 
     /// @inheritdoc IERC165
@@ -215,7 +241,6 @@ contract FleetProxy is
     ) external pure override(CrossChainReceiverBase, IERC165) returns (bool) {
         return
             interfaceId == type(ICrossChainReceiver).interfaceId ||
-            interfaceId == type(IInflightAssetTracking).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 
@@ -275,6 +300,9 @@ contract FleetProxy is
             revert InvalidRequestor();
         }
         _handleReceiveAssets(params.asset, params.amount, params.sourceChainId);
+        // Clearing inflight withdrawals here would require an on-chain ACK from Ark after it receives tokens;
+        // this contract still does not receive such ACKs in _handleTransferAsset.
+        // Inflight can be cleared via acknowledgeHubReceipt (onlySuperKeeper) or forceUpdateInflightAssets (onlyGovernor).
         latestIncomingTransferId = params.operationId;
     }
 
@@ -359,4 +387,16 @@ contract FleetProxy is
         // Emit an event for tracking
         emit ProxyDeposit(fleetAddress, asset, amount, _hubChainId);
     }
+
+    /**
+     * @notice Validates preconditions before withdrawing from fleet
+     * @param amount The amount requested to withdraw
+     */
+    function _assertCanWithdraw(uint256 amount) internal view {
+        if (amount == 0) revert NoAssets();
+        if (inflightWithdrawals != 0) revert InFlight();
+    }
+
+    /// @notice Custom error for single-flight gating
+    error InFlight();
 }

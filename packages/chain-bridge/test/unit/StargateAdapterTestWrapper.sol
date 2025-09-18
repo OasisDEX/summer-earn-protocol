@@ -13,38 +13,5 @@ contract StargateAdapterTestWrapper is StargateAdapter {
         address _accessManager,
         address _lzEndpoint,
         address _harborCommand
-    )
-        StargateAdapter(
-            _crossChainRegistry,
-            _accessManager,
-            _lzEndpoint,
-            _harborCommand
-        )
-    {}
-
-    /**
-     * @notice Manually add a failed compose for testing
-     */
-    function addTestFailedCompose(
-        bytes32 operationId,
-        address asset,
-        uint256 amount,
-        address recipient,
-        address originator,
-        uint16 sourceChainId,
-        bool isDeposit
-    ) external {
-        failedComposes[operationId] = FailedCompose({
-            asset: asset,
-            amount: amount,
-            intendedRecipient: recipient,
-            operationId: operationId,
-            originator: originator,
-            sourceChainId: sourceChainId,
-            timestamp: block.timestamp,
-            isDeposit: isDeposit
-        });
-
-        failedOperationIds.push(operationId);
-    }
+    ) StargateAdapter(_crossChainRegistry, _accessManager, _lzEndpoint) {}
 }

@@ -46,9 +46,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @notice The bridge router contract address
     address public bridgeRouter;
 
-    /// @notice The gas limit for cross-chain messages
-    uint256 public defaultGasLimit;
-
     /// @notice Constants for relationship types
     bytes32 public constant PEER_RELATIONSHIP = keccak256("PEER_RELATIONSHIP");
     bytes32 public constant ARK_FLEET_RELATIONSHIP =
@@ -102,69 +99,10 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         bytes32 relationshipType,
         uint16 targetChainId
     ) public onlyGovernor {
-        bytes32 relationshipKey = _getRelationshipKey(
+        _unregisterRelationship(
             sourceContract,
             relationshipType,
             targetChainId
-        );
-
-        // Check if this specific relationship exists
-        if (crossChainRelations[relationshipKey].sourceContract == address(0)) {
-            revert RelationshipDoesNotExist(
-                sourceContract,
-                relationshipType,
-                targetChainId
-            );
-        }
-
-        CrossChainRelation memory relation = crossChainRelations[
-            relationshipKey
-        ];
-
-        // Remove reverse mapping only when it was stored (inter-chain)
-        bool sameChain = _isSameChain(
-            relation.sourceChainId,
-            relation.targetChainId
-        );
-        bytes32 targetKey = _getTargetKey(
-            relation.sourceChainId,
-            relation.targetChainId,
-            relation.targetContract,
-            relationshipType
-        );
-
-        if (!sameChain && targetToSource[targetKey] == sourceContract) {
-            delete targetToSource[targetKey];
-        }
-
-        // Remove from sourceToTargetChains
-        bytes32 sourceTrackingKey = _getSourceTrackingKey(
-            sourceContract,
-            relationshipType
-        );
-        uint16[] storage targetChains = sourceToTargetChains[sourceTrackingKey];
-        for (uint256 i = 0; i < targetChains.length; i++) {
-            if (targetChains[i] == targetChainId) {
-                targetChains[i] = targetChains[targetChains.length - 1];
-                targetChains.pop();
-                break;
-            }
-        }
-
-        // Remove from registered source contracts if no more relationships exist
-        if (targetChains.length == 0) {
-            registeredSourceContracts[relationshipType].remove(sourceContract);
-        }
-
-        // Clean up mappings
-        delete crossChainRelations[relationshipKey];
-
-        emit CrossChainRelationshipUnregistered(
-            sourceContract,
-            relation.targetContract,
-            relation.sourceChainId,
-            relation.targetChainId,
-            relationshipType
         );
     }
 
@@ -181,7 +119,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
     /// @inheritdoc ICrossChainRegistry
     function removeExecutor(address executor) external onlyGovernor {
-        unregisterRelationship(
+        _unregisterRelationship(
             executor,
             EXECUTOR_RELATIONSHIP,
             CURRENT_CHAIN_ID
@@ -193,34 +131,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the bridge configuration parameters
-     * @param _bridgeRouter The address of the bridge router contract
-     * @param _defaultGasLimit The default gas limit for cross-chain transactions
-     */
-    function initializeBridgeConfiguration(
-        address _bridgeRouter,
-        uint256 _defaultGasLimit
-    ) external onlyGovernor {
-        if (bridgeRouter != address(0)) {
-            revert BridgeConfigAlreadyInitialized();
-        }
-
-        if (_bridgeRouter == address(0)) {
-            revert AddressZero();
-        }
-
-        if (_defaultGasLimit == 0) {
-            revert InvalidGasLimit();
-        }
-
-        bridgeRouter = _bridgeRouter;
-        defaultGasLimit = _defaultGasLimit;
-
-        emit BridgeRouterUpdated(address(0), _bridgeRouter);
-        emit DefaultGasLimitUpdated(0, _defaultGasLimit);
-    }
-
-    /**
      * @notice Updates the bridge router address
      * @param newBridgeRouter The new bridge router address
      */
@@ -230,20 +140,6 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         }
         emit BridgeRouterUpdated(bridgeRouter, newBridgeRouter);
         bridgeRouter = newBridgeRouter;
-    }
-
-    /**
-     * @notice Updates the message gas limit
-     * @param newDefaultGasLimit The new message gas limit
-     */
-    function setDefaultGasLimit(
-        uint256 newDefaultGasLimit
-    ) external onlyGovernor {
-        if (newDefaultGasLimit == 0) {
-            revert InvalidGasLimit();
-        }
-        emit DefaultGasLimitUpdated(defaultGasLimit, newDefaultGasLimit);
-        defaultGasLimit = newDefaultGasLimit;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -478,31 +374,19 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         return supportedRelationshipTypes;
     }
 
+    /**
+     * @notice Add a supported relationship type (governor-only)
+     * @param relationshipType The relationship type hash to add
+     */
+    function addSupportedRelationshipType(
+        bytes32 relationshipType
+    ) external onlyGovernor {
+        _addRelationshipType(relationshipType);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         ADAPTER PEER_RELATIONSHIP CONVENIENCE
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Register a peer relationship between two bridge adapters
-     * @param sourceAdapter Address of the source adapter
-     * @param targetAdapter Address of the target adapter
-     * @param sourceChainId Chain ID where the source adapter is deployed
-     * @param targetChainId Chain ID where the target adapter is deployed
-     */
-    function registerAdapterPeer(
-        address sourceAdapter,
-        address targetAdapter,
-        uint16 sourceChainId,
-        uint16 targetChainId
-    ) external onlyGovernor {
-        registerRelationship(
-            sourceAdapter,
-            targetAdapter,
-            sourceChainId,
-            targetChainId,
-            PEER_RELATIONSHIP
-        );
-    }
 
     /**
      * @notice Get the peer adapter address for a given source adapter and target chain
@@ -546,6 +430,45 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
     }
 
+    /**
+     * @notice Register a bidirectional peer relationship between two adapters in one call
+     * @dev Convenience that registers (adapterA -> adapterB) and (adapterB -> adapterA)
+     */
+    function registerAdapterPeerPair(
+        address adapterA,
+        address adapterB,
+        uint16 chainA,
+        uint16 chainB
+    ) external onlyGovernor {
+        _registerRelationship(
+            adapterA,
+            adapterB,
+            chainA,
+            chainB,
+            PEER_RELATIONSHIP
+        );
+        _registerRelationship(
+            adapterB,
+            adapterA,
+            chainB,
+            chainA,
+            PEER_RELATIONSHIP
+        );
+    }
+
+    /**
+     * @notice Unregister a bidirectional peer relationship between two adapters in one call
+     */
+    function unregisterAdapterPeerPair(
+        address adapterA,
+        address adapterB,
+        uint16 chainA,
+        uint16 chainB
+    ) external onlyGovernor {
+        _unregisterRelationship(adapterA, PEER_RELATIONSHIP, chainB);
+        _unregisterRelationship(adapterB, PEER_RELATIONSHIP, chainA);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -553,6 +476,44 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     /// @inheritdoc ICrossChainRegistry
     function currentChainId() external view returns (uint16) {
         return CURRENT_CHAIN_ID;
+    }
+
+    /**
+     * @notice Register a bidirectional Ark-Fleet relationship in one call
+     */
+    function registerArkFleetPair(
+        address ark,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external onlyGovernor {
+        _registerRelationship(
+            ark,
+            fleetProxy,
+            arkChainId,
+            fleetChainId,
+            ARK_FLEET_RELATIONSHIP
+        );
+        _registerRelationship(
+            fleetProxy,
+            ark,
+            fleetChainId,
+            arkChainId,
+            ARK_FLEET_RELATIONSHIP
+        );
+    }
+
+    /**
+     * @notice Unregister a bidirectional Ark-Fleet relationship in one call
+     */
+    function unregisterArkFleetPair(
+        address ark,
+        address fleetProxy,
+        uint16 arkChainId,
+        uint16 fleetChainId
+    ) external onlyGovernor {
+        _unregisterRelationship(ark, ARK_FLEET_RELATIONSHIP, fleetChainId);
+        _unregisterRelationship(fleetProxy, ARK_FLEET_RELATIONSHIP, arkChainId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -678,6 +639,81 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /**
+     * @dev Common unregistration implementation used by both public entry points.
+     *      Performs relationship cleanup and validation.
+     */
+    function _unregisterRelationship(
+        address sourceContract,
+        bytes32 relationshipType,
+        uint16 targetChainId
+    ) internal {
+        bytes32 relationshipKey = _getRelationshipKey(
+            sourceContract,
+            relationshipType,
+            targetChainId
+        );
+
+        // Check if this specific relationship exists
+        if (crossChainRelations[relationshipKey].sourceContract == address(0)) {
+            revert RelationshipDoesNotExist(
+                sourceContract,
+                relationshipType,
+                targetChainId
+            );
+        }
+
+        CrossChainRelation memory relation = crossChainRelations[
+            relationshipKey
+        ];
+
+        // Remove reverse mapping only when it was stored (inter-chain)
+        bool sameChain = _isSameChain(
+            relation.sourceChainId,
+            relation.targetChainId
+        );
+        bytes32 targetKey = _getTargetKey(
+            relation.sourceChainId,
+            relation.targetChainId,
+            relation.targetContract,
+            relationshipType
+        );
+
+        if (!sameChain && targetToSource[targetKey] == sourceContract) {
+            delete targetToSource[targetKey];
+        }
+
+        // Remove from sourceToTargetChains
+        bytes32 sourceTrackingKey = _getSourceTrackingKey(
+            sourceContract,
+            relationshipType
+        );
+        uint16[] storage targetChains = sourceToTargetChains[sourceTrackingKey];
+        for (uint256 i = 0; i < targetChains.length; i++) {
+            if (targetChains[i] == targetChainId) {
+                targetChains[i] = targetChains[targetChains.length - 1];
+                targetChains.pop();
+                break;
+            }
+        }
+
+        // Remove from registered source contracts if no more relationships exist
+        if (targetChains.length == 0) {
+            registeredSourceContracts[relationshipType].remove(sourceContract);
+        }
+
+        // Clean up mappings
+        delete crossChainRelations[relationshipKey];
+
+        emit CrossChainRelationshipUnregistered(
+            sourceContract,
+            relation.targetContract,
+            relation.sourceChainId,
+            relation.targetChainId,
+            relationshipType
+        );
+    }
+
+    /**
      * @dev Common registration implementation used by both public entry points.
      *      Performs basic parameter validation and handles registration logic.
      */
@@ -709,9 +745,9 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         if (relationshipType == bytes32(0))
             revert InvalidRelationshipType(relationshipType);
 
-        // add relationship type if new
+        // enforce that relationship type must be supported
         if (!relationshipTypeSupported[relationshipType]) {
-            _addRelationshipType(relationshipType);
+            revert UnsupportedRelationshipType(relationshipType);
         }
 
         bytes32 relationshipKey = _getRelationshipKey(

@@ -15,7 +15,6 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {IInflightAssetTracking} from "@summerfi/chain-bridge/interfaces/IInflightAssetTracking.sol";
 import {MockStargateV2Pool} from "@summerfi/chain-bridge-test/mocks/MockStargateV2.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
@@ -24,6 +23,7 @@ import {ICrossChainConfigManaged} from "@summerfi/chain-bridge/interfaces/ICross
 import {ICrossChainReceiver} from "@summerfi/chain-bridge/interfaces/ICrossChainReceiver.sol";
 
 contract CrossChainArkForkTest is Test, ArkTestBase {
+    event InflightCleared(bytes32 operationId, uint256 amount);
     CrossChainArk public ark;
     BridgeRouter public bridgeRouter;
 
@@ -91,13 +91,12 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         // Now that both contracts are deployed, initialize the bridge configuration
-        registry.initializeBridgeConfiguration(
-            address(bridgeRouter),
-            200000 // defaultGasLimit
-        );
+        registry.setBridgeRouter(address(bridgeRouter));
+        registry.setDefaultGasLimit(200000);
 
         // Register the BridgeRouter as an executor
         registry.registerExecutor(address(bridgeRouter));
+
         vm.stopPrank();
 
         // ------------------------------------------------------------------
@@ -141,8 +140,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         stargateAdapter = new StargateAdapter(
             address(registry), // _crossChainRegistry
             address(accessManager), // _accessManager
-            LZ_ENDPOINT_MAINNET, // _lzEndpoint
-            address(0xdead) // _harborCommand - using mock address for testing
+            LZ_ENDPOINT_MAINNET
         );
 
         // Register adapters with router
@@ -151,8 +149,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         bridgeRouter.registerAdapter(address(stargateAdapter));
 
         // Configure Stargate adapter endpoints and relationships
-        stargateAdapter.mapEndpoint(DEST_CHAIN_ID, ARB_LZ_EID);
-        stargateAdapter.mapEndpoint(uint16(block.chainid), ARB_LZ_EID);
+        stargateAdapter.mapExternalId(DEST_CHAIN_ID, ARB_LZ_EID);
+        stargateAdapter.mapExternalId(uint16(block.chainid), ARB_LZ_EID);
 
         // Initialize USDC
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -165,7 +163,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Set up peer for Arbitrum chain (LayerZero)
         bytes32 peerAddressBytes32 = bytes32(
-            uint256(uint160(ARB_STARGATE_PROXY))
+            uint256(uint160(ARB_LAYERZERO_PROXY))
         );
         layerZeroAdapter.setPeer(ARB_LZ_EID, peerAddressBytes32);
 
@@ -190,6 +188,25 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             DEST_CHAIN_ID,
             registry.PEER_RELATIONSHIP()
         );
+        // Register cross-chain relationships in registry
+        registry.registerRelationship(
+            ARB_STARGATE_PROXY,
+            address(stargateAdapter),
+            DEST_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
+
+        // Register LayerZero adapter with different proxy address
+        // For MESSAGE delivery peer verification in BridgeRouter.deliver(),
+        // also register the reverse mapping so getSourceForTarget succeeds
+        registry.registerRelationship(
+            ARB_LAYERZERO_PROXY,
+            address(layerZeroAdapter),
+            DEST_CHAIN_ID,
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
 
         // Register the BridgeRouter as an executor
 
@@ -210,12 +227,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         });
 
         // Create CrossChainArk with the proper CrossChainConfigManager
-        ark = new CrossChainArk(
-            address(bridgeRouter),
-            address(registry),
-            DEST_CHAIN_ID,
-            params
-        );
+        ark = new CrossChainArk(address(registry), DEST_CHAIN_ID, params);
 
         // Register the ark-proxy relationship - use Stargate proxy since that's for asset transfers
         vm.startPrank(governor);
@@ -425,13 +437,8 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         assertEq(calldataSize, 0, "Incorrect calldata size");
         assertEq(opts, "", "Incorrect options");
         // === STEP 3: Get Quote and Execute Transfer ===
-        (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(usdc),
-            amount,
-            options,
-            BridgeTypes.OperationType.TRANSFER_ASSET
-        );
+        (uint256 nativeFee, uint256 tokenFee, ) = bridgeRouter
+            .quoteTransferAssets(transferParams, options);
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
         assertEq(tokenFee, 0, "Token fee should be 0 for Stargate");
@@ -553,6 +560,57 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
     }
 
+    function test_ExecuteTransfer_SetsInflightAssets() public {
+        uint256 amount = 1000 * 10 ** 6; // 1000 USDC
+
+        // Fund keeper/commander and approve Ark to take funds on board
+        deal(address(usdc), commander, amount);
+        vm.prank(commander);
+        usdc.approve(address(ark), amount);
+
+        // Prepare options and params for a Stargate transfer
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(stargateAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(usdc),
+                amount: amount,
+                target: ARB_STARGATE_PROXY,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+
+        // Board the assets to set pending transfer (Ark holds tokens)
+        bytes memory executeTransferParams = abi.encode(params, options);
+        vm.prank(commander);
+        ark.board(amount, executeTransferParams);
+
+        // Quote and execute transfer via Ark (keeper role is granted to commander)
+        (uint256 nativeFee, , ) = bridgeRouter.quoteTransferAssets(
+            params,
+            options
+        );
+        vm.deal(commander, nativeFee);
+
+        vm.prank(commander);
+        ark.executeTransferAssets{value: nativeFee}();
+
+        // After execution, BridgeRouter should have called updateInflightAssets on Ark
+        assertEq(
+            ark.inflightAssets(),
+            amount,
+            "Inflight assets should equal transfer amount"
+        );
+    }
+
     // Event declaration for the event we expect from StargateAdapter
     event TransferInitiated(
         bytes32 indexed transferId,
@@ -579,9 +637,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         // Verify initial state
         assertEq(
@@ -601,12 +659,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         });
 
         // Get quote for the read operation
-        (uint256 nativeFee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0), // No asset for read
-            0, // No amount for read
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 nativeFee, , ) = bridgeRouter.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(ark),
+                message: abi.encode("remote-balance-read"),
+                originator: commander,
+                refundAddress: commander
+            }),
+            options
         );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
@@ -631,9 +692,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // === STEP 5: Simulate BridgeRouter.deliver() ===
         // In the real flow, LayerZeroAdapter would call this after receiving the response
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         vm.expectEmit(true, true, true, true);
         emit ICrossChainArk.RemoteAssetBalanceUpdated(
@@ -642,7 +703,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(params.operationId, initialInflightAssets);
 
         // Simulate the adapter calling deliver()
         vm.prank(address(layerZeroAdapter));
@@ -699,9 +760,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         uint256 mockRemoteBalance = 2500 * 10 ** 6; // 2500 USDC
         uint256 initialInflight = 100 * 10 ** 6; // 100 USDC
 
-        // Setup initial state
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflight);
+        // Setup initial state (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflight);
 
         // === STEP 1: Request remote balance update directly ===
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -712,12 +773,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             options: ""
         });
 
-        (uint256 fee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 fee, , ) = bridgeRouter.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(ark),
+                message: abi.encode("remote-balance-read"),
+                originator: commander,
+                refundAddress: commander
+            }),
+            options
         );
 
         vm.deal(commander, fee);
@@ -828,9 +892,9 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Give ark some local balance
         deal(address(usdc), address(ark), initialLocalBalance);
 
-        // Set some inflight assets
-        vm.prank(address(bridgeRouter));
-        ark.updateInflightAssets(initialInflightAssets);
+        // Set some inflight assets (governor-only emergency function)
+        vm.prank(governor);
+        ark.forceUpdateInflightAssets(initialInflightAssets);
 
         // Verify initial state
         assertEq(
@@ -850,12 +914,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         });
 
         // Get quote for the read operation
-        (uint256 nativeFee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0), // No asset for read
-            0, // No amount for read
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 nativeFee, , ) = bridgeRouter.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(ark),
+                message: abi.encode("remote-balance-read"),
+                originator: commander,
+                refundAddress: commander
+            }),
+            options
         );
 
         assertGt(nativeFee, 0, "Native fee should be greater than 0");
@@ -896,7 +963,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         // Create the Origin struct that LayerZero would pass to _lzReceive
         Origin memory origin = Origin({
             srcEid: readResponseEid,
-            sender: bytes32(uint256(uint160(ARB_STARGATE_PROXY))), // Mock sender
+            sender: bytes32(uint256(uint160(ARB_LAYERZERO_PROXY))), // Mock sender
             nonce: 1
         });
 
@@ -912,7 +979,7 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit IInflightAssetTracking.InflightAssetsUpdated(0);
+        emit InflightCleared(TEST_OP_ID, initialInflightAssets);
 
         // Simulate LayerZero endpoint calling lzReceive on the adapter
         // The adapter should recognize this as a read response and call deliver()
@@ -1001,12 +1068,15 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
             options: ""
         });
 
-        (uint256 fee, , ) = bridgeRouter.quote(
-            DEST_CHAIN_ID,
-            address(0),
-            0,
-            options,
-            BridgeTypes.OperationType.MESSAGE
+        (uint256 fee, , ) = bridgeRouter.quoteSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: DEST_CHAIN_ID,
+                target: address(ark),
+                message: abi.encode("remote-balance-read"),
+                originator: commander,
+                refundAddress: commander
+            }),
+            options
         );
 
         vm.deal(commander, fee);
@@ -1037,5 +1107,64 @@ contract CrossChainArkForkTest is Test, ArkTestBase {
 
         // Verify the result
         assertEq(ark.lastRemoteAssetBalance(), mockRemoteBalance);
+    }
+
+    function testDisembarkWhileTransferPendingVulnerability() public {
+        // Setup: Fund the ark with initial assets
+        uint256 initialArkBalance = 2000e18; // 2000 tokens
+        deal(address(usdc), address(ark), initialArkBalance);
+
+        // Setup: Fund the FleetCommander with tokens for boarding
+        uint256 fleetCommanderBalance = 2000e18; // 2000 tokens (enough for the transfer)
+        deal(address(usdc), address(commander), fleetCommanderBalance);
+        vm.prank(address(commander));
+        usdc.approve(address(ark), type(uint256).max);
+
+        // Step 1: Initiate a transfer (board) but don't execute it yet
+        uint256 transferAmount = 1500e18; // 1500 tokens to transfer
+        BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
+            .ExecuteTransferParams({
+                destinationChainId: DEST_CHAIN_ID,
+                asset: address(usdc),
+                amount: transferAmount,
+                target: ARB_STARGATE_PROXY,
+                originator: address(ark),
+                refundAddress: commander,
+                message: ""
+            });
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            specifiedAdapter: address(stargateAdapter),
+            gasLimit: 200000,
+            msgValue: 0,
+            calldataSize: 0,
+            options: ""
+        });
+        bytes memory executeTransferParams = abi.encode(params, options);
+
+        // Board the transfer (this queues it but doesn't execute)
+        vm.prank(address(commander));
+        ark.board(transferAmount, executeTransferParams);
+
+        // Step 2: Disembark a significant amount from the ark
+        // This reduces the ark's local balance below what's needed for the pending transfer
+        uint256 disembarkAmount = 2500e18; // Disembark more than enough to create insufficient balance
+        vm.prank(address(commander));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICrossChainArk.PendingTransferAlreadyQueued.selector
+            )
+        );
+        ark.disembark(disembarkAmount, bytes("keeper_data")); // CrossChainArk requires keeper data
+
+        deal(keeper, 10000000000000000);
+        // Step 3: This test EXPECTS the transfer to succeed
+        vm.prank(keeper);
+        ark.executeTransferAssets{value: 10000000000000000}();
+
+        (, , , address assetAfterExecution, , , ) = ark.pendingTransferParams();
+        assertTrue(
+            assetAfterExecution == address(0),
+            "Transfer should have succeeded"
+        );
     }
 }
