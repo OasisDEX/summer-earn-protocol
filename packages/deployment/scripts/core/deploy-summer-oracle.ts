@@ -35,7 +35,9 @@ export async function deploySummerOracleForFleet() {
     | Address
     | undefined
   if (!factoryAddress) {
-    throw new Error('Missing summerOracleFactory address in core config. Run deploy-summer-oracle-factory first.')
+    throw new Error(
+      'Missing summerOracleFactory address in core config. Run deploy-summer-oracle-factory first.',
+    )
   }
 
   const harborCommand = config.deployedContracts.core.harborCommand.address as Address
@@ -58,7 +60,9 @@ export async function deploySummerOracleForFleet() {
   })) as boolean
 
   if (!enlisted) {
-    throw new Error('FleetCommander is not enlisted in HarborCommand; enlist before deploying oracle.')
+    throw new Error(
+      'FleetCommander is not enlisted in HarborCommand; enlist before deploying oracle.',
+    )
   }
 
   console.log(kleur.cyan('Deploying SummerOracle via factory...'))
@@ -88,5 +92,3 @@ deploySummerOracleForFleet().catch((error) => {
   console.error(kleur.red().bold('An error occurred:'), error)
   process.exit(1)
 })
-
-

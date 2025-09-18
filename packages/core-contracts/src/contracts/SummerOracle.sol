@@ -15,7 +15,7 @@ contract SummerOracle is ISummerOracle {
 
     IERC4626 public immutable fleet;
     address public immutable asset; // underlying asset of the fleet
-    string public oracleName;
+    string public name;
     uint8 fleetDecimals;
     uint8 assetDecimals;
 
@@ -28,17 +28,12 @@ contract SummerOracle is ISummerOracle {
         }
         fleet = IERC4626(_fleet);
         asset = IERC4626(_fleet).asset();
-        oracleName = IERC4626(_fleet).name();
+        name = IERC4626(_fleet).name();
         fleetDecimals = IERC20Metadata(address(fleet)).decimals();
         assetDecimals = IERC20Metadata(asset).decimals();
         if (fleetDecimals != assetDecimals) {
             revert InvalidDecimals();
         }
-    }
-
-    /// @inheritdoc IPriceOracle
-    function name() external view returns (string memory) {
-        return oracleName;
     }
 
     /// @inheritdoc IOracle

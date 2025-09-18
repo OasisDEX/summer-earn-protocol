@@ -31,6 +31,9 @@ contract SummerOracleFactory is ISummerOracleFactory {
         if (!harborCommand.activeFleetCommanders(fleet)) {
             revert FleetCommanderNotEnlisted(fleet);
         }
+        if (address(summerOracles[fleet]) != address(0)) {
+            revert SummerOracleAlreadyDeployed(fleet);
+        }
         summerOracle = new SummerOracle(fleet);
         summerOracles[fleet] = summerOracle;
         emit SummerOracleDeployed(fleet, address(summerOracle));

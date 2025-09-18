@@ -24,5 +24,3 @@ export const SummerOracleFactoryModule = createSummerOracleFactoryModule(
 export type SummerOracleFactoryContracts = {
   summerOracleFactory: { address: string }
 }
-
-

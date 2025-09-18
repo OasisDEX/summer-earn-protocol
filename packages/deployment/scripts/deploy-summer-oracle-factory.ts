@@ -1,6 +1,5 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 import { Address } from 'viem'
 import { createSummerOracleFactoryModule } from '../ignition/modules/summerOracleFactoryModuleFactory'
 import { BaseConfig } from '../types/config-types'
@@ -15,7 +14,11 @@ export async function deploySummerOracleFactory() {
 
   const useBummerConfig = await promptForConfigType()
 
-  const config = getConfigByNetwork(network, { common: true, core: true }, useBummerConfig) as BaseConfig
+  const config = getConfigByNetwork(
+    network,
+    { common: true, core: true },
+    useBummerConfig,
+  ) as BaseConfig
 
   if (!(await confirmDeployment(network, config))) {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
@@ -54,7 +57,9 @@ export async function deploySummerOracleFactory() {
 
 async function confirmDeployment(network: string, config: BaseConfig): Promise<boolean> {
   console.log(kleur.yellow(`SummerOracleFactory will be deployed on: ${network}`))
-  console.log(kleur.yellow(`Using HarborCommand: ${config.deployedContracts.core.harborCommand.address}`))
+  console.log(
+    kleur.yellow(`Using HarborCommand: ${config.deployedContracts.core.harborCommand.address}`),
+  )
   return await continueDeploymentCheck()
 }
 
@@ -62,5 +67,3 @@ deploySummerOracleFactory().catch((error) => {
   console.error(kleur.red().bold('An error occurred:'), error)
   process.exit(1)
 })
-
-
