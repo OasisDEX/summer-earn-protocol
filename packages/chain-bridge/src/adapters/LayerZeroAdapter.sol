@@ -615,8 +615,8 @@ contract LayerZeroAdapter is
     /**
      * @notice Creates a read state payload for LayerZero operations
      * @param lzDstEid LayerZero destination endpoint ID
-     * @param target Target contract address (use address(0x1) for estimation)
-     * @param callData Call data (use empty bytes for estimation)
+     * @param target Target contract address
+     * @param callData Call data for the read operation
      * @return payload Encoded read state payload
      */
     function _createReadStatePayload(
@@ -640,7 +640,7 @@ contract LayerZeroAdapter is
 
     /**
      * @notice Creates a message payload for LayerZero operations
-     * @param params Message parameters (use dummy values for estimation)
+     * @param params Message parameters
      * @return payload Encoded message payload
      */
     function _createMessagePayload(
