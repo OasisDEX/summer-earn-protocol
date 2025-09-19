@@ -46,7 +46,7 @@ contract FleetProxy is
     /// @notice Amount of withdrawal assets currently in-flight (being bridged back)
     uint256 public inflightWithdrawals;
 
-    /// @notice The source chain ID where the fleet is deployed
+    /// @notice The hub/source chain ID where the Ark is deployed
     uint16 public immutable hubChainId;
 
     /// @notice The latest incoming transfer ID
@@ -57,10 +57,11 @@ contract FleetProxy is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the CrossChainFleetProxy
+     * @notice Initializes the FleetProxy
      * @param _accessManager Address of the access manager
      * @param _crossChainRegistry Address of the CrossChainRegistry contract
      * @param _fleetAddress Address of the Fleet contract this proxy covers
+     * @param _sourceChainId The hub/source chain ID where the Ark is deployed
      */
     constructor(
         address _accessManager,
@@ -73,7 +74,7 @@ contract FleetProxy is
     {
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_fleetAddress == address(0)) revert InvalidFleetContract();
-        if (_sourceChainId == 0) revert InvalidSatelliteChain();
+        if (_sourceChainId == 0) revert InvalidSourceChain();
 
         fleetAddress = _fleetAddress;
         hubChainId = _sourceChainId;
@@ -115,6 +116,7 @@ contract FleetProxy is
     /// @param amount Amount of withdrawal assets to set as in-flight
     /// @dev This is an emergency function that allows governance to manually correct inflight withdrawal tracking
     /// in case of bridge failures or accounting discrepancies
+    /// @dev Emits InflightCleared if amount is 0, otherwise emits InflightSet
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
         uint256 previous = inflightWithdrawals;
         inflightWithdrawals = amount;
@@ -127,6 +129,7 @@ contract FleetProxy is
 
     /// @notice SuperKeeper ACK to clear inflight withdrawals once hub receipt is verified off-chain
     /// @param operationId The outbound transfer operation ID being acknowledged (for audit/logging)
+    /// @dev Emits InflightCleared event
     function acknowledgeHubReceipt(
         bytes32 operationId
     ) external whenNotPaused nonReentrant onlySuperKeeper {
@@ -145,8 +148,9 @@ contract FleetProxy is
     /// @param amount The amount of assets to withdraw
     /// @param options The bridge options
     /// @dev This function is used to withdraw assets from the fleet contract and transfer them to the hub chain
-    /// @dev This function is only callable by the keeper
-    /// @dev We attach the remaining fleet balance to the message to be delivered to the hub chain
+    /// @dev This function is callable by any address with the KEEPER_ROLE
+    /// @dev We attach the remaining fleet balance to the message for balance updates
+    /// @dev Emits InflightSet and AssetsWithdrawnAndTransferred events
     function withdrawAndTransfer(
         uint amount,
         BridgeTypes.BridgeOptions calldata options
@@ -170,7 +174,7 @@ contract FleetProxy is
             fleetShares
         );
 
-        // 3. Verify we received the expected amount
+        // 3. Verify we have sufficient balance to continue
         if (IERC20(asset).balanceOf(address(this)) < amount)
             revert WithdrawalFailed();
 
@@ -300,9 +304,8 @@ contract FleetProxy is
             revert InvalidRequestor();
         }
         _handleReceiveAssets(params.asset, params.amount, params.sourceChainId);
-        // Clearing inflight withdrawals here would require an on-chain ACK from Ark after it receives tokens;
-        // this contract still does not receive such ACKs in _handleTransferAsset.
-        // Inflight can be cleared via acknowledgeHubReceipt (onlySuperKeeper) or forceUpdateInflightAssets (onlyGovernor).
+        // Note: Inflight withdrawals are cleared via acknowledgeHubReceipt (SuperKeeper)
+        // or forceUpdateInflightAssets (Governor) after bridge completion
         latestIncomingTransferId = params.operationId;
     }
 
@@ -372,6 +375,7 @@ contract FleetProxy is
      * @param asset The asset address
      * @param amount The amount received
      * @param _hubChainId The source chain ID
+     * @dev Emits ProxyDeposit event
      */
     function _handleReceiveAssets(
         address asset,
