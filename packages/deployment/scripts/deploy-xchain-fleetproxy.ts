@@ -110,8 +110,22 @@ async function getUserInput(
 
   const currentNetwork = hre.network.name
 
-  // List available fleet deployments
-  const deploymentsDir = path.resolve(__dirname, '../../deployments/fleets')
+  // List available fleet deployments (support both CWD and __dirname to be robust)
+  const candidateDeploymentDirs = [
+    path.join(process.cwd(), 'deployments', 'fleets'),
+    path.resolve(__dirname, '../../deployments/fleets'),
+  ]
+
+  const deploymentsDir = candidateDeploymentDirs.find((dir) => fs.existsSync(dir))
+
+  if (!deploymentsDir) {
+    throw new Error(
+      `Fleet deployments directory not found. Checked: ${candidateDeploymentDirs.join(
+        ', ',
+      )}. Ensure you run this script from the 'packages/deployment' directory or that deployments exist under 'deployments/fleets'.`,
+    )
+  }
+
   const deploymentFiles = fs
     .readdirSync(deploymentsDir)
     .filter((file) => file.endsWith('_deployment.json'))
