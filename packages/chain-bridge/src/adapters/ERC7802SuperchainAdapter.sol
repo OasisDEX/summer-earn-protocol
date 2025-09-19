@@ -22,7 +22,7 @@ contract ERC7802SuperchainAdapter is BaseERC7802Adapter {
         superchainBridge = ISuperchainTokenBridge(_superchainBridge);
     }
 
-    function _send7802(
+    function _sendTransport(
         address token,
         uint16 dstChainId,
         address dstAdapter,
@@ -39,7 +39,7 @@ contract ERC7802SuperchainAdapter is BaseERC7802Adapter {
         return 0; // initiation is a regular L2 tx; autorelayer handles execution
     }
 
-    function _estimate7802(
+    function _estimateTransport(
         address,
         uint16,
         address,
