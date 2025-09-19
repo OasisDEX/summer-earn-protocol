@@ -3,11 +3,11 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address, getAddress, keccak256, stringToBytes } from 'viem'
+import { Address, getAddress, isAddressEqual, keccak256, stringToBytes, zeroAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { CrossChainConfig, loadCrossChainConfig } from '../helpers/cross-chain-config'
-import { promptForConfigType } from '../helpers/prompt-helpers'
+import { promptForAddresses, promptForConfigType, promptYesNo } from '../helpers/prompt-helpers'
 
 const REGISTRY_ABI = [
   {
@@ -26,6 +26,17 @@ const REGISTRY_ABI = [
   {
     inputs: [
       { internalType: 'address', name: 'sourceContract', type: 'address' },
+      { internalType: 'bytes32', name: 'relationshipType', type: 'bytes32' },
+      { internalType: 'uint16', name: 'targetChainId', type: 'uint16' },
+    ],
+    name: 'unregisterRelationship',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'sourceContract', type: 'address' },
       { internalType: 'address', name: 'targetContract', type: 'address' },
       { internalType: 'uint16', name: 'sourceChainId', type: 'uint16' },
       { internalType: 'uint16', name: 'targetChainId', type: 'uint16' },
@@ -33,6 +44,31 @@ const REGISTRY_ABI = [
     ],
     name: 'isValidCrossChainPair',
     outputs: [{ internalType: 'bool', name: 'isValid', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'sourceContract', type: 'address' },
+      { internalType: 'bytes32', name: 'relationshipType', type: 'bytes32' },
+    ],
+    name: 'getTargetsForSource',
+    outputs: [
+      { internalType: 'address[]', name: 'targetContracts', type: 'address[]' },
+      { internalType: 'uint16[]', name: 'targetChainIds', type: 'uint16[]' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint16', name: 'sourceChainId', type: 'uint16' },
+      { internalType: 'uint16', name: 'targetChainId', type: 'uint16' },
+      { internalType: 'address', name: 'targetContract', type: 'address' },
+      { internalType: 'bytes32', name: 'relationshipType', type: 'bytes32' },
+    ],
+    name: 'getSourceForTarget',
+    outputs: [{ internalType: 'address', name: 'sourceContract', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -64,6 +100,118 @@ async function ensureArkFleetRelationship(
   })) as boolean
 
   if (already) return false
+
+  // Pre-state: detect stale mappings and offer to unregister
+  // 1) If the source already has a target for this targetChainId and it's different, unregister it first
+  try {
+    const result = (await publicClient.readContract({
+      address: getAddress(registry as `0x${string}`),
+      abi: REGISTRY_ABI,
+      functionName: 'getTargetsForSource',
+      args: [getAddress(sourceArk as `0x${string}`), ARK_FLEET_REL],
+    })) as [readonly Address[], readonly number[]]
+
+    const targetContracts = result[0] as readonly Address[]
+    const targetChains = result[1] as readonly number[]
+    const idx = targetChains.findIndex((c) => Number(c) === Number(targetChainId))
+    if (idx !== -1) {
+      const existingTarget = getAddress(targetContracts[idx] as `0x${string}`)
+      if (!isAddressEqual(existingTarget, getAddress(targetFleetProxy as `0x${string}`))) {
+        console.log(
+          kleur.yellow(
+            `    Detected existing target for SOURCE on chain ${targetChainId}: ${existingTarget}. This must be unregistered first.`,
+          ),
+        )
+        const confirmUnreg = await promptYesNo(
+          `Unregister mapping for SOURCE ${getAddress(
+            sourceArk as `0x${string}`,
+          )} on chain ${targetChainId} (current target: ${existingTarget})?`,
+        )
+        if (!confirmUnreg) {
+          return false
+        }
+        const unregHash1 = await wallet.writeContract({
+          address: getAddress(registry as `0x${string}`),
+          abi: REGISTRY_ABI,
+          functionName: 'unregisterRelationship',
+          args: [getAddress(sourceArk as `0x${string}`), ARK_FLEET_REL, Number(targetChainId)],
+        })
+        await publicClient.waitForTransactionReceipt({ hash: unregHash1 })
+        console.log(
+          kleur.green(`    ✓ Unregistered stale source mapping for chain ${targetChainId}`),
+        )
+      }
+    }
+  } catch {
+    // ignore best-effort pre-state lookup
+  }
+
+  // 2) If the target is already linked to a different source for this chain pair, offer to unregister that source
+  const safeGetSourceForTarget = async (
+    srcChainId: number,
+    dstChainId: number,
+    target: Address,
+  ): Promise<Address> => {
+    try {
+      return (await publicClient.readContract({
+        address: getAddress(registry as `0x${string}`),
+        abi: REGISTRY_ABI,
+        functionName: 'getSourceForTarget',
+        args: [
+          Number(srcChainId),
+          Number(dstChainId),
+          getAddress(target as `0x${string}`),
+          ARK_FLEET_REL,
+        ],
+      })) as Address
+    } catch {
+      return zeroAddress as Address
+    }
+  }
+
+  const existingSourceForTarget = await safeGetSourceForTarget(
+    sourceChainId,
+    targetChainId,
+    targetFleetProxy,
+  )
+  if (
+    !isAddressEqual(existingSourceForTarget, zeroAddress) &&
+    !isAddressEqual(existingSourceForTarget, getAddress(sourceArk as `0x${string}`))
+  ) {
+    console.log(
+      kleur.yellow(
+        `    Detected existing source ${existingSourceForTarget} already registered to target ${getAddress(
+          targetFleetProxy as `0x${string}`,
+        )} for chain pair ${sourceChainId}→${targetChainId}. This must be unregistered first.`,
+      ),
+    )
+    const useDetected = await promptYesNo(
+      `Unregister detected stale SOURCE ${existingSourceForTarget} for target ${getAddress(
+        targetFleetProxy as `0x${string}`,
+      )} (chain ${sourceChainId}→${targetChainId})?`,
+    )
+    let staleSource = existingSourceForTarget
+    if (!useDetected) {
+      const [addr] = await promptForAddresses(
+        'Enter the stale SOURCE address to unregister for this chain pair (single address):',
+      )
+      staleSource = getAddress(addr as `0x${string}`)
+    }
+    const unregHash2 = await wallet.writeContract({
+      address: getAddress(registry as `0x${string}`),
+      abi: REGISTRY_ABI,
+      functionName: 'unregisterRelationship',
+      args: [getAddress(staleSource as `0x${string}`), ARK_FLEET_REL, Number(targetChainId)],
+    })
+    await publicClient.waitForTransactionReceipt({ hash: unregHash2 })
+    console.log(
+      kleur.green(
+        `    ✓ Unregistered stale source ${staleSource} for target ${getAddress(
+          targetFleetProxy as `0x${string}`,
+        )} (chain ${sourceChainId}→${targetChainId})`,
+      ),
+    )
+  }
 
   const hash = await wallet.writeContract({
     address: getAddress(registry as `0x${string}`),
