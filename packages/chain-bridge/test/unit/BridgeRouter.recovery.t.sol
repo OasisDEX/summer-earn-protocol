@@ -847,12 +847,12 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
         vm.startPrank(governor);
         registry.unregisterRelationship(
             address(mockReceiver),
-            registry.ARK_FLEET_RELATIONSHIP(),
+            registry.PEER_RELATIONSHIP(),
             SOURCE_CHAIN_ID
         );
         registry.unregisterRelationship(
             fleetProxy,
-            registry.ARK_FLEET_RELATIONSHIP(),
+            registry.PEER_RELATIONSHIP(),
             CURRENT_CHAIN_ID
         );
         registry.registerRelationship(
@@ -860,14 +860,14 @@ contract BridgeRouterRecoveryTest is BridgeRouterSetup {
             address(newReceiver),
             SOURCE_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         registry.registerRelationship(
             address(newReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 

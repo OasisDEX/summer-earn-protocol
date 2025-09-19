@@ -937,7 +937,7 @@ contract BridgeRouter is
             );
 
             // Validate ark-fleet relationship
-            _validateArkFleetRelationship(
+            _validatePeerRelationship(
                 params.originator,
                 params.recipient,
                 params.sourceChainId
@@ -949,7 +949,7 @@ contract BridgeRouter is
             );
 
             // Validate ark-fleet relationship
-            _validateArkFleetRelationship(
+            _validatePeerRelationship(
                 params.originator,
                 params.recipient,
                 params.sourceChainId
