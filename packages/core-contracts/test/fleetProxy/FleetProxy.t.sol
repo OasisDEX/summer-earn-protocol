@@ -20,11 +20,11 @@ import {FleetProxy} from "../../src/contracts/FleetProxy.sol";
 import {IFleetProxy} from "../../src/interfaces/IFleetProxy.sol";
 import {CrossChainRegistry} from "@summerfi/chain-bridge/contracts/CrossChainRegistry.sol";
 
-uint16 constant DEST_CHAIN_ID = 42161;
+uint16 constant DEST_CHAIN_ID = 31337;
 
 contract CrossChainFleetProxyTest is Test {
     // Constants
-    uint16 constant SOURCE_CHAIN_ID = 111;
+    uint16 constant SOURCE_CHAIN_ID = 42161;
     address constant SOURCE_ARK_ADDRESS = address(0xBEEF);
     address constant MOCK_ADAPTER = address(0xADADADA); // Mock adapter address
 
@@ -61,10 +61,7 @@ contract CrossChainFleetProxyTest is Test {
         mockToken = new ERC20Mock();
         mockBridgeRouter = new MockBridgeRouter();
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            DEST_CHAIN_ID // current chain ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
         mockAdapter = new MockAdapter(
             address(registry),
             address(accessManager)
@@ -145,7 +142,7 @@ contract CrossChainFleetProxyTest is Test {
             address(proxy),
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
-            keccak256("ARK_FLEET_RELATIONSHIP")
+            registry.PEER_RELATIONSHIP()
         );
 
         accessManager.grantKeeperRole(address(proxy), governor);
@@ -205,7 +202,7 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
             address(proxy),
-            keccak256("ARK_FLEET_RELATIONSHIP")
+            registry.PEER_RELATIONSHIP()
         );
         assertEq(arkFromRegistry, SOURCE_ARK_ADDRESS);
     }
@@ -766,7 +763,7 @@ contract CrossChainFleetProxyTest is Test {
             SOURCE_CHAIN_ID,
             DEST_CHAIN_ID,
             address(proxy),
-            keccak256("ARK_FLEET_RELATIONSHIP")
+            registry.PEER_RELATIONSHIP()
         );
         assertEq(target, expectedTarget, "Target should be the source ark");
 

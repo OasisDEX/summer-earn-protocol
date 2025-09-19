@@ -71,10 +71,7 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         // Deploy and initialize CrossChainRegistry for mainnet
-        registryMainnet = new CrossChainRegistry(
-            address(accessManager),
-            CHAIN_ID_MAINNET
-        );
+        registryMainnet = new CrossChainRegistry(address(accessManager));
 
         routerMainnet = new BridgeRouterTestHelper(
             address(accessManager),
@@ -82,7 +79,6 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         registryMainnet.setBridgeRouter(address(routerMainnet));
-        // setDefaultGasLimit method no longer exists in CrossChainRegistry
 
         adapterMainnet = new StargateAdapter(
             address(registryMainnet), // Use registry instead of config manager
@@ -122,10 +118,7 @@ contract StargateAdapterComposeForkTest is Test {
             governor
         );
 
-        registryArbitrum = new CrossChainRegistry(
-            address(accessManagerArb),
-            CHAIN_ID_ARBITRUM
-        );
+        registryArbitrum = new CrossChainRegistry(address(accessManagerArb));
 
         routerArbitrum = new BridgeRouterTestHelper(
             address(accessManagerArb),
@@ -133,7 +126,6 @@ contract StargateAdapterComposeForkTest is Test {
         );
 
         registryArbitrum.setBridgeRouter(address(routerArbitrum));
-        // setDefaultGasLimit method no longer exists in CrossChainRegistry
 
         adapterArbitrum = new StargateAdapter(
             address(registryArbitrum), // Use registry instead of config manager

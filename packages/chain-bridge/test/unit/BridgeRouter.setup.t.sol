@@ -55,10 +55,7 @@ contract BridgeRouterSetup is Test {
     function setUp() public virtual {
         /* --------- Access manager & registry --------- */
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
 
         /* --------- BridgeRouter (test helper) --------- */
         vm.startPrank(governor);
