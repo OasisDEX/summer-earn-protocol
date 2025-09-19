@@ -916,7 +916,7 @@ contract BridgeRouter is
      * @param originalPayload The original payload
      * @param newRecipient The new recipient address
      * @return modifiedPayload The payload with recipient override applied
-     * @dev Applies recipient override and validates ark-fleet relationship for the final recipient
+     * @dev Applies recipient override and validates ark <> fleet (peer) relationship for the final recipient
      */
     function _applyRecipientOverride(
         BridgeTypes.OperationType operationType,
@@ -934,8 +934,8 @@ contract BridgeRouter is
                 ? newRecipient
                 : params.recipient;
 
-            // Validate ark-fleet relationship for the final recipient
-            _validateArkFleetRelationship(
+            // Validate ark-fleet (peer) relationship for the final recipient
+            _validatePeerRelationship(
                 params.originator,
                 finalRecipient,
                 params.sourceChainId
@@ -956,8 +956,8 @@ contract BridgeRouter is
                 ? newRecipient
                 : params.recipient;
 
-            // Validate ark-fleet relationship for the final recipient
-            _validateArkFleetRelationship(
+            // Validate ark-fleet (peer) relationship for the final recipient
+            _validatePeerRelationship(
                 params.originator,
                 finalRecipient,
                 params.sourceChainId
@@ -978,25 +978,22 @@ contract BridgeRouter is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Validates that ark-fleet relationship is valid in both directions
-     * @param originator The originator address (ark or fleet)
-     * @param recipient The recipient address (fleet or ark)
+     * @notice Validates that an ark <> fleet (peer) relationship is valid in both directions
+     * @param originator The originator address (sender-side peer)
+     * @param recipient The recipient address (receiver-side peer)
      * @param sourceChainId The source chain ID
      */
-    function _validateArkFleetRelationship(
+    function _validatePeerRelationship(
         address originator,
         address recipient,
         uint16 sourceChainId
     ) internal view {
-        // Validate the bidirectional relationship using cross-chain pair validation
-        // This ensures the originator and recipient have a valid ark-fleet relationship
-        // across the specified source and target chains
         bool isValidPair = CROSS_CHAIN_REGISTRY.isValidCrossChainPair(
             originator,
             recipient,
             sourceChainId,
             uint16(block.chainid),
-            CROSS_CHAIN_REGISTRY.ARK_FLEET_RELATIONSHIP()
+            CROSS_CHAIN_REGISTRY.PEER_RELATIONSHIP()
         );
 
         if (!isValidPair) {

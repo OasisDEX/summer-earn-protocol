@@ -23,7 +23,7 @@ Example pattern:
 // Pseudocode for clarity; refer to the codebase for exact interfaces
 address proxy = crossChainRegistry.getRelationshipByTarget(
     address(this),
-    ARK_FLEET_RELATIONSHIP,
+    PEER_RELATIONSHIP,
     destinationChainId
 ).targetContract;
 require(proxy != address(0), "No relationship");
@@ -65,7 +65,7 @@ require(ok, "Invalid source relationship");
 - Strong adapter authentication; no arbitrary callers.
 - Emergency controls: pause/unpause; unregister compromised relationships.
 - Consistent configuration across chains for both `PEER_RELATIONSHIP` (adapter peers) and
-  `ARK_FLEET_RELATIONSHIP` (Ark ↔ Proxy pairs).
+  `PEER_RELATIONSHIP` (Ark ↔ Proxy pairs).
 
 #### Deployment Checklist
 
