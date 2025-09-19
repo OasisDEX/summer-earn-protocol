@@ -80,8 +80,10 @@ sequenceDiagram
 
 #### Failure Modes (typical)
 
-- Bridge delivery failure: assets may be held by the adapter’s fail-safe; recover per adapter’s
-  documented procedure.
+- Bridge delivery failure: 
+  - Assets remain in BridgeRouter after failed delivery
+  - Use `retryFailedDelivery(operationId, overrideData)` to retry with optional asset/recipient overrides
+  - Assets may be held by the adapter's fail-safe; recover per adapter's documented procedure
 - Registry mismatch: destination rejects delivery; investigate registry sync/state across chains.
 - Pause state: routers or proxies may be paused by guardians/governance; resume only after incident
   resolution.

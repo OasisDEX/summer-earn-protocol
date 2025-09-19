@@ -425,9 +425,12 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         // Mint tokens to adapter
         tokenB.mint(address(adapterB), testAmount);
 
-        // Should revert with InvalidParams due to zero address recipient
+        // Balances before
+        uint256 adapterBefore = tokenB.balanceOf(address(adapterB));
+        uint256 routerBefore = tokenB.balanceOf(address(routerB));
+
+        // Call lzCompose – now Router records failure instead of reverting
         vm.prank(lzEndpointB);
-        vm.expectRevert(); // Just expect any revert for now
         adapterB.lzCompose(
             address(mockStargateFrom),
             bytes32("test-guid"),
@@ -435,6 +438,30 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(0),
             hex""
         );
+
+        // Failure is recorded on the router for the provided operationId
+        (
+            BridgeTypes.OperationType opType,
+            address failingAdapter,
+            uint16 srcChain,
+            ,
+            uint256 failedAt
+        ) = routerB.getFailedDeliveryRecord(bytes32("test-op"));
+
+        assertEq(
+            uint8(opType),
+            uint8(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
+        assertEq(failingAdapter, address(adapterB));
+        assertEq(srcChain, CHAIN_ID_A);
+        assertGt(failedAt, 0);
+
+        // Tokens were moved from adapter to router; router's transfer to recipient failed
+        assertEq(
+            tokenB.balanceOf(address(adapterB)),
+            adapterBefore - testAmount
+        );
+        assertEq(tokenB.balanceOf(address(routerB)), routerBefore + testAmount);
     }
 
     function testLzComposeInvalidMessageTooShort() public {
@@ -536,8 +563,7 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
             address(mockFleetCommander)
         );
 
-        // Revert is expected to bubble up from BridgeRouter → FleetProxy
-        vm.expectRevert();
+        // Call lzCompose – Router records failure instead of reverting
         vm.prank(lzEndpointB);
         adapterB.lzCompose(
             address(mockStargateFrom),
@@ -548,25 +574,38 @@ contract StargateAdapterComposeTest is StargateAdapterSetupTest {
         );
 
         // ───────────────────────────  post-conditions  ───────────────────────────────
-        // When the call reverts, the adapter keeps all tokens (no recovery mechanism triggered)
+        // Router retains tokens because token transfer is rolled back with the self-call revert; adapter retains none
         assertEq(
             tokenB.balanceOf(address(adapterB)),
-            testAmount,
-            "adapter should hold all tokens when downstream call fails"
+            0,
+            "adapter should hold no tokens after failure"
         );
-
         assertEq(
             tokenB.balanceOf(address(routerB)),
-            routerBalanceBefore,
-            "router should have no tokens after revert"
+            routerBalanceBefore + testAmount,
+            "router should retain tokens after failure"
         );
-
-        // Recipient got nothing because the downstream call reverted
         assertEq(
             tokenB.balanceOf(address(mockFleetCommander)),
             fleetCommanderBalanceBefore,
-            "recipient unexpectedly received tokens"
+            "recipient should not receive tokens on failure"
         );
+
+        // Failure recorded on router with provided operationId
+        (
+            BridgeTypes.OperationType opType2,
+            address failingAdapter2,
+            uint16 srcChain2,
+            ,
+            uint256 failedAt2
+        ) = routerB.getFailedDeliveryRecord(testOperationId);
+        assertEq(
+            uint8(opType2),
+            uint8(BridgeTypes.OperationType.TRANSFER_ASSET)
+        );
+        assertEq(failingAdapter2, address(adapterB));
+        assertEq(srcChain2, CHAIN_ID_A);
+        assertGt(failedAt2, 0);
     }
 
     function testSystemTransactionSuccessTokensDelivered() public {

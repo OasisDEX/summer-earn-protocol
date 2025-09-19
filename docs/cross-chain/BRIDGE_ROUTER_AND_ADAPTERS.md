@@ -69,6 +69,14 @@ router.executeTransferAssets{ value: nativeFee }(params, opts);
   via the registry’s PEER_RELATIONSHIP.
 - For fleet rebalancing, the recipient is the destination chain’s FleetProxy.
 
+#### Retry Mechanism for Failed Deliveries
+
+- Failed deliveries are recorded with operation payload and can be retried by governance
+- Use `retryFailedDelivery(operationId, overrideData)` to retry failed operations
+- `RetryOverrideParams` allows overriding recipient and asset addresses for edge cases
+- Asset overrides are typically not needed as adapters handle cross-chain asset mapping correctly
+- Retry validates ark-fleet relationships and ensures sufficient asset balance before attempting delivery
+
 #### Security Considerations
 
 - Adapter registry is governance-controlled; only registered adapters can deliver.

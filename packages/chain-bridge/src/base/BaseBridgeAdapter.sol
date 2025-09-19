@@ -5,6 +5,8 @@ import {CrossChainConfigManaged} from "../contracts/CrossChainConfigManaged.sol"
 import {ICrossChainRegistry} from "../interfaces/ICrossChainRegistry.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {BridgeCodec} from "../libraries/BridgeCodec.sol";
@@ -17,6 +19,7 @@ abstract contract BaseBridgeAdapter is
     ProtocolAccessManaged,
     IERC165
 {
+    using SafeERC20 for IERC20;
     /// @notice Error thrown when destination chain peer is not trusted by governance
     error UntrustedDestinationChain(uint16 chainId);
 
@@ -41,6 +44,12 @@ abstract contract BaseBridgeAdapter is
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
 
+    /// @notice Thrown when the contract has insufficient balance
+    error InsufficientBalance();
+
+    /// @notice Thrown when a native token transfer fails
+    error TransferFailed();
+
     uint16 public immutable THIS_CHAIN;
 
     /// @notice Mapping of supported chains to their external bridge protocol IDs
@@ -58,6 +67,13 @@ abstract contract BaseBridgeAdapter is
 
     /// @notice Emitted when a chain external ID mapping is removed
     event ExternalIdUnmapped(uint16 indexed chainId, uint32 indexed externalId);
+
+    /// @notice Emitted when stuck tokens are recovered via sweep
+    event TokensRecovered(
+        address indexed asset,
+        uint256 amount,
+        address indexed recipient
+    );
 
     /**
      * @param _registry Address of the CrossChainRegistry contract
@@ -324,5 +340,33 @@ abstract contract BaseBridgeAdapter is
         returns (BridgeTypes.OperationType operationType, bytes memory data)
     {
         return BridgeCodec.decodePayload(payload);
+    }
+
+    /**
+     * @notice Governance-only sweep to recover tokens held by this adapter
+     * @param asset Token to recover (address(0) for native ETH)
+     * @param to Recipient of the recovered tokens
+     * @param amount Amount to sweep
+     */
+    function sweep(
+        address asset,
+        address to,
+        uint256 amount
+    ) external onlyGovernor nonReentrant {
+        if (to == address(0)) revert InvalidParams();
+
+        if (asset == address(0)) {
+            // Handle native ETH
+            if (address(this).balance < amount) revert InsufficientBalance();
+            (bool success, ) = to.call{value: amount}("");
+            if (!success) revert TransferFailed();
+        } else {
+            // Handle ERC20 tokens
+            uint256 balance = IERC20(asset).balanceOf(address(this));
+            if (balance < amount) revert InsufficientBalance();
+            IERC20(asset).safeTransfer(to, amount);
+        }
+
+        emit TokensRecovered(asset, amount, to);
     }
 }

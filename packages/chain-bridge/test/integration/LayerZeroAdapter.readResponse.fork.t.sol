@@ -104,12 +104,16 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
             operationId,
             address(mockCrossChainStateReadReceiver)
         );
+        mockCrossChainStateReadReceiver.setReceiveSuccess(false);
 
         // Map the GUID to operation ID
         _setOperationMapping(guid, operationId);
 
         // Configure router to fail delivery
         router.setShouldRevert(true);
+
+        // Ensure expected chain mapping is present so adapter can deliver
+        layerZeroAdapter.setExpectedReadChainByGuid(guid, DEST_CHAIN_ID);
 
         // Create origin for read response
         Origin memory origin = Origin({
@@ -123,6 +127,18 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
         layerZeroAdapter.setExpectedReadChainByGuid(guid, DEST_CHAIN_ID);
         vm.prank(LZ_ENDPOINT_BASE);
         layerZeroAdapter.lzReceive(origin, guid, responseData, address(0), "");
+
+        (
+            BridgeTypes.OperationType opType,
+            address failingAdapter,
+            uint16 srcChain,
+            ,
+            uint256 failedAt
+        ) = router.getFailedDeliveryRecord(operationId);
+        assertEq(uint8(opType), uint8(BridgeTypes.OperationType.READ_STATE));
+        assertEq(failingAdapter, address(layerZeroAdapter));
+        assertEq(srcChain, DEST_CHAIN_ID);
+        assertGt(failedAt, 0);
 
         // Reset router behavior
         router.setShouldRevert(false);
@@ -262,6 +278,19 @@ contract LayerZeroAdapterReadResponseBaseForkTest is
                 address(0),
                 ""
             );
+
+            (
+                BridgeTypes.OperationType opType2,
+                address failingAdapter2,
+                uint16 srcChain2,
+                ,
+                uint256 failedAt2
+            ) = router.getFailedDeliveryRecord(operationIds[i]);
+            // Expect successful handling: no failure record should be present
+            assertEq(uint8(opType2), uint8(BridgeTypes.OperationType.MESSAGE)); // default zero value
+            assertEq(failingAdapter2, address(0));
+            assertEq(srcChain2, 0);
+            assertEq(failedAt2, 0);
         }
 
         console.log("[SUCCESS] Multiple read responses handled successfully");

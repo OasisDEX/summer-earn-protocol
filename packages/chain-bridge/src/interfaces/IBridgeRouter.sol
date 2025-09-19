@@ -74,6 +74,30 @@ interface IBridgeRouter is IERC165 {
     /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
     event BridgeQueueUpdated(address indexed newBridgeQueue);
 
+    /// @notice Emitted when a cross-chain operation fails during delivery
+    event OperationFailed(
+        bytes32 indexed operationId,
+        BridgeTypes.OperationType indexed operationType,
+        address indexed adapter,
+        uint16 sourceChainId,
+        bytes errorData
+    );
+
+    /// @notice Emitted when a retry of a failed operation succeeds
+    event OperationRetrySucceeded(
+        bytes32 indexed operationId,
+        BridgeTypes.OperationType indexed operationType,
+        address indexed adapter
+    );
+
+    /// @notice Emitted when a retry of a failed operation fails again
+    event OperationRetryFailed(
+        bytes32 indexed operationId,
+        BridgeTypes.OperationType indexed operationType,
+        address indexed adapter,
+        bytes errorData
+    );
+
     /*//////////////////////////////////////////////////////////////
                                ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -82,6 +106,8 @@ interface IBridgeRouter is IERC165 {
     error AdapterAlreadyRegistered();
     /// @notice Error thrown when an adapter is not registered
     error UnknownAdapter();
+    /// @notice Error thrown when a failure record is not found for the given operation ID
+    error FailureRecordNotFound();
     /// @notice Error thrown when a caller is not authorized (e.g., not a registered adapter)
     error Unauthorized();
     /// @notice Error thrown when the receiver rejects a call (e.g., in deliverReadResponse)
@@ -105,6 +131,9 @@ interface IBridgeRouter is IERC165 {
 
     /// @notice Thrown when BridgeOptions.gasLimit is zero
     error ZeroGasLimit();
+
+    /// @notice Thrown when the recipient address is invalid (not a registered ark/fleet proxy)
+    error InvalidRecipient();
 
     /*//////////////////////////////////////////////////////////////
                       BRIDGE QUEUE OPERATIONS
@@ -264,15 +293,11 @@ interface IBridgeRouter is IERC165 {
     function unpause() external;
 
     /**
-     * @notice Recover stuck assets (native ETH or ERC20) from the router
-     * @param token Address of the ERC20 token to recover; use address(0) for native ETH
-     * @param recipient Address to receive the recovered assets
-     * @param amount Amount of assets to recover
+     * @notice Sweep stuck assets (native ETH or ERC20) from the router
+     * @param token Address of the ERC20 token to sweep; use address(0) for native ETH
+     * @param recipient Address to receive the swept assets
+     * @param amount Amount of assets to sweep
      * @dev Governor role required. Uses SafeERC20 for token transfers and a low-level call for native ETH.
      */
-    function recoverAssets(
-        address token,
-        address recipient,
-        uint256 amount
-    ) external;
+    function sweep(address token, address recipient, uint256 amount) external;
 }

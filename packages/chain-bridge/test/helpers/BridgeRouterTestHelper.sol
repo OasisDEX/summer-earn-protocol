@@ -89,4 +89,30 @@ contract BridgeRouterTestHelper is BridgeRouter {
     }
 
     function testSkipper() public {}
+
+    /**
+     * @notice Exposes a failed delivery record for testing assertions
+     */
+    function getFailedDeliveryRecord(
+        bytes32 operationId
+    )
+        external
+        view
+        returns (
+            BridgeTypes.OperationType operationType,
+            address adapter,
+            uint16 sourceChainId,
+            bytes memory operationPayload,
+            uint256 failedAt
+        )
+    {
+        FailedDeliveryRecord memory r = failedDeliveries[operationId];
+        return (
+            r.operationType,
+            r.adapter,
+            r.sourceChainId,
+            r.operationPayload,
+            r.failedAt
+        );
+    }
 }

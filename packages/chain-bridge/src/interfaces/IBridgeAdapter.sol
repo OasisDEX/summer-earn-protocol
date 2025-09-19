@@ -42,9 +42,6 @@ interface IBridgeAdapter {
     /// @notice Thrown when an asset is not supported by the adapter
     error UnsupportedAsset();
 
-    /// @notice Thrown when the contract has insufficient balance
-    error InsufficientBalance();
-
     /// @notice Thrown when an unsupported message type is received
     error UnsupportedMessageType();
 

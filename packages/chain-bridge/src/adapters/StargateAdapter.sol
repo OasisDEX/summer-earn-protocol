@@ -36,18 +36,6 @@ contract StargateAdapter is
     using AddressCast for bytes32;
     using OptionsBuilder for bytes;
 
-    /// @notice Information about failed compose operations for recovery
-    struct FailedCompose {
-        address asset;
-        uint256 amount;
-        address intendedRecipient;
-        bytes32 operationId;
-        address originator;
-        uint16 sourceChainId;
-        uint256 timestamp;
-        bool isDeposit; // true for deposits to FleetProxy, false for withdrawals to CrossChainArk
-    }
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -85,21 +73,6 @@ contract StargateAdapter is
 
     /// @notice Emitted when slippage tolerance is updated
     event SlippageToleranceUpdated(uint256 newSlippageBps);
-
-    /// @notice Emitted when compose call fails
-    event ComposeCallFailed(
-        bytes32 indexed operationId,
-        address indexed fleetProxy,
-        bytes reason,
-        uint16 sourceChainId
-    );
-
-    /// @notice Emitted when stuck tokens are recovered
-    event TokensRecovered(
-        address indexed asset,
-        uint256 amount,
-        address indexed recipient
-    );
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -595,72 +568,5 @@ contract StargateAdapter is
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
         return chainToExternalId[chainId];
-    }
-
-    /**
-     * @notice Manual recovery for edge cases
-     * @dev When automated recovery isn't possible, governance can manually send assets
-     * @param asset Token to recover
-     * @param amount Amount to recover
-     * @param recipient Where to send the tokens
-     * @param operationId Operation ID to clear (optional)
-     * @param tryReceiveCall Whether to attempt receiveOperation(BridgeTypes.OperationType.TRANSFER_ASSET,abi.encode( call
-     * @param customMessage Custom message for receiveOperation(BridgeTypes.OperationType.TRANSFER_ASSET,abi.encode( (if tryReceiveCall is true)
-     */
-    function manualRecovery(
-        address asset,
-        uint256 amount,
-        address recipient,
-        bytes32 operationId,
-        bool tryReceiveCall,
-        bytes calldata customMessage
-    ) external onlyGovernor nonReentrant {
-        if (recipient == address(0)) revert InvalidParams();
-
-        uint256 balance = IERC20(asset).balanceOf(address(this));
-        if (balance < amount) revert InsufficientBalance();
-
-        IERC20(asset).safeTransfer(recipient, amount);
-
-        // Optionally try the receive call with custom message
-        if (tryReceiveCall) {
-            try
-                ICrossChainReceiver(recipient).receiveOperation(
-                    BridgeTypes.OperationType.TRANSFER_ASSET,
-                    abi.encode(
-                        BridgeTypes.RelayedTransferParams({
-                            operationId: operationId,
-                            originator: address(this),
-                            sourceChainId: uint16(block.chainid),
-                            recipient: recipient,
-                            asset: asset,
-                            amount: amount,
-                            message: customMessage
-                        })
-                    )
-                )
-            {
-                // Success - call completed
-            } catch (bytes memory reason) {
-                // Log failure but continue - tokens were already sent
-                emit ComposeCallFailed(
-                    operationId,
-                    recipient,
-                    reason,
-                    uint16(block.chainid)
-                );
-            }
-        }
-
-        emit TokensRecovered(asset, amount, recipient);
-    }
-
-    /**
-     * @notice Debug function to check adapter's token balance
-     * @param asset Token address to check
-     * @return Current balance of the asset in this adapter
-     */
-    function getAdapterBalance(address asset) external view returns (uint256) {
-        return IERC20(asset).balanceOf(address(this));
     }
 }

@@ -24,7 +24,11 @@ This document provides a practical runbook for keepers and operators.
 
 #### Failure and Recovery
 
-- Bridge delivery failure: follow the adapter’s documented recovery path (e.g., retrieval by governance or retry mechanisms).
+- Bridge delivery failure: 
+  - Use `retryFailedDelivery(operationId, overrideData)` to retry failed operations
+  - For cross-chain asset transfers, may need to override asset address if adapter mapping was incorrect
+  - Example: `RetryOverrideParams({recipient: address(0), asset: actualReceivedAsset})`
+  - Follow the adapter's documented recovery path for other failure types (e.g., retrieval by governance)
 - Registry mismatch: verify registry entries on both chains; correct and re-execute only after confirmation.
 - Contract paused: identify root cause, coordinate governance/guardian to safely unpause.
 
