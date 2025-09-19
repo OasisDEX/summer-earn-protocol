@@ -42,10 +42,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
     function setUp() public {
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(
-            address(accessManager),
-            CURRENT_CHAIN_ID
-        );
+        registry = new CrossChainRegistry(address(accessManager));
 
         vm.startPrank(governor);
         router = new BridgeRouter(address(accessManager), address(registry));
@@ -144,15 +141,25 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     }
 
     function testIntegration_RecordFailureAndRetry_Succeeds() public {
-        // Setup ark-fleet relationship for the test
+        // Setup peer relationship for the test
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerArkFleetPair(
+        // Register recipient (current) <- originator (source)
+        registry.registerRelationship(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
+        // Register originator (source) -> recipient (current)
+        registry.registerRelationship(
+            fleetProxy,
+            address(mockReceiver),
+            SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
@@ -187,7 +194,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     function testIntegration_RetryWithRecipientOverride_FixesReceiverRevert()
         public
     {
-        // Setup ark-fleet relationship for the test
+        // Setup peer relationship for the test
         address fleetProxy = address(0x1003);
 
         // Create a new receiver for this test to avoid conflicts
@@ -199,7 +206,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             fleetProxy,
             CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         // Register reverse relationship for validation
         registry.registerRelationship(
@@ -207,7 +214,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             address(testReceiver),
             SOURCE_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
@@ -243,20 +250,25 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
         // Unregister the existing relationship for testReceiver first, then register goodReceiver with same fleetProxy
         vm.startPrank(governor);
-        registry.unregisterArkFleetPair(
+        registry.unregisterRelationship(
             address(testReceiver),
-            fleetProxy,
-            CURRENT_CHAIN_ID,
+            registry.PEER_RELATIONSHIP(),
             SOURCE_CHAIN_ID
         );
+        // Unregister reverse direction
+        registry.unregisterRelationship(
+            fleetProxy,
+            registry.PEER_RELATIONSHIP(),
+            CURRENT_CHAIN_ID
+        );
 
-        // Set up ark-fleet relationship for the new receiver with the same fleetProxy
+        // Set up peer relationship for the new receiver with the same fleetProxy
         registry.registerRelationship(
             address(goodReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         // Register reverse relationship for validation
         registry.registerRelationship(
@@ -264,7 +276,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             address(goodReceiver),
             SOURCE_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
@@ -281,15 +293,23 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     // function testIntegration_Transfer_InsufficientBalance_ThenRetryWithLowerAmount() - REMOVED
 
     function testIntegration_Message_ReceiverRevert_ThenRetry() public {
-        // Setup ark-fleet relationship for the test
+        // Setup peer relationship for the test
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerArkFleetPair(
+        registry.registerRelationship(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
+        registry.registerRelationship(
+            fleetProxy,
+            address(mockReceiver),
+            SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
@@ -354,23 +374,31 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     function testIntegration_RetryWithValidArkFleetRelationship_Succeeds()
         public
     {
-        // Setup ark-fleet relationship
+        // Setup peer relationship
         address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerArkFleetPair(
+        registry.registerRelationship(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
+        );
+        registry.registerRelationship(
+            fleetProxy,
+            address(mockReceiver),
+            SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
         bytes32 opId = keccak256("integration-valid-ark-fleet");
         uint256 amount = 10 ether;
 
-        // Create failed transfer with valid ark-fleet relationship
+        // Create failed transfer with valid peer relationship
         _makeFailedTransferWithArkFleet(
             opId,
             amount,
@@ -394,24 +422,25 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     function testIntegration_RetryWithInvalidArkFleetRelationship_Reverts()
         public
     {
-        // Setup ark-fleet relationship
+        // Setup peer relationship
         address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
         address wrongFleet = address(0x9999);
 
         vm.startPrank(governor);
-        registry.registerArkFleetPair(
+        registry.registerRelationship(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
         bytes32 opId = keccak256("integration-invalid-ark-fleet");
         uint256 amount = 10 ether;
 
-        // Create failed transfer with invalid ark-fleet relationship
+        // Create failed transfer with invalid peer relationship
         _makeFailedTransferWithArkFleet(
             opId,
             amount,
@@ -431,7 +460,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     function testIntegration_RetryWithMessagePayload_ValidArkFleet_Succeeds()
         public
     {
-        // Setup ark-fleet relationship
+        // Setup peer relationship
         address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
@@ -441,20 +470,20 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             fleetProxy,
             CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         registry.registerRelationship(
             fleetProxy,
             address(mockReceiver),
             SOURCE_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
         bytes32 opId = keccak256("integration-valid-message-ark-fleet");
 
-        // Create failed message with valid ark-fleet relationship
+        // Create failed message with valid peer relationship
         _makeFailedMessageWithArkFleet(opId, address(mockReceiver), fleetProxy);
 
         // Allow receiver to succeed
@@ -472,7 +501,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     function testIntegration_RetryWithMessagePayload_InvalidArkFleet_Reverts()
         public
     {
-        // Setup ark-fleet relationship
+        // Setup peer relationship
         address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
         address wrongFleet = address(0x9999);
@@ -483,20 +512,20 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             fleetProxy,
             CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         registry.registerRelationship(
             fleetProxy,
             address(mockReceiver),
             SOURCE_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
         bytes32 opId = keccak256("integration-invalid-message-ark-fleet");
 
-        // Create failed message with invalid ark-fleet relationship
+        // Create failed message with invalid peer relationship
         _makeFailedMessageWithArkFleet(opId, address(mockReceiver), wrongFleet);
 
         // Allow receiver to succeed
@@ -514,7 +543,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     function testIntegration_RetryWithOverridePayload_ValidArkFleet_Succeeds()
         public
     {
-        // Setup ark-fleet relationship
+        // Setup peer relationship
         address arkProxy = address(0x1001);
         address fleetProxy = address(0x1002);
 
@@ -524,14 +553,14 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             fleetProxy,
             CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         registry.registerRelationship(
             fleetProxy,
             address(mockReceiver),
             SOURCE_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
@@ -564,7 +593,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         bytes32 opId = keccak256("integration-non-ark-recipient");
         uint256 amount = 10 ether;
 
-        // Create failed transfer with non-ark recipient (should now be rejected)
+        // Create failed transfer with non-peer recipient (should now be rejected)
         _makeFailedTransfer(opId, amount);
 
         // Allow receiver to succeed
@@ -582,22 +611,23 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     }
 
     function testIntegration_RetryWithNoOverrides_Succeeds() public {
-        // Setup ark-fleet relationship for the test
+        // Setup peer relationship for the test
         address fleetProxy = address(0x1002);
 
         vm.startPrank(governor);
-        registry.registerArkFleetPair(
+        registry.registerRelationship(
             address(mockReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
-            SOURCE_CHAIN_ID
+            SOURCE_CHAIN_ID,
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
         bytes32 opId = keccak256("integration-no-overrides");
         uint256 amount = 7 ether;
 
-        // Create failed transfer with ark-fleet relationship
+        // Create failed transfer with peer relationship
         _makeFailedTransferWithArkFleet(
             opId,
             amount,
@@ -619,7 +649,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     }
 
     function testIntegration_RetryWithRecipientOverride_Succeeds() public {
-        // Setup ark-fleet relationship for the test
+        // Setup peer relationship for the test
         address fleetProxy = address(0x1004);
 
         // Create a new receiver for this test to avoid conflicts
@@ -631,7 +661,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             fleetProxy,
             CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         // Register reverse relationship for validation
         registry.registerRelationship(
@@ -639,14 +669,14 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             address(testReceiver),
             SOURCE_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 
         bytes32 opId = keccak256("integration-recipient-override");
         uint256 amount = 6 ether;
 
-        // Create failed transfer with ark-fleet relationship
+        // Create failed transfer with peer relationship
         _makeFailedTransferWithArkFleet(
             opId,
             amount,
@@ -660,21 +690,26 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
         // Unregister the existing relationship for testReceiver first
         vm.startPrank(governor);
-        registry.unregisterArkFleetPair(
+        registry.unregisterRelationship(
             address(testReceiver),
-            fleetProxy,
-            CURRENT_CHAIN_ID,
+            registry.PEER_RELATIONSHIP(),
             SOURCE_CHAIN_ID
         );
+        // Unregister reverse direction
+        registry.unregisterRelationship(
+            fleetProxy,
+            registry.PEER_RELATIONSHIP(),
+            CURRENT_CHAIN_ID
+        );
 
-        // Set up ark-fleet relationship for the new receiver with the same fleet proxy
+        // Set up peer relationship for the new receiver with the same fleet proxy
         // as the original receiver (since we can't override the originator)
         registry.registerRelationship(
             address(newReceiver),
             fleetProxy,
             CURRENT_CHAIN_ID,
             SOURCE_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         // Register reverse relationship for validation
         registry.registerRelationship(
@@ -682,7 +717,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
             address(newReceiver),
             SOURCE_CHAIN_ID,
             CURRENT_CHAIN_ID,
-            registry.ARK_FLEET_RELATIONSHIP()
+            registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();
 

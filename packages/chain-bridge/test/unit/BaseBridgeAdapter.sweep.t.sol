@@ -46,7 +46,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         vm.startPrank(governor);
         token = new ERC20Mock();
         accessManager = new ProtocolAccessManager(governor);
-        registry = new CrossChainRegistry(address(accessManager), 31337);
+        registry = new CrossChainRegistry(address(accessManager));
         adapter = new MinimalAdapter(address(registry), address(accessManager));
         vm.stopPrank();
     }
