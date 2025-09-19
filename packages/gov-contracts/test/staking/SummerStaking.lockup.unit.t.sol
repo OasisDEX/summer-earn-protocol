@@ -988,8 +988,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
-        // Warp time to 4 months before end of lockup period
-        vm.warp(block.timestamp + 3 * 365 days - 4 * 30 days + 1);
+        // Warp time to 110 days before end of lockup period
+        vm.warp(block.timestamp + 3 * 365 days - 110 days + 1);
 
         // Calculate expected penalty: 2% for 4 months left of lockup period
         uint256 expectedPenaltyPercentage = aMinPenaltyPercentage;

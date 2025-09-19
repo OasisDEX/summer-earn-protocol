@@ -42,10 +42,10 @@ contract SummerStaking is
     uint256 public constant MAX_AMOUNT_OF_STAKES = 1000;
     uint256 public constant MIN_PENALTY_PERCENTAGE = 0.02e18; // 2%
     uint256 public constant MAX_PENALTY_PERCENTAGE = 0.2e18; // 20%
-    uint256 public constant FIXED_PENALTY_PERIOD = 4 * 30 days; // 4 months
+    uint256 public constant FIXED_PENALTY_PERIOD = 110 days;
 
-    uint256 public constant WEIGHTED_STAKE_BASE = 5e16; // 0.05 in 60.18 fixed-point
-    uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 350; // 3.5e-16 * 1e18 in 60.18 fixed-point
+    uint256 public constant WEIGHTED_STAKE_BASE = Constants.WAD; // 1 in 60.18 fixed-point
+    uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 700; // 7e-16 * 1e18 in 60.18 fixed-point
 
     uint256 public constant NO_LOCKUP_INDEX = 0;
     uint256 public constant BUCKET_SHORT_TERM_MIN = 1;

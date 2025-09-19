@@ -326,12 +326,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         );
     }
 
-    function _applyNoLockupWeightedStake(
-        uint256 stakeAmount
-    ) internal pure returns (uint256) {
-        return (0.05e18 * stakeAmount) / 1e18;
-    }
-
     /**
      * @notice Helper to advance time and mine blocks
      */
@@ -376,8 +370,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 lockupPeriod
     ) internal pure returns (uint256) {
         // Constants from contract
-        uint256 WEIGHTED_STAKE_BASE = 5e16;
-        uint256 WEIGHTED_STAKE_COEFFICIENT = 350; //
+        uint256 WEIGHTED_STAKE_BASE = 1e18;
+        uint256 WEIGHTED_STAKE_COEFFICIENT = 700; //
         // Convert lockupPeriod into 60.18 fixed-point
         UD60x18 time = convert(lockupPeriod);
 
