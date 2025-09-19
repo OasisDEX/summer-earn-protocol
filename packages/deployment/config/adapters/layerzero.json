@@ -51,6 +51,19 @@
       "executor": "0x4208D6E27538189bB48E603D6123A94b8Abe0A0b",
       "readDVNs": ["0x6788f52439ACA6BFF597d3eeC2DC9a44B8FEE842"],
       "confirmations": 15
+    },
+    "10": {
+      "minGasLimits": {
+        "stateRead": 300000,
+        "generalMessage": 300000
+      },
+      "readChannelId": 4294967295,
+      "readLib1002": "0x01B29c03fAD8F455184573D6624a8136cF6106Fb",
+      "sendUln302": "0x1322871e4ab09Bc7f5717189434f97bBD9546e95",
+      "receiveUln302": "0x3c4962Ff6258dcfCafD23a814237B7d6Eb712063",
+      "executor": "0x2D2ea0697bdbede3F01553D2Ae4B8d0c486B666e",
+      "readDVNs": ["0xd4925b81f62457caca368412315d230535b9a48a"],
+      "confirmations": 15
     }
   }
 }
