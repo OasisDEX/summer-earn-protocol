@@ -80,7 +80,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
         uint16 targetChainId,
         bytes32 relationshipType
     ) public onlyGovernor {
-        // shared registration logic
+        // Delegate to internal registration logic with validation and storage
         _registerRelationship(
             sourceContract,
             targetContract,
@@ -129,7 +129,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
     /**
      * @notice Updates the bridge router address
-     * @param newBridgeRouter The new bridge router address
+     * @param newBridgeRouter The new bridge router address (cannot be address(0))
      */
     function setBridgeRouter(address newBridgeRouter) external onlyGovernor {
         if (newBridgeRouter == address(0)) {
@@ -160,7 +160,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
         }
 
-        // Get the first target chain for this source contract and relationship type
+        // Get the first registered target chain for this source contract and relationship type
+        // Note: Returns only the first relationship found, not necessarily all relationships
         bytes32 sourceTrackingKey = _getSourceTrackingKey(
             sourceContract,
             relationshipType
@@ -259,7 +260,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             );
         }
 
-        // Get the first target chain for this source contract and relationship type
+        // Get the first registered target chain for this source contract and relationship type
+        // Note: Returns only the first relationship found, not necessarily all relationships
         bytes32 sourceTrackingKey = _getSourceTrackingKey(
             sourceContract,
             relationshipType
@@ -586,7 +588,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /**
-     * @notice Shortcut to determine if both contracts live on the deployment chain
+     * @notice Determines if both source and target chain IDs match the current deployment chain
+     * @return True if both chains are the current chain (same-chain relationship)
      */
     function _isSameChain(
         uint16 sourceChainId,
@@ -598,7 +601,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /**
-     * @dev Common unregistration implementation used by both public entry points.
+     * @dev Common unregistration implementation used by public functions.
      *      Performs relationship cleanup and validation.
      */
     function _unregisterRelationship(
@@ -612,7 +615,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             targetChainId
         );
 
-        // Check if this specific relationship exists
+        // Verify the relationship exists before attempting to unregister
         if (crossChainRelations[relationshipKey].sourceContract == address(0)) {
             revert RelationshipDoesNotExist(
                 sourceContract,
@@ -673,8 +676,8 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
     }
 
     /**
-     * @dev Common registration implementation used by both public entry points.
-     *      Performs basic parameter validation and handles registration logic.
+     * @dev Common registration implementation used by public functions.
+     *      Performs parameter validation and handles registration logic.
      */
     function _registerRelationship(
         address sourceContract,
@@ -715,7 +718,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             targetChainId
         );
 
-        // uniqueness check
+        // Check if relationship already exists to prevent duplicates
         if (crossChainRelations[relationshipKey].sourceContract != address(0)) {
             revert RelationshipAlreadyExists(
                 sourceContract,
@@ -726,7 +729,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
 
         bool sameChain = _isSameChain(sourceChainId, targetChainId);
 
-        // inter-chain reverse-lookup uniqueness
+        // For cross-chain relationships, ensure target contract isn't already registered to prevent conflicts
         if (!sameChain) {
             bytes32 targetKey = _getTargetKey(
                 sourceChainId,
@@ -746,7 +749,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             targetToSource[targetKey] = sourceContract;
         }
 
-        // store the relation
+        // Store the cross-chain relationship in the main mapping
         crossChainRelations[relationshipKey] = CrossChainRelation({
             sourceContract: sourceContract,
             targetContract: targetContract,
@@ -755,7 +758,7 @@ contract CrossChainRegistry is ICrossChainRegistry, ProtocolAccessManaged {
             relationshipType: relationshipType
         });
 
-        // tracking helpers
+        // Update tracking structures for efficient lookups
         registeredSourceContracts[relationshipType].add(sourceContract);
 
         bytes32 sourceTrackingKey = _getSourceTrackingKey(

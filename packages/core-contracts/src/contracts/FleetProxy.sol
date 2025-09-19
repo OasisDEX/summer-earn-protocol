@@ -74,7 +74,7 @@ contract FleetProxy is
     {
         if (_crossChainRegistry == address(0)) revert InvalidRegistry();
         if (_fleetAddress == address(0)) revert InvalidFleetContract();
-        if (_sourceChainId == 0) revert InvalidSatelliteChain();
+        if (_sourceChainId == 0) revert InvalidSourceChain();
 
         fleetAddress = _fleetAddress;
         hubChainId = _sourceChainId;
@@ -116,6 +116,7 @@ contract FleetProxy is
     /// @param amount Amount of withdrawal assets to set as in-flight
     /// @dev This is an emergency function that allows governance to manually correct inflight withdrawal tracking
     /// in case of bridge failures or accounting discrepancies
+    /// @dev Emits InflightCleared if amount is 0, otherwise emits InflightSet
     function forceUpdateInflightAssets(uint256 amount) external onlyGovernor {
         uint256 previous = inflightWithdrawals;
         inflightWithdrawals = amount;
@@ -128,6 +129,7 @@ contract FleetProxy is
 
     /// @notice SuperKeeper ACK to clear inflight withdrawals once hub receipt is verified off-chain
     /// @param operationId The outbound transfer operation ID being acknowledged (for audit/logging)
+    /// @dev Emits InflightCleared event
     function acknowledgeHubReceipt(
         bytes32 operationId
     ) external whenNotPaused nonReentrant onlySuperKeeper {
@@ -148,6 +150,7 @@ contract FleetProxy is
     /// @dev This function is used to withdraw assets from the fleet contract and transfer them to the hub chain
     /// @dev This function is callable by any address with the KEEPER_ROLE
     /// @dev We attach the remaining fleet balance to the message for balance updates
+    /// @dev Emits InflightSet and AssetsWithdrawnAndTransferred events
     function withdrawAndTransfer(
         uint amount,
         BridgeTypes.BridgeOptions calldata options
@@ -372,6 +375,7 @@ contract FleetProxy is
      * @param asset The asset address
      * @param amount The amount received
      * @param _hubChainId The source chain ID
+     * @dev Emits ProxyDeposit event
      */
     function _handleReceiveAssets(
         address asset,

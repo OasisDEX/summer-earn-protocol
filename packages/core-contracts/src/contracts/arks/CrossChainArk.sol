@@ -172,6 +172,7 @@ contract CrossChainArk is
     /// @notice Executes the pending cross-chain transfer to the satellite chain
     /// @dev This function initiates the actual bridge transfer after validation
     /// @dev Only callable by keeper role
+    /// @dev Emits InflightSet and PendingTransferQueued events
     function executeTransferAssets() external payable onlyKeeper {
         _assertCanExecuteTransfer();
         IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
@@ -307,6 +308,7 @@ contract CrossChainArk is
     /**
      * @notice Handles TRANSFER_ASSET operation type (asset withdrawals from FleetProxy)
      * @param params Decoded transfer parameters
+     * @dev Emits RemoteAssetBalanceUpdated and AssetsReceived events
      */
     function _handleTransferAsset(
         BridgeTypes.RelayedTransferParams memory params
