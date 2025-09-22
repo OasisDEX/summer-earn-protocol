@@ -109,6 +109,7 @@ async function getUserInput(
   }
 
   const currentNetwork = hre.network.name
+  const currentChainId = getChainIdByNetwork(currentNetwork)
 
   // List available fleet deployments (support both CWD and __dirname to be robust)
   const candidateDeploymentDirs = [
@@ -134,19 +135,34 @@ async function getUserInput(
     throw new Error('No fleet deployments found. Deploy a fleet on the source chain first.')
   }
 
-  // Filter deployments based on bummer config only; the fleet is on the hub chain, not current chain
+  // Filter deployments to only those for the current network and, optionally, bummer config
   const filteredDeploymentFiles = deploymentFiles.filter((file) => {
     const deploymentPath = path.join(deploymentsDir, file)
     const deploymentContent = fs.readFileSync(deploymentPath, 'utf8')
     const fleetDeployment = JSON.parse(deploymentContent)
+
+    // Respect bummer filter
     const isBummerFleet = String(fleetDeployment.fleetName || '')
       .toLowerCase()
       .includes('bummer')
-    return useBummerConfig || !isBummerFleet
+    if (!useBummerConfig && isBummerFleet) return false
+
+    // Only include fleets deployed on the current chain
+    const deploymentNetwork = String(fleetDeployment.network || '')
+    let deploymentChainId = -1
+    try {
+      deploymentChainId = getChainIdByNetwork(deploymentNetwork)
+    } catch {
+      // Unknown network in file – exclude it from choices
+      return false
+    }
+    return deploymentChainId === currentChainId
   })
 
   if (filteredDeploymentFiles.length === 0) {
-    throw new Error('No compatible fleet deployments found for the selected configuration.')
+    throw new Error(
+      'No compatible fleet deployments found for the selected configuration on the current network.',
+    )
   }
 
   // Allow user to select a deployment file
