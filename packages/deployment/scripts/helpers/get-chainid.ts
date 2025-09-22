@@ -11,6 +11,8 @@ const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   arbitrum: 42161,
   base: 8453,
   sonic: 146,
+  unichain: 130,
+  optimism: 10,
 }
 
 /**

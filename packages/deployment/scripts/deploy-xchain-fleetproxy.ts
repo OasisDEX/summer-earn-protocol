@@ -241,7 +241,6 @@ async function deployFleetProxyContract(
       parameters: {
         [moduleName]: {
           accessManager: params.accessManager,
-          bridgeRouter: params.bridgeRouter,
           crossChainRegistry: crossChainRegistryAddress,
           fleetContract: params.fleetContract,
           sourceChainId: params.sourceChainId,
