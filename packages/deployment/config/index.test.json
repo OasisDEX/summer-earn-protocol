@@ -974,6 +974,12 @@
         "lzDeadDVN": "0x6788f52439ACA6BFF597d3eeC2DC9a44B8FEE842"
       }
     },
-    "protocolSpecific": {}
+    "protocolSpecific": {
+      "erc4626": {
+        "usdc": {
+          "Euler Unichain": "0x6eAe95ee783e4D862867C4e0E4c3f4B95AA682Ba"
+        }
+      }
+    }
   }
 }
