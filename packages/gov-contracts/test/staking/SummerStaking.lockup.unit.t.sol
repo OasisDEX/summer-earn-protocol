@@ -1467,6 +1467,57 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     // ============ MOVE STAKES TESTS ============
 
+    function test_TransferStakes_Errors() public {
+        // Prepare: user1 has multiple stakes; user2 has stakes
+        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
+        _stake(aStaking, user1, STAKE_AMOUNT / 2, 0);
+        _stake(aStaking, user2, STAKE_AMOUNT, aMinLockupPeriod);
+        assertEq(aStaking.getUserStakesCount(user1), 2);
+        assertEq(aStaking.getUserStakesCount(user2), 2);
+
+        // Snapshot pre-state (reduced locals)
+        UserSnapshot memory fromBefore = _snapshotUser(aStaking, user1);
+        UserSnapshot memory toBefore = _snapshotUser(aStaking, user2);
+        uint256 totalSupplyBefore = aStaking.totalSupply();
+
+        // Approve xSUMR transfer and move all stakes from user1 to user2
+        vm.prank(user1);
+        axSumr.approve(address(aStaking), fromBefore.raw);
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InvalidAddress.selector,
+                "Target address cannot be zero"
+            )
+        );
+        aStaking.transferStakes(address(0));
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InvalidAddress.selector,
+                "Cannot move stakes to self"
+            )
+        );
+        aStaking.transferStakes(user1);
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_ExistingTarget.selector,
+                "Target already has stakes"
+            )
+        );
+        aStaking.transferStakes(user2);
+
+        deal(address(axSumr), user3, STAKE_AMOUNT);
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_ExistingTarget.selector,
+                "Target already holds xSUMR"
+            )
+        );
+        aStaking.transferStakes(user3);
+    }
     function test_MoveAllStakesTo_FreshWallet_AccountingMoves_XSumrTransfers()
         public
     {

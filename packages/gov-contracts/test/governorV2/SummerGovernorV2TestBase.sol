@@ -360,5 +360,4 @@ contract SummerGovernorV2TestBase is
 
         advanceTimeAndBlock();
     }
-
 }

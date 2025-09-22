@@ -161,9 +161,6 @@ contract SummerStaking is
 
         if (stakesByPortfolioId[_getPortfolioId(_to)].length != 0)
             revert Staking_ExistingTarget("Target already has stakes");
-        if (_balances[_to] != 0 || weightedBalances[_to] != 0) {
-            revert Staking_ExistingTarget("Target already has balances");
-        }
 
         UserStake[] storage fromStakes = stakesByPortfolioId[
             _getPortfolioId(from)
