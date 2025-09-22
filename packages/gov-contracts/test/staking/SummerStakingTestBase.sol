@@ -28,6 +28,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     uint256 public constant MEDIUM_LOCKUP = 365 days;
     uint256 public aMaxPenaltyPercentage;
     uint256 public bMaxPenaltyPercentage;
+    uint256 public aMinPenaltyPercentage;
+    uint256 public bMinPenaltyPercentage;
     uint256 public aMaxLockupPeriod;
     uint256 public bMaxLockupPeriod;
     uint256 public aMinLockupPeriod;
@@ -59,6 +61,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         bMaxLockupPeriod = bStaking.MAX_LOCKUP_PERIOD();
         aMinLockupPeriod = aStaking.BUCKET_SHORT_TERM_MAX() + 1;
         bMinLockupPeriod = bStaking.BUCKET_SHORT_TERM_MAX() + 1;
+        aMinPenaltyPercentage = aStaking.MIN_PENALTY_PERCENTAGE();
+        bMinPenaltyPercentage = bStaking.MIN_PENALTY_PERCENTAGE();
 
         vm.startPrank(address(timelockA));
         axSumr.addStakingModule(address(aStaking));
@@ -322,12 +326,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         );
     }
 
-    function _applyNoLockupWeightedStake(
-        uint256 stakeAmount
-    ) internal pure returns (uint256) {
-        return (0.05e18 * stakeAmount) / 1e18;
-    }
-
     /**
      * @notice Helper to advance time and mine blocks
      */
@@ -372,8 +370,8 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 lockupPeriod
     ) internal pure returns (uint256) {
         // Constants from contract
-        uint256 WEIGHTED_STAKE_BASE = 5e16;
-        uint256 WEIGHTED_STAKE_COEFFICIENT = 350; //
+        uint256 WEIGHTED_STAKE_BASE = 1e18;
+        uint256 WEIGHTED_STAKE_COEFFICIENT = 700; //
         // Convert lockupPeriod into 60.18 fixed-point
         UD60x18 time = convert(lockupPeriod);
 
