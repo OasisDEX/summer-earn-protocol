@@ -800,7 +800,7 @@ contract BridgeRouter is
     /// @notice Returns the failure record for an operationId (reverts if none)
     function getFailedDelivery(
         bytes32 operationId
-    ) external view returns (FailedDeliveryRecord memory) {
+    ) public view returns (FailedDeliveryRecord memory) {
         FailedDeliveryRecord memory r = failedDeliveries[operationId];
         if (r.failedAt == 0) revert FailureRecordNotFound();
         return r;
@@ -877,9 +877,7 @@ contract BridgeRouter is
         bytes32 operationId,
         address newRecipient
     ) external nonReentrant onlyKeeper whenNotPaused {
-        FailedDeliveryRecord memory r = failedDeliveries[operationId];
-
-        if (r.failedAt == 0) revert InvalidParams();
+        FailedDeliveryRecord memory r = getFailedDelivery(operationId);
 
         // State reads should not be retryable as they are read-only operations
         if (r.operationType == BridgeTypes.OperationType.READ_STATE) {
@@ -935,8 +933,7 @@ contract BridgeRouter is
         address adapter,
         bytes calldata operationPayload
     ) external nonReentrant onlyGovernor whenNotPaused {
-        FailedDeliveryRecord memory r = failedDeliveries[failedOperationId];
-        if (r.failedAt == 0) revert FailureRecordNotFound();
+        FailedDeliveryRecord memory r = getFailedDelivery(failedOperationId);
 
         if (!adapters.contains(adapter)) revert UnknownAdapter();
 
