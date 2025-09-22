@@ -67,6 +67,18 @@ interface ISummerVestingWalletsEscrow {
     /// @notice Reserved for potential future use if balance sanity checks are required.
     error Staking_InvalidBalance();
 
+    /// @notice Thrown when attempting to operate on a factory that is not enabled for staking.
+    error Staking_FactoryNotEnabled();
+
+    /// @notice Thrown when attempting to stake from a factory with zero SUMR balance.
+    error Staking_ZeroBalance();
+
+    /// @notice Thrown when attempting to unstake a factory that has not been staked by the caller.
+    error Staking_NoStakeForFactory();
+
+    /// @notice Thrown when attempting to stake a factory that is already staked by the caller.
+    error Staking_FactoryAlreadyStaked();
+
     /// @notice Thrown when no eligible vesting wallets are found to stake from.
     /// @dev This includes the case where wallets have zero balance or have already been staked from for the caller.
     error Staking_VestingWalletsEmpty();
@@ -149,18 +161,23 @@ interface ISummerVestingWalletsEscrow {
     //          USER FLOWS
     // =============================
 
-    /// @notice Stakes based on the SUMR balances held in the caller's vesting wallets across all enabled factories.
-    /// @dev For each factory, if a vesting wallet exists for the caller and is currently owned by the staking contract,
-    ///      and has not previously been staked from by the caller, its SUMR balance contributes to the minted xSUMR.
-    ///      No tokens move out of the vesting wallets; the contract only verifies ownership and balances and mints xSUMR.
-    /// @custom:reverts Staking_VestingWalletsEmpty If no eligible vesting wallets were found (zero total balance or
-    ///                                            already staked).
-    function stakeVesting() external;
+    /// @notice Stakes against the SUMR balances held in the caller's vesting wallets for the specified factories.
+    /// @dev Each factory is processed independently; for each factory this will record the staked balance and released
+    ///      amount, and mint xSUMR equal to the vesting wallet SUMR balance for that factory.
+    /// @param factories The list of vesting factory addresses to stake from.
+    /// @custom:reverts Staking_FactoryNotEnabled If a specified factory is not enabled.
+    /// @custom:reverts Staking_FactoryAlreadyStaked If a specified factory is already staked for the caller.
+    /// @custom:reverts Staking__InvalidOwner If the vesting wallet is not owned by the escrow.
+    /// @custom:reverts Staking_ZeroBalance If the vesting wallet SUMR balance is zero.
+    function stakeVesting(address[] calldata factories) external;
 
-    /// @notice Unstakes previously staked vesting positions and returns vesting wallet ownership back to the user.
-    /// @dev Burns the caller's xSUMR equal to the previously staked total and transfers ownership of the vesting
-    ///      wallets back to the original owner if still applicable. If any SUMR vested while staked, it is forwarded
-    ///      to the original vesting wallet owner.
-    /// @custom:reverts Staking_NoVestingWalletsStaked If the caller has no recorded staked vesting factories.
-    function unstakeVesting() external;
+    /// @notice Unstakes previously staked vesting positions for the specified factories and returns vesting wallet
+    ///         ownership back to the user for each.
+    /// @dev Each factory is processed independently; this burns xSUMR equal to the recorded staked balance for that
+    ///      factory and transfers vesting wallet ownership back to the original owner. Any SUMR released while staked
+    ///      is forwarded to the original owner.
+    /// @param factories The list of vesting factory addresses to unstake.
+    /// @custom:reverts Staking_NoStakeForFactory If a specified factory has not been staked by the caller.
+    /// @custom:reverts Staking__InvalidOwner If the vesting wallet is not owned by the escrow.
+    function unstakeVesting(address[] calldata factories) external;
 }

@@ -182,124 +182,123 @@ contract SummerVestingWalletsEscrow is
     // ============ EXTERNAL FUNCTIONS - USER FLOWS ============
 
     /// @inheritdoc ISummerVestingWalletsEscrow
-    function stakeVesting() public override nonReentrant {
-        uint256 totalBalance;
-        for (uint256 i = 0; i < _vestingFactories.length(); i++) {
-            IMinimalVestingFactory vestingFactory = IMinimalVestingFactory(
-                _vestingFactories.at(i)
-            );
-            /// @dev only the original owner of the vesting wallet can stake from it
-            /// @dev if the ownership was transferred to the user - the user can't stake from it
-            address vestingWallet = vestingFactory.vestingWallets(msg.sender);
-            // if the vesting wallet address is not zero and the user has not staked from this vesting factory yet
-            if (
-                vestingWallet != address(0) &&
-                !_userStakedVestingFactoriesBalance[msg.sender].contains(
-                    address(vestingFactory)
-                )
-            ) {
-                _validateVestingWalletOwner(vestingWallet);
-                uint256 balance = SUMMER_TOKEN.balanceOf(vestingWallet);
-                uint256 released = IMinimalVestingWallet(vestingWallet)
-                    .released(address(SUMMER_TOKEN));
-                _userStakedVestingFactoriesBalance[msg.sender].set(
-                    address(vestingFactory),
-                    balance
-                );
-                _userStakedVestingFactoriesReleased[msg.sender].set(
-                    address(vestingFactory),
-                    released
-                );
-                totalBalance += balance;
-                emit StakedVestingWallet(
-                    msg.sender,
-                    address(vestingFactory),
-                    balance,
-                    released
-                );
+    function stakeVesting(
+        address[] calldata factories
+    ) public override nonReentrant {
+        for (uint256 i = 0; i < factories.length; i++) {
+            if (!_vestingFactories.contains(factories[i])) {
+                revert Staking_FactoryNotEnabled();
             }
-        }
-
-        if (totalBalance > 0) {
-            STAKED_SUMMER_TOKEN.mint(msg.sender, totalBalance);
-        } else {
-            revert Staking_VestingWalletsEmpty();
+            _stakeFromFactory(IMinimalVestingFactory(factories[i]), msg.sender);
         }
     }
 
     /// @inheritdoc ISummerVestingWalletsEscrow
-    function unstakeVesting() public override nonReentrant {
-        uint256 totalBalance;
-        while (_userStakedVestingFactoriesBalance[msg.sender].length() > 0) {
-            (
-                address factory,
-                uint256 stakedBalance
-            ) = _userStakedVestingFactoriesBalance[msg.sender].at(
-                    _userStakedVestingFactoriesBalance[msg.sender].length() - 1
-                );
-
-            IMinimalVestingFactory vestingFactory = IMinimalVestingFactory(
-                factory
+    function unstakeVesting(
+        address[] calldata factories
+    ) public override nonReentrant {
+        for (uint256 i = 0; i < factories.length; i++) {
+            _unstakeFromFactory(
+                IMinimalVestingFactory(factories[i]),
+                msg.sender
             );
-            address vestingWallet = vestingFactory.vestingWallets(msg.sender);
-
-            if (vestingWallet != address(0)) {
-                uint256 releasedAtUnstake = _unstakeVestingWallet(
-                    vestingWallet,
-                    vestingFactory
-                );
-                totalBalance += stakedBalance;
-            }
-            _userStakedVestingFactoriesBalance[msg.sender].remove(
-                address(vestingFactory)
-            );
-            _userStakedVestingFactoriesReleased[msg.sender].remove(
-                address(vestingFactory)
-            );
-            emit UnstakedVestingWallet(
-                msg.sender,
-                address(vestingFactory),
-                stakedBalance,
-                releasedAtUnstake
-            );
-        }
-        if (totalBalance > 0) {
-            STAKED_SUMMER_TOKEN.burnFrom(msg.sender, totalBalance);
-        } else {
-            revert Staking_NoVestingWalletsStaked();
         }
     }
 
     // ============ INTERNAL FUNCTIONS ============
 
     /**
-     * @dev Internal method to unstake tokens from a single vesting wallet
-     * @dev all or nothing - if user owns multiple vesting wallets - they can't unstake only from some of them
-     * @param _vestingWallet The vesting wallet address
-     * @param _vestingFactory The vesting factory address
+     * @dev Internal method to stake from a single factory for a user, minting xSUMR equal to the vesting wallet balance.
+     * @param _vestingFactory The vesting factory
+     * @param _user The user performing the stake
      */
-    function _unstakeVestingWallet(
-        address _vestingWallet,
-        IMinimalVestingFactory _vestingFactory
-    ) internal returns (uint256 releasedAtUnstake) {
-        _validateVestingWalletOwner(_vestingWallet);
-        address originalOwner = _vestingFactory.vestingWalletOwners(
-            _vestingWallet
-        );
+    function _stakeFromFactory(
+        IMinimalVestingFactory _vestingFactory,
+        address _user
+    ) internal {
+        address factoryAddress = address(_vestingFactory);
+        if (
+            _userStakedVestingFactoriesBalance[_user].contains(factoryAddress)
+        ) {
+            revert Staking_FactoryAlreadyStaked();
+        }
 
-        uint256 releasedAtStake = _userStakedVestingFactoriesReleased[
-            originalOwner
-        ].get(address(_vestingFactory));
-        releasedAtUnstake = IMinimalVestingWallet(_vestingWallet).released(
+        address vestingWallet = _vestingFactory.vestingWallets(_user);
+        if (vestingWallet == address(0)) {
+            revert Staking_InvalidAddress("Vesting wallet not found");
+        }
+
+        _validateVestingWalletOwner(vestingWallet);
+
+        uint256 balance = SUMMER_TOKEN.balanceOf(vestingWallet);
+        if (balance == 0) {
+            revert Staking_ZeroBalance();
+        }
+        uint256 released = IMinimalVestingWallet(vestingWallet).released(
             address(SUMMER_TOKEN)
         );
+
+        _userStakedVestingFactoriesBalance[_user].set(factoryAddress, balance);
+        _userStakedVestingFactoriesReleased[_user].set(
+            factoryAddress,
+            released
+        );
+
+        STAKED_SUMMER_TOKEN.mint(_user, balance);
+
+        emit StakedVestingWallet(_user, factoryAddress, balance, released);
+    }
+
+    /**
+     * @dev Internal method to unstake a single factory for a user, burning recorded xSUMR and transferring ownership back.
+     * @param _vestingFactory The vesting factory
+     * @param _user The user performing the unstake
+     */
+    function _unstakeFromFactory(
+        IMinimalVestingFactory _vestingFactory,
+        address _user
+    ) internal {
+        address factoryAddress = address(_vestingFactory);
+        if (
+            !_userStakedVestingFactoriesBalance[_user].contains(factoryAddress)
+        ) {
+            revert Staking_NoStakeForFactory();
+        }
+
+        uint256 stakedBalance = _userStakedVestingFactoriesBalance[_user].get(
+            factoryAddress
+        );
+
+        address vestingWallet = _vestingFactory.vestingWallets(_user);
+        if (vestingWallet == address(0)) {
+            revert Staking_InvalidAddress("Vesting wallet not found");
+        }
+
+        _validateVestingWalletOwner(vestingWallet);
+
+        uint256 releasedAtStake = _userStakedVestingFactoriesReleased[_user]
+            .get(address(_vestingFactory));
+        uint256 releasedAtUnstake = IMinimalVestingWallet(vestingWallet)
+            .released(address(SUMMER_TOKEN));
         uint256 releasedWhileStaked = releasedAtUnstake - releasedAtStake;
         if (releasedWhileStaked > 0) {
             /// @dev `release()` method is permissionless - so it can be called by anyone
             /// @dev the tokens released while staked are transferred back to the original owner
-            SUMMER_TOKEN.safeTransfer(originalOwner, releasedWhileStaked);
+            SUMMER_TOKEN.safeTransfer(_user, releasedWhileStaked);
         }
-        IMinimalVestingWallet(_vestingWallet).transferOwnership(originalOwner);
+        IMinimalVestingWallet(vestingWallet).transferOwnership(_user);
+
+        _userStakedVestingFactoriesBalance[_user].remove(factoryAddress);
+        _userStakedVestingFactoriesReleased[_user].remove(factoryAddress);
+
+        STAKED_SUMMER_TOKEN.burnFrom(_user, stakedBalance);
+
+        emit UnstakedVestingWallet(
+            _user,
+            factoryAddress,
+            stakedBalance,
+            releasedAtUnstake
+        );
     }
 
     /**

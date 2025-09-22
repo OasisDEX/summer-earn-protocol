@@ -45,18 +45,20 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         public
     {
         uint256 directAmount = USER_1_DIRECT_AMOUNT;
+        uint256 maliciousAmount = 1 ether;
 
         // Setup vesting wallets using helper function (don't transfer ownership yet)
         _createVestingWalletForUser(
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: USER_1_VESTING_1_AMOUNT,
+                vestingAmount: USER_1_VESTING_1_AMOUNT,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: _createPerformanceGoals(0, "V1 Test goal"),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -64,7 +66,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: true,
-                totalAmount: USER_1_VESTING_1_AMOUNT,
+                vestingAmount: USER_1_VESTING_1_AMOUNT,
                 cliffAmount: USER_1_VESTING_1_CLIFF_AMOUNT,
                 cliffPeriodDays: CLIFF_PERIOD_DAYS,
                 performanceGoals: _createPerformanceGoals(
@@ -72,7 +74,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
                     "V2 Test goal"
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -83,6 +86,10 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         );
         address payable vestingWalletV2 = payable(
             factoryVestingV2.vestingWallets(alice)
+        );
+
+        uint256 vestingWalletV2BalanceBefore = aSummerToken.balanceOf(
+            vestingWalletV2
         );
 
         // Alice delegates to herself
@@ -104,28 +111,41 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             "Alice's voting power should only include direct tokens when vesting wallets are not staked"
         );
 
-        // Check vesting wallet balance before release for debugging
+        vm.startPrank(alice);
+        SummerVestingWallet(vestingWalletV1).transferOwnership(
+            address(aStaking)
+        );
+        SummerVestingWallet(vestingWalletV2).transferOwnership(
+            address(aStaking)
+        );
+        aStaking.stakeVesting(vestingFactories);
+        vm.stopPrank();
 
-        // Check Alice balance before release
-        uint256 aliceBalanceBeforeRelease = aSummerToken.balanceOf(alice);
+        // Check Alice and escrow balances before release
+        uint aliceBalanceBeforeRelease = aSummerToken.balanceOf(alice);
+        uint256 escrowBalanceBeforeRelease = aSummerToken.balanceOf(
+            address(aStaking)
+        );
 
         // fast forward past cliff for vesting wallet v2
         vm.warp(block.timestamp + CLIFF_PERIOD_DAYS + 1);
 
         SummerVestingWallet(vestingWalletV2).release(address(aSummerToken));
-        uint256 aliceBalanceAfterRelease = aSummerToken.balanceOf(alice);
-        uint256 releasedAmount = aliceBalanceAfterRelease -
-            aliceBalanceBeforeRelease;
+        uint256 escrowBalanceAfterRelease = aSummerToken.balanceOf(
+            address(aStaking)
+        );
+        uint256 releasedAmount = escrowBalanceAfterRelease -
+            escrowBalanceBeforeRelease;
 
-        // malicious actor send sumr to vesting wallet v2
+        // Malicious actor dusts the vesting wallet V2 to try to influence staking/unstaking
         vm.prank(address(timelockA));
-        aSummerToken.transfer(vestingWalletV2, USER_1_VESTING_1_CLIFF_AMOUNT);
+        aSummerToken.transfer(vestingWalletV2, maliciousAmount);
 
-        // Check that Alice received the released cliff amount
+        // Check that escrow received the Alice's released cliff amount
         assertEq(
             releasedAmount,
             USER_1_VESTING_1_CLIFF_AMOUNT,
-            "Alice should receive the cliff amount after release"
+            "Escrow should receive the cliff amount after release"
         );
 
         // Check that vesting wallets still have their remaining balances
@@ -136,8 +156,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             vestingWalletV2
         );
 
-        // V2 should have: total - cliff + malicious transfer = 500000 + 125000 + 250000 = 875000
-        // V1 should have: 500000 (unchanged)
+        // V2 should have: total (= cliff + vesting + performance goal) - cliff + malicious transfer
+        // V1 should have unchanged balance
         assertEq(
             vestingWallets1Balance,
             USER_1_VESTING_1_AMOUNT,
@@ -146,9 +166,122 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         assertEq(
             vestingWallets2Balance,
             USER_1_VESTING_1_AMOUNT +
-                USER_1_VESTING_1_CLIFF_AMOUNT +
-                USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT,
-            "V2 vesting wallet should have total amount + cliff + performance goals"
+                USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT +
+                maliciousAmount,
+            "V2 vesting wallet should have total amount + performance goals + malicious transfer"
+        );
+
+        vm.startPrank(alice);
+        // Approve the total amount of xSUMR to burn (including the previously released cliff amount)
+        axSumr.approve(
+            address(aStaking),
+            USER_1_VESTING_1_AMOUNT +
+                USER_1_VESTING_1_AMOUNT +
+                USER_1_VESTING_1_PERFORMANCE_GOAL_AMOUNT +
+                USER_1_VESTING_1_CLIFF_AMOUNT
+        );
+        aStaking.unstakeVesting(vestingFactories);
+        vm.stopPrank();
+
+        assertEq(
+            axSumr.allowance(alice, address(aStaking)),
+            0,
+            "Alice should have no allowance after unstaking"
+        );
+        assertEq(
+            aSummerToken.balanceOf(alice),
+            aliceBalanceBeforeRelease + releasedAmount,
+            "Alice should have the released amount of SUMR after unstaking"
+        );
+        assertEq(
+            aSummerToken.balanceOf(address(aStaking)),
+            0,
+            "Escrow should have no tokens after unstaking"
+        );
+        assertEq(
+            axSumr.balanceOf(alice),
+            directAmount,
+            "Alice should have only 'direct amount' of xSUMR after unstaking"
+        );
+        uint vestingWalletV2BalanceAfter = aSummerToken.balanceOf(
+            vestingWalletV2
+        );
+        assertEq(
+            vestingWalletV2BalanceBefore -
+                SummerVestingWallet(vestingWalletV2).vestedAmount(
+                    uint64(block.timestamp)
+                ),
+            vestingWalletV2BalanceAfter - maliciousAmount,
+            "V2 vesting wallet accounting should be correct after unstaking"
+        );
+
+        // =============================
+        // Re-stake after dusting scenario
+        // =============================
+        // At this point, dust remains in V2 wallet. Re-staking should mint more xSUMR
+        // equal to current vesting wallet balances (including dust), but immediate
+        // unstake should not transfer the dust since nothing is or can be released while staked (except vesting schedule).
+
+        // Snapshot balances before re-stake
+        uint256 aliceXSumrBeforeRestake = axSumr.balanceOf(alice); // expected to equal directAmount
+        assertEq(
+            aliceXSumrBeforeRestake,
+            directAmount,
+            "Alice should have direct amount of xSUMR before re-stake"
+        );
+        uint256 aliceSumrBeforeRestake = aSummerToken.balanceOf(alice);
+        assertEq(
+            aliceSumrBeforeRestake,
+            aliceBalanceBeforeRelease + releasedAmount,
+            "Alice should have the released amount of SUMR before re-stake"
+        );
+
+        // Transfer ownership of both wallets back to escrow and stake again
+        vm.startPrank(alice);
+        SummerVestingWallet(vestingWalletV1).transferOwnership(
+            address(aStaking)
+        );
+        SummerVestingWallet(vestingWalletV2).transferOwnership(
+            address(aStaking)
+        );
+        aStaking.stakeVesting(vestingFactories);
+        vm.stopPrank();
+
+        // Verify additional xSUMR minted equals current vesting wallet balances (includes malicious dust)
+        uint256 v1CurrentBalance = aSummerToken.balanceOf(vestingWalletV1);
+        uint256 v2CurrentBalance = aSummerToken.balanceOf(vestingWalletV2);
+        uint256 mintedOnRestake = axSumr.balanceOf(alice) -
+            aliceXSumrBeforeRestake;
+        uint256 expectedMintOnRestake = v1CurrentBalance + v2CurrentBalance;
+        assertEq(
+            mintedOnRestake,
+            expectedMintOnRestake,
+            "Restake should mint xSUMR equal to current vesting wallet balances, including dust"
+        );
+
+        // Immediate unstake: should not transfer dust since nothing was released while staked
+        vm.startPrank(alice);
+        axSumr.approve(address(aStaking), mintedOnRestake);
+        aStaking.unstakeVesting(vestingFactories);
+        vm.stopPrank();
+
+        // No additional SUMR should be received by Alice on immediate unstake
+        assertEq(
+            aSummerToken.balanceOf(alice),
+            aliceSumrBeforeRestake,
+            "Immediate unstake after restake should not transfer unreleased (dusted) SUMR"
+        );
+        // xSUMR should return to direct-only amount
+        assertEq(
+            axSumr.balanceOf(alice),
+            directAmount,
+            "After immediate restake+unstake, Alice should only hold direct xSUMR again"
+        );
+        // Escrow should again hold no SUMR
+        assertEq(
+            aSummerToken.balanceOf(address(aStaking)),
+            0,
+            "Escrow should hold no SUMR after immediate restake+unstake"
         );
     }
 
@@ -162,14 +295,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -177,7 +311,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: true,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: USER_1_VESTING_1_CLIFF_AMOUNT,
                 cliffPeriodDays: CLIFF_PERIOD_DAYS,
                 performanceGoals: _createPerformanceGoals(
@@ -185,7 +319,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
                     "Test goal"
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -205,7 +340,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV2).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(vestingFactories);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -241,14 +376,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -262,7 +398,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(onlyV1VestingFactory);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -317,14 +453,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: 0,
+                vestingAmount: 0,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -370,14 +507,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -391,7 +529,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(onlyV1VestingFactory);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -416,9 +554,9 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         // Second call to stakeVesting should not add more voting power
         vm.prank(alice);
         vm.expectRevert(
-            abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
+            abi.encodeWithSignature("Staking_FactoryAlreadyStaked()")
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(onlyV1VestingFactory);
 
         // Voting power should remain the same
         uint256 aliceVotingPowerAfter = governorA.getVotes(
@@ -443,14 +581,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -465,7 +604,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
                 "Vesting wallet not owned by escrow"
             )
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(onlyV1VestingFactory);
 
         // Alice delegates to herself
         vm.prank(alice);
@@ -497,14 +636,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount1,
+                vestingAmount: vestingAmount1,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -512,7 +652,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: true,
-                totalAmount: vestingAmount2,
+                vestingAmount: vestingAmount2,
                 cliffAmount: USER_1_VESTING_2_CLIFF_AMOUNT,
                 cliffPeriodDays: CLIFF_PERIOD_DAYS,
                 performanceGoals: _createPerformanceGoals(
@@ -520,7 +660,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
                     "Test goal"
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -544,7 +685,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
                 "Vesting wallet not owned by escrow"
             )
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(vestingFactories);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -576,14 +717,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -597,7 +739,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(onlyV1VestingFactory);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -639,14 +781,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -660,7 +803,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(onlyV1VestingFactory);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -711,10 +854,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Attempt to unstake vesting - should revert since no vesting wallets staked
         vm.prank(alice);
-        vm.expectRevert(
-            abi.encodeWithSignature("Staking_NoVestingWalletsStaked()")
-        );
-        aStaking.unstakeVesting();
+        vm.expectRevert(abi.encodeWithSignature("Staking_NoStakeForFactory()"));
+        aStaking.unstakeVesting(vestingFactories);
     }
 
     function test_UnstakeVesting_VestingWalletNotOwnedByStaking() public {
@@ -727,14 +868,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -748,7 +890,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(onlyV1VestingFactory);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -777,7 +919,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
                 "Vesting wallet not owned by escrow"
             )
         );
-        aStaking.unstakeVesting();
+        aStaking.unstakeVesting(onlyV1VestingFactory);
 
         // Voting power should remain the same since unstaking failed
         uint256 aliceVotingPowerAfter = governorA.getVotes(
@@ -802,14 +944,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount1,
+                vestingAmount: vestingAmount1,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -817,7 +960,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: true,
-                totalAmount: vestingAmount2,
+                vestingAmount: vestingAmount2,
                 cliffAmount: USER_1_VESTING_2_CLIFF_AMOUNT,
                 cliffPeriodDays: CLIFF_PERIOD_DAYS,
                 performanceGoals: _createPerformanceGoals(
@@ -825,7 +968,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
                     "Test goal"
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -846,7 +990,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV2).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(vestingFactories);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -872,15 +1016,16 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(bob);
 
         // Attempt to unstake vesting - should revert due to mixed ownership
-        vm.prank(alice);
+        vm.startPrank(alice);
+        axSumr.approve(address(aStaking), expectedVotingPower);
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );
-        aStaking.unstakeVesting();
-
+        aStaking.unstakeVesting(vestingFactories);
+        vm.stopPrank();
         // Voting power should remain the same since unstaking failed
         uint256 aliceVotingPowerAfter = governorA.getVotes(
             alice,
@@ -903,14 +1048,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount,
+                vestingAmount: vestingAmount,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -924,7 +1070,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(onlyV1VestingFactory);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -944,7 +1090,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         // Successfully unstake vesting
         vm.startPrank(alice);
         axSumr.approve(address(aStaking), expectedVotingPower);
-        aStaking.unstakeVesting();
+        aStaking.unstakeVesting(onlyV1VestingFactory);
         vm.stopPrank();
 
         advanceTimeAndBlock();
@@ -979,14 +1125,15 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: vestingAmount1,
+                vestingAmount: vestingAmount1,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: new ISummerVestingWalletV2.PerformanceGoal[](
                     0
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -994,7 +1141,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: true,
-                totalAmount: vestingAmount2,
+                vestingAmount: vestingAmount2,
                 cliffAmount: USER_1_VESTING_2_CLIFF_AMOUNT,
                 cliffPeriodDays: CLIFF_PERIOD_DAYS,
                 performanceGoals: _createPerformanceGoals(
@@ -1002,7 +1149,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
                     "Test goal"
                 ),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: false
+                transferToStaking: false,
+                stakeVesting: false
             })
         );
 
@@ -1023,7 +1171,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV2).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeVesting();
+        aStaking.stakeVesting(vestingFactories);
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -1065,7 +1213,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             USER_1_VESTING_2_CLIFF_AMOUNT + // V2 cliff
             USER_1_VESTING_2_PERFORMANCE_GOAL_AMOUNT; // V2 performance goal
         axSumr.approve(address(aStaking), totalVestingAmount);
-        aStaking.unstakeVesting();
+        aStaking.unstakeVesting(vestingFactories);
         vm.stopPrank();
         // Verify vesting wallet ownership was transferred back to Alice
         assertEq(
@@ -1109,12 +1257,13 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: USER_1_VESTING_1_AMOUNT,
+                vestingAmount: USER_1_VESTING_1_AMOUNT,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: _createPerformanceGoals(0, "Rescue test"),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: true
+                transferToStaking: true,
+                stakeVesting: true
             })
         );
 
@@ -1145,12 +1294,13 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             VestingWalletConfig({
                 user: alice,
                 isV2: false,
-                totalAmount: USER_1_VESTING_1_AMOUNT,
+                vestingAmount: USER_1_VESTING_1_AMOUNT,
                 cliffAmount: 0,
                 cliffPeriodDays: 0,
                 performanceGoals: _createPerformanceGoals(0, "Rescue test"),
                 vestingType: ISummerVestingWallet.VestingType.TeamVesting,
-                transferToStaking: true
+                transferToStaking: true,
+                stakeVesting: true
             })
         );
 
