@@ -104,7 +104,12 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     function test_Stake_ZeroAmount() public {
         // Stake zero amount should revert
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("CannotStakeZero()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InvalidAmount.selector,
+                "Amount cannot be zero"
+            )
+        );
         aStaking.stakeLockup(0, 0); // No lockup for test
 
         // Balances should remain unchanged
@@ -183,7 +188,12 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Unstake zero amount should revert
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("CannotUnstakeZero()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InvalidAmount.selector,
+                "Amount cannot be zero"
+            )
+        );
         aStaking.unstakeLockup(0, 0);
 
         // StakedSummerToken balance should remain unchanged
@@ -329,7 +339,12 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         SummerStaking freshStaking = createFreshStaking();
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("CannotStakeZero()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InvalidAmount.selector,
+                "Amount cannot be zero"
+            )
+        );
         freshStaking.stakeLockup(0, 0); // No lockup for test
     }
 

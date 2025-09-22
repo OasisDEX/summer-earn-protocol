@@ -385,4 +385,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
 
     /// @notice Thrown when trying to move stakes to a wallet that already has stakes
     error Staking_ExistingTarget(string message);
+
+    /// @notice Thrown when trying to stake/unstake amount that is invalid
+    error Staking_InvalidAmount(string message);
 }

@@ -221,7 +221,7 @@ contract SummerStaking is
         uint256 _stakeIndex,
         uint256 _amount
     ) public virtual updateReward(_msgSender()) nonReentrant {
-        if (_amount == 0) revert CannotUnstakeZero();
+        if (_amount == 0) revert Staking_InvalidAmount("Amount cannot be zero");
         if (_amount > _balances[_msgSender()])
             revert Staking_InsufficientBalance();
         uint256 _stakePortfolioId = _getPortfolioId(_msgSender());
@@ -229,7 +229,7 @@ contract SummerStaking is
         if (_stakeIndex >= stakes.length) revert Staking_InvalidStakeIndex();
 
         UserStake memory processedStake = stakes[_stakeIndex];
-        if (processedStake.amount == 0) revert Staking_InvalidStakeIndex();
+        if (processedStake.amount < _amount) revert Staking_InvalidStakeIndex();
 
         uint256 unstakePenalty = calculatePenalty(
             _msgSender(),
@@ -507,9 +507,11 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) internal updateReward(_receiver) {
-        if (_receiver == address(0)) revert CannotStakeToZeroAddress();
-        if (_from == address(0)) revert CannotStakeToZeroAddress();
-        if (_amount == 0) revert CannotStakeZero();
+        if (_receiver == address(0))
+            revert Staking_InvalidAddress("Target address cannot be zero");
+        if (_from == address(0))
+            revert Staking_InvalidAddress("Sender address cannot be zero");
+        if (_amount == 0) revert Staking_InvalidAmount("Amount cannot be zero");
         if (_lockupPeriod > MAX_LOCKUP_PERIOD) {
             revert Staking_InvalidLockupPeriod(
                 "Lockup period cannot exceed 3 years"
