@@ -258,9 +258,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
         vm.chainId(31338);
     }
 
-    // Test skipper function
-    function test() public {}
-
     function _getDefaultTokenParams()
         internal
         view

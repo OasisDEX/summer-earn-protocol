@@ -11,7 +11,6 @@ import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalle
 import {Test, console} from "forge-std/Test.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ExposedSummerGovernor} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SummerVestingWalletsEscrowTestBase} from "./SummerVestingWalletsEscrowTestBase.sol";
 

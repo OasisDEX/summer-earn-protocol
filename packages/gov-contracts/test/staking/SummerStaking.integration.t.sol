@@ -18,7 +18,7 @@ import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
+import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 

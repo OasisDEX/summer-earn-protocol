@@ -23,7 +23,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {ExposedSummerGovernor, SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
+import {SummerGovernorV2TestBase} from "./SummerGovernorV2TestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ExposedSummerTimelockController} from "../token/SummerTokenTestBase.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -831,9 +831,7 @@ contract SummerGovernorTest is SummerGovernorV2TestBase {
                 initialOwner: address(timelockA)
             });
 
-        ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(
-            params
-        );
+        SummerGovernorV2 wrongChainGovernor = new SummerGovernorV2(params);
 
         // Ensure Alice has enough tokens to meet the proposal threshold
         deal(

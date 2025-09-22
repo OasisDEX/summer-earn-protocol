@@ -21,8 +21,8 @@ contract SummerGovernorV2TestBase is
 {
     using OptionsBuilder for bytes;
 
-    ExposedSummerGovernor public governorA;
-    ExposedSummerGovernor public governorB;
+    SummerGovernorV2 public governorA;
+    SummerGovernorV2 public governorB;
 
     StakedSummerToken public axSumr;
     StakedSummerToken public bxSumr;
@@ -104,8 +104,8 @@ contract SummerGovernorV2TestBase is
                 hubChainId: 31337,
                 initialOwner: address(timelockB)
             });
-        governorA = new ExposedSummerGovernor(paramsA);
-        governorB = new ExposedSummerGovernor(paramsB);
+        governorA = new SummerGovernorV2(paramsA);
+        governorB = new SummerGovernorV2(paramsB);
 
         vm.prank(owner);
         enableTransfers();
@@ -360,29 +360,5 @@ contract SummerGovernorV2TestBase is
 
         advanceTimeAndBlock();
     }
-}
 
-contract ExposedSummerGovernor is SummerGovernorV2 {
-    constructor(GovernorParams memory params) SummerGovernorV2(params) {}
-
-    function exposedSendProposalToTargetChain(
-        uint32 _dstEid,
-        address[] memory _dstTargets,
-        uint256[] memory _dstValues,
-        bytes[] memory _dstCalldatas,
-        bytes32 _dstDescriptionHash,
-        bytes calldata _options
-    ) public {
-        _sendProposalToTargetChain(
-            _dstEid,
-            _dstTargets,
-            _dstValues,
-            _dstCalldatas,
-            _dstDescriptionHash,
-            _options
-        );
-    }
-
-    // Test skipper function
-    function test() public {}
 }

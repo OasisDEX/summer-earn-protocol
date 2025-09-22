@@ -11,7 +11,7 @@ import {TestMockERC721} from "../mocks/MockTokens.sol";
 import {TestMockERC1155} from "../mocks/MockTokens.sol";
 import {TestMockReceiver} from "../mocks/MockReceiver.sol";
 
-contract SummerGovernorGovernorTest2 is SummerGovernorV2TestBase {
+contract SummerGovernorV2GovernorTest is SummerGovernorV2TestBase {
     TestMockERC721 public mockNFT;
     TestMockERC1155 public mockERC1155;
 
