@@ -366,7 +366,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     error Staking_InvalidLockupPeriod(string message);
 
     /// @notice Thrown when stake index is invalid or out of bounds
-    error Staking_InvalidStakeIndex();
+    error Staking_InvalidStakeIndex(string message);
 
     /// @notice Thrown when trying to unstake more than available balance
     error Staking_InsufficientBalance();

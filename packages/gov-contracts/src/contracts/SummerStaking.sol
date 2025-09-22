@@ -166,7 +166,8 @@ contract SummerStaking is
             _getPortfolioId(from)
         ];
         uint256 stakeCount = fromStakes.length;
-        if (stakeCount == 0) revert Staking_InvalidStakeIndex();
+        if (stakeCount == 0)
+            revert Staking_InvalidStakeIndex("From wallet has no stakes");
 
         uint256 rewardTokenCount = EnumerableSet.length(_rewardTokensList);
         for (uint256 i = 0; i < rewardTokenCount; i++) {
@@ -226,10 +227,14 @@ contract SummerStaking is
             revert Staking_InsufficientBalance();
         uint256 _stakePortfolioId = _getPortfolioId(_msgSender());
         UserStake[] storage stakes = stakesByPortfolioId[_stakePortfolioId];
-        if (_stakeIndex >= stakes.length) revert Staking_InvalidStakeIndex();
+        if (_stakeIndex >= stakes.length)
+            revert Staking_InvalidStakeIndex("Stake index out of bounds");
 
         UserStake memory processedStake = stakes[_stakeIndex];
-        if (processedStake.amount < _amount) revert Staking_InvalidStakeIndex();
+        if (processedStake.amount < _amount)
+            revert Staking_InvalidStakeIndex(
+                "Stake amount is less than unstake amount"
+            );
 
         uint256 unstakePenalty = calculatePenalty(
             _msgSender(),

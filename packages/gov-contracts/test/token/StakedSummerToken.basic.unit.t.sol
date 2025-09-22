@@ -336,4 +336,28 @@ contract StakedSummerTokenBasicTest is SummerGovernorV2TestBase {
         axSumr.burnFrom(alice, 1 ether);
         vm.stopPrank();
     }
+
+    function test_TransferNotAllowed() public {
+        vm.prank(address(timelockA));
+        axSumr.mint(alice, 10 ether);
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IStakedSummerToken.xSumr_TransferNotAllowed.selector
+            )
+        );
+        axSumr.transfer(bob, 1 ether);
+
+        vm.prank(alice);
+        axSumr.approve(bob, 1 ether);
+
+        vm.prank(bob);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IStakedSummerToken.xSumr_TransferNotAllowed.selector
+            )
+        );
+        axSumr.transferFrom(alice, bob, 1 ether);
+    }
 }

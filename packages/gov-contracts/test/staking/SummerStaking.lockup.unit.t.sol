@@ -657,7 +657,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         axSumr.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISummerStaking.Staking_InvalidStakeIndex.selector
+                ISummerStaking.Staking_InvalidStakeIndex.selector,
+                "Stake index out of bounds"
             )
         );
         aStaking.unstakeLockup(stakeIndex + 1, STAKE_AMOUNT);
@@ -665,18 +666,18 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
     function test_Revert_UnstakeZeroAmountFromExistingStake() public {
         _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
-        uint256 stakeIndex = _stake(aStaking, user1, STAKE_AMOUNT, 0);
+        uint256 stakeIndex = _stake(aStaking, user1, STAKE_AMOUNT / 2, 0);
 
         vm.startPrank(user1);
-        axSumr.approve(address(aStaking), STAKE_AMOUNT);
-        aStaking.unstakeLockup(stakeIndex, STAKE_AMOUNT);
 
+        axSumr.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISummerStaking.Staking_InvalidStakeIndex.selector
+                ISummerStaking.Staking_InvalidStakeIndex.selector,
+                "Stake amount is less than unstake amount"
             )
         );
-        aStaking.unstakeLockup(stakeIndex, 1);
+        aStaking.unstakeLockup(stakeIndex, STAKE_AMOUNT);
         vm.stopPrank();
     }
     function test_Revert_UnstakeMoreThanTotalBalance() public {
@@ -1568,6 +1569,15 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             )
         );
         aStaking.transferStakes(user2);
+
+        vm.prank(user3);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InvalidStakeIndex.selector,
+                "From wallet has no stakes"
+            )
+        );
+        aStaking.transferStakes(address(4));
 
         deal(address(axSumr), user3, STAKE_AMOUNT);
         vm.prank(user1);
