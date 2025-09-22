@@ -461,6 +461,27 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     }
 
     /**
+     * @notice Aggregated snapshot of a user's staking-related balances
+     */
+    struct UserSnapshot {
+        uint256 raw; // aStaking.balanceOf(user)
+        uint256 weighted; // aStaking.weightedBalanceOf(user)
+        uint256 xsumr; // axSumr.balanceOf(user)
+    }
+
+    /**
+     * @notice Helper to snapshot a user's staking-related balances in one memory struct
+     */
+    function _snapshotUser(
+        SummerStaking staking,
+        address user
+    ) internal view returns (UserSnapshot memory s) {
+        s.raw = staking.balanceOf(user);
+        s.weighted = staking.weightedBalanceOf(user);
+        s.xsumr = axSumr.balanceOf(user);
+    }
+
+    /**
      * @notice Helper to verify reward distribution
      */
     function _verifyRewardDistribution(
