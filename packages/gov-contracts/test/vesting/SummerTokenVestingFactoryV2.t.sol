@@ -5,11 +5,11 @@ import {Test} from "forge-std/Test.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletFactoryV2} from "../../src/interfaces/ISummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV2.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 contract SummerVestingWalletFactoryV2Test is Test {
     SummerVestingWalletFactoryV2 public factory;
-    ERC20Mock public token;
+    MockERC20 public token;
     address public foundation;
     address public beneficiary;
 
@@ -25,7 +25,7 @@ contract SummerVestingWalletFactoryV2Test is Test {
         beneficiary = makeAddr("beneficiary");
 
         // Deploy mock token
-        token = new ERC20Mock();
+        token = new MockERC20();
 
         // Deploy factory (foundation is initial owner)
         factory = new SummerVestingWalletFactoryV2(
@@ -66,7 +66,7 @@ contract SummerVestingWalletFactoryV2Test is Test {
             performanceGoals[0].amount;
 
         // Mint tokens to foundation and approve factory
-        token.mint(foundation, totalAmount);
+        deal(address(token), foundation, totalAmount);
         vm.startPrank(foundation);
         token.approve(address(factory), totalAmount);
 
@@ -105,7 +105,7 @@ contract SummerVestingWalletFactoryV2Test is Test {
             vestingParams.totalVestingAmount;
 
         // Create first vesting wallet
-        token.mint(foundation, totalAmount * 2);
+        deal(address(token), foundation, totalAmount * 2);
         vm.startPrank(foundation);
         token.approve(address(factory), totalAmount * 2);
         factory.createVestingWallet(
@@ -148,7 +148,7 @@ contract SummerVestingWalletFactoryV2Test is Test {
         uint256 totalAmount = vestingParams.cliffAmount +
             vestingParams.totalVestingAmount;
 
-        token.mint(foundation, totalAmount);
+        deal(address(token), foundation, totalAmount);
         vm.startPrank(foundation);
         token.approve(address(factory), totalAmount / 2); // Approve less than required
 
@@ -184,7 +184,7 @@ contract SummerVestingWalletFactoryV2Test is Test {
         uint256 totalAmount = vestingParams.cliffAmount +
             vestingParams.totalVestingAmount;
 
-        token.mint(foundation, totalAmount / 2); // Mint less than required
+        deal(address(token), foundation, totalAmount / 2); // Mint less than required
         vm.startPrank(foundation);
         token.approve(address(factory), totalAmount);
 
@@ -234,7 +234,7 @@ contract SummerVestingWalletFactoryV2Test is Test {
             performanceGoals[1].amount;
 
         // Mint tokens to foundation and approve factory
-        token.mint(foundation, totalAmount);
+        deal(address(token), foundation, totalAmount);
         vm.startPrank(foundation);
         token.approve(address(factory), totalAmount);
 
@@ -272,7 +272,7 @@ contract SummerVestingWalletFactoryV2Test is Test {
         uint256 totalAmount = vestingParams.cliffAmount +
             vestingParams.totalVestingAmount;
 
-        token.mint(foundation, totalAmount);
+        deal(address(token), foundation, totalAmount);
         vm.startPrank(foundation);
         token.approve(address(factory), totalAmount);
 
@@ -288,20 +288,5 @@ contract SummerVestingWalletFactoryV2Test is Test {
 
     function test_TokenAddress() public {
         assertEq(factory.token(), address(token));
-    }
-}
-
-// Mock contract for testing transfer amount mismatch
-contract MockIncorrectBalanceERC20V2 is ERC20Mock {
-    constructor() ERC20Mock() {}
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override returns (bool) {
-        // Transfer half the amount but return true
-        _transfer(from, to, amount / 2);
-        return true;
     }
 }

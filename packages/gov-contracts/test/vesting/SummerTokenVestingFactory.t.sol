@@ -6,11 +6,11 @@ import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalle
 import {ISummerVestingWalletFactory} from "../../src/interfaces/ISummerVestingWalletFactory.sol";
 import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {TestMockIncorrectBalanceERC20} from "../mocks/MockTokens.sol";
 contract SummerVestingWalletFactoryTest is Test {
     SummerVestingWalletFactory public factory;
-    ERC20Mock public token;
+    MockERC20 public token;
     ProtocolAccessManager public accessManager;
     address public foundation;
     address public beneficiary;
@@ -35,7 +35,7 @@ contract SummerVestingWalletFactoryTest is Test {
         vm.stopPrank();
 
         // Deploy mock token
-        token = new ERC20Mock();
+        token = new MockERC20();
 
         // Deploy factory
         factory = new SummerVestingWalletFactory(
@@ -62,7 +62,7 @@ contract SummerVestingWalletFactoryTest is Test {
             .TeamVesting;
 
         // Mint tokens to foundation and approve factory
-        token.mint(foundation, 200 ether);
+        deal(address(token), foundation, 200 ether);
         vm.startPrank(foundation);
         token.approve(address(factory), 200 ether);
 
@@ -95,7 +95,7 @@ contract SummerVestingWalletFactoryTest is Test {
             .TeamVesting;
 
         // Create first vesting wallet
-        token.mint(foundation, 200 ether);
+        deal(address(token), foundation, 200 ether);
         vm.startPrank(foundation);
         token.approve(address(factory), 200 ether);
         factory.createVestingWallet(
@@ -128,7 +128,7 @@ contract SummerVestingWalletFactoryTest is Test {
             .VestingType
             .TeamVesting;
 
-        token.mint(foundation, 200 ether);
+        deal(address(token), foundation, 200 ether);
         vm.startPrank(foundation);
         token.approve(address(factory), 50 ether); // Approve less than required
 
@@ -155,7 +155,7 @@ contract SummerVestingWalletFactoryTest is Test {
             .VestingType
             .TeamVesting;
 
-        token.mint(foundation, 50 ether); // Mint less than required
+        deal(address(token), foundation, 50 ether); // Mint less than required
         vm.startPrank(foundation);
         token.approve(address(factory), 100 ether);
 
@@ -177,7 +177,7 @@ contract SummerVestingWalletFactoryTest is Test {
 
     function test_RevertIf_IncorrectTransferAmount() public {
         // Deploy factory with incorrect balance token
-        MockIncorrectBalanceERC20 incorrectToken = new MockIncorrectBalanceERC20();
+        TestMockIncorrectBalanceERC20 incorrectToken = new TestMockIncorrectBalanceERC20();
         SummerVestingWalletFactory incorrectFactory = new SummerVestingWalletFactory(
                 address(incorrectToken),
                 address(accessManager)
@@ -189,7 +189,7 @@ contract SummerVestingWalletFactoryTest is Test {
             .VestingType
             .TeamVesting;
 
-        incorrectToken.mint(foundation, 200 ether);
+        deal(address(incorrectToken), foundation, 200 ether);
         vm.startPrank(foundation);
         incorrectToken.approve(address(incorrectFactory), 200 ether);
 
@@ -207,31 +207,5 @@ contract SummerVestingWalletFactoryTest is Test {
             vestingType
         );
         vm.stopPrank();
-    }
-}
-
-contract MockIncorrectBalanceERC20 is ERC20Mock {
-    constructor() ERC20Mock() {}
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override returns (bool) {
-        // Transfer half the amount but return true
-        _transfer(from, to, amount / 2);
-        return true;
-    }
-}
-
-contract MockFailingERC20 is ERC20Mock {
-    constructor() ERC20Mock() {}
-
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) public pure override returns (bool) {
-        return false;
     }
 }

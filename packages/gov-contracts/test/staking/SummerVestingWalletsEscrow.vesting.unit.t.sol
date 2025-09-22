@@ -16,66 +16,18 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SummerVestingWalletsEscrowTestBase} from "./SummerVestingWalletsEscrowTestBase.sol";
 import {IMinimalVestingFactory} from "../../src/interfaces/IMinimalVestingFactory.sol";
 import {IMinimalVestingWallet} from "../../src/interfaces/IMinimalVestingWallet.sol";
-
-/*
- * @title SummerVestingWalletsEscrow Vesting Tests
- * @dev Test contract for SummerVestingWalletsEscrow contract vesting functionality.
- */
-
-// Mock Vesting Factory for testing
-contract MockVestingFactory is IMinimalVestingFactory {
-    mapping(address => address) public vestingWallets;
-    mapping(address => address) public vestingWalletOwners;
-
-    function setVestingWallet(address user, address wallet) external {
-        address previousOwner = vestingWalletOwners[wallet];
-        vestingWallets[previousOwner] = address(0);
-        vestingWallets[user] = wallet;
-        vestingWalletOwners[wallet] = user;
-    }
-
-    function removeVestingWallet(address user) external {
-        address wallet = vestingWallets[user];
-        if (wallet != address(0)) {
-            vestingWalletOwners[wallet] = address(0);
-            vestingWallets[user] = address(0);
-        }
-    }
-}
-
-// Mock Vesting Wallet for testing
-contract MockVestingWallet is IMinimalVestingWallet {
-    address public owner;
-    MockERC20 public token;
-
-    constructor(address _owner, address _token) {
-        owner = _owner;
-        token = MockERC20(_token);
-    }
-
-    function balanceOf(address) external view returns (uint256) {
-        return token.balanceOf(address(this));
-    }
-
-    function transferOwnership(address newOwner) external {
-        require(msg.sender == owner, "Only owner can transfer");
-        owner = newOwner;
-    }
-
-    function released(address) external pure returns (uint256) {
-        return 0;
-    }
-}
+import {TestMockVestingFactory} from "../mocks/MockVestingFactory.sol";
+import {TestMockVestingWallet} from "../mocks/MockVestingFactory.sol";
 
 /*
  * @title SummerVestingWalletsEscrow Vesting Tests
  * @dev Test contract for SummerVestingWalletsEscrow contract vesting functionality.
  */
 contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
-    MockVestingFactory public mockVestingFactory1;
-    MockVestingFactory public mockVestingFactory2;
-    MockVestingWallet public mockVestingWallet1;
-    MockVestingWallet public mockVestingWallet2;
+    TestMockVestingFactory public mockVestingFactory1;
+    TestMockVestingFactory public mockVestingFactory2;
+    TestMockVestingWallet public mockVestingWallet1;
+    TestMockVestingWallet public mockVestingWallet2;
 
     SummerVestingWalletsEscrow public testStaking;
 
@@ -83,8 +35,8 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         super.setUp();
 
         // Create mock vesting factories and wallets
-        mockVestingFactory1 = new MockVestingFactory();
-        mockVestingFactory2 = new MockVestingFactory();
+        mockVestingFactory1 = new TestMockVestingFactory();
+        mockVestingFactory2 = new TestMockVestingFactory();
 
         // Create test staking with mock factories first
         address[] memory vestingFactories = new address[](2);
@@ -99,11 +51,11 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         );
 
         // Now create vesting wallets with the staking contract address as owner (to skip the transfer ownership step)
-        mockVestingWallet1 = new MockVestingWallet(
+        mockVestingWallet1 = new TestMockVestingWallet(
             address(testStaking),
             address(aSummerToken)
         );
-        mockVestingWallet2 = new MockVestingWallet(
+        mockVestingWallet2 = new TestMockVestingWallet(
             address(testStaking),
             address(aSummerToken)
         );
@@ -189,8 +141,8 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Verify user received StakedSummerToken for total vesting balance
         assertEq(aSummerToken.balanceOf(user1), userSumrBalanceBefore);
-        assertEq(MockVestingWallet(mockVestingWallet1).owner(), user1);
-        assertEq(MockVestingWallet(mockVestingWallet2).owner(), user1);
+        assertEq(TestMockVestingWallet(mockVestingWallet1).owner(), user1);
+        assertEq(TestMockVestingWallet(mockVestingWallet2).owner(), user1);
 
         // Note: tokens remain in vesting wallets, staking contract doesn't hold them
         assertEq(aSummerToken.balanceOf(address(testStaking)), 0);
@@ -394,11 +346,11 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Verify initial ownership
         assertEq(
-            MockVestingWallet(mockVestingWallet1).owner(),
+            TestMockVestingWallet(mockVestingWallet1).owner(),
             address(testStaking)
         );
         assertEq(
-            MockVestingWallet(mockVestingWallet2).owner(),
+            TestMockVestingWallet(mockVestingWallet2).owner(),
             address(testStaking)
         );
 
@@ -582,11 +534,11 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Verify current ownership
         assertEq(
-            MockVestingWallet(mockVestingWallet1).owner(),
+            TestMockVestingWallet(mockVestingWallet1).owner(),
             address(testStaking)
         );
         assertEq(
-            MockVestingWallet(mockVestingWallet2).owner(),
+            TestMockVestingWallet(mockVestingWallet2).owner(),
             address(testStaking)
         );
 
@@ -600,8 +552,8 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.stopPrank();
 
         // Verify ownership transferred back to user
-        assertEq(MockVestingWallet(mockVestingWallet1).owner(), user1);
-        assertEq(MockVestingWallet(mockVestingWallet2).owner(), user1);
+        assertEq(TestMockVestingWallet(mockVestingWallet1).owner(), user1);
+        assertEq(TestMockVestingWallet(mockVestingWallet2).owner(), user1);
     }
 
     function test_StakeWithVesting_AlreadyStaked() public {
@@ -677,8 +629,8 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.stopPrank();
 
         // Verify ownership transferred back
-        assertEq(MockVestingWallet(mockVestingWallet1).owner(), user1);
-        assertEq(MockVestingWallet(mockVestingWallet2).owner(), user1);
+        assertEq(TestMockVestingWallet(mockVestingWallet1).owner(), user1);
+        assertEq(TestMockVestingWallet(mockVestingWallet2).owner(), user1);
     }
 
     function test_StakeWithVesting_ConcurrentUsers() public {
@@ -689,7 +641,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         );
         // Setup third user
         address user3 = address(0x1003);
-        MockVestingWallet mockVestingWallet3 = new MockVestingWallet(
+        TestMockVestingWallet mockVestingWallet3 = new TestMockVestingWallet(
             address(testStaking),
             address(aSummerToken)
         );

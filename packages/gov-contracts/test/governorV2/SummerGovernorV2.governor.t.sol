@@ -7,15 +7,18 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import {TestMockERC721} from "../mocks/MockTokens.sol";
+import {TestMockERC1155} from "../mocks/MockTokens.sol";
+import {TestMockReceiver} from "../mocks/MockReceiver.sol";
 
 contract SummerGovernorGovernorTest2 is SummerGovernorV2TestBase {
-    MockERC721 public mockNFT;
-    MockERC1155 public mockERC1155;
+    TestMockERC721 public mockNFT;
+    TestMockERC1155 public mockERC1155;
 
     function setUp() public override {
         super.setUp();
-        mockNFT = new MockERC721("Mock NFT", "MNFT");
-        mockERC1155 = new MockERC1155("uri/");
+        mockNFT = new TestMockERC721("Mock NFT", "MNFT");
+        mockERC1155 = new TestMockERC1155("uri/");
     }
 
     function test_OnERC721Received() public {
@@ -136,14 +139,14 @@ contract SummerGovernorGovernorTest2 is SummerGovernorV2TestBase {
      */
     function test_RelayWithData() public {
         // Setup a mock contract that will receive the relay call
-        MockReceiver mockReceiver = new MockReceiver();
+        TestMockReceiver mockReceiver = new TestMockReceiver();
 
         // Force ETH into the governor (simulating funds received through LZ endpoint)
         vm.deal(address(governorA), 1 ether);
 
         // Create relay data
         bytes memory data = abi.encodeWithSelector(
-            MockReceiver.receiveCall.selector,
+            TestMockReceiver.receiveCall.selector,
             "test message"
         );
 
@@ -202,7 +205,7 @@ contract SummerGovernorGovernorTest2 is SummerGovernorV2TestBase {
         );
 
         // Verify the call data was processed
-        MockReceiver receiver = MockReceiver(mockReceiver);
+        TestMockReceiver receiver = TestMockReceiver(mockReceiver);
         assertTrue(receiver.lastCalled(), "Receiver should have been called");
         assertEq(
             receiver.lastMessage(),
@@ -248,82 +251,5 @@ contract SummerGovernorGovernorTest2 is SummerGovernorV2TestBase {
             initialBalance + 0.1 ether,
             "Balance should increase when sent from timelock"
         );
-    }
-}
-
-contract MockReceiver {
-    bool public lastCalled;
-    string public lastMessage;
-
-    receive() external payable {}
-
-    function receiveCall(string memory message) external payable {
-        lastCalled = true;
-        lastMessage = message;
-    }
-}
-
-contract MockERC721 is ERC721 {
-    constructor(
-        string memory name,
-        string memory symbol
-    ) ERC721(name, symbol) {}
-
-    function mint(address to, uint256 tokenId) public {
-        _mint(to, tokenId);
-    }
-
-    function safeTransferTestFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) public returns (bytes4) {
-        _safeTransfer(from, to, tokenId, data);
-        return IERC721Receiver.onERC721Received.selector;
-    }
-}
-
-contract MockERC1155 is ERC1155 {
-    constructor(string memory uri) ERC1155(uri) {}
-
-    function mint(
-        address to,
-        uint256 id,
-        uint256 amount,
-        bytes memory data
-    ) public {
-        _mint(to, id, amount, data);
-    }
-
-    function mintBatch(
-        address to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
-    ) public {
-        _mintBatch(to, ids, amounts, data);
-    }
-
-    function safeTransferTestFrom(
-        address from,
-        address to,
-        uint256 id,
-        uint256 amount,
-        bytes memory data
-    ) public returns (bytes4) {
-        safeTransferFrom(from, to, id, amount, data);
-        return IERC1155Receiver.onERC1155Received.selector;
-    }
-
-    function safeBatchTransferTestFrom(
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
-    ) public returns (bytes4) {
-        safeBatchTransferFrom(from, to, ids, amounts, data);
-        return IERC1155Receiver.onERC1155BatchReceived.selector;
     }
 }

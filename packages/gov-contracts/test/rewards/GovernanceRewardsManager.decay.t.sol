@@ -4,12 +4,12 @@ pragma solidity 0.8.28;
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 
 contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
     GovernanceRewardsManager public stakingRewardsManager;
-    ERC20Mock[] public rewardTokens;
+    MockERC20[] public rewardTokens;
 
     uint256 constant INITIAL_REWARD_AMOUNT = 1000000 * 1e18;
     uint256 constant INITIAL_STAKE_AMOUNT = 100000 * 1e18;
@@ -19,7 +19,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // Deploy reward tokens
         for (uint i = 0; i < 3; i++) {
-            rewardTokens.push(new ERC20Mock());
+            rewardTokens.push(new MockERC20());
         }
 
         // Deploy GovernanceRewardsManager with aSummerToken
@@ -42,7 +42,8 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // Mint reward tokens
         for (uint i = 0; i < rewardTokens.length; i++) {
-            rewardTokens[i].mint(
+            deal(
+                address(rewardTokens[i]),
                 address(stakingRewardsManager),
                 INITIAL_REWARD_AMOUNT
             );
