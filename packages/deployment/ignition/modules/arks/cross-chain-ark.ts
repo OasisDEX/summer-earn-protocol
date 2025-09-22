@@ -29,9 +29,8 @@ export function createCrossChainArkModule(moduleName: string) {
     const arkParams = m.getParameter('arkParams')
 
     // Deploy CrossChainArk with the updated constructor parameters
-    // constructor(address _bridgeRouter, address _crossChainRegistry, uint16 _satelliteChainId, ArkParams memory _params)
+    // constructor(address _crossChainRegistry, uint16 _satelliteChainId, ArkParams memory _params)
     const crossChainArk = m.contract('CrossChainArk', [
-      bridgeRouter,
       crossChainRegistry,
       targetChainId,
       arkParams,
