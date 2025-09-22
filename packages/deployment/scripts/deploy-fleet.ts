@@ -99,7 +99,7 @@ async function deployFleet() {
   console.log(kleur.green().bold(`Starting ${deploymentMode} process...`))
 
   // Load fleet configuration
-  const fleetDefinition = await getFleetConfig(useBummerConfig)
+  const fleetDefinition = await getFleetConfig(useBummerConfig, network)
   validateToken(config, fleetDefinition.assetSymbol)
 
   // Validate and collect CrossChainArk parameters if needed

@@ -59,7 +59,8 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
       })
     }
   }
-  const fleetDefinition = await getFleetConfig()
+  const network = hre.network.name
+  const fleetDefinition = await getFleetConfig(undefined, network)
   // First prompt for market selection
   const marketResponse = await prompts({
     type: 'select',

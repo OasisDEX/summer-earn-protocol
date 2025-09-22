@@ -71,14 +71,32 @@ export function getFleetDeploymentPath(fleetDeployment: FleetDeployment | FleetC
 /**
  * Prompts the user for the fleet definition file and loads it.
  * @param isBummer - Optional parameter to filter for bummer fleet configs
+ * @param networkName - Optional parameter to filter fleet configs by network
  * @returns The loaded fleet definition object.
  */
-export async function getFleetConfig(isBummer?: boolean): Promise<FleetConfig> {
+export async function getFleetConfig(
+  isBummer?: boolean,
+  networkName?: string,
+): Promise<FleetConfig> {
   const fleetsDir = getFleetConfigDir()
   const fleetFiles = fs
     .readdirSync(fleetsDir)
     .filter((file) => file.endsWith('.json'))
     .filter((file) => (isBummer ? file.includes('.bummer') : !file.includes('.bummer')))
+    .filter((file) => {
+      if (!networkName) return true // If no network filter, include all files
+
+      // Load the config to check its network field
+      try {
+        const filePath = path.resolve(fleetsDir, file)
+        const fileContent = fs.readFileSync(filePath, 'utf8')
+        const config = JSON.parse(fileContent) as FleetConfig
+        return config.network === networkName
+      } catch (error) {
+        console.warn(`Warning: Could not parse fleet config file ${file}:`, error)
+        return false
+      }
+    })
 
   if (fleetFiles.length === 0) {
     throw new Error(

@@ -45,7 +45,8 @@ export async function deployOriginETHArk(config: BaseConfig, arkParams?: BaseArk
  * @returns {Promise<BaseArkParams>} The user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
-  const fleetConfig = await getFleetConfig()
+  const network = hre.network.name
+  const fleetConfig = await getFleetConfig(undefined, network)
 
   const token = await prompts({
     type: 'select',

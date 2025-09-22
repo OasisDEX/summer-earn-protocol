@@ -51,7 +51,8 @@ async function getUserInput(config: BaseConfig): Promise<FluidLiteArkUserInput> 
     }
   }
 
-  const fleetDefinition = await getFleetConfig()
+  const network = hre.network.name
+  const fleetDefinition = await getFleetConfig(undefined, network)
   const responses = await prompts([
     {
       type: 'select',

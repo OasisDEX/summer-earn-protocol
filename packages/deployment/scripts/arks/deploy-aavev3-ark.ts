@@ -47,7 +47,8 @@ async function getUserInput(config: BaseConfig): Promise<BaseArkParams> {
       value: { address: tokenAddress, symbol: tokenSymbol },
     })
   }
-  const fleetDefinition = await getFleetConfig()
+  const network = hre.network.name
+  const fleetDefinition = await getFleetConfig(undefined, network)
   const reponses = await prompts([
     {
       type: 'select',
