@@ -1,0 +1,17 @@
+{
+  "fleetName": "BummerLazyVault_LowerRisk_USDC",
+  "sourceChainId": 130,
+  "destinations": [
+    {
+      "chainId": 130,
+      "name": "chain-130",
+      "protocols": [
+        {
+          "protocol": "summerfi",
+          "fleetProxyAddress": "0x72B3128bc1D0f0E1e3D03B6d1c974C0C08724C90",
+          "crossChainArkAddress": null
+        }
+      ]
+    }
+  ]
+}

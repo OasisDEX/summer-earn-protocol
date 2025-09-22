@@ -17,5 +17,6 @@
   "LayerZeroAdapterModule#LayerZeroAdapter": "0xf05e9f88f120185266eC0f813E9Bc7145fb2E854",
   "StargateAdapterModule#StargateAdapter": "0x62C8419A4375599C7D2261f389BF1ED920975Cb5",
   "FleetModule_BummerLazyVault_LowerRisk_USDC#FleetCommander": "0x8E72b2D81bD6978d4268089fE25868986136C701",
-  "BummerLazyVault_LowerRisk_USDC_ERC4626_Euler_Unichain_usdc_130#ERC4626Ark": "0x668b528AE5A515aB711aB7487B0A678D74135317"
+  "BummerLazyVault_LowerRisk_USDC_ERC4626_Euler_Unichain_usdc_130#ERC4626Ark": "0x668b528AE5A515aB711aB7487B0A678D74135317",
+  "FleetProxy_BummerLazyVault_LowerRisk_USDC_chain_130#FleetProxy": "0x72B3128bc1D0f0E1e3D03B6d1c974C0C08724C90"
 }
