@@ -1,0 +1,16 @@
+{
+  "fleetName": "BummerLazyVault_LowerRisk_USDC",
+  "isBummer": true,
+  "fleetSymbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x8E72b2D81bD6978d4268089fE25868986136C701",
+  "bufferArkAddress": "0x82D197a881EF3B56cA625949139113ff7d5215DD",
+  "network": "unichain",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "100000000",
+  "initialTipRate": "1000000000000000000",
+  "arks": [
+    "0x668b528AE5A515aB711aB7487B0A678D74135317"
+  ]
+}
