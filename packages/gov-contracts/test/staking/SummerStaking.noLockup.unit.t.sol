@@ -292,7 +292,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         assertEq(amount, stakeAmount);
         assertEq(lockupEndTime, block.timestamp + lockupPeriod);
         assertEq(lockupPeriodStored, lockupPeriod);
-        assertEq(weightedAmount, _applyNoLockupWeightedStake(stakeAmount));
+        assertEq(weightedAmount, stakeAmount);
     }
 
     function test_StakeWithLockup_ZeroLockupPeriod() public {
@@ -306,7 +306,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         (uint256 amount, uint256 weightedAmount, , ) = freshStaking
             .getUserStake(user1, 0);
         assertEq(amount, stakeAmount);
-        assertEq(weightedAmount, _applyNoLockupWeightedStake(stakeAmount));
+        assertEq(weightedAmount, stakeAmount);
     }
 
     function test_StakeWithLockup_InvalidLockupPeriod() public {
@@ -349,8 +349,8 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
                 i
             );
 
-            // For zero lockup, weighted amount should use fixed multiplier of 0.05
-            assertEq(weightedAmount, _applyNoLockupWeightedStake(stakeAmount));
+            // For zero lockup, weighted amount should use equal to stake amount
+            assertEq(weightedAmount, stakeAmount);
 
             // Verify the formula: amount * (4E-16 * time^2 + 0.05)
             uint256 expectedWeightedAmount = freshStaking
