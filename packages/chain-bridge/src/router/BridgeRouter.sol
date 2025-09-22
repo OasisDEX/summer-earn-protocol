@@ -923,18 +923,14 @@ contract BridgeRouter is
         if (!adapters.contains(adapter)) revert UnknownAdapter();
 
         // Pre-validate payload integrity and registry relationships before attempting delivery
-        (
-            bytes32 operationIdFromPayload,
-            uint16 sourceChainId
-        ) = _decodeOperationMeta(operationType, operationPayload);
-
-        // Decode payload to validate structure and validate ark-fleet relationship
-        // Note: peer mapping and receiver validation happen inside _processDelivery
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
             BridgeTypes.RelayedTransferParams memory params = abi.decode(
                 operationPayload,
                 (BridgeTypes.RelayedTransferParams)
             );
+
+            // Ensure the operation ID from payload matches the failed operation being retried
+            if (params.operationId != failedOperationId) revert InvalidParams();
 
             // Validate ark-fleet relationship
             _validatePeerRelationship(
@@ -947,6 +943,9 @@ contract BridgeRouter is
                 operationPayload,
                 (BridgeTypes.RelayedMessageParams)
             );
+
+            // Ensure the operation ID from payload matches the failed operation being retried
+            if (params.operationId != failedOperationId) revert InvalidParams();
 
             // Validate ark-fleet relationship
             _validatePeerRelationship(
