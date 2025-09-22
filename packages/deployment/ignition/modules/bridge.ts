@@ -5,13 +5,9 @@ import { Address } from 'viem'
 export default buildModule('BridgeModule', (m) => {
   // Get the ProtocolAccessManager address from the config
   const protocolAccessManager = m.getParameter<Address>('protocolAccessManager')
-  const currentChainId = m.getParameter('currentChainId')
 
   // Deploy CrossChainRegistry first
-  const crossChainRegistry = m.contract('CrossChainRegistry', [
-    protocolAccessManager,
-    currentChainId,
-  ])
+  const crossChainRegistry = m.contract('CrossChainRegistry', [protocolAccessManager])
 
   // Deploy BridgeRouter with registry
   const bridgeRouter = m.contract('BridgeRouter', [protocolAccessManager, crossChainRegistry])
