@@ -350,6 +350,29 @@ contract BridgeRouter is
         delete failedDeliveries[operationId];
     }
 
+    /**
+     * @dev Updates an existing failed delivery record with current timestamp and emits retry failure event
+     * @param operationId The operation ID of the failed delivery
+     * @param operationType The type of operation that failed
+     * @param adapter The adapter that processed the operation
+     * @param errorData The error data from the failed retry attempt
+     */
+    function _updateFailedDelivery(
+        bytes32 operationId,
+        BridgeTypes.OperationType operationType,
+        address adapter,
+        bytes memory errorData
+    ) internal {
+        FailedDeliveryRecord storage existing = failedDeliveries[operationId];
+        existing.failedAt = block.timestamp;
+        emit OperationRetryFailed(
+            operationId,
+            operationType,
+            adapter,
+            errorData
+        );
+    }
+
     function _decodeOperationMeta(
         BridgeTypes.OperationType operationType,
         bytes memory operationPayload
@@ -892,12 +915,7 @@ contract BridgeRouter is
             );
         } catch (bytes memory err) {
             // Do not create a new failure record; update existing metadata only
-            FailedDeliveryRecord storage existing = failedDeliveries[
-                operationId
-            ];
-            existing.failedAt = block.timestamp;
-
-            emit OperationRetryFailed(
+            _updateFailedDelivery(
                 operationId,
                 r.operationType,
                 effectiveAdapter,
@@ -921,6 +939,16 @@ contract BridgeRouter is
         if (r.failedAt == 0) revert FailureRecordNotFound();
 
         if (!adapters.contains(adapter)) revert UnknownAdapter();
+
+        // State reads should not be retryable as they are read-only operations
+        if (operationType == BridgeTypes.OperationType.READ_STATE) {
+            revert UnsupportedOperationType();
+        }
+
+        // Ensure the provided operation type matches the stored record for consistency
+        if (operationType != r.operationType) {
+            revert InvalidParams();
+        }
 
         // Pre-validate payload integrity and registry relationships before attempting delivery
         if (operationType == BridgeTypes.OperationType.TRANSFER_ASSET) {
@@ -965,11 +993,7 @@ contract BridgeRouter is
                 adapter
             );
         } catch (bytes memory err) {
-            FailedDeliveryRecord storage existing = failedDeliveries[
-                failedOperationId
-            ];
-            existing.failedAt = block.timestamp;
-            emit OperationRetryFailed(
+            _updateFailedDelivery(
                 failedOperationId,
                 operationType,
                 adapter,
