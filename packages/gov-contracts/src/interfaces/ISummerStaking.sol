@@ -19,7 +19,8 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      */
     enum Bucket {
         NoLockup, // 0 days - immediate withdrawal with no lockup
-        ShortTerm, // 1-90 days - disabled by default (cap = 0)
+        ShortTerm, // 1-14 days - disabled by default (cap = 0)
+        TwoWeeksToThreeMonths, // 15-90 days - 2-3 week lockup period
         ThreeToSixMonths, // 91-180 days - 3-6 month lockup period
         SixToTwelveMonths, // 181-365 days - 6-12 month lockup period
         OneToTwoYears, // 366-730 days - 1-2 year lockup period

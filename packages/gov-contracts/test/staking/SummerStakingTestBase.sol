@@ -18,6 +18,8 @@ import {UD60x18, ud60x18, convert} from "@prb/math/src/UD60x18.sol";
 contract SummerStakingTestBase is SummerGovernorV2TestBase {
     uint256 public constant STAKE_AMOUNT = 1000 ether;
     uint256 public constant REWARD_AMOUNT = 100 ether;
+    uint256 public constant DEFAULT_CAP_AMOUNT = 100000 ether;
+    uint256 public constant MAX_CAP_AMOUNT = type(uint256).max;
 
     SummerStaking public aStaking;
     SummerStaking public bStaking;
@@ -67,40 +69,48 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.startPrank(address(timelockA));
         axSumr.addStakingModule(address(aStaking));
         aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoWeeksToThreeMonths,
+            DEFAULT_CAP_AMOUNT
+        );
+        aStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.ThreeToSixMonths,
-            1000000 ether
+            DEFAULT_CAP_AMOUNT
         );
         aStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.SixToTwelveMonths,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         aStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.OneToTwoYears,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         aStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.TwoToThreeYears,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         vm.stopPrank();
 
         vm.startPrank(address(timelockB));
         bxSumr.addStakingModule(address(bStaking));
         bStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoWeeksToThreeMonths,
+            DEFAULT_CAP_AMOUNT
+        );
+        bStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.ThreeToSixMonths,
-            1000000 ether
+            DEFAULT_CAP_AMOUNT
         );
         bStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.SixToTwelveMonths,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         bStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.OneToTwoYears,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         bStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.TwoToThreeYears,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         vm.stopPrank();
 
@@ -394,14 +404,18 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         SummerStaking staking,
         uint256[] memory expectedBucketAmounts
     ) internal {
-        ISummerStaking.Bucket[] memory buckets = new ISummerStaking.Bucket[](4);
-        buckets[0] = ISummerStaking.Bucket.ThreeToSixMonths;
-        buckets[1] = ISummerStaking.Bucket.SixToTwelveMonths;
-        buckets[2] = ISummerStaking.Bucket.OneToTwoYears;
-        buckets[3] = ISummerStaking.Bucket.TwoToThreeYears;
+        ISummerStaking.Bucket[] memory buckets = new ISummerStaking.Bucket[](7);
+        buckets[0] = ISummerStaking.Bucket.NoLockup;
+        buckets[1] = ISummerStaking.Bucket.ShortTerm;
+        buckets[2] = ISummerStaking.Bucket.TwoWeeksToThreeMonths;
+        buckets[3] = ISummerStaking.Bucket.ThreeToSixMonths;
+        buckets[4] = ISummerStaking.Bucket.SixToTwelveMonths;
+        buckets[5] = ISummerStaking.Bucket.OneToTwoYears;
+        buckets[6] = ISummerStaking.Bucket.TwoToThreeYears;
 
-        for (uint256 i = 0; i < 4; i++) {
+        for (uint256 i = 0; i < 7; i++) {
             uint256 actualStaked = staking.getBucketTotalStaked(buckets[i]);
+            console.log("Bucket", i, "actualStaked", actualStaked);
             assertEq(
                 actualStaked,
                 expectedBucketAmounts[i],
@@ -409,7 +423,31 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
             );
         }
     }
+    /**
+     * @notice Helper to verify bucket caps
+     */
+    function _verifyBucketCaps(
+        SummerStaking staking,
+        uint256[] memory expectedBucketCaps
+    ) internal {
+        ISummerStaking.Bucket[] memory buckets = new ISummerStaking.Bucket[](7);
+        buckets[0] = ISummerStaking.Bucket.NoLockup;
+        buckets[1] = ISummerStaking.Bucket.ShortTerm;
+        buckets[2] = ISummerStaking.Bucket.TwoWeeksToThreeMonths;
+        buckets[3] = ISummerStaking.Bucket.ThreeToSixMonths;
+        buckets[4] = ISummerStaking.Bucket.SixToTwelveMonths;
+        buckets[5] = ISummerStaking.Bucket.OneToTwoYears;
+        buckets[6] = ISummerStaking.Bucket.TwoToThreeYears;
 
+        for (uint256 i = 0; i < 7; i++) {
+            (uint256 actualCap, , , ) = staking.getBucketDetails(buckets[i]);
+            assertEq(
+                actualCap,
+                expectedBucketCaps[i],
+                string(abi.encodePacked("Bucket ", i, " mismatch"))
+            );
+        }
+    }
     /**
      * @notice Helper to check if a user has a specific stake
      */
