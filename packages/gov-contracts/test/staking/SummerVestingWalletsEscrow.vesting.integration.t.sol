@@ -205,7 +205,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV2).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -262,7 +262,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -338,7 +338,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        // Note: stakeWithVesting would revert for empty wallets, but let's test the governor behavior
+        // Note: stakeVesting would revert for empty wallets, but let's test the governor behavior
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -391,7 +391,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -413,12 +413,12 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
             "Alice's voting power should include vesting wallet balance"
         );
 
-        // Second call to stakeWithVesting should not add more voting power
+        // Second call to stakeVesting should not add more voting power
         vm.prank(alice);
         vm.expectRevert(
             abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
 
         // Voting power should remain the same
         uint256 aliceVotingPowerAfter = governorA.getVotes(
@@ -462,10 +462,10 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
-                "Vesting wallet not owned by staking"
+                "Vesting wallet not owned by escrow"
             )
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
 
         // Alice delegates to herself
         vm.prank(alice);
@@ -482,7 +482,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         assertEq(
             aliceVotingPower,
             directAmount,
-            "Alice's voting power should only include direct tokens when vesting wallet not owned by staking"
+            "Alice's voting power should only include direct tokens when vesting wallet not owned by escrow"
         );
     }
 
@@ -541,10 +541,10 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
-                "Vesting wallet not owned by staking"
+                "Vesting wallet not owned by escrow"
             )
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -562,7 +562,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         assertEq(
             aliceVotingPower,
             directAmount,
-            "Alice's voting power should only include direct tokens when vesting wallets are not owned by staking"
+            "Alice's voting power should only include direct tokens when vesting wallets are not owned by escrow"
         );
     }
 
@@ -597,7 +597,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -660,7 +660,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -748,7 +748,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -774,7 +774,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
-                "Vesting wallet not owned by staking"
+                "Vesting wallet not owned by escrow"
             )
         );
         aStaking.unstakeVesting();
@@ -846,7 +846,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV2).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -876,7 +876,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
-                "Vesting wallet not owned by staking"
+                "Vesting wallet not owned by escrow"
             )
         );
         aStaking.unstakeVesting();
@@ -924,7 +924,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV1).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself
@@ -1023,7 +1023,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         SummerVestingWallet(vestingWalletV2).transferOwnership(
             address(aStaking)
         );
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
 
         // Alice delegates to herself

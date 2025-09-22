@@ -68,7 +68,7 @@ removeStakingModule() →
 
 **Critical Flows**:
 ```solidity
-stakeWithVesting() → 
+stakeVesting() → 
   - Requires vesting wallet to already be owned by escrow (precondition)
   - Mints xSUMR equal to current SUMR balance in each qualifying vesting wallet
   - Tracks staked amounts and the 'released' counter per factory

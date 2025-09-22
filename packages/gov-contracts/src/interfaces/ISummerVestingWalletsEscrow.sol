@@ -18,6 +18,30 @@ interface ISummerVestingWalletsEscrow {
     /// @param vestingFactory Address of the vesting factory removed.
     event VestingFactoryRemoved(address indexed vestingFactory);
 
+    /// @notice Emitted when suer staked a vesting wallet
+    /// @param user The user that staked the vesting wallet
+    /// @param vestingFactory The vesting factory that the user staked from
+    /// @param balance The balance of the vesting wallet at the time of staking
+    /// @param released The amount released from the vesting wallet at the time of staking
+    event StakedVestingWallet(
+        address indexed user,
+        address indexed vestingFactory,
+        uint256 balance,
+        uint256 released
+    );
+
+    /// @notice Emitted when user unstaked a vesting wallet
+    /// @param user The user that unstaked the vesting wallet
+    /// @param vestingFactory The vesting factory that the user unstaked from
+    /// @param balance The amount originally staked from the vesting wallet
+    /// @param released The amount released from the vesting wallet at the time of unstaking
+    event UnstakedVestingWallet(
+        address indexed user,
+        address indexed vestingFactory,
+        uint256 balance,
+        uint256 released
+    );
+
     // =============================
     //            ERRORS
     // =============================
@@ -131,7 +155,7 @@ interface ISummerVestingWalletsEscrow {
     ///      No tokens move out of the vesting wallets; the contract only verifies ownership and balances and mints xSUMR.
     /// @custom:reverts Staking_VestingWalletsEmpty If no eligible vesting wallets were found (zero total balance or
     ///                                            already staked).
-    function stakeWithVesting() external;
+    function stakeVesting() external;
 
     /// @notice Unstakes previously staked vesting positions and returns vesting wallet ownership back to the user.
     /// @dev Burns the caller's xSUMR equal to the previously staked total and transfers ownership of the vesting

@@ -195,7 +195,7 @@ contract SummerVestingWalletsEscrowTestBase is SummerGovernorV2TestBase {
 
         vm.startPrank(user);
         SummerVestingWallet(vestingWallet).transferOwnership(address(aStaking));
-        aStaking.stakeWithVesting();
+        aStaking.stakeVesting();
         vm.stopPrank();
     }
 
@@ -376,7 +376,7 @@ contract SummerVestingWalletsEscrowTestBase is SummerGovernorV2TestBase {
 
         // Alice delegates to herself
         vm.prank(alice);
-        // aStaking.stakeWithVesting();
+        // aStaking.stakeVesting();
         axSumr.delegate(alice);
 
         advanceTimeAndBlock();

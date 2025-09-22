@@ -206,7 +206,9 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.startPrank(user);
         aSummerToken.approve(address(staking), amount);
         staking.stakeLockup(amount, lockupPeriod);
-        uint256 stakeIndex = staking.getUserStakesCount(user) - 1;
+        uint256 stakeIndex = lockupPeriod == 0
+            ? 0
+            : staking.getUserStakesCount(user) - 1;
         vm.stopPrank();
         return stakeIndex;
     }

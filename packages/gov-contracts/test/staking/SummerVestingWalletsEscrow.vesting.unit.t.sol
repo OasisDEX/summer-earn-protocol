@@ -108,7 +108,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Verify user received StakedSummerToken for total vesting balance
         assertEq(axSumr.balanceOf(user1), expectedTotal);
@@ -124,7 +124,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Verify user received StakedSummerToken for total vesting balance
         assertEq(axSumr.balanceOf(user1), expectedTotal);
@@ -155,7 +155,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Verify user received StakedSummerToken for total vesting balance
         assertEq(axSumr.balanceOf(user1), expectedTotal);
@@ -164,12 +164,12 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         assertEq(aSummerToken.balanceOf(address(testStaking)), 0);
     }
     function test_StakeWithVesting_UserHasNoVestingWallets() public {
-        // Attempt to stake with vesting - should revert
+        // Attempt to stake with empty vesting wallets - should revert
         vm.prank(user2);
         vm.expectRevert(
             abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
         );
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
     }
 
     function test_StakeWithVesting_UserHasEmptyVestingWallets() public {
@@ -182,7 +182,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
         );
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Verify user received 0 StakedSummerToken (empty vesting wallets)
         assertEq(axSumr.balanceOf(user1), 0);
@@ -195,7 +195,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // First call
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         assertEq(axSumr.balanceOf(user1), expectedTotal);
 
@@ -204,7 +204,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
             abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
         );
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         assertEq(axSumr.balanceOf(user1), expectedTotal);
         // Note: tokens don't actually move to staking contract
@@ -229,16 +229,16 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
-                "Vesting wallet not owned by staking"
+                "Vesting wallet not owned by escrow"
             )
         );
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
     }
 
     function test_UnstakeVesting_VestingWalletNotOwnedByStaking() public {
         // First stake
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Change ownership of vesting wallet to someone else
         vm.prank(address(testStaking));
@@ -249,7 +249,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
-                "Vesting wallet not owned by staking"
+                "Vesting wallet not owned by escrow"
             )
         );
         testStaking.unstakeVesting();
@@ -268,7 +268,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Verify user received StakedSummerToken for the amounts
         assertEq(axSumr.balanceOf(user1), amount1 + amount2);
@@ -309,16 +309,16 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
-                "Vesting wallet not owned by staking"
+                "Vesting wallet not owned by escrow"
             )
         );
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
     }
 
     function test_UnstakeVesting_MixedOwnedAndUnownedWallets() public {
         // First stake
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // First stake with mixed ownership (this should fail)
         vm.prank(address(testStaking));
@@ -329,7 +329,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "Staking__InvalidOwner(string)",
-                "Vesting wallet not owned by staking"
+                "Vesting wallet not owned by escrow"
             )
         );
         testStaking.unstakeVesting();
@@ -356,7 +356,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Verify user received StakedSummerToken for total vesting balance
         assertEq(axSumr.balanceOf(user1), expectedTotal);
@@ -398,11 +398,11 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // User1 stakes
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // User2 stakes from same factory
         vm.prank(user2);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Both should have received StakedSummerToken
         assertEq(
@@ -435,6 +435,16 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
             address(mockVestingFactory1),
             "User2 should have factory 1 in staked vesting factories"
         );
+        assertEq(
+            testStaking.getUserStakedVestingFactory(user1, 0),
+            address(mockVestingFactory2),
+            "User1 should have factory 2 in staked vesting factories"
+        );
+        assertEq(
+            testStaking.getUserStakedVestingFactory(user2, 0),
+            address(mockVestingFactory1),
+            "User2 should have factory 1 in staked vesting factories"
+        );
     }
 
     function test_UnstakeVesting_ValidateBurnAmounts() public {
@@ -443,7 +453,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
         assertEq(axSumr.balanceOf(user1), expectedTotal);
 
         // Record balances before unstaking
@@ -470,7 +480,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Verify user received StakedSummerToken for large amounts
         assertEq(axSumr.balanceOf(user1), largeAmount1 + largeAmount2);
@@ -479,7 +489,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
     function test_UnstakeVesting_AfterTokenBurn() public {
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Burn some StakedSummerToken
         vm.prank(user1);
@@ -517,7 +527,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Should receive StakedSummerToken for the non-zero balance wallet only
         assertEq(
@@ -530,7 +540,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
     function test_UnstakeVesting_ValidateOwnershipTransferBack() public {
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Verify current ownership
         assertEq(
@@ -559,7 +569,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
     function test_StakeWithVesting_AlreadyStaked() public {
         // First stake
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
         uint256 firstStakeAmount = axSumr.balanceOf(user1);
 
         // Try to stake again - should revert
@@ -567,7 +577,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
             abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
         );
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Balance should remain the same
         assertEq(axSumr.balanceOf(user1), firstStakeAmount);
@@ -589,7 +599,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting - should only stake from remaining factory
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Should only receive StakedSummerToken for the wallet from the remaining factory
         assertEq(axSumr.balanceOf(user1), VESTING_AMOUNT_WALLET_1);
@@ -607,13 +617,13 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("Staking_VestingWalletsEmpty()")
         );
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
     }
 
     function test_UnstakeVesting_AfterFactoryRemoved() public {
         // Stake with vesting
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // Remove one factory
         vm.prank(address(timelockA));
@@ -657,13 +667,13 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // All users stake concurrently
         vm.prank(user1);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         vm.prank(user2);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         vm.prank(user3);
-        testStaking.stakeWithVesting();
+        testStaking.stakeVesting();
 
         // All should have received StakedSummerToken
         assertEq(axSumr.balanceOf(user1), VESTING_AMOUNT_WALLET_1);
