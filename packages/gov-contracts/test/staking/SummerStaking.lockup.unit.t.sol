@@ -354,7 +354,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         // Get balances before unstaking
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
-        uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
+        UserSnapshot memory beforeSnap = _snapshotUser(aStaking, user1);
 
         // Unstake full amount
         _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
@@ -364,7 +364,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             aSummerToken.balanceOf(user1),
             userSummerBalanceBefore + stakeAmount
         );
-        assertEq(axSumr.balanceOf(user1), userXSumrBalanceBefore - stakeAmount);
+        assertEq(axSumr.balanceOf(user1), beforeSnap.xsumr - stakeAmount);
 
         // Verify stake is removed
         (uint256 amount, , , ) = aStaking.getUserStake(user1, stakeIndex);
@@ -404,19 +404,18 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Warp time past lockup end
         vm.warp(block.timestamp + lockupPeriod + 1 days);
 
-        // Get state before unstaking
-        uint256 balanceBefore = aStaking.balanceOf(user1);
-        uint256 weightedBalanceBefore = aStaking.weightedBalanceOf(user1);
+        // Get state before unstaking (reduced locals)
+        UserSnapshot memory beforeSnap = _snapshotUser(aStaking, user1);
         uint256 totalSupplyBefore = aStaking.totalSupply();
 
         // Unstake full amount
         _approveAndUnstake(aStaking, user1, stakeIndex, stakeAmount);
 
         // Verify state changes
-        assertEq(aStaking.balanceOf(user1), balanceBefore - stakeAmount);
+        assertEq(aStaking.balanceOf(user1), beforeSnap.raw - stakeAmount);
         assertEq(
             aStaking.weightedBalanceOf(user1),
-            weightedBalanceBefore -
+            beforeSnap.weighted -
                 _calculateExpectedWeightedAmountForPeriod(
                     stakeAmount,
                     lockupPeriod
@@ -452,7 +451,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         // Get balances before unstaking
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
-        uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
         uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
             aStaking.treasury()
         );
@@ -478,10 +476,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Verify user received remaining amount
-        assertEq(
-            aSummerToken.balanceOf(user1),
-            userSummerBalanceBefore + expectedReturnAmount
-        );
+        assertEq(aSummerToken.balanceOf(user1), userSummerBalanceBefore + expectedReturnAmount);
     }
 
     function test_ImmediateUnstake_MinimumLockupPeriod() public {
@@ -560,8 +555,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Get state before unstaking
-        uint256 balanceBefore = aStaking.balanceOf(user1);
-        uint256 weightedBalanceBefore = aStaking.weightedBalanceOf(user1);
+        UserSnapshot memory beforeSnap = _snapshotUser(aStaking, user1);
         uint256 totalSupplyBefore = aStaking.totalSupply();
         uint256 treasuryBalanceBefore = aSummerToken.balanceOf(
             aStaking.treasury()
@@ -578,10 +572,10 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
 
         // Verify state changes
-        assertEq(aStaking.balanceOf(user1), balanceBefore - stakeAmount);
+        assertEq(aStaking.balanceOf(user1), beforeSnap.raw - stakeAmount);
         assertEq(
             aStaking.weightedBalanceOf(user1),
-            weightedBalanceBefore -
+            beforeSnap.weighted -
                 _calculateExpectedWeightedAmountForPeriod(
                     stakeAmount,
                     lockupPeriod
@@ -1460,18 +1454,14 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertEq(aStaking.getUserStakesCount(user1), 2);
         assertEq(aStaking.getUserStakesCount(user2), 0);
 
-        // Snapshot pre-state
-        uint256 fromRawBefore = aStaking.balanceOf(user1);
-        uint256 fromWeightedBefore = aStaking.weightedBalanceOf(user1);
-        uint256 toRawBefore = aStaking.balanceOf(user2);
-        uint256 toWeightedBefore = aStaking.weightedBalanceOf(user2);
+        // Snapshot pre-state (reduced locals)
+        UserSnapshot memory fromBefore = _snapshotUser(aStaking, user1);
+        UserSnapshot memory toBefore = _snapshotUser(aStaking, user2);
         uint256 totalSupplyBefore = aStaking.totalSupply();
-        uint256 xFromBefore = axSumr.balanceOf(user1);
-        uint256 xToBefore = axSumr.balanceOf(user2);
 
         // Approve xSUMR transfer and move all stakes from user1 to user2
         vm.prank(user1);
-        axSumr.approve(address(aStaking), fromRawBefore);
+        axSumr.approve(address(aStaking), fromBefore.raw);
         vm.prank(user1);
         aStaking.transferStakes(user2);
 
@@ -1500,12 +1490,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
         assertEq(
             aStaking.balanceOf(user2),
-            toRawBefore + fromRawBefore,
+            toBefore.raw + fromBefore.raw,
             "to raw balance should increase by from raw"
         );
         assertEq(
             aStaking.weightedBalanceOf(user2),
-            toWeightedBefore + fromWeightedBefore,
+            toBefore.weighted + fromBefore.weighted,
             "to weighted balance should increase by from weighted"
         );
 
@@ -1519,12 +1509,12 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // xSUMR token balances moved
         assertEq(
             axSumr.balanceOf(user1),
-            xFromBefore - fromRawBefore,
+            fromBefore.xsumr - fromBefore.raw,
             "xSUMR of from should decrease by raw amount"
         );
         assertEq(
             axSumr.balanceOf(user2),
-            xToBefore + fromRawBefore,
+            toBefore.xsumr + fromBefore.raw,
             "xSUMR of to should increase by raw amount"
         );
 
@@ -1556,6 +1546,10 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.prank(user1);
         axSumr.approve(address(aStaking), stakeAmount);
 
+        // Snapshot xSUMR balances to reduce locals below
+        UserSnapshot memory fromBefore = _snapshotUser(aStaking, user1);
+        UserSnapshot memory toBefore = _snapshotUser(aStaking, user2);
+
         // Transfer stakes to user2
         vm.prank(user1);
         aStaking.transferStakes(user2);
@@ -1577,7 +1571,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertEq(axSumr.balanceOf(user1), 0, "from xSUMR should be moved");
         assertEq(
             axSumr.balanceOf(user2),
-            stakeAmount,
+            toBefore.xsumr + fromBefore.raw,
             "to xSUMR should increase by staked amount"
         );
 
