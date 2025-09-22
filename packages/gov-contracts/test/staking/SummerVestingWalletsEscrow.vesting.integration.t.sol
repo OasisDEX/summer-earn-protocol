@@ -1104,18 +1104,112 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
     }
 
     function test_RescueWallet() public {
-        revert("Not implemented");
+        // Create a vesting wallet and transfer ownership to staking
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: USER_1_VESTING_1_AMOUNT,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: _createPerformanceGoals(0, "Rescue test"),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: true
+            })
+        );
+
+        address payable vestingWallet = payable(
+            factoryVesting.vestingWallets(alice)
+        );
+        assertEq(
+            SummerVestingWallet(vestingWallet).owner(),
+            address(aStaking),
+            "Precondition: staking must own vesting wallet"
+        );
+
+        // Rescue wallet to a new owner (bob) via governor
+        vm.prank(address(timelockA));
+        aStaking.rescueWallet(vestingWallet, bob);
+
+        // Ownership transferred to bob
+        assertEq(
+            SummerVestingWallet(vestingWallet).owner(),
+            bob,
+            "Vesting wallet should be transferred to new owner"
+        );
     }
 
     function test_RescueWallet_InvalidNewOwner() public {
-        revert("Not implemented");
+        // Create a vesting wallet and transfer ownership to staking
+        _createVestingWalletForUser(
+            VestingWalletConfig({
+                user: alice,
+                isV2: false,
+                totalAmount: USER_1_VESTING_1_AMOUNT,
+                cliffAmount: 0,
+                cliffPeriodDays: 0,
+                performanceGoals: _createPerformanceGoals(0, "Rescue test"),
+                vestingType: ISummerVestingWallet.VestingType.TeamVesting,
+                transferToStaking: true
+            })
+        );
+
+        address payable vestingWallet = payable(
+            factoryVesting.vestingWallets(alice)
+        );
+
+        // Expect revert on zero address new owner
+        vm.prank(address(timelockA));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking_InvalidAddress(string)",
+                "New owner cannot be zero address"
+            )
+        );
+        aStaking.rescueWallet(vestingWallet, address(0));
     }
 
     function test_RescueToken() public {
-        revert("Not implemented");
+        // Fund staking escrow with SUMMER tokens
+        uint256 amount = 1_000 ether;
+        vm.prank(address(timelockA));
+        aSummerToken.transfer(address(aStaking), amount);
+        assertEq(
+            aSummerToken.balanceOf(address(aStaking)),
+            amount,
+            "Precondition: staking holds tokens"
+        );
+
+        // Rescue tokens to bob via governor
+        vm.prank(address(timelockA));
+        aStaking.rescueToken(address(aSummerToken), bob);
+
+        // Entire balance moved from staking to bob
+        assertEq(aSummerToken.balanceOf(address(aStaking)), 0);
+        assertEq(aSummerToken.balanceOf(bob), amount);
     }
 
     function test_RescueToken_InvalidToken() public {
-        revert("Not implemented");
+        // Expect revert when token address is zero
+        vm.prank(address(timelockA));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking_InvalidAddress(string)",
+                "Invalid token address"
+            )
+        );
+        aStaking.rescueToken(address(0), bob);
+    }
+
+    function test_RescueToken_InvalidToAddress() public {
+        // Expect revert when to address is zero
+        vm.prank(address(timelockA));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking_InvalidAddress(string)",
+                "Invalid to address"
+            )
+        );
+        aStaking.rescueToken(address(aSummerToken), address(0));
     }
 }

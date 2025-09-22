@@ -165,6 +165,12 @@ contract SummerVestingWalletsEscrow is
         address _token,
         address _to
     ) external override onlyGovernor {
+        if (_token == address(0)) {
+            revert Staking_InvalidAddress("Invalid token address");
+        }
+        if (_to == address(0)) {
+            revert Staking_InvalidAddress("Invalid to address");
+        }
         IERC20(_token).safeTransfer(
             _to,
             IERC20(_token).balanceOf(address(this))
