@@ -859,10 +859,10 @@
         },
         "adapters": {
           "layerZero": {
-            "address": "0x0000000000000000000000000000000000000000"
+            "address": "0x6a1521C68c3d54693E1B2420C49103840EAc944f"
           },
           "stargate": {
-            "address": "0x0000000000000000000000000000000000000000"
+            "address": "0x1b4b8c790A36F2e37bCd59db73320D6Fd897DB9A"
           }
         },
         "crossChainRegistry": {

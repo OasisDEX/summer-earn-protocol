@@ -13,5 +13,7 @@
   "CoreModule#Raft": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57",
   "CoreModule#TipJar": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE",
   "BridgeModule#CrossChainRegistry": "0x0369A0125465BB935f32EFff4e20Dccf93550C17",
-  "BridgeModule#BridgeRouter": "0x455B0d98F1392636382FD41e98D8070377eBC4f0"
+  "BridgeModule#BridgeRouter": "0x455B0d98F1392636382FD41e98D8070377eBC4f0",
+  "LayerZeroAdapterModule#LayerZeroAdapter": "0x6a1521C68c3d54693E1B2420C49103840EAc944f",
+  "StargateAdapterModule#StargateAdapter": "0x1b4b8c790A36F2e37bCd59db73320D6Fd897DB9A"
 }
