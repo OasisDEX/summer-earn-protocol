@@ -94,7 +94,10 @@ async function deployFleet() {
 
   // Determine if this is a hub or satellite chain
   const isHubChain = network === HUB_CHAIN_NAME
-  console.log(kleur.blue('Chain Type:'), isHubChain ? kleur.cyan('Hub') : kleur.cyan('Satellite'))
+  console.log(
+    kleur.blue('Chain Type (governance context):'),
+    isHubChain ? kleur.cyan('Hub') : kleur.cyan('Satellite'),
+  )
 
   console.log(kleur.green().bold(`Starting ${deploymentMode} process...`))
 
