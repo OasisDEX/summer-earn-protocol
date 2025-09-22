@@ -15,7 +15,7 @@
       "type": "ERC4626Ark",
       "params": {
         "asset": "USDC",
-        "vaultName": "Euler Unichain",
+        "vaultName": "Euler_Unichain",
         "protocol": "erc4626"
       }
     }

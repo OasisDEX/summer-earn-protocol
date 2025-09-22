@@ -977,7 +977,7 @@
     "protocolSpecific": {
       "erc4626": {
         "usdc": {
-          "Euler Unichain": "0x6eAe95ee783e4D862867C4e0E4c3f4B95AA682Ba"
+          "Euler_Unichain": "0x6eAe95ee783e4D862867C4e0E4c3f4B95AA682Ba"
         }
       }
     }
