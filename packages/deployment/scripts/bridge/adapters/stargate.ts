@@ -69,22 +69,13 @@ export async function deployStargateAdapter(
     )
   }
 
-  // Get HarborCommand address from network config
-  const harborCommand = networkConfig.deployedContracts.core.harborCommand.address
-  if (!harborCommand) {
-    throw new Error(
-      `HarborCommand address not found in config for chain ID ${networkConfig.common.chainId}`,
-    )
-  }
-
-  // Deploy using Ignition module - all 4 constructor parameters needed
+  // Deploy using Ignition module - 3 constructor parameters needed
   const deploymentResult = await hre.ignition.deploy(StargateAdapterModule, {
     parameters: {
       StargateAdapterModule: {
         crossChainRegistry,
         accessManager,
         lzEndpoint,
-        harborCommand,
       },
     },
   })
@@ -145,15 +136,15 @@ export async function configureStargateAdapter(
             {
               inputs: [
                 { internalType: 'uint16', name: 'chainId', type: 'uint16' },
-                { internalType: 'uint32', name: 'endpointId', type: 'uint32' },
+                { internalType: 'uint32', name: 'externalId', type: 'uint32' },
               ],
-              name: 'mapEndpoint',
+              name: 'mapExternalId',
               outputs: [],
               stateMutability: 'nonpayable',
               type: 'function',
             },
           ] as const,
-          functionName: 'mapEndpoint',
+          functionName: 'mapExternalId',
           args: [chainInfo.chainId, chainInfo.endpointId],
         })
         console.log(kleur.green(`Chain mapping updated, tx: ${hash}`))
@@ -312,42 +303,8 @@ export async function configureStargateAdapter(
 
   console.log(kleur.blue(`Configured ${assetsConfigured} asset mappings`))
 
-  // Set default transport mode from Stargate config (with check)
-  try {
-    const defaultUseTaxi = stargateConfig.defaultUseTaxi || false
-    const currentUseTaxi = Boolean(await stargateAdapter.read.defaultUseTaxi())
-
-    if (currentUseTaxi !== defaultUseTaxi) {
-      // Use wallet client directly instead of .write
-      const hash = await walletClient.writeContract({
-        address: getAddress(stargateAdapterAddress as `0x${string}`),
-        abi: [
-          {
-            inputs: [{ internalType: 'bool', name: 'useTaxi', type: 'bool' }],
-            name: 'setDefaultTransportMode',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'setDefaultTransportMode',
-        args: [defaultUseTaxi],
-      })
-      console.log(
-        kleur.green(
-          `Default transport mode updated to ${defaultUseTaxi ? 'taxi' : 'bus'}, tx: ${hash}`,
-        ),
-      )
-    } else {
-      console.log(
-        kleur.yellow(
-          `Default transport mode already set to ${defaultUseTaxi ? 'taxi' : 'bus'}, skipping`,
-        ),
-      )
-    }
-  } catch (error) {
-    console.error(kleur.red('Error setting default transport mode:'), error)
-  }
+  // Note: StargateAdapter uses hardcoded taxi mode for all transfers
+  // No configuration needed for transport mode
 
   // Register adapter with bridge router (existing check is good)
   try {
@@ -425,15 +382,15 @@ export async function updateStargateAdapterAddresses(
             {
               inputs: [
                 { internalType: 'uint16', name: 'chainId', type: 'uint16' },
-                { internalType: 'uint32', name: 'endpointId', type: 'uint32' },
+                { internalType: 'uint32', name: 'externalId', type: 'uint32' },
               ],
-              name: 'mapEndpoint',
+              name: 'mapExternalId',
               outputs: [],
               stateMutability: 'nonpayable',
               type: 'function',
             },
           ] as const,
-          functionName: 'mapEndpoint',
+          functionName: 'mapExternalId',
           args: [chainInfo.chainId, chainInfo.endpointId],
         })
         const publicClient = await hre.viem.getPublicClient()
