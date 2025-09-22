@@ -33,6 +33,7 @@ enum Token {
   SPK = 'spk',
   USDF = 'usdf',
   EXTRA = 'extra',
+  ARB = 'arb',
 }
 const addresses: Record<
   SupportedChain,
@@ -63,6 +64,7 @@ const addresses: Record<
       spk: '0x0000000000000000000000000000000000000000',
       usdf: '0x0000000000000000000000000000000000000000',
       extra: '0x2dAD3a13ef0C6366220f989157009e501e7938F8',
+      arb: '0x0000000000000000000000000000000000000000',
     },
   },
   mainnet: {
@@ -86,6 +88,7 @@ const addresses: Record<
       spk: '0xc20059e0317DE91738d13af027DfC4a50781b066',
       usdf: '0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2',
       extra: '0x0000000000000000000000000000000000000000',
+      arb: '0x0000000000000000000000000000000000000000',
     },
   },
   sonic: {
@@ -106,6 +109,7 @@ const addresses: Record<
       spk: '0x0000000000000000000000000000000000000000',
       usdf: '0x0000000000000000000000000000000000000000',
       extra: '0x0000000000000000000000000000000000000000',
+      arb: '0x0000000000000000000000000000000000000000',
     },
   },
   arbitrum: {
@@ -126,6 +130,7 @@ const addresses: Record<
       spk: '0x0000000000000000000000000000000000000000',
       usdf: '0x0000000000000000000000000000000000000000',
       extra: '0x0000000000000000000000000000000000000000',
+      arb: '0x912CE59144191C1204E64559FE8253a0e49E6548',
     },
   },
 }
@@ -530,6 +535,7 @@ const rewardsConfig: Record<string, Record<string, Token[]>> = {
   },
   arbitrum: {
     compound_v3: [Token.COMP],
+    fluid: [Token.ARB],
   },
 }
 

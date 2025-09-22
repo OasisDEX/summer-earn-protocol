@@ -250,5 +250,41 @@
     "decayType": "linear",
     "maxMultiplier": 2,
     "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "arb",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.0001,
+      "usdt": 0.43,
+      "usdc": 0.43,
+      "dai": 0.43,
+      "usde": 0.43,
+      "usdce": 0.43,
+      "eurc": 0.43
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
+  },
+  {
+    "rewardTokenSymbol": "usdc",
+    "rewardTokenDecimals": 6,
+    "prices": {
+      "weth": 0.00025,
+      "usdt": 1,
+      "usdc": 1,
+      "dai": 1,
+      "usde": 1,
+      "usdce": 1,
+      "eurc": 1
+    },
+    "duration": "1d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear",
+    "maxMultiplier": 2,
+    "minMultiplier": 0.1
   }
 ]
