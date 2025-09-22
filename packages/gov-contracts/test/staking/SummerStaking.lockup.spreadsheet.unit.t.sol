@@ -45,20 +45,24 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Configure bucket caps
         vm.startPrank(address(timelockA));
         freshStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoWeeksToThreeMonths,
+            DEFAULT_CAP_AMOUNT
+        );
+        freshStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.ThreeToSixMonths,
-            1000000 ether
+            DEFAULT_CAP_AMOUNT
         );
         freshStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.SixToTwelveMonths,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         freshStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.OneToTwoYears,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         freshStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.TwoToThreeYears,
-            100000 ether
+            DEFAULT_CAP_AMOUNT
         );
         vm.stopPrank();
 

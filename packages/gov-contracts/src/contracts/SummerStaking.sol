@@ -49,10 +49,11 @@ contract SummerStaking is
 
     uint256 public constant NO_LOCKUP_INDEX = 0;
     uint256 public constant BUCKET_SHORT_TERM_MIN = 1;
-    uint256 public constant BUCKET_SHORT_TERM_MAX = 90 days;
+    uint256 public constant BUCKET_SHORT_TERM_MAX = 14 days;
+    uint256 public constant BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX = 90 days;
     uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days;
     uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days;
-    uint256 public constant BUCKET_ONE_TO_TWO_MAX = 730 days;
+    uint256 public constant BUCKET_ONE_TO_TWO_MAX = 2 * 365 days;
     uint256 public constant BUCKET_TWO_TO_THREE_MAX = MAX_LOCKUP_PERIOD;
 
     // ============ STORAGE ============
@@ -599,6 +600,8 @@ contract SummerStaking is
     function _findBucket(uint256 _lockupPeriod) internal pure returns (Bucket) {
         if (_lockupPeriod == 0) return Bucket.NoLockup;
         if (_lockupPeriod <= BUCKET_SHORT_TERM_MAX) return Bucket.ShortTerm;
+        if (_lockupPeriod <= BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX)
+            return Bucket.TwoWeeksToThreeMonths;
         if (_lockupPeriod <= BUCKET_THREE_TO_SIX_MAX)
             return Bucket.ThreeToSixMonths;
         if (_lockupPeriod <= BUCKET_SIX_TO_TWELVE_MAX)
@@ -648,8 +651,11 @@ contract SummerStaking is
         } else if (_bucket == Bucket.ShortTerm) {
             minLockupPeriod = BUCKET_SHORT_TERM_MIN;
             maxLockupPeriod = BUCKET_SHORT_TERM_MAX;
-        } else if (_bucket == Bucket.ThreeToSixMonths) {
+        } else if (_bucket == Bucket.TwoWeeksToThreeMonths) {
             minLockupPeriod = BUCKET_SHORT_TERM_MAX + 1;
+            maxLockupPeriod = BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX;
+        } else if (_bucket == Bucket.ThreeToSixMonths) {
+            minLockupPeriod = BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX + 1;
             maxLockupPeriod = BUCKET_THREE_TO_SIX_MAX;
         } else if (_bucket == Bucket.SixToTwelveMonths) {
             minLockupPeriod = BUCKET_THREE_TO_SIX_MAX + 1;
