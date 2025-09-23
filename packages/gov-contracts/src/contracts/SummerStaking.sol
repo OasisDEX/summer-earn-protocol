@@ -373,7 +373,7 @@ contract SummerStaking is
 
         buckets[0] = Bucket.NoLockup;
         buckets[1] = Bucket.ShortTerm;
-        buckets[2] = Bucket.TwoWeeksToThreeMonths;          
+        buckets[2] = Bucket.TwoWeeksToThreeMonths;
         buckets[3] = Bucket.ThreeToSixMonths;
         buckets[4] = Bucket.SixToTwelveMonths;
         buckets[5] = Bucket.OneToTwoYears;

@@ -34,7 +34,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
      */
     function createFreshStakingWithConfig() internal returns (SummerStaking) {
         SummerStaking freshStaking = createFreshStaking();
-                uint256[] memory expectedBucketCaps = new uint256[](7);
+        uint256[] memory expectedBucketCaps = new uint256[](7);
         expectedBucketCaps[0] = MAX_CAP_AMOUNT;
         expectedBucketCaps[1] = 0;
         expectedBucketCaps[2] = MAX_CAP_AMOUNT;
@@ -219,12 +219,9 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Get balances before staking
         uint256 userSummerBalanceBefore = aSummerToken.balanceOf(user1);
         uint256 userXSumrBalanceBefore = axSumr.balanceOf(user1);
-        uint256 contractSummerBalanceBefore = aSummerToken.balanceOf(
-            address(aStaking)
-        );
         uint256 totalSupplyBefore = aStaking.totalSupply();
 
-        uint256 stakeIndex = _stake(aStaking, user1, stakeAmount, lockupPeriod);
+        _stake(aStaking, user1, stakeAmount, lockupPeriod);
 
         // Check user balances
         assertEq(
@@ -1342,7 +1339,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     function test_StakeLockupOnBehalf_RevertOnZeroAmount() public {
-        uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMinLockupPeriod;
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -1889,7 +1885,10 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             sixToTwelveMonthsAmt
         );
         _assertBucket(ISummerStaking.Bucket.OneToTwoYears, oneToTwoYearsAmt);
-        _assertBucket(ISummerStaking.Bucket.TwoToThreeYears, twoToThreeYearsAmt);
+        _assertBucket(
+            ISummerStaking.Bucket.TwoToThreeYears,
+            twoToThreeYearsAmt
+        );
 
         // Verify getAllBucketInfo shape and values
         (
@@ -1921,7 +1920,10 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             uint256(buckets[4]),
             uint256(ISummerStaking.Bucket.SixToTwelveMonths)
         );
-        assertEq(uint256(buckets[5]), uint256(ISummerStaking.Bucket.OneToTwoYears));
+        assertEq(
+            uint256(buckets[5]),
+            uint256(ISummerStaking.Bucket.OneToTwoYears)
+        );
         assertEq(
             uint256(buckets[6]),
             uint256(ISummerStaking.Bucket.TwoToThreeYears)
@@ -1959,7 +1961,10 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertEq(maxPeriods[1], aStaking.BUCKET_SHORT_TERM_MAX());
         // TwoWeeksToThreeMonths
         assertEq(minPeriods[2], aStaking.BUCKET_SHORT_TERM_MAX() + 1);
-        assertEq(maxPeriods[2], aStaking.BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX());
+        assertEq(
+            maxPeriods[2],
+            aStaking.BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX()
+        );
         // ThreeToSixMonths
         assertEq(
             minPeriods[3],
@@ -1975,6 +1980,48 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // TwoToThreeYears
         assertEq(minPeriods[6], aStaking.BUCKET_ONE_TO_TWO_MAX() + 1);
         assertEq(maxPeriods[6], aStaking.BUCKET_TWO_TO_THREE_MAX());
+
+        // ============ Now unstake from all buckets ============
+        // Unstake non-zero lockup stakes first (reverse order to avoid index swap surprises), then no lockup
+        uint256 stakeCount = aStaking.getUserStakesCount(user1);
+        // Expect 7 stakes (including no lockup aggregate at index 0)
+        assertEq(stakeCount, 7, "expected 7 stakes including no-lockup");
+
+        // Unstake indices [6..1]
+        for (uint256 i = stakeCount - 1; i >= 1; i--) {
+            (uint256 amt, , , ) = aStaking.getUserStake(user1, i);
+            _approveAndUnstake(aStaking, user1, i, amt);
+            if (i == 1) break; // prevent underflow in unsigned loop
+        }
+        // Finally, unstake no-lockup at index 0 (no penalty)
+        (uint256 noLockAmt, , , ) = aStaking.getUserStake(user1, 0);
+        if (noLockAmt > 0) {
+            _approveAndUnstake(aStaking, user1, 0, noLockAmt);
+        }
+
+        // Buckets should be cleared to zero
+        _assertBucket(ISummerStaking.Bucket.NoLockup, 0);
+        _assertBucket(ISummerStaking.Bucket.ShortTerm, 0);
+        _assertBucket(ISummerStaking.Bucket.TwoWeeksToThreeMonths, 0);
+        _assertBucket(ISummerStaking.Bucket.ThreeToSixMonths, 0);
+        _assertBucket(ISummerStaking.Bucket.SixToTwelveMonths, 0);
+        _assertBucket(ISummerStaking.Bucket.OneToTwoYears, 0);
+        _assertBucket(ISummerStaking.Bucket.TwoToThreeYears, 0);
+
+        // User staking balances should be zeroed out
+        assertEq(aStaking.balanceOf(user1), 0, "user raw balance should be 0");
+        assertEq(
+            aStaking.weightedBalanceOf(user1),
+            0,
+            "user weighted balance should be 0"
+        );
+        assertEq(axSumr.balanceOf(user1), 0, "user xSUMR should be 0");
+
+        (, , uint256[] memory stakedAmountsAfterUnstake, , ) = aStaking
+            .getAllBucketInfo();
+        for (uint256 i = 0; i < 7; i++) {
+            assertEq(stakedAmountsAfterUnstake[i], 0);
+        }
     }
     function _create_multiple_stakes_and_transfer_measure_gas(
         uint count

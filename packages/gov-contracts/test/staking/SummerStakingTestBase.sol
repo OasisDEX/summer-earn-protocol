@@ -257,7 +257,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 expectedWeightedAmount,
         uint256 expectedLockupEndTime,
         uint256 expectedLockupPeriod
-    ) internal {
+    ) internal view {
         (
             uint256 amount,
             uint256 weightedAmount,
@@ -405,7 +405,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     function _verifyBucketDistribution(
         SummerStaking staking,
         uint256[] memory expectedBucketAmounts
-    ) internal {
+    ) internal view {
         ISummerStaking.Bucket[] memory buckets = new ISummerStaking.Bucket[](7);
         buckets[0] = ISummerStaking.Bucket.NoLockup;
         buckets[1] = ISummerStaking.Bucket.ShortTerm;
@@ -431,7 +431,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
     function _verifyBucketCaps(
         SummerStaking staking,
         uint256[] memory expectedBucketCaps
-    ) internal {
+    ) internal view {
         ISummerStaking.Bucket[] memory buckets = new ISummerStaking.Bucket[](7);
         buckets[0] = ISummerStaking.Bucket.NoLockup;
         buckets[1] = ISummerStaking.Bucket.ShortTerm;
@@ -526,7 +526,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         SummerStaking staking,
         address user,
         uint256 expectedReward
-    ) internal {
+    ) internal view {
         uint256 actualReward = staking.earned(user, address(rewardToken));
         assertEq(actualReward, expectedReward, "Reward amount mismatch");
     }
