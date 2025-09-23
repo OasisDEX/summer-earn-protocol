@@ -282,7 +282,7 @@ contract SummerVestingWalletsEscrow is
             .released(address(SUMMER_TOKEN));
         uint256 releasedWhileStaked = releasedAtUnstake - releasedAtStake;
         if (releasedWhileStaked > 0) {
-            /// @dev `release()` method is permissionless - so it can be called by anyone
+            /// @dev `release()` method is permissionless; it can be called by anyone.
             /// @dev the tokens released while staked are transferred back to the original owner
             SUMMER_TOKEN.safeTransfer(_user, releasedWhileStaked);
         }
@@ -307,7 +307,7 @@ contract SummerVestingWalletsEscrow is
      */
     function _validateVestingWalletOwner(address _vestingWallet) internal view {
         if (IMinimalVestingWallet(_vestingWallet).owner() != address(this)) {
-            revert Staking__InvalidOwner("Vesting wallet not owned by escrow");
+            revert Staking_InvalidOwner("Vesting wallet not owned by escrow");
         }
     }
 }

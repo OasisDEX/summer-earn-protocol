@@ -211,8 +211,6 @@ contract SummerStaking is
         _balances[_to] += fromAmount;
         weightedBalances[_to] += fromWeighted;
 
-        // Rewards debt already updated via updateReward modifiers
-        // Emit generic events for visibility
         emit StakesTransferred(from, _to, stakePortfolioId[_to]);
     }
 

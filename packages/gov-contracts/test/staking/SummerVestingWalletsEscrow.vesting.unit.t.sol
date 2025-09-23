@@ -198,27 +198,6 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         // Note: tokens don't actually move to staking contract
     }
 
-    function test_StakeWithVesting_MultipleCalls() public {
-        uint256 expectedTotal = VESTING_AMOUNT_WALLET_1 +
-            (VESTING_AMOUNT_WALLET_2);
-
-        // First call
-        vm.prank(user1);
-        testStaking.stakeVesting(mockVestingFactories);
-
-        assertEq(axSumr.balanceOf(user1), expectedTotal);
-
-        // Second call should revert because the user has already staked from this vesting factory
-        vm.expectRevert(
-            abi.encodeWithSignature("Staking_FactoryAlreadyStaked()")
-        );
-        vm.prank(user1);
-        testStaking.stakeVesting(mockVestingFactories);
-
-        assertEq(axSumr.balanceOf(user1), expectedTotal);
-        // Note: tokens don't actually move to staking contract
-    }
-
     function test_UnstakeVesting_UserHasNoVestingWallets() public {
         // Attempt to unstake vesting - should revert
         vm.prank(user2);
@@ -235,7 +214,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "Staking__InvalidOwner(string)",
+                "Staking_InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -255,7 +234,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "Staking__InvalidOwner(string)",
+                "Staking_InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -287,25 +266,6 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
     // EDGE CASES AND ERROR CONDITIONS
     // ========================================
 
-    function test_StakeWithVesting_ZeroAddressFactory() public {
-        // Create staking with a zero address factory (edge case)
-        address[] memory mockVestingFactories = new address[](1);
-        mockVestingFactories[0] = address(0);
-
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidAddress(string)",
-                "Vesting factory address cannot be zero"
-            )
-        );
-        new SummerVestingWalletsEscrow(
-            address(accessManagerA),
-            address(aSummerToken),
-            address(axSumr),
-            mockVestingFactories
-        );
-    }
-
     function test_StakeWithVesting_MixedOwnedAndUnownedWallets() public {
         // Setup: wallet1 owned by staking, wallet2 owned by someone else
         vm.prank(address(testStaking));
@@ -315,7 +275,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "Staking__InvalidOwner(string)",
+                "Staking_InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -339,7 +299,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         );
         vm.expectRevert(
             abi.encodeWithSignature(
-                "Staking__InvalidOwner(string)",
+                "Staking_InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );

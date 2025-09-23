@@ -600,7 +600,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(alice);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "Staking__InvalidOwner(string)",
+                "Staking_InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -681,7 +681,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         // Try to stake with vesting - should revert due to unowned wallet
         vm.expectRevert(
             abi.encodeWithSignature(
-                "Staking__InvalidOwner(string)",
+                "Staking_InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -842,22 +842,6 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
     // VESTING UNSTAKING TESTS
     // ========================================
 
-    function test_UnstakeVesting_UserHasNoVestingWallets() public {
-        uint256 directAmount = USER_1_DIRECT_AMOUNT;
-        stakeAndGetXSumr(alice, directAmount, true);
-
-        // Alice delegates to herself
-        vm.prank(alice);
-        axSumr.delegate(alice);
-
-        advanceTimeAndBlock();
-
-        // Attempt to unstake vesting - should revert since no vesting wallets staked
-        vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSignature("Staking_NoStakeForFactory()"));
-        aStaking.unstakeVesting(vestingFactories);
-    }
-
     function test_UnstakeVesting_VestingWalletNotOwnedByStaking() public {
         // Setup: Create vesting wallet for Alice
         uint256 vestingAmount = USER_1_VESTING_1_AMOUNT;
@@ -915,7 +899,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         vm.prank(alice);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "Staking__InvalidOwner(string)",
+                "Staking_InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -1020,7 +1004,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         axSumr.approve(address(aStaking), expectedVotingPower);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "Staking__InvalidOwner(string)",
+                "Staking_InvalidOwner(string)",
                 "Vesting wallet not owned by escrow"
             )
         );

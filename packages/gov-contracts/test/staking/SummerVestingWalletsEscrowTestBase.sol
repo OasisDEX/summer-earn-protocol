@@ -5,7 +5,6 @@ import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.s
 import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV2.sol";
-import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 import {SummerVestingWallet} from "../../src/contracts/SummerVestingWallet.sol";
 import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
 

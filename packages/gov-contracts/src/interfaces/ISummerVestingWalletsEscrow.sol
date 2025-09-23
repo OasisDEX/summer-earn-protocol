@@ -18,7 +18,7 @@ interface ISummerVestingWalletsEscrow {
     /// @param vestingFactory Address of the vesting factory removed.
     event VestingFactoryRemoved(address indexed vestingFactory);
 
-    /// @notice Emitted when suer staked a vesting wallet
+    /// @notice Emitted when user staked a vesting wallet
     /// @param user The user that staked the vesting wallet
     /// @param vestingFactory The vesting factory that the user staked from
     /// @param balance The balance of the vesting wallet at the time of staking
@@ -53,7 +53,7 @@ interface ISummerVestingWalletsEscrow {
     /// @notice Thrown when a vesting wallet ownership is invalid for the attempted operation.
     /// @dev Used when the staking contract is not the current owner of the vesting wallet during stake/unstake flows.
     /// @param message Additional context for the invalid owner error.
-    error Staking__InvalidOwner(string message);
+    error Staking_InvalidOwner(string message);
 
     /// @notice Thrown when an index is out of bounds for vesting factory queries.
     error Staking_InvalidIndex();
@@ -78,13 +78,6 @@ interface ISummerVestingWalletsEscrow {
 
     /// @notice Thrown when attempting to stake a factory that is already staked by the caller.
     error Staking_FactoryAlreadyStaked();
-
-    /// @notice Thrown when no eligible vesting wallets are found to stake from.
-    /// @dev This includes the case where wallets have zero balance or have already been staked from for the caller.
-    error Staking_VestingWalletsEmpty();
-
-    /// @notice Thrown when there are no vesting wallets recorded as staked for the caller during an unstake attempt.
-    error Staking_NoVestingWalletsStaked();
 
     // =============================
     //         VIEW METHODS
@@ -167,7 +160,7 @@ interface ISummerVestingWalletsEscrow {
     /// @param factories The list of vesting factory addresses to stake from.
     /// @custom:reverts Staking_FactoryNotEnabled If a specified factory is not enabled.
     /// @custom:reverts Staking_FactoryAlreadyStaked If a specified factory is already staked for the caller.
-    /// @custom:reverts Staking__InvalidOwner If the vesting wallet is not owned by the escrow.
+    /// @custom:reverts Staking_InvalidOwner If the vesting wallet is not owned by the escrow.
     /// @custom:reverts Staking_ZeroBalance If the vesting wallet SUMR balance is zero.
     function stakeVesting(address[] calldata factories) external;
 
@@ -178,6 +171,6 @@ interface ISummerVestingWalletsEscrow {
     ///      is forwarded to the original owner.
     /// @param factories The list of vesting factory addresses to unstake.
     /// @custom:reverts Staking_NoStakeForFactory If a specified factory has not been staked by the caller.
-    /// @custom:reverts Staking__InvalidOwner If the vesting wallet is not owned by the escrow.
+    /// @custom:reverts Staking_InvalidOwner If the vesting wallet is not owned by the escrow.
     function unstakeVesting(address[] calldata factories) external;
 }
