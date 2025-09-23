@@ -71,9 +71,6 @@ interface IBridgeRouter is IERC165 {
         uint256 amount
     );
 
-    /// @notice Emitted when the BridgeQueue address is updated (typically during construction)
-    event BridgeQueueUpdated(address indexed newBridgeQueue);
-
     /// @notice Emitted when a cross-chain operation fails during delivery
     event OperationFailed(
         bytes32 indexed operationId,
@@ -110,8 +107,6 @@ interface IBridgeRouter is IERC165 {
     error FailureRecordNotFound();
     /// @notice Error thrown when a caller is not authorized (e.g., not a registered adapter)
     error Unauthorized();
-    /// @notice Error thrown when the receiver rejects a call (e.g., in deliverReadResponse)
-    error ReceiverRejectedCall(); // Keep, might be useful for callbacks
     /// @notice Error thrown when invalid parameters are provided
     error InvalidParams();
     /// @notice Error thrown when the originator is not the caller
@@ -140,12 +135,15 @@ interface IBridgeRouter is IERC165 {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Execute asset transfer initiated by the BridgeQueue.
-     * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
-     *      Expects `msg.value` to cover the *base* fee required by the adapter.
-     *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
+     * @notice Execute asset transfer via a specified adapter.
      * @param params Struct containing all parameters for the transfer execution.
+     * @param options Bridge options including specified adapter and gas limit.
      * @return operationId Unique operation ID.
+     * @custom:reverts ZeroGasLimit if `options.gasLimit` is zero.
+     * @custom:reverts InvalidParams if any parameter is invalid.
+     * @custom:reverts OnlyAuthorizedExecutor if caller is not an authorized executor.
+     * @custom:reverts UnknownAdapter if `options.specifiedAdapter` is not registered.
+     * @custom:reverts UnsupportedAdapterOperation if adapter does not support TRANSFER_ASSET.
      */
     function executeTransferAssets(
         BridgeTypes.ExecuteTransferParams calldata params,
@@ -153,13 +151,15 @@ interface IBridgeRouter is IERC165 {
     ) external payable returns (bytes32 operationId);
 
     /**
-     * @notice Execute state read initiated by the BridgeQueue.
-     * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
-     *      Expects `msg.value` to cover the *base* fee required by the adapter.
-     *      The `originator` parameter represents the original requester; the implementation determines how the response
-     * is routed (e.g., back to the originator, or potentially to the BridgeQueue itself depending on the design).
-     * @param params Struct containing all parameters for the state read execution.
+     * @notice Execute cross-chain state read via a specified adapter.
+     * @param params Struct containing all parameters for the read execution.
+     * @param options Bridge options including specified adapter and gas limit.
      * @return operationId Unique operation ID.
+     * @custom:reverts ZeroGasLimit if `options.gasLimit` is zero.
+     * @custom:reverts InvalidParams if any parameter is invalid.
+     * @custom:reverts OnlyAuthorizedExecutor if caller is not an authorized executor.
+     * @custom:reverts UnknownAdapter if `options.specifiedAdapter` is not registered.
+     * @custom:reverts UnsupportedAdapterOperation if adapter does not support READ_STATE.
      */
     function executeReadState(
         BridgeTypes.ExecuteReadStateParams calldata params,
@@ -167,12 +167,15 @@ interface IBridgeRouter is IERC165 {
     ) external payable returns (bytes32 operationId);
 
     /**
-     * @notice Execute message send initiated by the BridgeQueue.
-     * @dev Requires caller to be the configured BridgeQueue (`onlyBridgeQueue`).
-     *      Expects `msg.value` to cover the *base* fee required by the adapter.
-     *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
+     * @notice Execute general message send via a specified adapter.
      * @param params Struct containing all parameters for the message send execution.
+     * @param options Bridge options including specified adapter and gas limit.
      * @return operationId Unique operation ID.
+     * @custom:reverts ZeroGasLimit if `options.gasLimit` is zero.
+     * @custom:reverts InvalidParams if any parameter is invalid.
+     * @custom:reverts OnlyAuthorizedExecutor if caller is not an authorized executor.
+     * @custom:reverts UnknownAdapter if `options.specifiedAdapter` is not registered.
+     * @custom:reverts UnsupportedAdapterOperation if adapter does not support MESSAGE.
      */
     function executeSendMessage(
         BridgeTypes.ExecuteSendMessageParams calldata params,

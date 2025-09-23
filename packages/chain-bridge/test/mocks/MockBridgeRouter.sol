@@ -581,7 +581,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.BridgeOptions calldata
     ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
-        if (shouldRevert) revert ReceiverRejectedCall();
 
         // Record the call
         messageCalls.push(
@@ -635,7 +634,6 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         BridgeTypes.BridgeOptions calldata
     ) external payable returns (bytes32) {
         if (mockPaused) revert Paused();
-        if (shouldRevert) revert ReceiverRejectedCall();
 
         bytes32 operationId = nextReadId;
         operationAdapters[operationId] = MOCK_ADAPTER_ADDRESS;
