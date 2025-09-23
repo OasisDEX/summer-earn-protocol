@@ -18,8 +18,8 @@ const crossChainArkBoardData = {
   // ExecuteTransferParams
   executeTransferParams: {
     originator: '0x64EB3C12EAC910ceC0B2527B91288Ec2653D2b86', // CrossChainArk address
-    destinationChainId: 130, // Unichain chain ID
-    target: '0x72B3128bc1D0f0E1e3D03B6d1c974C0C08724C90', // FleetProxy address (set to 0x0 if not deployed yet)
+    destinationChainId: 8453, // Base chain ID
+    target: '0x9fA92c01D771f27Dfc554c70a4458131a03d18fb', // FleetProxy address (set to 0x0 if not deployed yet)
     asset: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Unichain
     amount: 1000000n, // 1 USDC
     message: '0x', // Empty message for transfer
