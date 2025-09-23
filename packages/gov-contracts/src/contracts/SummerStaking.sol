@@ -570,10 +570,6 @@ contract SummerStaking is
         );
     }
 
-    function _stake(address, address, uint256) internal virtual override {
-        revert Staking_DirectStakeNotAllowed("Use stakeLockup instead");
-    }
-
     // ============ INTERNAL FUNCTIONS - BUCKET MANAGEMENT ============
 
     function _initializeDefaultLockupBuckets() internal {
