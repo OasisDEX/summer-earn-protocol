@@ -18,7 +18,7 @@ async function main() {
       message: 'Choose an action:',
       choices: [
         { title: 'Register adapter peers (LayerZero/Stargate)', value: 'peers' },
-        { title: 'Register ARK_FLEET relationships', value: 'arkFleet' },
+        { title: 'Register Ark-Fleet peer relationships', value: 'arkFleet' },
         { title: 'Register executors', value: 'executors' },
         { title: 'Exit', value: 'exit' },
       ],

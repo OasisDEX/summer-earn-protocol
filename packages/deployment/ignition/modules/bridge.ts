@@ -12,6 +12,9 @@ export default buildModule('BridgeModule', (m) => {
   // Deploy BridgeRouter with registry
   const bridgeRouter = m.contract('BridgeRouter', [protocolAccessManager, crossChainRegistry])
 
+  // Set the bridge router on the registry
+  m.call(crossChainRegistry, 'setBridgeRouter', [bridgeRouter])
+
   // Return the deployed contracts
   return {
     bridgeRouter,

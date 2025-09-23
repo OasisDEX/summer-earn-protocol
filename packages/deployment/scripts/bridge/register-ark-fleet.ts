@@ -3,7 +3,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address, getAddress, isAddressEqual, keccak256, stringToBytes, zeroAddress } from 'viem'
+import { Address, getAddress, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { CrossChainConfig, loadCrossChainConfig } from '../helpers/cross-chain-config'
@@ -72,11 +72,16 @@ const REGISTRY_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'PEER_RELATIONSHIP',
+    outputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+    stateMutability: 'pure',
+    type: 'function',
+  },
 ] as const
 
-const ARK_FLEET_REL = keccak256(stringToBytes('ARK_FLEET_RELATIONSHIP'))
-
-async function ensureArkFleetRelationship(
+async function ensurePeerRelationship(
   registry: Address,
   sourceArk: Address,
   targetFleetProxy: Address,
@@ -85,6 +90,13 @@ async function ensureArkFleetRelationship(
 ): Promise<boolean> {
   const publicClient = await hre.viem.getPublicClient()
   const [wallet] = await hre.viem.getWalletClients()
+
+  const peerRelationshipType = (await publicClient.readContract({
+    address: getAddress(registry as `0x${string}`),
+    abi: REGISTRY_ABI,
+    functionName: 'PEER_RELATIONSHIP',
+    args: [],
+  })) as `0x${string}`
 
   const already = (await publicClient.readContract({
     address: getAddress(registry as `0x${string}`),
@@ -95,7 +107,7 @@ async function ensureArkFleetRelationship(
       getAddress(targetFleetProxy as `0x${string}`),
       Number(sourceChainId),
       Number(targetChainId),
-      ARK_FLEET_REL,
+      peerRelationshipType,
     ],
   })) as boolean
 
@@ -108,7 +120,7 @@ async function ensureArkFleetRelationship(
       address: getAddress(registry as `0x${string}`),
       abi: REGISTRY_ABI,
       functionName: 'getTargetsForSource',
-      args: [getAddress(sourceArk as `0x${string}`), ARK_FLEET_REL],
+      args: [getAddress(sourceArk as `0x${string}`), peerRelationshipType],
     })) as [readonly Address[], readonly number[]]
 
     const targetContracts = result[0] as readonly Address[]
@@ -134,7 +146,11 @@ async function ensureArkFleetRelationship(
           address: getAddress(registry as `0x${string}`),
           abi: REGISTRY_ABI,
           functionName: 'unregisterRelationship',
-          args: [getAddress(sourceArk as `0x${string}`), ARK_FLEET_REL, Number(targetChainId)],
+          args: [
+            getAddress(sourceArk as `0x${string}`),
+            peerRelationshipType,
+            Number(targetChainId),
+          ],
         })
         await publicClient.waitForTransactionReceipt({ hash: unregHash1 })
         console.log(
@@ -153,6 +169,13 @@ async function ensureArkFleetRelationship(
     target: Address,
   ): Promise<Address> => {
     try {
+      const relType = (await publicClient.readContract({
+        address: getAddress(registry as `0x${string}`),
+        abi: REGISTRY_ABI,
+        functionName: 'PEER_RELATIONSHIP',
+        args: [],
+      })) as `0x${string}`
+
       return (await publicClient.readContract({
         address: getAddress(registry as `0x${string}`),
         abi: REGISTRY_ABI,
@@ -161,7 +184,7 @@ async function ensureArkFleetRelationship(
           Number(srcChainId),
           Number(dstChainId),
           getAddress(target as `0x${string}`),
-          ARK_FLEET_REL,
+          relType,
         ],
       })) as Address
     } catch {
@@ -201,7 +224,7 @@ async function ensureArkFleetRelationship(
       address: getAddress(registry as `0x${string}`),
       abi: REGISTRY_ABI,
       functionName: 'unregisterRelationship',
-      args: [getAddress(staleSource as `0x${string}`), ARK_FLEET_REL, Number(targetChainId)],
+      args: [getAddress(staleSource as `0x${string}`), peerRelationshipType, Number(targetChainId)],
     })
     await publicClient.waitForTransactionReceipt({ hash: unregHash2 })
     console.log(
@@ -222,7 +245,7 @@ async function ensureArkFleetRelationship(
       getAddress(targetFleetProxy as `0x${string}`),
       Number(sourceChainId),
       Number(targetChainId),
-      ARK_FLEET_REL,
+      peerRelationshipType,
     ],
   })
   await publicClient.waitForTransactionReceipt({ hash })
@@ -286,7 +309,7 @@ export async function registerArkFleetRelationships() {
     kleur
       .green()
       .bold(
-        `Registering ARK_FLEET relationships on local registry (chainId=${localChainId}) for ${fleetName}...`,
+        `Registering Ark-Fleet peer relationships on local registry (chainId=${localChainId}) for ${fleetName}...`,
       ),
   )
 
@@ -316,7 +339,7 @@ export async function registerArkFleetRelationships() {
       )
 
       try {
-        const made = await ensureArkFleetRelationship(
+        const made = await ensurePeerRelationship(
           registryAddress,
           ark as Address,
           fleetProxy as Address,
@@ -342,7 +365,7 @@ export async function registerArkFleetRelationships() {
       ),
     )
   } else {
-    console.log(kleur.green().bold(`Done. ${created}/${total} relationship(s) created.`))
+    console.log(kleur.green().bold(`Done. ${created}/${total} peer relationship(s) created.`))
   }
 
   console.log(

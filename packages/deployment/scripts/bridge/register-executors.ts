@@ -69,88 +69,64 @@ export async function registerExecutors() {
   const registryAddress = config.deployedContracts.bridge?.crossChainRegistry?.address as Address
   if (!registryAddress) throw new Error('CrossChainRegistry not deployed on this network')
 
-  // Choose to include adapters as executors
-  const { includeAdapters } = await prompts({
-    type: 'confirm',
-    name: 'includeAdapters',
-    message: 'Register bridge adapters (LayerZero/Stargate) as executors?',
-    initial: true,
-  })
-
   const candidates: Address[] = []
-  if (includeAdapters) {
-    const lz = config.deployedContracts.bridge?.adapters?.layerZero?.address
-    const sg = config.deployedContracts.bridge?.adapters?.stargate?.address
-    if (lz) candidates.push(getAddress(lz as `0x${string}`))
-    if (sg) candidates.push(getAddress(sg as `0x${string}`))
-  }
 
-  // Optionally include CrossChainArk and FleetProxy addresses from cross-chain configs
-  const { includeCrossChainContracts } = await prompts({
-    type: 'confirm',
-    name: 'includeCrossChainContracts',
-    message: 'Register CrossChainArk and FleetProxy (from cross-chain configs) as executors?',
-    initial: true,
-  })
+  try {
+    const currentChainId = Number((config as BaseConfig).common.chainId)
+    const cfgDir = path.resolve(__dirname, '..', '..', 'config', 'cross-chain')
+    if (fs.existsSync(cfgDir)) {
+      const files = fs
+        .readdirSync(cfgDir)
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => path.join(cfgDir, f))
 
-  if (includeCrossChainContracts) {
-    try {
-      const currentChainId = Number((config as BaseConfig).common.chainId)
-      const cfgDir = path.resolve(__dirname, '..', '..', 'config', 'cross-chain')
-      if (fs.existsSync(cfgDir)) {
-        const files = fs
-          .readdirSync(cfgDir)
-          .filter((f) => f.endsWith('.json'))
-          .map((f) => path.join(cfgDir, f))
-
-        for (const file of files) {
-          try {
-            const raw = fs.readFileSync(file, 'utf8')
-            const data = JSON.parse(raw) as {
-              sourceChainId?: number
-              destinations?: Array<{
-                chainId: number
-                protocols: Array<{
-                  protocol: string
-                  fleetProxyAddress?: string
-                  crossChainArkAddress?: string
-                }>
+      for (const file of files) {
+        try {
+          const raw = fs.readFileSync(file, 'utf8')
+          const data = JSON.parse(raw) as {
+            sourceChainId?: number
+            destinations?: Array<{
+              chainId: number
+              protocols: Array<{
+                protocol: string
+                fleetProxyAddress?: string
+                crossChainArkAddress?: string
               }>
-            }
-
-            // On source (hub) chain: CrossChainArk calls BridgeRouter → register CrossChainArk
-            if (data?.sourceChainId && Number(data.sourceChainId) === currentChainId) {
-              for (const dest of data.destinations ?? []) {
-                for (const p of dest.protocols ?? []) {
-                  const addr = p.crossChainArkAddress
-                  if (addr && addr.startsWith('0x') && addr.length === 42) {
-                    const normalized = getAddress(addr as `0x${string}`)
-                    if (!candidates.includes(normalized)) candidates.push(normalized)
-                  }
-                }
-              }
-            }
-
-            // On destination (satellite) chain: FleetProxy calls BridgeRouter → register FleetProxy
-            for (const dest of data.destinations ?? []) {
-              if (Number(dest.chainId) === currentChainId) {
-                for (const p of dest.protocols ?? []) {
-                  const addr = p.fleetProxyAddress
-                  if (addr && addr.startsWith('0x') && addr.length === 42) {
-                    const normalized = getAddress(addr as `0x${string}`)
-                    if (!candidates.includes(normalized)) candidates.push(normalized)
-                  }
-                }
-              }
-            }
-          } catch (err) {
-            console.log(kleur.yellow(`Skipped invalid cross-chain config: ${file}`))
+            }>
           }
+
+          // On source (hub) chain: CrossChainArk calls BridgeRouter → register CrossChainArk
+          if (data?.sourceChainId && Number(data.sourceChainId) === currentChainId) {
+            for (const dest of data.destinations ?? []) {
+              for (const p of dest.protocols ?? []) {
+                const addr = p.crossChainArkAddress
+                if (addr && addr.startsWith('0x') && addr.length === 42) {
+                  const normalized = getAddress(addr as `0x${string}`)
+                  if (!candidates.includes(normalized)) candidates.push(normalized)
+                }
+              }
+            }
+          }
+
+          // On destination (satellite) chain: FleetProxy calls BridgeRouter → register FleetProxy
+          for (const dest of data.destinations ?? []) {
+            if (Number(dest.chainId) === currentChainId) {
+              for (const p of dest.protocols ?? []) {
+                const addr = p.fleetProxyAddress
+                if (addr && addr.startsWith('0x') && addr.length === 42) {
+                  const normalized = getAddress(addr as `0x${string}`)
+                  if (!candidates.includes(normalized)) candidates.push(normalized)
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.log(kleur.yellow(`Skipped invalid cross-chain config: ${file}`))
         }
       }
-    } catch (err) {
-      console.log(kleur.red('Failed to load cross-chain executors from config:'), err)
     }
+  } catch (err) {
+    console.log(kleur.red('Failed to load cross-chain executors from config:'), err)
   }
 
   const { extra } = await prompts({

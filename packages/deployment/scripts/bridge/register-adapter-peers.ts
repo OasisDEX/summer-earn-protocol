@@ -3,19 +3,19 @@ import kleur from 'kleur'
 import { Address, getAddress, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../../types/config-types'
 import { getConfigByNetwork } from '../helpers/config-handler'
-import { promptForAddresses, promptForConfigType, promptYesNo } from '../helpers/prompt-helpers'
+import { promptForConfigType } from '../helpers/prompt-helpers'
 
 type NetworkConfigs = Record<string, any>
 
 const REGISTRY_ABI = [
   {
     inputs: [
-      { internalType: 'address', name: 'sourceAdapter', type: 'address' },
-      { internalType: 'address', name: 'targetAdapter', type: 'address' },
-      { internalType: 'uint16', name: 'sourceChainId', type: 'uint16' },
-      { internalType: 'uint16', name: 'targetChainId', type: 'uint16' },
+      { internalType: 'address', name: 'adapterA', type: 'address' },
+      { internalType: 'address', name: 'adapterB', type: 'address' },
+      { internalType: 'uint16', name: 'chainA', type: 'uint16' },
+      { internalType: 'uint16', name: 'chainB', type: 'uint16' },
     ],
-    name: 'registerAdapterPeer',
+    name: 'registerAdapterPeerPair',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -74,202 +74,57 @@ const REGISTRY_ABI = [
   },
 ] as const
 
-async function ensurePeer(
+async function ensurePeerPair(
   registryAddress: Address,
-  sourceAdapter: Address,
-  targetAdapter: Address,
-  sourceChainId: number,
-  targetChainId: number,
+  adapterA: Address,
+  adapterB: Address,
+  chainA: number,
+  chainB: number,
 ): Promise<boolean> {
   const publicClient = await hre.viem.getPublicClient()
   const [wallet] = await hre.viem.getWalletClients()
 
-  // Helper: best-effort peer lookup (registry.getAdapterPeer reverts if missing)
-  const safeGetPeer = async (src: Address, dstChainId: number): Promise<Address> => {
-    try {
-      return (await publicClient.readContract({
-        address: getAddress(registryAddress as `0x${string}`),
-        abi: REGISTRY_ABI,
-        functionName: 'getAdapterPeer',
-        args: [getAddress(src as `0x${string}`), Number(dstChainId)],
-      })) as Address
-    } catch {
-      return zeroAddress as Address
-    }
-  }
-
-  // Helper: best-effort reverse lookup of source by target
-  const safeGetSourceForTarget = async (
-    srcChainId: number,
-    dstChainId: number,
-    target: Address,
-  ): Promise<Address> => {
-    try {
-      return (await publicClient.readContract({
-        address: getAddress(registryAddress as `0x${string}`),
-        abi: REGISTRY_ABI,
-        functionName: 'getSourceForTarget',
-        args: [
-          Number(srcChainId),
-          Number(dstChainId),
-          getAddress(target as `0x${string}`),
-          (await publicClient.readContract({
-            address: getAddress(registryAddress as `0x${string}`),
-            abi: REGISTRY_ABI,
-            functionName: 'PEER_RELATIONSHIP',
-            args: [],
-          })) as `0x${string}`,
-        ],
-      })) as Address
-    } catch {
-      return zeroAddress as Address
-    }
-  }
-
   console.log(
     kleur.gray(
-      `  • Debug: registry=${getAddress(registryAddress as `0x${string}`)} src=${getAddress(
-        sourceAdapter as `0x${string}`,
-      )} (chain ${sourceChainId}) → dstChain ${targetChainId}, dst=${getAddress(
-        targetAdapter as `0x${string}`,
-      )}`,
+      `  • Debug: registry=${getAddress(registryAddress as `0x${string}`)} adapterA=${getAddress(
+        adapterA as `0x${string}`,
+      )} (chain ${chainA}) ↔ adapterB=${getAddress(adapterB as `0x${string}`)} (chain ${chainB})`,
     ),
   )
 
+  // Check if the peer pair is already registered
   const isAlreadyValid = (await publicClient.readContract({
     address: getAddress(registryAddress as `0x${string}`),
     abi: REGISTRY_ABI,
     functionName: 'isValidAdapterPeer',
     args: [
-      getAddress(sourceAdapter as `0x${string}`),
-      getAddress(targetAdapter as `0x${string}`),
-      Number(sourceChainId),
-      Number(targetChainId),
+      getAddress(adapterA as `0x${string}`),
+      getAddress(adapterB as `0x${string}`),
+      Number(chainA),
+      Number(chainB),
     ],
   })) as boolean
 
-  const prePeer = await safeGetPeer(sourceAdapter, targetChainId)
-  const prePeerReverse = await safeGetPeer(targetAdapter, sourceChainId)
-  console.log(
-    kleur.gray(
-      `    pre-state: isValid=${isAlreadyValid} peer(src→dst)=${prePeer} peer(dst→src)=${prePeerReverse}`,
-    ),
-  )
-
   if (isAlreadyValid) {
+    console.log(kleur.gray(`    already registered`))
     return false
   }
 
-  // Resolve conflicts by unregistering stale relationships if any
-  const REL_TYPE_PEER = (await publicClient.readContract({
-    address: getAddress(registryAddress as `0x${string}`),
-    abi: REGISTRY_ABI,
-    functionName: 'PEER_RELATIONSHIP',
-    args: [],
-  })) as `0x${string}`
-
-  // 1) If the source already has a peer on this target chain, offer to unregister it
-  if (!isAddressEqual(prePeer, zeroAddress) && !isAddressEqual(prePeer, targetAdapter)) {
-    console.log(
-      kleur.yellow(
-        `    Detected existing peer for source on chain ${targetChainId}: ${prePeer}. This must be unregistered first.`,
-      ),
-    )
-    const confirmUnreg = await promptYesNo(
-      `Unregister mapping for SOURCE ${getAddress(
-        sourceAdapter as `0x${string}`,
-      )} on chain ${targetChainId} (current peer: ${prePeer})?`,
-    )
-    if (!confirmUnreg) {
-      return false
-    }
-    const unregHash1 = await wallet.writeContract({
-      address: getAddress(registryAddress as `0x${string}`),
-      abi: REGISTRY_ABI,
-      functionName: 'unregisterRelationship',
-      args: [getAddress(sourceAdapter as `0x${string}`), REL_TYPE_PEER, Number(targetChainId)],
-    })
-    await publicClient.waitForTransactionReceipt({ hash: unregHash1 })
-    console.log(kleur.green(`    ✓ Unregistered stale source mapping for chain ${targetChainId}`))
-  }
-
-  // 2) If the target is already linked to a different source for this chain pair, offer to unregister that source
-  const existingSourceForTarget = await safeGetSourceForTarget(
-    sourceChainId,
-    targetChainId,
-    targetAdapter,
-  )
-  if (
-    !isAddressEqual(existingSourceForTarget, zeroAddress) &&
-    !isAddressEqual(existingSourceForTarget, sourceAdapter)
-  ) {
-    console.log(
-      kleur.yellow(
-        `    Detected existing source ${existingSourceForTarget} already registered to target ${getAddress(
-          targetAdapter as `0x${string}`,
-        )} for chain pair ${sourceChainId}→${targetChainId}. This must be unregistered first.`,
-      ),
-    )
-    const useDetected = await promptYesNo(
-      `Unregister detected stale SOURCE ${existingSourceForTarget} for target ${getAddress(
-        targetAdapter as `0x${string}`,
-      )} (chain ${sourceChainId}→${targetChainId})?`,
-    )
-    let staleSource = existingSourceForTarget
-    if (!useDetected) {
-      const [addr] = await promptForAddresses(
-        'Enter the stale SOURCE adapter address to unregister for this chain pair (single address):',
-      )
-      staleSource = getAddress(addr as `0x${string}`)
-    }
-    const unregHash2 = await wallet.writeContract({
-      address: getAddress(registryAddress as `0x${string}`),
-      abi: REGISTRY_ABI,
-      functionName: 'unregisterRelationship',
-      args: [getAddress(staleSource as `0x${string}`), REL_TYPE_PEER, Number(targetChainId)],
-    })
-    await publicClient.waitForTransactionReceipt({ hash: unregHash2 })
-    console.log(
-      kleur.green(
-        `    ✓ Unregistered stale source ${staleSource} for target ${getAddress(
-          targetAdapter as `0x${string}`,
-        )} (chain ${sourceChainId}→${targetChainId})`,
-      ),
-    )
-  }
-
+  // Register the bidirectional peer pair
   const hash = await wallet.writeContract({
     address: getAddress(registryAddress as `0x${string}`),
     abi: REGISTRY_ABI,
-    functionName: 'registerAdapterPeer',
+    functionName: 'registerAdapterPeerPair',
     args: [
-      getAddress(sourceAdapter as `0x${string}`),
-      getAddress(targetAdapter as `0x${string}`),
-      Number(sourceChainId),
-      Number(targetChainId),
+      getAddress(adapterA as `0x${string}`),
+      getAddress(adapterB as `0x${string}`),
+      Number(chainA),
+      Number(chainB),
     ],
   })
   await publicClient.waitForTransactionReceipt({ hash })
 
-  // Post-state snapshot
-  const postIsValid = (await publicClient.readContract({
-    address: getAddress(registryAddress as `0x${string}`),
-    abi: REGISTRY_ABI,
-    functionName: 'isValidAdapterPeer',
-    args: [
-      getAddress(sourceAdapter as `0x${string}`),
-      getAddress(targetAdapter as `0x${string}`),
-      Number(sourceChainId),
-      Number(targetChainId),
-    ],
-  })) as boolean
-  const postPeer = await safeGetPeer(sourceAdapter, targetChainId)
-  const postPeerReverse = await safeGetPeer(targetAdapter, sourceChainId)
-  console.log(
-    kleur.gray(
-      `    post-state: isValid=${postIsValid} peer(src→dst)=${postPeer} peer(dst→src)=${postPeerReverse}`,
-    ),
-  )
+  console.log(kleur.gray(`    ✓ registered peer pair`))
   return true
 }
 
@@ -370,30 +225,17 @@ async function registerPeersForAdapter(
         continue
       }
 
-      const created1 = await ensurePeer(
+      const created = await ensurePeerPair(
         registryAddress,
         normalizedLocalAdapter,
         normalizedTargetAdapter,
         localChainId,
         targetChainId,
       )
-      if (created1) {
-        console.log(kleur.green(`  ✓ Registered local→remote`))
+      if (created) {
+        console.log(kleur.green(`  ✓ Registered peer pair`))
       } else {
-        console.log(kleur.yellow(`  • local→remote already registered`))
-      }
-
-      const created2 = await ensurePeer(
-        registryAddress,
-        normalizedTargetAdapter,
-        normalizedLocalAdapter,
-        targetChainId,
-        localChainId,
-      )
-      if (created2) {
-        console.log(kleur.green(`  ✓ Registered remote→local`))
-      } else {
-        console.log(kleur.yellow(`  • remote→local already registered`))
+        console.log(kleur.yellow(`  • Peer pair already registered`))
       }
     } catch (err) {
       console.error(kleur.red(`  ✗ Failed for ${targetNetwork}:`), err)
