@@ -365,20 +365,21 @@ contract SummerStaking is
             uint256[] memory maxPeriods
         )
     {
-        buckets = new Bucket[](6);
-        caps = new uint256[](6);
-        stakedAmounts = new uint256[](6);
-        minPeriods = new uint256[](6);
-        maxPeriods = new uint256[](6);
+        buckets = new Bucket[](7);
+        caps = new uint256[](7);
+        stakedAmounts = new uint256[](7);
+        minPeriods = new uint256[](7);
+        maxPeriods = new uint256[](7);
 
         buckets[0] = Bucket.NoLockup;
         buckets[1] = Bucket.ShortTerm;
-        buckets[2] = Bucket.ThreeToSixMonths;
-        buckets[3] = Bucket.SixToTwelveMonths;
-        buckets[4] = Bucket.OneToTwoYears;
-        buckets[5] = Bucket.TwoToThreeYears;
+        buckets[2] = Bucket.TwoWeeksToThreeMonths;          
+        buckets[3] = Bucket.ThreeToSixMonths;
+        buckets[4] = Bucket.SixToTwelveMonths;
+        buckets[5] = Bucket.OneToTwoYears;
+        buckets[6] = Bucket.TwoToThreeYears;
 
-        for (uint256 i = 0; i < 6; i++) {
+        for (uint256 i = 0; i < 7; i++) {
             (
                 caps[i],
                 stakedAmounts[i],
@@ -581,6 +582,10 @@ contract SummerStaking is
             staked: 0
         });
         bucketData[Bucket.ShortTerm] = BucketData({cap: 0, staked: 0});
+        bucketData[Bucket.TwoWeeksToThreeMonths] = BucketData({
+            cap: type(uint256).max,
+            staked: 0
+        });
         bucketData[Bucket.ThreeToSixMonths] = BucketData({
             cap: type(uint256).max,
             staked: 0

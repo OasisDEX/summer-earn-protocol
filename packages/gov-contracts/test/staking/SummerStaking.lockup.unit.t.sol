@@ -34,6 +34,15 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
      */
     function createFreshStakingWithConfig() internal returns (SummerStaking) {
         SummerStaking freshStaking = createFreshStaking();
+                uint256[] memory expectedBucketCaps = new uint256[](7);
+        expectedBucketCaps[0] = MAX_CAP_AMOUNT;
+        expectedBucketCaps[1] = 0;
+        expectedBucketCaps[2] = MAX_CAP_AMOUNT;
+        expectedBucketCaps[3] = MAX_CAP_AMOUNT;
+        expectedBucketCaps[4] = MAX_CAP_AMOUNT;
+        expectedBucketCaps[5] = MAX_CAP_AMOUNT;
+        expectedBucketCaps[6] = MAX_CAP_AMOUNT;
+        _verifyBucketCaps(freshStaking, expectedBucketCaps);
 
         // Configure bucket caps
         vm.startPrank(address(timelockA));
@@ -64,7 +73,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
     // ============ DEPLOYMENT & INITIALIZATION TESTS ============
 
-    function test_CorrectInitialization() public {
+    function test_CorrectInitialization() public view {
         assertEq(address(aStaking.SUMMER_TOKEN()), address(aSummerToken));
         assertEq(address(aStaking.STAKED_SUMMER_TOKEN()), address(axSumr));
 
@@ -1813,6 +1822,159 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         for (uint256 i = 0; i < 10; i++) {
             _create_multiple_stakes_and_transfer_measure_gas(counts[i]);
         }
+    }
+
+    function test_GetAllBucketInfoAndDetails_AllBuckets() public {
+        // Enable ShortTerm bucket (disabled by default)
+        vm.prank(address(timelockA));
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ShortTerm,
+            DEFAULT_CAP_AMOUNT
+        );
+
+        // Prepare stake amounts for each bucket
+        uint256 noLockupAmt = 100 ether;
+        uint256 shortTermAmt = 110 ether;
+        uint256 twoWeeksToThreeMonthsAmt = 120 ether;
+        uint256 threeToSixMonthsAmt = 130 ether;
+        uint256 sixToTwelveMonthsAmt = 140 ether;
+        uint256 oneToTwoYearsAmt = 150 ether;
+        uint256 twoToThreeYearsAmt = 160 ether;
+
+        // Fund user
+        deal(
+            address(aSummerToken),
+            user1,
+            noLockupAmt +
+                shortTermAmt +
+                twoWeeksToThreeMonthsAmt +
+                threeToSixMonthsAmt +
+                sixToTwelveMonthsAmt +
+                oneToTwoYearsAmt +
+                twoToThreeYearsAmt
+        );
+
+        // Stake to each bucket using representative lockup periods
+        _stake(aStaking, user1, noLockupAmt, 0); // NoLockup
+        _stake(
+            aStaking,
+            user1,
+            shortTermAmt,
+            aStaking.BUCKET_SHORT_TERM_MIN() // 1 second minimal in bucket
+        ); // ShortTerm
+        _stake(
+            aStaking,
+            user1,
+            twoWeeksToThreeMonthsAmt,
+            aStaking.BUCKET_SHORT_TERM_MAX() + 1
+        ); // TwoWeeksToThreeMonths
+        _stake(aStaking, user1, threeToSixMonthsAmt, 100 days); // ThreeToSixMonths
+        _stake(aStaking, user1, sixToTwelveMonthsAmt, 200 days); // SixToTwelveMonths
+        _stake(aStaking, user1, oneToTwoYearsAmt, 400 days); // OneToTwoYears
+        _stake(aStaking, user1, twoToThreeYearsAmt, 800 days); // TwoToThreeYears
+
+        // Verify per-bucket totals
+        _assertBucket(ISummerStaking.Bucket.NoLockup, noLockupAmt);
+        _assertBucket(ISummerStaking.Bucket.ShortTerm, shortTermAmt);
+        _assertBucket(
+            ISummerStaking.Bucket.TwoWeeksToThreeMonths,
+            twoWeeksToThreeMonthsAmt
+        );
+        _assertBucket(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            threeToSixMonthsAmt
+        );
+        _assertBucket(
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            sixToTwelveMonthsAmt
+        );
+        _assertBucket(ISummerStaking.Bucket.OneToTwoYears, oneToTwoYearsAmt);
+        _assertBucket(ISummerStaking.Bucket.TwoToThreeYears, twoToThreeYearsAmt);
+
+        // Verify getAllBucketInfo shape and values
+        (
+            ISummerStaking.Bucket[] memory buckets,
+            uint256[] memory caps,
+            uint256[] memory stakedAmounts,
+            uint256[] memory minPeriods,
+            uint256[] memory maxPeriods
+        ) = aStaking.getAllBucketInfo();
+
+        assertEq(buckets.length, 7, "buckets length");
+        assertEq(caps.length, 7, "caps length");
+        assertEq(stakedAmounts.length, 7, "staked length");
+        assertEq(minPeriods.length, 7, "min length");
+        assertEq(maxPeriods.length, 7, "max length");
+
+        // Expected order: [NoLockup, ShortTerm, TwoWeeksToThreeMonths, ThreeToSixMonths, SixToTwelveMonths, OneToTwoYears, TwoToThreeYears]
+        assertEq(uint256(buckets[0]), uint256(ISummerStaking.Bucket.NoLockup));
+        assertEq(uint256(buckets[1]), uint256(ISummerStaking.Bucket.ShortTerm));
+        assertEq(
+            uint256(buckets[2]),
+            uint256(ISummerStaking.Bucket.TwoWeeksToThreeMonths)
+        );
+        assertEq(
+            uint256(buckets[3]),
+            uint256(ISummerStaking.Bucket.ThreeToSixMonths)
+        );
+        assertEq(
+            uint256(buckets[4]),
+            uint256(ISummerStaking.Bucket.SixToTwelveMonths)
+        );
+        assertEq(uint256(buckets[5]), uint256(ISummerStaking.Bucket.OneToTwoYears));
+        assertEq(
+            uint256(buckets[6]),
+            uint256(ISummerStaking.Bucket.TwoToThreeYears)
+        );
+
+        // Verify staked amounts reflect our stakes
+        assertEq(stakedAmounts[0], noLockupAmt, "NoLockup staked");
+        assertEq(stakedAmounts[1], shortTermAmt, "ShortTerm staked");
+        assertEq(stakedAmounts[2], twoWeeksToThreeMonthsAmt, "2w-3m staked");
+        assertEq(stakedAmounts[3], threeToSixMonthsAmt, "3-6m staked");
+        assertEq(stakedAmounts[4], sixToTwelveMonthsAmt, "6-12m staked");
+        assertEq(stakedAmounts[5], oneToTwoYearsAmt, "1-2y staked");
+        assertEq(stakedAmounts[6], twoToThreeYearsAmt, "2-3y staked");
+
+        // Verify caps for each bucket using getBucketDetails and compare with arrays
+        for (uint256 i = 0; i < 7; i++) {
+            (
+                uint256 cap,
+                uint256 staked,
+                uint256 minLock,
+                uint256 maxLock
+            ) = aStaking.getBucketDetails(buckets[i]);
+            assertEq(cap, caps[i], "cap mismatch");
+            assertEq(staked, stakedAmounts[i], "staked mismatch");
+            assertEq(minLock, minPeriods[i], "min mismatch");
+            assertEq(maxLock, maxPeriods[i], "max mismatch");
+        }
+
+        // Spot-check min/max boundaries against contract constants
+        // NoLockup
+        assertEq(minPeriods[0], 0);
+        assertEq(maxPeriods[0], 0);
+        // ShortTerm
+        assertEq(minPeriods[1], aStaking.BUCKET_SHORT_TERM_MIN());
+        assertEq(maxPeriods[1], aStaking.BUCKET_SHORT_TERM_MAX());
+        // TwoWeeksToThreeMonths
+        assertEq(minPeriods[2], aStaking.BUCKET_SHORT_TERM_MAX() + 1);
+        assertEq(maxPeriods[2], aStaking.BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX());
+        // ThreeToSixMonths
+        assertEq(
+            minPeriods[3],
+            aStaking.BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX() + 1
+        );
+        assertEq(maxPeriods[3], aStaking.BUCKET_THREE_TO_SIX_MAX());
+        // SixToTwelveMonths
+        assertEq(minPeriods[4], aStaking.BUCKET_THREE_TO_SIX_MAX() + 1);
+        assertEq(maxPeriods[4], aStaking.BUCKET_SIX_TO_TWELVE_MAX());
+        // OneToTwoYears
+        assertEq(minPeriods[5], aStaking.BUCKET_SIX_TO_TWELVE_MAX() + 1);
+        assertEq(maxPeriods[5], aStaking.BUCKET_ONE_TO_TWO_MAX());
+        // TwoToThreeYears
+        assertEq(minPeriods[6], aStaking.BUCKET_ONE_TO_TWO_MAX() + 1);
+        assertEq(maxPeriods[6], aStaking.BUCKET_TWO_TO_THREE_MAX());
     }
     function _create_multiple_stakes_and_transfer_measure_gas(
         uint count
