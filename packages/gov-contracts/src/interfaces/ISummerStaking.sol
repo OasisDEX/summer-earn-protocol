@@ -19,12 +19,12 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      */
     enum Bucket {
         NoLockup, // 0 days - immediate withdrawal with no lockup
-        ShortTerm, // 1-14 days - disabled by default (cap = 0)
-        TwoWeeksToThreeMonths, // 15-90 days - 2-3 week lockup period
-        ThreeToSixMonths, // 91-180 days - 3-6 month lockup period
-        SixToTwelveMonths, // 181-365 days - 6-12 month lockup period
-        OneToTwoYears, // 366-730 days - 1-2 year lockup period
-        TwoToThreeYears // 731-1095 days - 2-3 year lockup period
+        ShortTerm, // 1second - 14 days - disabled by default (cap = 0)
+        TwoWeeksToThreeMonths, // <90 days - 2 weeks-3 months lockup period
+        ThreeToSixMonths, // <180 days - 3-6 months lockup period
+        SixToTwelveMonths, // <365 days - 6-12 month lockup period
+        OneToTwoYears, // <730 days - 1-2 years lockup period
+        TwoToThreeYears // <1095 days - 2-3 years lockup period
     }
 
     // ============ STRUCTS ============
@@ -59,7 +59,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @param _lockupPeriod The lockup period in seconds (0 to 3 years max)
      * @dev Creates a new stake with weighted amount calculated based on lockup period
      * @dev Transfers SUMMER tokens from caller and mints equivalent xSUMR tokens
-     * @dev Weighted amount formula: amount * (3.5e-16 * lockupPeriod^2 + 0.05)
+     * @dev Weighted amount formula: amount * (1 + 7e-16 * lockupPeriod^2) using 60.18 fixed-point
      * @dev Emits StakedWithLockup and Staked events
      * @dev Reverts if amount is 0, lockup period exceeds max, or bucket cap exceeded
      */
@@ -97,12 +97,14 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @param _amount The amount of tokens to unstake (must be > 0 and <= stake amount)
      * @dev can only be called by the wallet that owns the stake, there is no onBehalf version due to the penalty
      * @dev Applies penalty for early withdrawal based on remaining lockup time
-     * @dev Penalty formula: penalty% = (timeRemaining / maxLockupPeriod) * 20%
+     * @dev Penalty formula: penalty% = 2% if remaining time < 100 days otherwise (timeRemaining / maxLockupPeriod) * 20%
      * @dev Examples:
      *      - 3yr lockup, immediate unstake: 20% penalty
      *      - 3yr lockup, unstake after 1.5yr: 10% penalty
      *      - 1yr lockup, immediate unstake: ~6.67% penalty
      *      - After lockup ends: 0% penalty
+     *      - 0 lockup, immediate unstake: 0% penalty
+     *      - any lockup time, <110 days remaining: 2% penalty
      * @dev Penalties are sent to protocol treasury
      * @dev Emits UnstakedWithPenalty and Unstaked events
      * @dev Reverts if amount is 0, stake index invalid, or insufficient balance
@@ -114,7 +116,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     /**
      * @notice Get the number of stakes for a specific user
      * @param _user The address to check stake count for
-     * @return The total number of stakes (max 10 per user)
+     * @return The total number of stakes (max 1000 per user)
      */
     function getUserStakesCount(address _user) external view returns (uint256);
 
@@ -187,9 +189,9 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @param _amount The base amount to stake
      * @param _lockupPeriod The lockup period in seconds
      * @return The weighted stake amount for reward calculations
-     * @dev Formula: amount * (3.5e-16 * lockupPeriod^2 + 0.05)
+     * @dev Formula: amount * (1 + 7e-16 * lockupPeriod^2) using 60.18 fixed-point
      * @dev Longer lockups result in higher weighted amounts and more rewards
-     * @dev For 0 lockup period, uses base multiplier of 0.05 (5%)
+     * @dev For 0 lockup period, multiplier is 1.0 (no boost)
      */
     function calculateWeightedStake(
         uint256 _amount,
@@ -333,16 +335,6 @@ interface ISummerStaking is IStakingRewardsManagerBase {
         address indexed from,
         address indexed to,
         uint256 indexed stakeId
-    );
-
-    /**
-     * @notice Emitted when the treasury address is updated
-     * @param oldTreasury The previous treasury address
-     * @param newTreasury The new treasury address
-     */
-    event TreasuryUpdated(
-        address indexed oldTreasury,
-        address indexed newTreasury
     );
 
     /**

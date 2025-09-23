@@ -88,6 +88,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertEq(cap0, type(uint256).max); // No cap
         assertEq(staked0, 0);
     }
+
     function test_StakeLongerThanMaximumLockupPeriod() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMaxLockupPeriod + 1 days;
@@ -99,35 +100,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
         aStaking.stakeLockup(stakeAmount, lockupPeriod);
     }
-    function test_Revert_DeployWithZeroSummerToken() public {
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidAddress(string)",
-                "Summer token address cannot be zero"
-            )
-        );
-        new SummerStaking(
-            address(accessManagerA),
-            address(configurationManagerA),
-            address(0), // Zero summer token
-            address(axSumr)
-        );
-    }
 
-    function test_Revert_DeployWithZeroStakedSummerToken() public {
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidAddress(string)",
-                "StakedSummerToken address cannot be zero"
-            )
-        );
-        new SummerStaking(
-            address(accessManagerA),
-            address(configurationManagerA),
-            address(aSummerToken),
-            address(0) // Zero StakedSummerToken
-        );
-    }
     function test_VerifyBucketCaps() public {
         uint256[] memory expectedBucketCaps = new uint256[](7);
         expectedBucketCaps[0] = MAX_CAP_AMOUNT;
@@ -305,7 +278,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
 
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
-        vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_BucketCapExceeded.selector
+            )
+        );
         aStaking.stakeLockup(STAKE_AMOUNT, invalidLockupPeriod);
         vm.stopPrank();
     }
@@ -316,8 +293,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidLockupPeriod(string)",
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InvalidLockupPeriod.selector,
                 "Lockup period cannot exceed 3 years"
             )
         );
@@ -336,7 +313,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Attempt to create an 11th stake should revert
         vm.startPrank(user1);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
-        vm.expectRevert(abi.encodeWithSignature("Staking_MaxStakesReached()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_MaxStakesReached.selector
+            )
+        );
         aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
         vm.stopPrank();
     }
@@ -464,7 +445,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     }
 
     // Before Lockup (With Penalty)
-    function test_UnstakeImmediately() public {
+    function test_ImmediateUnstake_MaxLockup_20PercentPenalty() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMaxLockupPeriod; // 3 years for maximum penalty
 
@@ -559,7 +540,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
     }
 
-    function test_UnstakeHalfwayThroughLockup() public {
+    function test_Unstake_Halfway_MaxLockup_ApproxHalfPenalty() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMaxLockupPeriod; // 3 years
 
@@ -581,7 +562,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertApproxEqRel(expectedPenalty, aMaxPenaltyPercentage / 2, 0.01e18); // 25% ± 1%
     }
 
-    function test_CorrectStateChangesOnUnstakeWithPenalty() public {
+    function test_Unstake_WithPenalty_UpdatesBalancesAndSupply() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMaxLockupPeriod;
 
@@ -691,7 +672,9 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.startPrank(user1);
         axSumr.approve(address(aStaking), STAKE_AMOUNT * 2);
         vm.expectRevert(
-            abi.encodeWithSignature("Staking_InsufficientBalance()")
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_InsufficientBalance.selector
+            )
         );
         aStaking.unstakeLockup(stakeIndex, STAKE_AMOUNT * 2);
         vm.stopPrank();
@@ -741,7 +724,11 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Attempt to stake more should revert
         vm.startPrank(user2);
         aSummerToken.approve(address(aStaking), STAKE_AMOUNT);
-        vm.expectRevert(abi.encodeWithSignature("Staking_BucketCapExceeded()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_BucketCapExceeded.selector
+            )
+        );
         aStaking.stakeLockup(STAKE_AMOUNT, aMinLockupPeriod);
         vm.stopPrank();
     }
@@ -864,8 +851,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Revert_CallingDirectStake() public {
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_DirectStakeNotAllowed(string)",
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_DirectStakeNotAllowed.selector,
                 "Use stakeLockup instead"
             )
         );
@@ -875,8 +862,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Revert_CallingDirectUnstake() public {
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_DirectUnstakeNotAllowed(string)",
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_DirectUnstakeNotAllowed.selector,
                 "Use unstakeLockup instead"
             )
         );
@@ -886,8 +873,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Revert_CallingExit() public {
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_DirectUnstakeNotAllowed(string)",
+            abi.encodeWithSelector(
+                ISummerStaking.Staking_DirectUnstakeNotAllowed.selector,
                 "Use unstakeLockup instead"
             )
         );
@@ -897,7 +884,9 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Revert_CallingStakeOnBehalfOf() public {
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature("StakeOnBehalfOfNotSupported()")
+            abi.encodeWithSelector(
+                ISummerStaking.StakeOnBehalfOfNotSupported.selector
+            )
         );
         aStaking.stakeOnBehalfOf(user2, STAKE_AMOUNT);
     }
@@ -905,7 +894,9 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
     function test_Revert_CallingUnstakeOnBehalfOf() public {
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature("UnstakeOnBehalfOfNotSupported()")
+            abi.encodeWithSelector(
+                ISummerStaking.UnstakeOnBehalfOfNotSupported.selector
+            )
         );
         aStaking.unstakeAndWithdrawOnBehalfOf(user2, STAKE_AMOUNT, false);
     }
@@ -1352,6 +1343,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
         aStaking.stakeLockupOnBehalf(address(0), stakeAmount, lockupPeriod);
     }
+
     function test_StakeLockupOnBehalf_RevertOnZeroAmount() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMinLockupPeriod;

@@ -701,29 +701,29 @@ contract SummerStaking is
 
     function _handleTokenTransfersOnStake(
         address from,
-        address to,
+        address receiver,
         uint amount
     ) internal {
         SUMMER_TOKEN.safeTransferFrom(from, address(this), amount);
         SUMMER_TOKEN.forceApprove(address(WRAPPED_SUMMER_TOKEN), amount);
         WRAPPED_SUMMER_TOKEN.depositFor(address(this), amount);
-        STAKED_SUMMER_TOKEN.mint(to, amount);
+        STAKED_SUMMER_TOKEN.mint(receiver, amount);
     }
 
     function _handleTokenTransfersOnUnstake(
-        address from,
+        address receiver,
         uint amount,
         uint unstakePenalty
     ) internal {
         if (unstakePenalty > 0) {
             WRAPPED_SUMMER_TOKEN.withdrawTo(address(this), amount);
-            SUMMER_TOKEN.safeTransfer(from, amount - unstakePenalty);
+            SUMMER_TOKEN.safeTransfer(receiver, amount - unstakePenalty);
             SUMMER_TOKEN.safeTransfer(treasury(), unstakePenalty);
         } else {
-            WRAPPED_SUMMER_TOKEN.withdrawTo(from, amount);
+            WRAPPED_SUMMER_TOKEN.withdrawTo(receiver, amount);
         }
 
-        STAKED_SUMMER_TOKEN.burnFrom(from, amount);
+        STAKED_SUMMER_TOKEN.burnFrom(receiver, amount);
     }
 
     // ============ INTERNAL FUNCTIONS - BALANCE MANAGEMENT ============
@@ -752,7 +752,7 @@ contract SummerStaking is
         UserStake[] storage stakes = stakesByPortfolioId[
             _getPortfolioId(_user)
         ];
-        if (_index >= stakes.length) return;
+        assert(_index < stakes.length);
         stakes[_index] = stakes[stakes.length - 1];
         stakes.pop();
     }

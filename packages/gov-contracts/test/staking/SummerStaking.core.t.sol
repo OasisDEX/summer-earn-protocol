@@ -6,12 +6,74 @@ import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAcces
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 import {ISummerStaking} from "../../src/interfaces/ISummerStaking.sol";
+import {SummerStaking} from "../../src/contracts/SummerStaking.sol";
 
 contract SummerStakingCoreTest is SummerStakingTestBase {
     address public user3 = address(0x1003);
 
     function setUp() public override {
         super.setUp();
+    }
+
+    function test_Constructor_ValidParameters() public {
+        address[] memory vestingFactories = new address[](2);
+        vestingFactories[0] = address(factoryVestingV2);
+        vestingFactories[1] = address(factoryVesting);
+
+        SummerStaking newStaking = new SummerStaking(
+            address(accessManagerA),
+            address(configurationManagerA),
+            address(aSummerToken),
+            address(axSumr)
+        );
+
+        assertEq(address(newStaking.SUMMER_TOKEN()), address(aSummerToken));
+        assertEq(address(newStaking.STAKED_SUMMER_TOKEN()), address(axSumr));
+    }
+
+    function test_Constructor_ZeroProtocolAccessManager() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.InvalidAccessManagerAddress.selector,
+                address(0)
+            )
+        );
+        new SummerStaking(
+            address(0), // Zero protocol access manager
+            address(configurationManagerA),
+            address(aSummerToken),
+            address(axSumr)
+        );
+    }
+
+    function test_Constructor_ZeroSummerToken() public {
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking_InvalidAddress(string)",
+                "Summer token address cannot be zero"
+            )
+        );
+        new SummerStaking(
+            address(accessManagerA),
+            address(configurationManagerA),
+            address(0), // Zero summer token
+            address(axSumr)
+        );
+    }
+
+    function test_Constructor_ZeroXSumr() public {
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "Staking_InvalidAddress(string)",
+                "StakedSummerToken address cannot be zero"
+            )
+        );
+        new SummerStaking(
+            address(accessManagerA),
+            address(configurationManagerA),
+            address(aSummerToken),
+            address(0) // Zero StakedSummerToken
+        );
     }
 
     // ============ RESCUE TOKEN TESTS ==========

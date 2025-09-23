@@ -21,68 +21,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         vm.stopPrank();
     }
 
-    function test_Constructor_ValidParameters() public {
-        address[] memory vestingFactories = new address[](2);
-        vestingFactories[0] = address(factoryVestingV2);
-        vestingFactories[1] = address(factoryVesting);
-
-        SummerStaking newStaking = new SummerStaking(
-            address(accessManagerA),
-            address(configurationManagerA),
-            address(aSummerToken),
-            address(axSumr)
-        );
-
-        assertEq(address(newStaking.SUMMER_TOKEN()), address(aSummerToken));
-        assertEq(address(newStaking.STAKED_SUMMER_TOKEN()), address(axSumr));
-    }
-
-    function test_Constructor_ZeroProtocolAccessManager() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControlErrors.InvalidAccessManagerAddress.selector,
-                address(0)
-            )
-        );
-        new SummerStaking(
-            address(0), // Zero protocol access manager
-            address(configurationManagerA),
-            address(aSummerToken),
-            address(axSumr)
-        );
-    }
-
-    function test_Constructor_ZeroSummerToken() public {
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidAddress(string)",
-                "Summer token address cannot be zero"
-            )
-        );
-        new SummerStaking(
-            address(accessManagerA),
-            address(configurationManagerA),
-            address(0), // Zero summer token
-            address(axSumr)
-        );
-    }
-
-    function test_Constructor_ZeroXSumr() public {
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidAddress(string)",
-                "StakedSummerToken address cannot be zero"
-            )
-        );
-        new SummerStaking(
-            address(accessManagerA),
-            address(configurationManagerA),
-            address(aSummerToken),
-            address(0) // Zero StakedSummerToken
-        );
-    }
-
-    function test_Stake_ValidAmount() public {
+    function test_Stake_NoLockup_MintsXSUMR_UpdatesBalances() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -158,7 +97,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         aStaking.stakeLockup(stakeAmount, 0); // No lockup for test
     }
 
-    function test_Unstake_ValidAmount() public {
+    function test_Unstake_NoLockup_ReturnsFullAmount_BurnsXSUMR() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -247,7 +186,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         aStaking.unstakeLockup(0, stakeAmount * 2);
     }
 
-    function test_StakeUnstake_RoundTrip() public {
+    function test_NoLockup_RoundTrip_ZeroPenalty() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -319,36 +258,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
         assertEq(weightedAmount, stakeAmount);
     }
 
-    function test_StakeWithLockup_InvalidLockupPeriod() public {
-        SummerStaking freshStaking = createFreshStaking();
-        uint256 stakeAmount = STAKE_AMOUNT;
-        uint256 invalidLockupPeriod = 5 * 365 days; // 5 years - exceeds max
-
-        // Attempt to stake with invalid lockup period
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidLockupPeriod(string)",
-                "Lockup period cannot exceed 3 years"
-            )
-        );
-        freshStaking.stakeLockup(stakeAmount, invalidLockupPeriod);
-    }
-
-    function test_StakeWithLockup_ZeroAmount() public {
-        SummerStaking freshStaking = createFreshStaking();
-
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISummerStaking.Staking_InvalidAmount.selector,
-                "Amount cannot be zero"
-            )
-        );
-        freshStaking.stakeLockup(0, 0); // No lockup for test
-    }
-
-    function test_WeightedStakeCalculation() public {
+    function test_WeightedStakeCalculation_NoLockup() public {
         SummerStaking freshStaking = createFreshStaking();
         uint256 stakeAmount = 1000 ether;
 
@@ -605,25 +515,6 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
         // Check that user's total balance is updated
         assertEq(freshStaking.balanceOf(user1), initialBalance - unstakeAmount);
-    }
-
-    function test_Stake_DirectStakeReverts() public {
-        SummerStaking freshStaking = createFreshStaking();
-        uint256 stakeAmount = STAKE_AMOUNT;
-
-        // Approve staking contract
-        vm.prank(user1);
-        aSummerToken.approve(address(freshStaking), stakeAmount);
-
-        // Direct stake should revert
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_DirectStakeNotAllowed(string)",
-                "Use stakeLockup instead"
-            )
-        );
-        freshStaking.stake(stakeAmount);
     }
 
     function test_MultipleUsers_StakeSeparately() public {
