@@ -6,6 +6,7 @@ export interface CrossChainProtocolConfig {
   protocol: string
   fleetProxyAddress: string | null
   crossChainArkAddress: string | null
+  satelliteFleetAddress: string | null
 }
 
 export interface CrossChainDestination {
@@ -17,6 +18,7 @@ export interface CrossChainDestination {
 export interface CrossChainConfig {
   fleetName: string
   sourceChainId: number
+  hubFleetAddress?: string | null
   destinations: CrossChainDestination[]
 }
 
@@ -46,6 +48,8 @@ export function saveCrossChainConfig(
     fleetProxyAddress?: string
     crossChainArkAddress?: string
     sourceChainId?: number
+    satelliteFleetAddress?: string
+    hubFleetAddress?: string
   },
 ): void {
   const configPath = path.join(CONFIG_DIR, `${fleetName}.json`)
@@ -64,6 +68,7 @@ export function saveCrossChainConfig(
     config = {
       fleetName,
       sourceChainId: 0, // Will need to be set manually or by parameter
+      hubFleetAddress: null,
       destinations: [],
     }
   }
@@ -71,6 +76,10 @@ export function saveCrossChainConfig(
   // Update sourceChainId if provided
   if (updateData.sourceChainId) {
     config.sourceChainId = updateData.sourceChainId
+  }
+
+  if (updateData.hubFleetAddress) {
+    config.hubFleetAddress = updateData.hubFleetAddress
   }
 
   // If chainId and protocol are provided, we need to update a specific protocol in a destination
@@ -97,6 +106,7 @@ export function saveCrossChainConfig(
         protocol: updateData.protocol,
         fleetProxyAddress: null,
         crossChainArkAddress: null,
+        satelliteFleetAddress: null,
       }
       destination.protocols.push(protocolConfig)
     }
@@ -108,6 +118,10 @@ export function saveCrossChainConfig(
 
     if (updateData.crossChainArkAddress) {
       protocolConfig.crossChainArkAddress = updateData.crossChainArkAddress
+    }
+
+    if (updateData.satelliteFleetAddress) {
+      protocolConfig.satelliteFleetAddress = updateData.satelliteFleetAddress
     }
   }
 

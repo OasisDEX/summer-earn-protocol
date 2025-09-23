@@ -11,7 +11,6 @@ import {
 import { BaseConfig } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { saveCrossChainConfig } from '../helpers/cross-chain-config'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
@@ -467,23 +466,9 @@ async function deployCrossChainArkContract(
   // Note: target proxy registration is now handled via CrossChainRegistry governance
   console.log(
     kleur.yellow(
-      'Reminder: Register ARK-FLEET relationship in CrossChainRegistry via governance after both sides are deployed.',
+      'Reminder: Register PEER_RELATIONSHIP for the Ark<>FleetProxy in CrossChainRegistry via governance after both sides are deployed.',
     ),
   )
-
-  // Record the deployed CrossChainArk address in the cross-chain config
-  try {
-    saveCrossChainConfig(fleetName, {
-      chainId: userInput.targetChainId,
-      protocol: userInput.targetProtocol,
-      crossChainArkAddress: result.crossChainArk.address,
-    })
-  } catch (e) {
-    console.warn(
-      kleur.yellow('Warning: failed to update cross-chain config with CrossChainArk address'),
-      e,
-    )
-  }
 
   return { crossChainArk: result.crossChainArk }
 }

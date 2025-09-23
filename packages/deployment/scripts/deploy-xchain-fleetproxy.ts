@@ -181,8 +181,24 @@ async function getUserInput(
   // Extract fleet information
   const fleetName = fleetDeployment.fleetName
   const fleetAddress = fleetDeployment.fleetAddress as Address
-  const sourceNetwork = fleetDeployment.network
   const assetSymbol = fleetDeployment.assetSymbol.toLowerCase()
+
+  // Determine hub/source chain ID from cross-chain config (preferred), otherwise prompt
+  const existingCC = loadCrossChainConfig(fleetName)
+  let hubChainId = 0
+  if (existingCC?.sourceChainId && existingCC.sourceChainId !== 0) {
+    hubChainId = existingCC.sourceChainId
+  } else {
+    const { sourceChain } = await prompts({
+      type: 'text',
+      name: 'sourceChain',
+      message: 'Enter the source (hub) chain name (e.g. mainnet, base, optimism):',
+      validate: (v: string) => (v && v.length > 0 ? true : 'Required'),
+    })
+    hubChainId = getChainIdByNetwork(sourceChain)
+    // Persist top-level sourceChainId for this fleet
+    saveCrossChainConfig(fleetName, { sourceChainId: hubChainId })
+  }
 
   // Get the asset address from the config using the symbol
   const assetAddress = config.tokens[assetSymbol as keyof typeof config.tokens] as Address
@@ -191,9 +207,6 @@ async function getUserInput(
   }
 
   const fleetProxyProtocol = 'summerfi'
-
-  // Source chain is the hub chain where the fleet was deployed
-  const hubChainId = getChainIdByNetwork(sourceNetwork)
 
   return {
     accessManager: accessManagerAddress,
@@ -268,20 +281,15 @@ async function deployFleetProxyContract(
     const fleetProxyContract = result as unknown as { fleetProxy: { address: Address } }
     const fleetProxyAddress = fleetProxyContract.fleetProxy.address
 
-    // Save the FleetProxy address to cross-chain config
+    // Save the FleetProxy address to cross-chain config and the local fleet commander address
     saveCrossChainConfig(fleetName, {
       chainId: chainId,
       protocol: params.protocol,
       fleetProxyAddress: fleetProxyAddress,
+      satelliteFleetAddress: params.fleetContract,
     })
 
-    // Make sure the source chain ID is updated in the config
-    const crossChainConfig = loadCrossChainConfig(fleetName)
-    if (crossChainConfig && crossChainConfig.sourceChainId === 0) {
-      saveCrossChainConfig(fleetName, {
-        sourceChainId: params.sourceChainId,
-      })
-    }
+    // Hub fleet address can be populated later when known
 
     console.log(
       kleur.yellow('Note: Remember to set the source chain ark address using the governor account'),
@@ -328,7 +336,7 @@ async function promptForCrossChainArkAddress(
     })
 
     if (crossChainArkAddress) {
-      // Save the CrossChain Ark address to the cross-chain config
+      // Save the CrossChain Ark address under the hub/source chain
       saveCrossChainConfig(fleetName, {
         chainId: sourceChainId,
         protocol,
