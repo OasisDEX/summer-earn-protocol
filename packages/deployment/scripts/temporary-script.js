@@ -5,7 +5,7 @@ const { encodeFunctionData, parseAbi, encodeAbiParameters } = require('viem')
 const rebalanceData = [
   {
     fromArk: '0x37a0CED093Be494e09CD5867aC5F32741E6a6392', // BufferArk
-    toArk: '0x64EB3C12EAC910ceC0B2527B91288Ec2653D2b86', // CrossChainArk
+    toArk: '0xA69e129038cCb75BCA01874a2281CfcAa49D7E81', // CrossChainArk
     amount: 1000000n, // 1 USDC (6 decimals)
     boardData: '0x', // Will be populated below
     disembarkData: '0x',
@@ -17,9 +17,9 @@ const rebalanceData = [
 const crossChainArkBoardData = {
   // ExecuteTransferParams
   executeTransferParams: {
-    originator: '0x64EB3C12EAC910ceC0B2527B91288Ec2653D2b86', // CrossChainArk address
+    originator: '0xA69e129038cCb75BCA01874a2281CfcAa49D7E81', // CrossChainArk address
     destinationChainId: 8453, // Base chain ID
-    target: '0x9fA92c01D771f27Dfc554c70a4458131a03d18fb', // FleetProxy address (set to 0x0 if not deployed yet)
+    target: '0x113E5a468b2DdF550FD714ef6f6FF8DC96B480F7', // FleetProxy address (set to 0x0 if not deployed yet)
     asset: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Unichain
     amount: 1000000n, // 1 USDC
     message: '0x', // Empty message for transfer
