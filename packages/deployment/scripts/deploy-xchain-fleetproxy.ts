@@ -65,6 +65,9 @@ export async function deployFleetProxy() {
     console.log(kleur.green().bold('FleetProxy successfully deployed at:'), fleetProxyAddress)
     console.log(kleur.green('Deployment recorded in cross-chain configuration.'))
 
+    // Optional step: capture hub details for clarity
+    await promptForHubFleetDetails(userInput.fleetName)
+
     // Optional step: Ask if CrossChain Ark has been deployed and save its address
     await promptForCrossChainArkAddress(
       userInput.fleetName,
@@ -208,6 +211,11 @@ async function getUserInput(
 
   const fleetProxyProtocol = 'summerfi'
 
+  // Persist friendly names for clarity
+  saveCrossChainConfig(fleetName, {
+    satelliteFleetName: fleetName,
+  })
+
   return {
     accessManager: accessManagerAddress,
     bridgeRouter: bridgeRouterAddress,
@@ -336,9 +344,10 @@ async function promptForCrossChainArkAddress(
     })
 
     if (crossChainArkAddress) {
-      // Save the CrossChain Ark address under the hub/source chain
+      // Save the CrossChain Ark address under the destination entry for the current chain
+      const destinationChainId = getChainIdByNetwork(hre.network.name)
       saveCrossChainConfig(fleetName, {
-        chainId: sourceChainId,
+        chainId: destinationChainId,
         protocol,
         crossChainArkAddress: crossChainArkAddress.trim(),
       })
@@ -351,6 +360,54 @@ async function promptForCrossChainArkAddress(
   } else {
     console.log(kleur.yellow('CrossChain Ark address can be added later when deployed.'))
     console.log(kleur.yellow('Use the cross-chain config helper to update the configuration.'))
+  }
+}
+
+/**
+ * Optional step to prompt user for hub fleet details and save them to config
+ */
+async function promptForHubFleetDetails(fleetName: string): Promise<void> {
+  const cc = loadCrossChainConfig(fleetName)
+  const needsHubFleetAddress = !cc?.hubFleetAddress
+  const needsHubFleetName = !cc?.hubFleetName
+
+  if (!needsHubFleetAddress && !needsHubFleetName) return
+
+  console.log(kleur.yellow('\n--- Optional: Hub Fleet Details ---'))
+
+  let hubFleetAddress: string | undefined
+  if (needsHubFleetAddress) {
+    const resp = await prompts({
+      type: 'text',
+      name: 'addr',
+      message: 'Enter the hub Fleet (FleetCommander) address (or leave empty to skip):',
+      validate: (value: string) => {
+        if (!value) return true
+        if (!value.startsWith('0x') || value.length !== 42) {
+          return 'Please enter a valid Ethereum address (0x...)'
+        }
+        return true
+      },
+    })
+    hubFleetAddress = (resp.addr as string) || undefined
+  }
+
+  let hubFleetName: string | undefined
+  if (needsHubFleetName) {
+    const resp = await prompts({
+      type: 'text',
+      name: 'name',
+      message: 'Enter a friendly hub fleet name (or leave empty to skip):',
+    })
+    hubFleetName = (resp.name as string) || undefined
+  }
+
+  if (hubFleetAddress || hubFleetName) {
+    saveCrossChainConfig(fleetName, {
+      hubFleetAddress,
+      hubFleetName,
+    })
+    console.log(kleur.green('✓ Hub fleet details saved.'))
   }
 }
 

@@ -19,6 +19,8 @@ export interface CrossChainConfig {
   fleetName: string
   sourceChainId: number
   hubFleetAddress?: string | null
+  hubFleetName?: string | null
+  satelliteFleetName?: string | null
   destinations: CrossChainDestination[]
 }
 
@@ -50,6 +52,8 @@ export function saveCrossChainConfig(
     sourceChainId?: number
     satelliteFleetAddress?: string
     hubFleetAddress?: string
+    hubFleetName?: string
+    satelliteFleetName?: string
   },
 ): void {
   const configPath = path.join(CONFIG_DIR, `${fleetName}.json`)
@@ -69,6 +73,8 @@ export function saveCrossChainConfig(
       fleetName,
       sourceChainId: 0, // Will need to be set manually or by parameter
       hubFleetAddress: null,
+      hubFleetName: null,
+      satelliteFleetName: null,
       destinations: [],
     }
   }
@@ -80,6 +86,14 @@ export function saveCrossChainConfig(
 
   if (updateData.hubFleetAddress) {
     config.hubFleetAddress = updateData.hubFleetAddress
+  }
+
+  if (updateData.hubFleetName) {
+    config.hubFleetName = updateData.hubFleetName
+  }
+
+  if (updateData.satelliteFleetName) {
+    config.satelliteFleetName = updateData.satelliteFleetName
   }
 
   // If chainId and protocol are provided, we need to update a specific protocol in a destination
