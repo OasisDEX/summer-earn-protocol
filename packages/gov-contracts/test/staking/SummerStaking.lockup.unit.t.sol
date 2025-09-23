@@ -8,6 +8,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {SummerStakingTestBase} from "./SummerStakingTestBase.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+import {console} from "forge-std/console.sol";
 /*
  * @title SummerStaking Lockup Tests
  * @dev Comprehensive test suite for SummerStaking contract with helper methods and extensive coverage.
@@ -1522,14 +1523,9 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         assertEq(aStaking.getUserStakesCount(user1), 2);
         assertEq(aStaking.getUserStakesCount(user2), 2);
 
-        // Snapshot pre-state (reduced locals)
-        UserSnapshot memory fromBefore = _snapshotUser(aStaking, user1);
-        UserSnapshot memory toBefore = _snapshotUser(aStaking, user2);
-        uint256 totalSupplyBefore = aStaking.totalSupply();
+        // Snapshot pre-state (reduced locals) - not used further in error tests
 
-        // Approve xSUMR transfer and move all stakes from user1 to user2
-        vm.prank(user1);
-        axSumr.approve(address(aStaking), fromBefore.raw);
+        // Approve xSUMR transfer and move all stakes from user1 to user2 (not required for error paths below)
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -1730,6 +1726,69 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             user1RewardsBalanceBefore,
             "user1 should not receive rewards after claim"
         );
+    }
+    function test_RewardsTotal_TwoStakers_MaxAndNoLockup() public {
+        (uint256 user1Rewards, uint256 user2Rewards, uint256 totalRewards) =
+            _twoStakersClaimRewards(aMaxLockupPeriod, 0);
+        assertApproxEqAbs(totalRewards, REWARD_AMOUNT, 1);
+        assertGt(user1Rewards, user2Rewards); // longer lockup should earn more
+    }
+
+    function test_RewardsTotal_TwoStakers_MinAndNoLockup() public {
+        ( , , uint256 totalRewards) = _twoStakersClaimRewards(aMinLockupPeriod, 0);
+        assertApproxEqAbs(totalRewards, REWARD_AMOUNT, 1);
+    }
+
+    function test_RewardsTotal_TwoStakers_MinAndMax() public {
+        (uint256 user1Rewards, uint256 user2Rewards, uint256 totalRewards) =
+            _twoStakersClaimRewards(aMinLockupPeriod, aMaxLockupPeriod);
+        assertApproxEqAbs(totalRewards, REWARD_AMOUNT, 1);
+        assertLt(user1Rewards, user2Rewards); // max lockup should earn most
+    }
+
+    function _twoStakersClaimRewards(
+        uint256 lockup1,
+        uint256 lockup2
+    ) internal returns (uint256, uint256, uint256) {
+        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
+
+        uint256 stakeAmount = STAKE_AMOUNT;
+        _stake(aStaking, user1, stakeAmount, lockup1);
+        _stake(aStaking, user2, stakeAmount, lockup2);
+
+        // Accrue over full reward duration
+        vm.warp(block.timestamp + 30 days);
+
+        // Sanity: some rewards accrued
+        assertGt(
+            aStaking.earned(user1, address(rewardToken)),
+            0,
+            "user1 should have accrued rewards"
+        );
+
+        // Snapshot before claims
+        UserSnapshot memory user1Before = _snapshotUser(aStaking, user1);
+        UserSnapshot memory user2Before = _snapshotUser(aStaking, user2);
+
+        // Claim for both users
+        vm.prank(user1);
+        aStaking.getReward(address(rewardToken));
+        vm.prank(user2);
+        aStaking.getReward(address(rewardToken));
+
+        // Snapshot after claims
+        UserSnapshot memory user1After = _snapshotUser(aStaking, user1);
+        UserSnapshot memory user2After = _snapshotUser(aStaking, user2);
+
+        uint256 user1Claimed = user1After.rewards - user1Before.rewards;
+        uint256 user2Claimed = user2After.rewards - user2Before.rewards;
+        uint256 totalClaimed = user1Claimed + user2Claimed;
+        console.log("user1 weighted balance ", user1After.weighted );
+        console.log("user2 weighted balance ", user2After.weighted );
+        console.log("user 1 claimed         ", user1Claimed);
+        console.log("user 2 claimed         ", user2Claimed);
+        console.log("total claimed          ", totalClaimed);
+        return (user1Claimed, user2Claimed, totalClaimed);
     }
 
     function test_Revert_TransferStakes_TargetHasUnclaimedRewards() public {

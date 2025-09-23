@@ -505,6 +505,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         uint256 raw; // aStaking.balanceOf(user)
         uint256 weighted; // aStaking.weightedBalanceOf(user)
         uint256 xsumr; // axSumr.balanceOf(user)
+        uint256 rewards; // rewardToken.balanceOf(user)
     }
 
     /**
@@ -517,6 +518,7 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         s.raw = staking.balanceOf(user);
         s.weighted = staking.weightedBalanceOf(user);
         s.xsumr = axSumr.balanceOf(user);
+        s.rewards = rewardToken.balanceOf(user);
     }
 
     /**
