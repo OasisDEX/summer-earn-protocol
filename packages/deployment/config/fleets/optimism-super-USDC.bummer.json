@@ -15,7 +15,7 @@
       "params": {
         "asset": "USDC",
         "protocol": "summerfi",
-        "targetChainId": "130"
+        "targetChainId": "8453"
       }
     }
   ]
