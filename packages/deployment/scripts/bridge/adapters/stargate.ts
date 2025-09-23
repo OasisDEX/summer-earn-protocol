@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import stargateConfig from '../../../config/adapters/stargate.json'
 import StargateAdapterModule from '../../../ignition/modules/adapters/stargate'
-import { getSupportedChainsFromConfig, getWalletClient } from './utils'
+import { getSupportedChainsFromConfig, getWalletClient, waitForPendingTransactions } from './utils'
 
 // Define a type for the bridge router address parameter
 type BridgeRouterAddressParam = Address | { bridgeRouterAddress: Address }
@@ -285,6 +285,8 @@ export async function configureStargateAdapter(
               `Asset mapping for ${checksummedLocalAddress} on current chain added, tx: ${hash}`,
             ),
           )
+          // Ensure tx is mined before proceeding to avoid nonce/fee conflicts
+          await publicClient.waitForTransactionReceipt({ hash })
           assetsConfigured++
         } else {
           console.log(kleur.yellow(`Asset mapping for current chain already correct, skipping`))
@@ -320,22 +322,64 @@ export async function configureStargateAdapter(
     )
 
     if (!alreadyRegistered) {
-      // Use wallet client directly instead of .write
-      const hash = await walletClient.writeContract({
-        address: getAddress(actualAddress as `0x${string}`),
-        abi: [
-          {
-            inputs: [{ internalType: 'address', name: 'adapter', type: 'address' }],
-            name: 'registerAdapter',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'registerAdapter',
-        args: [getAddress(stargateAdapterAddress as `0x${string}`)],
+      // Ensure pending transactions are settled before sending governance-protected tx
+      await waitForPendingTransactions()
+
+      // Prepare fee bumping on networks like Optimism to avoid "replacement underpriced"
+      const publicClient = await hre.viem.getPublicClient()
+
+      const baseFees = await publicClient.estimateFeesPerGas().catch(async () => {
+        const latest = await publicClient.getBlock()
+        const base = latest.baseFeePerGas ?? 0n
+        return {
+          maxFeePerGas: base ? base * 2n : undefined,
+          maxPriorityFeePerGas: 1_000_000n as bigint, // 0.001 gwei fallback
+          gasPrice: undefined,
+        }
       })
+
+      const tryRegister = async (multiplier: bigint = 120n) => {
+        const maxFeePerGas = baseFees.maxFeePerGas
+          ? (baseFees.maxFeePerGas * multiplier) / 100n
+          : baseFees.gasPrice
+            ? (baseFees.gasPrice * multiplier) / 100n
+            : undefined
+        const maxPriorityFeePerGas = baseFees.maxPriorityFeePerGas
+          ? (baseFees.maxPriorityFeePerGas * multiplier) / 100n
+          : undefined
+
+        return walletClient.writeContract({
+          address: getAddress(actualAddress as `0x${string}`),
+          abi: [
+            {
+              inputs: [{ internalType: 'address', name: 'adapter', type: 'address' }],
+              name: 'registerAdapter',
+              outputs: [],
+              stateMutability: 'nonpayable',
+              type: 'function',
+            },
+          ] as const,
+          functionName: 'registerAdapter',
+          args: [getAddress(stargateAdapterAddress as `0x${string}`)],
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+        })
+      }
+
+      let hash: `0x${string}`
+      try {
+        hash = await tryRegister(120n)
+      } catch (e: any) {
+        const msg = String(e?.message ?? e)
+        if (msg.includes('underpriced') || msg.includes('replacement')) {
+          hash = await tryRegister(140n)
+        } else {
+          throw e
+        }
+      }
+
       console.log(kleur.green(`Stargate V2 adapter registered with bridge router, tx: ${hash}`))
+      await publicClient.waitForTransactionReceipt({ hash })
     } else {
       console.log(
         kleur.yellow(
@@ -345,6 +389,8 @@ export async function configureStargateAdapter(
     }
   } catch (error) {
     console.error(kleur.red('Error registering adapter with bridge router:'), error)
+    // Do not swallow the error: surface it so the deploy flow fails visibly
+    throw error
   }
 }
 
