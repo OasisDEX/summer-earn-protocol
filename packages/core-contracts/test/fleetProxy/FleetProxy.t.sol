@@ -207,6 +207,43 @@ contract CrossChainFleetProxyTest is Test {
         assertEq(arkFromRegistry, SOURCE_ARK_ADDRESS);
     }
 
+    function test_RegistryRelationshipIntegration() public {
+        // This test verifies the integration between FleetProxy and CrossChainRegistry
+        // The contract MUST use registry.PEER_RELATIONSHIP() rather than hardcoded constants
+        // to ensure maintainability and consistency with registry relationship types
+
+        // Verify the ark-proxy relationship exists in the registry
+        address arkFromRegistry = registry.getSourceForTarget(
+            SOURCE_CHAIN_ID,
+            DEST_CHAIN_ID,
+            address(proxy),
+            registry.PEER_RELATIONSHIP()
+        );
+        assertEq(arkFromRegistry, SOURCE_ARK_ADDRESS);
+
+        // Test that the proxy can receive assets from the registered ark
+        // This validates the relationship lookup works in the receive path
+        uint256 amount = 1000;
+        mockToken.mint(address(proxy), amount);
+
+        BridgeTypes.RelayedTransferParams
+            memory params = _buildDeliveredTransferParams(
+                address(mockToken),
+                amount,
+                _buildEmptyPayload(),
+                SOURCE_CHAIN_ID
+            );
+
+        vm.prank(address(mockBridgeRouter));
+        proxy.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+
+        // Verify the deposit worked
+        assertEq(fleetCommanderMock.totalAssets(), amount);
+    }
+
     function test_GetBalance_ReturnsProxyTokenBalance() public {
         address asset = address(mockToken);
         uint256 amount = 1234;

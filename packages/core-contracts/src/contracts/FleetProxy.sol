@@ -32,10 +32,6 @@ contract FleetProxy is
 {
     using SafeERC20 for IERC20;
 
-    /// @notice Relationship type constant for ARK-PEER relationships
-    bytes32 private constant ARK_PEER_RELATIONSHIP =
-        keccak256("PEER_RELATIONSHIP");
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -327,7 +323,7 @@ contract FleetProxy is
                 _hubChainId,
                 ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
-                ARK_PEER_RELATIONSHIP
+                ICrossChainRegistry(crossChainRegistry()).PEER_RELATIONSHIP()
             );
     }
 
@@ -344,7 +340,7 @@ contract FleetProxy is
                 _hubChainId,
                 ICrossChainRegistry(crossChainRegistry()).currentChainId(),
                 address(this),
-                ARK_PEER_RELATIONSHIP
+                ICrossChainRegistry(crossChainRegistry()).PEER_RELATIONSHIP()
             )
         returns (address ark) {
             if (ark != address(0)) {
@@ -356,7 +352,8 @@ contract FleetProxy is
                             hubChainId,
                             ICrossChainRegistry(crossChainRegistry())
                                 .currentChainId(),
-                            ARK_PEER_RELATIONSHIP
+                            ICrossChainRegistry(crossChainRegistry())
+                                .PEER_RELATIONSHIP()
                         )
                 returns (bool valid) {
                     return valid;

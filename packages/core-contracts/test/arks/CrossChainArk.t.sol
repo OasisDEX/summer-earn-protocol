@@ -138,6 +138,47 @@ contract CrossChainArkTest is Test, ArkTestBase {
         assertEq(ark.getTargetProxy(), proxy); // Uses registry lookup
     }
 
+    function test_RegistryRelationshipIntegration() public {
+        // This test verifies the integration between CrossChainArk and CrossChainRegistry
+        // The contract MUST use registry.PEER_RELATIONSHIP() rather than hardcoded constants
+        // to ensure maintainability and consistency with registry relationship types
+
+        // Verify the ark can find its target proxy via registry lookup
+        address proxyFromRegistry = ark.getTargetProxy();
+        assertEq(proxyFromRegistry, proxy);
+
+        // Test that the ark can receive assets back from the proxy
+        uint256 amount = 500;
+        deal(address(mockToken), address(ark), amount);
+
+        BridgeTypes.RelayedTransferParams memory params = BridgeTypes
+            .RelayedTransferParams({
+                operationId: keccak256("test-receive"),
+                originator: proxy,
+                sourceChainId: TARGET_CHAIN_ID,
+                recipient: address(ark),
+                asset: address(mockToken),
+                amount: amount,
+                message: abi.encode(ark.lastRemoteAssetBalance())
+            });
+
+        vm.expectEmit(true, true, true, true);
+        emit ICrossChainArk.AssetsReceived(
+            address(mockToken),
+            amount,
+            TARGET_CHAIN_ID
+        );
+
+        vm.prank(address(router));
+        ark.receiveOperation(
+            BridgeTypes.OperationType.TRANSFER_ASSET,
+            abi.encode(params)
+        );
+
+        // Verify the transfer was accepted (relationship validation passed)
+        assertEq(mockToken.balanceOf(address(ark)), amount);
+    }
+
     function testBoardCallsQueueTransferAssets() public {
         // Approve Ark to spend tokens from FleetCommander
 
