@@ -45,18 +45,21 @@
       },
       "bridge": {
         "bridgeRouter": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xCcE1F25Cf20d0eE814b88E2448ABACC3038D9496"
         },
         "bridgeQueue": {
           "address": "0x0000000000000000000000000000000000000000"
         },
         "adapters": {
           "layerZero": {
-            "address": "0x0000000000000000000000000000000000000000"
+            "address": "0x6C79DEAD6399fD1E757cC14876bb3602727a304f"
           },
           "stargate": {
-            "address": "0x0000000000000000000000000000000000000000"
+            "address": "0x22CFc995087F8FcdE8889C1C3c7c35E63403a239"
           }
+        },
+        "crossChainRegistry": {
+          "address": "0xCdb83454DB321415EA5E8df71db041Cb145Dc0e9"
         }
       }
     },

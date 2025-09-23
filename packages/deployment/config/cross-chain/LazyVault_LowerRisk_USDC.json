@@ -1,0 +1,17 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDC",
+  "sourceChainId": 8453,
+  "destinations": [
+    {
+      "chainId": 8453,
+      "name": "chain-8453",
+      "protocols": [
+        {
+          "protocol": "summerfi",
+          "fleetProxyAddress": "0x9fA92c01D771f27Dfc554c70a4458131a03d18fb",
+          "crossChainArkAddress": "0x64EB3C12EAC910ceC0B2527B91288Ec2653D2b86"
+        }
+      ]
+    }
+  ]
+}
