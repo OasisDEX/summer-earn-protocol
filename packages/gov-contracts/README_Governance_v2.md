@@ -241,6 +241,25 @@ The contracts build upon proven patterns but introduce new complexity around loc
 
 ---
 
+## Known Issues and Limitations
+
+### Rewards duration immutability in StakingRewardsManagerBase
+
+In `StakingRewardsManagerBase`, calling `notifyRewardAmount(rewardToken, reward, newRewardsDuration)` for an already-configured reward token will revert if `newRewardsDuration` differs from the stored `rewardsDuration` for that token. This is enforced to prevent mid-stream schedule changes:
+
+```405:409:packages/rewards-contracts/src/contracts/StakingRewardsManagerBase.sol
+// For existing reward tokens, check if current period is complete
+if (_isRewardToken(rewardToken)) {
+    if (newRewardsDuration != rewardTokenData.rewardsDuration) {
+        revert CannotChangeRewardsDuration();
+    }
+}
+```
+
+- To change a reward token's `rewardsDuration`, wait until the current reward period finishes, then call `setRewardsDuration(rewardToken, newDuration)`. Passing a different duration via `notifyRewardAmount` will fail for existing tokens.
+- Operational implication: integrations that rotate reward programs must either reuse the same duration or sequence a `setRewardsDuration` after the prior period ends. Attempting to extend/shorten during an active period is intentionally disallowed.
+- There is a mismatch between comment and code
+
 ## Appendix: Quick API Reference (for implementers and auditors)
 
 ### StakedSummerToken (xSUMR)

@@ -2,20 +2,10 @@
 pragma solidity 0.8.28;
 
 import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
-import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
-import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
 import {StakedSummerToken} from "../../src/contracts/StakedSummerToken.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
-import {Test, console} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
-import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Test} from "forge-std/Test.sol";
 import {SummerVestingWalletsEscrowTestBase} from "./SummerVestingWalletsEscrowTestBase.sol";
-import {IMinimalVestingFactory} from "../../src/interfaces/IMinimalVestingFactory.sol";
-import {IMinimalVestingWallet} from "../../src/interfaces/IMinimalVestingWallet.sol";
 import {ISummerVestingWalletsEscrow} from "../../src/interfaces/ISummerVestingWalletsEscrow.sol";
 import {TestMockVestingFactory} from "../mocks/MockVestingFactory.sol";
 import {TestMockVestingWallet} from "../mocks/MockVestingFactory.sol";
@@ -190,7 +180,9 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("Staking_ZeroBalance()"));
+        vm.expectRevert(
+            ISummerVestingWalletsEscrow.Staking_ZeroBalance.selector
+        );
         testStaking.stakeVesting(mockVestingFactories);
 
         // Verify user received 0 StakedSummerToken (empty vesting wallets)
@@ -201,7 +193,9 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
     function test_UnstakeVesting_UserHasNoVestingWallets() public {
         // Attempt to unstake vesting - should revert
         vm.prank(user2);
-        vm.expectRevert(abi.encodeWithSignature("Staking_NoStakeForFactory()"));
+        vm.expectRevert(
+            ISummerVestingWalletsEscrow.Staking_NoStakeForFactory.selector
+        );
         testStaking.unstakeVesting(mockVestingFactories);
     }
 
@@ -213,8 +207,8 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         // Attempt to stake with vesting - should revert
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidOwner(string)",
+            abi.encodeWithSelector(
+                ISummerVestingWalletsEscrow.Staking_InvalidOwner.selector,
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -233,8 +227,8 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
         // Attempt to unstake vesting - should revert
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidOwner(string)",
+            abi.encodeWithSelector(
+                ISummerVestingWalletsEscrow.Staking_InvalidOwner.selector,
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -298,8 +292,8 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
             VESTING_AMOUNT_WALLET_1 + VESTING_AMOUNT_WALLET_2
         );
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidOwner(string)",
+            abi.encodeWithSelector(
+                ISummerVestingWalletsEscrow.Staking_InvalidOwner.selector,
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -549,7 +543,7 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Try to stake again - should revert
         vm.expectRevert(
-            abi.encodeWithSignature("Staking_FactoryAlreadyStaked()")
+            ISummerVestingWalletsEscrow.Staking_FactoryAlreadyStaked.selector
         );
         vm.prank(user1);
         testStaking.stakeVesting(mockVestingFactories);
@@ -565,7 +559,9 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting - should revert due to factory not being enabled
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("Staking_FactoryNotEnabled()"));
+        vm.expectRevert(
+            ISummerVestingWalletsEscrow.Staking_FactoryNotEnabled.selector
+        );
         testStaking.stakeVesting(mockVestingFactories);
     }
 
@@ -578,7 +574,9 @@ contract StakingVestingTest is SummerVestingWalletsEscrowTestBase {
 
         // Stake with vesting - should revert due to no factories
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSignature("Staking_FactoryNotEnabled()"));
+        vm.expectRevert(
+            ISummerVestingWalletsEscrow.Staking_FactoryNotEnabled.selector
+        );
         testStaking.stakeVesting(mockVestingFactories);
     }
 

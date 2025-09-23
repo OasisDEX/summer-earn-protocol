@@ -1,17 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerVestingWalletsEscrow} from "../../src/contracts/SummerVestingWalletsEscrow.sol";
 import {ISummerVestingWalletsEscrow} from "../../src/interfaces/ISummerVestingWalletsEscrow.sol";
-import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
-import {SummerVestingWalletFactoryV2} from "../../src/contracts/SummerVestingWalletFactoryV2.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
-import {Test, console} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SummerVestingWalletsEscrowTestBase} from "./SummerVestingWalletsEscrowTestBase.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
@@ -56,10 +47,14 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
 
     function test_GetVestingFactory_InvalidIndex() public {
         // Test getting factory at invalid index
-        vm.expectRevert(abi.encodeWithSignature("Staking_InvalidIndex()"));
+        vm.expectRevert(
+            ISummerVestingWalletsEscrow.Staking_InvalidIndex.selector
+        );
         aStaking.getVestingFactory(2); // Only 2 factories, index 2 is out of bounds
 
-        vm.expectRevert(abi.encodeWithSignature("Staking_InvalidIndex()"));
+        vm.expectRevert(
+            ISummerVestingWalletsEscrow.Staking_InvalidIndex.selector
+        );
         aStaking.getVestingFactory(10); // Way out of bounds
     }
 
@@ -92,8 +87,8 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
         // Try to add zero address - should revert
         vm.prank(address(timelockA));
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidAddress(string)",
+            abi.encodeWithSelector(
+                ISummerVestingWalletsEscrow.Staking_InvalidAddress.selector,
                 "Vesting factory address cannot be zero"
             )
         );
@@ -107,7 +102,9 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
 
         // Try to add same factory again - should revert
         vm.prank(address(timelockA));
-        vm.expectRevert(abi.encodeWithSignature("Staking_DuplicateFactory()"));
+        vm.expectRevert(
+            ISummerVestingWalletsEscrow.Staking_DuplicateFactory.selector
+        );
         aStaking.addVestingFactory(newVestingFactory1);
     }
 
@@ -160,8 +157,8 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
         // Try to remove zero address - should revert
         vm.prank(address(timelockA));
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidAddress(string)",
+            abi.encodeWithSelector(
+                ISummerVestingWalletsEscrow.Staking_InvalidAddress.selector,
                 "Vesting factory address cannot be zero"
             )
         );
@@ -171,7 +168,9 @@ contract StakingManagementTest is SummerVestingWalletsEscrowTestBase {
     function test_RemoveVestingFactory_NonExistentFactory() public {
         // Try to remove a factory that doesn't exist - should revert
         vm.prank(address(timelockA));
-        vm.expectRevert(abi.encodeWithSignature("Staking_FactoryNotFound()"));
+        vm.expectRevert(
+            ISummerVestingWalletsEscrow.Staking_FactoryNotFound.selector
+        );
         aStaking.removeVestingFactory(newVestingFactory1); // Never added
     }
 

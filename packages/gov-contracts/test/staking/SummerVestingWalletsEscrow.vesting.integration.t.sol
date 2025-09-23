@@ -4,34 +4,13 @@ pragma solidity 0.8.28;
 import {Origin, SummerGovernorV2} from "../../src/contracts/SummerGovernorV2.sol";
 import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
 
-import {ISummerGovernorV2} from "../../src/interfaces/ISummerGovernorV2.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
 import {ISummerVestingWalletV2} from "../../src/interfaces/ISummerVestingWalletV2.sol";
 import {SummerVestingWallet} from "../../src/contracts/SummerVestingWallet.sol";
-
-import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
-import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {Vm} from "forge-std/Vm.sol";
-import {SummerGovernorV2TestBase} from "../governorV2/SummerGovernorV2TestBase.sol";
+import {Test} from "forge-std/Test.sol";
 import {SummerVestingWalletsEscrowTestBase} from "../staking/SummerVestingWalletsEscrowTestBase.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ExposedSummerTimelockController} from "../token/SummerTokenTestBase.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 
+import {ISummerVestingWalletsEscrow} from "../../src/interfaces/ISummerVestingWalletsEscrow.sol";
 /*
  * @title SummerGovernorTest
  * @dev Test contract for SummerGovernorV2 functionality.
@@ -554,7 +533,7 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         // Second call to stakeVesting should not add more voting power
         vm.prank(alice);
         vm.expectRevert(
-            abi.encodeWithSignature("Staking_FactoryAlreadyStaked()")
+            ISummerVestingWalletsEscrow.Staking_FactoryAlreadyStaked.selector
         );
         aStaking.stakeVesting(onlyV1VestingFactory);
 
@@ -599,8 +578,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         // Try to stake with vesting - should revert due to ownership
         vm.prank(alice);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidOwner(string)",
+            abi.encodeWithSelector(
+                ISummerVestingWalletsEscrow.Staking_InvalidOwner.selector,
                 "Vesting wallet not owned by escrow"
             )
         );
@@ -1003,8 +982,8 @@ contract SummerGovernorV2VestingTest is SummerVestingWalletsEscrowTestBase {
         vm.startPrank(alice);
         axSumr.approve(address(aStaking), expectedVotingPower);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "Staking_InvalidOwner(string)",
+            abi.encodeWithSelector(
+                ISummerVestingWalletsEscrow.Staking_InvalidOwner.selector,
                 "Vesting wallet not owned by escrow"
             )
         );
