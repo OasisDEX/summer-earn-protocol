@@ -27,6 +27,16 @@ export function getChainConfigs(useTestConfig: boolean = false) {
       config: config.sonic as unknown as BaseConfig,
       rpcUrl: RPC_URL_MAP.sonic as string,
     },
+    optimism: {
+      chain: CHAIN_CONFIG_MAP.optimism,
+      config: config.optimism as unknown as BaseConfig,
+      rpcUrl: RPC_URL_MAP.optimism as string,
+    },
+    unichain: {
+      chain: CHAIN_CONFIG_MAP.unichain,
+      config: config.unichain as unknown as BaseConfig,
+      rpcUrl: RPC_URL_MAP.unichain as string,
+    },
   } as const
 }
 

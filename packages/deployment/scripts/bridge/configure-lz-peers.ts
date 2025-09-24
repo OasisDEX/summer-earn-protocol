@@ -51,7 +51,7 @@ async function main() {
   console.log(kleur.blue(`Found LayerZero adapter at: ${layerZeroAdapterAddress}`))
 
   // Load all network configurations
-  const supportedNetworks = ['mainnet', 'base', 'arbitrum', 'sonic'] // Add more as needed
+  const supportedNetworks = ['mainnet', 'base', 'arbitrum', 'sonic', 'optimism'] // Add more as needed
   const allNetworkConfigs: Record<string, any> = {}
 
   for (const networkName of supportedNetworks) {

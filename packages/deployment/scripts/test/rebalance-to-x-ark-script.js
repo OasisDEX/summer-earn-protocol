@@ -5,7 +5,7 @@ const { encodeFunctionData, parseAbi, encodeAbiParameters } = require('viem')
 const rebalanceData = [
   {
     fromArk: '0x37a0CED093Be494e09CD5867aC5F32741E6a6392', // BufferArk
-    toArk: '0xA69e129038cCb75BCA01874a2281CfcAa49D7E81', // CrossChainArk
+    toArk: '0x5f311c931e03217aa0eae99eaF15A7b33543Ec75', // CrossChainArk
     amount: 1000000n, // 1 USDC (6 decimals)
     boardData: '0x', // Will be populated below
     disembarkData: '0x',
@@ -17,9 +17,9 @@ const rebalanceData = [
 const crossChainArkBoardData = {
   // ExecuteTransferParams
   executeTransferParams: {
-    originator: '0xA69e129038cCb75BCA01874a2281CfcAa49D7E81', // CrossChainArk address
+    originator: '0x5f311c931e03217aa0eae99eaF15A7b33543Ec75', // CrossChainArk address
     destinationChainId: 8453, // Base chain ID
-    target: '0x113E5a468b2DdF550FD714ef6f6FF8DC96B480F7', // FleetProxy address (set to 0x0 if not deployed yet)
+    target: '0x6bDCf1dCAd15e11D7d7B90F5b017aB1fc049dC0f', // FleetProxy address (set to 0x0 if not deployed yet)
     asset: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Unichain
     amount: 1000000n, // 1 USDC
     message: '0x', // Empty message for transfer
@@ -28,7 +28,7 @@ const crossChainArkBoardData = {
   // BridgeOptions with Stargate adapter
   bridgeOptions: {
     specifiedAdapter: '0x1b4b8c790A36F2e37bCd59db73320D6Fd897DB9A', // Stargate adapter
-    gasLimit: 1500000, // Gas limit for execution on destination
+    gasLimit: 3000000, // Gas limit for execution on destination
     msgValue: 0, // Native value to forward
     calldataSize: 0, // Size of expected return calldata
     options: '0x', // Additional adapter-specific parameters

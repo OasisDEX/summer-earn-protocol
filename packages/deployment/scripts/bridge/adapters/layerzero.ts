@@ -3,12 +3,8 @@ import kleur from 'kleur'
 import { Address, getAddress } from 'viem'
 import layerZeroConfig from '../../../config/adapters/layerzero.json'
 import LayerZeroAdapterModule from '../../../ignition/modules/adapters/layerzero'
-import {
-  extractBridgeRouterAddress,
-  getNetworkNameFromChainId,
-  getSupportedChainsFromConfig,
-  getWalletClient,
-} from './utils'
+import { getChainConfigByChainId } from '../../helpers/chain-configs'
+import { extractBridgeRouterAddress, getSupportedChainsFromConfig, getWalletClient } from './utils'
 
 /**
  * Deploy LayerZero adapter using Ignition module
@@ -494,7 +490,7 @@ export async function updateLayerZeroAdapterPeers(
 
   // Filter to only include chains that have LayerZero adapters deployed
   const availableChains = supportedChains.filter((chainInfo) => {
-    const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
+    const targetNetworkName = getChainConfigByChainId(chainInfo.chainId).chainName
     const targetNetworkConfig = allNetworkConfigs[targetNetworkName]
     return targetNetworkConfig?.deployedContracts?.bridge?.adapters?.layerZero?.address
   })
@@ -512,7 +508,7 @@ export async function updateLayerZeroAdapterPeers(
 
   for (const chainInfo of availableChains) {
     try {
-      const targetNetworkName = getNetworkNameFromChainId(chainInfo.chainId)
+      const targetNetworkName = getChainConfigByChainId(chainInfo.chainId).chainName
       const targetNetworkConfig = allNetworkConfigs[targetNetworkName]
       const targetAdapterAddress =
         targetNetworkConfig?.deployedContracts?.bridge?.adapters?.layerZero?.address

@@ -2,7 +2,6 @@
   "fleetName": "LazyVault_LowerRisk_USDC",
   "sourceChainId": 10,
   "hubFleetAddress": "0x05Da9eE95BF7f0a37e79a1341706eFB65e385979",
-  "hubArkAddress": "0x5f311c931e03217aa0eae99eaF15A7b33543Ec75",
   "hubFleetName": "Bummer_SuperLazyVault_LowerRisk_USDC",
   "satelliteFleetName": "LazyVault_LowerRisk_USDC",
   "destinations": [

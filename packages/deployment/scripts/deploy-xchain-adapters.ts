@@ -4,7 +4,7 @@ import { Address, isAddressEqual, zeroAddress } from 'viem'
 import { BaseConfig } from '../types/config-types'
 import { configureLayerZeroAdapter } from './bridge/adapters/layerzero'
 import { configureStargateAdapter } from './bridge/adapters/stargate'
-import { deployBridgeAdapters } from './bridge/bridge-adapters'
+import { deployBridgeAdapters, updateLayerZeroAdapterPeers } from './bridge/bridge-adapters'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType, promptYesNo } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
@@ -60,6 +60,44 @@ async function waitForPendingTransactions(
   }
 
   console.log(kleur.yellow('Max wait time reached, proceeding anyway...'))
+}
+
+/**
+ * Check if the current signer is the owner of the LayerZeroAdapter (required for setPeer)
+ */
+async function isLayerZeroAdapterOwner(adapterAddress: Address): Promise<boolean> {
+  try {
+    const [deployer] = await hre.viem.getWalletClients()
+    const signer = deployer.account.address
+    const adapter = await hre.viem.getContractAt('LayerZeroAdapter' as string, adapterAddress)
+    const owner = (await adapter.read.owner()) as string
+    return owner?.toLowerCase() === signer.toLowerCase()
+  } catch (err) {
+    console.log(
+      kleur.yellow('Could not verify LayerZeroAdapter owner() on-chain; skipping owner check'),
+    )
+    return false
+  }
+}
+
+/**
+ * If signer is adapter owner, configure LayerZero peers across available networks
+ */
+async function maybeConfigureLayerZeroPeers(
+  adapterAddress: Address,
+  allNetworkConfigs: Record<string, any>,
+): Promise<void> {
+  const isOwner = await isLayerZeroAdapterOwner(adapterAddress)
+  if (!isOwner) {
+    console.log(
+      kleur.yellow(
+        'Signer is not LayerZeroAdapter owner; skipping setPeer. Use owner key or governance.',
+      ),
+    )
+    return
+  }
+
+  await updateLayerZeroAdapterPeers(adapterAddress, allNetworkConfigs)
 }
 
 async function deployAdapters() {
@@ -152,6 +190,10 @@ async function deployAdapters() {
           bridgeRouterAddress as Address,
           config,
         )
+        await maybeConfigureLayerZeroPeers(
+          deployedAdapters.layerZero.address as Address,
+          allNetworkConfigs,
+        )
       }
 
       if (deployedAdapters.stargate) {
@@ -174,6 +216,12 @@ async function deployAdapters() {
         { performPostDeployGovConfig: useBummerConfig },
       )
       console.log(kleur.green().bold('Bridge adapters deployment completed successfully!'))
+      if (deployedAdapters.layerZero?.address) {
+        await maybeConfigureLayerZeroPeers(
+          deployedAdapters.layerZero.address as Address,
+          allNetworkConfigs,
+        )
+      }
     }
 
     if (deployedAdapters.layerZero) {

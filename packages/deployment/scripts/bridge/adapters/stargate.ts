@@ -109,13 +109,6 @@ export async function configureStargateAdapter(
   const currentChainId = Number(networkConfig.common.chainId)
   const supportedChains = getSupportedChainsFromConfig(allNetworkConfigs)
 
-  // Debug logging
-  console.log(
-    'allNetworkConfigs keys:',
-    allNetworkConfigs ? Object.keys(allNetworkConfigs) : 'undefined',
-  )
-  console.log('supportedChains:', supportedChains)
-
   // Map chain IDs to LayerZero EIDs for all supported remote chains
   let mappingsAdded = 0
   for (const chainInfo of supportedChains) {
