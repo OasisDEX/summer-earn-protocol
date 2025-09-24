@@ -208,9 +208,20 @@ contract SummerVestingWalletsEscrow is
     // ============ INTERNAL FUNCTIONS ============
 
     /**
-     * @dev Internal method to stake from a single factory for a user, minting xSUMR equal to the vesting wallet balance.
-     * @param _vestingFactory The vesting factory
+     * @notice Stakes against a single vesting factory for `_user`, minting xSUMR equal to the vesting wallet SUMR balance.
+     * @dev Requirements and side-effects:
+     *      - Factory must be enabled externally via `addVestingFactory`
+     *      - The escrow MUST already be the owner of the user's vesting wallet
+     *      - Records the vesting wallet SUMR `balance` and `released` snapshot for later reconciliation
+     *      - Emits `StakedVestingWallet(user, factory, balance, released)`
+     *      - Mints xSUMR 1:1 to the user for the recorded `balance`
+     *      - If the users vesting wallet received additional SUMR tokens on top of vesting schedule, they will get additional xSUMR tokens
+     * @param _vestingFactory The vesting factory implementation to resolve the user's vesting wallet
      * @param _user The user performing the stake
+     * @custom:reverts Staking_FactoryAlreadyStaked If the user already staked this factory
+     * @custom:reverts Staking_InvalidAddress If the vesting wallet cannot be resolved
+     * @custom:reverts Staking_InvalidOwner If the escrow is not the current owner of the vesting wallet
+     * @custom:reverts Staking_ZeroBalance If the vesting wallet SUMR balance is zero
      */
     function _stakeFromFactory(
         IMinimalVestingFactory _vestingFactory,
@@ -250,9 +261,18 @@ contract SummerVestingWalletsEscrow is
     }
 
     /**
-     * @dev Internal method to unstake a single factory for a user, burning recorded xSUMR and transferring ownership back.
-     * @param _vestingFactory The vesting factory
+     * @notice Unstakes a previously staked vesting position for `_user` and `_vestingFactory`.
+     * @dev Side-effects:
+     *      - Computes tokens released while staked and transfers them back to the user
+     *      - Transfers vesting wallet ownership from escrow back to the user
+     *      - Burns xSUMR equal to recorded staked balance
+     *      - Cleans recorded balance and released snapshots for the user/factory pair
+     *      - Emits `UnstakedVestingWallet(user, factory, stakedBalance, releasedAtUnstake)`
+     * @param _vestingFactory The vesting factory implementation to resolve the user's vesting wallet
      * @param _user The user performing the unstake
+     * @custom:reverts Staking_NoStakeForFactory If the user has no stake for this factory
+     * @custom:reverts Staking_InvalidAddress If the vesting wallet cannot be resolved
+     * @custom:reverts Staking_InvalidOwner If the escrow is not the current owner of the vesting wallet
      */
     function _unstakeFromFactory(
         IMinimalVestingFactory _vestingFactory,
@@ -302,8 +322,9 @@ contract SummerVestingWalletsEscrow is
     }
 
     /**
-     * @dev Internal method to validate the owner of a vesting wallet is the escrow
-     * @param _vestingWallet The vesting wallet address
+     * @notice Validates that the escrow currently owns a vesting wallet.
+     * @param _vestingWallet The vesting wallet address to check
+     * @custom:reverts Staking_InvalidOwner If the vesting wallet owner is not this escrow
      */
     function _validateVestingWalletOwner(address _vestingWallet) internal view {
         if (IMinimalVestingWallet(_vestingWallet).owner() != address(this)) {

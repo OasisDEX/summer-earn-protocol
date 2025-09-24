@@ -69,13 +69,13 @@ contract StakedSummerToken is
 
     // ============ PAUSING ============
     /// @notice Pauses token operations that honor pausability (e.g., burns).
-    /// @dev Callable by guardian or governor.
+    /// @dev Callable by guardian or governor. While paused, `mint`, `burn` and `burnFrom` are blocked by ERC20Pausable.
     function pause() public onlyGuardianOrGovernor {
         _pause();
     }
 
     /// @notice Unpauses token operations.
-    /// @dev Callable by guardian or governor.
+    /// @dev Callable by guardian or governor. Restores normal `mint`/`burn`/`burnFrom` behavior.
     function unpause() public onlyGuardianOrGovernor {
         _unpause();
     }
@@ -138,13 +138,14 @@ contract StakedSummerToken is
 
     // ============ ROLE MANAGEMENT (GOVERNOR) ============
     /// @notice Grants MINTER_ROLE to a specified address. Governor-only.
-    // @notice only for emergency use - ie user burned xSUMR and needs to be able to redeem vesting wallet or summer tokens
+    /// @dev Intended for emergency recovery scenarios (e.g., user burned xSUMR prematurely and needs redemption support).
+    ///      Normal mint authorization should be managed via `addStakingModule`.
     function grantMinterRole(address _minter) public onlyGovernor {
         _grantRole(MINTER_ROLE, _minter);
     }
 
     /// @notice Revokes MINTER_ROLE from a specified address. Governor-only.
-    /// @notice only for emergency use - ie user burned xSUMR and needs to be able to redeem vesting wallet or summer tokens
+    /// @dev Intended for emergency recovery scenarios. Normal flow uses `removeStakingModule` for module revocation.
     function revokeMinterRole(address _minter) public onlyGovernor {
         _revokeRole(MINTER_ROLE, _minter);
     }
@@ -167,7 +168,7 @@ contract StakedSummerToken is
 
     // ============ INTERNAL HELPERS ============
     /// @dev Only allow mint (from == address(0)) and burn (to == address(0)) movements. Block user-to-user transfers.
-    /// @notice all staking module interactions are based on mint() and burnFrom()
+    /// @notice All staking module interactions are based on `mint()` and `burnFrom()`; transfers between users are disallowed.
     function _canTransfer(
         address from,
         address to
@@ -175,7 +176,8 @@ contract StakedSummerToken is
         return from == address(0) || to == address(0);
     }
 
-    /// @notice only allow burnFrom if spender burns owned token or has the BURNER_ROLE
+    /// @notice Allows `burnFrom` only if `spender` burns its own tokens or holds `BURNER_ROLE`.
+    /// @dev Even with `BURNER_ROLE`, standard ERC20 allowance rules apply.
     function _canBurnFrom(
         address from,
         address spender

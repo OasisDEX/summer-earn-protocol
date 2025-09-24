@@ -17,7 +17,7 @@ xSUMR mint/burn is restricted to authorized staking modules managed by governanc
   - If remaining lockup < 110 days → flat 2%; else linear up to 20% at 3 years: `penaltyPct = 20% * (remaining / 3y)`.
   - Penalty applies to the amount being unstaked; penalty is transferred to `treasury()`, remainder to user.
 - **Buckets & caps**:
-  - Lockups are grouped into buckets (NoLockup, ShortTerm, 2w–3m, 3–6m, 6–12m, 1–2y, 2–3y) with governor-configurable caps; ShortTerm is disabled by default (cap = 0).
+  - Lockups are grouped into buckets (NoLockup, ShortTerm, 2w–3m, 3–6m, 6–12m, 1–2y, 2–3y) with governor-configurable caps; All buckets are disabled by default (cap = 0).
   - A user has a single portfolio; index 0 aggregates NoLockup; up to 1000 stakes; full portfolio can be migrated to a fresh target via `transferStakes(to)`.
 
 ### Actors and Roles (who can do what)
@@ -78,6 +78,22 @@ xSUMR mint/burn is restricted to authorized staking modules managed by governanc
    - Satellite governors receive the message and `_queueCrossChainProposal(...)` schedules operations in the local timelock. Propose/vote/execute/cancel remain disabled on satellites. After the delay, the satellite timelock executes (per its executor permissions).
 7. Safeguards
    - Governor/guardian can pause xSUMR; guardianship checked via `accessManager`; governor accepts ETH only from LayerZero endpoint or the timelock.
+
+### Testing and Coverage (audited scope)
+
+- Build/tests for this package:
+
+```bash
+pnpm -F @summerfi/earn-gov-contracts build
+pnpm -F @summerfi/earn-gov-contracts test
+pnpm -F @summerfi/earn-gov-contracts coverage
+pnpm -F @summerfi/earn-gov-contracts coverage:report
+```
+
+- Expectations:
+  - Tests: 100% passing. Each test should include at least one failure path (e.g., `expectRevert`).
+  - Coverage: >80% lines/branches across audited contracts (`SummerStaking.sol`, `SummerVestingWalletsEscrow.sol`, `SummerGovernorV2.sol`, `StakedSummerToken.sol`).
+  - Clean environment instructions are in the repo root `README.md`.
 
 ### What changed vs Governance v1
 
@@ -217,13 +233,13 @@ unstakeVesting(address[] factories) →
 - **Penalty System**: Early unstaking incurs time-based penalties (governor can toggle penalties on/off)
 - **Stake Portfolio Management**: One portfolio per address; index 0 aggregates no-lockup stake; up to 1000 stakes; full-portfolio transfer supported via `transferStakes(to)` to a fresh target
 - **Default Caps**:
-  - `NoLockup`: cap = unlimited (by default - can be changed at a later date)
+  - `NoLockup`: cap = 0 (by default - can be changed at a later date)
   - `ShortTerm` (1 sec – 14 days): cap = 0 (disabled by default)
-  - `TwoWeeksToThreeMonths` (>14 days – 90 days): cap = unlimited (will have an initial cap hardcoded in the contract)
-  - `ThreeToSixMonths` (>90 – 180 days): cap = unlimited (will have an initial cap hardcoded in the contract)
-  - `SixToTwelveMonths` (>180 – 365 days): cap = unlimited (will have an initial cap hardcoded in the contract)
-  - `OneToTwoYears` (>365 – 730 days): cap = unlimited (will have an initial cap hardcoded in the contract)
-  - `TwoToThreeYears` (>730 – 1095 days): cap = unlimited
+  - `TwoWeeksToThreeMonths` (>14 days – 90 days): cap = 0 (will have an initial cap hardcoded in the contract)
+  - `ThreeToSixMonths` (>90 – 180 days): cap = 0 (will have an initial cap hardcoded in the contract)
+  - `SixToTwelveMonths` (>180 – 365 days): cap = 0 (will have an initial cap hardcoded in the contract)
+  - `OneToTwoYears` (>365 – 730 days): cap = 0 (will have an initial cap hardcoded in the contract)
+  - `TwoToThreeYears` (>730 – 1095 days): cap = 0
 
 
 **Critical Calculations**:

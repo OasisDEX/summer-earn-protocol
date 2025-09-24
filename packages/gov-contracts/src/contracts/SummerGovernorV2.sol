@@ -123,13 +123,16 @@ contract SummerGovernorV2 is
     }
 
     /**
-     * @dev Internal function to send a proposal to another chain.
-     * @param _dstEid The destination endpoint ID.
-     * @param _dstTargets The target addresses for the proposal.
-     * @param _dstValues The values for the proposal.
-     * @param _dstCalldatas The calldata for the proposal.
-     * @param _dstDescriptionHash The description hash for the proposal.
-     * @param _options Message execution options.
+     * @notice Encodes and sends a proposal to a target chain via LayerZero.
+     * @dev Computes `dstProposalId = hashProposal(targets, values, calldatas, descriptionHash)` on the destination chain.
+     *      Quotes messaging fees and sends using native token. Emits `ProposalSentCrossChain`.
+     *      Hub-only and governance-only.
+     * @param _dstEid Destination LayerZero endpoint ID
+     * @param _dstTargets Target addresses on destination chain
+     * @param _dstValues ETH values for each call
+     * @param _dstCalldatas Calldata payloads for each call
+     * @param _dstDescriptionHash EIP-712 compatible description hash
+     * @param _options LayerZero executor options
      */
     function _sendProposalToTargetChain(
         uint32 _dstEid,
@@ -168,6 +171,8 @@ contract SummerGovernorV2 is
     }
 
     // Receive function to allow the contract to receive ETH from LayerZero
+    /// @notice Accepts ETH only from LayerZero endpoint or the timelock executor.
+    /// @dev Prevents accidental or malicious direct funding by other addresses.
     receive() external payable override {
         // Allow deposits from LayerZero endpoint or timelock
         if (msg.sender != address(endpoint) && msg.sender != timelock()) {
@@ -176,12 +181,13 @@ contract SummerGovernorV2 is
     }
 
     /**
-     * @dev Internal function to queue a proposal received from another chain.
-     * @param proposalId The ID of the proposal to queue.
-     * @param targets The target addresses for the proposal.
-     * @param values The values for the proposal.
-     * @param calldatas The calldata for the proposal.
-     * @param descriptionHash The description hash for the proposal.
+     * @notice Queues a received cross-chain proposal into the local timelock.
+     * @dev Satellite-only. Returns proposalId and emits `ProposalQueued` with eta.
+     * @param proposalId Proposal identifier (must match destination chain hash)
+     * @param targets Target addresses for queued operations
+     * @param values ETH values for queued operations
+     * @param calldatas Calldata for queued operations
+     * @param descriptionHash Description hash
      */
     function _queueCrossChainProposal(
         uint256 proposalId,
@@ -204,12 +210,10 @@ contract SummerGovernorV2 is
     }
 
     /**
-     * @dev Receives a proposal from another chain and executes it.
-     * @param _origin The origin of the message.
-     * @param // _guid The global packet identifier.
-     * @param payload The encoded message payload.
-     * @param // executor_ The Executor address.
-     * @param // _extraData Arbitrary data appended by the Executor.
+     * @notice LayerZero receive hook: decodes cross-chain proposal and queues it locally.
+     * @dev Emits `ProposalReceivedCrossChain`. Trust boundary is the LayerZero endpoint configuration.
+     * @param _origin Origin metadata (contains srcEid)
+     * @param payload ABI-encoded (proposalId, targets[], values[], calldatas[], descriptionHash)
      */
     function _lzReceive(
         Origin calldata _origin,
@@ -351,9 +355,10 @@ contract SummerGovernorV2 is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Internal function to pay the native fee for LayerZero messaging.
-     * @param _nativeFee The amount of native tokens to pay for the fee.
-     * @return nativeFee The amount of native tokens to pay for the fee.
+     * @notice Pays LayerZero native execution fee.
+     * @dev Reverts if contract native balance is insufficient. Caller must ensure funding.
+     * @param _nativeFee Quoted native fee amount
+     * @return nativeFee Echoed native fee amount
      */
     function _payNative(
         uint256 _nativeFee

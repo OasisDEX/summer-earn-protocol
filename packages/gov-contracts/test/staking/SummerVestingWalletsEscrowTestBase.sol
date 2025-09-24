@@ -68,10 +68,7 @@ contract SummerVestingWalletsEscrowTestBase is SummerGovernorV2TestBase {
         bxSumr.addStakingModule(address(bStaking));
     }
     // Helper function to create a fresh staking contract for isolated tests
-    function createFreshStaking()
-        internal
-        returns (SummerVestingWalletsEscrow)
-    {
+    function createFreshEscrow() internal returns (SummerVestingWalletsEscrow) {
         address[] memory vestingFactories = new address[](2);
         vestingFactories[0] = address(factoryVestingV2);
         vestingFactories[1] = address(factoryVesting);

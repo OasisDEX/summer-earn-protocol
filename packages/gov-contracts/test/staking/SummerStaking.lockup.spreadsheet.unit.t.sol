@@ -24,41 +24,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.stopPrank();
     }
 
-    // ============ ENHANCED HELPER METHODS ============
-
-    /**
-     * @notice Helper to create a fresh staking contract with specific configuration
-     */
-    function createFreshStakingWithConfig() internal returns (SummerStaking) {
-        SummerStaking freshStaking = createFreshStaking();
-
-        // Configure bucket caps
-        vm.startPrank(address(timelockA));
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.TwoWeeksToThreeMonths,
-            DEFAULT_CAP_AMOUNT
-        );
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.ThreeToSixMonths,
-            DEFAULT_CAP_AMOUNT
-        );
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.SixToTwelveMonths,
-            DEFAULT_CAP_AMOUNT
-        );
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.OneToTwoYears,
-            DEFAULT_CAP_AMOUNT
-        );
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.TwoToThreeYears,
-            DEFAULT_CAP_AMOUNT
-        );
-        vm.stopPrank();
-
-        return freshStaking;
-    }
-
     // Struct for multiplier test cases
     struct MultiplierTestCase {
         uint256 timeDays;

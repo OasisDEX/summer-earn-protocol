@@ -69,6 +69,10 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.startPrank(address(timelockA));
         axSumr.addStakingModule(address(aStaking));
         aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.NoLockup,
+            type(uint256).max
+        );
+        aStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.TwoWeeksToThreeMonths,
             DEFAULT_CAP_AMOUNT
         );
@@ -92,6 +96,10 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
 
         vm.startPrank(address(timelockB));
         bxSumr.addStakingModule(address(bStaking));
+        bStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.NoLockup,
+            type(uint256).max
+        );
         bStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.TwoWeeksToThreeMonths,
             DEFAULT_CAP_AMOUNT
@@ -190,6 +198,60 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         return freshStaking;
     }
 
+    /**
+     * @notice Helper function to create a fresh staking contract for isolated tests
+     */
+    function createFreshStakingWithDefaultCaps()
+        internal
+        returns (SummerStaking)
+    {
+        SummerStaking freshStaking = new SummerStaking(
+            address(accessManagerA),
+            address(configurationManagerA),
+            address(aSummerToken),
+            address(axSumr)
+        );
+        vm.startPrank(address(timelockA));
+        freshStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.NoLockup,
+            type(uint256).max
+        );
+        freshStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoWeeksToThreeMonths,
+            DEFAULT_CAP_AMOUNT
+        );
+        freshStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            DEFAULT_CAP_AMOUNT
+        );
+        freshStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            DEFAULT_CAP_AMOUNT
+        );
+        freshStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.OneToTwoYears,
+            DEFAULT_CAP_AMOUNT
+        );
+        freshStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoToThreeYears,
+            DEFAULT_CAP_AMOUNT
+        );
+        vm.stopPrank();
+        // Set staking module so freshStaking can mint/burn StakedSummerToken
+
+        axSumr.addStakingModule(address(freshStaking));
+        uint256[] memory expectedBucketCaps = new uint256[](7);
+        expectedBucketCaps[0] = MAX_CAP_AMOUNT;
+        expectedBucketCaps[1] = 0;
+        expectedBucketCaps[2] = DEFAULT_CAP_AMOUNT;
+        expectedBucketCaps[3] = DEFAULT_CAP_AMOUNT;
+        expectedBucketCaps[4] = DEFAULT_CAP_AMOUNT;
+        expectedBucketCaps[5] = DEFAULT_CAP_AMOUNT;
+        expectedBucketCaps[6] = DEFAULT_CAP_AMOUNT;
+        _verifyBucketCaps(freshStaking, expectedBucketCaps);
+
+        return freshStaking;
+    }
     /**
      * @notice Wrapper that pranks as the user and calls stakeLockup
      * @param user The address of the user staking

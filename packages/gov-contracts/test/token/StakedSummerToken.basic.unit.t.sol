@@ -14,6 +14,18 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 contract StakedSummerTokenBasicTest is SummerGovernorV2TestBase {
     uint256 internal constant MINT_AMOUNT = 1_000 ether;
 
+    function test_PauseBlocksMinting() public {
+        vm.startPrank(address(timelockA));
+        axSumr.mint(alice, MINT_AMOUNT);
+        axSumr.pause();
+        vm.stopPrank();
+        vm.prank(address(timelockA));
+        vm.expectRevert(
+            abi.encodeWithSelector(Pausable.EnforcedPause.selector)
+        );
+        axSumr.mint(alice, 1 ether);
+        vm.stopPrank();
+    }
     function test_PauseBlocksBurnsAndUnpauseRestores() public {
         // Mint tokens to Alice via governor (timelockA has governor privileges)
         vm.startPrank(address(timelockA));

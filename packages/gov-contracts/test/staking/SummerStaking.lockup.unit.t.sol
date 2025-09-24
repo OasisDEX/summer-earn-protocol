@@ -28,50 +28,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         vm.stopPrank();
     }
 
-    // ============ ENHANCED HELPER METHODS ============
-
-    /**
-     * @notice Helper to create a fresh staking contract with specific configuration
-     */
-    function createFreshStakingWithConfig() internal returns (SummerStaking) {
-        SummerStaking freshStaking = createFreshStaking();
-        uint256[] memory expectedBucketCaps = new uint256[](7);
-        expectedBucketCaps[0] = MAX_CAP_AMOUNT;
-        expectedBucketCaps[1] = 0;
-        expectedBucketCaps[2] = MAX_CAP_AMOUNT;
-        expectedBucketCaps[3] = MAX_CAP_AMOUNT;
-        expectedBucketCaps[4] = MAX_CAP_AMOUNT;
-        expectedBucketCaps[5] = MAX_CAP_AMOUNT;
-        expectedBucketCaps[6] = MAX_CAP_AMOUNT;
-        _verifyBucketCaps(freshStaking, expectedBucketCaps);
-
-        // Configure bucket caps
-        vm.startPrank(address(timelockA));
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.TwoWeeksToThreeMonths,
-            DEFAULT_CAP_AMOUNT
-        );
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.ThreeToSixMonths,
-            DEFAULT_CAP_AMOUNT
-        );
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.SixToTwelveMonths,
-            DEFAULT_CAP_AMOUNT
-        );
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.OneToTwoYears,
-            DEFAULT_CAP_AMOUNT
-        );
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.TwoToThreeYears,
-            DEFAULT_CAP_AMOUNT
-        );
-        vm.stopPrank();
-
-        return freshStaking;
-    }
-
     // ============ DEPLOYMENT & INITIALIZATION TESTS ============
 
     function test_CorrectInitialization() public view {
@@ -100,7 +56,7 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         aStaking.stakeLockup(stakeAmount, lockupPeriod);
     }
 
-    function test_VerifyBucketCaps() public {
+    function test_VerifyBucketCaps() public view {
         uint256[] memory expectedBucketCaps = new uint256[](7);
         expectedBucketCaps[0] = MAX_CAP_AMOUNT;
         expectedBucketCaps[1] = 0;
@@ -1727,21 +1683,54 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             "user1 should not receive rewards after claim"
         );
     }
+
+    function test_CantStakeWithUninitializedBuckets() public {
+        SummerStaking freshStaking = createFreshStaking();
+        uint256[] memory periods = new uint256[](7);
+        periods[0] = 0;
+        periods[1] = freshStaking.BUCKET_SHORT_TERM_MIN();
+        periods[2] = freshStaking.BUCKET_SHORT_TERM_MAX() + 1;
+        periods[3] = 100 days;
+        periods[4] = 200 days;
+        periods[5] = 400 days;
+        periods[6] = 800 days;
+        for (uint256 i = 0; i < 7; i++) {
+            vm.startPrank(user1);
+            aSummerToken.approve(address(freshStaking), STAKE_AMOUNT);
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    ISummerStaking.Staking_BucketCapExceeded.selector
+                )
+            );
+            freshStaking.stakeLockup(STAKE_AMOUNT, periods[i]);
+            vm.stopPrank();
+        }
+    }
+
     function test_RewardsTotal_TwoStakers_MaxAndNoLockup() public {
-        (uint256 user1Rewards, uint256 user2Rewards, uint256 totalRewards) =
-            _twoStakersClaimRewards(aMaxLockupPeriod, 0);
+        (
+            uint256 user1Rewards,
+            uint256 user2Rewards,
+            uint256 totalRewards
+        ) = _twoStakersClaimRewards(aMaxLockupPeriod, 0);
         assertApproxEqAbs(totalRewards, REWARD_AMOUNT, 5000);
         assertGt(user1Rewards, user2Rewards); // longer lockup should earn more
     }
 
     function test_RewardsTotal_TwoStakers_MinAndNoLockup() public {
-        ( , , uint256 totalRewards) = _twoStakersClaimRewards(aMinLockupPeriod, 0);
+        (, , uint256 totalRewards) = _twoStakersClaimRewards(
+            aMinLockupPeriod,
+            0
+        );
         assertApproxEqAbs(totalRewards, REWARD_AMOUNT, 5000);
     }
 
     function test_RewardsTotal_TwoStakers_MinAndMax() public {
-        (uint256 user1Rewards, uint256 user2Rewards, uint256 totalRewards) =
-            _twoStakersClaimRewards(aMinLockupPeriod, aMaxLockupPeriod);
+        (
+            uint256 user1Rewards,
+            uint256 user2Rewards,
+            uint256 totalRewards
+        ) = _twoStakersClaimRewards(aMinLockupPeriod, aMaxLockupPeriod);
         assertApproxEqAbs(totalRewards, REWARD_AMOUNT, 5000);
         assertLt(user1Rewards, user2Rewards); // max lockup should earn most
     }
@@ -1783,8 +1772,8 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         uint256 user1Claimed = user1After.rewards - user1Before.rewards;
         uint256 user2Claimed = user2After.rewards - user2Before.rewards;
         uint256 totalClaimed = user1Claimed + user2Claimed;
-        console.log("user1 weighted balance ", user1After.weighted );
-        console.log("user2 weighted balance ", user2After.weighted );
+        console.log("user1 weighted balance ", user1After.weighted);
+        console.log("user2 weighted balance ", user2After.weighted);
         console.log("user 1 claimed         ", user1Claimed);
         console.log("user 2 claimed         ", user2Claimed);
         console.log("total claimed          ", totalClaimed);
@@ -1989,10 +1978,17 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             assertEq(st2[i], 0);
         }
     }
+
     function _create_multiple_stakes_and_transfer_measure_gas(
         uint count
     ) internal {
-        SummerStaking freshStaking = createFreshStakingWithConfig();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
+        vm.prank(address(timelockA));
+        freshStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ShortTerm,
+            type(uint256).max
+        );
+
         for (uint256 i = 0; i < count; i++) {
             _stake(
                 freshStaking,

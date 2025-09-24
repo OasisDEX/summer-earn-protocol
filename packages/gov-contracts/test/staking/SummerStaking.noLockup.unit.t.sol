@@ -211,7 +211,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_StakeWithLockup_ValidLockupPeriod() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -244,7 +244,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_StakeWithLockup_ZeroLockupPeriod() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = STAKE_AMOUNT;
 
         // Stake with zero lockup using helper
@@ -258,7 +258,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_WeightedStakeCalculation_NoLockup() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
 
         // Test only zero lockup period for now
@@ -284,7 +284,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_BalanceOf_ReturnsWeightedAmount() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -310,7 +310,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_CalculatePenalty_NoPenalty() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -323,7 +323,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_CalculatePenalty_WithPenalty() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -336,7 +336,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_CalculatePenalty_DifferentLockupPeriods() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
 
         // Test only zero lockup period for now
@@ -355,7 +355,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_UnstakeFromStake_NoPenalty() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -394,7 +394,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_UnstakeFromStake_WithPenalty() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup for test
 
@@ -429,7 +429,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_UnstakeFromStake_PartialUnstake() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 unstakeAmount = 300 ether;
         uint256 lockupPeriod = 0; // No lockup for test
@@ -480,7 +480,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_Unstake_ProportionalUnstaking() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount1 = 1000 ether;
         uint256 stakeAmount2 = 500 ether;
         uint256 lockupPeriod1 = 0; // No lockup for test
@@ -518,7 +518,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
     function test_MultipleUsers_StakeSeparately() public {
         // Create fresh staking contract to avoid state interference
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
 
         uint256 stakeAmount1 = STAKE_AMOUNT;
         uint256 stakeAmount2 = STAKE_AMOUNT / 2;
@@ -542,7 +542,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
 
     function test_StakeUnstake_MultipleRounds() public {
         // Create fresh staking contract to avoid state interference
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
 
         uint256 stakeAmount = STAKE_AMOUNT / 4;
         uint256 lockupPeriod = 0; // No lockup for test
@@ -571,7 +571,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     // ============ NO LOCKUP PENALTY TESTS ============
 
     function test_NoLockupPenalty_ImmediateUnstake_0Percent() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup
 
@@ -610,7 +610,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_NoLockupPenalty_ContractMethod_ReturnsZero() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup
 
@@ -642,7 +642,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_NoLockupPenalty_MultipleStakes_AllZeroPenalty() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup
 
@@ -706,7 +706,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_NoLockupPenalty_TimePasses_StillZeroPenalty() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         uint256 stakeAmount = 1000 ether;
         uint256 lockupPeriod = 0; // No lockup
 
@@ -748,7 +748,7 @@ contract SummerStakingNoLockupTest is SummerStakingTestBase {
     }
 
     function test_NoLockupPenalty_ComparisonWithLockup() public {
-        SummerStaking freshStaking = createFreshStaking();
+        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
         vm.startPrank(address(timelockA));
         freshStaking.updateLockupBucketCap(
             ISummerStaking.Bucket.SixToTwelveMonths,
