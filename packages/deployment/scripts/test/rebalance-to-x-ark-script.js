@@ -4,9 +4,9 @@ const { encodeFunctionData, parseAbi, encodeAbiParameters } = require('viem')
 // Rebalance data for moving 1 USDC from BufferArk to the CrossChainArk
 const rebalanceData = [
   {
-    fromArk: '0x37a0CED093Be494e09CD5867aC5F32741E6a6392', // BufferArk
+    fromArk: '0x37a0CED093Be494e09CD5867aC5F32741E6a6392',
     toArk: '0x5f311c931e03217aa0eae99eaF15A7b33543Ec75', // CrossChainArk
-    amount: 1000000n, // 1 USDC (6 decimals)
+    amount: 500000n, // 1 USDC (6 decimals)
     boardData: '0x', // Will be populated below
     disembarkData: '0x',
   },
@@ -21,7 +21,7 @@ const crossChainArkBoardData = {
     destinationChainId: 8453, // Base chain ID
     target: '0x6bDCf1dCAd15e11D7d7B90F5b017aB1fc049dC0f', // FleetProxy address (set to 0x0 if not deployed yet)
     asset: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Unichain
-    amount: 1000000n, // 1 USDC
+    amount: 500000n, // 1 USDC
     message: '0x', // Empty message for transfer
     refundAddress: '0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b', // Set to appropriate refund address
   },
@@ -68,6 +68,7 @@ const boardDataEncoded = encodeAbiParameters(
 
 // Update the rebalance data with the encoded board data
 rebalanceData[0].boardData = boardDataEncoded
+// rebalanceData[0].disembarkData = boardDataEncoded
 
 // Encode the rebalance function call
 const rebalanceAbi = parseAbi([
