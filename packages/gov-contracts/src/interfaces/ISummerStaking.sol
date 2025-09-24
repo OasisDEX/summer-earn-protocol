@@ -108,7 +108,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @param _amount The amount of tokens to unstake (must be > 0 and <= stake amount)
      * @dev can only be called by the wallet that owns the stake, there is no onBehalf version due to the penalty
      * @dev Applies penalty for early withdrawal based on remaining lockup time
-     * @dev Penalty formula: penalty% = 2% if remaining time < 100 days otherwise (timeRemaining / maxLockupPeriod) * 20%
+     * @dev Penalty formula: penalty% = 2% if remaining time < 110 days otherwise (timeRemaining / maxLockupPeriod) * 20%
      * @dev Examples:
      *      - 3yr lockup, immediate unstake: 20% penalty
      *      - 3yr lockup, unstake after 1.5yr: 10% penalty
