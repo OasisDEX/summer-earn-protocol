@@ -24,7 +24,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testRegisterAdapterUnauthorized() public {
+    function testRegisterAdapter_Unauthorized_Reverts() public {
         vm.startPrank(user);
 
         // Should revert when non-governor tries to register adapter
@@ -39,7 +39,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testRegisterDuplicateAdapter() public {
+    function testRegisterAdapter_Duplicate_Reverts() public {
         vm.startPrank(governor);
 
         // Should revert when registering same adapter twice
@@ -60,7 +60,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testRemoveAdapterUnauthorized() public {
+    function testRemoveAdapter_Unauthorized_Reverts() public {
         vm.startPrank(user);
 
         // Should revert when non-governor tries to remove adapter
@@ -75,7 +75,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testRemoveNonExistentAdapter() public {
+    function testRemoveAdapter_NonExistent_Reverts() public {
         vm.startPrank(governor);
 
         // Should revert when removing non-existent adapter
@@ -85,7 +85,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testRegisterAdapterZeroAddress() public {
+    function testRegisterAdapter_ZeroAddress_Reverts() public {
         vm.startPrank(governor);
 
         vm.expectRevert(IBridgeRouter.InvalidParams.selector);
@@ -94,7 +94,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testRegisterAdapterEOA() public {
+    function testRegisterAdapter_EOA_Reverts() public {
         vm.startPrank(governor);
 
         address eoa = address(0xBEEF);
@@ -104,7 +104,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testRegisterAdapterNonIBridgeAdapterContract() public {
+    function testRegisterAdapter_NonAdapterContract_Reverts() public {
         vm.startPrank(governor);
 
         // mockReceiver is a contract but does not implement IBridgeAdapter
@@ -114,7 +114,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testGetAdapters() public {
+    function testGetAdapters_Succeeds() public {
         vm.startPrank(governor);
 
         // Register second adapter
@@ -131,7 +131,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
 
     // ---- ADAPTER SPECIFICATION TESTS ----
 
-    function testSpecifiedAdapter() public {
+    function testSpecifiedAdapter_Succeeds() public {
         vm.startPrank(governor);
         // Configure mockAdapterDest to support the destination chain and asset
         mockAdapterDest.setSupportedChain(DEST_CHAIN_ID, true);
@@ -186,7 +186,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testInvalidSpecifiedAdapter() public {
+    function testSpecifiedAdapter_Invalid_Reverts() public {
         vm.startPrank(user);
 
         // Create bridge options with invalid adapter
@@ -221,7 +221,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testAdapterValidation() public {
+    function testAdapterValidation_MixedSupport() public {
         // Register multiple adapters with different support combinations
         vm.startPrank(governor);
 
@@ -361,7 +361,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
 
     // ---- FEE ESTIMATION TESTS ----
 
-    function testQuote() public view {
+    function testQuoteTransferAssets_Succeeds() public {
         // Create bridge options with explicit adapter
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter),
@@ -391,7 +391,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         assertTrue(nativeFee > 0);
     }
 
-    function testQuoteZeroGasReverts() public {
+    function testQuoteTransferAssets_ZeroGasLimit_Reverts() public {
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(mockAdapter),
             gasLimit: 0,
@@ -415,7 +415,7 @@ contract BridgeRouterAdaptersTest is BridgeRouterSetup {
         );
     }
 
-    function testQuoteNoSuitableAdapter() public {
+    function testQuoteTransferAssets_NoAdapter_Reverts() public {
         // Create bridge options with no adapter specified
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(0),

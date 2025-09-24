@@ -14,9 +14,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
         super.setUp();
     }
 
-    function testAdapterConfiguration() public view {
-        _verifyAdapterConfiguration();
-    }
+    // testAdapterConfiguration covered in config suite; avoid duplication here
 
     function testSendMessageViaQueue() public {
         console.log("=== Testing Core Message Send Via Queue ===");

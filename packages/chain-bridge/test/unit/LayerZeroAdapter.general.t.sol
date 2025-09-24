@@ -51,11 +51,11 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         registryA.getAdapterPeer(address(adapterA), 2);
     }
 
-    // Update test for UnsupportedMessageType error since type 5 is now COMPOSE
-    function testUnsupportedMessageType() public {
-        // Create a message with an unsupported type (9 - which doesn't exist)
+    // Update test for UnsupportedMessageType error: use a valid but unsupported op (TRANSFER_ASSET)
+    function test_reverts_on_unsupported_operation_type_in_receive() public {
+        // Create a payload where op type is TRANSFER_ASSET (unsupported by LZ receive path)
         bytes memory invalidPayload = abi.encodePacked(
-            uint16(2),
+            uint16(BridgeTypes.OperationType.TRANSFER_ASSET),
             bytes("test payload")
         );
 
@@ -79,6 +79,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         );
     }
 
+    // Duplicate of send suite fee estimate; keep single assertion in send tests
     function testAdapterDirectEstimateFee() public {
         useNetworkA();
 

@@ -217,7 +217,7 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
         useNetworkA();
         vm.deal(user, 1 ether);
 
-        vm.startPrank(user); // User is not the routersdfgjd    `
+        vm.startPrank(user); // User is not the router
 
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(adapterA),
