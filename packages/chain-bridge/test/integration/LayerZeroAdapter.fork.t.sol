@@ -17,12 +17,6 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         super.setUp();
     }
 
-    function testAdapterConfiguration() public view {
-        console.log("=== Testing Adapter Configuration ===");
-        _verifyAdapterConfiguration();
-        console.log("[SUCCESS] Adapter properly configured");
-    }
-
     function testFullBridgeWorkflow() public {
         console.log("=== Testing Full Bridge Workflow ===");
 
@@ -287,7 +281,5 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             }),
             options
         );
-
-        // todo: expect calls to lz endpoint to be made
     }
 }

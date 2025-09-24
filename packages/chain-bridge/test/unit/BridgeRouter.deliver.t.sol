@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
-import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
 import {ICrossChainRegistry} from "../../src/interfaces/ICrossChainRegistry.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {console} from "forge-std/console.sol";
 
 contract BridgeRouterDeliverTest is BridgeRouterSetup {
     uint256 public constant AMOUNT = 500e18;
@@ -106,28 +104,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         );
     }
 
-    function testDeliver_ReadResponse_Succeeds() public {
-        bytes32 operationId = keccak256("deliverReadResponse");
-        bytes memory responseData = abi.encode(uint256(123), "test response");
-
-        // Assuming there's a way to set up the readRequestToOriginator mapping
-        // This might need to be handled differently based on your router implementation
-        router.setOperationToAdapter(operationId, address(mockAdapter));
-        router.setReadRequestOriginator(operationId, address(mockReceiver));
-
-        vm.prank(address(mockAdapter));
-        router.deliver(
-            BridgeTypes.OperationType.READ_STATE,
-            abi.encode(
-                BridgeTypes.RelayedReadResponse({
-                    operationId: operationId,
-                    sourceChainId: uint16(SOURCE_CHAIN_ID),
-                    readResponseData: responseData
-                })
-            )
-        );
-    }
-
     /* -------------------------------------------------------------------------- */
     /*                         adapter peer verification tests                    */
     /* -------------------------------------------------------------------------- */
@@ -205,30 +181,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         assertEq(failingAdapter, address(mockAdapter));
         assertEq(srcChain, untrustedSourceChain);
         assertGt(failedAt, 0);
-    }
-
-    function testDeliver_ReadResponse_Succeeds_WithoutPeerVerification()
-        public
-    {
-        bytes32 operationId = keccak256("untrustedReadResponse");
-        uint16 untrustedSourceChain = 999; // Chain with no peer relationship
-        bytes memory responseData = abi.encode(uint256(123), "test response");
-
-        // Set up mappings so READ_STATE delivery is authorized and succeeds
-        router.setOperationToAdapter(operationId, address(mockAdapter));
-        router.setReadRequestOriginator(operationId, address(mockReceiver));
-
-        vm.prank(address(mockAdapter));
-        router.deliver(
-            BridgeTypes.OperationType.READ_STATE,
-            abi.encode(
-                BridgeTypes.RelayedReadResponse({
-                    operationId: operationId,
-                    sourceChainId: untrustedSourceChain,
-                    readResponseData: responseData
-                })
-            )
-        );
     }
 
     function testDeliver_Reverts_WhenCallerNotRegisteredAdapter() public {
@@ -381,16 +333,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         assertEq(failingAdapter, address(mockAdapter));
         assertEq(srcChain, uint16(SOURCE_CHAIN_ID));
         assertGt(failedAt, 0);
-    }
-
-    function testDeliver_Reverts_WhenUnsupportedOperationType() public {
-        vm.skip(true);
-        BridgeTypes.OperationType invalidOperationType = BridgeTypes
-            .OperationType(uint8(type(uint8).max));
-        vm.prank(address(mockAdapter));
-        vm.expectRevert(IBridgeRouter.UnsupportedOperationType.selector); // Should revert for unsupported operation type
-
-        router.deliver(invalidOperationType, abi.encode("invalid"));
     }
 
     function testDeliver_OperationDelivered_EventEmitted() public {

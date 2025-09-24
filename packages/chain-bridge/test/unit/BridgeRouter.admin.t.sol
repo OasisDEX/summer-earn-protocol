@@ -8,21 +8,14 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 import {BridgeRouterSetup} from "./BridgeRouter.setup.t.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
-// Contract that rejects ETH transfers
-contract RejectETH {
-    receive() external payable {
-        revert("Transfer rejected");
-    }
-
-    function testSkip() public {}
-}
+import {RejectETH} from "../mocks/RejectETH.sol";
 
 // (moved) ReentrancyAttacker now lives in BridgeRouter.recovery.t.sol tests
 
 contract BridgeRouterAdminTest is BridgeRouterSetup {
     // ---- ADMIN FUNCTION TESTS ----
 
-    function testPauseByGovernor() public {
+    function testPauseUnpause_ByGovernor_Succeeds() public {
         vm.startPrank(governor);
 
         // Pause
@@ -41,7 +34,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testPauseByGuardian() public {
+    function testPause_ByGuardian_Succeeds_Unpause_Reverts() public {
         vm.startPrank(guardian);
 
         // Guardian can pause
@@ -63,7 +56,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testPauseUnauthorized() public {
+    function testPause_Unauthorized_Reverts() public {
         vm.startPrank(user);
 
         // Should revert when non-guardian/governor tries to pause
@@ -78,7 +71,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testSendWhenPaused() public {
+    function testExecuteTransferAssets_Reverts_WhenPaused() public {
         // Pause the router
         vm.prank(governor);
         vm.expectEmit(true, false, false, true);
@@ -136,7 +129,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testReadStateWhenPaused() public {
+    function testExecuteReadState_Reverts_WhenPaused() public {
         // Pause the router
         vm.prank(governor);
         vm.expectEmit(true, false, false, true);
@@ -187,7 +180,7 @@ contract BridgeRouterAdminTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    function testSendMessageWhenPaused() public {
+    function testExecuteSendMessage_Reverts_WhenPaused() public {
         // Pause the router
         vm.prank(governor);
         vm.expectEmit(true, false, false, true);

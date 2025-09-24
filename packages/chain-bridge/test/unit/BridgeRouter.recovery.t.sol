@@ -9,15 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
-
-// Contract that rejects ETH transfers
-contract RejectETH {
-    receive() external payable {
-        revert("Transfer rejected");
-    }
-
-    function testSkip() public {}
-}
+import {RejectETH} from "../mocks/RejectETH.sol";
 
 // Reentrancy attack contract
 contract ReentrancyAttacker {
