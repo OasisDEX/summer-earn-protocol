@@ -46,8 +46,6 @@ contract LayerZeroAdapterStateReadBaseForkTest is
         targetContract = new MockTargetContract();
     }
 
-    // testAdapterConfiguration covered in config suite; avoid duplication here
-
     function testEstimateStateReadFee() public view {
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             specifiedAdapter: address(layerZeroAdapter),

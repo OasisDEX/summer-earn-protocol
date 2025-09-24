@@ -183,8 +183,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         assertGt(failedAt, 0);
     }
 
-    // Moved to BridgeRouter.read.t.sol: testDeliver_ReadStateResponse_Succeeds_WithoutPeerVerification
-
     function testDeliver_Reverts_WhenCallerNotRegisteredAdapter() public {
         // This tests that both adapter registration AND peer relationship are required
         bytes32 operationId = keccak256("unregisteredAdapterValidPeer");
@@ -336,8 +334,6 @@ contract BridgeRouterDeliverTest is BridgeRouterSetup {
         assertEq(srcChain, uint16(SOURCE_CHAIN_ID));
         assertGt(failedAt, 0);
     }
-
-    // Removed: testDeliver_Reverts_WhenUnsupportedOperationType (skipped test)
 
     function testDeliver_OperationDelivered_EventEmitted() public {
         bytes32 operationId = keccak256("deliveredEvt");

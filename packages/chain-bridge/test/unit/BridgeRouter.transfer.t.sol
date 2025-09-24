@@ -85,14 +85,6 @@ contract BridgeRouterTransferTest is BridgeRouterSetup {
         vm.stopPrank();
     }
 
-    // Removed incomplete testUpdateTransferStatusUnauthorized
-
-    // Removed debug-only testDebugMockAdapter
-
-    // Removed debug-only testDirectExecuteTransferAssets
-
-    // Removed debug-only testMinimalExecuteTransferAssets
-
     function testExecuteTransferAssets_ZeroGasLimitReverts() public {
         vm.startPrank(keeper);
 

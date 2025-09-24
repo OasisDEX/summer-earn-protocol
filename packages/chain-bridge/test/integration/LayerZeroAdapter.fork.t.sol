@@ -17,8 +17,6 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         super.setUp();
     }
 
-    // testAdapterConfiguration is covered in setup/config test; avoid duplication here
-
     function testFullBridgeWorkflow() public {
         console.log("=== Testing Full Bridge Workflow ===");
 
@@ -283,8 +281,5 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             }),
             options
         );
-
-        // Expect LayerZero endpoint setSendLibrary / setReceiveLibrary calls already in setup
-        // Consider adding vm.expectEmit for router OperationDelivered when full e2e is mocked
     }
 }
