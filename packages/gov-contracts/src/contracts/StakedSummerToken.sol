@@ -55,6 +55,7 @@ contract StakedSummerToken is
                 "Staking module address cannot be zero"
             );
         }
+        // Authorize staking module to participate in mint/burn flows
         _grantRole(MINTER_ROLE, _stakingModule);
         _grantRole(BURNER_ROLE, _stakingModule);
 
@@ -62,6 +63,7 @@ contract StakedSummerToken is
     }
 
     function removeStakingModule(address _stakingModule) public onlyGovernor {
+        // Fully deauthorize staking module by revoking both roles
         _revokeRole(MINTER_ROLE, _stakingModule);
         _revokeRole(BURNER_ROLE, _stakingModule);
         emit StakingModuleRemoved(_stakingModule);
@@ -83,6 +85,7 @@ contract StakedSummerToken is
     // ============ MINT / BURN API ============
     /// @inheritdoc IStakedSummerToken
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+        // Only authorized staking modules are permitted to mint xSUMR
         _mint(to, amount);
     }
 
@@ -101,7 +104,7 @@ contract StakedSummerToken is
         if (!_canBurnFrom(from, msg.sender)) {
             revert xSumr__NotAuthorized();
         }
-
+        // Honor allowance semantics when `msg.sender != from` via ERC20Burnable
         super.burnFrom(from, amount);
     }
 
@@ -127,6 +130,7 @@ contract StakedSummerToken is
         if (!_canTransfer(from, to)) {
             revert xSumr_TransferNotAllowed();
         }
+        // Run pausable and votes hooks (checkpoints, etc.)
         super._update(from, to, value);
     }
 

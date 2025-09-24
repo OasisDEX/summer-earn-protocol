@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {ISummerGovernorV2} from "../interfaces/ISummerGovernorV2.sol";
-import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
@@ -10,19 +9,19 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {MessagingFee, OApp, Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
-import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {Governor, GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import {GovernorTimelockControl, TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /*
  * @title SummerGovernorV2
- * @dev This contract implements the governance mechanism for the Summer protocol.
- * It extends various OpenZeppelin governance modules and includes custom functionality
- * such as whitelisting.
+ * @dev Governance V2 with hub-and-satellite architecture. Voting happens on the hub with xSUMR; finalized proposals
+ *      can be sent cross-chain to satellites via LayerZero for queuing and timed execution. Guardianship and proposal
+ *      thresholds are enforced; ETH receive is hardened to only accept funds from LayerZero endpoint or timelock.
  */
 contract SummerGovernorV2 is
     ISummerGovernorV2,
@@ -38,13 +37,13 @@ contract SummerGovernorV2 is
 
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
     uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
-    uint32 public immutable hubChainId;
+    uint32 public immutable HUB_CHAIN_ID;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    address public immutable accessManager;
+    address public immutable ACCESS_MANAGER;
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
@@ -57,8 +56,8 @@ contract SummerGovernorV2 is
      * proposals that have been approved on the hub.
      */
     modifier onlyHubChain() {
-        if (block.chainid != hubChainId) {
-            revert SummerGovernorNotHubChain(block.chainid, hubChainId);
+        if (block.chainid != HUB_CHAIN_ID) {
+            revert SummerGovernorNotHubChain(block.chainid, HUB_CHAIN_ID);
         }
         _;
     }
@@ -69,7 +68,7 @@ contract SummerGovernorV2 is
      * proposals from the hub chain.
      */
     modifier onlySatelliteChain() {
-        if (block.chainid == hubChainId) {
+        if (block.chainid == HUB_CHAIN_ID) {
             revert SummerGovernorCannotExecuteOnHubChain();
         }
         _;
@@ -94,9 +93,9 @@ contract SummerGovernorV2 is
         OApp(params.endpoint, address(params.initialOwner))
         Ownable(address(params.initialOwner))
     {
-        accessManager = params.accessManager;
+        ACCESS_MANAGER = params.accessManager;
         _validateProposalThreshold(params.proposalThreshold);
-        hubChainId = params.hubChainId;
+        HUB_CHAIN_ID = params.hubChainId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -112,6 +111,7 @@ contract SummerGovernorV2 is
         bytes32 _dstDescriptionHash,
         bytes calldata _options
     ) external onlyGovernance onlyHubChain {
+        // Restrict cross-chain dispatch to governance flow and hub chain
         _sendProposalToTargetChain(
             _dstEid,
             _dstTargets,
@@ -142,6 +142,7 @@ contract SummerGovernorV2 is
         bytes32 _dstDescriptionHash,
         bytes calldata _options
     ) internal {
+        // Compute proposalId as it will be known on the destination chain
         uint256 dstProposalId = hashProposal(
             _dstTargets,
             _dstValues,
@@ -149,6 +150,7 @@ contract SummerGovernorV2 is
             _dstDescriptionHash
         );
 
+        // Prepare payload for LayerZero transport
         bytes memory payload = abi.encode(
             dstProposalId,
             _dstTargets,
@@ -157,6 +159,7 @@ contract SummerGovernorV2 is
             _dstDescriptionHash
         );
 
+        // Quote and pay native execution fee in the contract's native balance
         MessagingFee memory fee = _quote(_dstEid, payload, _options, false);
 
         _lzSend(
@@ -196,6 +199,7 @@ contract SummerGovernorV2 is
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal onlySatelliteChain returns (uint256) {
+        // Satellite-only queueing of received operations into the local timelock controller
         uint48 eta = _queueOperations(
             proposalId,
             targets,
@@ -222,6 +226,7 @@ contract SummerGovernorV2 is
         address,
         bytes calldata
     ) internal override {
+        // Decode the cross-chain proposal payload
         (
             uint256 proposalId,
             address[] memory targets,
@@ -235,6 +240,7 @@ contract SummerGovernorV2 is
 
         emit ProposalReceivedCrossChain(proposalId, _origin.srcEid);
 
+        // Queue operations for later execution per local timelock settings
         _queueCrossChainProposal(
             proposalId,
             targets,
@@ -258,6 +264,7 @@ contract SummerGovernorV2 is
         onlyHubChain
         returns (uint256)
     {
+        // Vote is hub-only; OZ Governor handles voting power checks via token snapshots
         address voter = _msgSender();
         return _castVote(proposalId, voter, support, "");
     }
@@ -274,6 +281,7 @@ contract SummerGovernorV2 is
         onlyHubChain
         returns (uint256)
     {
+        // Enforce proposer threshold, with guardian override via access manager
         address proposer = _msgSender();
         uint256 proposerVotes = getVotes(proposer, block.timestamp - 1);
 
@@ -303,6 +311,7 @@ contract SummerGovernorV2 is
         onlyHubChain
         returns (uint256)
     {
+        // Timelock-controlled execution path from OZ GovernorTimelockControl
         return super.execute(targets, values, calldatas, descriptionHash);
     }
 
@@ -318,6 +327,7 @@ contract SummerGovernorV2 is
         onlyHubChain
         returns (uint256)
     {
+        // Anyone may cancel if proposer is below threshold; guardians may have extra cancellation powers
         uint256 proposalId = hashProposal(
             targets,
             values,
@@ -347,7 +357,8 @@ contract SummerGovernorV2 is
 
     /// @inheritdoc ISummerGovernorV2
     function isActiveGuardian(address account) public view returns (bool) {
-        return IProtocolAccessManager(accessManager).isActiveGuardian(account);
+        // Delegate guardian status to the shared ProtocolAccessManager
+        return IProtocolAccessManager(ACCESS_MANAGER).isActiveGuardian(account);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -363,6 +374,7 @@ contract SummerGovernorV2 is
     function _payNative(
         uint256 _nativeFee
     ) internal view override returns (uint256 nativeFee) {
+        // Ensure the contract is pre-funded to cover executor fee; avoids trapping proposals mid-flight
         if (address(this).balance < _nativeFee) {
             revert NotEnoughNative(address(this).balance);
         }

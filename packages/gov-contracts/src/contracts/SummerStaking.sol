@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
@@ -17,9 +16,17 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 /**
  * @title SummerStaking
- * @notice Enhanced staking contract with lockup periods, weighted rewards, and bucket management
- * @dev Users can stake with any lockup period (0-3 years), rewards calculated based on weighted stakes
- * @author Summer.fi Protocol
+ * @notice Enhanced staking with lockups (0–3y), weighted rewards, and bucket caps. Users stake SUMR and receive xSUMR
+ *         1:1 while rewards accrue on weighted balances computed via a quadratic time multiplier.
+ * @dev Architecture and invariants:
+ *      - Index 0 of each portfolio aggregates all no-lockup stake; positions with lockup > 0 occupy indices > 0.
+ *      - Weighted supply drives rewards accounting: `totalSupply` in base manager is the weighted sum.
+ *      - Bucket caps restrict total raw SUMR per lockup bucket; 0 disables, type(uint256).max removes limit.
+ *      - Early unstake penalty: fixed 2% if remaining < FIXED_PENALTY_PERIOD, else linear up to 20% at 3 years.
+ *      - Token flows: stake pulls SUMR, wraps internally, and mints xSUMR; unstake burns xSUMR, unwraps, and splits
+ *        penalty to treasury.
+ *      - Access control: governor manages bucket caps and penalty enablement; xSUMR roles managed on the token.
+ *      - Reentrancy: public mutating entrypoints are nonReentrant and updateRewards for correct accounting.
  */
 contract SummerStaking is
     StakingRewardsManagerBase,
@@ -151,15 +158,18 @@ contract SummerStaking is
     function transferStakes(
         address _to
     ) external updateReward(_msgSender()) nonReentrant {
+        // Preconditions: target must be non-zero and distinct from sender
         address from = _msgSender();
         if (_to == address(0))
             revert Staking_InvalidAddress("Target address cannot be zero");
         if (from == _to)
             revert Staking_InvalidAddress("Cannot move stakes to self");
 
+        // Disallow moving into a wallet that already has any stakes (including the no-lockup placeholder)
         if (stakesByPortfolioId[_getPortfolioId(_to)].length != 0)
             revert Staking_ExistingTarget("Target already has stakes");
 
+        // Load source stakes and basic validations
         UserStake[] storage fromStakes = stakesByPortfolioId[
             _getPortfolioId(from)
         ];
@@ -167,6 +177,7 @@ contract SummerStaking is
         if (stakeCount == 0)
             revert Staking_InvalidStakeIndex("From wallet has no stakes");
 
+        // For every configured reward token we migrate unpaid rewards marker and balance safely
         uint256 rewardTokenCount = EnumerableSet.length(_rewardTokensList);
         for (uint256 i = 0; i < rewardTokenCount; i++) {
             address rewardTokenAddress = EnumerableSet.at(_rewardTokensList, i);
@@ -187,6 +198,7 @@ contract SummerStaking is
         }
 
         // Ensure target doesn't hold xSUMR and move xSUMR from from -> to
+        // Note: burn+mint preserves ERC20Votes checkpoints correctly and maintains non-transferability invariant
         if (STAKED_SUMMER_TOKEN.balanceOf(_to) != 0) {
             revert Staking_ExistingTarget("Target already holds xSUMR");
         }
@@ -196,10 +208,11 @@ contract SummerStaking is
             STAKED_SUMMER_TOKEN.mint(_to, xsumrToMove);
         }
 
+        // Move portfolio id and clear sender's association
         stakePortfolioId[_to] = _getPortfolioId(from);
         stakePortfolioId[from] = 0;
 
-        // Move accounting balances
+        // Move accounting balances (raw and weighted)
         uint256 fromAmount = _balances[from];
         uint256 fromWeighted = weightedBalances[from];
 
@@ -218,6 +231,7 @@ contract SummerStaking is
         uint256 _stakeIndex,
         uint256 _amount
     ) public virtual updateReward(_msgSender()) nonReentrant {
+        // Validate amount and availability before reading stake
         if (_amount == 0) revert Staking_InvalidAmount("Amount cannot be zero");
         if (_amount > _balances[_msgSender()])
             revert Staking_InsufficientBalance();
@@ -226,12 +240,14 @@ contract SummerStaking is
         if (_stakeIndex >= stakes.length)
             revert Staking_InvalidStakeIndex("Stake index out of bounds");
 
+        // Copy stake to memory for mutation and proportional computations
         UserStake memory processedStake = stakes[_stakeIndex];
         if (processedStake.amount < _amount)
             revert Staking_InvalidStakeIndex(
                 "Stake amount is less than unstake amount"
             );
 
+        // Compute penalty and the weighted share we need to remove proportionally
         uint256 unstakePenalty = calculatePenalty(
             _msgSender(),
             _amount,
@@ -240,6 +256,7 @@ contract SummerStaking is
         uint256 weightedAmountToRemove = (processedStake.weightedAmount *
             _amount) / processedStake.amount;
 
+        // Mutate local stake and persist back to storage (or pop if fully consumed and not index 0)
         processedStake.amount -= _amount;
         processedStake.weightedAmount -= weightedAmountToRemove;
 
@@ -252,6 +269,7 @@ contract SummerStaking is
             stakes[_stakeIndex] = processedStake;
         }
 
+        // Perform token movements, including penalty routing to treasury if applicable
         _handleTokenTransfersOnUnstake(_msgSender(), _amount, unstakePenalty);
 
         emit UnstakedWithPenalty(
@@ -271,12 +289,14 @@ contract SummerStaking is
         Bucket _bucket,
         uint256 _newCap
     ) external onlyGovernor {
+        // Governor may set to 0 (disabled) or max (no cap). Intermediate caps throttle bucket utilization.
         bucketData[_bucket].cap = _newCap;
         emit LockupBucketUpdated(_bucket, _newCap);
     }
 
     /// @inheritdoc ISummerStaking
     function updatePenaltyEnabled(bool _penaltyEnabled) external onlyGovernor {
+        // Toggling penalties is a risk lever; when disabled, early exits incur no treasury fee
         penaltyEnabled = _penaltyEnabled;
         emit PenaltyEnabledUpdated(_penaltyEnabled);
     }
@@ -286,6 +306,7 @@ contract SummerStaking is
         if (_token == address(WRAPPED_SUMMER_TOKEN)) {
             revert Staking_InvalidAddress("Cannot rescue wrapped summer token");
         }
+        // Sweep entire token balance to the target; used for emergency recovery only
         IERC20(_token).safeTransfer(
             _to,
             IERC20(_token).balanceOf(address(this))
@@ -311,6 +332,7 @@ contract SummerStaking is
             uint256 lockupPeriod
         )
     {
+        // Return zeroed tuple if index out-of-bounds
         uint256 portfolioId = _getPortfolioId(_user);
         UserStake[] storage stakes = stakesByPortfolioId[portfolioId];
         if (_index < stakes.length) {
@@ -393,21 +415,26 @@ contract SummerStaking is
         address _user,
         uint256 _stakeIndex
     ) public view returns (uint256) {
+        // If penalties are globally disabled, early exits are free
         if (!penaltyEnabled) {
             return 0;
         }
+        // Load stake; caller must pass a valid index (public functions ensure bounds)
         UserStake storage userStake = stakesByPortfolioId[
             _getPortfolioId(_user)
         ][_stakeIndex];
 
+        // No penalty if lockup has already expired
         if (block.timestamp >= userStake.lockupEndTime) {
             return 0;
         }
 
+        // Near-expiry fixed penalty floor to avoid cliff at zero
         uint256 timeRemaining = userStake.lockupEndTime - block.timestamp;
         if (timeRemaining < FIXED_PENALTY_PERIOD) {
             return MIN_PENALTY_PERCENTAGE;
         }
+        // Linear ramp to MAX_PENALTY_PERCENTAGE at MAX_LOCKUP_PERIOD
         return (timeRemaining * MAX_PENALTY_PERCENTAGE) / MAX_LOCKUP_PERIOD;
     }
 
@@ -524,6 +551,7 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) internal updateReward(_receiver) {
+        // Validate addresses and parameters up-front to fail fast
         if (_receiver == address(0))
             revert Staking_InvalidAddress("Target address cannot be zero");
         if (_from == address(0))
@@ -534,6 +562,7 @@ contract SummerStaking is
                 "Lockup period cannot exceed 3 years"
             );
         }
+        // Enforce per-portfolio stake count bound and bucket caps on raw amount
         if (
             stakesByPortfolioId[_getPortfolioId(_receiver)].length >=
             MAX_AMOUNT_OF_STAKES
@@ -544,6 +573,7 @@ contract SummerStaking is
             revert Staking_BucketCapExceeded();
         }
 
+        // Precompute weighted amount: amount * (1 + k * t^2) in UD60x18 fixed-point
         uint256 weightedAmount = _calculateWeightedStake(
             _amount,
             _lockupPeriod
@@ -552,12 +582,14 @@ contract SummerStaking is
 
         uint256 _stakeIndex;
         if (_lockupPeriod == 0) {
+            // Aggregate no-lockup at index 0 to save storage slots and simplify exits
             UserStake storage noLockupStake = _noLockupStake(_stakePortfolioId);
             noLockupStake.amount += _amount;
             noLockupStake.weightedAmount += weightedAmount;
             noLockupStake.lockupEndTime = block.timestamp;
             _stakeIndex = NO_LOCKUP_INDEX;
         } else {
+            // Append an independent lockup position
             stakesByPortfolioId[_stakePortfolioId].push(
                 UserStake({
                     amount: _amount,
@@ -568,6 +600,7 @@ contract SummerStaking is
             );
             _stakeIndex = stakesByPortfolioId[_stakePortfolioId].length - 1;
         }
+        // Update balances and bucket totals, then move tokens and mint xSUMR
         _updateBalancesOnStake(_receiver, _amount, weightedAmount);
         _addToBucketTotal(_lockupPeriod, _amount);
         _handleTokenTransfersOnStake(_from, _receiver, _amount);
@@ -590,6 +623,7 @@ contract SummerStaking is
     /// @return bucket The resolved bucket enum
     /// @custom:reverts Staking_InvalidLockupPeriod if `_lockupPeriod` exceeds maximum allowed
     function _findBucket(uint256 _lockupPeriod) internal pure returns (Bucket) {
+        // Map the lockup duration to a discrete risk bucket; 0 is a dedicated no-lockup bucket
         if (_lockupPeriod == 0) return Bucket.NoLockup;
         if (_lockupPeriod <= BUCKET_SHORT_TERM_MAX) return Bucket.ShortTerm;
         if (_lockupPeriod <= BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX)
@@ -613,6 +647,7 @@ contract SummerStaking is
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal {
+        // Increase current bucket raw staked total; used for cap enforcement and telemetry
         Bucket bucket = _findBucket(_lockupPeriod);
         bucketData[bucket].staked += _amount;
     }
@@ -624,6 +659,7 @@ contract SummerStaking is
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal {
+        // Decrease current bucket raw staked total on exits (or partial exits)
         Bucket bucket = _findBucket(_lockupPeriod);
         bucketData[bucket].staked -= _amount;
     }
@@ -681,6 +717,7 @@ contract SummerStaking is
         uint256 _lockupPeriod,
         uint256 _amount
     ) internal view returns (bool) {
+        // Compute `current + amount > cap` with cap==0 treated as disabled (always exceed)
         Bucket bucket = _findBucket(_lockupPeriod);
         uint256 currentBucketTotal = bucketData[bucket].staked;
         uint256 bucketCap = bucketData[bucket].cap;
@@ -699,9 +736,11 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _lockupPeriod
     ) internal pure returns (uint256) {
+        // Convert lockup seconds to UD60x18 and square for quadratic multiplier
         UD60x18 time = convert(_lockupPeriod);
         UD60x18 timeSquared = time.mul(time);
 
+        // multiplier = BASE + COEFFICIENT * t^2 (scaled math); then multiply by raw amount
         UD60x18 multiplier = ud60x18(WEIGHTED_STAKE_COEFFICIENT)
             .mul(timeSquared)
             .add(ud60x18(WEIGHTED_STAKE_BASE));
@@ -721,8 +760,10 @@ contract SummerStaking is
         address receiver,
         uint amount
     ) internal {
+        // Pull SUMR from the staker and approve the wrapper for exact amount
         SUMMER_TOKEN.safeTransferFrom(from, address(this), amount);
         SUMMER_TOKEN.forceApprove(address(WRAPPED_SUMMER_TOKEN), amount);
+        // Wrap into internal accounting token and mint xSUMR 1:1 to the receiver
         WRAPPED_SUMMER_TOKEN.depositFor(address(this), amount);
         STAKED_SUMMER_TOKEN.mint(receiver, amount);
     }
@@ -738,13 +779,15 @@ contract SummerStaking is
         uint unstakePenalty
     ) internal {
         if (unstakePenalty > 0) {
+            // Withdraw wrapped SUMR to this contract, then split between user and treasury
             WRAPPED_SUMMER_TOKEN.withdrawTo(address(this), amount);
             SUMMER_TOKEN.safeTransfer(receiver, amount - unstakePenalty);
             SUMMER_TOKEN.safeTransfer(treasury(), unstakePenalty);
         } else {
+            // Gas-optimal path: withdraw directly to the receiver if no penalty is due
             WRAPPED_SUMMER_TOKEN.withdrawTo(receiver, amount);
         }
-
+        // Burn xSUMR from the receiver to maintain 1:1 accounting with SUMR backing
         STAKED_SUMMER_TOKEN.burnFrom(receiver, amount);
     }
 
@@ -759,6 +802,7 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _weightedAmount
     ) internal {
+        // Raw SUMR staking balance (used for xSUMR mint/burn) and weighted balance for rewards
         _balances[_receiver] += _amount;
         weightedBalances[_receiver] += _weightedAmount;
         totalSupply += _weightedAmount;
@@ -773,6 +817,7 @@ contract SummerStaking is
         uint256 _amount,
         uint256 _weightedAmount
     ) internal {
+        // Mirror updates from stake but in reverse; maintain total weighted supply invariant
         _balances[_receiver] -= _amount;
         weightedBalances[_receiver] -= _weightedAmount;
         totalSupply -= _weightedAmount;

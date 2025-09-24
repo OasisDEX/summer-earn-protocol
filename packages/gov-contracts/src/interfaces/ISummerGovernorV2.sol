@@ -10,7 +10,12 @@ import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IPro
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 /**
  * @title ISummerGovernorV2 Interface
- * @notice Interface for the ISummerGovernorV2 contract, extending OpenZeppelin's IGovernor
+ * @notice Governance V2 hub-and-satellite interface extending OZ Governor. Voting occurs on the hub with xSUMR.
+ *         Finalized proposals may be distributed cross-chain to satellites via LayerZero and queued for execution.
+ * @dev Key behaviors:
+ *      - Hub-only: propose, castVote, execute, cancel. Satellite-only: receive and queue cross-chain proposals.
+ *      - ETH receive is restricted to LayerZero endpoint or timelock executors to avoid accidental funding.
+ *      - Guardians (via ProtocolAccessManager) can propose below threshold and have scoped cancellation privileges.
  */
 interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     /*
@@ -26,6 +31,10 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
      * @param hubChainId The hub chain ID
      * @param initialOwner The initial owner of the contract
      */
+    /**
+     * @notice Deployment parameters for the governor.
+     * @dev `proposalThreshold` is validated within [MIN_PROPOSAL_THRESHOLD; MAX_PROPOSAL_THRESHOLD].
+     */
     struct GovernorParams {
         IVotes token;
         SummerTimelockController timelock;
@@ -40,9 +49,9 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     }
 
     /**
-     * @notice Emitted when a proposal is sent cross-chain
-     * @param proposalId The ID of the proposal
-     * @param dstEid The destination endpoint ID
+     * @notice Emitted when a proposal is sent cross-chain to a destination endpoint.
+     * @param proposalId Proposal ID on the destination chain (hash of destination data)
+     * @param dstEid Destination LayerZero Endpoint ID
      */
     event ProposalSentCrossChain(
         uint256 indexed proposalId,
@@ -50,9 +59,9 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     );
 
     /**
-     * @notice Emitted when a proposal is received cross-chain
-     * @param proposalId The ID of the proposal
-     * @param srcEid The source endpoint ID
+     * @notice Emitted when a cross-chain proposal is received via LayerZero.
+     * @param proposalId Proposal ID computed from destination payload
+     * @param srcEid Source LayerZero Endpoint ID
      */
     event ProposalReceivedCrossChain(
         uint256 indexed proposalId,
@@ -60,10 +69,10 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     );
 
     /**
-     * @notice Casts a vote for a proposal
-     * @param proposalId The ID of the proposal to vote on
-     * @param support The support for the proposal (0 = against, 1 = for, 2 = abstain)
-     * @return The proposal ID
+     * @notice Casts a vote for a proposal on the hub chain.
+     * @param proposalId The proposal to vote on
+     * @param support 0 = Against, 1 = For, 2 = Abstain
+     * @return proposalIdEcho The proposal ID (echo)
      */
     function castVote(
         uint256 proposalId,
@@ -71,12 +80,12 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     ) external returns (uint256);
 
     /**
-     * @notice Proposes a new governance action
-     * @param targets The addresses of the contracts to call
-     * @param values The ETH values to send with the calls
-     * @param calldatas The call data for each contract call
-     * @param description A description of the proposal
-     * @return proposalId The ID of the newly created proposal
+     * @notice Creates a new proposal. Hub-only.
+     * @param targets Call targets
+     * @param values ETH values for each call
+     * @param calldatas Calldata payloads
+     * @param description Human-readable description
+     * @return proposalId New proposal ID
      */
     function propose(
         address[] memory targets,
@@ -86,13 +95,12 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     ) external override(IGovernor) returns (uint256 proposalId);
 
     /**
-     * @notice Executes a proposal. Only callable on the proposal chain
-     * @dev Crosschain proposals are executed using LayerZero. Check _lzReceive for the execution logic
-     * @param targets The addresses of the contracts to call
-     * @param values The ETH values to send with the calls
-     * @param calldatas The call data for each contract call
-     * @param descriptionHash The hash of the proposal description
-     * @return proposalId The ID of the executed proposal
+     * @notice Executes a successful proposal from the hub chain. Timelock-enforced.
+     * @param targets Call targets
+     * @param values ETH values
+     * @param calldatas Calldata payloads
+     * @param descriptionHash EIP-712 description hash
+     * @return proposalIdEcho Executed proposal ID
      */
     function execute(
         address[] memory targets,
@@ -102,12 +110,12 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     ) external payable override(IGovernor) returns (uint256 proposalId);
 
     /**
-     * @notice Cancels an existing proposal
-     * @param targets The addresses of the contracts to call
-     * @param values The ETH values to send with the calls
-     * @param calldatas The call data for each contract call
-     * @param descriptionHash The hash of the proposal description
-     * @return proposalId The ID of the cancelled proposal
+     * @notice Cancels a proposal. Hub-only. Guardians have scoped privileges.
+     * @param targets Call targets
+     * @param values ETH values
+     * @param calldatas Calldata payloads
+     * @param descriptionHash EIP-712 description hash
+     * @return proposalIdEcho Cancelled proposal ID
      */
     function cancel(
         address[] memory targets,
@@ -117,13 +125,13 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     ) external override(IGovernor) returns (uint256 proposalId);
 
     /**
-     * @notice Sends a proposal to another chain for execution
-     * @param _dstEid The destination Endpoint ID
-     * @param _dstTargets The target addresses for the proposal
-     * @param _dstValues The values for the proposal
-     * @param _dstCalldatas The calldata for the proposal
-     * @param _dstDescriptionHash The description hash for the proposal
-     * @param _options Message execution options
+     * @notice Sends a finalized proposal to a satellite for queuing and execution via LayerZero.
+     * @param _dstEid Destination Endpoint ID
+     * @param _dstTargets Targets for destination chain
+     * @param _dstValues ETH values for destination chain
+     * @param _dstCalldatas Calldata payloads for destination chain
+     * @param _dstDescriptionHash EIP-712 description hash for destination chain
+     * @param _options LayerZero executor options
      */
     function sendProposalToTargetChain(
         uint32 _dstEid,
@@ -135,10 +143,11 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
     ) external;
 
     /**
-     * @notice Checks if an account is an active guardian for governance purposes
-     * @dev Delegates check to ProtocolAccessManager
-     * @param account The address to check
-     * @return bool True if the account is an active guardian, false otherwise
+     * @notice Returns whether an account is an active guardian according to the ProtocolAccessManager.
+     * @param account Address to query
+     * @return isGuardian True if the account is an active guardian
      */
-    function isActiveGuardian(address account) external view returns (bool);
+    function isActiveGuardian(
+        address account
+    ) external view returns (bool isGuardian);
 }

@@ -1,28 +1,47 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-/// @title ISummerVestingWalletsEscrow
-/// @notice Interface for the escrow that allows staking xSUMR against SUMR balances held in vesting wallets.
-/// @dev Implementations MUST enforce access control (governor) where specified and adhere to the documented
-///      revert conditions to ensure consistent behavior across integrations and tests.
+/**
+ * @title ISummerVestingWalletsEscrow
+ * @notice Interface for the escrow that allows staking xSUMR against SUMR balances held in vesting wallets.
+ * @dev Implementations MUST enforce access control (governor) where specified and adhere to the documented
+ *      revert conditions to ensure consistent behavior across integrations and tests.
+ *
+ * High-level Design:
+ * - Users can stake governance power (xSUMR minted 1:1) against SUMR held in vesting wallets owned by the escrow.
+ * - During stake, the escrow must be the owner of the vesting wallets; on unstake, ownership returns to the user.
+ * - Any SUMR released while staked (via permissionless `release`) is forwarded to the user during unstake.
+ * - Factories producing vesting wallets are allowlisted by governance; users can only stake from enabled factories.
+ *
+ * Security Considerations:
+ * - Ownership precondition is enforced on stake/unstake to prevent accidental custody assumptions.
+ * - The escrow never moves SUMR from the vesting wallet; it only accounts balances and mints/burns xSUMR.
+ * - Rescue methods are governance-only and are intended as last-resort controls.
+ */
 interface ISummerVestingWalletsEscrow {
     // =============================
     //            EVENTS
     // =============================
 
-    /// @notice Emitted when a vesting factory is added to the allowed set.
-    /// @param vestingFactory Address of the vesting factory added.
+    /**
+     * @notice Emitted when a vesting factory is added to the allowed set.
+     * @param vestingFactory Address of the vesting factory added.
+     */
     event VestingFactoryAdded(address indexed vestingFactory);
 
-    /// @notice Emitted when a vesting factory is removed from the allowed set.
-    /// @param vestingFactory Address of the vesting factory removed.
+    /**
+     * @notice Emitted when a vesting factory is removed from the allowed set.
+     * @param vestingFactory Address of the vesting factory removed.
+     */
     event VestingFactoryRemoved(address indexed vestingFactory);
 
-    /// @notice Emitted when user staked a vesting wallet
-    /// @param user The user that staked the vesting wallet
-    /// @param vestingFactory The vesting factory that the user staked from
-    /// @param balance The balance of the vesting wallet at the time of staking
-    /// @param released The amount released from the vesting wallet at the time of staking
+    /**
+     * @notice Emitted when user staked a vesting wallet
+     * @param user The user that staked the vesting wallet
+     * @param vestingFactory The vesting factory that the user staked from
+     * @param balance The balance of the vesting wallet at the time of staking
+     * @param released The amount released from the vesting wallet at the time of staking
+     */
     event StakedVestingWallet(
         address indexed user,
         address indexed vestingFactory,
@@ -30,11 +49,13 @@ interface ISummerVestingWalletsEscrow {
         uint256 released
     );
 
-    /// @notice Emitted when user unstaked a vesting wallet
-    /// @param user The user that unstaked the vesting wallet
-    /// @param vestingFactory The vesting factory that the user unstaked from
-    /// @param balance The amount originally staked from the vesting wallet
-    /// @param released The amount released from the vesting wallet at the time of unstaking
+    /**
+     * @notice Emitted when user unstaked a vesting wallet
+     * @param user The user that unstaked the vesting wallet
+     * @param vestingFactory The vesting factory that the user unstaked from
+     * @param balance The amount originally staked from the vesting wallet
+     * @param released The amount released from the vesting wallet at the time of unstaking
+     */
     event UnstakedVestingWallet(
         address indexed user,
         address indexed vestingFactory,
@@ -46,13 +67,17 @@ interface ISummerVestingWalletsEscrow {
     //            ERRORS
     // =============================
 
-    /// @notice Thrown when a zero address or otherwise invalid address is supplied.
-    /// @param message Additional context for the invalid address error.
+    /**
+     * @notice Thrown when a zero address or otherwise invalid address is supplied.
+     * @param message Additional context for the invalid address error.
+     */
     error Staking_InvalidAddress(string message);
 
-    /// @notice Thrown when a vesting wallet ownership is invalid for the attempted operation.
-    /// @dev Used when the staking contract is not the current owner of the vesting wallet during stake/unstake flows.
-    /// @param message Additional context for the invalid owner error.
+    /**
+     * @notice Thrown when a vesting wallet ownership is invalid for the attempted operation.
+     * @dev Used when the staking contract is not the current owner of the vesting wallet during stake/unstake flows.
+     * @param message Additional context for the invalid owner error.
+     */
     error Staking_InvalidOwner(string message);
 
     /// @notice Thrown when an index is out of bounds for vesting factory queries.

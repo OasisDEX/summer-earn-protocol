@@ -15,11 +15,13 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 /**
  * @title SummerVestingWalletsEscrow
- * @notice Escrow staking that mints xSUMR against SUMR balances held in vesting wallets
- * @dev Used to stake and unstake SUMMER_TOKEN for STAKED_SUMMER_TOKEN without moving funds from vesting wallets.
- *      While staked, vesting wallets must be owned by this contract. Released tokens during the staked period are
- *      forwarded back to the original vesting wallet owner during unstake.
- * @author Summer.fi Protocol
+ * @notice Escrow staking that mints xSUMR against SUMR balances held in vesting wallets.
+ * @dev Core principles:
+ *      - Users can stake governance power (xSUMR) against SUMR held in vesting wallets already owned by the escrow.
+ *      - On stake: record vesting SUMR balance and `released` snapshot, then mint xSUMR 1:1 to the user.
+ *      - On unstake: forward any SUMR released while staked to the user and transfer wallet ownership back; burn xSUMR.
+ *      - The escrow does not move SUMR out of vesting wallets, only forwards released amounts at exit.
+ *      - Vesting factories are allowlisted by governance to constrain integrations.
  */
 contract SummerVestingWalletsEscrow is
     ISummerVestingWalletsEscrow,
@@ -53,6 +55,7 @@ contract SummerVestingWalletsEscrow is
         address _xSumr,
         address[] memory _initialVestingFactories
     ) ProtocolAccessManaged(_protocolAccessManager) {
+        // Basic address validation to avoid footguns at deployment
         if (_summerToken == address(0)) {
             revert Staking_InvalidAddress(
                 "Summer token address cannot be zero"
@@ -67,6 +70,7 @@ contract SummerVestingWalletsEscrow is
         SUMMER_TOKEN = ISummerToken(_summerToken);
         STAKED_SUMMER_TOKEN = IStakedSummerToken(_xSumr);
 
+        // Seed allowlist from constructor input
         for (uint256 i = 0; i < _initialVestingFactories.length; i++) {
             if (_initialVestingFactories[i] == address(0)) {
                 revert Staking_InvalidAddress(
@@ -121,6 +125,7 @@ contract SummerVestingWalletsEscrow is
     function addVestingFactory(
         address _vestingFactory
     ) external override onlyGovernor {
+        // Governance-controlled: expand integration surface area
         if (_vestingFactory == address(0)) {
             revert Staking_InvalidAddress(
                 "Vesting factory address cannot be zero"
@@ -137,6 +142,7 @@ contract SummerVestingWalletsEscrow is
     function removeVestingFactory(
         address _vestingFactory
     ) external override onlyGovernor {
+        // Governance-controlled: reduce integration surface area
         if (_vestingFactory == address(0)) {
             revert Staking_InvalidAddress(
                 "Vesting factory address cannot be zero"
@@ -156,6 +162,7 @@ contract SummerVestingWalletsEscrow is
         address _wallet,
         address _newOwner
     ) external override onlyGovernor {
+        // Emergency-only: return vesting wallet ownership to a specified address
         if (_newOwner == address(0)) {
             revert Staking_InvalidAddress("New owner cannot be zero address");
         }
@@ -167,6 +174,7 @@ contract SummerVestingWalletsEscrow is
         address _token,
         address _to
     ) external override onlyGovernor {
+        // Sweep arbitrary ERC20 tokens sitting on the escrow
         if (_token == address(0)) {
             revert Staking_InvalidAddress("Invalid token address");
         }
@@ -185,6 +193,7 @@ contract SummerVestingWalletsEscrow is
     function stakeVesting(
         address[] calldata factories
     ) public override nonReentrant {
+        // Loop over requested factories and perform per-factory stake
         for (uint256 i = 0; i < factories.length; i++) {
             if (!_vestingFactories.contains(factories[i])) {
                 revert Staking_FactoryNotEnabled();
@@ -197,6 +206,7 @@ contract SummerVestingWalletsEscrow is
     function unstakeVesting(
         address[] calldata factories
     ) public override nonReentrant {
+        // Process requested factories independently to allow partial exits
         for (uint256 i = 0; i < factories.length; i++) {
             _unstakeFromFactory(
                 IMinimalVestingFactory(factories[i]),
@@ -227,6 +237,7 @@ contract SummerVestingWalletsEscrow is
         IMinimalVestingFactory _vestingFactory,
         address _user
     ) internal {
+        // Prevent double-staking same factory to preserve invariant on accounting maps
         address factoryAddress = address(_vestingFactory);
         if (
             _userStakedVestingFactoriesBalance[_user].contains(factoryAddress)
@@ -234,6 +245,8 @@ contract SummerVestingWalletsEscrow is
             revert Staking_FactoryAlreadyStaked();
         }
 
+        // Resolve vesting wallet and validate escrow ownership
+        // vestingWallets map can't be modified, always keeps the original owner
         address vestingWallet = _vestingFactory.vestingWallets(_user);
         if (vestingWallet == address(0)) {
             revert Staking_InvalidAddress("Vesting wallet not found");
@@ -241,6 +254,7 @@ contract SummerVestingWalletsEscrow is
 
         _validateVestingWalletOwner(vestingWallet);
 
+        // Snapshot SUMR balance and released amount at time of stake
         uint256 balance = SUMMER_TOKEN.balanceOf(vestingWallet);
         if (balance == 0) {
             revert Staking_ZeroBalance();
@@ -249,12 +263,14 @@ contract SummerVestingWalletsEscrow is
             address(SUMMER_TOKEN)
         );
 
+        // Persist stake metadata for this user/factory pair
         _userStakedVestingFactoriesBalance[_user].set(factoryAddress, balance);
         _userStakedVestingFactoriesReleased[_user].set(
             factoryAddress,
             released
         );
 
+        // Mint governance power (xSUMR) equal to vesting wallet SUMR balance
         STAKED_SUMMER_TOKEN.mint(_user, balance);
 
         emit StakedVestingWallet(_user, factoryAddress, balance, released);
@@ -278,6 +294,7 @@ contract SummerVestingWalletsEscrow is
         IMinimalVestingFactory _vestingFactory,
         address _user
     ) internal {
+        // Ensure the user has an active stake for this factory
         address factoryAddress = address(_vestingFactory);
         if (
             !_userStakedVestingFactoriesBalance[_user].contains(factoryAddress)
@@ -285,6 +302,7 @@ contract SummerVestingWalletsEscrow is
             revert Staking_NoStakeForFactory();
         }
 
+        // Load stake state and resolve vesting wallet
         uint256 stakedBalance = _userStakedVestingFactoriesBalance[_user].get(
             factoryAddress
         );
@@ -296,6 +314,7 @@ contract SummerVestingWalletsEscrow is
 
         _validateVestingWalletOwner(vestingWallet);
 
+        // Compute and forward the amount released while staked (permissionless release may be called externally)
         uint256 releasedAtStake = _userStakedVestingFactoriesReleased[_user]
             .get(address(_vestingFactory));
         uint256 releasedAtUnstake = IMinimalVestingWallet(vestingWallet)
@@ -306,8 +325,10 @@ contract SummerVestingWalletsEscrow is
             /// @dev the tokens released while staked are transferred back to the original owner
             SUMMER_TOKEN.safeTransfer(_user, releasedWhileStaked);
         }
+        // Transfer vesting wallet ownership back to the user
         IMinimalVestingWallet(vestingWallet).transferOwnership(_user);
 
+        // Clear stake state for this user/factory and burn xSUMR matching recorded balance
         _userStakedVestingFactoriesBalance[_user].remove(factoryAddress);
         _userStakedVestingFactoriesReleased[_user].remove(factoryAddress);
 

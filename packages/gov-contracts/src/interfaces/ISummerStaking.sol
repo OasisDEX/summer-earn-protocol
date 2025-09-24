@@ -5,9 +5,15 @@ import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces
 
 /**
  * @title ISummerStaking
- * @notice Interface for the SummerStaking contract with lockup periods and weighted rewards
- * @dev Extends the standard staking rewards manager with lockup functionality, bucket management,
- *      penalty calculations, and weighted stake mechanics for enhanced reward distribution
+ * @notice Interface for the staking module used by Governance v2. Users stake SUMR with optional lockups (0–3y),
+ *         receiving non-transferable xSUMR 1:1 for governance while rewards are accounted on the weighted balance.
+ * @dev Design highlights and invariants:
+ *      - One aggregated NoLockup stake is always at index 0 for a portfolio (created lazily on first stake).
+ *      - Lockups > 0 live at indices > 0. A user may have up to MAX_AMOUNT_OF_STAKES (see implementation constant).
+ *      - Rewards are distributed on weighted balances; base `totalSupply` in the rewards manager tracks weighted sum.
+ *      - Bucket caps are governor-controlled and can be 0 (disabled) or type(uint256).max (uncapped).
+ *      - Early unstake penalties are forwarded to protocol treasury; no burn of SUMR occurs.
+ *      - xSUMR mint/burn is delegated to approved staking modules; governance manages module roles on xSUMR.
  * @author Summer.fi Protocol
  */
 interface ISummerStaking is IStakingRewardsManagerBase {
@@ -37,6 +43,11 @@ interface ISummerStaking is IStakingRewardsManagerBase {
         uint256 cap;
         uint256 staked;
     }
+    /**
+     * @dev User stake element stored per portfolio. Implementation reserves index 0 for the no-lockup aggregate.
+     *      For indices > 0, each element corresponds to an independent lockup position with its own end time.
+     *      `weightedAmount` is precomputed to avoid recalculating the quadratic multiplier on every read.
+     */
     /**
      * @notice Structure representing a user's individual stake with lockup details
      * @param amount The actual amount of tokens staked
@@ -345,39 +356,63 @@ interface ISummerStaking is IStakingRewardsManagerBase {
 
     // ============ ERRORS ============
 
-    /// @notice Thrown when trying to use an invalid address (zero address)
+    /**
+     * @notice Thrown when trying to use an invalid address (zero address)
+     */
     error Staking_InvalidAddress(string message);
 
-    /// @notice Thrown when trying to use direct stake function instead of stakeLockup
+    /**
+     * @notice Thrown when trying to use direct stake function instead of stakeLockup
+     */
     error Staking_DirectStakeNotAllowed(string message);
 
-    /// @notice Thrown when trying to use direct unstake function instead of unstakeLockup
+    /**
+     * @notice Thrown when trying to use direct unstake function instead of unstakeLockup
+     */
     error Staking_DirectUnstakeNotAllowed(string message);
 
-    /// @notice Thrown when lockup period is invalid (too long, ended, etc.)
+    /**
+     * @notice Thrown when lockup period is invalid (too long, ended, etc.)
+     */
     error Staking_InvalidLockupPeriod(string message);
 
-    /// @notice Thrown when stake index is invalid or out of bounds
+    /**
+     * @notice Thrown when stake index is invalid or out of bounds
+     */
     error Staking_InvalidStakeIndex(string message);
 
-    /// @notice Thrown when trying to unstake more than available balance
+    /**
+     * @notice Thrown when trying to unstake more than available balance
+     */
     error Staking_InsufficientBalance();
 
-    /// @notice Thrown when trying to use stakeOnBehalfOf (not supported)
+    /**
+     * @notice Thrown when trying to use stakeOnBehalfOf (not supported)
+     */
     error StakeOnBehalfOfNotSupported();
 
-    /// @notice Thrown when trying to use unstakeAndWithdrawOnBehalfOf (not supported)
+    /**
+     * @notice Thrown when trying to use unstakeAndWithdrawOnBehalfOf (not supported)
+     */
     error UnstakeOnBehalfOfNotSupported();
 
-    /// @notice Thrown when user has reached maximum number of stakes (10)
+    /**
+     * @notice Thrown when user has reached the maximum number of stakes allowed
+     */
     error Staking_MaxStakesReached();
 
-    /// @notice Thrown when trying to stake amount that would exceed bucket cap
+    /**
+     * @notice Thrown when trying to stake amount that would exceed bucket cap
+     */
     error Staking_BucketCapExceeded();
 
-    /// @notice Thrown when trying to move stakes to a wallet that already has stakes
+    /**
+     * @notice Thrown when trying to move stakes to a wallet that already has stakes
+     */
     error Staking_ExistingTarget(string message);
 
-    /// @notice Thrown when trying to stake/unstake amount that is invalid
+    /**
+     * @notice Thrown when trying to stake/unstake amount that is invalid
+     */
     error Staking_InvalidAmount(string message);
 }
