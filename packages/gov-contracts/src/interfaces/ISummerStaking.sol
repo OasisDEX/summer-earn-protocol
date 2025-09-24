@@ -172,7 +172,8 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @return The penalty percentage in WAD format (18 decimals)
      * @dev Returns 0 if lockup period has ended
      * @dev Formula: (timeRemaining / maxLockupPeriod) * maxPenalty
-     * @dev maxPenalty = 20% (0.2e18), maxLockupPeriod = 3 years
+     * @dev maxPenalty = 2% floor < 110 days, else 20% (0.2e18), maxLockupPeriod = 3 years
+     * @dev penaltyDisabled == true then 0
      */
     function calculatePenaltyPercentage(
         address _user,
@@ -248,7 +249,7 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @return stakedAmounts Array of current staked amounts per bucket
      * @return minPeriods Array of minimum lockup periods per bucket
      * @return maxPeriods Array of maximum lockup periods per bucket
-     * @dev Arrays are ordered: [NoLockup, ShortTerm, ThreeToSixMonths, SixToTwelveMonths, OneToTwoYears, TwoToThreeYears]
+     * @dev Arrays are ordered: [NoLockup, ShortTerm, TwoWeeksToThreeMonths, ThreeToSixMonths, SixToTwelveMonths, OneToTwoYears, TwoToThreeYears]
      */
     function getAllBucketInfo()
         external

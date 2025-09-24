@@ -227,6 +227,7 @@ contract SummerStaking is
 
     // ============ EXTERNAL FUNCTIONS - UNSTAKING ============
 
+    /// @inheritdoc ISummerStaking
     function unstakeLockup(
         uint256 _stakeIndex,
         uint256 _amount
@@ -319,6 +320,7 @@ contract SummerStaking is
         return stakesByPortfolioId[_getPortfolioId(_user)].length;
     }
 
+    /// @inheritdoc ISummerStaking
     function getUserStake(
         address _user,
         uint256 _index
@@ -343,6 +345,7 @@ contract SummerStaking is
         }
     }
 
+    /// @inheritdoc ISummerStaking
     function weightedBalanceOf(
         address account
     ) public view virtual returns (uint256) {
@@ -351,12 +354,14 @@ contract SummerStaking is
 
     // ============ EXTERNAL VIEW FUNCTIONS - BUCKET INFORMATION ============
 
+    /// @inheritdoc ISummerStaking
     function getBucketTotalStaked(
         Bucket _bucket
     ) external view returns (uint256) {
         return bucketData[_bucket].staked;
     }
 
+    /// @inheritdoc ISummerStaking
     function getBucketDetails(
         Bucket _bucket
     )
@@ -374,6 +379,7 @@ contract SummerStaking is
         );
     }
 
+    /// @inheritdoc ISummerStaking
     function getAllBucketInfo()
         external
         view
@@ -411,6 +417,7 @@ contract SummerStaking is
 
     // ============ EXTERNAL VIEW FUNCTIONS - PENALTY CALCULATIONS ============
 
+    /// @inheritdoc ISummerStaking
     function calculatePenaltyPercentage(
         address _user,
         uint256 _stakeIndex
@@ -438,6 +445,7 @@ contract SummerStaking is
         return (timeRemaining * MAX_PENALTY_PERCENTAGE) / MAX_LOCKUP_PERIOD;
     }
 
+    /// @inheritdoc ISummerStaking
     function calculatePenalty(
         address _user,
         uint256 _amount,
@@ -452,6 +460,7 @@ contract SummerStaking is
 
     // ============ EXTERNAL PURE FUNCTIONS - WEIGHTED STAKE CALCULATIONS ============
 
+    /// @inheritdoc ISummerStaking
     function calculateWeightedStake(
         uint256 _amount,
         uint256 _lockupPeriod
@@ -461,6 +470,7 @@ contract SummerStaking is
 
     // ============ PUBLIC OVERRIDE FUNCTIONS - REWARDS ============
 
+    /// @inheritdoc IStakingRewardsManagerBase
     function earned(
         address account,
         address rewardToken
@@ -484,7 +494,7 @@ contract SummerStaking is
     }
 
     // ============ PUBLIC OVERRIDE FUNCTIONS - DISABLED FUNCTIONS ============
-
+    /// @inheritdoc IStakingRewardsManagerBase
     function stakeOnBehalfOf(
         address,
         uint256
@@ -492,6 +502,7 @@ contract SummerStaking is
         revert StakeOnBehalfOfNotSupported();
     }
 
+    /// @inheritdoc IStakingRewardsManagerBase
     function unstakeAndWithdrawOnBehalfOf(
         address,
         uint256,
@@ -500,6 +511,7 @@ contract SummerStaking is
         revert UnstakeOnBehalfOfNotSupported();
     }
 
+    /// @inheritdoc IStakingRewardsManagerBase
     function stake(
         uint256
     )
@@ -510,6 +522,7 @@ contract SummerStaking is
         revert Staking_DirectStakeNotAllowed("Use stakeLockup instead");
     }
 
+    /// @inheritdoc IStakingRewardsManagerBase
     function unstake(
         uint256
     )
@@ -520,6 +533,7 @@ contract SummerStaking is
         revert Staking_DirectUnstakeNotAllowed("Use unstakeLockup instead");
     }
 
+    /// @inheritdoc IStakingRewardsManagerBase
     function exit()
         public
         pure

@@ -225,7 +225,8 @@ contract SummerVestingWalletsEscrow is
      *      - Records the vesting wallet SUMR `balance` and `released` snapshot for later reconciliation
      *      - Emits `StakedVestingWallet(user, factory, balance, released)`
      *      - Mints xSUMR 1:1 to the user for the recorded `balance`
-     *      - If the users vesting wallet received additional SUMR tokens on top of vesting schedule, they will get additional xSUMR tokens
+     *      - If the users vesting wallet received additional SUMR tokens before staking on top of vesting schedule,
+     *        they will get additional xSUMR tokens
      * @param _vestingFactory The vesting factory implementation to resolve the user's vesting wallet
      * @param _user The user performing the stake
      * @custom:reverts Staking_FactoryAlreadyStaked If the user already staked this factory

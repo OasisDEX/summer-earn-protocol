@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {SummerTimelockController} from "../contracts/SummerTimelockController.sol";
 import {ISummerToken} from "./ISummerToken.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
@@ -26,7 +25,7 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
      * @param votingDelay The voting delay in seconds
      * @param votingPeriod The voting period in seconds
      * @param proposalThreshold The proposal threshold in tokens
-     * @param quorumFraction The quorum fraction in tokens
+     * @param quorumFraction The quorum fraction
      * @param endpoint The LayerZero endpoint address
      * @param hubChainId The hub chain ID
      * @param initialOwner The initial owner of the contract
@@ -72,7 +71,7 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
      * @notice Casts a vote for a proposal on the hub chain.
      * @param proposalId The proposal to vote on
      * @param support 0 = Against, 1 = For, 2 = Abstain
-     * @return proposalIdEcho The proposal ID (echo)
+     * @return proposalId The proposal ID (echo)
      */
     function castVote(
         uint256 proposalId,
@@ -100,7 +99,7 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
      * @param values ETH values
      * @param calldatas Calldata payloads
      * @param descriptionHash EIP-712 description hash
-     * @return proposalIdEcho Executed proposal ID
+     * @return proposalId Executed proposal ID
      */
     function execute(
         address[] memory targets,
@@ -115,7 +114,7 @@ interface ISummerGovernorV2 is IGovernor, ISummerGovernorErrors {
      * @param values ETH values
      * @param calldatas Calldata payloads
      * @param descriptionHash EIP-712 description hash
-     * @return proposalIdEcho Cancelled proposal ID
+     * @return proposalId Cancelled proposal ID
      */
     function cancel(
         address[] memory targets,

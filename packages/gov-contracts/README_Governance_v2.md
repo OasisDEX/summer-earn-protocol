@@ -233,13 +233,13 @@ unstakeVesting(address[] factories) →
 - **Penalty System**: Early unstaking incurs time-based penalties (governor can toggle penalties on/off)
 - **Stake Portfolio Management**: One portfolio per address; index 0 aggregates no-lockup stake; up to 1000 stakes; full-portfolio transfer supported via `transferStakes(to)` to a fresh target
 - **Default Caps**:
-  - `NoLockup`: cap = 0 (by default - can be changed at a later date)
-  - `ShortTerm` (1 sec – 14 days): cap = 0 (disabled by default)
-  - `TwoWeeksToThreeMonths` (>14 days – 90 days): cap = 0 (will have an initial cap hardcoded in the contract)
-  - `ThreeToSixMonths` (>90 – 180 days): cap = 0 (will have an initial cap hardcoded in the contract)
-  - `SixToTwelveMonths` (>180 – 365 days): cap = 0 (will have an initial cap hardcoded in the contract)
-  - `OneToTwoYears` (>365 – 730 days): cap = 0 (will have an initial cap hardcoded in the contract)
-  - `TwoToThreeYears` (>730 – 1095 days): cap = 0
+  - `NoLockup`: cap = 0 (by default - to be initialized by governance)
+  - `ShortTerm` (1 sec – 14 days): cap = 0 (by default - to be initialized by governance)
+  - `TwoWeeksToThreeMonths` (>14 days – 90 days): cap = 0 (by default - to be initialized by governance) 
+  - `ThreeToSixMonths` (>90 – 180 days): cap = 0 (by default - to be initialized by governance) 
+  - `SixToTwelveMonths` (>180 – 365 days): cap = 0 (by default - to be initialized by governance) 
+  - `OneToTwoYears` (>365 – 730 days): cap = 0 (by default - to be initialized by governance) 
+  - `TwoToThreeYears` (>730 – 1095 days): cap = 0 (by default - to be initialized by governance)
 
 
 **Critical Calculations**:
