@@ -48,6 +48,7 @@ contract StakedSummerToken is
     {}
 
     // ============ GOVERNANCE ============
+
     /// @inheritdoc IStakedSummerToken
     function addStakingModule(address _stakingModule) public onlyGovernor {
         if (_stakingModule == address(0)) {
@@ -70,16 +71,12 @@ contract StakedSummerToken is
         emit StakingModuleRemoved(_stakingModule);
     }
 
-    // ============ PAUSING ============
-
-    /// @notice Pauses token operations that honor pausability (e.g., burns).
-    /// @dev Callable by guardian or governor. While paused, `mint`, `burn` and `burnFrom` are blocked by ERC20Pausable.
+    /// @inheritdoc IStakedSummerToken
     function pause() public onlyGuardianOrGovernor {
         _pause();
     }
 
-    /// @notice Unpauses token operations.
-    /// @dev Callable by guardian or governor. Restores normal `mint`/`burn`/`burnFrom` behavior.
+    /// @inheritdoc IStakedSummerToken
     function unpause() public onlyGuardianOrGovernor {
         _unpause();
     }
@@ -144,22 +141,12 @@ contract StakedSummerToken is
 
     // ============ ROLE MANAGEMENT (GOVERNOR) ============
 
-    /**
-     * @notice Grants MINTER_ROLE to a specified address. Governor-only.
-     * @dev Intended for emergency recovery scenarios (e.g., user burned xSUMR prematurely
-     *      and needs redemption support). Normal mint authorization should be managed via
-     *      `addStakingModule`.
-     * @param _minter Address to grant MINTER_ROLE to.
-     */
+    /// @inheritdoc IStakedSummerToken
     function grantMinterRole(address _minter) public onlyGovernor {
         _grantRole(MINTER_ROLE, _minter);
     }
 
-    /**
-     * @notice Revokes MINTER_ROLE from a specified address. Governor-only.
-     * @dev Intended for emergency recovery scenarios. Normal flow uses `removeStakingModule` for module revocation.
-     * @param _minter Address to revoke MINTER_ROLE from.
-     */
+    /// @inheritdoc IStakedSummerToken
     function revokeMinterRole(address _minter) public onlyGovernor {
         _revokeRole(MINTER_ROLE, _minter);
     }
@@ -204,7 +191,6 @@ contract StakedSummerToken is
      * @param spender The address to check for `BURNER_ROLE`.
      * @return bool True if the burn is allowed, false otherwise.
      */
-    /// @dev Even with `BURNER_ROLE`, standard ERC20 allowance rules apply.
     function _canBurnFrom(
         address from,
         address spender

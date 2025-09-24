@@ -137,7 +137,7 @@ contract SummerStaking is
 
     // ============ EXTERNAL FUNCTIONS - STAKING ============
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function stakeLockup(
         uint256 _amount,
         uint256 _lockupPeriod
@@ -145,7 +145,7 @@ contract SummerStaking is
         _stakeLockup(_msgSender(), _msgSender(), _amount, _lockupPeriod);
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function stakeLockupOnBehalf(
         address _receiver,
         uint256 _amount,
@@ -154,7 +154,7 @@ contract SummerStaking is
         _stakeLockup(_msgSender(), _receiver, _amount, _lockupPeriod);
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function transferStakes(
         address _to
     ) external updateReward(_msgSender()) nonReentrant {
@@ -183,11 +183,12 @@ contract SummerStaking is
             address rewardTokenAddress = EnumerableSet.at(_rewardTokensList, i);
             if (userRewardPerTokenPaid[rewardTokenAddress][_to] != 0)
                 revert Staking_ExistingTarget("Target already has rewards");
-            uint256 fromReward = rewards[rewardTokenAddress][from];
-            if (fromReward != 0) {
-                rewards[rewardTokenAddress][from] = 0;
-                rewards[rewardTokenAddress][_to] = fromReward;
-            }
+
+            rewards[rewardTokenAddress][_to] = rewards[rewardTokenAddress][
+                from
+            ];
+            rewards[rewardTokenAddress][from] = 0;
+
             // Align paid markers to current snapshot for correctness going forward
             userRewardPerTokenPaid[rewardTokenAddress][from] = rewardData[
                 rewardTokenAddress
@@ -203,10 +204,9 @@ contract SummerStaking is
             revert Staking_ExistingTarget("Target already holds xSUMR");
         }
         uint256 xsumrToMove = _balances[from];
-        if (xsumrToMove != 0) {
-            STAKED_SUMMER_TOKEN.burnFrom(from, xsumrToMove);
-            STAKED_SUMMER_TOKEN.mint(_to, xsumrToMove);
-        }
+
+        STAKED_SUMMER_TOKEN.burnFrom(from, xsumrToMove);
+        STAKED_SUMMER_TOKEN.mint(_to, xsumrToMove);
 
         // Move portfolio id and clear sender's association
         stakePortfolioId[_to] = _getPortfolioId(from);
@@ -227,7 +227,7 @@ contract SummerStaking is
 
     // ============ EXTERNAL FUNCTIONS - UNSTAKING ============
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function unstakeLockup(
         uint256 _stakeIndex,
         uint256 _amount
@@ -285,7 +285,7 @@ contract SummerStaking is
     }
 
     // ============ EXTERNAL FUNCTIONS - ADMIN ============
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function updateLockupBucketCap(
         Bucket _bucket,
         uint256 _newCap
@@ -295,14 +295,14 @@ contract SummerStaking is
         emit LockupBucketUpdated(_bucket, _newCap);
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function updatePenaltyEnabled(bool _penaltyEnabled) external onlyGovernor {
         // Toggling penalties is a risk lever; when disabled, early exits incur no treasury fee
         penaltyEnabled = _penaltyEnabled;
         emit PenaltyEnabledUpdated(_penaltyEnabled);
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function rescueToken(address _token, address _to) external onlyGovernor {
         if (_token == address(WRAPPED_SUMMER_TOKEN)) {
             revert Staking_InvalidAddress("Cannot rescue wrapped summer token");
@@ -320,7 +320,7 @@ contract SummerStaking is
         return stakesByPortfolioId[_getPortfolioId(_user)].length;
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function getUserStake(
         address _user,
         uint256 _index
@@ -345,7 +345,7 @@ contract SummerStaking is
         }
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function weightedBalanceOf(
         address account
     ) public view virtual returns (uint256) {
@@ -354,14 +354,14 @@ contract SummerStaking is
 
     // ============ EXTERNAL VIEW FUNCTIONS - BUCKET INFORMATION ============
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function getBucketTotalStaked(
         Bucket _bucket
     ) external view returns (uint256) {
         return bucketData[_bucket].staked;
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function getBucketDetails(
         Bucket _bucket
     )
@@ -379,7 +379,7 @@ contract SummerStaking is
         );
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function getAllBucketInfo()
         external
         view
@@ -417,7 +417,7 @@ contract SummerStaking is
 
     // ============ EXTERNAL VIEW FUNCTIONS - PENALTY CALCULATIONS ============
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function calculatePenaltyPercentage(
         address _user,
         uint256 _stakeIndex
@@ -445,7 +445,7 @@ contract SummerStaking is
         return (timeRemaining * MAX_PENALTY_PERCENTAGE) / MAX_LOCKUP_PERIOD;
     }
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function calculatePenalty(
         address _user,
         uint256 _amount,
@@ -460,7 +460,7 @@ contract SummerStaking is
 
     // ============ EXTERNAL PURE FUNCTIONS - WEIGHTED STAKE CALCULATIONS ============
 
-    /// @inheritdoc ISummerStaking
+    ///  @inheritdoc ISummerStaking
     function calculateWeightedStake(
         uint256 _amount,
         uint256 _lockupPeriod
@@ -470,7 +470,7 @@ contract SummerStaking is
 
     // ============ PUBLIC OVERRIDE FUNCTIONS - REWARDS ============
 
-    /// @inheritdoc IStakingRewardsManagerBase
+    ///  @inheritdoc IStakingRewardsManagerBase
     function earned(
         address account,
         address rewardToken
@@ -494,7 +494,7 @@ contract SummerStaking is
     }
 
     // ============ PUBLIC OVERRIDE FUNCTIONS - DISABLED FUNCTIONS ============
-    /// @inheritdoc IStakingRewardsManagerBase
+    ///  @inheritdoc IStakingRewardsManagerBase
     function stakeOnBehalfOf(
         address,
         uint256
@@ -502,7 +502,7 @@ contract SummerStaking is
         revert StakeOnBehalfOfNotSupported();
     }
 
-    /// @inheritdoc IStakingRewardsManagerBase
+    ///  @inheritdoc IStakingRewardsManagerBase
     function unstakeAndWithdrawOnBehalfOf(
         address,
         uint256,
@@ -511,7 +511,7 @@ contract SummerStaking is
         revert UnstakeOnBehalfOfNotSupported();
     }
 
-    /// @inheritdoc IStakingRewardsManagerBase
+    ///  @inheritdoc IStakingRewardsManagerBase
     function stake(
         uint256
     )
@@ -522,7 +522,7 @@ contract SummerStaking is
         revert Staking_DirectStakeNotAllowed("Use stakeLockup instead");
     }
 
-    /// @inheritdoc IStakingRewardsManagerBase
+    ///  @inheritdoc IStakingRewardsManagerBase
     function unstake(
         uint256
     )
@@ -533,7 +533,7 @@ contract SummerStaking is
         revert Staking_DirectUnstakeNotAllowed("Use unstakeLockup instead");
     }
 
-    /// @inheritdoc IStakingRewardsManagerBase
+    ///  @inheritdoc IStakingRewardsManagerBase
     function exit()
         public
         pure
@@ -544,21 +544,23 @@ contract SummerStaking is
 
     // ============ INTERNAL FUNCTIONS - STAKING LOGIC ============
 
-    /// @notice Internal staking entrypoint that validates inputs, computes weighted amounts, updates accounting
-    ///         and emits stake events.
-    /// @dev Emits both `Staked` (from base manager) and `StakedWithLockup` (extended) events. Creates or updates
-    ///      the no-lockup aggregate stake at index 0 when `_lockupPeriod == 0`, otherwise appends a new stake.
-    ///      Reverts on invalid inputs, exceeding caps, or reaching per-user stake limit. Updates both raw and
-    ///      weighted balances and bucket totals, and performs token transfers/minting.
-    /// @param _from Address providing SUMR tokens (debited via transferFrom)
-    /// @param _receiver Address that receives the stake and xSUMR
-    /// @param _amount SUMR amount to stake (must be > 0)
-    /// @param _lockupPeriod Lockup duration in seconds (0..MAX_LOCKUP_PERIOD)
-    /// @custom:reverts Staking_InvalidAddress if `_from` or `_receiver` is zero
-    /// @custom:reverts Staking_InvalidAmount if `_amount == 0`
-    /// @custom:reverts Staking_InvalidLockupPeriod if `_lockupPeriod > MAX_LOCKUP_PERIOD`
-    /// @custom:reverts Staking_MaxStakesReached if user already has `MAX_AMOUNT_OF_STAKES`
-    /// @custom:reverts Staking_BucketCapExceeded if staking would exceed bucket cap
+    /**
+     * @notice Internal staking entrypoint that validates inputs, computes weighted amounts, updates accounting
+     *         and emits stake events.
+     * @dev Emits both `Staked` (from base manager) and `StakedWithLockup` (extended) events. Creates or updates
+     *      the no-lockup aggregate stake at index 0 when `_lockupPeriod == 0`, otherwise appends a new stake.
+     *      Reverts on invalid inputs, exceeding caps, or reaching per-user stake limit. Updates both raw and
+     *      weighted balances and bucket totals, and performs token transfers/minting.
+     * @param _from Address providing SUMR tokens (debited via transferFrom)
+     * @param _receiver Address that receives the stake and xSUMR
+     * @param _amount SUMR amount to stake (must be > 0)
+     * @param _lockupPeriod Lockup duration in seconds (0..MAX_LOCKUP_PERIOD)
+     * @custom:reverts Staking_InvalidAddress if `_from` or `_receiver` is zero
+     * @custom:reverts Staking_InvalidAmount if `_amount == 0`
+     * @custom:reverts Staking_InvalidLockupPeriod if `_lockupPeriod > MAX_LOCKUP_PERIOD`
+     * @custom:reverts Staking_MaxStakesReached if user already has `MAX_AMOUNT_OF_STAKES`
+     * @custom:reverts Staking_BucketCapExceeded if staking would exceed bucket cap
+     */
     function _stakeLockup(
         address _from,
         address _receiver,
@@ -631,11 +633,12 @@ contract SummerStaking is
     }
 
     // ============ INTERNAL FUNCTIONS - BUCKET MANAGEMENT ============
-
-    /// @notice Resolves the `Bucket` for a given lockup period.
-    /// @param _lockupPeriod Lockup duration in seconds
-    /// @return bucket The resolved bucket enum
-    /// @custom:reverts Staking_InvalidLockupPeriod if `_lockupPeriod` exceeds maximum allowed
+    /**
+     * @notice Resolves the `Bucket` for a given lockup period.
+     * @param _lockupPeriod Lockup duration in seconds
+     * @return bucket The resolved bucket enum
+     * @custom:reverts Staking_InvalidLockupPeriod if `_lockupPeriod` exceeds maximum allowed
+     */
     function _findBucket(uint256 _lockupPeriod) internal pure returns (Bucket) {
         // Map the lockup duration to a discrete risk bucket; 0 is a dedicated no-lockup bucket
         if (_lockupPeriod == 0) return Bucket.NoLockup;
@@ -653,10 +656,11 @@ contract SummerStaking is
             "Lockup period exceeds maximum allowed"
         );
     }
-
-    /// @notice Increases the total staked amount for the bucket of the given lockup period.
-    /// @param _lockupPeriod Lockup duration in seconds
-    /// @param _amount Raw amount to add to the bucket total
+    /**
+     * @notice Increases the total staked amount for the bucket of the given lockup period.
+     * @param _lockupPeriod Lockup duration in seconds
+     * @param _amount Raw amount to add to the bucket total
+     */
     function _addToBucketTotal(
         uint256 _lockupPeriod,
         uint256 _amount
@@ -665,10 +669,11 @@ contract SummerStaking is
         Bucket bucket = _findBucket(_lockupPeriod);
         bucketData[bucket].staked += _amount;
     }
-
-    /// @notice Decreases the total staked amount for the bucket of the given lockup period.
-    /// @param _lockupPeriod Lockup duration in seconds
-    /// @param _amount Raw amount to subtract from the bucket total
+    /**
+     * @notice Decreases the total staked amount for the bucket of the given lockup period.
+     * @param _lockupPeriod Lockup duration in seconds
+     * @param _amount Raw amount to subtract from the bucket total
+     */
     function _subtractFromBucketTotal(
         uint256 _lockupPeriod,
         uint256 _amount
@@ -677,13 +682,14 @@ contract SummerStaking is
         Bucket bucket = _findBucket(_lockupPeriod);
         bucketData[bucket].staked -= _amount;
     }
-
-    /// @notice Returns cap, current staked total, and min/max lockup bounds for a bucket.
-    /// @param _bucket The bucket to query
-    /// @return cap The staking cap for the bucket (0 = disabled, max = unlimited)
-    /// @return staked The current total raw amount staked in the bucket
-    /// @return minLockupPeriod Minimum lockup period in seconds for the bucket
-    /// @return maxLockupPeriod Maximum lockup period in seconds for the bucket
+    /**
+     * @notice Returns cap, current staked total, and min/max lockup bounds for a bucket.
+     * @param _bucket The bucket to query
+     * @return cap The staking cap for the bucket (0 = disabled, max = unlimited)
+     * @return staked The current total raw amount staked in the bucket
+     * @return minLockupPeriod Minimum lockup period in seconds for the bucket
+     * @return maxLockupPeriod Maximum lockup period in seconds for the bucket
+     */
     function _getBucketDetails(
         Bucket _bucket
     )
@@ -722,11 +728,12 @@ contract SummerStaking is
             maxLockupPeriod = BUCKET_TWO_TO_THREE_MAX;
         }
     }
-
-    /// @notice Checks whether staking `_amount` with `_lockupPeriod` would exceed the bucket cap.
-    /// @param _lockupPeriod Lockup duration in seconds
-    /// @param _amount Raw amount to test
-    /// @return wouldExceed True if current bucket total + amount would exceed cap
+    /**
+     * @notice Checks whether staking `_amount` with `_lockupPeriod` would exceed the bucket cap.
+     * @param _lockupPeriod Lockup duration in seconds
+     * @param _amount Raw amount to test
+     * @return wouldExceed True if current bucket total + amount would exceed cap
+     */
     function _wouldExceedBucketCap(
         uint256 _lockupPeriod,
         uint256 _amount
@@ -739,13 +746,14 @@ contract SummerStaking is
     }
 
     // ============ INTERNAL FUNCTIONS - WEIGHTED STAKE CALCULATIONS ============
-
-    /// @notice Calculates the weighted stake used for rewards accounting.
-    /// @dev Uses 60.18 fixed-point arithmetic: weighted = amount * (WEIGHTED_STAKE_BASE + WEIGHTED_STAKE_COEFFICIENT * t^2)
-    ///      where t is `_lockupPeriod` seconds. Constants: BASE=1e18, COEFFICIENT=700 (i.e., 7e-16 scaled to 60.18).
-    /// @param _amount Raw stake amount
-    /// @param _lockupPeriod Lockup duration in seconds
-    /// @return weightedAmount The weighted amount applied to rewards `totalSupply`
+    /**
+     * @notice Calculates the weighted stake used for rewards accounting.
+     * @dev Uses 60.18 fixed-point arithmetic: weighted = amount * (WEIGHTED_STAKE_BASE + WEIGHTED_STAKE_COEFFICIENT * t^2)
+     *      where t is `_lockupPeriod` seconds. Constants: BASE=1e18, COEFFICIENT=700 (i.e., 7e-16 scaled to 60.18).
+     * @param _amount Raw stake amount
+     * @param _lockupPeriod Lockup duration in seconds
+     * @return weightedAmount The weighted amount applied to rewards `totalSupply`
+     */
     function _calculateWeightedStake(
         uint256 _amount,
         uint256 _lockupPeriod
@@ -763,12 +771,13 @@ contract SummerStaking is
     }
 
     // ============ INTERNAL FUNCTIONS - TOKEN TRANSFERS ============
-
-    /// @notice Handles token flows for stake: pull SUMR from `from`, wrap into `WRAPPED_SUMMER_TOKEN`, mint xSUMR to `receiver`.
-    /// @dev Uses SafeERC20 for transfers and forceApprove to set allowance for the wrapper.
-    /// @param from Source address providing SUMR via `transferFrom`
-    /// @param receiver Recipient of newly minted xSUMR
-    /// @param amount Amount of SUMR to move and mint 1:1 as xSUMR
+    /**
+     * @notice Handles token flows for stake: pull SUMR from `from`, wrap into `WRAPPED_SUMMER_TOKEN`, mint xSUMR to `receiver`.
+     * @dev Uses SafeERC20 for transfers and forceApprove to set allowance for the wrapper.
+     * @param from Source address providing SUMR via `transferFrom`
+     * @param receiver Recipient of newly minted xSUMR
+     * @param amount Amount of SUMR to move and mint 1:1 as xSUMR
+     */
     function _handleTokenTransfersOnStake(
         address from,
         address receiver,
@@ -781,12 +790,14 @@ contract SummerStaking is
         WRAPPED_SUMMER_TOKEN.depositFor(address(this), amount);
         STAKED_SUMMER_TOKEN.mint(receiver, amount);
     }
-
-    /// @notice Handles token flows for unstake: withdraw wrapped SUMR, send net to `receiver`, penalty to `treasury`, and burn xSUMR.
-    /// @dev If `unstakePenalty == 0`, withdraw directly to receiver; otherwise withdraw to this contract, split net and penalty.
-    /// @param receiver Receiver of the unstaked SUMR net of penalty
-    /// @param amount Amount of SUMR being unstaked
-    /// @param unstakePenalty Penalty amount in SUMR sent to `treasury()`
+    /**
+     * @notice Handles token flows for unstake: withdraw wrapped SUMR,
+     * @notice send net to `receiver`, penalty to `treasury`, and burn xSUMR.
+     * @dev If `unstakePenalty == 0`, withdraw directly to receiver; otherwise withdraw to this contract, split net and penalty.
+     * @param receiver Receiver of the unstaked SUMR net of penalty
+     * @param amount Amount of SUMR being unstaked
+     * @param unstakePenalty Penalty amount in SUMR sent to `treasury()`
+     */
     function _handleTokenTransfersOnUnstake(
         address receiver,
         uint amount,
@@ -806,11 +817,12 @@ contract SummerStaking is
     }
 
     // ============ INTERNAL FUNCTIONS - BALANCE MANAGEMENT ============
-
-    /// @notice Updates raw and weighted balances and weighted total supply during stake.
-    /// @param _receiver Receiver whose balances are increased
-    /// @param _amount Raw amount added
-    /// @param _weightedAmount Weighted amount added to rewards `totalSupply`
+    /**
+     * @notice Updates raw and weighted balances and weighted total supply during stake.
+     * @param _receiver Receiver whose balances are increased
+     * @param _amount Raw amount added
+     * @param _weightedAmount Weighted amount added to rewards `totalSupply`
+     */
     function _updateBalancesOnStake(
         address _receiver,
         uint256 _amount,
@@ -821,11 +833,12 @@ contract SummerStaking is
         weightedBalances[_receiver] += _weightedAmount;
         totalSupply += _weightedAmount;
     }
-
-    /// @notice Updates raw and weighted balances and weighted total supply during unstake.
-    /// @param _receiver Receiver whose balances are decreased
-    /// @param _amount Raw amount removed
-    /// @param _weightedAmount Weighted amount removed from rewards `totalSupply`
+    /**
+     * @notice Updates raw and weighted balances and weighted total supply during unstake.
+     * @param _receiver Receiver whose balances are decreased
+     * @param _amount Raw amount removed
+     * @param _weightedAmount Weighted amount removed from rewards `totalSupply`
+     */
     function _updateBalancesOnUnstake(
         address _receiver,
         uint256 _amount,
@@ -837,10 +850,12 @@ contract SummerStaking is
         totalSupply -= _weightedAmount;
     }
 
-    /// @notice Removes a stake at `_index` from a user's portfolio using swap-and-pop.
-    /// @dev Assumes caller validated `_index` bounds. This is only used for non-aggregate stakes (index > 0).
-    /// @param _user The stake owner
-    /// @param _index The index to remove (0-based)
+    /**
+     * @notice Removes a stake at `_index` from a user's portfolio using swap-and-pop.
+     * @dev Assumes caller validated `_index` bounds. This is only used for non-aggregate stakes (index > 0).
+     * @param _user The stake owner
+     * @param _index The index to remove (0-based)
+     */
     function _removeStake(address _user, uint256 _index) internal {
         UserStake[] storage stakes = stakesByPortfolioId[
             _getPortfolioId(_user)

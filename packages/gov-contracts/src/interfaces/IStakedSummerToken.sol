@@ -76,6 +76,34 @@ interface IStakedSummerToken is IERC20 {
      */
     function removeStakingModule(address _stakingModule) external;
 
+    /**
+     * @notice Grants MINTER_ROLE to a specified address. Governor-only.
+     * @dev Intended for emergency recovery scenarios (e.g., user burned xSUMR prematurely
+     *      and needs redemption support). Normal mint authorization should be managed via
+     *      `addStakingModule`.
+     * @param _minter Address to grant MINTER_ROLE to.
+     */
+    function grantMinterRole(address _minter) external;
+
+    /**
+     * @notice Revokes MINTER_ROLE from a specified address. Governor-only.
+     * @dev Intended for emergency recovery scenarios. Normal flow uses `removeStakingModule` for module revocation.
+     * @param _minter Address to revoke MINTER_ROLE from.
+     */
+    function revokeMinterRole(address _minter) external;
+
+    /**
+     * @notice  Pauses token operations that honor pausability (e.g., burns).
+     * @dev Callable by guardian or governor. While paused, `mint`, `burn` and `burnFrom` are blocked by ERC20Pausable.
+     */
+    function pause() external;
+
+    /**
+     * @notice Unpauses token operations.
+     * @dev Callable by guardian or governor. Restores normal `mint`/`burn`/`burnFrom` behavior.
+     */
+    function unpause() external;
+
     // =============================
     //        MINT / BURN API
     // =============================
