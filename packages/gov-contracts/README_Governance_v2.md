@@ -1,3 +1,88 @@
+## Preliminary Documentation (for auditors)
+
+### Overview (concise)
+
+Governance v2 is a hub-and-satellite model. Voting happens exclusively on the hub chain using xSUMR (a non-transferable ERC20Votes token minted 1:1 for staked SUMR or vesting wallet/s/). Approved proposals are executed via a timelock on the hub and can be relayed cross-chain to satellites via LayerZero. Satellites do not accept proposals or votes; they only queue and execute hub-approved operations after the configured delay.
+
+xSUMR mint/burn is restricted to authorized staking modules managed by governance. Guardians (tracked by `accessManager`) can propose below threshold and have specific cancellation and pause privileges, enforced by `SummerTimelockController` and `StakedSummerToken`.
+
+### Staking weights and penalties (summary)
+
+- **Weight multipliers (rewards only)**:
+  - Weighted stake uses a quadratic time factor: `weighted = amount * (1 + 7e-16 * t^2)` where `t` is lockup seconds (capped at 3 years).
+  - Rewards accounting uses weighted balances (the rewards `totalSupply` equals the sum of weighted stakes).
+  - Governance voting power is based on xSUMR balance (1:1 minted for staked SUMR or vesting balances), not the weighted amount.
+- **Penalty on early unstake**:
+  - If penalties disabled → 0; if lockup expired → 0.
+  - If remaining lockup < 110 days → flat 2%; else linear up to 20% at 3 years: `penaltyPct = 20% * (remaining / 3y)`.
+  - Penalty applies to the amount being unstaked; penalty is transferred to `treasury()`, remainder to user.
+- **Buckets & caps**:
+  - Lockups are grouped into buckets (NoLockup, ShortTerm, 2w–3m, 3–6m, 6–12m, 1–2y, 2–3y) with governor-configurable caps; ShortTerm is disabled by default (cap = 0).
+  - A user has a single portfolio; index 0 aggregates NoLockup; up to 1000 stakes; full portfolio can be migrated to a fresh target via `transferStakes(to)`.
+
+### Actors and Roles (who can do what)
+
+- **SUMR holder**: Holds the base token. Can stake into `SummerStaking` or stake via vesting wallets using `SummerVestingWalletsEscrow` to receive xSUMR.
+- **xSUMR holder (voter)**: Has voting power on the hub chain. Can propose if voting power ≥ proposal threshold; can always vote on hub.
+- **Proposer (threshold-based)**: Any xSUMR holder with voting power ≥ proposal threshold can propose on the hub.
+- **Guardian (via `accessManager`)**: Can propose even below threshold on the hub; can cancel certain queued ops via timelock rules; can pause/unpause xSUMR alongside governor.
+- **Governor (the governance process + addresses with governor role)**: Adds/removes staking modules on xSUMR, manages vesting factory allowlist in the escrow, toggles pause, can perform emergency minter role actions in xSUMR, and controls configuration via proposals executed through the timelock.
+- **Timelock (`SummerTimelockController`)**: Schedules and executes approved operations after a delay. On satellites, anyone permitted by timelock executors can execute after delay.
+- **Staking module (`SummerStaking`)**: When authorized by xSUMR, can `mint` and `burnFrom` xSUMR corresponding to stake/unstake flows; cannot transfer xSUMR between users.
+- **Vesting wallet owner**: Can stake/unstake from approved vesting wallet factories via `SummerVestingWalletsEscrow` (escrow must already own the vesting wallet during staking period).
+- **Protocol Access Manager (`IProtocolAccessManager`)**: Source of truth for guardianship and roles; queried by the governor and timelock for authorization decisions.
+- **LayerZero endpoint**: Cross-chain transport used by the governor to distribute finalized proposals to satellites. Governor accepts ETH only from the endpoint or the timelock.
+
+### Contract relationships (high level)
+
+- `SummerGovernorV2`
+  - Uses xSUMR (ERC20Votes) as the voting token (no decay in v2)
+  - Owns/schedules through `SummerTimelockController`
+  - Queries `accessManager` to check guardian status
+  - Sends proposals to other chains via LayerZero OApp; satellites only queue received proposals
+  - Hub-only for propose/vote/execute/cancel; satellites cannot run these (queue only)
+
+- `StakedSummerToken` (xSUMR)
+  - Non-transferable; only mint/burn flows
+  - Governor adds/removes staking modules which receive `MINTER_ROLE` and `BURNER_ROLE`
+  - `burnFrom` requires owner or `BURNER_ROLE` plus allowance; direct `grantRole`/`revokeRole` are disabled
+  - Pausable by guardian/governor
+
+- `SummerStaking`
+  - Main staking with lockups (0–3y), weighted staking, penalties, and bucket caps
+  - Mints/burns xSUMR 1:1 on stake/unstake via `WrappedStakingToken`
+  - Weighted total supply drives rewards accounting
+
+- `SummerVestingWalletsEscrow`
+  - Allows staking from vesting wallets owned by the escrow
+  - Governor manages allowed vesting factories
+  - Mints/burns xSUMR equal to vesting wallet SUMR balance and tracks released amounts during stake
+
+- `SummerTimelockController`
+  - Enforces delay and specialized cancellation rules (governors vs guardians; guardian-expiry operations restricted)
+  - On satellites, executes queued operations after delay without hub voting (execution path is via timelock)
+
+### Hub/Satellite Governance and Voting Flow
+
+1. Stake to obtain votes
+   - Users lock SUMR in `SummerStaking` (or via `SummerVestingWalletsEscrow`) and receive non-transferable xSUMR.
+2. Propose (hub-only)
+   - Any address with votes ≥ proposal threshold can propose on the hub; guardians can propose even below threshold.
+3. Vote (hub-only)
+   - xSUMR holders vote; quorum and counting follow OpenZeppelin Governor modules.
+4. Queue and execute on hub
+   - Successful proposals are queued and then executed through `SummerTimelockController` after the delay.
+5. Distribute cross-chain
+   - `SummerGovernorV2.sendProposalToTargetChain()` is called on the hub to broadcast the finalized proposal to target chains via LayerZero.
+6. Satellite behavior
+   - Satellite governors receive the message and `_queueCrossChainProposal(...)` schedules operations in the local timelock. Propose/vote/execute/cancel remain disabled on satellites. After the delay, the satellite timelock executes (per its executor permissions).
+7. Safeguards
+   - Governor/guardian can pause xSUMR; guardianship checked via `accessManager`; governor accepts ETH only from LayerZero endpoint or the timelock.
+
+### What changed vs Governance v1
+
+- Voting decay is removed in v2. Governance token remains xSUMR (ERC20Votes), but without time-based decay mechanics. Hub/satellite architecture and guardian model are preserved, simplifying analysis and operations.
+
 ## Executive Summary for Auditors
 
 This audit covers **new contracts** that extend previously audited functionality. The focus is on:
@@ -287,3 +372,8 @@ if (_isRewardToken(rewardToken)) {
 - Hub-only: `propose(...)`, `castVote(proposalId, support)`, `execute(...)`, `cancel(...)`, `sendProposalToTargetChain(...)`
 - Satellite: queue via cross-chain receive
 - Params: voting delay/period, quorum fraction, proposal threshold validated within `[1,000; 100,000] SUMR`
+
+
+## Previous audits (with overlapping scope):
+- `StakingRewardsManagerBase.sol`,`ProtocolAccessManaged.sol`,`ConfigurationManaged.sol` [REPORT](https://cdn.prod.website-files.com/65d35b01a4034b72499019e8/68c01d6c3692197b1ecda495_ChainSecurity_Summer_fi_Summer_Earn_Protocol_audit.pdf)
+- `StakingRewardsManagerBase.sol`, `SummerGovernor.sol` [REPORT](https://github.com/Prototech-Labs/published-work/blob/main/18012025%20Prototech-SummerFi-Report.pdf)
