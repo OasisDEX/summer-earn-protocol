@@ -62,6 +62,7 @@ contract StakedSummerToken is
         emit StakingModuleAdded(_stakingModule);
     }
 
+    /// @inheritdoc IStakedSummerToken
     function removeStakingModule(address _stakingModule) public onlyGovernor {
         // Fully deauthorize staking module by revoking both roles
         _revokeRole(MINTER_ROLE, _stakingModule);
@@ -70,6 +71,7 @@ contract StakedSummerToken is
     }
 
     // ============ PAUSING ============
+
     /// @notice Pauses token operations that honor pausability (e.g., burns).
     /// @dev Callable by guardian or governor. While paused, `mint`, `burn` and `burnFrom` are blocked by ERC20Pausable.
     function pause() public onlyGuardianOrGovernor {
@@ -83,6 +85,7 @@ contract StakedSummerToken is
     }
 
     // ============ MINT / BURN API ============
+
     /// @inheritdoc IStakedSummerToken
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         // Only authorized staking modules are permitted to mint xSUMR
@@ -121,7 +124,6 @@ contract StakedSummerToken is
     }
 
     // The following functions are overrides required by Solidity.
-
     function _update(
         address from,
         address to,
@@ -141,15 +143,23 @@ contract StakedSummerToken is
     }
 
     // ============ ROLE MANAGEMENT (GOVERNOR) ============
-    /// @notice Grants MINTER_ROLE to a specified address. Governor-only.
-    /// @dev Intended for emergency recovery scenarios (e.g., user burned xSUMR prematurely and needs redemption support).
-    ///      Normal mint authorization should be managed via `addStakingModule`.
+
+    /**
+     * @notice Grants MINTER_ROLE to a specified address. Governor-only.
+     * @dev Intended for emergency recovery scenarios (e.g., user burned xSUMR prematurely
+     *      and needs redemption support). Normal mint authorization should be managed via
+     *      `addStakingModule`.
+     * @param _minter Address to grant MINTER_ROLE to.
+     */
     function grantMinterRole(address _minter) public onlyGovernor {
         _grantRole(MINTER_ROLE, _minter);
     }
 
-    /// @notice Revokes MINTER_ROLE from a specified address. Governor-only.
-    /// @dev Intended for emergency recovery scenarios. Normal flow uses `removeStakingModule` for module revocation.
+    /**
+     * @notice Revokes MINTER_ROLE from a specified address. Governor-only.
+     * @dev Intended for emergency recovery scenarios. Normal flow uses `removeStakingModule` for module revocation.
+     * @param _minter Address to revoke MINTER_ROLE from.
+     */
     function revokeMinterRole(address _minter) public onlyGovernor {
         _revokeRole(MINTER_ROLE, _minter);
     }
@@ -171,8 +181,15 @@ contract StakedSummerToken is
     }
 
     // ============ INTERNAL HELPERS ============
-    /// @dev Only allow mint (from == address(0)) and burn (to == address(0)) movements. Block user-to-user transfers.
-    /// @notice All staking module interactions are based on `mint()` and `burnFrom()`; transfers between users are disallowed.
+
+    /**
+     * @dev Only allow mint (from == address(0)) and burn (to == address(0)) movements. Block user-to-user transfers.
+     * @notice All staking module interactions are based on `mint()` and `burnFrom()`;
+     * transfers between users are disallowed.
+     * @param from The address to transfer tokens from.
+     * @param to The address to transfer tokens to.
+     * @return bool True if the transfer is allowed, false otherwise.
+     */
     function _canTransfer(
         address from,
         address to
@@ -180,7 +197,13 @@ contract StakedSummerToken is
         return from == address(0) || to == address(0);
     }
 
-    /// @notice Allows `burnFrom` only if `spender` burns its own tokens or holds `BURNER_ROLE`.
+    /**
+     * @notice Allows `burnFrom` only if `spender` burns its own tokens or holds `BURNER_ROLE`.
+     * @dev Even with `BURNER_ROLE`, standard ERC20 allowance rules apply.
+     * @param from The address to burn tokens from.
+     * @param spender The address to check for `BURNER_ROLE`.
+     * @return bool True if the burn is allowed, false otherwise.
+     */
     /// @dev Even with `BURNER_ROLE`, standard ERC20 allowance rules apply.
     function _canBurnFrom(
         address from,

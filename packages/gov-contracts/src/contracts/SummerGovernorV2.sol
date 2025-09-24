@@ -173,9 +173,11 @@ contract SummerGovernorV2 is
         emit ProposalSentCrossChain(dstProposalId, _dstEid);
     }
 
-    // Receive function to allow the contract to receive ETH from LayerZero
-    /// @notice Accepts ETH only from LayerZero endpoint or the timelock executor.
-    /// @dev Prevents accidental or malicious direct funding by other addresses.
+    /**
+     * @dev Receive function to allow the contract to receive ETH from LayerZero
+     * @dev Accepts ETH only from LayerZero endpoint or the timelock executor.
+     * @dev Prevents accidental or malicious direct funding by other addresses.
+     */
     receive() external payable override {
         // Allow deposits from LayerZero endpoint or timelock
         if (msg.sender != address(endpoint) && msg.sender != timelock()) {
