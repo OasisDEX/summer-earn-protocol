@@ -616,10 +616,10 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
 
         vm.startPrank(governor);
         registry.registerRelationship(
-            address(mockReceiver),
             fleetProxy,
-            CURRENT_CHAIN_ID,
+            address(mockReceiver),
             SOURCE_CHAIN_ID,
+            CURRENT_CHAIN_ID,
             registry.PEER_RELATIONSHIP()
         );
         vm.stopPrank();

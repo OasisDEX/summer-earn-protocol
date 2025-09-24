@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {BaseBridgeAdapter} from "../../src/base/BaseBridgeAdapter.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {CrossChainRegistry} from "../../src/contracts/CrossChainRegistry.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -53,7 +54,7 @@ contract BaseBridgeAdapterSweepTest is Test {
 
     // ============ ERC20 Token Tests ============
 
-    function testSweepERC20ByGovernor() public {
+    function testSweep_ERC20_ByGovernor_Succeeds() public {
         // Fund adapter with tokens
         token.mint(address(adapter), 5 ether);
 
@@ -69,30 +70,41 @@ contract BaseBridgeAdapterSweepTest is Test {
         assertEq(token.balanceOf(to), amount);
     }
 
-    function testSweepERC20UnauthorizedReverts() public {
+    function testSweep_ERC20_Reverts_WhenUnauthorized() public {
         token.mint(address(adapter), 1 ether);
         vm.prank(user);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
         adapter.sweep(address(token), address(0xBEEF), 1 ether);
     }
 
-    function testSweepERC20InsufficientBalanceReverts() public {
+    function testSweep_ERC20_Reverts_WhenInsufficientBalance() public {
         // Adapter has 0 tokens initially
         vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("InsufficientBalance()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BaseBridgeAdapter.InsufficientBalance.selector
+            )
+        );
         adapter.sweep(address(token), address(0xBEEF), 1 ether);
     }
 
-    function testSweepERC20ZeroRecipientReverts() public {
+    function testSweep_ERC20_Reverts_WhenRecipientZero() public {
         token.mint(address(adapter), 1 ether);
         vm.prank(governor);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(BaseBridgeAdapter.InvalidParams.selector)
+        );
         adapter.sweep(address(token), address(0), 1);
     }
 
     // ============ Native ETH Tests ============
 
-    function testSweepNativeETHByGovernor() public {
+    function testSweep_Native_ByGovernor_Succeeds() public {
         // Fund adapter with native ETH
         vm.deal(address(adapter), 5 ether);
 
@@ -110,7 +122,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         assertEq(address(adapter).balance, 3 ether);
     }
 
-    function testSweepNativeETHFullBalance() public {
+    function testSweep_Native_FullBalance_Succeeds() public {
         // Fund adapter with native ETH
         uint256 adapterBalance = 3.5 ether;
         vm.deal(address(adapter), adapterBalance);
@@ -128,38 +140,51 @@ contract BaseBridgeAdapterSweepTest is Test {
         assertEq(address(adapter).balance, 0);
     }
 
-    function testSweepNativeETHUnauthorizedReverts() public {
+    function testSweep_Native_Reverts_WhenUnauthorized() public {
         vm.deal(address(adapter), 1 ether);
         vm.prank(user);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
         adapter.sweep(address(0), address(0xBEEF), 1 ether);
     }
 
-    function testSweepNativeETHInsufficientBalanceReverts() public {
+    function testSweep_Native_Reverts_WhenInsufficientBalance() public {
         // Adapter has 0 ETH initially
         vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("InsufficientBalance()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BaseBridgeAdapter.InsufficientBalance.selector
+            )
+        );
         adapter.sweep(address(0), address(0xBEEF), 1 ether);
     }
 
-    function testSweepNativeETHZeroRecipientReverts() public {
+    function testSweep_Native_Reverts_WhenRecipientZero() public {
         vm.deal(address(adapter), 1 ether);
         vm.prank(governor);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(BaseBridgeAdapter.InvalidParams.selector)
+        );
         adapter.sweep(address(0), address(0), 1 ether);
     }
 
-    function testSweepNativeETHTransferFails() public {
+    function testSweep_Native_Reverts_WhenTransferFails() public {
         vm.deal(address(adapter), 1 ether);
 
         RejectETH rejectContract = new RejectETH();
 
         vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("TransferFailed()"));
+        vm.expectRevert(
+            abi.encodeWithSelector(BaseBridgeAdapter.TransferFailed.selector)
+        );
         adapter.sweep(address(0), address(rejectContract), 1 ether);
     }
 
-    function testSweepNativeETHZeroAmount() public {
+    function testSweep_Native_ZeroAmount_EmitsEventOnly() public {
         vm.deal(address(adapter), 1 ether);
         address to = address(0xBEEF);
         uint256 toBalanceBefore = to.balance;
@@ -176,7 +201,7 @@ contract BaseBridgeAdapterSweepTest is Test {
 
     // ============ Edge Cases ============
 
-    function testSweepBothTokenTypes() public {
+    function testSweep_BothTokenTypes_Succeeds() public {
         // Fund adapter with both ERC20 and native ETH
         token.mint(address(adapter), 3 ether);
         vm.deal(address(adapter), 2 ether);
@@ -199,7 +224,7 @@ contract BaseBridgeAdapterSweepTest is Test {
         assertEq(address(adapter).balance, 1 ether);
     }
 
-    function testSweepNativeETHToContract() public {
+    function testSweep_Native_ToContract_Succeeds() public {
         vm.deal(address(adapter), 1 ether);
 
         // Create a contract that can receive ETH
