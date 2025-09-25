@@ -78,8 +78,9 @@ contract SummerTimelockController is TimelockController {
      * 1. Have the CANCELLER_ROLE in this contract
      * 2. Have the GOVERNOR_ROLE in the access manager
      *
-     * Governors with cancel rights can cancel any proposal except guardian expiry proposals,
-     * which have special handling.
+     * Governors with the CANCELLER_ROLE can cancel any standard (non-expiry) proposal.
+     * Guardian expiry proposals have special handling and can be cancelled by any address
+     * with the GOVERNOR_ROLE, regardless of whether it has the CANCELLER_ROLE.
      *
      * @param account The address to check
      * @return bool True if the account is a governor with cancel rights
