@@ -732,11 +732,13 @@ contract SummerVestingV2Test is SummerTokenTestBase {
             memory performanceGoals = _getTestPerformanceGoals();
 
         vm.prank(foundation);
+
         factoryV2.createVestingWallet(
             beneficiary,
             vestingParams,
             performanceGoals
         );
+        vm.prank(foundation);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ISummerVestingWalletFactoryV2
@@ -745,8 +747,6 @@ contract SummerVestingV2Test is SummerTokenTestBase {
                 beneficiary
             )
         );
-        vm.prank(foundation);
-        vm.expectRevert();
         factoryV2.createVestingWallet(
             beneficiary,
             vestingParams,

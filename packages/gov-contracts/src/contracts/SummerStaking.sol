@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStakedSummerToken} from "../interfaces/IStakedSummerToken.sol";
-import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {WrappedStakingToken} from "./WrappedStakingToken.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
@@ -34,12 +33,12 @@ contract SummerStaking is
     ISummerStaking
 {
     using SafeERC20 for IStakedSummerToken;
-    using SafeERC20 for ISummerToken;
+    using SafeERC20 for IERC20;
     using SafeERC20 for IERC20;
 
     // ============ IMMUTABLE STATE ============
 
-    ISummerToken public immutable SUMMER_TOKEN;
+    IERC20 public immutable SUMMER_TOKEN;
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
     WrappedStakingToken public immutable WRAPPED_SUMMER_TOKEN;
 
@@ -97,7 +96,7 @@ contract SummerStaking is
             );
         }
 
-        SUMMER_TOKEN = ISummerToken(_summerToken);
+        SUMMER_TOKEN = IERC20(_summerToken);
         STAKED_SUMMER_TOKEN = IStakedSummerToken(_stakedSummerToken);
         WRAPPED_SUMMER_TOKEN = new WrappedStakingToken(_summerToken);
         stakingToken = _summerToken;
