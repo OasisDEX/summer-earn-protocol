@@ -9,6 +9,8 @@ import {BridgeTypes} from "../../../src/libraries/BridgeTypes.sol";
 import {LayerZeroAdapterSetupTest} from "./LayerZeroAdapter.setup.t.sol";
 
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
+import {BaseBridgeAdapter} from "../../../src/base/BaseBridgeAdapter.sol";
+import {Errors} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/Errors.sol";
 
 contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
     /*//////////////////////////////////////////////////////////////
@@ -246,6 +248,273 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
                 refundAddress: address(this)
             }),
             options
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        GOVERNANCE CONFIG TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_configureReadLibraries_reverts_without_channel() public {
+        useNetworkA();
+        vm.prank(governor);
+        vm.expectRevert(IBridgeAdapter.ReadChannelNotConfigured.selector);
+        adapterA.configureReadLibraries(address(0x1234));
+    }
+
+    function test_configureReadLibraries_emits_event_on_success() public {
+        useNetworkA();
+        vm.startPrank(governor);
+        uint32 channelId = READ_CHANNEL_THRESHOLD + 1;
+        adapterA.activateReadChannel(channelId);
+        // In the local LayerZero mocks, only registered/default libs are accepted
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.LZ_OnlyRegisteredOrDefaultLib.selector
+            )
+        );
+        adapterA.configureReadLibraries(address(0xBEEF));
+        vm.stopPrank();
+    }
+
+    function test_setChainReadSupport_updates_flag_and_emits() public {
+        useNetworkA();
+        vm.startPrank(governor);
+        vm.expectEmit(true, false, false, true);
+        emit LayerZeroAdapter.ChainReadSupportUpdated(CHAIN_ID_B, true);
+        adapterA.setChainReadSupport(CHAIN_ID_B, true);
+        vm.expectEmit(true, false, false, true);
+        emit LayerZeroAdapter.ChainReadSupportUpdated(CHAIN_ID_B, false);
+        adapterA.setChainReadSupport(CHAIN_ID_B, false);
+        vm.stopPrank();
+        assertFalse(adapterA.chainSupportsRead(CHAIN_ID_B));
+    }
+
+    function test_configureReadDVNs_reverts_without_channel() public {
+        useNetworkA();
+        address[] memory dvns = new address[](1);
+        dvns[0] = address(0x100);
+        vm.prank(governor);
+        vm.expectRevert(IBridgeAdapter.ReadChannelNotConfigured.selector);
+        adapterA.configureReadDVNs(address(0xBEEF), dvns, 0, address(0xCAFE));
+    }
+
+    function test_configureReadDVNs_validations() public {
+        useNetworkA();
+        vm.startPrank(governor);
+        adapterA.activateReadChannel(READ_CHANNEL_THRESHOLD + 1);
+
+        // zero-length
+        address[] memory empty;
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.configureReadDVNs(address(0xBEEF), empty, 0, address(0xCAFE));
+
+        // too many (> MAX_SUPPORTED_DVNS = 8)
+        address[] memory many = new address[](9);
+        for (uint256 i = 0; i < many.length; i++) {
+            many[i] = address(uint160(0x100 + i));
+        }
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.configureReadDVNs(address(0xBEEF), many, 0, address(0xCAFE));
+
+        // contains zero address
+        address[] memory withZero = new address[](2);
+        withZero[0] = address(0);
+        withZero[1] = address(0x200);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.configureReadDVNs(
+            address(0xBEEF),
+            withZero,
+            0,
+            address(0xCAFE)
+        );
+
+        // unsorted
+        address[] memory unsorted = new address[](2);
+        unsorted[0] = address(0x300);
+        unsorted[1] = address(0x200);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.configureReadDVNs(
+            address(0xBEEF),
+            unsorted,
+            0,
+            address(0xCAFE)
+        );
+
+        // zero executor
+        address[] memory good = new address[](2);
+        good[0] = address(0x200);
+        good[1] = address(0x300);
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.configureReadDVNs(address(0xBEEF), good, 0, address(0));
+
+        // zero read lib
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.configureReadDVNs(address(0), good, 0, address(0xCAFE));
+
+        // In the local LayerZero mocks, setConfig requires a registered lib
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.LZ_OnlyRegisteredLib.selector)
+        );
+        adapterA.configureReadDVNs(address(0xBEEF), good, 0, address(0xCAFE));
+        vm.stopPrank();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ESTIMATION & VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_estimateTransferAssets_reverts_OperationNotSupported()
+        public
+    {
+        useNetworkA();
+        vm.expectRevert(IBridgeAdapter.OperationNotSupported.selector);
+        adapterA.estimateTransferAssets(
+            BridgeTypes.ExecuteTransferParams({
+                originator: address(this),
+                destinationChainId: CHAIN_ID_B,
+                target: address(this),
+                asset: address(0),
+                amount: 0,
+                message: bytes(""),
+                refundAddress: address(this)
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                gasLimit: 100000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: bytes("")
+            })
+        );
+    }
+
+    function test_estimateSendMessage_reverts_when_gasLimit_zero() public {
+        useNetworkA();
+        vm.expectRevert(BaseBridgeAdapter.InvalidParams.selector);
+        adapterA.estimateSendMessage(
+            BridgeTypes.ExecuteSendMessageParams({
+                destinationChainId: CHAIN_ID_B,
+                target: address(0x1234),
+                message: bytes("hi"),
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                gasLimit: 0,
+                calldataSize: 0,
+                msgValue: 0,
+                options: bytes("")
+            })
+        );
+    }
+
+    function test_estimateReadState_success_after_channel_and_chain_enabled()
+        public
+    {
+        useNetworkA();
+        vm.startPrank(governor);
+        adapterA.activateReadChannel(READ_CHANNEL_THRESHOLD + 1);
+        adapterA.setChainReadSupport(CHAIN_ID_B, true);
+        // Configure a read library attempt; mocks will revert on unregistered lib
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.LZ_OnlyRegisteredOrDefaultLib.selector
+            )
+        );
+        adapterA.configureReadLibraries(address(0xBEEF));
+        vm.stopPrank();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.LZ_DefaultSendLibUnavailable.selector)
+        );
+        adapterA.estimateReadState(
+            BridgeTypes.ExecuteReadStateParams({
+                destinationChainId: CHAIN_ID_B,
+                target: address(0xdead),
+                selector: bytes4(keccak256("balanceOf(address)")),
+                readParams: abi.encode(address(this)),
+                originator: address(this),
+                refundAddress: address(this)
+            }),
+            BridgeTypes.BridgeOptions({
+                specifiedAdapter: address(adapterA),
+                gasLimit: 200000,
+                calldataSize: 0,
+                msgValue: 0,
+                options: bytes("")
+            })
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          RECEIVE VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_receive_reverts_on_invalid_source_chain_id() public {
+        useNetworkA();
+        bytes32 guid = keccak256("guid");
+        // Payload indicates sourceChainId = CHAIN_ID_A (wrong), while origin srcEid maps to CHAIN_ID_B
+        bytes memory payload = abi.encodePacked(
+            uint16(BridgeTypes.OperationType.MESSAGE),
+            abi.encode(
+                BridgeTypes.RelayedMessageParams({
+                    operationId: guid,
+                    originator: address(this),
+                    sourceChainId: CHAIN_ID_A,
+                    recipient: address(this),
+                    message: bytes("x")
+                })
+            )
+        );
+
+        Origin memory origin = Origin({
+            srcEid: LZ_EID_B,
+            sender: addressToBytes32(address(adapterB)),
+            nonce: 1
+        });
+
+        vm.expectRevert(BaseBridgeAdapter.InvalidSourceChainId.selector);
+        adapterA.lzReceiveTest(
+            origin,
+            guid,
+            payload,
+            address(adapterB),
+            bytes("")
+        );
+    }
+
+    function test_receive_reverts_when_sender_untrusted() public {
+        useNetworkA();
+        bytes32 guid = keccak256("guid2");
+        bytes memory payload = abi.encodePacked(
+            uint16(BridgeTypes.OperationType.MESSAGE),
+            abi.encode(
+                BridgeTypes.RelayedMessageParams({
+                    operationId: guid,
+                    originator: address(this),
+                    sourceChainId: CHAIN_ID_B,
+                    recipient: address(this),
+                    message: bytes("y")
+                })
+            )
+        );
+
+        // Use a wrong sender (not the registered peer for B)
+        Origin memory origin = Origin({
+            srcEid: LZ_EID_B,
+            sender: addressToBytes32(address(adapterA)),
+            nonce: 1
+        });
+
+        vm.expectRevert();
+        adapterA.lzReceiveTest(
+            origin,
+            guid,
+            payload,
+            address(adapterB),
+            bytes("")
         );
     }
 }
