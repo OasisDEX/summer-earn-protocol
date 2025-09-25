@@ -2018,4 +2018,156 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             "newUser should have count + 1 stakes"
         );
     }
+
+    function test_Fuzz_Unstake_MultiStep_AfterLockup(
+        uint128 amountRaw,
+        uint32 lockupPeriodRaw,
+        uint8 stepsRaw,
+        uint256 salt
+    ) public {
+        // Bound inputs
+        vm.startPrank(address(timelockA));
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ShortTerm,
+            type(uint256).max
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoToThreeYears,
+            type(uint256).max
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.OneToTwoYears,
+            type(uint256).max
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.ThreeToSixMonths,
+            type(uint256).max
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.SixToTwelveMonths,
+            type(uint256).max
+        );
+        aStaking.updateLockupBucketCap(
+            ISummerStaking.Bucket.TwoWeeksToThreeMonths,
+            type(uint256).max
+        );
+        vm.stopPrank();
+        /// max is multiply of total supply of summer token
+        uint256 amount = uint256(
+            bound(amountRaw, 21, 1_000_000_000_000_000_000 ether)
+        );
+        uint256 lockupPeriod = uint256(
+            bound(lockupPeriodRaw, aMinLockupPeriod, aMaxLockupPeriod)
+        );
+        uint256 steps = uint256(bound(stepsRaw, 2, 20));
+
+        // Fund and stake
+        deal(address(aSummerToken), user1, amount);
+
+        uint256 stakeIndex = _stake(aStaking, user1, amount, lockupPeriod);
+
+        // Move past lockup so no penalties apply
+        vm.warp(block.timestamp + lockupPeriod + 1 days);
+
+        // Perform multi-step partial unstakes with randomized chunks
+        uint256 remaining = amount;
+
+        for (uint256 i = 0; i < steps - 1; i++) {
+            // Leave at least 1 wei for each remaining step
+            uint256 maxChunk = remaining - ((steps - 1) - i);
+            uint256 rnd = uint256(
+                keccak256(abi.encodePacked(salt, i, amount, lockupPeriod))
+            );
+            uint256 chunk = 1 + (rnd % maxChunk);
+
+            _approveAndUnstake(aStaking, user1, stakeIndex, chunk);
+            remaining -= chunk;
+        }
+
+        // Final chunk drains the position
+        _approveAndUnstake(aStaking, user1, stakeIndex, remaining);
+        // After full exit, the specific stake index is removed (swap-and-pop), so querying it should return zeros
+        (uint256 finalAmount, uint256 finalWeighted, , ) = aStaking
+            .getUserStake(user1, stakeIndex);
+
+        assertEq(
+            finalAmount,
+            0,
+            "Stake amount should be zero after full multi-step exit"
+        );
+        assertEq(
+            finalWeighted,
+            0,
+            "Stake weightedAmount should be zero after full multi-step exit"
+        );
+
+        // User-level balances should be zero as user had only this stake (plus placeholder index 0)
+        assertEq(
+            aStaking.balanceOf(user1),
+            0,
+            "User raw balance should be zero"
+        );
+        assertEq(
+            aStaking.weightedBalanceOf(user1),
+            0,
+            "User weighted balance should be zero"
+        );
+        assertEq(axSumr.balanceOf(user1), 0, "xSUMR balance should be zero");
+    }
+
+    function test_Fuzz_Unstake_MultiStep_NoLockup(
+        uint128 amountRaw,
+        uint8 stepsRaw,
+        uint256 salt
+    ) public {
+        // Bound inputs
+        uint256 amount = uint256(
+            bound(amountRaw, 21, 1_000_000_000_000_000_000 ether)
+        );
+        uint256 steps = uint256(bound(stepsRaw, 2, 20));
+
+        // Fund and stake into no-lockup (index 0)
+        deal(address(aSummerToken), user1, amount);
+        uint256 stakeIndex = _stake(aStaking, user1, amount, 0);
+        assertEq(stakeIndex, 0, "No-lockup stake should be at index 0");
+
+        // Multi-step partial unstakes on index 0
+        uint256 remaining = amount;
+        for (uint256 i = 0; i < steps - 1; i++) {
+            uint256 maxChunk = remaining - ((steps - 1) - i);
+            uint256 rnd = uint256(keccak256(abi.encodePacked(salt, i, amount)));
+            uint256 chunk = 1 + (rnd % maxChunk);
+            _approveAndUnstake(aStaking, user1, 0, chunk);
+            remaining -= chunk;
+        }
+        _approveAndUnstake(aStaking, user1, 0, remaining);
+
+        // Index 0 remains but should be fully zeroed
+        (uint256 finalAmount, uint256 finalWeighted, , ) = aStaking
+            .getUserStake(user1, 0);
+        assertEq(
+            finalAmount,
+            0,
+            "No-lockup amount should be zero after full multi-step exit"
+        );
+        assertEq(
+            finalWeighted,
+            0,
+            "No-lockup weighted should be zero after full multi-step exit"
+        );
+
+        // User and bucket invariants
+        assertEq(
+            aStaking.balanceOf(user1),
+            0,
+            "User raw balance should be zero"
+        );
+        assertEq(
+            aStaking.weightedBalanceOf(user1),
+            0,
+            "User weighted balance should be zero"
+        );
+        assertEq(axSumr.balanceOf(user1), 0, "xSUMR balance should be zero");
+        _assertBucket(ISummerStaking.Bucket.NoLockup, 0);
+    }
 }

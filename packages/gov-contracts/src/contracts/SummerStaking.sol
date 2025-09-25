@@ -254,6 +254,7 @@ contract SummerStaking is
             _amount,
             _stakeIndex
         );
+        // this calculation is fine up to multiples of total supply of the summer token
         uint256 weightedAmountToRemove = (processedStake.weightedAmount *
             _amount) / processedStake.amount;
 
