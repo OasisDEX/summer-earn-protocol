@@ -93,6 +93,78 @@
         "vaultName": "Term_Summer_WETH",
         "protocol": "erc4626"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "SingularV_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Indexcoop_HyETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "TAC_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Alpha_WETH_Core",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Yearn_OG_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Avantgarde_WETH_Core",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Euler_Frontier_Upshift",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Euler_Alterscope_LRT_WETH",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ArmArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "steth",
+        "protocol": "origin-arm"
+      }
     }
   ]
 }

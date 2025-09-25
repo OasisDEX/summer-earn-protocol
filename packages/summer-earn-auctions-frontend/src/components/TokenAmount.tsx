@@ -25,7 +25,7 @@ export function TokenAmount({ amount, symbol, decimals }: TokenAmountProps) {
   }
 
   return (
-    <div className="text-sm font-medium">
+    <div className="text-sm font-medium text-gray-600">
       <button
         onClick={copyToClipboard}
         className="hover:text-blue-600 transition-colors cursor-pointer"

@@ -1,7 +1,29 @@
 import FinishedAuctionsView from '@/components/FinishedAuctionsView'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Auction } from '@/lib/types'
 import { AuctionCard } from './AuctionCard'
+
+interface Auction {
+  id: string
+  auctionId: string
+  ark: {
+    address: string
+    commander: string
+  }
+  rewardToken: {
+    id: string
+    symbol: string
+    decimals: number
+  }
+  buyToken: {
+    symbol: string
+    decimals: number
+  }
+  startTimestamp: string
+  endTimestamp: string
+  startPrice: string
+  endPrice: string
+  tokensLeft: string
+}
 
 interface ChainAuctions {
   chainId: number
@@ -15,7 +37,7 @@ interface AuctionTabsProps {
 
 export function AuctionTabs({ activeAuctions, finishedAuctions }: AuctionTabsProps) {
   return (
-    <Tabs defaultValue="finished" className="w-full">
+    <Tabs defaultValue="active" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="active">Active Auctions</TabsTrigger>
         <TabsTrigger value="finished">Finished Auctions</TabsTrigger>

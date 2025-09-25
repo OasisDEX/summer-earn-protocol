@@ -124,7 +124,16 @@
             "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
             "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183",
             "Spark_USDC": "0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A",
-            "Seamless_USDC": "0x616a4E1db48e22028f6bbf20444Cd3b8e3273738"
+            "Seamless_USDC": "0x616a4E1db48e22028f6bbf20444Cd3b8e3273738",
+            "Avantgarde_USDC_Core": "0x5b56F90340dBAa6a8693DADb141D620f0e154fE6",
+            "Gauntlet_USDC_RWA": "0xA8875aaeBc4f830524e35d57F9772FfAcbdD6C45",
+            "MEV_Capital_PTs_USDC": "0xd41830d88dfD08678b0B886E0122193d54b02Acc",
+            "RE7_USDC_FX_Protocol": "0x4F460bb11cf958606C69A963B4A17f9DaEEea8b6",
+            "Rollo_USDC_Performance": "0x98dC52125E9D0Eb8D62892334e502B555D04a787",
+            "Steakhouse_InfiniFi_USDC": "0xBEeF1f5Bd88285E5B239B6AAcb991d38ccA23Ac9",
+            "TAC_USDC": "0x1E2aAaDcF528b9cC08F43d4fd7db488cE89F5741",
+            "Clearstar_USDC_Reactor": "0x62fE596d59fB077c2Df736dF212E0AFfb522dC78",
+            "Edge_UltraYield_USDC": "0x0562AE950276B24F3eAE0d0a518dADB7Ad2F8D66"
           },
           "eurc": {
             "Steakhouse_EURC": "0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5",
@@ -458,7 +467,11 @@
     "protocolSpecific": {
       "originETH": {
         "originETH": "0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3",
-        "arm": "0x6bac785889A4127dB0e0CeFEE88E0a9F1Aaf3cC7"
+        "arms": {
+          "weth": {
+            "steth": "0x85B78AcA6Deae198fBF201c82DAF6Ca21942acc6"
+          }
+        }
       },
       "fluid": {
         "lite": {
@@ -493,7 +506,13 @@
           "Fluid": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
           "Euler_Prime": "0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9",
           "Euler_Yield": "0xe0a80d35bB6618CBA260120b279d357978c42BCE",
-          "Euler_Stablecoin_Maxi": "0xce45EF0414dE3516cAF1BCf937bF7F2Cf67873De"
+          "Euler_Stablecoin_Maxi": "0xce45EF0414dE3516cAF1BCf937bF7F2Cf67873De",
+          "Euler_Frontier_Falcon": "0x3573A84Bee11D49A1CbCe2b291538dE7a7dD81c6",
+          "Euler_Frontier_MMEV": "0x98281466aBcF48eAAD8c6E22dEdD18A3426A93b4",
+          "Euler_Frontier_YieldFi": "0xc727069c0eb261Be642272fe3848518192683fFc",
+          "Euler_Frontier_Hyperwave": "0x3C75C170671acb394804DfAf63e4F9891C121625",
+          "Euler_Frontier_Yala": "0x481D4909D7ca2eb27c4975f08dCE07DBeF0d3Fa7",
+          "Euler_Frontier_Pareto": "0xa94F9CE821C7bD57cc12991CB46ca19f5789278F"
         },
         "dai": {},
         "usde": {},
@@ -556,7 +575,17 @@
             "Steakhouse": "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
             "Gauntlet_USDC_Prime": "0xdd0f28e19C1780eb6396170735D45153D261490d",
             "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78",
-            "Smokehouse_USDC": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC"
+            "Smokehouse_USDC": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC",
+            "Avantgarde_USDC_Core": "0x5b56F90340dBAa6a8693DADb141D620f0e154fE6",
+            "Gauntlet_USDC_RWA": "0xA8875aaeBc4f830524e35d57F9772FfAcbdD6C45",
+            "MEV_Capital_PTs_USDC": "0xd41830d88dfD08678b0B886E0122193d54b02Acc",
+            "RE7_USDC_FX_Protocol": "0x4F460bb11cf958606C69A963B4A17f9DaEEea8b6",
+            "Rollo_USDC_Performance": "0x98dC52125E9D0Eb8D62892334e502B555D04a787",
+            "Steakhouse_InfiniFi_USDC": "0xBEeF1f5Bd88285E5B239B6AAcb991d38ccA23Ac9",
+            "TAC_USDC": "0x1E2aAaDcF528b9cC08F43d4fd7db488cE89F5741",
+            "Clearstar_USDC_Reactor": "0x62fE596d59fB077c2Df736dF212E0AFfb522dC78",
+            "Edge_UltraYield_USDC": "0x0562AE950276B24F3eAE0d0a518dADB7Ad2F8D66",
+            "Vault_Bridge_USDC": "0xBEefb9f61CC44895d8AEc381373555a64191A9c4"
           },
           "dai": {},
           "usde": {},
@@ -573,7 +602,14 @@
             "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0",
             "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4",
             "Mev_Capital_WETH": "0x9a8bC3B04b7f3D87cfC09ba407dCED575f2d61D8",
-            "Gauntlet_WETH_Core": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658"
+            "Gauntlet_WETH_Core": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658",
+            "Smokehouse_WETH": "0xbEEF36A5C1372F8D7d211527FCE9f83FE02d8A73",
+            "SingularV_WETH": "0x739d8a60ED4b14E4cB6DCAEAF79d2ec0Ca092237",
+            "Indexcoop_HyETH": "0x701907283a57FF77E255C3f1aAD790466B8CE4ef",
+            "TAC_WETH": "0x0bB2751a90fFF62e844b1521637DeD28F3f5046A",
+            "Alpha_WETH_Core": "0x47fe8Ab9eE47DD65c24df52324181790b9F47EfC",
+            "Yearn_OG_WETH": "0xE89371eAaAC6D46d4C3ED23453241987916224FC",
+            "Avantgarde_WETH_Core": "0xf79F51f8F473eD34f6b2b13ee74c3208286D53EB"
           }
         },
         "markets": {
