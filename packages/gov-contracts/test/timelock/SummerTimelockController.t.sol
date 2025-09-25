@@ -140,7 +140,9 @@ contract SummerTimelockControllerTest is SummerTokenTestBase {
         vm.prank(address(timelockA));
         timelockA.cancel(id);
     }
-    function test_cancel_nonExpiry_governorAndGuardianWithCancelRole() public {
+
+    function test_cancel_nonExpiry_guardianWithCancelRole() public {
+        address guardian = makeAddr("guardianE");
         // Create a non-expiry operation (e.g., a benign view call payload)
         bytes32 role = accessManagerA.GOVERNOR_ROLE();
         address account = address(this);
@@ -162,14 +164,19 @@ contract SummerTimelockControllerTest is SummerTokenTestBase {
             salt
         );
         vm.startPrank(address(timelockA));
-        accessManagerA.grantGuardianRole(address(timelockA));
-        timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(timelockA));
+        accessManagerA.grantGuardianRole(guardian);
+        accessManagerA.setGuardianExpiration(
+            guardian,
+            block.timestamp + 1000000
+        );
+        timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(guardian));
         vm.stopPrank();
 
         // This exercises the fallback branch
-        vm.prank(address(timelockA));
+        vm.prank(address(guardian));
         timelockA.cancel(id);
     }
+
     function test_cancel_nonExpiry_nonGuardianNonGovernorWithCancellerRole_revertsUnauthorized()
         public
     {
