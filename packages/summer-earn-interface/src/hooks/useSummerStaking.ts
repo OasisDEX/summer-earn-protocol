@@ -1,26 +1,115 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { useAccount, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { erc20Abi } from 'viem'
-import type { ChainId } from '../types'
-import { useEnvironment } from './useEnvironment'
-import { base as baseChain } from 'wagmi/chains'
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi'
 import {
   STAKED_SUMMER_TOKEN_ADDRESSES,
   SUMMER_STAKING_ADDRESSES,
   SUMMER_TOKEN_ADDRESSES,
 } from '../config/environments'
+import type { ChainId } from '../types'
+import { useEnvironment } from './useEnvironment'
 // Local ABI (inline to avoid import issues)
 const summerStakingAbi = [
-  { type: 'function', name: 'stakeLockup', stateMutability: 'nonpayable', inputs: [ { name: '_amount', type: 'uint256' }, { name: '_lockupPeriod', type: 'uint256' } ], outputs: [] },
-  { type: 'function', name: 'unstakeLockup', stateMutability: 'nonpayable', inputs: [ { name: '_stakeIndex', type: 'uint256' }, { name: '_amount', type: 'uint256' } ], outputs: [] },
-  { type: 'function', name: 'getAllBucketInfo', stateMutability: 'view', inputs: [], outputs: [ { name: 'buckets', type: 'uint8[]' }, { name: 'caps', type: 'uint256[]' }, { name: 'stakedAmounts', type: 'uint256[]' }, { name: 'minPeriods', type: 'uint256[]' }, { name: 'maxPeriods', type: 'uint256[]' } ] },
-  { type: 'function', name: 'getUserStakesCount', stateMutability: 'view', inputs: [ { name: '_user', type: 'address' } ], outputs: [ { name: 'count', type: 'uint256' } ] },
-  { type: 'function', name: 'getUserStake', stateMutability: 'view', inputs: [ { name: '_user', type: 'address' }, { name: '_index', type: 'uint256' } ], outputs: [ { name: 'amount', type: 'uint256' }, { name: 'weightedAmount', type: 'uint256' }, { name: 'lockupEndTime', type: 'uint256' }, { name: 'lockupPeriod', type: 'uint256' } ] },
-  { type: 'function', name: 'calculatePenalty', stateMutability: 'view', inputs: [ { name: '_user', type: 'address' }, { name: '_amount', type: 'uint256' }, { name: '_stakeIndex', type: 'uint256' } ], outputs: [ { name: 'penalty', type: 'uint256' } ] },
-  { type: 'function', name: 'calculatePenaltyPercentage', stateMutability: 'view', inputs: [ { name: '_user', type: 'address' }, { name: '_stakeIndex', type: 'uint256' } ], outputs: [ { name: 'penaltyPct', type: 'uint256' } ] },
-  { type: 'function', name: 'calculateWeightedStake', stateMutability: 'pure', inputs: [ { name: '_amount', type: 'uint256' }, { name: '_lockupPeriod', type: 'uint256' } ], outputs: [ { name: 'weighted', type: 'uint256' } ] },
-  { type: 'function', name: 'weightedBalanceOf', stateMutability: 'view', inputs: [ { name: 'account', type: 'address' } ], outputs: [ { name: 'weighted', type: 'uint256' } ] },
+  {
+    type: 'function',
+    name: 'stakeLockup',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: '_amount', type: 'uint256' },
+      { name: '_lockupPeriod', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'unstakeLockup',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: '_stakeIndex', type: 'uint256' },
+      { name: '_amount', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'getAllBucketInfo',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [
+      { name: 'buckets', type: 'uint8[]' },
+      { name: 'caps', type: 'uint256[]' },
+      { name: 'stakedAmounts', type: 'uint256[]' },
+      { name: 'minPeriods', type: 'uint256[]' },
+      { name: 'maxPeriods', type: 'uint256[]' },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'getUserStakesCount',
+    stateMutability: 'view',
+    inputs: [{ name: '_user', type: 'address' }],
+    outputs: [{ name: 'count', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'getUserStake',
+    stateMutability: 'view',
+    inputs: [
+      { name: '_user', type: 'address' },
+      { name: '_index', type: 'uint256' },
+    ],
+    outputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'weightedAmount', type: 'uint256' },
+      { name: 'lockupEndTime', type: 'uint256' },
+      { name: 'lockupPeriod', type: 'uint256' },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'calculatePenalty',
+    stateMutability: 'view',
+    inputs: [
+      { name: '_user', type: 'address' },
+      { name: '_amount', type: 'uint256' },
+      { name: '_stakeIndex', type: 'uint256' },
+    ],
+    outputs: [{ name: 'penalty', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'calculatePenaltyPercentage',
+    stateMutability: 'view',
+    inputs: [
+      { name: '_user', type: 'address' },
+      { name: '_stakeIndex', type: 'uint256' },
+    ],
+    outputs: [{ name: 'penaltyPct', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'calculateWeightedStake',
+    stateMutability: 'pure',
+    inputs: [
+      { name: '_amount', type: 'uint256' },
+      { name: '_lockupPeriod', type: 'uint256' },
+    ],
+    outputs: [{ name: 'weighted', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'weightedBalanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: 'weighted', type: 'uint256' }],
+  },
 ] as const
 
 export interface UserStakeView {
@@ -35,7 +124,6 @@ export interface UserStakeView {
 export function useSummerStaking(chainId: ChainId) {
   const { environment } = useEnvironment()
   const { address, isConnected } = useAccount()
-  const publicClient = usePublicClient({ chainId: Number(chainId) })
   // Resolve and sanitize chain id from route param; fall back to Base (8453) if invalid or unmapped
   const rawChainId = Number(chainId)
   const hasMappingFor = (cid: number) =>
@@ -45,11 +133,14 @@ export function useSummerStaking(chainId: ChainId) {
         SUMMER_STAKING_ADDRESSES[environment]?.[cid],
     )
   const chainIdNumber = Number.isFinite(rawChainId) && hasMappingFor(rawChainId) ? rawChainId : 8453
+  // Initialize public client for the resolved chain id; also keep a default client as fallback
+  const pcForChain = usePublicClient({ chainId: chainIdNumber })
+  const pcDefault = usePublicClient()
+  const publicClient = (pcForChain as any) ?? (pcDefault as any)
 
   const summerAddress = SUMMER_TOKEN_ADDRESSES[environment][chainIdNumber] as `0x${string}`
   const xSummerAddress = STAKED_SUMMER_TOKEN_ADDRESSES[environment][chainIdNumber] as `0x${string}`
   const stakingAddress = SUMMER_STAKING_ADDRESSES[environment][chainIdNumber] as `0x${string}`
-
 
   // Reads
   const { data: bucketInfo } = useReadContract({
@@ -59,7 +150,6 @@ export function useSummerStaking(chainId: ChainId) {
     query: { enabled: Boolean(stakingAddress) },
   })
 
-
   const { data: userStakeCount } = useReadContract({
     abi: summerStakingAbi,
     address: stakingAddress,
@@ -67,7 +157,6 @@ export function useSummerStaking(chainId: ChainId) {
     args: address ? [address] : undefined,
     query: { enabled: Boolean(stakingAddress && address) },
   })
-
 
   // ERC20 metadata
   const { data: summerDecimals } = useReadContract({
@@ -82,7 +171,6 @@ export function useSummerStaking(chainId: ChainId) {
     functionName: 'symbol',
     query: { enabled: Boolean(summerAddress) },
   })
-
 
   // Allowances
   const { data: summerAllowance, refetch: refetchSummerAllowance } = useReadContract({
@@ -99,7 +187,6 @@ export function useSummerStaking(chainId: ChainId) {
     args: address ? [address, stakingAddress] : undefined,
     query: { enabled: Boolean(address && stakingAddress && xSummerAddress) },
   })
-
 
   // Load stakes list via multicall
   const [stakes, setStakes] = useState<UserStakeView[]>([])
@@ -125,9 +212,21 @@ export function useSummerStaking(chainId: ChainId) {
         for (let i = 0; i < res.length; i++) {
           const r = res[i]
           if (r.status === 'success') {
-            const [amount, weightedAmount, lockupEndTime, lockupPeriod] = r.result as unknown as [bigint, bigint, bigint, bigint]
+            const [amount, weightedAmount, lockupEndTime, lockupPeriod] = r.result as unknown as [
+              bigint,
+              bigint,
+              bigint,
+              bigint,
+            ]
             const multiplierWad = amount > BigInt(0) ? (weightedAmount * WAD) / amount : BigInt(0)
-            items.push({ index: i, amount, weightedAmount, lockupEndTime, lockupPeriod, multiplierWad })
+            items.push({
+              index: i,
+              amount,
+              weightedAmount,
+              lockupEndTime,
+              lockupPeriod,
+              multiplierWad,
+            })
           }
         }
         if (!cancelled) setStakes(items)
@@ -143,7 +242,9 @@ export function useSummerStaking(chainId: ChainId) {
 
   // Actions
   const { writeContract: write, data: txHash, isPending } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash })
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  })
 
   useEffect(() => {
     if (!txHash) return
@@ -165,7 +266,10 @@ export function useSummerStaking(chainId: ChainId) {
         abi: erc20Abi,
         address: summerAddress,
         functionName: 'approve',
-        args: [stakingAddress, BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')],
+        args: [
+          stakingAddress,
+          BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
+        ],
         chainId: chainIdNumber,
       })
     } catch (e) {
@@ -182,7 +286,10 @@ export function useSummerStaking(chainId: ChainId) {
         abi: erc20Abi,
         address: xSummerAddress,
         functionName: 'approve',
-        args: [stakingAddress, BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')],
+        args: [
+          stakingAddress,
+          BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
+        ],
         chainId: chainIdNumber,
       })
     } catch (e) {
@@ -191,62 +298,99 @@ export function useSummerStaking(chainId: ChainId) {
     }
   }, [write, xSummerAddress, stakingAddress, chainIdNumber])
 
-  const stakeLockup = useCallback((amount: bigint, lockup: bigint) => {
-    if (!stakingAddress || amount <= BigInt(0)) return
-    try {
-      toast.loading('Staking…', { id: 'stake' })
-      ;(write as any)({
-        abi: summerStakingAbi,
-        address: stakingAddress,
-        functionName: 'stakeLockup',
-        args: [amount, lockup],
-        chainId: chainIdNumber,
-      })
-    } catch (e) {
-      console.error('stakeLockup error', e)
-      toast.error('Stake failed', { id: 'stake' })
-    }
-  }, [write, stakingAddress, chainIdNumber])
+  const stakeLockup = useCallback(
+    (amount: bigint, lockup: bigint) => {
+      if (!stakingAddress || amount <= BigInt(0)) return
+      try {
+        toast.loading('Staking…', { id: 'stake' })
+        ;(write as any)({
+          abi: summerStakingAbi,
+          address: stakingAddress,
+          functionName: 'stakeLockup',
+          args: [amount, lockup],
+          chainId: chainIdNumber,
+        })
+      } catch (e) {
+        console.error('stakeLockup error', e)
+        toast.error('Stake failed', { id: 'stake' })
+      }
+    },
+    [write, stakingAddress, chainIdNumber],
+  )
 
-  const unstakeLockup = useCallback((index: number, amount: bigint) => {
-    if (!stakingAddress || amount <= BigInt(0)) return
-    try {
-      toast.loading('Unstaking…', { id: 'unstake' })
-      ;(write as any)({
-        abi: summerStakingAbi,
-        address: stakingAddress,
-        functionName: 'unstakeLockup',
-        args: [BigInt(index), amount],
-        chainId: chainIdNumber,
-      })
-    } catch (e) {
-      console.error('unstakeLockup error', e)
-      toast.error('Unstake failed', { id: 'unstake' })
-    }
-  }, [write, stakingAddress, chainIdNumber])
+  const unstakeLockup = useCallback(
+    (index: number, amount: bigint) => {
+      if (!stakingAddress || amount <= BigInt(0)) return
+      try {
+        toast.loading('Unstaking…', { id: 'unstake' })
+        ;(write as any)({
+          abi: summerStakingAbi,
+          address: stakingAddress,
+          functionName: 'unstakeLockup',
+          args: [BigInt(index), amount],
+          chainId: chainIdNumber,
+        })
+      } catch (e) {
+        console.error('unstakeLockup error', e)
+        toast.error('Unstake failed', { id: 'unstake' })
+      }
+    },
+    [write, stakingAddress, chainIdNumber],
+  )
 
   // Helpers
-  const needsSummerApproval = useCallback((amount: bigint) => {
-    const a = (summerAllowance as bigint) || BigInt(0)
-    return a < amount
-  }, [summerAllowance])
-  const needsXSummerApproval = useCallback((amount: bigint) => {
-    const a = (xSummerAllowance as bigint) || BigInt(0)
-    return a < amount
-  }, [xSummerAllowance])
+  const needsSummerApproval = useCallback(
+    (amount: bigint) => {
+      const a = (summerAllowance as bigint) || BigInt(0)
+      return a < amount
+    },
+    [summerAllowance],
+  )
+  const needsXSummerApproval = useCallback(
+    (amount: bigint) => {
+      const a = (xSummerAllowance as bigint) || BigInt(0)
+      return a < amount
+    },
+    [xSummerAllowance],
+  )
 
   const totalUserAmount = useMemo(() => stakes.reduce((s, x) => s + x.amount, BigInt(0)), [stakes])
-  const totalUserWeighted = useMemo(() => stakes.reduce((s, x) => s + x.weightedAmount, BigInt(0)), [stakes])
-  const currentOverallMultiplierWad = useMemo(() => (totalUserAmount > BigInt(0) ? (totalUserWeighted * WAD) / totalUserAmount : WAD), [totalUserAmount, totalUserWeighted])
+  console.log('totalUserAmount', totalUserAmount)
+  const totalUserWeighted = useMemo(
+    () => stakes.reduce((s, x) => s + x.weightedAmount, BigInt(0)),
+    [stakes],
+  )
+  console.log('totalUserWeighted', totalUserWeighted)
+  const currentOverallMultiplierWad = useMemo(
+    () => (totalUserAmount > BigInt(0) ? (totalUserWeighted * WAD) / totalUserAmount : WAD),
+    [totalUserAmount, totalUserWeighted],
+  )
+  console.log('currentOverallMultiplierWad', currentOverallMultiplierWad)
 
   // Bucket view model
   const buckets = useMemo(() => {
-    if (!bucketInfo) return [] as { key: number; cap: bigint; staked: bigint; min: bigint; max: bigint; remainingPct: number; color: string }[]
-    const [bucketIds, caps, staked, minPeriods, maxPeriods] = bucketInfo as unknown as [number[], bigint[], bigint[], bigint[], bigint[]]
+    if (!bucketInfo)
+      return [] as {
+        key: number
+        cap: bigint
+        staked: bigint
+        min: bigint
+        max: bigint
+        remainingPct: number
+        color: string
+      }[]
+    const [bucketIds, caps, staked, minPeriods, maxPeriods] = bucketInfo as unknown as [
+      number[],
+      bigint[],
+      bigint[],
+      bigint[],
+      bigint[],
+    ]
     const items = bucketIds.map((b, i) => {
       const cap = caps[i]
       const st = staked[i]
-      const remaining = cap > BigInt(0) ? (cap > st ? Number(((cap - st) * BigInt(10000)) / cap) / 100 : 0) : 0
+      const remaining =
+        cap > BigInt(0) ? (cap > st ? Number(((cap - st) * BigInt(10000)) / cap) / 100 : 0) : 0
       let color = 'bg-green-600'
       // Assumption: thresholds are remaining capacity. <=25% red; <=50% orange; <=75% yellow; else green
       if (cap === BigInt(0)) {
@@ -260,7 +404,15 @@ export function useSummerStaking(chainId: ChainId) {
       } else {
         color = 'bg-green-600'
       }
-      return { key: b, cap, staked: st, min: minPeriods[i], max: maxPeriods[i], remainingPct: remaining, color }
+      return {
+        key: b,
+        cap,
+        staked: st,
+        min: minPeriods[i],
+        max: maxPeriods[i],
+        remainingPct: remaining,
+        color,
+      }
     })
     return items
   }, [bucketInfo])
@@ -304,6 +456,3 @@ export function useSummerStaking(chainId: ChainId) {
     isConfirmed,
   }
 }
-
-
-
