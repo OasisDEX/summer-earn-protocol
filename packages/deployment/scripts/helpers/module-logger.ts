@@ -10,6 +10,7 @@ import { CoreContracts } from '../../ignition/modules/core'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { GovContracts } from '../../ignition/modules/gov'
 import { GovContractsV2 } from '../../ignition/modules/gov-v2'
+import { StakingContracts } from '../../ignition/modules/staking'
 
 export class ModuleLogger {
   private moduleName: string
@@ -116,6 +117,15 @@ export class ModuleLogger {
   static logPendleLPArk(contracts: PendleLPArkContracts): void {
     const logger = new ModuleLogger('PendleLPArkModule', {
       'Pendle LP Ark': contracts.pendleLPArk,
+    })
+    logger.logAddresses()
+  }
+
+  static logStaking(contracts: StakingContracts): void {
+    const logger = new ModuleLogger('StakingModule', {
+      'Staked Summer Token (xSUMR)': contracts.stakedSummerToken,
+      'Summer Staking Contract     ': contracts.summerStaking,
+      'Vesting Wallets Escrow      ': contracts.summerVestingWalletsEscrow,
     })
     logger.logAddresses()
   }

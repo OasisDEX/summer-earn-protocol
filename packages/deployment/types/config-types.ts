@@ -97,6 +97,7 @@ export interface BaseConfig {
       rewardsRedeemer: { address: string }
       stakedSummerToken: { address: string }
       summerStakingContract: { address: string }
+      summerVestingWalletsEscrow: { address: string }
     }
     buyAndBurn: {
       buyAndBurn: { address: string }

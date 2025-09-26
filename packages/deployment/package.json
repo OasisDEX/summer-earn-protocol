@@ -23,6 +23,8 @@
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",
     "deploy:core": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-core.ts --network $NETWORK",
     "deploy:gov": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-gov.ts --network $NETWORK",
+    "deploy:gov-v2": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-gov-v2.ts --network $NETWORK",
+    "deploy:staking": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-staking.ts --network $NETWORK",
     "deploy:buy-and-burn": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-buy-and-burn.ts --network $NETWORK",
     "deploy:aq": "hardhat run scripts/redeploy-admirals-quarters.ts --network $NETWORK",
     "deploy:raft": "hardhat run scripts/redeploy-raft.ts --network $NETWORK",

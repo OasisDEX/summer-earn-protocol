@@ -4,6 +4,7 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { promisify } from 'util'
 import { BaseConfig } from '../types/config-types'
+import { deployStaking } from './deploy-staking'
 import { finalizeGovV2 } from './governance/finalize-gov-v2'
 import { peerGovV2 } from './governance/peer-gov-v2'
 import { rolesGovV2 } from './governance/roles-gov-v2'
@@ -12,6 +13,7 @@ import { getConfigByNetwork } from './helpers/config-handler'
 import { promptForConfigType } from './helpers/prompt-helpers'
 
 const STEPS = {
+  STAKING: 'deploy-staking',
   SYSTEM: 'system-gov',
   ROLES: 'roles-gov',
   PEER: 'peer-gov',
@@ -40,10 +42,9 @@ async function deployGov() {
       message: 'Which deployment step would you like to run?',
       choices: [
         {
-          // todo deploy-staking.ts
-          title: '0. Deploy stakedSummerToken and staking contract (deploy-staking.ts)',
-          description: 'Deploy the token for Spring or Gov chain',
-          value: 'deployToken',
+          title: '0. Deploy Staking Contracts (deploy-staking.ts)',
+          description: 'Deploy StakedSummerToken, SummerStaking, and SummerVestingWalletsEscrow',
+          value: STEPS.STAKING,
         },
         {
           title: '1. Deploy Governance System (system-gov-v2.ts)',
@@ -94,6 +95,9 @@ async function deployGov() {
       console.log(kleur.cyan().bold(`\nExecuting ${step}...\n`))
 
       switch (step) {
+        case STEPS.STAKING:
+          await deployStaking()
+          break
         case STEPS.SYSTEM:
           await systemGov(config, useBummerConfig)
           break
