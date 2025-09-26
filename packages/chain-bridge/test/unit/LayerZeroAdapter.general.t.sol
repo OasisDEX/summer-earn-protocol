@@ -115,7 +115,8 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         assertTrue(
             adapterA.supportsOperation(BridgeTypes.OperationType.MESSAGE)
         );
-        assertTrue(
+        // READ_STATE no longer supported
+        assertFalse(
             adapterA.supportsOperation(BridgeTypes.OperationType.READ_STATE)
         );
         assertFalse(
@@ -123,30 +124,7 @@ contract LayerZeroAdapterGeneralTest is LayerZeroAdapterSetupTest {
         );
     }
 
-    function testActivateAndUpdateReadChannel() public {
-        useNetworkA();
-
-        // Initially unset
-        assertEq(adapterA.readChannelId(), 0);
-
-        uint32 baseThreshold = adapterA.readChannelThreshold();
-        uint32 firstChannelId = baseThreshold + 1;
-        uint32 secondChannelId = baseThreshold + 2;
-
-        vm.startPrank(governor);
-        vm.expectEmit(true, false, false, true);
-        emit LayerZeroAdapter.ReadChannelActivated(firstChannelId);
-        adapterA.activateReadChannel(firstChannelId);
-        assertEq(adapterA.readChannelId(), firstChannelId);
-
-        // Update to a new read channel
-        vm.expectEmit(true, false, false, true);
-        emit LayerZeroAdapter.ReadChannelActivated(secondChannelId);
-        adapterA.activateReadChannel(secondChannelId);
-        assertEq(adapterA.readChannelId(), secondChannelId);
-        assertEq(adapterA.peers(firstChannelId), bytes32(0));
-        vm.stopPrank();
-    }
+    // READ_STATE channel activation tests removed
 
     // Note: Role enforcement for activating the read channel is covered elsewhere via access manager tests
 }
