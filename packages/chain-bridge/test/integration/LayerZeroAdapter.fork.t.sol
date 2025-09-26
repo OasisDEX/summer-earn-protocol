@@ -96,8 +96,6 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             "LayerZero endpoint should have code"
         );
 
-        // READ_STATE channel assertions removed
-
         // Verify chain mapping
         assertEq(
             layerZeroAdapter.chainToExternalId(DEST_CHAIN_ID),
@@ -112,12 +110,9 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
             ),
             "Should support MESSAGE operations"
         );
-        // READ_STATE support removed
 
         console.log("[SUCCESS] LayerZero configuration verified");
     }
-
-    // READ_STATE endpoint configuration tests removed
 
     // Helper function to execute a bridge message operation
     function _executeBridgeMessage(string memory messageContent) internal {
@@ -154,6 +149,4 @@ contract LayerZeroIntegrationForkTest is LayerZeroAdapterForkSetupTest {
         );
         vm.stopPrank();
     }
-
-    // READ_STATE helper removed
 }

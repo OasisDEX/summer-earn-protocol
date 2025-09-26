@@ -105,8 +105,6 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
         // Register layerZeroAdapter as an executor
         registry.registerExecutor(keeper);
 
-        // READ_STATE mock removed
-
         vm.stopPrank();
     }
 

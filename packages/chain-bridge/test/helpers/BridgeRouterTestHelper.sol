@@ -27,40 +27,6 @@ contract BridgeRouterTestHelper is BridgeRouter {
     }
 
     /**
-     * @notice Updates the operationToAdapter mapping for testing
-     * @param operationId ID of the operation
-     * @param adapter Address of the adapter to associate with this operation
-     */
-    // READ_STATE helper removed: operationToAdapter no longer exists
-
-    /**
-     * @notice Removes an entry from the operationToAdapter mapping
-     * @param operationId ID of the operation to remove
-     */
-    // READ_STATE helper removed
-
-    /**
-     * @notice Gets the adapter associated with a operation
-     * @param operationId ID of the operation
-     * @return Address of the adapter associated with this operation
-     */
-    // READ_STATE helper removed
-
-    /**
-     * @notice Sets the read request originator for testing purposes
-     * @param requestId ID of the read request
-     * @param originator Address of the originator to set
-     */
-    // READ_STATE helper removed
-
-    /**
-     * @notice Gets the originator associated with a read request
-     * @param requestId ID of the read request
-     * @return Address of the originator associated with this request
-     */
-    // READ_STATE helper removed
-
-    /**
      * @notice Sets whether operations should revert for testing purposes
      * @param _shouldRevert Whether operations should revert
      */

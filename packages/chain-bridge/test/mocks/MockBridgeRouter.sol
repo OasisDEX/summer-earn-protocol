@@ -559,8 +559,5 @@ contract MockBridgeRouter is Test, IBridgeRouter {
         // Note: We don't have mockSpecifiedAdapter in this version as we use MOCK_ADAPTER_ADDRESS
     }
 
-    // Add readState function from core contracts version
-    // READ_STATE mock removed
-
     function testSkipper() public {}
 }

@@ -344,11 +344,6 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
         assertEq(ids2.length, 0);
     }
 
-    // NOTE: Adapter override tests removed as adapter overrides are no longer supported
-    // function testIntegration_Message_MissingPeerMapping_ThenRetryWithAdapterOverride() - REMOVED
-
-    // READ_STATE failure test removed (feature unsupported)
-
     /* ------------------------------------------------------------ */
     /*                    Payload Validation Integration Tests       */
     /* ------------------------------------------------------------ */

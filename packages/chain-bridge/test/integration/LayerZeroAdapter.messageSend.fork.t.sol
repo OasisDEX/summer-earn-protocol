@@ -80,8 +80,6 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             options
         );
 
-        // operationToAdapter mapping removed; no setup required
-
         // Call layerZeroAdapter through router context (authorized)
         vm.startPrank(address(router));
         BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
