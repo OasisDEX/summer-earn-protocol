@@ -604,7 +604,13 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest, TransferHelpers {
 
         // Expect adapter-specific RefundFailed revert on failed native refund
         vm.prank(address(routerA));
-        vm.expectRevert(StargateAdapter.RefundFailed.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                StargateAdapter.RefundFailed.selector,
+                address(rejector),
+                1 wei
+            )
+        );
         adapterA.transferAsset{value: requiredFee + 1 wei}(
             opId,
             params,

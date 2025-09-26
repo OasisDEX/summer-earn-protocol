@@ -169,7 +169,15 @@ abstract contract BaseBridgeAdapter is
      * @notice Returns true if governance has registered a peer adapter for `dstChain`
      */
     function isTrustedDestination(uint16 dstChain) public view returns (bool) {
-        return _peerAdapter(dstChain) != address(0);
+        // The registry lookup may revert with RelationshipDoesNotExist when no mapping exists.
+        // For a boolean probe, convert that revert into a simple false.
+        try
+            CROSS_CHAIN_REGISTRY.getAdapterPeer(address(this), dstChain)
+        returns (address peer) {
+            return peer != address(0);
+        } catch {
+            return false;
+        }
     }
 
     /// @dev Reverts if `srcAdapter` is **not** the registry-declared peer for `srcChain`.
