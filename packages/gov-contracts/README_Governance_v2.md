@@ -18,7 +18,7 @@ xSUMR mint/burn is restricted to authorized staking modules managed by governanc
   - Penalty applies to the amount being unstaked; penalty is transferred to `treasury()`, remainder to user.
 - **Buckets & caps**:
   - Lockups are grouped into buckets (NoLockup, ShortTerm, 2w–3m, 3–6m, 6–12m, 1–2y, 2–3y) with governor-configurable caps; All buckets are disabled by default (cap = 0).
-  - A user has a single portfolio; index 0 aggregates NoLockup; up to 1000 stakes; full portfolio can be migrated to a fresh target via `transferStakes(to)`.
+  - A user has a single portfolio; index 0 aggregates NoLockup; up to 1000 stakes;
 
 ### Actors and Roles (who can do what)
 
@@ -231,7 +231,7 @@ unstakeVesting(address[] factories) →
 - **Weighted Staking**: Longer lockups = higher reward multipliers (quadratic in time)
 - **Bucket System**: Configurable caps per lockup duration
 - **Penalty System**: Early unstaking incurs time-based penalties (governor can toggle penalties on/off)
-- **Stake Portfolio Management**: One portfolio per address; index 0 aggregates no-lockup stake; up to 1000 stakes; full-portfolio transfer supported via `transferStakes(to)` to a fresh target
+- **Stake Portfolio Management**: One portfolio per address; index 0 aggregates no-lockup stake; up to 1000 stakes;
 - **Default Caps**:
   - `NoLockup`: cap = 0 (by default - to be initialized by governance)
   - `ShortTerm` (1 sec – 14 days): cap = 0 (by default - to be initialized by governance)
@@ -282,7 +282,6 @@ penaltyAmount = penaltyPct * amount;
 **User/Operator API**:
 - Stake: `stakeLockup(amount, lockupPeriod)`; `stakeLockupOnBehalf(receiver, amount, lockupPeriod)`
 - Unstake: `unstakeLockup(stakeIndex, amount)`
-- Transfer portfolio: `transferStakes(to)` (to must have no stakes, no xSUMR, and no reward markers)
 - Admin: `updateLockupBucketCap(bucket, newCap)`, `updatePenaltyEnabled(bool)`, `rescueToken(token, to)`
 - Views: `getUserStakesCount(user)`, `getUserStake(user, index)`, `weightedBalanceOf(user)`, bucket getters
 - Disabled (reverts): `stake()`, `unstake()`, `exit()`, `stakeOnBehalfOf()`, `unstakeAndWithdrawOnBehalfOf()`
@@ -373,7 +372,6 @@ if (_isRewardToken(rewardToken)) {
 ### SummerStaking
 - Stake: `stakeLockup(amount, lockupPeriod)`; `stakeLockupOnBehalf(receiver, amount, lockupPeriod)`
 - Unstake: `unstakeLockup(stakeIndex, amount)`
-- Transfer: `transferStakes(to)` (strict preconditions)
 - Admin: `updateLockupBucketCap(bucket, cap)`, `updatePenaltyEnabled(bool)`, `rescueToken(token, to)`
 - Views: stake getters, bucket getters, `weightedBalanceOf(user)`
 - Disabled: `stake()`, `unstake()`, `exit()`, `stakeOnBehalfOf()`, `unstakeAndWithdrawOnBehalfOf()`

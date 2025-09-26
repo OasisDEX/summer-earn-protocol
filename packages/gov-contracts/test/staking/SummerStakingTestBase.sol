@@ -361,7 +361,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _expectStakedWithLockupEvent(
         address user,
-        uint256 stakeId,
         uint256 stakeIndex,
         uint256 amount,
         uint256 lockupPeriod,
@@ -370,7 +369,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.expectEmit(true, false, false, false);
         emit ISummerStaking.StakedWithLockup(
             user,
-            stakeId,
             stakeIndex,
             amount,
             lockupPeriod,
@@ -383,7 +381,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _expectUnstakedWithPenaltyEvent(
         address user,
-        uint256 stakeId,
         uint256 stakeIndex,
         uint256 unstaked,
         uint256 penalty,
@@ -392,7 +389,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.expectEmit(true, false, false, false);
         emit ISummerStaking.UnstakedWithPenalty(
             user,
-            stakeId,
             stakeIndex,
             unstaked,
             penalty,
@@ -628,7 +624,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _verifyStakedEvent(
         address user,
-        uint256 stakeId,
         uint256 stakeIndex,
         uint256 amount,
         uint256 lockupPeriod,
@@ -637,7 +632,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.expectEmit(true, false, false, false);
         emit ISummerStaking.StakedWithLockup(
             user,
-            stakeId,
             stakeIndex,
             amount,
             lockupPeriod,
@@ -650,7 +644,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
      */
     function _verifyUnstakedEvent(
         address user,
-        uint256 stakeId,
         uint256 stakeIndex,
         uint256 unstaked,
         uint256 penalty,
@@ -659,7 +652,6 @@ contract SummerStakingTestBase is SummerGovernorV2TestBase {
         vm.expectEmit(true, false, false, false);
         emit ISummerStaking.UnstakedWithPenalty(
             user,
-            stakeId,
             stakeIndex,
             unstaked,
             penalty,

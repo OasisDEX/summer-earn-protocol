@@ -91,15 +91,6 @@ interface ISummerStaking is IStakingRewardsManagerBase {
         uint256 _lockupPeriod
     ) external;
 
-    /**
-     * @notice Move all stake positions and accounting from caller to a fresh target wallet
-     * @param _to The target wallet that must currently have zero stakes
-     * @dev Moves xSumr from caller to target
-     * @dev this is in case of compromised wallet or any other reason that might require a wallet to be cleaned up
-     * @dev Reverts if target wallet already has at least one stake
-     */
-    function transferStakes(address _to) external;
-
     // ============ UNSTAKING FUNCTIONS ============
 
     /**
@@ -297,7 +288,6 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     /**
      * @notice Emitted when tokens are staked with a lockup period
      * @param receiver The address that staked the tokens
-     * @param stakeId The id of the stake
      * @param stakeIndex The index of the stake that was staked
      * @param amount The amount of tokens staked
      * @param lockupPeriod The lockup period in seconds
@@ -305,7 +295,6 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      */
     event StakedWithLockup(
         address indexed receiver,
-        uint256 indexed stakeId,
         uint256 indexed stakeIndex,
         uint256 amount,
         uint256 lockupPeriod,
@@ -315,7 +304,6 @@ interface ISummerStaking is IStakingRewardsManagerBase {
     /**
      * @notice Emitted when tokens are unstaked with a penalty applied
      * @param receiver The owner of the stake that unstaked the tokens
-     * @param stakeId The id of the stake array
      * @param stakeIndex The index of the stake that was unstaked
      * @param unstakedAmount The gross amount unstaked before penalty
      * @param penalty The penalty amount sent to treasury
@@ -323,7 +311,6 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      */
     event UnstakedWithPenalty(
         address indexed receiver,
-        uint256 indexed stakeId,
         uint256 indexed stakeIndex,
         uint256 unstakedAmount,
         uint256 penalty,
@@ -336,18 +323,6 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @param cap The new cap amount (0 = disabled, max = unlimited)
      */
     event LockupBucketUpdated(Bucket indexed bucket, uint256 cap);
-
-    /**
-     * @notice Emitted when stakes are transferred from one wallet to another
-     * @param from The address that transferred the stakes
-     * @param to The address that received the stakes
-     * @param stakeId The id of the stake
-     */
-    event StakesTransferred(
-        address indexed from,
-        address indexed to,
-        uint256 indexed stakeId
-    );
 
     /**
      * @notice Emitted when the penalty enabled status is updated
@@ -406,11 +381,6 @@ interface ISummerStaking is IStakingRewardsManagerBase {
      * @notice Thrown when trying to stake amount that would exceed bucket cap
      */
     error Staking_BucketCapExceeded();
-
-    /**
-     * @notice Thrown when trying to move stakes to a wallet that already has stakes
-     */
-    error Staking_ExistingTarget(string message);
 
     /**
      * @notice Thrown when trying to stake/unstake amount that is invalid

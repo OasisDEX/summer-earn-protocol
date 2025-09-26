@@ -422,7 +422,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Unstake immediately
         _verifyUnstakedEvent(
             user1,
-            aStaking.stakePortfolioId(user1),
             stakeIndex,
             stakeAmount,
             (stakeAmount * expectedPenalty) / Constants.WAD,
@@ -469,7 +468,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         // Unstake immediately
         _verifyUnstakedEvent(
             user1,
-            aStaking.stakePortfolioId(user1),
             stakeIndex,
             stakeAmount,
             (stakeAmount * expectedPenalty) / Constants.WAD,
@@ -1469,221 +1467,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         );
     }
 
-    // ============ MOVE STAKES TESTS ============
-
-    function test_TransferStakes_Errors() public {
-        // Prepare: user1 has multiple stakes; user2 has stakes
-        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
-        _stake(aStaking, user1, STAKE_AMOUNT / 2, 0);
-        _stake(aStaking, user2, STAKE_AMOUNT, aMinLockupPeriod);
-        assertEq(aStaking.getUserStakesCount(user1), 2);
-        assertEq(aStaking.getUserStakesCount(user2), 2);
-
-        // Snapshot pre-state (reduced locals) - not used further in error tests
-
-        // Approve xSUMR transfer and move all stakes from user1 to user2 (not required for error paths below)
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISummerStaking.Staking_InvalidAddress.selector,
-                "Target address cannot be zero"
-            )
-        );
-        aStaking.transferStakes(address(0));
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISummerStaking.Staking_InvalidAddress.selector,
-                "Cannot move stakes to self"
-            )
-        );
-        aStaking.transferStakes(user1);
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISummerStaking.Staking_ExistingTarget.selector,
-                "Target already has stakes"
-            )
-        );
-        aStaking.transferStakes(user2);
-
-        vm.prank(user3);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISummerStaking.Staking_InvalidStakeIndex.selector,
-                "From wallet has no stakes"
-            )
-        );
-        aStaking.transferStakes(address(4));
-
-        deal(address(axSumr), user3, STAKE_AMOUNT);
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISummerStaking.Staking_ExistingTarget.selector,
-                "Target already holds xSUMR"
-            )
-        );
-        aStaking.transferStakes(user3);
-    }
-    function test_MoveAllStakesTo_FreshWallet_AccountingMoves_XSumrTransfers()
-        public
-    {
-        // Prepare: user1 has multiple stakes; user2 has none
-        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
-        _stake(aStaking, user1, STAKE_AMOUNT / 2, 0);
-        assertEq(aStaking.getUserStakesCount(user1), 2);
-        assertEq(aStaking.getUserStakesCount(user2), 0);
-
-        // Snapshot pre-state (reduced locals)
-        UserSnapshot memory fromBefore = _snapshotUser(aStaking, user1);
-        UserSnapshot memory toBefore = _snapshotUser(aStaking, user2);
-        uint256 totalSupplyBefore = aStaking.totalSupply();
-
-        // Approve xSUMR transfer and move all stakes from user1 to user2
-        vm.prank(user1);
-        axSumr.approve(address(aStaking), fromBefore.raw);
-        vm.prank(user1);
-        aStaking.transferStakes(user2);
-
-        // Source is cleared
-        assertEq(
-            aStaking.getUserStakesCount(user1),
-            0,
-            "from stakes should be cleared"
-        );
-        assertEq(
-            aStaking.balanceOf(user1),
-            0,
-            "from raw balance should be zero"
-        );
-        assertEq(
-            aStaking.weightedBalanceOf(user1),
-            0,
-            "from weighted balance should be zero"
-        );
-
-        // Target receives balances and stakes
-        assertEq(
-            aStaking.getUserStakesCount(user2),
-            2,
-            "to should receive all stakes"
-        );
-        assertEq(
-            aStaking.balanceOf(user2),
-            toBefore.raw + fromBefore.raw,
-            "to raw balance should increase by from raw"
-        );
-        assertEq(
-            aStaking.weightedBalanceOf(user2),
-            toBefore.weighted + fromBefore.weighted,
-            "to weighted balance should increase by from weighted"
-        );
-
-        // Total weighted supply unchanged
-        assertEq(
-            aStaking.totalSupply(),
-            totalSupplyBefore,
-            "totalSupply must remain unchanged"
-        );
-
-        // xSUMR token balances moved
-        assertEq(
-            axSumr.balanceOf(user1),
-            fromBefore.xsumr - fromBefore.raw,
-            "xSUMR of from should decrease by raw amount"
-        );
-        assertEq(
-            axSumr.balanceOf(user2),
-            toBefore.xsumr + fromBefore.raw,
-            "xSUMR of to should increase by raw amount"
-        );
-
-        // Check moved stake data coherence (non-zero amounts)
-        (uint256 amt0, , , ) = aStaking.getUserStake(user2, 0);
-        (uint256 amt1, , , ) = aStaking.getUserStake(user2, 1);
-        assertGt(amt0, 0);
-        assertGt(amt1, 0);
-    }
-
-    function test_TransferStakes_MovesAccruedRewards_ReceiverCanClaim() public {
-        // Stake by user1
-        uint256 stakeAmount = STAKE_AMOUNT;
-        _stake(aStaking, user1, stakeAmount, aMinLockupPeriod);
-
-        // Notify rewards and accrue
-        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
-        vm.warp(block.timestamp + 30 days);
-
-        // Earned before transfer should be > 0 for user1
-        uint256 earnedBefore = aStaking.earned(user1, address(rewardToken));
-        assertGt(
-            earnedBefore,
-            0,
-            "user1 should have accrued rewards before transfer"
-        );
-
-        // Approve xSUMR transfer
-        vm.prank(user1);
-        axSumr.approve(address(aStaking), stakeAmount);
-
-        // Snapshot xSUMR balances to reduce locals below
-        UserSnapshot memory fromBefore = _snapshotUser(aStaking, user1);
-        UserSnapshot memory toBefore = _snapshotUser(aStaking, user2);
-
-        // Transfer stakes to user2
-        vm.prank(user1);
-        aStaking.transferStakes(user2);
-
-        // After transfer: user1 can't earn prior rewards, user2 has them
-        assertEq(
-            aStaking.earned(user1, address(rewardToken)),
-            0,
-            "user1 accrued rewards should be moved"
-        );
-        uint256 earnedTo = aStaking.earned(user2, address(rewardToken));
-        assertEq(
-            earnedTo,
-            earnedBefore,
-            "user2 should inherit accrued rewards"
-        );
-
-        // xSUMR moved from user1 to user2
-        assertEq(axSumr.balanceOf(user1), 0, "from xSUMR should be moved");
-        assertEq(
-            axSumr.balanceOf(user2),
-            toBefore.xsumr + fromBefore.raw,
-            "to xSUMR should increase by staked amount"
-        );
-
-        // User2 can claim
-        uint256 user2RewardBalanceBefore = rewardToken.balanceOf(user2);
-        vm.prank(user2);
-        aStaking.getReward(address(rewardToken));
-        uint256 user2RewardBalanceAfter = rewardToken.balanceOf(user2);
-        assertEq(
-            user2RewardBalanceAfter,
-            user2RewardBalanceBefore + earnedTo,
-            "user2 should receive accrued rewards on claim"
-        );
-        assertEq(
-            aStaking.earned(user2, address(rewardToken)),
-            0,
-            "earned should reset after claim"
-        );
-
-        uint user1RewardsBalanceBefore = rewardToken.balanceOf(user1);
-        // User1 can't claim
-        vm.prank(user1);
-        aStaking.getReward(address(rewardToken));
-        uint user1RewardsBalanceAfter = rewardToken.balanceOf(user1);
-        assertEq(
-            user1RewardsBalanceAfter,
-            user1RewardsBalanceBefore,
-            "user1 should not receive rewards after claim"
-        );
-    }
-
     function test_CantStakeWithUninitializedBuckets() public {
         SummerStaking freshStaking = createFreshStaking();
         uint256[] memory periods = new uint256[](7);
@@ -1780,43 +1563,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         return (user1Claimed, user2Claimed, totalClaimed);
     }
 
-    function test_Revert_TransferStakes_TargetHasUnclaimedRewards() public {
-        // Prepare target with unclaimed rewards but zero stakes
-        // Step 1: user2 stakes and accrues rewards
-        uint256 stakeIndex1 = _stake(
-            aStaking,
-            user2,
-            STAKE_AMOUNT,
-            aMinLockupPeriod
-        );
-        _addAndNotifyRewards(address(rewardToken), REWARD_AMOUNT);
-        vm.warp(block.timestamp + 10 days);
-        // Step 2: user2 fully unstakes (after lockup), leaving accrued rewards
-        vm.warp(block.timestamp + aMinLockupPeriod + 1 days);
-        _approveAndUnstake(aStaking, user2, stakeIndex1, STAKE_AMOUNT);
-        assertEq(
-            aStaking.getUserStakesCount(user2),
-            1,
-            "user2 should have one stake (no Lockup)"
-        );
-        assertGt(
-            aStaking.earned(user2, address(rewardToken)),
-            0,
-            "user2 should have unclaimed rewards"
-        );
-
-        // Now user1 stakes and tries to transfer to user2
-        _stake(aStaking, user1, STAKE_AMOUNT, aMinLockupPeriod);
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISummerStaking.Staking_ExistingTarget.selector,
-                "Target already has stakes"
-            )
-        );
-        aStaking.transferStakes(user2);
-    }
-
     function test_PenaltyDisabled_ImmediateUnstake_NoPenalty() public {
         uint256 stakeAmount = STAKE_AMOUNT;
         uint256 lockupPeriod = aMaxLockupPeriod; // otherwise would have max penalty
@@ -1855,17 +1601,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
             userSummerBefore + stakeAmount,
             "user receives full amount back"
         );
-    }
-
-    function test_create_multiple_stakes_and_transfer_measure_gas() public {
-        deal(address(aSummerToken), user1, STAKE_AMOUNT * 100);
-        uint[] memory counts = new uint[](10);
-        for (uint256 i = 0; i < 10; i++) {
-            counts[i] = i * 50 + 50;
-        }
-        for (uint256 i = 0; i < 10; i++) {
-            _create_multiple_stakes_and_transfer_measure_gas(counts[i]);
-        }
     }
 
     function test_GetAllBucketInfoAndDetails_AllBuckets() public {
@@ -1977,46 +1712,6 @@ contract SummerStakingLockupTest is SummerStakingTestBase {
         for (uint256 i = 0; i < 7; i++) {
             assertEq(st2[i], 0);
         }
-    }
-
-    function _create_multiple_stakes_and_transfer_measure_gas(
-        uint count
-    ) internal {
-        SummerStaking freshStaking = createFreshStakingWithDefaultCaps();
-        vm.prank(address(timelockA));
-        freshStaking.updateLockupBucketCap(
-            ISummerStaking.Bucket.ShortTerm,
-            type(uint256).max
-        );
-
-        for (uint256 i = 0; i < count; i++) {
-            _stake(
-                freshStaking,
-                user1,
-                STAKE_AMOUNT / 100,
-                aMinLockupPeriod + i
-            );
-        }
-
-        uint256 gasBefore = gasleft();
-        vm.prank(user1);
-        axSumr.approve(address(freshStaking), STAKE_AMOUNT * 100);
-        address newUser = makeAddr(string(abi.encodePacked("user", count)));
-        vm.prank(user1);
-        freshStaking.transferStakes(newUser);
-        uint256 gasAfter = gasleft();
-        uint256 gasUsed = gasBefore - gasAfter;
-        assertLt(gasUsed, 250000, "gas used should be less than 250000");
-        assertEq(
-            freshStaking.getUserStakesCount(user1),
-            0,
-            "user1 should have 0 stakes"
-        );
-        assertEq(
-            freshStaking.getUserStakesCount(newUser),
-            count + 1,
-            "newUser should have count + 1 stakes"
-        );
     }
 
     function test_Fuzz_Unstake_MultiStep_AfterLockup(
