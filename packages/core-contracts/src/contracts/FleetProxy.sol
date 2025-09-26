@@ -48,6 +48,9 @@ contract FleetProxy is
     /// @notice The latest incoming transfer ID
     bytes32 public latestIncomingTransferId;
 
+    /// @notice The latest outgoing transfer ID
+    bytes32 public latestOutgoingTransferId;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -198,6 +201,7 @@ contract FleetProxy is
             options
         );
 
+        latestOutgoingTransferId = opId;
         emit InflightSet(inflightWithdrawals, opId);
 
         emit AssetsWithdrawnAndTransferred(
@@ -272,8 +276,9 @@ contract FleetProxy is
         override
         returns (BridgeTypes.OperationType[] memory supportedTypes)
     {
-        supportedTypes = new BridgeTypes.OperationType[](1);
+        supportedTypes = new BridgeTypes.OperationType[](2);
         supportedTypes[0] = BridgeTypes.OperationType.TRANSFER_ASSET;
+        supportedTypes[1] = BridgeTypes.OperationType.MESSAGE;
     }
 
     /**
@@ -307,6 +312,30 @@ contract FleetProxy is
         // Note: Inflight withdrawals are cleared via acknowledgeHubReceipt (SuperKeeper)
         // or forceUpdateInflightAssets (Governor) after bridge completion
         latestIncomingTransferId = params.operationId;
+    }
+
+    /**
+     * @notice Handles MESSAGE operation type (ACK from CrossChainArk confirming receipt of withdrawal)
+     * @param params Decoded message parameters
+     */
+    function _handleMessage(
+        BridgeTypes.RelayedMessageParams memory params
+    ) internal override whenNotPaused {
+        if (params.sourceChainId != hubChainId) revert InvalidSourceChain();
+        if (params.originator != _getSourceChainArk(params.sourceChainId)) {
+            revert InvalidRequestor();
+        }
+
+        bytes32 ackOpId = abi.decode(params.message, (bytes32));
+
+        uint256 previous = inflightWithdrawals;
+        if (previous == 0) revert InvalidOperation();
+        if (ackOpId == bytes32(0)) revert InvalidOperation();
+        if (ackOpId != latestOutgoingTransferId) revert InvalidOperation();
+
+        inflightWithdrawals = 0;
+        latestOutgoingTransferId = bytes32(0);
+        emit InflightCleared(ackOpId, previous);
     }
 
     /*//////////////////////////////////////////////////////////////

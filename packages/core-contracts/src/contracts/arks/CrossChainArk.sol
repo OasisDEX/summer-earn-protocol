@@ -42,6 +42,9 @@ contract CrossChainArk is
     /// @notice The latest outgoing transfer ID
     bytes32 public latestOutgoingTransferId;
 
+    /// @notice The latest incoming transfer ID received from the satellite proxy
+    bytes32 public latestIncomingTransferId;
+
     /// @notice The last amount sent in the latest outgoing transfer
     uint256 public lastSentAmount;
 
@@ -342,6 +345,29 @@ contract CrossChainArk is
         );
 
         emit AssetsReceived(params.asset, params.amount, params.sourceChainId);
+
+        // Track the latest incoming transfer id to ACK back to satellite
+        latestIncomingTransferId = params.operationId;
+    }
+
+    /// @notice Notifies the satellite chain proxy that assets have been received on the hub
+    /// @dev Keeper-triggered message to clear inflight on FleetProxy via ACK
+    function notifySatelliteReceipt(
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable onlyKeeper {
+        IBridgeRouter bridgeRouter = IBridgeRouter(bridgeRouter());
+        if (latestIncomingTransferId == bytes32(0)) revert InvalidRequestor();
+
+        BridgeTypes.ExecuteSendMessageParams memory params = BridgeTypes
+            .ExecuteSendMessageParams({
+                originator: address(this),
+                destinationChainId: satelliteChainId,
+                target: _getTargetProxy(),
+                message: abi.encode(latestIncomingTransferId),
+                refundAddress: msg.sender
+            });
+
+        bridgeRouter.executeSendMessage{value: msg.value}(params, options);
     }
 
     /*//////////////////////////////////////////////////////////////
