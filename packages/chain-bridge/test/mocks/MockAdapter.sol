@@ -69,7 +69,7 @@ contract MockAdapter is
     ) BaseBridgeAdapter(_registry, _accessManager) {
         // Initialize operation type to message type mapping (for consistency)
         operationToMessageType[BridgeTypes.OperationType.MESSAGE] = 1; // Mock message type
-        operationToMessageType[BridgeTypes.OperationType.READ_STATE] = 2; // Mock read type
+        // READ_STATE removed
         operationToMessageType[BridgeTypes.OperationType.TRANSFER_ASSET] = 3; // Mock transfer type
 
         // Initialize default supported chain for testing
@@ -77,7 +77,7 @@ contract MockAdapter is
 
         // Initialize default supported operations
         supportedOperations[BridgeTypes.OperationType.MESSAGE] = true;
-        supportedOperations[BridgeTypes.OperationType.READ_STATE] = true;
+        // READ_STATE removed
         supportedOperations[BridgeTypes.OperationType.TRANSFER_ASSET] = true;
     }
 
@@ -130,28 +130,7 @@ contract MockAdapter is
         // No return value needed
     }
 
-    /// @inheritdoc IMessageAdapter
-    function readState(
-        bytes32 operationId, // Accept from router
-        BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata /* options */
-    ) external payable onlyRouter {
-        // Verify chain is supported
-        if (!this.supportsChain(params.destinationChainId))
-            revert UnsupportedChain();
-
-        // Use the provided operation ID (don't generate our own)
-        emit MockReadInitiated(
-            operationId, // Use router's ID
-            uint16(0),
-            params.destinationChainId,
-            params.target,
-            params.selector,
-            params.readParams
-        );
-
-        // No return value needed
-    }
+    // READ_STATE entrypoint removed
 
     /// @inheritdoc IBridgeAdapter
     function estimateTransferAssets(
@@ -168,20 +147,7 @@ contract MockAdapter is
         tokenFee = 0;
     }
 
-    /// @inheritdoc IBridgeAdapter
-    function estimateReadState(
-        BridgeTypes.ExecuteReadStateParams calldata params,
-        BridgeTypes.BridgeOptions calldata /* options */
-    ) external view returns (uint256 nativeFee, uint256 tokenFee) {
-        // Check if chain is supported
-        if (!supportedChains[params.destinationChainId]) {
-            revert UnsupportedChain();
-        }
-
-        // Return base fee of 0.05 ETH for read operations
-        nativeFee = (0.05 ether * feeMultiplier) / 100;
-        tokenFee = 0;
-    }
+    // READ_STATE estimate removed
 
     /// @inheritdoc IBridgeAdapter
     function estimateSendMessage(
@@ -321,7 +287,6 @@ contract MockAdapter is
         return
             supportedChains[destinationChainId] &&
             supportedOperations[operationType] &&
-            (operationType == BridgeTypes.OperationType.MESSAGE ||
-                operationType == BridgeTypes.OperationType.READ_STATE);
+            (operationType == BridgeTypes.OperationType.MESSAGE);
     }
 }

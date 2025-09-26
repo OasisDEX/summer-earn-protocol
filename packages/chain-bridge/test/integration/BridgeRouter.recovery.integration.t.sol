@@ -347,25 +347,7 @@ contract BridgeRouterRecoveryIntegrationTest is Test {
     // NOTE: Adapter override tests removed as adapter overrides are no longer supported
     // function testIntegration_Message_MissingPeerMapping_ThenRetryWithAdapterOverride() - REMOVED
 
-    function testIntegration_ReadState_Unauthorized_FailureRecorded() public {
-        // No mapping exists for this opId, so READ_STATE delivery should record Unauthorized failure
-        bytes32 opId = keccak256("integration-op8");
-
-        BridgeTypes.RelayedReadResponse memory r = BridgeTypes
-            .RelayedReadResponse({
-                readResponseData: hex"00",
-                operationId: opId,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        bytes memory payload = abi.encode(r);
-
-        vm.prank(address(mockAdapter));
-        router.deliver(BridgeTypes.OperationType.READ_STATE, payload);
-
-        (bytes32[] memory ids, ) = router.getFailedDeliveryIds(0, 10);
-        assertEq(ids.length, 1);
-        assertEq(ids[0], opId);
-    }
+    // READ_STATE failure test removed (feature unsupported)
 
     /* ------------------------------------------------------------ */
     /*                    Payload Validation Integration Tests       */

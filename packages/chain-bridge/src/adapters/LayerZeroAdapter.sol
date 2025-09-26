@@ -39,8 +39,6 @@ contract LayerZeroAdapter is
     /// @notice Mapping of LayerZero message hashes to operation IDs
     mapping(bytes32 guid => bytes32 operationId) public lzMessageToOperationId;
 
-    // NOTE: READ_STATE-related storage and events removed
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -143,8 +141,6 @@ contract LayerZeroAdapter is
         );
     }
 
-    // NOTE: READ_STATE response handling removed
-
     /*//////////////////////////////////////////////////////////////
                           ADAPTER INTERFACE
     //////////////////////////////////////////////////////////////*/
@@ -156,8 +152,6 @@ contract LayerZeroAdapter is
     ) external pure returns (uint256, /* nativeFee */ uint256 /* tokenFee */) {
         revert OperationNotSupported();
     }
-
-    // NOTE: estimateReadState removed
 
     /// @inheritdoc IBridgeAdapter
     function estimateSendMessage(
@@ -187,17 +181,12 @@ contract LayerZeroAdapter is
             })
         );
 
-        bytes memory lzOptions = _createLzOptions(
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        bytes memory lzOptions = _createLzOptions(options);
 
         EndpointFee memory fee = _quote(lzDstEid, payload, lzOptions, false);
 
         return (fee.nativeFee, fee.lzTokenFee);
     }
-
-    // NOTE: readState removed
 
     /// @inheritdoc IMessageAdapter
     function sendMessage(
@@ -229,10 +218,7 @@ contract LayerZeroAdapter is
                 sourceChainId: uint16(block.chainid)
             })
         );
-        bytes memory lzOptions = _createLzOptions(
-            options,
-            BridgeTypes.OperationType.MESSAGE
-        );
+        bytes memory lzOptions = _createLzOptions(options);
 
         // Send message through OApp's _lzSend
         // Use params.refundAddress which is set to the keeper who initiated the transaction

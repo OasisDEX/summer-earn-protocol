@@ -54,8 +54,6 @@ contract LayerZeroAdapterSendTest is LayerZeroAdapterSetupTest {
             )
         );
 
-        routerA.setOperationToAdapter(operationId, address(adapterA));
-
         vm.deal(address(routerA), 1 ether);
 
         // Expect the MessageInitiated event to be emitted

@@ -80,8 +80,7 @@ contract LayerZeroAdapterMessageSendForkTest is LayerZeroAdapterForkSetupTest {
             options
         );
 
-        // Set up operation mapping
-        router.setOperationToAdapter(operationId, address(layerZeroAdapter));
+        // operationToAdapter mapping removed; no setup required
 
         // Call layerZeroAdapter through router context (authorized)
         vm.startPrank(address(router));

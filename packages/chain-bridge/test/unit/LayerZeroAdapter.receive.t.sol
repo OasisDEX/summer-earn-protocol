@@ -19,49 +19,7 @@ contract LayerZeroAdapterReceiveTest is LayerZeroAdapterSetupTest {
         mockReceiver = new MockCrossChainReceiver();
     }
 
-    function testStateRead() public {
-        // Create a operationId that we'll use for both sending and receiving
-        bytes32 operationId = bytes32(uint256(1));
-
-        // Use the test helper's methods to set up the initial state
-        routerA.setOperationToAdapter(operationId, address(adapterA));
-
-        // Set the originator for the read request to our mock receiver instead of user
-        routerA.setReadRequestOriginator(operationId, address(mockReceiver));
-
-        // Create read response payload
-        uint256 mockReadValue = 123456; // Mock balance value
-        bytes memory responseData = abi.encode(mockReadValue);
-
-        // Format the state read response appropriately
-        bytes memory payload = responseData; // For read responses, the payload is just the result data
-
-        // Create origin with special READ_CHANNEL_THRESHOLD to simulate read response
-        Origin memory origin = Origin({
-            srcEid: 4294965695, // Above READ_CHANNEL_THRESHOLD to indicate read response
-            sender: addressToBytes32(address(adapterB)),
-            nonce: 1
-        });
-
-        bytes32 guid = keccak256(abi.encodePacked(payload));
-
-        adapterA.setLzMessageToOperationId(guid, operationId);
-        // Ensure expected chain is set so _relayReadResponse passes trust checks
-        adapterA.setExpectedReadChainByGuid(guid, CHAIN_ID_B);
-        // Call lzReceiveTest with the proper parameters
-        adapterA.lzReceiveTest(
-            origin,
-            guid,
-            payload,
-            address(adapterB),
-            bytes("")
-        );
-
-        assertEq(
-            abi.decode(mockReceiver.lastReceivedData(), (uint256)),
-            mockReadValue
-        );
-    }
+    // READ_STATE receive test removed
 
     function testGeneralMessageDelivery() public {
         bytes32 messageId = bytes32(uint256(1));

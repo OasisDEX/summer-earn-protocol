@@ -170,10 +170,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
 
         // Setup the router to expect this operation from this adapter
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
+        // operationToAdapter no longer exists; no setup needed
 
         // Mock a transfer request from the router
         vm.prank(address(routerA));
@@ -287,12 +284,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
 
         // vm.prank(governor);
         // routerA.registerAdapter(address(adapterA));
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            bytes32(
-                0x528376a1966c744b216d0b277b4672bcda5b6ddb690dc471e2cb20923fbda502
-            ),
-            address(adapterA)
-        );
+        // operationToAdapter no longer exists; no setup needed
 
         // Setup adapter params
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
@@ -375,10 +367,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
         );
 
         // Setup the router to expect this operation from this adapter
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
+        // operationToAdapter no longer exists; no setup needed
 
         // Try to transfer with insufficient fee (half of required)
         vm.prank(address(routerA));
@@ -452,10 +441,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             )
         );
 
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
+        // operationToAdapter no longer exists; no setup needed
         console.log("transferAssetMsgValueConsistency 0");
         BridgeTypes.ExecuteTransferParams memory params = BridgeTypes
             .ExecuteTransferParams({
@@ -494,10 +480,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             )
         );
 
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId2,
-            address(adapterA)
-        );
+        // operationToAdapter no longer exists; no setup needed
         // Test with significantly MORE than required fee - should also work
         vm.prank(address(routerA));
         adapterA.transferAsset{value: requiredFee * 100}(
@@ -551,10 +534,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             )
         );
 
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
+        // operationToAdapter no longer exists; no setup needed
 
         // Test with 1 wei less - should fail
         vm.prank(address(routerA));
@@ -621,11 +601,7 @@ contract StargateAdapterSendTest is StargateAdapterSetupTest {
             )
         );
 
-        // Setup router
-        BridgeRouterTestHelper(address(routerA)).setOperationToAdapter(
-            expectedOperationId,
-            address(adapterA)
-        );
+        // operationToAdapter no longer exists; no setup needed
 
         // Mock the quoteOFT call to return high slippage
         // Create the response structs
