@@ -141,6 +141,4 @@ contract MockCrossChainRegistry is ICrossChainRegistry {
     ) external view returns (bool) {
         return _isExecutor[executor];
     }
-
-    function testSkipper() public {}
 }

@@ -279,6 +279,4 @@ abstract contract LayerZeroAdapterForkSetupTest is Test {
             "Operation mapping should be set correctly"
         );
     }
-
-    function testSkipper() public {}
 }

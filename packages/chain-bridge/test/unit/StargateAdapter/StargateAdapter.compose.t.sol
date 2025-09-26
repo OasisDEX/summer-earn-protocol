@@ -21,8 +21,6 @@ contract StargateAdapterComposeTest is
     MockFleetProxy public fleetProxyA;
     MockFleetProxy public fleetProxyB;
 
-    // OFT helpers moved to StargateOFTHelpers
-
     function setUp() public override {
         super.setUp();
 

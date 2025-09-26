@@ -24,8 +24,6 @@ contract MockTargetContract {
     function balanceOf(address) external pure returns (uint256) {
         return 1000e18; // Mock balance
     }
-
-    function testSkipper() public {}
 }
 
 /**

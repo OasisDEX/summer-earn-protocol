@@ -96,6 +96,4 @@ library BridgeOptionsTestHelper {
                 options: options
             });
     }
-
-    function testSkipper() public {}
 }
