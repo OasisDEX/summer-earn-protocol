@@ -198,12 +198,12 @@ export default function SummerStakingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black p-6 md:p-10">
+    <main className="min-h-screen bg-charcoal-900 p-6 md:p-10">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center gap-4 mb-2">
           <button
             onClick={() => router.back()}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg"
+            className="px-4 py-2 bg-charcoal-800 hover:bg-gray-700 text-white rounded-lg border border-white/10"
           >
             ← Back
           </button>
@@ -211,11 +211,11 @@ export default function SummerStakingPage() {
         </div>
 
         {/* Buckets */}
-        <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
+        <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10">
           <h2 className="text-xl font-semibold text-white mb-4">Lockup Buckets</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {buckets.map((b, i) => (
-              <div key={i} className="p-4 rounded-lg bg-gray-800 border border-gray-700">
+              <div key={i} className="p-4 rounded-lg bg-charcoal-800 border border-white/10">
                 <div className="flex justify-between items-center mb-2">
                   <div className="text-gray-300">Bucket #{b.key}</div>
                   <div className={`px-2 py-0.5 text-xs rounded ${b.color} text-white`}>
@@ -247,7 +247,7 @@ export default function SummerStakingPage() {
 
         {/* Stake */}
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800 space-y-4">
+          <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10 space-y-4">
             <h2 className="text-xl font-semibold text-white">Stake</h2>
             <div>
               <label className="block text-sm text-gray-300 mb-1">Amount ({summerSymbol})</label>
@@ -255,7 +255,7 @@ export default function SummerStakingPage() {
                 value={amountStr}
                 onChange={(e) => onAmountChange(e.target.value)}
                 placeholder={`0.0`}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                className="w-full px-3 py-2 bg-charcoal-800 border border-white/10 rounded text-white"
               />
             </div>
             <div>
@@ -273,19 +273,19 @@ export default function SummerStakingPage() {
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3 bg-gray-800 rounded">
+              <div className="p-3 bg-charcoal-800 rounded border border-white/10">
                 <div className="text-xs text-gray-400">Current multiplier</div>
                 <div className="text-lg text-white font-semibold">
                   {formatMultiplier(currentOverallMultiplierWad)}
                 </div>
               </div>
-              <div className="p-3 bg-gray-800 rounded">
+              <div className="p-3 bg-charcoal-800 rounded border border-white/10">
                 <div className="text-xs text-gray-400">New stake multiplier</div>
                 <div className="text-lg text-white font-semibold">
                   {amount > 0n ? formatMultiplier(previewMultiplierWad) : '—'}
                 </div>
               </div>
-              <div className="p-3 bg-gray-800 rounded">
+              <div className="p-3 bg-charcoal-800 rounded border border-white/10">
                 <div className="text-xs text-gray-400">Projected overall</div>
                 <div className="text-lg text-white font-semibold">
                   {formatMultiplier(projectedOverallMultiplierWad)}
@@ -296,14 +296,14 @@ export default function SummerStakingPage() {
               <button
                 onClick={() => approveSummer()}
                 disabled={!canApproveEnabled || isPending || isConfirming}
-                className={`px-4 py-2 rounded ${canApproveEnabled && !isPending && !isConfirming ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
+                className={`px-4 py-2 rounded ${canApproveEnabled && !isPending && !isConfirming ? 'bg-magenta-600 hover:bg-magenta-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
               >
                 Approve {summerSymbol}
               </button>
               <button
                 onClick={() => stakeLockup(amount, BigInt(lockup))}
                 disabled={!canStake || needsSummerApproval(amount) || isPending || isConfirming}
-                className={`px-4 py-2 rounded ${canStake && !needsSummerApproval(amount) && !isPending && !isConfirming ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
+                className={`px-4 py-2 rounded ${canStake && !needsSummerApproval(amount) && !isPending && !isConfirming ? 'bg-magenta-600 hover:bg-magenta-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
               >
                 {isPending || isConfirming ? 'Submitting…' : 'Stake'}
               </button>
@@ -322,7 +322,7 @@ export default function SummerStakingPage() {
                   >
                     <polyline
                   fill="none"
-                  stroke="#34d399"
+                      stroke="#ff2d8f"
                   strokeWidth="0.5"
                       points={penaltyChart.points
                         .map((p) => `${chartWidth - p.x},${20 - p.y}`)
@@ -353,14 +353,14 @@ export default function SummerStakingPage() {
           </div>
 
           {/* Unstake */}
-          <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800 space-y-4">
+          <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10 space-y-4">
             <h2 className="text-xl font-semibold text-white">Unstake</h2>
             <div>
               <label className="block text-sm text-gray-300 mb-1">Select Stake</label>
               <select
                 value={unstakeIndex}
                 onChange={(e) => setUnstakeIndex(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                className="w-full px-3 py-2 bg-charcoal-800 border border-white/10 rounded text-white"
               >
                 {stakes.map((s) => (
                   <option key={s.index} value={s.index}>
@@ -376,7 +376,7 @@ export default function SummerStakingPage() {
                   value={unstakeAmountStr}
                   onChange={(e) => onUnstakeAmountChange(e.target.value)}
                   placeholder={`0.0`}
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                  className="flex-1 px-3 py-2 bg-charcoal-800 border border-white/10 rounded text-white"
                 />
                 <button
                   type="button"
@@ -385,7 +385,7 @@ export default function SummerStakingPage() {
                     setUnstakeAmount(selectedStake.amount)
                     setUnstakeAmountStr(formatAmount(selectedStake.amount, summerDecimals))
                   }}
-                  className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                  className="px-3 py-2 bg-magenta-600 hover:bg-magenta-700 text-white rounded"
                 >
                   Max
                 </button>
@@ -414,7 +414,7 @@ export default function SummerStakingPage() {
               <button
                 onClick={() => approveXSummer()}
                 disabled={!canUnstake || !needsXSummerApproval(unstakeAmount)}
-                className={`px-4 py-2 rounded ${canUnstake && needsXSummerApproval(unstakeAmount) ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
+                className={`px-4 py-2 rounded ${canUnstake && needsXSummerApproval(unstakeAmount) ? 'bg-magenta-600 hover:bg-magenta-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
               >
                 Approve xSUMR
               </button>
@@ -423,7 +423,7 @@ export default function SummerStakingPage() {
                 disabled={
                   !canUnstake || needsXSummerApproval(unstakeAmount) || isPending || isConfirming
                 }
-                className={`px-4 py-2 rounded ${canUnstake && !needsXSummerApproval(unstakeAmount) && !isPending && !isConfirming ? 'bg-orange-600 hover:bg-orange-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
+                className={`px-4 py-2 rounded ${canUnstake && !needsXSummerApproval(unstakeAmount) && !isPending && !isConfirming ? 'bg-magenta-600 hover:bg-magenta-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'} text-white`}
               >
                 {isPending || isConfirming ? 'Submitting…' : 'Unstake'}
               </button>
@@ -433,7 +433,7 @@ export default function SummerStakingPage() {
         </div>
 
         {/* Stakes list */}
-        <div className="rounded-2xl p-6 bg-gray-900 border border-gray-800">
+        <div className="rounded-2xl p-6 bg-charcoal-900 border border-white/10">
           <h2 className="text-xl font-semibold text-white mb-4">Your Stakes</h2>
           {stakes.length === 0 ? (
             <div className="text-gray-400">No stakes yet.</div>
