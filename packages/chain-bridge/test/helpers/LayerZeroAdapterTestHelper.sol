@@ -63,8 +63,6 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
         lzMessageToOperationId[guid] = operationId;
     }
 
-    // READ_STATE helper removed
-
     /**
      * @notice Exposes the internal getLayerZeroChainId function for testing
      * @param chainId Chain ID
