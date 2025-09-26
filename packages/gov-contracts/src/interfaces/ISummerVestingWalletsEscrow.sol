@@ -193,7 +193,7 @@ interface ISummerVestingWalletsEscrow {
     ///         ownership back to the user for each.
     /// @dev Each factory is processed independently; this burns xSUMR equal to the recorded staked balance for that
     ///      factory and transfers vesting wallet ownership back to the original owner. Any SUMR released while staked
-    ///      is forwarded to the original owner.
+    ///      is forwarded to the original owner. user has to approve the escrow to burn xSUMR.
     /// @param factories The list of vesting factory addresses to unstake.
     /// @custom:reverts Staking_NoStakeForFactory If a specified factory has not been staked by the caller.
     /// @custom:reverts Staking_InvalidOwner If the vesting wallet is not owned by the escrow.
